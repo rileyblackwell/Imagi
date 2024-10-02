@@ -1,0 +1,45 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Website Builder</title>
+</head>
+<body>
+    <h1>Welcome to Website Builder!</h1>
+    <form id="input-form">
+        {% csrf_token %}
+        <label for="user-input">Enter your input:</label>
+        <textarea id="user-input" name="user-input"></textarea>
+        <button id="submit-btn">Submit</button>
+    </form>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var csrftoken = Cookies.get('csrftoken');
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            });
+            $('#submit-btn').click(function(event) {
+                event.preventDefault();
+                var userInput = $('#user-input').val();
+                // Send the user input to the server-side view
+                $.ajax({
+                    type: 'POST',
+                    url: '/process-input/',
+                    data: {'user_input': userInput},
+                    success: function(response) {
+                        // Open the returned HTML in a new tab
+                        var newTab = window.open('', '_blank');
+                        newTab.document.write(response);
+                    }
+                });
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+</body>
+</html>
