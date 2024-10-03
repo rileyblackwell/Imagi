@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 requests = "*"
 django = "*"
+python-dotenv = "*"
+openai = "*"
+bs4 = "*"
 
 [dev-packages]
 
