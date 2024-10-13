@@ -99,6 +99,7 @@
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 }
             });
+            var websiteTab = null;
             $('#submit-btn').click(function(event) {
                 event.preventDefault();
                 var userInput = $('#user-input').val();
@@ -108,10 +109,14 @@
                     url: '/process-input/',
                     data: {'user_input': userInput},
                     success: function(response) {
-                        // Open the returned HTML in a new tab
-                        var newTab = window.open('', '_blank');
-                        newTab.document.write(response.html);
-                        newTab.document.close();
+                        // Open the returned HTML in a new tab, or replace the existing tab
+                        if (websiteTab === null) {
+                            websiteTab = window.open('', '_blank');
+                        } else {
+                            websiteTab.location.href = '';
+                        }
+                        websiteTab.document.write(response.html);
+                        websiteTab.document.close();
                         // Clear the form fields
                         $('#user-input').val('');
                     }
