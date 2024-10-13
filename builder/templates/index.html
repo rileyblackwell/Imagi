@@ -5,13 +5,16 @@
 <head>
     <title>Website Builder</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f9f9f9;
+            padding: 0;
+            margin: 0;
         }
-        #input-form {
-            width: 50%;
+        .container {
+            width: 80%;
             margin: 40px auto;
             padding: 20px;
             background-color: #fff;
@@ -19,35 +22,72 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+        #input-form {
+            padding: 20px;
+        }
         #user-input {
             width: 100%;
             height: 150px;
             padding: 10px;
             font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
         #submit-btn {
             width: 100%;
             padding: 10px;
             font-size: 16px;
-            background-color: #4CAF50;
+            background-color: #32b854;
             color: #fff;
             border: none;
             border-radius: 10px;
             cursor: pointer;
         }
         #submit-btn:hover {
-            background-color: #3e8e41;
+            background-color: #2ea84a;
+        }
+        #clear-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #c9302c;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        #clear-btn:hover {
+            background-color: #a10a1a;
+        }
+        .btn-container {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <h1 class="text-center mt-4">Welcome to Website Builder!</h1>
-    <form id="input-form">
-        {% csrf_token %}
-        <label for="user-input" class="mb-2">Enter your input:</label>
-        <textarea id="user-input" name="user-input"></textarea>
-        <button id="submit-btn" class="mt-2">Submit</button>
-    </form>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Website Builder!</h1>
+        </div>
+        <form id="input-form">
+            {% csrf_token %}
+            <label for="user-input" class="mb-2">Enter your input:</label>
+            <textarea id="user-input" name="user-input"></textarea>
+            <div class="btn-container">
+                <button id="submit-btn" class="mt-2">Submit</button>
+                <button id="clear-btn" class="mt-2">Clear Conversation History</button>
+            </div>
+        </form>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
@@ -72,6 +112,19 @@
                         var newTab = window.open('', '_blank');
                         newTab.document.write(response.html);
                         newTab.document.close();
+                        // Clear the form fields
+                        $('#user-input').val('');
+                    }
+                });
+            });
+            $('#clear-btn').click(function(event) {
+                event.preventDefault();
+                // Send a request to clear the conversation history
+                $.ajax({
+                    type: 'GET',
+                    url: '/clear-conversation-history/',
+                    success: function(response) {
+                        console.log(response.message);
                     }
                 });
             });

@@ -24,4 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('process-input/', views.process_input, name='process_input'),
+    path('clear-conversation-history/', views.clear_conversation_history, name='clear_conversation_history'),
 ]

@@ -24,6 +24,17 @@ def process_input(request):
     # Get the conversation history from the session
     conversation_history = request.session.get('conversation_history', [])
 
+    # Add a system message to the conversation history
+    system_message = {
+        "role": "system",
+        "content": (
+            "You are a helpful assistant that generates HTML code for webpages. "
+            "Respond with a complete HTML webpage, including a doctype declaration, "
+            "HTML tags, and a basic structure."
+        )
+    }
+    conversation_history.append(system_message)
+
     # Append the user's input to the conversation history
     conversation_history.append({"role": "user", "content": user_input})
 
@@ -50,11 +61,10 @@ def process_input(request):
     else:
         parsed_html = html
 
-    # Print the AI-generated HTML to the terminal
-    print("\n")
-    print(parsed_html)
-    print("\n")
-
+    # Print the AI-generated HTML to a file
+    with open('output.html', 'w') as f:
+        f.write(parsed_html)
+    
     # Append the AI's response to the conversation history
     conversation_history.append({"role": "assistant", "content": parsed_html})
 
@@ -63,3 +73,8 @@ def process_input(request):
 
     # Return a JSON response with the HTML
     return JsonResponse({'html': parsed_html})
+
+def clear_conversation_history(request):
+    if 'conversation_history' in request.session:
+        del request.session['conversation_history']
+    return JsonResponse({'message': 'Conversation history cleared'})
