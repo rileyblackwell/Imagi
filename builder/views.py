@@ -30,7 +30,8 @@ def process_input(request):
         "content": (
             "You are a helpful assistant that generates HTML code for webpages. "
             "Respond with a complete HTML webpage, including a doctype declaration, "
-            "HTML tags, and a basic structure."
+            "HTML tags, and a basic structure. Use inline CSS or JavaScript if needed. "
+            "You create attractive, professional-looking, and responsive webpages. "
         )
     }
     conversation_history.append(system_message)

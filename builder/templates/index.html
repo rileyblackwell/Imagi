@@ -109,8 +109,8 @@
                     url: '/process-input/',
                     data: {'user_input': userInput},
                     success: function(response) {
-                        // Open the returned HTML in a new tab, or replace the existing tab
-                        if (websiteTab === null) {
+                        // Check if the tab is still open
+                        if (websiteTab === null || websiteTab.closed) {
                             websiteTab = window.open('', '_blank');
                         } else {
                             websiteTab.location.href = '';
