@@ -1,5 +1,3 @@
-# views.py
-
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
@@ -15,6 +13,8 @@ def process_input(request):
     load_dotenv()  # loads environment variables from .env
     
     user_input = request.POST.get('user_input')
+    model = request.POST.get('model')  # Get the selected model from the request
+
     # Set your OpenAI API key and endpoint URL
     api_key = os.getenv('OPENAI_KEY')
 
@@ -28,21 +28,26 @@ def process_input(request):
     system_message = {
         "role": "system",
         "content": (
-            "You are a helpful assistant that generates HTML code for webpages. "
-            "Respond with a complete HTML webpage, including a doctype declaration, "
-            "HTML tags, and a basic structure. Use inline CSS or JavaScript if needed. "
-            "You create attractive, professional-looking, and responsive webpages. "
+            "You are a skilled web developer with expertise in HTML, CSS, and JavaScript. "
+            "Your task is to generate complete, well-structured, and visually appealing HTML webpages. "
+            "Ensure that your responses include a doctype declaration, HTML tags, and a basic structure. "
+            "Use semantic HTML elements, CSS selectors, and JavaScript functions to create interactive and responsive webpages. "
+            "Consider accessibility, usability, and web standards when crafting your responses. "
+            "Respond with a fully functional HTML webpage that is ready to be rendered in a web browser. "
+            "Use inline CSS or JavaScript if necessary. "
+            "Your goal is to create professional-looking webpages that are easy to use, efficient, and effective. "
         )
     }
+    
     conversation_history.append(system_message)
 
     # Append the user's input to the conversation history
     conversation_history.append({"role": "user", "content": user_input})
 
-    # Create a completion using the GPT-4o-mini model
+    # Create a completion using the selected model
     try:
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,  # Use the selected model
             messages=conversation_history
         )
     except Exception as e:

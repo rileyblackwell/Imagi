@@ -1,6 +1,6 @@
 body {
     font-family: 'Montserrat', sans-serif;
-    background-color: #1a1a1a;
+    background-color: #212121;
     padding: 0;
     margin: 0;
     transition: all 0.3s ease-in-out;
@@ -10,8 +10,8 @@ body {
     width: 80%;
     margin: 40px auto;
     padding: 40px;
-    background-color: #242424;
-    border: 1px solid #333;
+    background-color: #333;
+    border: 1px solid #444;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease-in-out;
@@ -26,14 +26,22 @@ body {
 .header h1 {
     font-size: 36px;
     font-weight: normal;
-    color: #ccc;
+    color: #fff;
     text-transform: none;
+    transition: all 0.3s ease-in-out;
+}
+
+.header .tagline {
+    font-size: 18px;
+    font-weight: normal;
+    color: #ccc;
+    margin-top: 10px;
     transition: all 0.3s ease-in-out;
 }
 
 .input-label {
     color: #ccc;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: normal;
     margin-bottom: 20px;
     display: block;
@@ -42,7 +50,7 @@ body {
 
 #input-form {
     padding: 40px;
-    background-color: #333;
+    background-color: #444;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     transition: all 0.3s ease-in-out;
@@ -53,50 +61,82 @@ body {
     height: 200px;
     padding: 20px;
     font-size: 18px;
-    border: 1px solid #444;
+    border: 1px solid #555;
     border-radius: 5px;
-    background-color: #242424;
+    background-color: #333;
     color: #fff;
     transition: all 0.3s ease-in-out;
 }
 
 #user-input:focus {
-    border-color: #555;
+    border-color: #666;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
     transition: all 0.3s ease-in-out;
 }
 
-#submit-btn {
+#submit-btn, #clear-btn {
     width: 100%;
     padding: 15px;
     font-size: 16px;
-    background-color: #4CAF50;
-    color: #fff;
     border: none;
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s ease-in-out;
+}
+
+#submit-btn {
+    background-color: #4CAF50;
+    color: #fff;
 }
 
 #submit-btn:hover {
     background-color: #3e8e41;
-    transition: all 0.3s ease-in-out;
 }
 
 #clear-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 16px;
     background-color: #FF3737;
     color: #fff;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
 }
 
 #clear-btn:hover {
     background-color: #e60000;
+}
+
+.model-select-container {
+    margin-bottom: 40px;
+}
+
+#model-select {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    background-color: #333;
+    color: #ccc;
+    border: 1px solid #444;
+}
+
+#model-select option {
+    background-color: #333;
+    color: #ccc;
+    padding: 10px;
+    border-bottom: 1px solid #444;
+}
+
+#model-select option:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+#model-select option:checked {
+    background-color: #555;
+    color: #fff;
+}
+
+#model-select:focus {
+    border-color: #555;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
     transition: all 0.3s ease-in-out;
 }
 

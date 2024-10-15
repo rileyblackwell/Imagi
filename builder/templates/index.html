@@ -1,24 +1,39 @@
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Builder</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'img/site.webmanifest' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body class="fade-in">
     <div class="container">
         <div class="header">
-            <h1>Welcome to Website Builder!</h1>
+            <h1>Welcome to Website Builder</h1>
+            <p class="tagline">Create stunning websites with ease</p>
         </div>
-        <form id="input-form">
+        <form id="input-form" class="form">
             {% csrf_token %}
             <div class="input-label">Enter your input:</div>
-            <textarea id="user-input" name="user-input"></textarea>
+            <textarea id="user-input" name="user-input" placeholder="Type something..."></textarea>
+            <div class="model-select-container">
+                <select id="model-select" name="model-select">
+                    <option value="">Select a Model</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-4o-mini">GPT-4o Mini</option>
+                </select>
+            </div>
             <div class="btn-container">
-                <button id="submit-btn" class="mt-2">Submit</button>
-                <button id="clear-btn" class="mt-2">Clear Conversation History</button>
+                <button id="submit-btn" class="btn btn-primary">Submit</button>
+                <button id="clear-btn" class="btn btn-secondary">Clear Conversation History</button>
             </div>
         </form>
     </div>
