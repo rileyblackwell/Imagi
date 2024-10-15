@@ -51,19 +51,22 @@ def process_input(request):
     # Get the AI-generated HTML
     html = completion.choices[0].message.content
 
-    # Parse the HTML to get only the HTML code
-    start_idx = html.find('<!DOCTYPE html>')
-    if start_idx == -1:
-        start_idx = html.find('<html>')
+    def test_html(html):
+        # Parse the HTML to get only the HTML code
+        start_idx = html.find('<!DOCTYPE html>')
+        if start_idx == -1:
+            start_idx = html.find('<html>')
 
-    end_idx = html.find('</html>') + len('</html>')
-    if start_idx != -1 and end_idx != -1:
-        parsed_html = html[start_idx:end_idx]
-    else:
-        parsed_html = html
+        end_idx = html.find('</html>') + len('</html>')
+        if start_idx != -1 and end_idx != -1:
+            return html[start_idx:end_idx]
+        else:
+            return html
+
+    parsed_html = test_html(html)
 
     # Print the AI-generated HTML to a file
-    with open('output.html', 'w') as f:
+    with open('../output.html', 'w') as f:
         f.write(parsed_html)
     
     # Append the AI's response to the conversation history
