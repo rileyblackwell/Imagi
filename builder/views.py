@@ -28,7 +28,7 @@ def process_input(request):
     system_message = {
         "role": "system",
         "content": (
-            "You are a skilled web developer with expertise in HTML, CSS, and JavaScript. "
+            "You are a skilled web developer with expertise in HTML, CSS, and JavaScript, tasked with crafting professional, elegant, and sleek websites that evoke the minimalist sophistication of Apple products. "
             "Your task is to generate complete, well-structured, and visually appealing HTML webpages. "
             "Ensure that your responses include a doctype declaration, HTML tags, and a basic structure. "
             "Use semantic HTML elements, CSS selectors, and JavaScript functions to create interactive and responsive webpages. "
