@@ -59,9 +59,51 @@ $(document).ready(function() {
             url: '/clear-conversation-history/',
             success: function(response) {
                 console.log("Clear History Success:", response.message); // Log on success
+                if (websiteTab && !websiteTab.closed) {
+                    websiteTab.close(); // Close the website tab if open
+                }
             },
             error: function(xhr, status, error) {
                 console.error("Clear History Error:", error); // Log errors
+            }
+        });
+    });
+
+    // Click event for the undo button
+    $('#undo-btn').click(function(event) {
+        event.preventDefault(); // Prevent default action
+        console.log("Undo Button Clicked: Removing last three entries from conversation history");
+
+        $.ajax({
+            type: 'POST',
+            url: '/undo-last-action/',
+            data: {
+                'csrfmiddlewaretoken': csrftoken // Include CSRF token
+            },
+            success: function(response) {
+                console.log("Undo Success:", response.message); // Log on success
+                alert(response.message); // Notify the user of success
+
+                // Check if there is HTML to render
+                if (response.html) {
+                    // Update the webpage with the new HTML
+                    if (websiteTab === null || websiteTab.closed) {
+                        websiteTab = window.open('', '_blank');
+                    } else {
+                        websiteTab.location.href = ''; // Clear the tab
+                    }
+                    websiteTab.document.write(response.html); // Write the new HTML to the tab
+                    websiteTab.document.close();
+                } else {
+                    // If no HTML is returned, close the tab if it's open
+                    if (websiteTab && !websiteTab.closed) {
+                        websiteTab.close();
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Undo Error:", error); // Log errors
+                alert("An error occurred while undoing the last action.");
             }
         });
     });

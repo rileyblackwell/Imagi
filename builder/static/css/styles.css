@@ -133,6 +133,22 @@ body {
     background-color: var(--button-background-hover);
 }
 
+#undo-btn {
+    width: 100%;
+    padding: 15px;
+    font-size: 16px;
+    background-color: #FFA500; /* Orange color for the Undo button */
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+#undo-btn:hover {
+    background-color: #e69500; /* Darker orange on hover */
+}
+
 #clear-btn {
     width: 100%;
     padding: 15px;
@@ -160,7 +176,7 @@ body {
     .btn-container {
         flex-direction: column;
     }
-    #submit-btn, #clear-btn {
+    #submit-btn, #undo-btn, #clear-btn {
         width: 100%;
         margin-bottom: 20px;
     }
