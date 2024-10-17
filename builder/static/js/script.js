@@ -72,7 +72,7 @@ $(document).ready(function() {
     // Click event for the undo button
     $('#undo-btn').click(function(event) {
         event.preventDefault(); // Prevent default action
-        console.log("Undo Button Clicked: Removing last three entries from conversation history");
+        console.log("Undo Button Clicked: Removing last two entries from conversation history");
 
         $.ajax({
             type: 'POST',
@@ -82,7 +82,7 @@ $(document).ready(function() {
             },
             success: function(response) {
                 console.log("Undo Success:", response.message); // Log on success
-                alert(response.message); // Notify the user of success
+                // alert(response.message); // Removed the alert message
 
                 // Check if there is HTML to render
                 if (response.html) {
