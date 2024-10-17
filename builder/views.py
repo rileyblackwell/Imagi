@@ -68,6 +68,10 @@ def process_input(request):
 
     parsed_html = test_html(html)  # Use the test_html function defined below
 
+    # Print the AI-generated HTML to a file
+    with open('../output.html', 'w') as f:
+        f.write(parsed_html)
+
     # Append the AI's response to the conversation history
     conversation_history.append({"role": "assistant", "content": parsed_html})
 
@@ -131,6 +135,10 @@ def undo_last_action(request):
         if len(conversation_history) > 1:
             # Get the previous HTML stored in the conversation history
             previous_html = conversation_history[-1]['content']  # Get the last assistant's response
+
+            # Print the AI-generated HTML to a file
+            with open('../output.html', 'w') as f:
+                f.write(previous_html)
 
             return JsonResponse({'message': message, 'html': previous_html})
 
