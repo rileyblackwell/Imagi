@@ -184,16 +184,20 @@ body {
 
 .btn-container {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     flex-wrap: wrap;
+    margin-top: 20px;
 }
 
 .btn {
     padding: 0.7rem 1.5rem;
     border-radius: 30px;
     font-size: 0.9rem;
-    margin: 8px;
-    min-width: 100px;
+    margin: 5px;
+    flex-grow: 1;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .btn-primary {
@@ -333,5 +337,17 @@ body {
         width: 14px;
         height: 14px;
         margin-right: 6px;
+    }
+}
+
+/* Responsive adjustments for buttons */
+@media screen and (max-width: 768px) {
+    .btn-container {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        margin: 5px 0;
     }
 }
