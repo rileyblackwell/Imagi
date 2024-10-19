@@ -24,12 +24,13 @@ body {
     width: 90%;
     max-width: 900px;
     margin: 20px auto;
-    padding: 30px;
+    padding: 40px;
     background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
+    border-radius: 50px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     color: #ffffff;
     backdrop-filter: blur(10px);
+    margin-bottom: 40px; /* Reduced from 60px to 40px */
 }
 
 /* Remove or comment out the previous .logo-title-container styles */
@@ -109,7 +110,7 @@ body {
 
 #input-form {
     background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
+    border-radius: 30px;
     padding: 2rem;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
@@ -117,6 +118,10 @@ body {
 
 #input-form:hover {
     background-color: rgba(255, 255, 255, 0.12); /* Reduced from 0.15 to 0.12 */
+}
+
+#user-input, #model-select {
+    border-radius: 20px;
 }
 
 #user-input {
@@ -221,6 +226,7 @@ body {
     .container {
         width: 95%;
         padding: 20px;
+        border-radius: 40px;
     }
 
     .header h1 {
@@ -233,6 +239,7 @@ body {
 
     #input-form {
         padding: 1.5rem;
+        border-radius: 25px;
     }
 
     .btn {
@@ -248,5 +255,77 @@ body {
 
     .header h1 {
         font-size: 2.2rem;
+    }
+
+    .footer-content {
+        font-size: 0.8rem;
+    }
+
+    .footer-logo-placeholder {
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+    }
+}
+
+/* Footer styles */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    padding: 5px 0; /* Reduced from 10px to 5px */
+    text-align: center;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ffffff;
+    font-size: 0.8rem; /* Slightly reduced font size */
+}
+
+.footer-logo-placeholder {
+    width: 16px; /* Reduced from 20px to 16px */
+    height: 16px; /* Reduced from 20px to 16px */
+    position: relative;
+    display: inline-block;
+    margin-right: 8px; /* Reduced from 10px to 8px */
+    transform: rotate(45deg);
+}
+
+.footer-logo-placeholder::before,
+.footer-logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid white; /* Reduced from 1.5px to 1px */
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+}
+
+.footer-logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.footer-logo-placeholder::after {
+    transform: rotate(-45deg);
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .footer-content {
+        font-size: 0.7rem; /* Further reduced for mobile */
+    }
+
+    .footer-logo-placeholder {
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
     }
 }
