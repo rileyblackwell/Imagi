@@ -237,7 +237,6 @@ body {
     border: none;
     color: #ffffff;
     text-shadow: 0 1px 1px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
     background-size: 100% 100%;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     text-transform: uppercase;
@@ -249,15 +248,11 @@ body {
     content: none;
 }
 
-.btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    opacity: 0.9;
-}
-
-.btn:active {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+/* Remove hover and active states */
+.btn:hover, .btn:active {
+    transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    opacity: 1;
 }
 
 .btn-primary { background-image: var(--button-gradient-1); }
