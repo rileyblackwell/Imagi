@@ -1,78 +1,56 @@
 :root {
-    --body-background: #1a1a1a;
-    --container-background: #242424;
-    --font-family: 'SF Pro Text', 'Montserrat', sans-serif;
-    --font-color-primary: #ccc; /* Light gray for primary text */
-    --font-color-secondary: #aaa; /* Medium gray for secondary text */
-    --font-color-highlight: #06c; /* Highlight color */
-    --border-color: #333;
-    --input-background: #2d2d2d;
-    --input-border: #555;
-    --button-background-primary: #4CAF50;
-    --button-background-hover: #3e8e41;
-    --button-background-danger: #FF3737;
-    --button-background-danger-hover: #e60000;
-    --focus-border: #0071e3;
-    --box-shadow-color: rgba(0, 0, 0, 0.5);
-    --container-shadow-color: rgba(0, 0, 0, 0.7);
-    --input-placeholder-color: #777;
+    --primary-color: #6200ea;
+    --secondary-color: #03dac6;
+    --background-color: #f5f5f5;
+    --text-color: #333333;
+    --accent-color: #ff4081;
+    --light-gray: #bdc3c7;
 }
 
 body {
-    font-family: var(--font-family);
-    background-color: var(--body-background);
-    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    line-height: 1.6;
     margin: 0;
-    color: var(--font-color-primary);
-    transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+    padding: 0;
+    color: var(--text-color);
+    background-color: var(--background-color);
 }
 
 .container {
     width: 80%;
     margin: 40px auto;
     padding: 40px;
-    background-color: var(--container-background);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     border-radius: 10px;
-    box-shadow: 0 0 15px var(--container-shadow-color);
-    transition: box-shadow 0.3s ease-in-out, background-color 0.3s ease-in-out;
-}
-
-.header {
-    text-align: center;
-    margin-bottom: 40px;
-    transition: margin-bottom 0.3s ease-in-out;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    color: #ffffff;
 }
 
 .header h1 {
-    font-size: 36px;
-    font-weight: normal;
-    color: var(--font-color-primary); /* Use primary font color */
-    letter-spacing: -0.022em;
-    transition: color 0.3s ease-in-out, font-size 0.3s ease-in-out;
+    font-size: 3rem;
+    color: #ffffff;
+    margin-bottom: 0.3rem;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .tagline {
-    font-size: 18px;
-    color: var(--font-color-secondary);
-    transition: color 0.3s ease-in-out;
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: #ffffff;
+    margin-bottom: 1.5rem;
 }
 
 .input-label {
-    color: var(--font-color-primary);
-    font-size: 24px;
-    font-weight: normal;
+    color: #ffffff;
+    font-size: 1.2rem;
     margin-bottom: 20px;
-    display: block;
-    transition: color 0.3s ease-in-out, margin-bottom 0.3s ease-in-out;
 }
 
 #input-form {
-    padding: 40px;
-    background-color: var(--container-background);
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
-    box-shadow: 0 0 10px var(--box-shadow-color);
-    transition: box-shadow 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    padding: 2rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 #user-input {
@@ -80,118 +58,94 @@ body {
     height: 200px;
     padding: 20px;
     font-size: 18px;
-    border: 1px solid var(--input-border);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 5px;
-    background-color: var(--input-background);
-    color: var(--font-color-primary);
-    transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
 }
 
 #user-input::placeholder {
-    color: var(--input-placeholder-color);
-}
-
-#user-input:focus {
-    border-color: var(--focus-border);
-    box-shadow: 0 0 10px var(--focus-border);
-}
-
-.model-select-container {
-    margin-bottom: 20px;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 #model-select {
     width: 100%;
     padding: 15px;
     font-size: 16px;
-    background-color: var(--input-background);
-    color: var(--font-color-primary);
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
 }
 
 #model-select option {
-    background-color: var(--input-background);
-    color: var(--font-color-primary);
+    background-color: var(--primary-color);
+    color: #ffffff;
 }
 
-#submit-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 16px;
-    background-color: var(--button-background-primary);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+.btn {
+    padding: 0.7rem 1.5rem;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
 }
 
-#submit-btn:hover {
-    background-color: var(--button-background-hover);
+.btn-primary {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #ffffff;
 }
 
-#undo-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 16px;
-    background-color: #FFA500; /* Orange color for the Undo button */
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: var(--text-color);
 }
 
-#undo-btn:hover {
-    background-color: #e69500; /* Darker orange on hover */
+.btn-danger {
+    background-color: #ff3b30;
+    border-color: #ff3b30;
+    color: #ffffff;
 }
 
-#clear-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 16px;
-    background-color: var(--button-background-danger);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
 }
 
-#clear-btn:hover {
-    background-color: var(--button-background-danger-hover);
-}
-
-.btn-container {
-    margin-top: 40px;
-    display: flex;
-    justify-content: space-between;
-    transition: margin-top 0.3s ease-in-out;
-}
-
-@media (max-width: 768px) {
-    .btn-container {
-        flex-direction: column;
-    }
-    #submit-btn, #undo-btn, #clear-btn {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-}
-
-/* Fade-in effect */
 .fade-in {
     animation: fadeIn 2s;
 }
 
 @keyframes fadeIn {
-    0% {
-        opacity: 0;
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive design */
+@media screen and (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 20px;
     }
-    100% {
-        opacity: 1;
+
+    .header h1 {
+        font-size: 2.5rem;
+    }
+
+    .tagline {
+        font-size: 1.5rem;
+    }
+
+    #input-form {
+        padding: 1rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
     }
 }
