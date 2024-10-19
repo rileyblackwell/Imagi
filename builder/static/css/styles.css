@@ -79,10 +79,10 @@ body {
     transition: all 0.3s ease;
 }
 
-#user-input:focus {
+#user-input:focus, #model-select:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
 #user-input::placeholder {
@@ -102,12 +102,6 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 10px;
     transition: all 0.3s ease;
-}
-
-#model-select:focus {
-    outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 #model-select option {
