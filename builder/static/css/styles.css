@@ -4,16 +4,16 @@
     --background-start: #1e0f3d;
     --background-end: #0a4d68;
     --text-color: #ffffff;
-    --input-bg: rgba(255, 255, 255, 0.1);
+    --input-bg: rgba(255, 255, 255, 0.15);
     --button-gradient-1: linear-gradient(45deg, #ff3e7f, #ff8a5b);
     --button-gradient-2: linear-gradient(45deg, #00a2ff, #00ffc6);
     --button-gradient-3: linear-gradient(45deg, #7b2ff7, #f72fbd);
-    --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
 }
 
 body {
     font-family: 'Poppins', sans-serif;
-    line-height: 1.4;
+    line-height: 1.6;
     margin: 0;
     padding: 0;
     color: var(--text-color);
@@ -29,16 +29,15 @@ body {
     flex: 1 0 auto;
     width: 90%;
     max-width: 800px;
-    margin: 20px auto;
-    padding: 60px 40px;
+    margin: 30px auto;
+    padding: 50px 40px;
     background: var(--container-gradient);
-    border-radius: 70% / 40%;
+    border-radius: 40px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.3);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
     position: relative;
-    transform: perspective(1000px) rotateX(2deg);
 }
 
 .container::before {
@@ -113,9 +112,9 @@ body {
 }
 
 .header h1 {
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     color: #ffffff;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
     letter-spacing: 2px;
     display: flex;
@@ -124,11 +123,12 @@ body {
 }
 
 .tagline {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 300;
     color: #ffffff;
-    margin-bottom: 1.5rem;
-    opacity: 0.95;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+    text-align: center;
 }
 
 .input-label {
@@ -142,8 +142,8 @@ body {
 
 #input-form {
     background: var(--container-gradient);
-    border-radius: 60% / 30%;
-    padding: 50px 40px 100px; /* Increased bottom padding */
+    border-radius: 30px;
+    padding: 40px 30px 100px;
     margin-top: 30px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     position: relative;
@@ -172,26 +172,26 @@ body {
 }
 
 #user-input, #model-select {
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 30px / 15px;
+    background-color: var(--input-bg);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
     color: #ffffff;
     transition: all 0.3s ease;
     font-size: 1rem;
     width: 100%;
+    padding: 12px 15px;
 }
 
 #user-input {
     height: 120px;
-    padding: 15px;
     margin-bottom: 20px;
-    font-size: 0.9rem;
+    resize: vertical;
 }
 
 #user-input:focus, #model-select:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
 }
 
 #user-input::placeholder {
@@ -200,7 +200,7 @@ body {
 
 .model-select-container {
     margin-top: 1.5rem;
-    margin-bottom: 60px; /* Increased to make room for buttons */
+    margin-bottom: 60px;
 }
 
 #model-select {
@@ -217,58 +217,41 @@ body {
 
 .btn-container {
     position: absolute;
-    bottom: 20px;
+    bottom: 30px;
+    left: 30px;
     right: 30px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    width: auto;
-    max-width: none;
+    gap: 15px;
 }
 
 .btn {
-    padding: 0.5rem 1.2rem;
+    padding: 0.7rem 1.5rem;
     border-radius: 25px;
-    font-size: 0.75rem;
-    flex: 0 1 auto;
+    font-size: 0.9rem;
+    flex: 1;
     text-align: center;
     white-space: nowrap;
-    min-width: 80px;
-    max-width: 150px;
     border: none;
     color: #ffffff;
     text-shadow: 0 1px 1px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
-    background-size: 200% 200%;
-    background-position: 0% 0%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    overflow: hidden;
-    position: relative;
+    background-size: 100% 100%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     font-weight: 600;
 }
 
 .btn::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    right: -50%;
-    bottom: -50%;
-    background: linear-gradient(45deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
-    transform: rotate(45deg) scale(0);
-    transition: transform 0.6s;
-}
-
-.btn:hover::before {
-    transform: rotate(45deg) scale(1);
+    content: none;
 }
 
 .btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    opacity: 0.9;
 }
 
 .btn:active {
@@ -276,17 +259,9 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-.btn-primary {
-    background-image: linear-gradient(45deg, #ff6b6b, #ff8e53);
-}
-
-.btn-secondary {
-    background-image: linear-gradient(45deg, #4ecdc4, #45b7e8);
-}
-
-.btn-danger {
-    background-image: linear-gradient(45deg, #7b2ff7, #f72fbd);
-}
+.btn-primary { background-image: var(--button-gradient-1); }
+.btn-secondary { background-image: var(--button-gradient-2); }
+.btn-danger { background-image: var(--button-gradient-3); }
 
 /* Responsive adjustments for buttons */
 @media screen and (max-width: 768px) {
@@ -329,40 +304,26 @@ body {
 @media screen and (max-width: 768px) {
     .container {
         width: 95%;
-        padding: 30px 20px 50px;
-        border-radius: 50px / 30px;
+        padding: 30px 20px;
+        margin: 20px auto;
     }
 
-    .header h1 {
-        font-size: 2.2rem;
-    }
-
-    .logo-placeholder {
-        width: 40px;
-        height: 40px;
-    }
-
-    .tagline {
-        font-size: 1rem;
-    }
-
-    #input-form {
-        padding: 40px 30px 90px; /* Adjusted padding */
-        border-radius: 30px / 20px;
-    }
-
-    .input-label {
-        font-size: 1.4rem;
-    }
-
-    #user-input, #model-select {
-        font-size: 0.9rem;
-    }
-
+    .header h1 { font-size: 2.2rem; }
+    .tagline { font-size: 1.1rem; }
+    .input-label { font-size: 1.3rem; }
+    
+    #user-input, #model-select { font-size: 0.9rem; }
+    
     .btn {
-        padding: 0.6rem 1rem;
-        font-size: 0.7rem;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.8rem;
     }
+
+    .btn-container {
+        flex-wrap: wrap;
+    }
+
+    .footer-content { font-size: 0.8rem; }
 }
 
 /* Footer styles */
@@ -373,6 +334,7 @@ body {
     backdrop-filter: blur(10px);
     padding: 15px 0;
     text-align: center;
+    margin-top: auto;
 }
 
 .footer-content {
@@ -380,7 +342,7 @@ body {
     justify-content: center;
     align-items: center;
     color: #ffffff;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
 }
 
 .footer-logo-placeholder {
@@ -448,4 +410,3 @@ body {
     background-size: 200% 200%;
     animation: gradientAnimation 15s ease infinite;
 }
-
