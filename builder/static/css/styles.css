@@ -113,7 +113,7 @@ body {
 }
 
 .header h1 {
-    font-size: 2.8rem;
+    font-size: 2.2rem;
     color: #ffffff;
     margin-bottom: 5px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
@@ -124,7 +124,7 @@ body {
 }
 
 .tagline {
-    font-size: 1.3rem;
+    font-size: 1rem;
     font-weight: 300;
     color: #ffffff;
     margin-bottom: 1.5rem;
@@ -133,7 +133,7 @@ body {
 
 .input-label {
     color: #ffffff;
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     margin-bottom: 20px;
     font-weight: 500;
     text-align: center;
@@ -143,7 +143,7 @@ body {
 #input-form {
     background: var(--container-gradient);
     border-radius: 60% / 30%;
-    padding: 50px 40px 100px;
+    padding: 50px 40px 100px; /* Increased bottom padding */
     margin-top: 30px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     position: relative;
@@ -185,7 +185,7 @@ body {
     height: 120px;
     padding: 15px;
     margin-bottom: 20px;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
 }
 
 #user-input:focus, #model-select:focus {
@@ -200,13 +200,13 @@ body {
 
 .model-select-container {
     margin-top: 1.5rem;
-    margin-bottom: 70px; /* Increased bottom margin */
+    margin-bottom: 60px; /* Increased to make room for buttons */
 }
 
 #model-select {
     padding: 12px;
     margin-bottom: 20px;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     width: 100%;
 }
 
@@ -218,28 +218,36 @@ body {
 .btn-container {
     position: absolute;
     bottom: 20px;
-    left: 25px;
-    right: 25px;
+    right: 30px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    max-width: none;
 }
 
 .btn {
-    padding: 0.6rem 1.2rem;
-    border-radius: 30px / 15px;
+    padding: 0.5rem 1.2rem;
+    border-radius: 25px;
     font-size: 0.75rem;
-    flex: 1;
+    flex: 0 1 auto;
     text-align: center;
     white-space: nowrap;
-    min-width: 0;
-    max-width: none;
+    min-width: 80px;
+    max-width: 150px;
     border: none;
     color: #ffffff;
     text-shadow: 0 1px 1px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
     background-size: 200% 200%;
     background-position: 0% 0%;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     overflow: hidden;
     position: relative;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 .btn::before {
@@ -249,7 +257,7 @@ body {
     left: -50%;
     right: -50%;
     bottom: -50%;
-    background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    background: linear-gradient(45deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
     transform: rotate(45deg) scale(0);
     transition: transform 0.6s;
 }
@@ -258,51 +266,53 @@ body {
     transform: rotate(45deg) scale(1);
 }
 
-.btn-primary {
-    background-image: var(--button-gradient-1);
-}
-
-.btn-secondary {
-    background-image: var(--button-gradient-2);
-}
-
-.btn-danger {
-    background-image: var(--button-gradient-3);
-}
-
 .btn:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
 .btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background-image: linear-gradient(45deg, #ff6b6b, #ff8e53);
+}
+
+.btn-secondary {
+    background-image: linear-gradient(45deg, #4ecdc4, #45b7e8);
+}
+
+.btn-danger {
+    background-image: linear-gradient(45deg, #7b2ff7, #f72fbd);
 }
 
 /* Responsive adjustments for buttons */
 @media screen and (max-width: 768px) {
     .btn-container {
-        flex-wrap: wrap;
+        right: 20px;
+        gap: 8px;
     }
 
     .btn {
-        flex: 1 1 calc(33.333% - 10px);
-        min-width: 0;
-        font-size: 0.75rem;
+        padding: 0.4rem 1rem;
+        font-size: 0.7rem;
+        min-width: 70px;
     }
 }
 
 @media screen and (max-width: 480px) {
     .btn-container {
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-end;
+        right: 15px;
+        bottom: 15px;
     }
 
     .btn {
-        width: 100%;
-        margin-bottom: 8px;
+        width: auto;
+        margin-bottom: 5px;
     }
 }
 
@@ -324,7 +334,7 @@ body {
     }
 
     .header h1 {
-        font-size: 2.4rem;
+        font-size: 2.2rem;
     }
 
     .logo-placeholder {
@@ -333,25 +343,25 @@ body {
     }
 
     .tagline {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
     #input-form {
-        padding: 25px 20px 100px;
+        padding: 40px 30px 90px; /* Adjusted padding */
         border-radius: 30px / 20px;
     }
 
     .input-label {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
     }
 
     #user-input, #model-select {
-        font-size: 1rem;
+        font-size: 0.9rem;
     }
 
     .btn {
         padding: 0.6rem 1rem;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
     }
 }
 
@@ -370,7 +380,7 @@ body {
     justify-content: center;
     align-items: center;
     color: #ffffff;
-    font-size: 1rem;
+    font-size: 0.8rem;
 }
 
 .footer-logo-placeholder {
@@ -417,7 +427,7 @@ body {
     }
 
     .footer-content {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
 
     .footer-logo-placeholder {
@@ -438,3 +448,4 @@ body {
     background-size: 200% 200%;
     animation: gradientAnimation 15s ease infinite;
 }
+
