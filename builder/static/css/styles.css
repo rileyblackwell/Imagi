@@ -24,12 +24,15 @@ body {
     width: 85%;
     max-width: 800px;
     margin: 20px auto;
-    padding: 40px 30px;
+    padding: 40px 30px 60px; /* Increased bottom padding */
     background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 60% / 35%;
+    border-radius: 60px / 35px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     color: #ffffff;
     backdrop-filter: blur(15px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .container > * {
@@ -88,6 +91,7 @@ body {
 .header {
     text-align: center;
     padding: 0 20px;
+    margin-bottom: 30px;
 }
 
 .header h1 {
@@ -120,14 +124,16 @@ body {
 
 #input-form {
     background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 50px / 25px;
-    padding: 40px 35px 100px; /* Increased bottom padding */
-    margin-top: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border-radius: 40px / 25px;
+    padding: 30px 25px 80px; /* Adjusted padding */
+    margin-top: 10px;
+    margin-bottom: 0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    max-width: 600px;
 }
 
 #input-form > * {
@@ -183,15 +189,10 @@ body {
 }
 
 .btn-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 10px;
     position: absolute;
-    bottom: 30px; /* Adjusted from 20px */
-    left: 35px;
-    right: 35px;
+    bottom: 20px;
+    left: 25px;
+    right: 25px;
 }
 
 .btn {
@@ -272,9 +273,9 @@ body {
 /* Responsive design */
 @media screen and (max-width: 768px) {
     .container {
-        width: 90%;
-        padding: 30px 25px;
-        border-radius: 50% / 30%;
+        width: 95%;
+        padding: 30px 20px 50px;
+        border-radius: 50px / 30px;
     }
 
     .header h1 {
@@ -291,7 +292,8 @@ body {
     }
 
     #input-form {
-        padding: 30px 25px 120px; /* Increased bottom padding for mobile */
+        padding: 25px 20px 100px;
+        border-radius: 30px / 20px;
     }
 
     .input-label {
