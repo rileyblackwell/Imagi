@@ -13,14 +13,19 @@ body {
     margin: 0;
     padding: 0;
     color: var(--text-color);
-    background-color: var(--background-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .container {
     width: 80%;
+    max-width: 1200px;
     margin: 40px auto;
     padding: 40px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     color: #ffffff;
