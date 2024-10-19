@@ -8,6 +8,7 @@
     --button-gradient-1: linear-gradient(45deg, #ff3e7f, #ff8a5b);
     --button-gradient-2: linear-gradient(45deg, #00a2ff, #00ffc6);
     --button-gradient-3: linear-gradient(45deg, #7b2ff7, #f72fbd);
+    --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
 }
 
 body {
@@ -16,7 +17,9 @@ body {
     margin: 0;
     padding: 0;
     color: var(--text-color);
-    background: linear-gradient(135deg, var(--background-start), var(--background-end));
+    background: radial-gradient(ellipse at center, var(--background-start), var(--background-end));
+    background-size: 200% 200%;
+    animation: gradientAnimation 15s ease infinite;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -24,21 +27,30 @@ body {
 
 .container {
     flex: 1 0 auto;
-    width: 85%;
+    width: 90%;
     max-width: 800px;
     margin: 20px auto;
-    padding: 40px 30px 60px; /* Increased bottom padding */
-    background-color: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
+    padding: 60px 40px;
+    background: var(--container-gradient);
+    border-radius: 70% / 40%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    overflow: hidden;
+    position: relative;
+    transform: perspective(1000px) rotateX(2deg);
 }
 
-.container > * {
-    transform: none; /* Remove any transform */
+.container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    transform: rotate(45deg);
+    pointer-events: none;
 }
 
 /* Remove or comment out the previous .logo-title-container styles */
@@ -68,6 +80,9 @@ body {
     display: inline-block;
     margin-right: 20px;
     transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+    position: relative;
 }
 
 .logo-placeholder::before,
@@ -126,17 +141,26 @@ body {
 }
 
 #input-form {
-    background-color: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 30px 25px 80px; /* Adjusted padding */
-    margin-top: 10px;
-    margin-bottom: 0;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
+    background: var(--container-gradient);
+    border-radius: 60% / 30%;
+    padding: 50px 40px 100px;
+    margin-top: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     position: relative;
     overflow: hidden;
-    width: 100%;
-    max-width: 600px;
+    transform: perspective(1000px) rotateX(-2deg);
+}
+
+#input-form::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
+    transform: rotate(45deg);
+    pointer-events: none;
 }
 
 #input-form > * {
@@ -148,9 +172,9 @@ body {
 }
 
 #user-input, #model-select {
-    background-color: var(--input-bg);
+    background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 30px;
+    border-radius: 30px / 15px;
     color: #ffffff;
     transition: all 0.3s ease;
     font-size: 1rem;
@@ -199,8 +223,8 @@ body {
 }
 
 .btn {
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
+    padding: 0.6rem 1.2rem;
+    border-radius: 30px / 15px;
     font-size: 0.75rem;
     flex: 1;
     text-align: center;
@@ -214,6 +238,24 @@ body {
     background-size: 200% 200%;
     background-position: 0% 0%;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    overflow: hidden;
+    position: relative;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    right: -50%;
+    bottom: -50%;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+    transform: rotate(45deg) scale(0);
+    transition: transform 0.6s;
+}
+
+.btn:hover::before {
+    transform: rotate(45deg) scale(1);
 }
 
 .btn-primary {
@@ -338,6 +380,9 @@ body {
     display: inline-block;
     margin-right: 12px;
     transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+    position: relative;
 }
 
 .footer-logo-placeholder::before,
