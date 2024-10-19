@@ -1,10 +1,13 @@
 :root {
-    --primary-color: #6200ea;
-    --secondary-color: #03dac6;
-    --background-color: #f5f5f5;
-    --text-color: #333333;
-    --accent-color: #ff4081;
-    --light-gray: #bdc3c7;
+    --primary-color: #00a2ff;
+    --secondary-color: #ff3e7f;
+    --background-start: #1e0f3d;
+    --background-end: #0a4d68;
+    --text-color: #ffffff;
+    --input-bg: rgba(255, 255, 255, 0.1);
+    --button-gradient-1: linear-gradient(45deg, #ff3e7f, #ff8a5b);
+    --button-gradient-2: linear-gradient(45deg, #00a2ff, #00ffc6);
+    --button-gradient-3: linear-gradient(45deg, #7b2ff7, #f72fbd);
 }
 
 body {
@@ -13,7 +16,7 @@ body {
     margin: 0;
     padding: 0;
     color: var(--text-color);
-    background: linear-gradient(135deg, #4a0080, #00b8a9);
+    background: linear-gradient(135deg, var(--background-start), var(--background-end));
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -25,11 +28,10 @@ body {
     max-width: 800px;
     margin: 20px auto;
     padding: 40px 30px 60px; /* Increased bottom padding */
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 60px / 35px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #ffffff;
-    backdrop-filter: blur(15px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -78,6 +80,7 @@ body {
     bottom: 0;
     border: 3px solid white;
     border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
 }
 
 .logo-placeholder::before {
@@ -123,8 +126,8 @@ body {
 }
 
 #input-form {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 40px / 25px;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 30px 25px 80px; /* Adjusted padding */
     margin-top: 10px;
     margin-bottom: 0;
@@ -145,9 +148,9 @@ body {
 }
 
 #user-input, #model-select {
+    background-color: var(--input-bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 30px;
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.4);
     color: #ffffff;
     transition: all 0.3s ease;
     font-size: 1rem;
@@ -214,21 +217,21 @@ body {
 }
 
 .btn-primary {
-    background-image: linear-gradient(45deg, #FF6B6B, #FF8E53);
+    background-image: var(--button-gradient-1);
 }
 
 .btn-secondary {
-    background-image: linear-gradient(45deg, #4ECDC4, #45B7E8);
+    background-image: var(--button-gradient-2);
 }
 
 .btn-danger {
-    background-image: linear-gradient(45deg, #FC5C65, #FF427F);
+    background-image: var(--button-gradient-3);
 }
 
 .btn:hover {
+    opacity: 0.9;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    background-position: 100% 100%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn:active {
@@ -314,7 +317,7 @@ body {
 .footer {
     flex-shrink: 0;
     width: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     padding: 15px 0;
     text-align: center;
@@ -377,4 +380,16 @@ body {
         height: 20px;
         margin-right: 10px;
     }
+}
+
+/* Add a subtle animation to the background */
+@keyframes gradientAnimation {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+
+body {
+    background-size: 200% 200%;
+    animation: gradientAnimation 15s ease infinite;
 }
