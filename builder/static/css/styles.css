@@ -52,6 +52,35 @@ body {
     object-fit: cover;
 }
 
+.logo-placeholder {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    display: inline-block;
+    margin-right: 15px;
+    transform: rotate(45deg);
+}
+
+.logo-placeholder::before,
+.logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+}
+
+.logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.logo-placeholder::after {
+    transform: rotate(-45deg);
+}
+
 .header h1 {
     font-size: 2.5rem;
     color: #ffffff;
@@ -61,10 +90,6 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.header h1 i {
-    margin-right: 10px;
 }
 
 .tagline {
