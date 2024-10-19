@@ -64,7 +64,7 @@ body {
 }
 
 #input-form:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(255, 255, 255, 0.12); /* Reduced from 0.15 to 0.12 */
 }
 
 #user-input {
