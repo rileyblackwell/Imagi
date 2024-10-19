@@ -277,7 +277,7 @@ body {
     width: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(5px);
-    padding: 5px 0;
+    padding: 8px 0; /* Slightly increased padding */
     text-align: center;
 }
 
@@ -286,15 +286,15 @@ body {
     justify-content: center;
     align-items: center;
     color: #ffffff;
-    font-size: 0.8rem;
+    font-size: 0.9rem; /* Increased from 0.8rem */
 }
 
 .footer-logo-placeholder {
-    width: 16px;
-    height: 16px;
+    width: 18px; /* Slightly increased from 16px */
+    height: 18px; /* Slightly increased from 16px */
     position: relative;
     display: inline-block;
-    margin-right: 8px;
+    margin-right: 10px; /* Increased from 8px for better spacing */
     transform: rotate(45deg);
 }
 
@@ -321,12 +321,12 @@ body {
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
     .footer-content {
-        font-size: 0.7rem;
+        font-size: 0.8rem; /* Increased from 0.7rem */
     }
 
     .footer-logo-placeholder {
-        width: 14px;
-        height: 14px;
-        margin-right: 6px;
+        width: 16px; /* Increased from 14px */
+        height: 16px; /* Increased from 14px */
+        margin-right: 8px; /* Increased from 6px */
     }
 }
