@@ -30,12 +30,6 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     color: #ffffff;
     backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-.container:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
 }
 
 .header h1 {
@@ -87,8 +81,8 @@ body {
 
 #user-input:focus {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 10px rgba(255, 64, 129, 0.5);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 #user-input::placeholder {
@@ -112,8 +106,8 @@ body {
 
 #model-select:focus {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 10px rgba(255, 64, 129, 0.5);
+    border-color: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 #model-select option {
