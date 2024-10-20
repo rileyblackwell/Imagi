@@ -46,7 +46,7 @@
 
     <section class="hero">
         <div class="container">
-            <div class="logo-placeholder mb-4" style="width: 100px; height: 100px; margin: 0 auto;"></div>
+            <div class="logo-placeholder hero-logo"></div>
             <h1>Create Stunning Websites with Ease</h1>
             <p>Imagi empowers you to build beautiful, responsive websites using AI-powered tools.</p>
             <a href="{% url 'index' %}" class="btn btn-primary btn-lg">Start Building</a>
@@ -77,7 +77,10 @@
 
     <footer class="footer text-center">
         <div class="container">
-            <p>&copy; 2024 Imagi. All rights reserved.</p>
+            <div class="footer-content">
+                <div class="footer-logo-placeholder"></div>
+                <p>&copy; 2024 Imagi. All rights reserved.</p>
+            </div>
         </div>
     </footer>
 
