@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.Builder',  # Add the Builder app
+    'apps.Auth',     # Add the Auth app
+    'apps.Home',     # Add the Home app
 ]
 
 MIDDLEWARE = [
@@ -59,7 +61,10 @@ ROOT_URLCONF = 'Imagi.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'apps', 'Builder', 'templates'),
+            os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),  # Add this line
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -123,6 +128,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'apps/Builder', 'static'),
+    os.path.join(BASE_DIR, 'apps/Home', 'static'),  # Add this line
 ]
 
 # Default primary key field type

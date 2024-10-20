@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imagi - Create Stunning Websites with Ease</title>
+
+    <!-- Bootstrap CSS for layout -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,700" rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{% static 'home/css/styles.css' %}">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">Imagi</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'index' %}">Get Started</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Create Stunning Websites with Ease</h1>
+            <p>Imagi empowers you to build beautiful, responsive websites using AI-powered tools.</p>
+            <a href="{% url 'index' %}" class="btn btn-primary btn-lg">Start Building</a>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-magic feature-icon"></i>
+                    <h3>AI-Powered Design</h3>
+                    <p>Create stunning designs with the help of advanced AI algorithms.</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-mobile-alt feature-icon"></i>
+                    <h3>Responsive Layouts</h3>
+                    <p>Build websites that look great on any device, from desktop to mobile.</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-code feature-icon"></i>
+                    <h3>Clean Code</h3>
+                    <p>Generate clean, well-structured HTML, CSS, and JavaScript code.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p>&copy; 2024 Imagi. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{% static 'home/js/script.js' %}"></script>
+</body>
+
+</html>

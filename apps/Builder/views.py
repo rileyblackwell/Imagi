@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 def index(request):
-    return render(request, 'index.html')
+    return render(request, 'builder/index.html')  # Make sure this path is correct
 
 @require_http_methods(['POST'])
 def process_input(request):
