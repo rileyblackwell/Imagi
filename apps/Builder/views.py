@@ -255,6 +255,7 @@ def undo_last_action(request):
         message = 'Conversation history is already empty.'
         return JsonResponse({'message': message, 'html': ''})
 
+@require_http_methods(['POST'])
 def clear_conversation_history(request):
     if 'conversation_history' in request.session:
         del request.session['conversation_history']

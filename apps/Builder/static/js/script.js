@@ -30,7 +30,7 @@ $(document).ready(function() {
         // Perform the AJAX request
         $.ajax({
             type: 'POST',
-            url: 'builder/process-input/',
+            url: '/builder/process-input/',  // Updated URL
             data: {
                 'user_input': userInput,
                 'model': model,
@@ -57,8 +57,8 @@ $(document).ready(function() {
         event.preventDefault(); // Prevent default action
         console.log("Clear Button Clicked: Clearing conversation history"); // Log clear button click
         $.ajax({
-            type: 'GET',
-            url: 'builder/clear-conversation-history/',
+            type: 'POST',
+            url: '/builder/clear-conversation-history/',  // Updated URL
             success: function(response) {
                 console.log("Clear History Success:", response.message); // Log on success
                 if (websiteTab && !websiteTab.closed) {
@@ -78,7 +78,7 @@ $(document).ready(function() {
 
         $.ajax({
             type: 'POST',
-            url: 'builder/undo-last-action/',
+            url: '/builder/undo-last-action/',  // Updated URL
             data: {
                 'csrfmiddlewaretoken': csrftoken // Include CSRF token
             },
