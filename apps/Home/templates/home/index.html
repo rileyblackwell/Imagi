@@ -23,7 +23,10 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="#">Imagi</a>
+            <a class="navbar-brand" href="#">
+                <div class="logo-placeholder"></div>
+                Imagi
+            </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -43,6 +46,7 @@
 
     <section class="hero">
         <div class="container">
+            <div class="logo-placeholder mb-4" style="width: 100px; height: 100px; margin: 0 auto;"></div>
             <h1>Create Stunning Websites with Ease</h1>
             <p>Imagi empowers you to build beautiful, responsive websites using AI-powered tools.</p>
             <a href="{% url 'index' %}" class="btn btn-primary btn-lg">Start Building</a>
