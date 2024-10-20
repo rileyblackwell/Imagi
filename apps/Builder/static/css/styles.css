@@ -408,8 +408,8 @@ body {
 }
 
 .navbar {
-    background-color: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
+    background-color: transparent;  /* Change this line */
+    backdrop-filter: none;  /* Remove the blur effect */
     padding: 0.5rem 1rem;
 }
 
