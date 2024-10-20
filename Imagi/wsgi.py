@@ -1,5 +1,5 @@
 """
-WSGI config for website_builder project.
+WSGI config for Imagi project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'website_builder.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Imagi.settings')
 
 application = get_wsgi_application()
