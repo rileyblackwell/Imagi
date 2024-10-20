@@ -9,6 +9,7 @@
     --button-gradient-2: linear-gradient(45deg, #00a2ff, #00ffc6);
     --button-gradient-3: linear-gradient(45deg, #7b2ff7, #f72fbd);
     --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+    --button-gradient-green: linear-gradient(45deg, #2ecc71, #00ff9d);
 }
 
 body {
@@ -255,9 +256,9 @@ body {
     opacity: 1;
 }
 
-.btn-primary { background-image: var(--button-gradient-1); }
+.btn-primary { background-image: var(--button-gradient-green); }
 .btn-secondary { background-image: var(--button-gradient-2); }
-.btn-danger { background-image: var(--button-gradient-3); }
+.btn-danger { background-image: var(--button-gradient-1); }
 
 /* Responsive adjustments for buttons */
 @media screen and (max-width: 768px) {
