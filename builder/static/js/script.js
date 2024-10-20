@@ -1,4 +1,6 @@
 $(document).ready(function() {
+    console.log("script.js has been successfully loaded."); // Log when script.js is loaded
+
     // Get CSRF token for AJAX requests
     var csrftoken = Cookies.get('csrftoken');
 

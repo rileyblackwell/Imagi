@@ -75,6 +75,16 @@
     
     <script>
         console.log("index.html has been successfully loaded.");
+
+        // Check if styles.css is loaded
+        const testElement = document.createElement('div');
+        testElement.style.display = 'none';
+        document.body.appendChild(testElement);
+        const computedStyle = window.getComputedStyle(testElement);
+        if (computedStyle.backgroundColor) {
+            console.log("styles.css has been successfully loaded.");
+        }
+        document.body.removeChild(testElement);
     </script>
 </body>
 
