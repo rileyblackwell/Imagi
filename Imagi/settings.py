@@ -41,9 +41,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.Builder',  # Add the Builder app
-    'apps.Auth',     # Add the Auth app
-    'apps.Home',     # Add the Home app
+    'apps.Builder',
+    'apps.Auth',  # Make sure this line is present
+    'apps.Home',
 ]
 
 MIDDLEWARE = [
@@ -62,8 +62,10 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),  # Add this line
             os.path.join(BASE_DIR, 'apps', 'Builder', 'templates'),
-            os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),  # Add this line
+            os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),
+            os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),  # Add this line
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -128,7 +130,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'apps/Builder', 'static'),
-    os.path.join(BASE_DIR, 'apps/Home', 'static'),  # Add this line
+    os.path.join(BASE_DIR, 'apps/Home', 'static'),
+    os.path.join(BASE_DIR, 'apps/Auth', 'static'),  # Add this line
 ]
 
 # Default primary key field type
