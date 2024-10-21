@@ -129,9 +129,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'apps/Builder', 'static'),
-    os.path.join(BASE_DIR, 'apps/Home', 'static'),
-    os.path.join(BASE_DIR, 'apps/Auth', 'static'),  # Add this line
+    os.path.join(BASE_DIR, 'apps/Builder/static'),
+    os.path.join(BASE_DIR, 'apps/Home/static'),
+    os.path.join(BASE_DIR, 'apps/Auth/static'),
 ]
 
 # Default primary key field type
