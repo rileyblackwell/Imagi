@@ -5,18 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Imagi{% endblock %}</title>
     {% load static %}
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,700" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/auth_styles.css' %}">
 </head>
 <body>
-    <nav>
-        <!-- Add navigation menu items here -->
-    </nav>
     <main>
         {% block content %}
         {% endblock %}
     </main>
-    <footer>
-        <!-- Add footer content here -->
-    </footer>
 </body>
 </html>
