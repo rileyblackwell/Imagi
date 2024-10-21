@@ -1,17 +1,13 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Imagi{% endblock %}</title>
-    {% load static %}
-    <link href="https://fonts.googleapis.com/css?family=Poppins:400,700" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/auth_styles.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
+    {% block content %}{% endblock %}
 </body>
 </html>
