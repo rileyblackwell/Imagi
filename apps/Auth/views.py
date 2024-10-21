@@ -13,7 +13,7 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect('home')  # Redirect to home page after login
+                return redirect('index')  # Redirect to Builder app after login
     else:
         form = AuthenticationForm()
     return render(request, 'auth/login.html', {'form': form})
@@ -24,7 +24,7 @@ def signup_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('home')  # Redirect to home page after signup
+            return redirect('index')  # Redirect to Builder app after signup
     else:
         form = UserCreationForm()
     return render(request, 'auth/signup.html', {'form': form})
