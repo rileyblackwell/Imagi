@@ -90,7 +90,6 @@ body {
     border-radius: 50% / 30%;
     overflow: hidden;
     background-color: transparent;
-    animation: rotateLogo 10s linear infinite;
 }
 
 @keyframes rotateLogo {
@@ -283,4 +282,28 @@ a:hover {
 .corner-logo:hover .logo-placeholder::after {
     border-color: #00ffc6;
     box-shadow: 0 0 20px rgba(0, 255, 198, 0.8);
+}
+
+/* Update the .logo-placeholder styles */
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    display: block;
+    margin: 0 auto 25px;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+    background-color: transparent;
+}
+
+/* Remove the rotateLogo animation */
+@keyframes rotateLogo {
+    0% { transform: rotate(45deg); }
+    100% { transform: rotate(405deg); }
+}
+
+/* Add a new class for the auth container logo */
+.auth-container .logo-placeholder {
+    animation: none; /* This will stop the spinning for the logo inside the auth container */
 }
