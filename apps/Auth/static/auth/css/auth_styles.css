@@ -6,9 +6,14 @@ body {
     padding: 0;
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+.auth-wrapper {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
 }
 
 .auth-container {
@@ -16,8 +21,6 @@ body {
     border-radius: 20px;
     padding: 40px;
     width: 100%;
-    max-width: 400px;
-    text-align: center;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -37,35 +40,38 @@ body {
 
 h2 {
     margin-bottom: 30px;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
+    text-align: center;
 }
 
 .form-group {
-    margin-bottom: 20px;
-    text-align: left;
+    margin-bottom: 25px;
 }
 
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border: none;
-    border-radius: 5px;
-    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
     color: #ffffff;
     font-size: 16px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
 input:focus {
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 162, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 .form-text {
@@ -82,24 +88,31 @@ input:focus {
 
 button {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: linear-gradient(to right, #00a2ff, #00ffc6);
     color: #ffffff;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 18px;
     font-weight: 700;
-    margin-top: 20px;
+    margin-top: 30px;
     transition: all 0.3s ease;
 }
 
 button:hover {
     background: linear-gradient(to right, #0056b3, #00d4a8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-p {
+.auth-links {
     margin-top: 20px;
+    text-align: center;
+}
+
+.auth-links p {
+    margin: 10px 0;
     font-size: 14px;
 }
 
