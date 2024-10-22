@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}" onload="console.log('auth_styles.css has been successfully loaded.');">
 {% endblock %}
 
 {% block content %}
@@ -17,4 +17,8 @@
     <p>Don't have an account? <a href="{% url 'signup' %}">Sign up</a></p>
     <p><a href="{% url 'landing_page' %}">Back to Home</a></p>
 </div>
+
+<script>
+    console.log("login.html has been successfully loaded.");
+</script>
 {% endblock %}

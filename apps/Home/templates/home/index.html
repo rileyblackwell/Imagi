@@ -17,7 +17,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="{% static 'home/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'home/css/styles.css' %}" onload="console.log('styles.css has been successfully loaded.');">
+
+    <script>
+        console.log("index.html has been successfully loaded.");
+    </script>
 </head>
 
 <body>
