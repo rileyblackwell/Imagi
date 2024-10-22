@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = 'builder'  # Add this line to define a namespace
+
 urlpatterns = [
     path('', views.index, name='index'),
     path('process-input/', views.process_input, name='process_input'),
