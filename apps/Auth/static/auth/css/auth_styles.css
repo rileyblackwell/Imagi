@@ -4,6 +4,14 @@
     top: 20px;
     left: 20px;
     z-index: 1000;
+    display: flex;
+    align-items: center;
+}
+
+.corner-logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
 }
 
 .corner-logo .logo-placeholder {
@@ -11,6 +19,19 @@
     height: 40px;
     margin: 0;
     animation: none;
+}
+
+.corner-logo .logo-text {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-left: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Add hover effect for the logo text */
+.corner-logo:hover .logo-text {
+    color: #00ffc6;
 }
 
 body {
