@@ -5,21 +5,30 @@
 
 {% block content %}
 <div class="auth-container">
-    <div class="logo-placeholder"></div>
+    <div class="imagi-logo-placeholder"></div>
     <h2>Join Imagi</h2>
     <form method="post">
         {% csrf_token %}
         <div class="form-group">
             <label for="{{ form.username.id_for_label }}">Username</label>
-            {{ form.username }}
+            <div class="input-group">
+                <span class="input-group-addon"><i class="fas fa-user"></i></span>
+                {{ form.username }}
+            </div>
         </div>
         <div class="form-group">
             <label for="{{ form.password1.id_for_label }}">Password</label>
-            {{ form.password1 }}
+            <div class="input-group">
+                <span class="input-group-addon"><i class="fas fa-lock"></i></span>
+                {{ form.password1 }}
+            </div>
         </div>
         <div class="form-group">
             <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
-            {{ form.password2 }}
+            <div class="input-group">
+                <span class="input-group-addon"><i class="fas fa-lock"></i></span>
+                {{ form.password2 }}
+            </div>
         </div>
         {% if form.errors %}
         <div class="error-message">
