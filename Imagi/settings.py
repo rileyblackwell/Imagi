@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'apps.Builder',
-    'apps.Auth',  # Make sure this line is present
-    'apps.Home',
+    'apps.Auth',
+    'apps.Home',  # Make sure this line is present
 ]
 
 MIDDLEWARE = [
@@ -139,3 +139,8 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Change these lines at the end of the file
+LOGIN_REDIRECT_URL = 'landing_page'  # Redirect to landing page after login
+LOGOUT_REDIRECT_URL = 'landing_page'  # Redirect to landing page after logout
+LOGIN_URL = 'login'  # URL name for the login page

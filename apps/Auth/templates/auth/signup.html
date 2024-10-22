@@ -1,13 +1,14 @@
-{% extends "base.html" %}
+{% extends "auth_base.html" %}
 {% load static %}
 
+{% block title %}Join Imagi{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}" onload="console.log('auth_styles.css has been successfully loaded.');">
+<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <div class="logo-placeholder"></div>
     <h2>Join Imagi</h2>
     <form method="post">
         {% csrf_token %}
@@ -17,8 +18,4 @@
     <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
     <p><a href="{% url 'landing_page' %}">Back to Home</a></p>
 </div>
-
-<script>
-    console.log("signup.html has been successfully loaded.");
-</script>
 {% endblock %}
