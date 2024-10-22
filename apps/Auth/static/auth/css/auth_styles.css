@@ -1,6 +1,21 @@
+/* Add these styles at the beginning of the file */
+.corner-logo {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.corner-logo .logo-placeholder {
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    animation: none;
+}
+
 body {
     font-family: 'Poppins', sans-serif;
-    background: radial-gradient(ellipse at center, #1e0f3d, #0a4d68);
+    background: linear-gradient(135deg, #1e0f3d 0%, #0a4d68 100%);
     color: #ffffff;
     margin: 0;
     padding: 0;
@@ -8,30 +23,58 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.6;
+    animation: gradientBG 15s ease infinite;
+    background-size: 400% 400%;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .auth-wrapper {
     width: 100%;
-    max-width: 400px;
+    max-width: 320px;
     padding: 20px;
 }
 
-.logo-container {
-    text-align: center;
-    margin-bottom: 20px;
+.auth-inner {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    width: 100%;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    transition: all 0.3s ease;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .logo-placeholder {
     width: 80px;
     height: 80px;
     position: relative;
-    display: inline-block;
-    margin: 0 auto 20px;
+    display: block;
+    margin: 0 auto 25px;
     transform: rotate(45deg);
     border-radius: 50% / 30%;
     overflow: hidden;
+    background-color: transparent;
+    animation: rotateLogo 10s linear infinite;
+}
+
+@keyframes rotateLogo {
+    0% { transform: rotate(45deg); }
+    100% { transform: rotate(405deg); }
 }
 
 .logo-placeholder::before,
@@ -44,7 +87,7 @@ body {
     bottom: 0;
     border: 3px solid white;
     border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+    box-shadow: 0 0 20px rgba(0, 162, 255, 0.8);
 }
 
 .logo-placeholder::before {
@@ -55,77 +98,28 @@ body {
     transform: rotate(-45deg);
 }
 
-.imagi-logo-placeholder {
-    width: 120px;
-    height: 120px;
-    background-color: #00a2ff;
-    border-radius: 50%;
-    margin: 0 auto;
-    position: relative;
-    overflow: hidden;
-}
-
-.imagi-logo-placeholder::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80%;
-    height: 80%;
-    background-color: #1e0f3d;
-    border-radius: 50%;
-}
-
-.imagi-logo-placeholder::after {
-    content: 'IMAGI';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff;
-    font-size: 24px;
-    font-weight: bold;
-    letter-spacing: 2px;
-}
-
-.auth-container {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 40px;
-    width: 100%;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    transition: all 0.3s ease;
-}
-
-.auth-container:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
-}
-
 h2 {
-    margin-bottom: 30px;
-    font-size: 36px;
+    margin-bottom: 25px;
+    font-size: 28px;
     font-weight: 700;
     text-align: center;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     letter-spacing: 1px;
+    color: #ffffff;
 }
 
 .form-group {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
 label {
     display: block;
-    margin-bottom: 8px;
-    font-size: 18px;
+    margin-bottom: 5px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.5px;
     color: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
 }
 
 .input-group {
@@ -134,21 +128,22 @@ label {
 
 .input-group-addon {
     position: absolute;
-    left: 16px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: rgba(255, 255, 255, 0.7);
-    font-size: 18px;
+    font-size: 16px;
+    transition: all 0.3s ease;
 }
 
 input {
     width: 100%;
-    padding: 14px 14px 14px 45px;
+    padding: 12px 12px 12px 40px;
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    border-radius: 10px;
     background-color: rgba(255, 255, 255, 0.1);
     color: #ffffff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.3s ease;
     box-sizing: border-box;
@@ -161,30 +156,35 @@ input::placeholder {
 input:focus {
     outline: none;
     border-color: #00a2ff;
-    box-shadow: 0 0 0 2px rgba(0, 162, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(0, 162, 255, 0.3);
     background-color: rgba(255, 255, 255, 0.15);
+}
+
+input:focus + .input-group-addon {
+    color: #00a2ff;
 }
 
 button {
     width: 100%;
-    padding: 16px;
-    background: linear-gradient(to right, #00a2ff, #00ffc6);
+    padding: 12px;
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
     color: #ffffff;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
-    margin-top: 30px;
+    margin-top: 20px;
     transition: all 0.3s ease;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 button:hover {
-    background: linear-gradient(to right, #0056b3, #00d4a8);
+    background: linear-gradient(45deg, #0056b3, #00d4a8);
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
 }
 
 .auth-links {
@@ -193,21 +193,21 @@ button:hover {
 }
 
 .auth-links p {
-    margin: 12px 0;
-    font-size: 15px;
+    margin: 8px 0;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
 }
 
 a {
-    color: #00a2ff;
+    color: #00ffc6;
     text-decoration: none;
     transition: all 0.3s ease;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 a:hover {
-    color: #00ffc6;
+    color: #00a2ff;
     text-decoration: underline;
 }
 
@@ -215,13 +215,51 @@ a:hover {
     color: #ff4444;
     background-color: rgba(255, 68, 68, 0.1);
     border: 1px solid #ff4444;
-    border-radius: 5px;
-    padding: 12px;
-    margin-bottom: 20px;
-    font-size: 15px;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
     font-weight: 500;
 }
 
 .error-message p {
     margin: 5px 0;
+}
+
+/* Responsive adjustments */
+@media screen and (max-height: 700px) {
+    .auth-wrapper {
+        max-width: 300px;
+    }
+
+    .logo-placeholder {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 15px;
+    }
+
+    h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    input {
+        padding: 10px 10px 10px 35px;
+    }
+
+    button {
+        padding: 10px;
+        margin-top: 15px;
+    }
+}
+
+/* Add a hover effect for the corner logo */
+.corner-logo:hover .logo-placeholder::before,
+.corner-logo:hover .logo-placeholder::after {
+    border-color: #00ffc6;
+    box-shadow: 0 0 20px rgba(0, 255, 198, 0.8);
 }
