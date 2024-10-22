@@ -24,11 +24,35 @@ body {
 }
 
 .logo-placeholder {
-    width: 100px;
-    height: 100px;
-    background-color: #007bff;
+    width: 80px;
+    height: 80px;
+    position: relative;
+    display: inline-block;
     margin: 0 auto 20px;
-    border-radius: 50%;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.logo-placeholder::before,
+.logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.logo-placeholder::after {
+    transform: rotate(-45deg);
 }
 
 .imagi-logo-placeholder {
