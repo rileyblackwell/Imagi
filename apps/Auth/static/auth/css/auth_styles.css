@@ -81,11 +81,11 @@ body {
 }
 
 .logo-placeholder {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     position: relative;
     display: block;
-    margin: 0 auto 25px;
+    margin: 0 auto 20px;
     transform: rotate(45deg);
     border-radius: 50% / 30%;
     overflow: hidden;
@@ -105,9 +105,9 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    border: 3px solid white;
+    border: 2px solid white;
     border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 20px rgba(0, 162, 255, 0.8);
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.8);
 }
 
 .logo-placeholder::before {
@@ -253,9 +253,9 @@ a:hover {
     }
 
     .logo-placeholder {
-        width: 60px;
-        height: 60px;
-        margin-bottom: 15px;
+        width: 50px;
+        height: 50px;
+        margin-bottom: 12px;
     }
 
     h2 {
@@ -286,11 +286,11 @@ a:hover {
 
 /* Update the .logo-placeholder styles */
 .logo-placeholder {
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
     position: relative;
     display: block;
-    margin: 0 auto 25px;
+    margin: 0 auto 20px;
     transform: rotate(45deg);
     border-radius: 50% / 30%;
     overflow: hidden;
