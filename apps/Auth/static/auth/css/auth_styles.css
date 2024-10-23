@@ -26,7 +26,7 @@
     font-weight: 700;
     color: #ffffff;
     margin-left: 10px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: none; /* Ensure no text shadow for glow effect */
 }
 
 /* Remove hover effect for the logo text */
@@ -99,7 +99,7 @@ body {
     bottom: 0;
     border: 2px solid white;
     border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.8);
+    box-shadow: none; /* Ensure no glow effect */
 }
 
 .logo-placeholder::before {
@@ -272,8 +272,13 @@ a:hover {
 /* Remove hover effect for the corner logo */
 .corner-logo:hover .logo-placeholder::before,
 .corner-logo:hover .logo-placeholder::after {
-    border-color: white; /* Change to the default color */
-    box-shadow: none; /* Remove the shadow effect */
+    border-color: white; /* Keep the border color as white */
+    box-shadow: none; /* Ensure no glow effect */
+}
+
+/* Ensure no glow effect on hover for the logo text */
+.corner-logo:hover .logo-text {
+    text-shadow: none; /* Remove any text shadow that may create a glow effect */
 }
 
 /* Update the .logo-placeholder styles */
