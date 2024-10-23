@@ -29,9 +29,9 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Add hover effect for the logo text */
+/* Remove hover effect for the logo text */
 .corner-logo:hover .logo-text {
-    color: #00ffc6;
+    color: #ffffff; /* Change to the default color */
 }
 
 body {
@@ -220,7 +220,7 @@ a {
 
 a:hover {
     color: #00a2ff;
-    text-decoration: underline;
+    text-decoration: none; /* Remove the underline effect */
 }
 
 .error-message {
@@ -269,11 +269,11 @@ a:hover {
     }
 }
 
-/* Add a hover effect for the corner logo */
+/* Remove hover effect for the corner logo */
 .corner-logo:hover .logo-placeholder::before,
 .corner-logo:hover .logo-placeholder::after {
-    border-color: #00ffc6;
-    box-shadow: 0 0 20px rgba(0, 255, 198, 0.8);
+    border-color: white; /* Change to the default color */
+    box-shadow: none; /* Remove the shadow effect */
 }
 
 /* Update the .logo-placeholder styles */
