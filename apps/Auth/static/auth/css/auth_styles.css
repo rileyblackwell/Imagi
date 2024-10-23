@@ -187,16 +187,16 @@ button {
     font-size: 16px;
     font-weight: 700;
     margin-top: 20px;
-    transition: all 0.3s ease;
+    transition: none; /* Remove transition effect */
     text-transform: uppercase;
     letter-spacing: 1px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 button:hover {
-    background: linear-gradient(45deg, #0056b3, #00d4a8);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(45deg, #00a2ff, #00ffc6); /* Keep the same background color */
+    transform: none; /* Remove any transform effect */
+    box-shadow: none; /* Remove shadow effect */
 }
 
 .auth-links {
