@@ -52,16 +52,24 @@ body {
 
 .btn-primary {
     background-color: #4CAF50 !important;
-    border: none;
+    border: none !important;
     padding: 10px 30px;
     font-size: 1.1rem;
-    transition: all 0.3s ease;
     color: #ffffff !important;
+    box-shadow: none !important;
+    transform: none !important;
+    transition: none !important;
 }
 
-.btn-primary:hover {
-    background-color: #45a049 !important;
-    transform: translateY(-2px);
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary.active {
+    background-color: #4CAF50 !important;
+    border: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
 }
 
 .features {
@@ -221,16 +229,24 @@ body {
 /* Update button styles */
 .btn-primary {
     background-color: #4CAF50 !important;
-    border: none;
+    border: none !important;
     padding: 10px 30px;
     font-size: 1.1rem;
-    transition: all 0.3s ease;
     color: #ffffff !important;
+    box-shadow: none !important;
+    transform: none !important;
+    transition: none !important;
 }
 
-.btn-primary:hover {
-    background-color: #45a049 !important;
-    transform: translateY(-2px);
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary.active {
+    background-color: #4CAF50 !important;
+    border: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
 }
 
 /* Ensure dropdown styles remain */
