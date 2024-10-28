@@ -23,6 +23,23 @@
         .dropdown-item:hover {
             background: rgba(255, 255, 255, 0.1) !important;
         }
+        .navbar-nav {
+            align-items: center;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+        }
+        .dropdown-menu {
+            position: absolute;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            margin-top: 8px;
+        }
+        /* Override Bootstrap's dropdown positioning */
+        .dropdown {
+            position: relative;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>

@@ -10,6 +10,26 @@ body {
 .navbar {
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
+    padding: 0.5rem 1rem;
+}
+
+.navbar-nav {
+    gap: 15px;
+}
+
+.nav-item {
+    margin: 0 5px;
+}
+
+.nav-link {
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .navbar-brand {
@@ -21,10 +41,6 @@ body {
 
 .navbar-brand img {
     margin-right: 10px;
-}
-
-.nav-link {
-    color: #ffffff !important;
 }
 
 .hero {
@@ -161,6 +177,10 @@ body {
 
 /* Improved dropdown menu styles */
 .dropdown-menu {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 200px;
     background: rgba(0, 0, 0, 0.8) !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -169,7 +189,6 @@ body {
     padding: 0.8rem;
     margin-top: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    min-width: 200px;
 }
 
 .dropdown-item {
@@ -182,6 +201,7 @@ body {
     transition: all 0.2s ease;
     margin: 4px 0;
     background: transparent !important;
+    text-align: center;
 }
 
 .dropdown-item:hover,
@@ -196,9 +216,13 @@ body {
 }
 
 .dropdown-toggle {
-    padding: 8px 15px;
+    padding: 8px 16px !important;
     border-radius: 8px;
     transition: all 0.2s ease;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .dropdown-toggle:hover {
@@ -209,11 +233,11 @@ body {
 @keyframes dropdownFade {
     from {
         opacity: 0;
-        transform: translateY(-8px) scale(0.98);
+        transform: translateX(-50%) translateY(-10px);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateX(-50%) translateY(0);
     }
 }
 
@@ -244,11 +268,11 @@ body {
 @keyframes dropdownFade {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateX(-50%) translateY(-10px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(-50%) translateY(0);
     }
 }
 
@@ -334,4 +358,15 @@ body {
 /* Ensure features section text is white */
 .features h3, .features p {
     color: #ffffff !important;
+}
+
+/* Adjust spacing for mobile */
+@media (max-width: 768px) {
+    .navbar-nav {
+        padding: 10px 0;
+    }
+    
+    .nav-item {
+        margin: 5px 0;
+    }
 }
