@@ -153,16 +153,15 @@ body {
     box-shadow: 0 0 8px rgba(0, 162, 255, 0.5);
 }
 
-/* Updated dropdown menu styles */
+/* Improved dropdown menu styles */
 .dropdown-menu {
-    background: rgba(102, 126, 234, 0.2) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     padding: 0.5rem;
     margin-top: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     min-width: 180px;
 }
 
@@ -179,9 +178,13 @@ body {
 }
 
 .dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255, 255, 255, 0.2) !important;
     transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-item:focus {
+    background: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Update the dropdown toggle arrow */
@@ -232,14 +235,19 @@ body {
 
 /* Ensure dropdown styles remain */
 .dropdown-menu {
-    background: rgba(102, 126, 234, 0.2) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 0.5rem;
+    margin-top: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    min-width: 180px;
 }
 
 .dropdown-item:hover, 
 .dropdown-item:focus {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Update navbar toggler color for mobile */
@@ -257,5 +265,25 @@ body {
 }
 
 .col-md-4 {
+    color: #ffffff !important;
+}
+
+/* Ensure dropdown item text is white */
+.dropdown-item {
+    color: #ffffff !important;
+}
+
+/* Ensure the navbar brand text is white */
+.navbar-brand {
+    color: #ffffff !important;
+}
+
+/* Ensure all text in the hero section is white */
+.hero h1, .hero p {
+    color: #ffffff !important;
+}
+
+/* Ensure features section text is white */
+.features h3, .features p {
     color: #ffffff !important;
 }
