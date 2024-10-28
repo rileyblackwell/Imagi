@@ -17,9 +17,8 @@ body {
     margin: 0;
     padding: 0;
     color: var(--text-color);
-    background: radial-gradient(ellipse at center, var(--background-start), var(--background-end));
-    background-size: 200% 200%;
-    animation: gradientAnimation 15s ease infinite;
+    background: linear-gradient(135deg, #1e0f3d 0%, #0a4d68 100%);
+    animation: none;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -31,11 +30,12 @@ body {
     max-width: 800px;
     margin: 30px auto;
     padding: 50px 40px;
-    background: var(--container-gradient);
-    border-radius: 40px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     overflow: hidden;
     position: relative;
 }
@@ -94,7 +94,7 @@ body {
     bottom: 0;
     border: 3px solid white;
     border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+    box-shadow: none;
 }
 
 .logo-placeholder::before {
@@ -141,15 +141,14 @@ body {
 }
 
 #input-form {
-    background: var(--container-gradient);
-    border-radius: 30px;
+    background: transparent;
+    border-radius: 0;
     padding: 40px 30px 100px;
     margin-top: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: none;
     position: relative;
     overflow: hidden;
-    transform: perspective(1000px) rotateX(-2deg);
-    transition: background-color 0.3s ease;
+    transform: none;
 }
 
 #input-form::before {
@@ -169,16 +168,17 @@ body {
 }
 
 #input-form:hover {
-    background-color: rgba(255, 255, 255, 0.02); /* Reduced from 0.05 to 0.02 for an even dimmer effect */
+    background-color: transparent;
 }
 
 #user-input, #model-select {
-    background-color: var(--input-bg);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
     color: #ffffff;
     transition: all 0.3s ease;
-    font-size: 1rem;
+    font-size: 14px;
+    font-weight: 500;
     width: 100%;
     padding: 12px 15px;
 }
@@ -191,8 +191,9 @@ body {
 
 #user-input:focus, #model-select:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    border-color: #00a2ff;
+    box-shadow: 0 0 0 3px rgba(0, 162, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 #user-input::placeholder {
@@ -228,9 +229,14 @@ body {
 }
 
 .btn {
-    padding: 0.7rem 1.5rem;
-    border-radius: 25px;
-    font-size: 0.9rem;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: none;
     flex: 1;
     text-align: center;
     white-space: nowrap;
@@ -238,7 +244,6 @@ body {
     color: #ffffff;
     text-shadow: 0 1px 1px rgba(0,0,0,0.2);
     background-size: 100% 100%;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600;
@@ -251,7 +256,7 @@ body {
 /* Remove hover and active states */
 .btn:hover, .btn:active {
     transform: none;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: none;
     opacity: 1;
 }
 
@@ -423,9 +428,10 @@ body {
 }
 
 .navbar-brand .logo-placeholder {
-    width: 36px;
-    height: 36px;
-    margin-right: 12px;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    margin-right: 10px;
 }
 
 .header {
@@ -459,3 +465,4 @@ body {
     opacity: 0.9;
     text-align: center;
 }
+
