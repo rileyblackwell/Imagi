@@ -9,6 +9,21 @@
     <link href="https://fonts.googleapis.com/css?family=Poppins:400,700" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'home/css/styles.css' %}">
+    <style>
+        .dropdown-menu {
+            background: rgba(0, 0, 0, 0.8) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+        }
+        .dropdown-item {
+            color: #ffffff !important;
+        }
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
