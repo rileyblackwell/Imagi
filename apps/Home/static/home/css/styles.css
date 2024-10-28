@@ -1,7 +1,7 @@
 body {
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff;
+    color: #ffffff !important;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -30,6 +30,7 @@ body {
 .hero {
     padding: 100px 0;
     text-align: center;
+    color: #ffffff !important;
 }
 
 .hero img {
@@ -40,34 +41,48 @@ body {
     font-size: 3.5rem;
     font-weight: 700;
     margin-bottom: 20px;
+    color: #ffffff !important;
 }
 
 .hero p {
     font-size: 1.2rem;
     margin-bottom: 30px;
+    color: #ffffff !important;
 }
 
 .btn-primary {
-    background-color: #4CAF50;
+    background-color: #4CAF50 !important;
     border: none;
     padding: 10px 30px;
     font-size: 1.1rem;
     transition: all 0.3s ease;
+    color: #ffffff !important;
 }
 
 .btn-primary:hover {
-    background-color: #45a049;
+    background-color: #45a049 !important;
     transform: translateY(-2px);
 }
 
 .features {
     background-color: rgba(255, 255, 255, 0.1);
     padding: 50px 0;
+    color: #ffffff !important;
+}
+
+.features h3 {
+    color: #ffffff !important;
+    margin-bottom: 15px;
+}
+
+.features p {
+    color: #ffffff !important;
 }
 
 .feature-icon {
     font-size: 3rem;
     margin-bottom: 20px;
+    color: #ffffff !important;
 }
 
 .footer {
@@ -138,28 +153,109 @@ body {
     box-shadow: 0 0 8px rgba(0, 162, 255, 0.5);
 }
 
-/* Add these styles for the dropdown menu */
+/* Updated dropdown menu styles */
 .dropdown-menu {
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(102, 126, 234, 0.2) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 0.5rem;
+    margin-top: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    min-width: 180px;
 }
 
 .dropdown-item {
     color: #ffffff !important;
-    transition: background-color 0.3s ease;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+    margin: 2px 0;
+    background-color: transparent !important;
 }
 
 .dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Update existing navbar styles */
-.nav-link {
-    color: #ffffff !important;
-}
-
+/* Update the dropdown toggle arrow */
 .dropdown-toggle::after {
     border-top-color: #ffffff;
+    opacity: 0.8;
+    margin-left: 8px;
+}
+
+/* Add animation for dropdown */
+.dropdown-menu.show {
+    animation: dropdownFade 0.2s ease-out;
+}
+
+@keyframes dropdownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Update text colors */
+.nav-link, 
+.navbar-brand,
+.dropdown-toggle,
+.dropdown-item {
+    color: #ffffff !important;
+}
+
+/* Update button styles */
+.btn-primary {
+    background-color: #4CAF50 !important;
+    border: none;
+    padding: 10px 30px;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    background-color: #45a049 !important;
+    transform: translateY(-2px);
+}
+
+/* Ensure dropdown styles remain */
+.dropdown-menu {
+    background: rgba(102, 126, 234, 0.2) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.dropdown-item:hover, 
+.dropdown-item:focus {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Update navbar toggler color for mobile */
+.navbar-light .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
+.navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Add a general text color rule */
+.container {
+    color: #ffffff !important;
+}
+
+.col-md-4 {
+    color: #ffffff !important;
 }

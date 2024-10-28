@@ -9,6 +9,28 @@
     <link href="https://fonts.googleapis.com/css?family=Poppins:400,700" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'home/css/styles.css' %}">
+    <style>
+        /* Add these styles inline to ensure they override Bootstrap */
+        .dropdown-menu {
+            background: rgba(102, 126, 234, 0.2) !important;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+        }
+        .dropdown-item {
+            background-color: transparent !important;
+        }
+        .dropdown-item:hover, 
+        .dropdown-item:focus {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        /* Force text colors to be white */
+        body, p, h1, h2, h3, .hero p, .features p, .features h3 {
+            color: #ffffff !important;
+        }
+        .feature-icon {
+            color: #ffffff !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
