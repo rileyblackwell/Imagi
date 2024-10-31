@@ -156,5 +156,21 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 
 # Ensure these keys are not None
-if not STRIPE_SECRET_KEY or not STRIPE_PUBLISHABLE_KEY:
-    raise ValueError("Stripe API keys are not set in the environment variables.")
+if not STRIPE_SECRET_KEY:
+    raise ValueError("STRIPE_SECRET_KEY is not set in the environment variables.")
+if not STRIPE_PUBLISHABLE_KEY:
+    raise ValueError("STRIPE_PUBLIC_KEY is not set in the environment variables.")
+
+# Validate Stripe key formats
+if not STRIPE_SECRET_KEY.startswith(('sk_test_', 'sk_live_')):
+    raise ValueError("STRIPE_SECRET_KEY appears to be in an invalid format")
+if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
+    raise ValueError("STRIPE_PUBLIC_KEY appears to be in an invalid format")
+
+# Add these settings near the other security settings
+SECURE_SSL_REDIRECT = not DEBUG  # Redirects all non-HTTPS requests to HTTPS
+SESSION_COOKIE_SECURE = not DEBUG  # Ensures cookies are only sent over HTTPS
+CSRF_COOKIE_SECURE = not DEBUG  # Ensures CSRF cookies are only sent over HTTPS
+
+# For development, you might want to add localhost to ALLOWED_HOSTS
+ALLOWED_HOSTS = ['localhost', '127.0.0.1'] if DEBUG else ['your-production-domain.com']
