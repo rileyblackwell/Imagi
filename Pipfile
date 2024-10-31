@@ -9,6 +9,7 @@ requests = "*"
 python-dotenv = "*"
 openai = "*"
 bs4 = "*"
+stripe = "*"
 
 [dev-packages]
 

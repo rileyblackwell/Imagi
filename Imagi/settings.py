@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps.Builder',
     'apps.Auth',
-    'apps.Home',  # Make sure this line is present
+    'apps.Home',
+    'apps.Payments',
 ]
 
 MIDDLEWARE = [
@@ -62,10 +63,11 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),  # Add this line
+            os.path.join(BASE_DIR, 'templates'),  # Project-wide templates
             os.path.join(BASE_DIR, 'apps', 'Builder', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),
-            os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),  # Add this line
+            os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),
+            os.path.join(BASE_DIR, 'apps', 'Payments', 'templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -133,6 +135,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'apps', 'Builder', 'static'),
     os.path.join(BASE_DIR, 'apps', 'Home', 'static'),
     os.path.join(BASE_DIR, 'apps', 'Auth', 'static'),
+    os.path.join(BASE_DIR, 'apps', 'Payments', 'static'),
 ]
 
 # Default primary key field type
@@ -144,3 +147,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'landing_page'  # Redirect to landing page after login
 LOGOUT_REDIRECT_URL = 'landing_page'  # Redirect to landing page after logout
 LOGIN_URL = 'login'  # URL name for the login page
+
+# Load environment variables
+load_dotenv()
+
+# Stripe API keys
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+
+# Ensure these keys are not None
+if not STRIPE_SECRET_KEY or not STRIPE_PUBLISHABLE_KEY:
+    raise ValueError("Stripe API keys are not set in the environment variables.")

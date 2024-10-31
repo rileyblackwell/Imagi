@@ -11,6 +11,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),  # Admin interface
     path('builder/', include('apps.Builder.urls')),  # Builder app URLs
     path('auth/', include('apps.Auth.urls')),  # Auth app URLs
-    path('', include('apps.Home.urls')),  # This line includes the Home app's URLs
+    path('', include('apps.Home.urls')),  # Home app URLs
+    path('payments/', include('apps.Payments.urls')),  # Payments app URLs
     path('favicon.ico', favicon_view),
 ]

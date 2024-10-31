@@ -1,0 +1,192 @@
+/* Reset and base styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container styles */
+.auth-wrapper {
+    width: 100%;
+    max-width: 520px;
+    padding: 20px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh;
+}
+
+.auth-inner {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 35px 45px;
+    width: 100%;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Logo and heading */
+.logo-placeholder {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 20px;
+}
+
+h2 {
+    color: #ffffff;
+    text-align: center;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Price display */
+.price-display {
+    text-align: center;
+    margin: 0 0 25px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.price-amount {
+    display: block;
+    font-size: 42px;
+    font-weight: 700;
+    color: #00ffc6;
+    margin-bottom: 6px;
+    text-shadow: 0 2px 4px rgba(0, 255, 198, 0.2);
+    line-height: 1.2;
+}
+
+.price-description {
+    display: block;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+/* Payment button */
+.payment-button {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 25px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.payment-button i {
+    font-size: 16px;
+}
+
+.payment-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 162, 255, 0.4);
+}
+
+/* Secure badge */
+.secure-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 25px;
+    padding: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.secure-badge i {
+    color: #00ffc6;
+    font-size: 15px;
+}
+
+/* Auth links */
+.auth-links {
+    margin-top: 25px;
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-links p {
+    margin: 8px 0;
+}
+
+.auth-links a {
+    color: #00ffc6;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    transition: color 0.3s ease;
+}
+
+.auth-links a:hover {
+    color: #00a2ff;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 580px) {
+    .auth-wrapper {
+        max-width: 100%;
+        padding: 15px;
+    }
+
+    .auth-inner {
+        padding: 25px;
+    }
+
+    .price-amount {
+        font-size: 38px;
+    }
+    
+    .price-description {
+        font-size: 15px;
+    }
+    
+    .payment-button {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+
+    .secure-badge {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    h2 {
+        font-size: 22px;
+        margin-bottom: 20px;
+    }
+}
+
+/* Fix for vertical centering */
+body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+}

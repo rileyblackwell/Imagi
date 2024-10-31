@@ -1,0 +1,40 @@
+{% extends "auth_base.html" %}
+{% load static %}
+
+{% block title %}Checkout - Imagi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+<link rel="stylesheet" href="{% static 'payments/styles.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-inner">
+        <div class="logo-placeholder"></div>
+        <h2>Complete Purchase</h2>
+        
+        <div class="price-display">
+            <span class="price-amount">$20.00</span>
+            <span class="price-description">Premium Plan</span>
+        </div>
+
+        <form action="{% url 'create-checkout-session' %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="payment-button">
+                <i class="fas fa-lock"></i> Proceed to Payment
+            </button>
+        </form>
+
+        <div class="secure-badge">
+            <i class="fas fa-shield-alt"></i>
+            <span>Secure Payment by Stripe</span>
+        </div>
+
+        <div class="auth-links">
+            <p><a href="{% url 'landing_page' %}">Cancel and Return Home</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 
