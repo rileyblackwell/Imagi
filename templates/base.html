@@ -40,6 +40,35 @@
         .dropdown {
             position: relative;
         }
+        .buy-credits-btn {
+            background: linear-gradient(45deg, #00a2ff, #00ffc6);
+            color: #ffffff !important;
+            padding: 8px 16px !important;
+            border-radius: 20px;
+            margin: 0 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .buy-credits-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+        }
+
+        .buy-credits-btn i {
+            font-size: 14px;
+        }
+
+        @media (max-width: 991px) {
+            .buy-credits-btn {
+                margin: 10px 0;
+                display: inline-flex;
+                justify-content: center;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -65,6 +94,11 @@
                         </div>
                     </li>
                     {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a href="{% url 'payments:create-checkout-session' %}" class="nav-link buy-credits-btn">
+                                <i class="fas fa-coins"></i> Buy Credits
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'logout' %}">Logout</a>
                         </li>
