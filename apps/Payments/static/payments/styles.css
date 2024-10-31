@@ -8,19 +8,19 @@
 /* Container styles */
 .auth-wrapper {
     width: 100%;
-    max-width: 520px;
-    padding: 20px;
+    max-width: 450px;
+    padding: 8px;
     margin: 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 90vh;
+    min-height: 80vh;
 }
 
 .auth-inner {
     background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 35px 45px;
+    border-radius: 8px;
+    padding: 15px 25px;
     width: 100%;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     backdrop-filter: blur(8px);
@@ -30,17 +30,17 @@
 
 /* Logo and heading */
 .logo-placeholder {
-    width: 50px;
-    height: 50px;
-    margin: 0 auto 20px;
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 10px;
 }
 
 h2 {
     color: #ffffff;
     text-align: center;
-    font-size: 26px;
+    font-size: 18px;
     font-weight: 700;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -76,9 +76,9 @@ h2 {
     background: linear-gradient(45deg, #00a2ff, #00ffc6);
     color: #ffffff;
     border: none;
-    border-radius: 10px;
-    padding: 16px 25px;
-    font-size: 16px;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
@@ -87,7 +87,7 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     margin-top: 8px;
     box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
     transition: all 0.3s ease;
@@ -107,9 +107,9 @@ h2 {
 /* Spinner styles */
 .spinner {
     display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     border-top-color: #ffffff;
     animation: spin 1s ease-in-out infinite;
@@ -139,26 +139,26 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin-top: 25px;
-    padding: 10px;
+    gap: 6px;
+    margin-top: 15px;
+    padding: 6px;
     color: rgba(255, 255, 255, 0.8);
-    font-size: 13px;
+    font-size: 11px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .secure-badge i {
     color: #00ffc6;
-    font-size: 15px;
+    font-size: 12px;
 }
 
 /* Auth links */
 .auth-links {
-    margin-top: 25px;
+    margin-top: 15px;
     text-align: center;
-    padding-top: 20px;
+    padding-top: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -170,7 +170,7 @@ h2 {
     color: #00ffc6;
     text-decoration: none;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 11px;
     transition: color 0.3s ease;
 }
 
@@ -179,14 +179,14 @@ h2 {
 }
 
 /* Responsive adjustments */
-@media screen and (max-width: 580px) {
+@media screen and (max-width: 768px) {
     .auth-wrapper {
         max-width: 100%;
         padding: 15px;
     }
 
     .auth-inner {
-        padding: 25px;
+        padding: 25px 20px;
     }
 
     .price-amount {
@@ -198,8 +198,8 @@ h2 {
     }
     
     .payment-button {
-        padding: 12px 20px;
-        font-size: 14px;
+        padding: 15px 20px;
+        font-size: 15px;
     }
 
     .secure-badge {
@@ -208,8 +208,33 @@ h2 {
     }
 
     h2 {
-        font-size: 22px;
-        margin-bottom: 20px;
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .auth-inner {
+        padding: 12px 15px;
+    }
+
+    h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+    }
+
+    .credit-selection {
+        padding: 10px;
+    }
+
+    .credit-input {
+        font-size: 13px;
+        padding: 8px 8px 8px 20px;
+    }
+
+    .payment-button {
+        padding: 8px 12px;
+        font-size: 12px;
     }
 }
 
@@ -224,44 +249,45 @@ body {
 }
 
 .credit-selection {
-    margin-bottom: 30px;
+    margin-bottom: 15px;
     background: rgba(255, 255, 255, 0.08);
-    padding: 20px;
-    border-radius: 15px;
+    padding: 12px 20px;
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .credit-selection label {
     color: #ffffff;
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 13px;
 }
 
 .credit-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     background: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
+    border-radius: 6px;
     padding: 2px;
 }
 
 .currency-symbol {
     position: absolute;
-    left: 15px;
+    left: 10px;
     color: #30313d;
     font-weight: 600;
+    font-size: 13px;
 }
 
 .credit-input {
     width: 100%;
-    padding: 12px 12px 12px 30px;
+    padding: 8px 8px 8px 22px;
     border: 2px solid transparent;
-    border-radius: 8px;
-    font-size: 18px;
+    border-radius: 6px;
+    font-size: 14px;
     font-weight: 500;
     color: #30313d;
     background: transparent;
@@ -280,37 +306,37 @@ body {
 
 .error-message {
     color: #df1b41;
-    font-size: 14px;
-    margin-top: 8px;
-    padding: 8px 12px;
+    font-size: 11px;
+    margin-top: 6px;
+    padding: 6px 8px;
     background: rgba(223, 27, 65, 0.1);
-    border-radius: 6px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .credits-preview {
-    margin-top: 15px;
+    margin-top: 10px;
     color: #00ffc6;
-    font-size: 16px;
+    font-size: 13px;
     text-align: center;
-    padding: 10px;
+    padding: 8px;
     background: rgba(0, 255, 198, 0.1);
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid rgba(0, 255, 198, 0.2);
 }
 
 /* Payment form styles */
 #payment-form {
-    margin-top: 25px;
+    margin-top: 15px;
 }
 
 #payment-element {
-    margin-bottom: 24px;
-    padding: 12px;
+    margin-bottom: 12px;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 10px;
+    border-radius: 6px;
 }
 
 /* Input type number styles */
@@ -382,4 +408,26 @@ body {
 .payment-button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+/* Add section dividers */
+.checkout-section {
+    position: relative;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.checkout-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Add container for the payment element */
+.payment-element-container {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
 }
