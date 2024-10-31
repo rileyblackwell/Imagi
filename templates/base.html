@@ -16,31 +16,28 @@
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 12px;
+            margin-top: 8px;
+            position: absolute;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
         }
         .dropdown-item {
             color: #ffffff !important;
+            padding: 8px 16px;
+            text-align: center;
         }
         .dropdown-item:hover {
             background: rgba(255, 255, 255, 0.1) !important;
         }
         .navbar-nav {
             align-items: center;
+            gap: 5px;
         }
         .nav-item {
             display: flex;
             align-items: center;
         }
-        .dropdown-menu {
-            position: absolute;
-            left: 50% !important;
-            transform: translateX(-50%) !important;
-            margin-top: 8px;
-        }
-        /* Override Bootstrap's dropdown positioning */
-        .dropdown {
-            position: relative;
-        }
-        .buy-credits-btn {
+        .nav-link {
             background: linear-gradient(45deg, #00a2ff, #00ffc6);
             color: #ffffff !important;
             padding: 8px 16px !important;
@@ -53,20 +50,39 @@
             gap: 6px;
         }
 
-        .buy-credits-btn:hover {
+        .nav-link:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
         }
 
-        .buy-credits-btn i {
-            font-size: 14px;
+        .nav-link.dropdown-toggle {
+            background: linear-gradient(45deg, #00a2ff, #00ffc6);
+            color: #ffffff !important;
+            padding: 8px 16px !important;
+            border-radius: 20px;
+            margin: 0 10px;
+        }
+
+        .nav-link.dropdown-toggle::after {
+            margin-left: 8px;
         }
 
         @media (max-width: 991px) {
-            .buy-credits-btn {
-                margin: 10px 0;
-                display: inline-flex;
+            .nav-link, .nav-link.dropdown-toggle {
+                margin: 5px 0;
                 justify-content: center;
+            }
+            
+            .navbar-nav {
+                gap: 10px;
+                padding: 10px 0;
+            }
+
+            .dropdown-menu {
+                position: static !important;
+                transform: none !important;
+                margin-top: 5px;
+                text-align: center;
             }
         }
     </style>
@@ -87,7 +103,7 @@
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Products
+                            <i class="fas fa-th"></i> Products
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="{% url 'builder:index' %}">Imagi Oasis</a>
@@ -95,16 +111,20 @@
                     </li>
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <a href="{% url 'payments:create-checkout-session' %}" class="nav-link buy-credits-btn">
+                            <a href="{% url 'payments:create-checkout-session' %}" class="nav-link">
                                 <i class="fas fa-coins"></i> Buy Credits
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                            <a class="nav-link" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                            <a class="nav-link" href="{% url 'login' %}">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
