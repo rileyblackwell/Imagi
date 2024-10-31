@@ -1,7 +1,7 @@
 {% extends "auth_base.html" %}
 {% load static %}
 
-{% block title %}Checkout - Imagi{% endblock %}
+{% block title %}Purchase Credits - Imagi{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
@@ -9,22 +9,35 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 {% endblock %}
 
+{% block extra_js %}
+<script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
 {% block content %}
 <div class="auth-wrapper">
     <div class="auth-inner">
         <div class="logo-placeholder"></div>
-        <h2>Complete Purchase</h2>
+        <h2>Purchase Credits</h2>
         
-        <div class="price-display">
-            <span class="price-amount">$20.00</span>
-            <span class="price-description">Premium Plan</span>
+        <div class="credit-selection">
+            <label for="credit_amount">Select Amount:</label>
+            <select name="credit_amount" id="credit_amount" class="credit-select">
+                <option value="10">10 Credits ($10.00)</option>
+                <option value="15">15 Credits ($15.00)</option>
+                <option value="20">20 Credits ($20.00)</option>
+            </select>
         </div>
 
-        <form action="{% url 'create-checkout-session' %}" method="POST">
+        <form id="payment-form">
             {% csrf_token %}
-            <button type="submit" class="payment-button">
-                <i class="fas fa-lock"></i> Proceed to Payment
+            <div id="payment-element">
+                <!-- Stripe.js will insert the Payment Element here -->
+            </div>
+            <button id="submit" class="payment-button">
+                <div class="spinner hidden" id="spinner"></div>
+                <span id="button-text"><i class="fas fa-lock"></i> Pay now</span>
             </button>
+            <div id="payment-message" class="hidden"></div>
         </form>
 
         <div class="secure-badge">
@@ -37,4 +50,141 @@
         </div>
     </div>
 </div>
+
+<script>
+    const stripe = Stripe("{{ stripe_publishable_key }}");
+    let elements;
+
+    initialize();
+
+    document
+        .querySelector("#payment-form")
+        .addEventListener("submit", handleSubmit);
+
+    // Initialize Stripe and elements
+    async function initialize() {
+        try {
+            const response = await fetch("{% url 'payments:create-payment-intent' %}", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value 
+                },
+                body: JSON.stringify({ 
+                    credit_amount: document.getElementById('credit_amount').value 
+                }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const { clientSecret } = await response.json();
+
+            const appearance = {
+                theme: 'stripe',
+                variables: {
+                    colorPrimary: '#00a2ff',
+                    colorBackground: '#ffffff',
+                    colorText: '#30313d',
+                    colorDanger: '#df1b41',
+                    fontFamily: 'system-ui, sans-serif',
+                    spacingUnit: '6px',
+                    borderRadius: '4px',
+                }
+            };
+            
+            elements = stripe.elements({ 
+                appearance, 
+                clientSecret,
+                loader: 'auto',
+            });
+
+            const paymentElement = elements.create("payment", {
+                layout: "tabs",
+                defaultValues: {
+                    billingDetails: {
+                        name: '{{ request.user.get_full_name }}',
+                        email: '{{ request.user.email }}',
+                    }
+                }
+            });
+
+            await paymentElement.mount("#payment-element");
+            document.querySelector("#submit").disabled = false;
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage("Failed to initialize payment form. Please try again.");
+        }
+    }
+
+    // Handle form submission
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const { error } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: window.location.origin + "{% url 'payments:payment_success' %}",
+                    payment_method_data: {
+                        billing_details: {
+                            name: '{{ request.user.get_full_name }}',
+                            email: '{{ request.user.email }}',
+                        }
+                    }
+                }
+            });
+
+            if (error) {
+                if (error.type === "card_error" || error.type === "validation_error") {
+                    showMessage(error.message);
+                } else {
+                    showMessage("An unexpected error occurred.");
+                }
+                setLoading(false);
+            }
+            // If no error, the customer will be redirected to the return_url
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage("Payment failed. Please try again.");
+            setLoading(false);
+        }
+    }
+
+    // Update payment intent when credit amount changes
+    document.getElementById('credit_amount').addEventListener('change', async () => {
+        setLoading(true);
+        await initialize();
+        setLoading(false);
+    });
+
+    // UI helpers
+    function showMessage(messageText) {
+        const messageContainer = document.querySelector("#payment-message");
+        messageContainer.classList.remove("hidden");
+        messageContainer.textContent = messageText;
+        setTimeout(function () {
+            messageContainer.classList.add("hidden");
+            messageContainer.textContent = "";
+        }, 4000);
+    }
+
+    function setLoading(isLoading) {
+        const submitButton = document.querySelector("#submit");
+        const spinner = document.querySelector("#spinner");
+        const buttonText = document.querySelector("#button-text");
+        
+        if (isLoading) {
+            submitButton.disabled = true;
+            spinner.classList.remove("hidden");
+            buttonText.classList.add("hidden");
+        } else {
+            submitButton.disabled = false;
+            spinner.classList.add("hidden");
+            buttonText.classList.remove("hidden");
+        }
+    }
+</script>
 {% endblock %} 

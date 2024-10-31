@@ -1,11 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Cancelled</title>
-</head>
-<body>
-    <h1>Payment Cancelled</h1>
-</body>
-</html> 
+{% extends "auth_base.html" %}
+{% load static %}
+
+{% block title %}Payment Cancelled - Imagi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+<link rel="stylesheet" href="{% static 'payments/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-inner">
+        <div class="cancel-icon">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        <h2>Payment Cancelled</h2>
+        <p>Your payment was cancelled. No credits have been added to your account.</p>
+        <div class="auth-links">
+            <p><a href="{% url 'payments:create-checkout-session' %}">Try Again</a></p>
+            <p><a href="{% url 'dashboard' %}">Return to Dashboard</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -190,3 +190,68 @@ body {
     margin: 0;
     padding: 0;
 }
+
+.credit-selection {
+    margin-bottom: 20px;
+}
+
+.credit-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.success-icon, .cancel-icon {
+    font-size: 48px;
+    color: #4CAF50;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.cancel-icon {
+    color: #f44336;
+}
+
+.credit-info {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.price-display {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Add these styles to your existing CSS file */
+
+.messages {
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+.alert-error {
+    background-color: rgba(244, 67, 54, 0.8);
+}
+
+.alert-success {
+    background-color: rgba(76, 175, 80, 0.8);
+}
+
+/* Disable button styles */
+.payment-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}

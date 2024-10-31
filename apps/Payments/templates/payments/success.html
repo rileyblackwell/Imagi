@@ -1,11 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Success</title>
-</head>
-<body>
-    <h1>Payment Successful!</h1>
-</body>
-</html> 
+{% extends "auth_base.html" %}
+{% load static %}
+
+{% block title %}Payment Success - Imagi{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+<link rel="stylesheet" href="{% static 'payments/styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-inner">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>Payment Successful!</h2>
+        <p>Your credits have been added to your account.</p>
+        <div class="credit-info">
+            <p>Credits Added: {{ credits_added }}</p>
+            <p>New Balance: {{ new_balance }}</p>
+        </div>
+        <div class="auth-links">
+            <p><a href="{% url 'dashboard' %}">Return to Dashboard</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %} 
