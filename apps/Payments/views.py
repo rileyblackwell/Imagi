@@ -27,19 +27,23 @@ def create_checkout_session(request):
 def create_payment_intent(request):
     try:
         data = json.loads(request.body)
-        credit_amount = int(data.get('credit_amount', 10))
+        credit_amount = float(data.get('credit_amount', 5.00))
         
         # Validate credit amount
-        if credit_amount not in [10, 15, 20]:
-            return JsonResponse({'error': 'Invalid credit amount'}, status=400)
+        if credit_amount < 5 or credit_amount > 100:
+            return JsonResponse({'error': 'Amount must be between $5.00 and $100.00'}, status=400)
+
+        # Convert amount to cents and ensure it's an integer
+        amount_cents = int(credit_amount * 100)
+        credits = int(credit_amount)  # One credit per dollar
 
         # Create payment intent
         intent = stripe.PaymentIntent.create(
-            amount=credit_amount * 100,  # Convert to cents
+            amount=amount_cents,
             currency='usd',
             metadata={
-                'user_id': str(request.user.id),  # Convert to string
-                'credits': str(credit_amount),    # Convert to string
+                'user_id': str(request.user.id),
+                'credits': str(credits),
             },
             automatic_payment_methods={
                 'enabled': True,
@@ -51,13 +55,12 @@ def create_payment_intent(request):
             Payment.objects.create(
                 user=request.user,
                 amount=credit_amount,
-                credits=credit_amount,
+                credits=credits,
                 stripe_payment_id=intent.id,
                 status='pending'
             )
         except Exception as e:
             logger.error(f"Failed to create payment record: {str(e)}")
-            # If payment record creation fails, cancel the payment intent
             stripe.PaymentIntent.cancel(intent.id)
             raise
         
@@ -66,6 +69,8 @@ def create_payment_intent(request):
         })
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid amount format'}, status=400)
     except Exception as e:
         logger.error(f"Payment intent creation failed: {str(e)}")
         return JsonResponse({'error': str(e)}, status=403)

@@ -77,9 +77,9 @@ h2 {
     color: #ffffff;
     border: none;
     border-radius: 10px;
-    padding: 14px 25px;
-    font-size: 15px;
-    font-weight: 700;
+    padding: 16px 25px;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
     width: 100%;
     text-transform: uppercase;
@@ -87,19 +87,51 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
     margin-top: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
     transition: all 0.3s ease;
 }
 
-.payment-button i {
-    font-size: 16px;
+.payment-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
 }
 
-.payment-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 162, 255, 0.4);
+.payment-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: linear-gradient(45deg, #808080, #a0a0a0);
+}
+
+/* Spinner styles */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Success/Error message styles */
+#payment-message {
+    color: #ffffff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+    background: rgba(223, 27, 65, 0.9);
+}
+
+#payment-message.success {
+    background: rgba(0, 255, 198, 0.9);
 }
 
 /* Secure badge */
@@ -192,41 +224,137 @@ body {
 }
 
 .credit-selection {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.credit-select {
+.credit-selection label {
+    color: #ffffff;
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 500;
+    font-size: 15px;
+}
+
+.credit-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 2px;
+}
+
+.currency-symbol {
+    position: absolute;
+    left: 15px;
+    color: #30313d;
+    font-weight: 600;
+}
+
+.credit-input {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
+    padding: 12px 12px 12px 30px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 500;
+    color: #30313d;
+    background: transparent;
+    transition: all 0.3s ease;
 }
 
-.success-icon, .cancel-icon {
-    font-size: 48px;
-    color: #4CAF50;
+.credit-input:focus {
+    outline: none;
+    border-color: #00a2ff;
+}
+
+.credit-input.error {
+    border-color: #df1b41;
+    background: rgba(223, 27, 65, 0.05);
+}
+
+.error-message {
+    color: #df1b41;
+    font-size: 14px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(223, 27, 65, 0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.credits-preview {
+    margin-top: 15px;
+    color: #00ffc6;
+    font-size: 16px;
     text-align: center;
-    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(0, 255, 198, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 198, 0.2);
+}
+
+/* Payment form styles */
+#payment-form {
+    margin-top: 25px;
+}
+
+#payment-element {
+    margin-bottom: 24px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+}
+
+/* Input type number styles */
+/* Remove spinner buttons */
+.credit-input::-webkit-outer-spin-button,
+.credit-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+.credit-input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Success and Cancel page specific styles */
+.success-icon, .cancel-icon {
+    font-size: 64px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.success-icon {
+    color: #00ffc6;
 }
 
 .cancel-icon {
-    color: #f44336;
+    color: #df1b41;
 }
 
 .credit-info {
-    background: #f5f5f5;
-    padding: 15px;
-    border-radius: 4px;
-    margin: 20px 0;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    margin: 25px 0;
     text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
 }
 
-.price-display {
-    text-align: center;
-    margin: 20px 0;
-    font-size: 14px;
-    color: #666;
+.credit-info p {
+    margin: 8px 0;
+    font-size: 16px;
 }
 
 /* Add these styles to your existing CSS file */

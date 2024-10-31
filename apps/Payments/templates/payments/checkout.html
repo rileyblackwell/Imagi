@@ -7,6 +7,48 @@
 <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
 <link rel="stylesheet" href="{% static 'payments/styles.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+.credit-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.currency-symbol {
+    position: absolute;
+    left: 10px;
+    color: #666;
+}
+
+.credit-input {
+    width: 100%;
+    padding: 8px 8px 8px 25px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.error-message {
+    color: #df1b41;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.credits-preview {
+    margin-top: 10px;
+    color: #666;
+    font-size: 14px;
+}
+
+.hidden {
+    display: none;
+}
+
+.credit-input.error {
+    border-color: #df1b41;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -21,12 +63,25 @@
         <h2>Purchase Credits</h2>
         
         <div class="credit-selection">
-            <label for="credit_amount">Select Amount:</label>
-            <select name="credit_amount" id="credit_amount" class="credit-select">
-                <option value="10">10 Credits ($10.00)</option>
-                <option value="15">15 Credits ($15.00)</option>
-                <option value="20">20 Credits ($20.00)</option>
-            </select>
+            <label for="credit_amount">Enter Amount ($5.00 - $100.00):</label>
+            <div class="credit-input-wrapper">
+                <span class="currency-symbol">$</span>
+                <input 
+                    type="number" 
+                    name="credit_amount" 
+                    id="credit_amount" 
+                    class="credit-input" 
+                    min="5" 
+                    max="100" 
+                    step="0.01"
+                    value="5.00"
+                    required
+                >
+            </div>
+            <div id="amount-error" class="error-message hidden"></div>
+            <div class="credits-preview">
+                You will receive: <span id="credits-amount">5</span> credits
+            </div>
         </div>
 
         <form id="payment-form">
@@ -84,6 +139,13 @@
         // Initialize Stripe and elements
         async function initialize() {
             try {
+                const amount = parseFloat(document.getElementById('credit_amount').value);
+                const validation = validateAmount(amount);
+                
+                if (!validation.valid) {
+                    throw new Error(validation.message);
+                }
+
                 const csrftoken = getCookie('csrftoken');
                 if (!csrftoken) {
                     throw new Error('CSRF token not found');
@@ -97,7 +159,7 @@
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ 
-                        credit_amount: document.getElementById('credit_amount').value 
+                        credit_amount: amount
                     }),
                 });
                 
@@ -182,9 +244,14 @@
 
         // Update payment intent when credit amount changes
         document.getElementById('credit_amount').addEventListener('change', async () => {
-            setLoading(true);
-            await initialize();
-            setLoading(false);
+            const amount = parseFloat(document.getElementById('credit_amount').value);
+            const validation = validateAmount(amount);
+            
+            if (validation.valid) {
+                setLoading(true);
+                await initialize();
+                setLoading(false);
+            }
         });
 
         // UI helpers
@@ -213,6 +280,49 @@
                 buttonText.classList.remove("hidden");
             }
         }
+
+        // Add input validation
+        const creditInput = document.getElementById('credit_amount');
+        const errorDiv = document.getElementById('amount-error');
+        const creditsPreview = document.getElementById('credits-amount');
+
+        function validateAmount(amount) {
+            const numAmount = parseFloat(amount);
+            if (isNaN(numAmount)) {
+                return { valid: false, message: 'Please enter a valid amount' };
+            }
+            if (numAmount < 5) {
+                return { valid: false, message: 'Minimum amount is $5.00' };
+            }
+            if (numAmount > 100) {
+                return { valid: false, message: 'Maximum amount is $100.00' };
+            }
+            return { valid: true };
+        }
+
+        function updateCreditsPreview(amount) {
+            const numAmount = parseFloat(amount);
+            if (!isNaN(numAmount)) {
+                creditsPreview.textContent = Math.floor(numAmount);
+            }
+        }
+
+        creditInput.addEventListener('input', function(e) {
+            const amount = e.target.value;
+            const validation = validateAmount(amount);
+            
+            if (!validation.valid) {
+                errorDiv.textContent = validation.message;
+                errorDiv.classList.remove('hidden');
+                creditInput.classList.add('error');
+                document.querySelector("#submit").disabled = true;
+            } else {
+                errorDiv.classList.add('hidden');
+                creditInput.classList.remove('error');
+                document.querySelector("#submit").disabled = false;
+                updateCreditsPreview(amount);
+            }
+        });
     });
 </script>
 {% endblock %} 
