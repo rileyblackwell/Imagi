@@ -58,52 +58,53 @@ body {
 /* Add these new styles for the corner logo */
 .corner-logo {
     position: fixed;
-    bottom: 10px;
-    right: 10px;
+    top: 20px;
+    left: 20px;
     z-index: 1000;
-    width: 20px;
-    height: 20px;
-    overflow: hidden;
-    border-radius: 50%;
 }
 
-.imagi-logo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.corner-logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #ffffff;
 }
 
-.logo-placeholder {
-    width: 50px;
-    height: 50px;
+.corner-logo .logo-placeholder {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
     position: relative;
     display: inline-block;
-    margin-right: 20px;
     transform: rotate(45deg);
     border-radius: 50% / 30%;
     overflow: hidden;
-    position: relative;
 }
 
-.logo-placeholder::before,
-.logo-placeholder::after {
+.corner-logo .logo-placeholder::before,
+.corner-logo .logo-placeholder::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    border: 3px solid white;
+    border: 2px solid white;
     border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: none;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
 }
 
-.logo-placeholder::before {
+.corner-logo .logo-placeholder::before {
     transform: rotate(45deg);
 }
 
-.logo-placeholder::after {
+.corner-logo .logo-placeholder::after {
     transform: rotate(-45deg);
+}
+
+.corner-logo .logo-text {
+    font-size: 18px;
+    font-weight: 600;
 }
 
 .header {
@@ -426,9 +427,35 @@ body {
 }
 
 .navbar-brand .logo-placeholder {
-    width: 28px;
-    height: 28px;
-    margin-right: 8px;
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.navbar-brand .logo-placeholder::before,
+.navbar-brand .logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.navbar-brand .logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.navbar-brand .logo-placeholder::after {
+    transform: rotate(-45deg);
 }
 
 .header {
@@ -461,4 +488,53 @@ body {
     margin-bottom: 1rem;
     opacity: 0.9;
     text-align: center;
+}
+
+/* Add corner brand styles */
+.corner-brand {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.corner-brand a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.corner-brand .logo-placeholder {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.corner-brand .logo-placeholder::before,
+.corner-brand .logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.corner-brand .logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.corner-brand .logo-placeholder::after {
+    transform: rotate(-45deg);
 }

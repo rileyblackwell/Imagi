@@ -7,6 +7,15 @@
 <link rel="stylesheet" href="{% static 'builder/css/styles.css' %}">
 {% endblock %}
 
+{% block navbar %}
+<div class="corner-brand">
+    <a href="{% url 'landing_page' %}">
+        <div class="logo-placeholder"></div>
+        <span>Imagi</span>
+    </a>
+</div>
+{% endblock %}
+
 {% block content %}
     <div class="container">
         <div class="header text-center mb-0">
