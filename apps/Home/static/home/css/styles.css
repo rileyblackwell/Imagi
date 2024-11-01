@@ -10,6 +10,43 @@ body {
     flex-direction: column;
 }
 
+/* Logo placeholder base styles */
+.logo-placeholder {
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.logo-placeholder::before,
+.logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2.5px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.logo-placeholder::after {
+    transform: rotate(-45deg);
+}
+
+/* Navbar brand logo */
+.navbar-brand .logo-placeholder {
+    width: 35px;
+    height: 35px;
+    margin-right: 12px;
+}
+
 /* Hero section styles */
 .hero {
     padding: 100px 0;
@@ -17,10 +54,16 @@ body {
     color: #ffffff;
 }
 
+/* Hero logo (center of page) */
 .hero .logo-placeholder {
     width: 100px;
     height: 100px;
     margin: 0 auto 30px;
+}
+
+.hero .logo-placeholder::before,
+.hero .logo-placeholder::after {
+    border-width: 3px;
 }
 
 .hero h1 {
