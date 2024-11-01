@@ -78,4 +78,148 @@ body {
     transform: rotate(-45deg);
 }
 
-/* Rest of your existing styles... */
+/* Updated Footer Styles */
+.footer {
+    flex-shrink: 0;
+    width: 100%;
+    background: linear-gradient(to right, 
+        rgba(0, 0, 0, 0.8) 0%, 
+        rgba(0, 0, 0, 0.6) 50%, 
+        rgba(0, 0, 0, 0.8) 100%
+    );
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 25px 0;
+    margin-top: auto;
+}
+
+.footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.footer-brand-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-left: 12px;
+    background: linear-gradient(45deg, #ffffff, #a8b8ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.footer-logo-placeholder {
+    width: 32px;
+    height: 32px;
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.footer-logo-placeholder::before,
+.footer-logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.footer-logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.footer-logo-placeholder::after {
+    transform: rotate(-45deg);
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 5px;
+}
+
+.footer-link {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.footer-link:hover {
+    color: #ffffff;
+    text-decoration: none;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.footer-divider {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+}
+
+.footer-copyright {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    font-weight: 400;
+    margin: 0;
+    text-align: center;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 480px) {
+    .footer {
+        padding: 20px 0;
+    }
+
+    .footer-content {
+        gap: 12px;
+    }
+
+    .footer-brand {
+        margin-bottom: 3px;
+    }
+
+    .footer-logo-placeholder {
+        width: 28px;
+        height: 28px;
+    }
+
+    .footer-brand-text {
+        font-size: 1.1rem;
+    }
+
+    .footer-links {
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .footer-link {
+        font-size: 0.85rem;
+    }
+
+    .footer-copyright {
+        font-size: 0.8rem;
+    }
+}
