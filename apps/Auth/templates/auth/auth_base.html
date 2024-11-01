@@ -1,16 +1,16 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Imagi{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600,700" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
-    {% block extra_css %}{% endblock %}
-</head>
-<body class="auth-page">
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+{% endblock %}
+
+{% block navbar %}
+<!-- Navbar intentionally left empty to exclude it from auth pages -->
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
     <div class="corner-logo">
         <a href="{% url 'landing_page' %}">
             <div class="logo-placeholder"></div>
@@ -19,9 +19,12 @@
     </div>
     <div class="auth-wrapper">
         <div class="auth-inner">
-            {% block content %}{% endblock %}
+            {% block auth_content %}{% endblock %}
         </div>
     </div>
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Add any additional JavaScript specific to auth pages here -->
+{% endblock %}
