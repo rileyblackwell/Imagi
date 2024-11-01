@@ -494,7 +494,7 @@ body {
 .corner-brand {
     position: fixed;
     top: 20px;
-    left: 20px;
+    left: 30px;
     z-index: 1000;
 }
 
