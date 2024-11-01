@@ -22,6 +22,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background-size: cover !important;
 }
 
 .container {
@@ -493,65 +494,144 @@ body {
     text-align: center;
 }
 
-/* Update corner brand styles with more specific selectors */
-.corner-brand {
-    position: fixed;
-    top: 20px;
-    left: 30px;
-    z-index: 1000;
+/* First, let's remove any existing corner brand styles */
+.corner-brand, .corner-logo, .navbar-brand {
+    all: unset !important;
 }
 
-/* More specific selector to override base styles */
-body .corner-brand .navbar-brand {
-    display: flex;
-    align-items: center;
+/* Now add our new styles with maximum specificity */
+html body .builder-corner-brand {
+    position: fixed !important;
+    top: 25px !important;
+    left: 15px !important;
+    z-index: 9999 !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    padding: 25px 45px !important;
+    border-radius: 40px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s ease !important;
+    display: block !important;
+}
+
+html body .builder-corner-brand .navbar-brand {
+    display: flex !important;
+    align-items: center !important;
     text-decoration: none !important;
     color: #ffffff !important;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    padding: 0;
-    margin: 0;
+    font-size: 3rem !important;  /* Increased font size */
+    font-weight: 600 !important;
+    letter-spacing: 1.5px !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
 }
 
-body .corner-brand .navbar-brand:hover,
-body .corner-brand .navbar-brand:focus,
-body .corner-brand .navbar-brand:active {
-    opacity: 0.9;
+html body .builder-corner-brand .navbar-brand .logo-placeholder {
+    width: 80px !important;  /* Much larger logo */
+    height: 80px !important;  /* Much larger logo */
+    margin-right: 30px !important;
+    position: relative !important;
+    display: inline-block !important;
+    transform: rotate(45deg) !important;
+    border-radius: 50% / 30% !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+    flex-shrink: 0 !important;
+}
+
+html body .builder-corner-brand .navbar-brand .logo-placeholder::before,
+html body .builder-corner-brand .navbar-brand .logo-placeholder::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    border: 4px solid white !important;  /* Thicker border */
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70% !important;
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.5) !important;
+}
+
+html body .builder-corner-brand .navbar-brand .logo-placeholder::before {
+    transform: rotate(45deg) !important;
+}
+
+html body .builder-corner-brand .navbar-brand .logo-placeholder::after {
+    transform: rotate(-45deg) !important;
+}
+
+/* Reset any Bootstrap or other framework styles that might interfere */
+html body .builder-corner-brand * {
+    box-sizing: border-box !important;
+}
+
+/* Make sure the logo container doesn't collapse */
+html body .builder-corner-brand .navbar-brand .logo-placeholder {
+    min-width: 80px !important;
+    min-height: 80px !important;
+}
+
+/* Update the builder logo styles */
+#builder-logo.builder-corner-brand {
+    position: fixed !important;
+    top: 25px !important;
+    left: 15px !important;
+    z-index: 9999 !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    padding: 25px 45px !important;
+    border-radius: 40px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s ease !important;
+}
+
+#builder-logo .navbar-brand {
+    display: flex !important;
+    align-items: center !important;
     text-decoration: none !important;
     color: #ffffff !important;
+    font-size: 3rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 1.5px !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2) !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-body .corner-brand .logo-placeholder {
-    width: 35px;
-    height: 35px;
-    margin-right: 12px;
-    position: relative;
-    display: inline-block;
-    transform: rotate(45deg);
-    border-radius: 50% / 30%;
-    overflow: hidden;
-    flex-shrink: 0;
+#builder-logo .logo-placeholder {
+    width: 80px !important;
+    height: 80px !important;
+    margin-right: 30px !important;
+    position: relative !important;
+    display: inline-block !important;
+    transform: rotate(45deg) !important;
+    border-radius: 50% / 30% !important;
+    overflow: hidden !important;
+    transition: all 0.3s ease !important;
+    flex-shrink: 0 !important;
 }
 
-body .corner-brand .logo-placeholder::before,
-body .corner-brand .logo-placeholder::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2.5px solid white;
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+#builder-logo .logo-placeholder::before,
+#builder-logo .logo-placeholder::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    border: 4px solid white !important;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70% !important;
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.5) !important;
 }
 
-body .corner-brand .logo-placeholder::before {
-    transform: rotate(45deg);
+#builder-logo .logo-placeholder::before {
+    transform: rotate(45deg) !important;
 }
 
-body .corner-brand .logo-placeholder::after {
-    transform: rotate(-45deg);
+#builder-logo .logo-placeholder::after {
+    transform: rotate(-45deg) !important;
 }
