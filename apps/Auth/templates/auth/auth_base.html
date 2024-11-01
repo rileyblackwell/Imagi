@@ -6,17 +6,36 @@
 {% endblock %}
 
 {% block navbar %}
-<!-- Navbar intentionally left empty to exclude it from auth pages -->
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+        <a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
+            <div class="logo-placeholder"></div>
+            Imagi
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto nav-buttons-list">
+                <li class="nav-item">
+                    {% if request.path == '/login/' %}
+                        <a class="nav-link" href="{% url 'signup' %}">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </a>
+                    {% else %}
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    {% endif %}
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 {% endblock %}
 
 {% block content %}
 <div class="auth-page">
-    <div class="corner-logo">
-        <a href="{% url 'landing_page' %}">
-            <div class="logo-placeholder"></div>
-            <span class="logo-text">Imagi</span>
-        </a>
-    </div>
     <div class="auth-wrapper">
         <div class="auth-inner">
             {% block auth_content %}{% endblock %}
