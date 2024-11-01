@@ -1,160 +1,20 @@
+/* Reset and base styles */
 body {
     font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #ffffff !important;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
-.navbar {
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    padding: 0.5rem 1rem;
-}
-
-.navbar-nav {
-    gap: 15px;
-}
-
-.nav-item {
-    margin: 0 5px;
-}
-
-.nav-link {
-    color: #ffffff !important;
-    padding: 8px 16px !important;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
-}
-
-.nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.navbar-brand {
-    font-weight: 700;
-    color: #ffffff !important;
-    display: flex;
-    align-items: center;
-}
-
-.navbar-brand img {
-    margin-right: 10px;
-}
-
+/* Hero section styles */
 .hero {
     padding: 100px 0;
     text-align: center;
-    color: #ffffff !important;
-}
-
-.hero img {
-    margin-bottom: 30px;
-}
-
-.hero h1 {
-    font-size: 3.5rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    color: #ffffff !important;
-}
-
-.hero p {
-    font-size: 1.2rem;
-    margin-bottom: 30px;
-    color: #ffffff !important;
-}
-
-.btn-primary {
-    background-color: #4CAF50 !important;
-    border: none !important;
-    padding: 10px 30px;
-    font-size: 1.1rem;
-    color: #ffffff !important;
-    transition: all 0.2s ease;
-}
-
-.btn-primary:hover,
-.btn-primary:active,
-.btn-primary:focus,
-.btn-primary.active {
-    background-color: #45a049 !important;
-    border: none !important;
-    transform: scale(1.02);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    color: #ffffff !important;
-}
-
-.features {
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 50px 0;
-    color: #ffffff !important;
-}
-
-.features h3 {
-    color: #ffffff !important;
-    margin-bottom: 15px;
-}
-
-.features p {
-    color: #ffffff !important;
-}
-
-.feature-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
-    color: #ffffff !important;
-}
-
-.footer {
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 20px 0;
-    margin-top: auto;
-}
-
-.footer-content {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.logo-placeholder {
-    width: 50px;
-    height: 50px;
-    position: relative;
-    display: inline-block;
-    margin-right: 20px;
-    transform: rotate(45deg);
-    border-radius: 50% / 30%;
-    overflow: hidden;
-}
-
-.logo-placeholder::before,
-.logo-placeholder::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 3px solid white;
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
-}
-
-.logo-placeholder::before {
-    transform: rotate(45deg);
-}
-
-.logo-placeholder::after {
-    transform: rotate(-45deg);
-}
-
-.navbar-brand .logo-placeholder {
-    width: 40px;
-    height: 40px;
-    margin-right: 10px;
+    color: #ffffff;
 }
 
 .hero .logo-placeholder {
@@ -163,210 +23,142 @@ body {
     margin: 0 auto 30px;
 }
 
-.footer-logo-placeholder {
-    width: 24px;
-    height: 24px;
-    margin-right: 12px;
+.hero h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
-.footer-logo-placeholder::before,
-.footer-logo-placeholder::after {
-    border-width: 1.5px;
-    box-shadow: 0 0 8px rgba(0, 162, 255, 0.5);
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+    color: #ffffff;
+    opacity: 0.9;
 }
 
-/* Improved dropdown menu styles */
-.dropdown-menu {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 200px;
-    background: rgba(0, 0, 0, 0.8) !important;
+.hero .btn-primary {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    border: none;
+    padding: 12px 35px;
+    font-size: 1.1rem;
+    border-radius: 25px;
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+}
+
+.hero .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+}
+
+/* Features section styles */
+.features {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 80px 0;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 0.8rem;
-    margin-top: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-.dropdown-item {
-    color: #ffffff !important;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    transition: all 0.2s ease;
-    margin: 4px 0;
-    background: transparent !important;
-    text-align: center;
-}
-
-.dropdown-item:hover,
-.dropdown-item:focus {
-    background: rgba(255, 255, 255, 0.1) !important;
-    transform: translateX(5px);
-}
-
-/* Dropdown toggle styles */
-.nav-item.dropdown {
-    position: relative;
-}
-
-.dropdown-toggle {
-    padding: 8px 16px !important;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    text-align: center;
+.features .row {
     display: flex;
-    align-items: center;
     justify-content: center;
+    gap: 30px;
+    margin: 0;
+    padding: 0 20px;
 }
 
-.dropdown-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
+.features .col-md-4 {
+    flex: 0 0 calc(33.333% - 30px);
+    max-width: calc(33.333% - 30px);
+    text-align: center;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease;
 }
 
-/* Dropdown animation */
-@keyframes dropdownFade {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-10px);
+.features .col-md-4:hover {
+    transform: translateY(-5px);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #00ffc6;
+    text-shadow: 0 0 20px rgba(0, 255, 198, 0.5);
+}
+
+.features h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.features p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 991px) {
+    .features .row {
+        flex-direction: column;
     }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
+
+    .features .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .hero h1 {
+        font-size: 2.8rem;
+    }
+
+    .hero p {
+        font-size: 1.1rem;
     }
 }
 
-/* Dropdown arrow */
-.dropdown-toggle::after {
-    border-top-color: #ffffff;
-    opacity: 0.8;
-    margin-left: 8px;
-    transition: transform 0.2s ease;
-}
-
-.dropdown-toggle:hover::after {
-    transform: translateY(2px);
-}
-
-/* Update the dropdown toggle arrow */
-.dropdown-toggle::after {
-    border-top-color: #ffffff;
-    opacity: 0.8;
-    margin-left: 8px;
-}
-
-/* Add animation for dropdown */
-.dropdown-menu.show {
-    animation: dropdownFade 0.2s ease-out;
-}
-
-@keyframes dropdownFade {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-10px);
+@media screen and (max-width: 768px) {
+    .hero {
+        padding: 60px 0;
     }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
+
+    .hero h1 {
+        font-size: 2.2rem;
     }
-}
 
-/* Update text colors */
-.nav-link, 
-.navbar-brand,
-.dropdown-toggle,
-.dropdown-item {
-    color: #ffffff !important;
-}
-
-/* Update button styles */
-.btn-primary {
-    background-color: #4CAF50 !important;
-    border: none !important;
-    padding: 10px 30px;
-    font-size: 1.1rem;
-    color: #ffffff !important;
-    transition: all 0.2s ease;
-}
-
-.btn-primary:hover,
-.btn-primary:active,
-.btn-primary:focus,
-.btn-primary.active {
-    background-color: #45a049 !important;
-    border: none !important;
-    transform: scale(1.02);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    color: #ffffff !important;
-}
-
-/* Ensure dropdown styles remain */
-.dropdown-menu {
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    padding: 0.5rem;
-    margin-top: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    min-width: 180px;
-}
-
-.dropdown-item:hover, 
-.dropdown-item:focus {
-    background: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Update navbar toggler color for mobile */
-.navbar-light .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
-}
-
-.navbar-toggler {
-    border-color: rgba(255, 255, 255, 0.5) !important;
-}
-
-/* Add a general text color rule */
-.container {
-    color: #ffffff !important;
-}
-
-.col-md-4 {
-    color: #ffffff !important;
-}
-
-/* Ensure dropdown item text is white */
-.dropdown-item {
-    color: #ffffff !important;
-}
-
-/* Ensure the navbar brand text is white */
-.navbar-brand {
-    color: #ffffff !important;
-}
-
-/* Ensure all text in the hero section is white */
-.hero h1, .hero p {
-    color: #ffffff !important;
-}
-
-/* Ensure features section text is white */
-.features h3, .features p {
-    color: #ffffff !important;
-}
-
-/* Adjust spacing for mobile */
-@media (max-width: 768px) {
-    .navbar-nav {
-        padding: 10px 0;
+    .hero p {
+        font-size: 1rem;
     }
-    
-    .nav-item {
-        margin: 5px 0;
+
+    .hero .btn-primary {
+        padding: 10px 30px;
+        font-size: 1rem;
+    }
+
+    .features {
+        padding: 50px 0;
+    }
+
+    .features h3 {
+        font-size: 1.3rem;
+    }
+
+    .features p {
+        font-size: 0.9rem;
     }
 }

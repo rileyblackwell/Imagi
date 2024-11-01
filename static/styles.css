@@ -8,90 +8,118 @@ body {
     flex-direction: column;
 }
 
-/* Navbar styles */
-.navbar {
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    padding: 0.5rem 1rem;
+/* Hero section styles */
+.hero {
+    padding: 100px 0;
+    text-align: center;
+    color: #ffffff;
 }
 
-/* Main navbar brand (for regular navbar) */
-.main-nav-brand {
-    display: flex;
-    align-items: center;
-    text-decoration: none !important;
-    color: #ffffff !important;
-    font-size: 1.2rem;
+.hero .logo-placeholder {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 30px;
+}
+
+.hero h1 {
+    font-size: 3.5rem;
     font-weight: 700;
-}
-
-/* Corner brand (for builder page) */
-.corner-brand {
-    position: fixed;
-    top: 20px;
-    left: 40px;
-    z-index: 1000;
-}
-
-.corner-brand .navbar-brand {
-    display: flex;
-    align-items: center;
-    text-decoration: none !important;
-    color: #ffffff !important;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+    margin-bottom: 20px;
+    color: #ffffff;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    padding: 0;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+.hero .btn-primary {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    border: none;
+    padding: 12px 35px;
+    font-size: 1.1rem;
+    border-radius: 25px;
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+}
+
+.hero .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+}
+
+/* Features section styles */
+.features {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 80px 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.features .row {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
     margin: 0;
+    padding: 0 20px;
 }
 
-.corner-brand .logo-placeholder {
-    width: 35px;
-    height: 35px;
-    margin-right: 12px;
-    position: relative;
-    display: inline-block;
-    transform: rotate(45deg);
-    border-radius: 50% / 30%;
-    overflow: hidden;
+.features .col-md-4 {
+    flex: 0 0 calc(33.333% - 30px);
+    max-width: calc(33.333% - 30px);
+    text-align: center;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease;
 }
 
-.corner-brand .logo-placeholder::before,
-.corner-brand .logo-placeholder::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2.5px solid white;
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+.features .col-md-4:hover {
+    transform: translateY(-5px);
 }
 
-.corner-brand .logo-placeholder::before {
-    transform: rotate(45deg);
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #00ffc6;
+    text-shadow: 0 0 20px rgba(0, 255, 198, 0.5);
 }
 
-.corner-brand .logo-placeholder::after {
-    transform: rotate(-45deg);
+.features h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #ffffff;
+    font-weight: 600;
 }
 
-/* Updated Footer Styles */
+.features p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+/* Footer styles */
 .footer {
     flex-shrink: 0;
     width: 100%;
-    background: linear-gradient(to right, 
-        rgba(0, 0, 0, 0.8) 0%, 
-        rgba(0, 0, 0, 0.6) 50%, 
-        rgba(0, 0, 0, 0.8) 100%
-    );
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 25px 0;
+    text-align: center;
     margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-content {
@@ -115,10 +143,7 @@ body {
     font-weight: 700;
     letter-spacing: 1px;
     margin-left: 12px;
-    background: linear-gradient(45deg, #ffffff, #a8b8ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    color: #ffffff;
 }
 
 .footer-logo-placeholder {
@@ -222,4 +247,85 @@ body {
     .footer-copyright {
         font-size: 0.8rem;
     }
+}
+
+/* Navbar styles */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1rem;
+}
+
+.navbar-nav {
+    align-items: center;
+    gap: 15px;
+}
+
+.nav-item {
+    margin: 0 5px;
+}
+
+.nav-link {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 15px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nav-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+    color: #ffffff !important;
+    text-decoration: none;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    color: #ffffff !important;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Dropdown styles */
+.dropdown-menu {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    margin-top: 8px;
+    position: absolute;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    min-width: 140px;
+    padding: 4px;
+}
+
+.dropdown-item {
+    color: #ffffff !important;
+    padding: 6px 12px;
+    text-align: center;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px;
+}
+
+.nav-link.dropdown-toggle {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 15px;
+    margin: 0 5px;
 }
