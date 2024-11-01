@@ -1,26 +1,86 @@
-/* Reset and base styles */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+:root {
+    --primary-color: #00a2ff;
+    --secondary-color: #ff3e7f;
+    --background-start: #1e0f3d;
+    --background-end: #0a4d68;
+    --text-color: #ffffff;
+    --input-bg: rgba(255, 255, 255, 0.15);
+    --button-gradient-1: linear-gradient(45deg, #ff3e7f, #ff8a5b);
+    --button-gradient-2: linear-gradient(45deg, #00a2ff, #00ffc6);
+    --button-gradient-3: linear-gradient(45deg, #2ecc71, #00ff9d);
+    --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
 }
 
-/* Container styles */
-.auth-wrapper {
+body {
+    background: linear-gradient(135deg, var(--background-start), var(--background-end)) !important;
+}
+
+/* Corner brand styles */
+.corner-brand {
+    position: fixed;
+    top: 20px;
+    left: 30px;
+    z-index: 1000;
+}
+
+.corner-brand .navbar-brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none !important;
+    color: var(--text-color) !important;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.corner-brand .logo-placeholder {
+    width: 35px;
+    height: 35px;
+    margin-right: 12px;
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.corner-brand .logo-placeholder::before,
+.corner-brand .logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2.5px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.corner-brand .logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.corner-brand .logo-placeholder::after {
+    transform: rotate(-45deg);
+}
+
+/* Update checkout wrapper styles */
+.checkout-wrapper {
     width: 100%;
     max-width: 450px;
     padding: 8px;
-    margin: 0 auto;
+    margin: 60px auto 0;
     display: flex;
     justify-content: center;
-    align-items: center;
-    min-height: 80vh;
+    min-height: calc(100vh - 180px);
 }
 
-.auth-inner {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 15px 25px;
+.checkout-inner {
+    background: var(--container-gradient);
+    border-radius: 20px;
+    padding: 25px;
     width: 100%;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     backdrop-filter: blur(8px);
@@ -28,406 +88,77 @@
     border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-/* Logo and heading */
-.logo-placeholder {
-    width: 30px;
-    height: 30px;
-    margin: 0 auto 10px;
-}
+/* Rest of your existing styles... */
 
-h2 {
-    color: #ffffff;
-    text-align: center;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 15px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Price display */
-.price-display {
-    text-align: center;
-    margin: 0 0 25px 0;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.price-amount {
-    display: block;
-    font-size: 42px;
-    font-weight: 700;
-    color: #00ffc6;
-    margin-bottom: 6px;
-    text-shadow: 0 2px 4px rgba(0, 255, 198, 0.2);
-    line-height: 1.2;
-}
-
-.price-description {
-    display: block;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 500;
-}
-
-/* Payment button */
-.payment-button {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 15px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
+/* Footer styles */
+.footer {
+    flex-shrink: 0;
     width: 100%;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 8px;
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
-    transition: all 0.3s ease;
-}
-
-.payment-button:not(:disabled):hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
-}
-
-.payment-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    background: linear-gradient(45deg, #808080, #a0a0a0);
-}
-
-/* Spinner */
-.spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #ffffff;
-    animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Success/Error message styles */
-#payment-message {
-    color: #ffffff;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-top: 15px;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 20px 0;
     text-align: center;
-    font-size: 14px;
-    background: rgba(223, 27, 65, 0.9);
-}
-
-#payment-message.success {
-    background: rgba(0, 255, 198, 0.9);
-}
-
-/* Secure badge */
-.secure-badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 15px;
-    padding: 6px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 11px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.secure-badge i {
-    color: #00ffc6;
-    font-size: 12px;
-}
-
-/* Auth links */
-.auth-links {
-    margin-top: 15px;
-    text-align: center;
-    padding-top: 12px;
+    margin-top: auto;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.auth-links p {
-    margin: 8px 0;
+.footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
-.auth-links a {
-    color: #00ffc6;
+.footer-brand {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.footer-brand-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-left: 12px;
+    color: var(--text-color);
+}
+
+.footer-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 5px;
+}
+
+.footer-link {
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
-    font-weight: 600;
-    font-size: 11px;
-    transition: color 0.3s ease;
-}
-
-.auth-links a:hover {
-    color: #00a2ff;
-}
-
-/* Responsive adjustments */
-@media screen and (max-width: 768px) {
-    .auth-wrapper {
-        max-width: 100%;
-        padding: 15px;
-    }
-
-    .auth-inner {
-        padding: 25px 20px;
-    }
-
-    .price-amount {
-        font-size: 38px;
-    }
-    
-    .price-description {
-        font-size: 15px;
-    }
-    
-    .payment-button {
-        padding: 15px 20px;
-        font-size: 15px;
-    }
-
-    .secure-badge {
-        font-size: 12px;
-        padding: 8px;
-    }
-
-    h2 {
-        font-size: 28px;
-        margin-bottom: 30px;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .auth-inner {
-        padding: 12px 15px;
-    }
-
-    h2 {
-        font-size: 16px;
-        margin-bottom: 12px;
-    }
-
-    .credit-selection {
-        padding: 10px;
-    }
-
-    .credit-input {
-        font-size: 13px;
-        padding: 8px 8px 8px 20px;
-    }
-
-    .payment-button {
-        padding: 8px 12px;
-        font-size: 12px;
-    }
-}
-
-/* Fix for vertical centering */
-body {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    padding: 0;
-}
-
-/* Payment specific styles */
-.credit-selection {
-    margin-bottom: 15px;
-    background: rgba(255, 255, 255, 0.08);
-    padding: 12px 20px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.credit-selection label {
-    color: #ffffff;
-    display: block;
-    margin-bottom: 8px;
+    font-size: 0.9rem;
     font-weight: 500;
-    font-size: 13px;
-}
-
-.credit-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 6px;
-    padding: 2px;
-}
-
-.currency-symbol {
-    position: absolute;
-    left: 10px;
-    color: #30313d;
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.credit-input {
-    width: 100%;
-    padding: 8px 8px 8px 22px;
-    border: 2px solid transparent;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #30313d;
-    background: transparent;
     transition: all 0.3s ease;
 }
 
-.credit-input:focus {
-    outline: none;
-    border-color: #00a2ff;
-}
-
-.credit-input.error {
-    border-color: #df1b41;
-    background: rgba(223, 27, 65, 0.05);
-}
-
-.error-message {
-    color: #df1b41;
-    font-size: 11px;
-    margin-top: 6px;
-    padding: 6px 8px;
-    background: rgba(223, 27, 65, 0.1);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.credits-preview {
-    margin-top: 10px;
-    color: #00ffc6;
-    font-size: 13px;
-    text-align: center;
-    padding: 8px;
-    background: rgba(0, 255, 198, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(0, 255, 198, 0.2);
-}
-
-/* Payment form styles */
-#payment-form {
-    margin-top: 15px;
-}
-
-#payment-element {
-    margin-bottom: 12px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 6px;
-}
-
-/* Remove number input spinners */
-.credit-input::-webkit-outer-spin-button,
-.credit-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    appearance: none;
-    margin: 0;
-}
-
-.credit-input[type=number] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-/* Success/Cancel icons */
-.success-icon {
-    color: #00ffc6;
-}
-
-.cancel-icon {
-    color: #df1b41;
-}
-
-/* Payment sections */
-.checkout-section {
-    position: relative;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.checkout-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
-.payment-element-container {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-
-/* Add these styles to your existing CSS file */
-
-.messages {
-    margin-bottom: 20px;
-}
-
-.alert {
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 4px;
+.footer-link:hover {
     color: #ffffff;
+    text-decoration: none;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-.alert-error {
-    background-color: rgba(244, 67, 54, 0.8);
+.footer-divider {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
 }
 
-.alert-success {
-    background-color: rgba(76, 175, 80, 0.8);
+.footer-copyright {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    font-weight: 400;
+    margin: 0;
+    text-align: center;
 }
 
-/* Disable button styles */
-.payment-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-/* Add section dividers */
-.checkout-section {
-    position: relative;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.checkout-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-}
-
-/* Add container for the payment element */
-.payment-element-container {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
+/* Rest of your existing styles... */
