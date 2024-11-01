@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 
 @login_required
 def index(request):
-    return render(request, 'builder/index.html')
+    return render(request, 'builder/oasis_builder.html')
 
 @require_http_methods(['POST'])
 def process_input(request):
