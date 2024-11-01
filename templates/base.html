@@ -10,12 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'styles.css' %}">
     {% block extra_css %}{% endblock %}
-    <style>
-        /* Remove the animation styles */
-        body {
-            background-size: cover;
-        }
-    </style>
 </head>
 <body {% if request.path != '/builder/' %}class="animated-bg"{% endif %}>
     {% block navbar %}
@@ -25,40 +19,6 @@
                 <div class="logo-placeholder"></div>
                 Imagi
             </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="fas fa-th"></i> Products
-                        </a>
-                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="{% url 'builder:index' %}">Imagi Oasis</a>
-                        </div>
-                    </li>
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a href="{% url 'payments:create-checkout-session' %}" class="nav-link">
-                                <i class="fas fa-coins"></i> Buy Credits
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'logout' %}">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">
-                                <i class="fas fa-sign-in-alt"></i> Login
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
         </div>
     </nav>
     {% endblock %}

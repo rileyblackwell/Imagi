@@ -205,3 +205,96 @@ body {
         font-size: 0.9rem;
     }
 }
+
+/* Add these styles for the home navigation buttons */
+.home-nav-buttons {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.nav-buttons {
+    margin-left: auto;
+}
+
+.nav-buttons-list {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 10px;
+}
+
+.nav-buttons-list .nav-item {
+    display: flex;
+    align-items: center;
+}
+
+.nav-buttons-list .nav-link {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    border-radius: 15px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nav-buttons-list .nav-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+}
+
+/* Dropdown styles */
+.nav-buttons-list .dropdown-menu {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    margin-top: 8px;
+    min-width: 140px;
+    padding: 4px;
+}
+
+.nav-buttons-list .dropdown-item {
+    color: #ffffff !important;
+    padding: 6px 12px;
+    text-align: center;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.nav-buttons-list .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px;
+}
+
+/* Mobile responsive styles */
+@media screen and (max-width: 991px) {
+    .nav-buttons {
+        margin: 15px 0;
+        width: 100%;
+    }
+
+    .nav-buttons-list {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .nav-buttons-list .nav-item {
+        width: 100%;
+    }
+
+    .nav-buttons-list .nav-link {
+        justify-content: center;
+        width: 100%;
+    }
+}

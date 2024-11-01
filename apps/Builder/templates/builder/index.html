@@ -8,12 +8,42 @@
 {% endblock %}
 
 {% block navbar %}
-<div id="builder-logo" class="navbar-logo">
-    <a class="navbar-brand" href="{% url 'landing_page' %}">
-        <div class="logo-placeholder"></div>
-        Imagi
-    </a>
-</div>
+<nav class="navbar navbar-expand-lg navbar-light builder-navbar">
+    <div class="container">
+        <a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
+            <div class="logo-placeholder"></div>
+            <span class="brand-text">Imagi</span>
+        </a>
+        
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <div class="nav-buttons ml-auto">
+                <ul class="nav-buttons-list">
+                    <li class="nav-item">
+                        <a href="{% url 'landing_page' %}" class="nav-link">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a href="{% url 'payments:create-checkout-session' %}" class="nav-link">
+                                <i class="fas fa-coins"></i> Buy Credits
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
 {% endblock %}
 
 {% block content %}
@@ -52,20 +82,4 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
 <script src="{% static 'builder/js/script.js' %}"></script>
-<script>
-    $(document).ready(function() {
-        var logo = $('#builder-logo');
-        var lastScrollTop = 0;
-
-        $(window).scroll(function() {
-            var st = $(this).scrollTop();
-            if (st > lastScrollTop) {
-                logo.fadeOut(); // Scroll down
-            } else {
-                logo.fadeIn(); // Scroll up
-            }
-            lastScrollTop = st;
-        });
-    });
-</script>
 {% endblock %}
