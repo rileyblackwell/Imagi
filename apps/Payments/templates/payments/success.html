@@ -3,26 +3,18 @@
 
 {% block title %}Payment Success - Imagi{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
-<link rel="stylesheet" href="{% static 'payments/styles.css' %}">
-{% endblock %}
-
 {% block content %}
-<div class="auth-wrapper">
-    <div class="auth-inner">
-        <div class="success-icon">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <h2>Payment Successful!</h2>
-        <p>Your credits have been added to your account.</p>
-        <div class="credit-info">
-            <p>Credits Added: {{ credits_added }}</p>
-            <p>New Balance: {{ new_balance }}</p>
-        </div>
-        <div class="auth-links">
-            <p><a href="{% url 'dashboard' %}">Return to Dashboard</a></p>
-        </div>
-    </div>
+<div class="logo-placeholder"></div>
+<div class="success-icon">
+    <i class="fas fa-check-circle"></i>
+</div>
+<h2>Payment Successful!</h2>
+<p>Your credits have been added to your account.</p>
+<div class="credit-info">
+    <p>Credits Added: {{ credits_added }}</p>
+    <p>New Balance: {{ new_balance }}</p>
+</div>
+<div class="auth-links">
+    <p><a href="{% url 'dashboard' %}">Return to Dashboard</a></p>
 </div>
 {% endblock %} 

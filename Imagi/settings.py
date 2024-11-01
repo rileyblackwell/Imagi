@@ -63,7 +63,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),  # Project-wide templates
+            os.path.join(BASE_DIR, 'templates'),  # Global templates first
             os.path.join(BASE_DIR, 'apps', 'Builder', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),
@@ -131,7 +131,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Project-wide static files
+    os.path.join(BASE_DIR, 'static'),  # Global static files first
     os.path.join(BASE_DIR, 'apps', 'Builder', 'static'),
     os.path.join(BASE_DIR, 'apps', 'Home', 'static'),
     os.path.join(BASE_DIR, 'apps', 'Auth', 'static'),

@@ -1,38 +1,13 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Builder App</title>
+{% block title %}Builder App{% endblock %}
 
-    <!-- Bootstrap CSS for layout -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'builder/css/styles.css' %}">
+{% endblock %}
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Poppins:400,700" rel="stylesheet">
-
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="{% static 'builder/css/styles.css' %}">
-
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-</head>
-
-<body class="fade-in">
-    <!-- Navigation bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'landing_page' %}">
-                <div class="logo-placeholder"></div>
-                Imagi
-            </a>
-            <!-- Removed the ul containing the Home link -->
-        </div>
-    </nav>
-
-    <!-- Main container -->
+{% block content %}
     <div class="container">
         <div class="header text-center mb-0">
             <h1>
@@ -42,7 +17,6 @@
             <p class="tagline">Create stunning websites with ease</p>
         </div>
 
-        <!-- Form for user input -->
         <form id="input-form" class="form p-4" onsubmit="return false;">
             {% csrf_token %}
             <div class="input-label">Describe Your Vision: Start Building</div>
@@ -56,7 +30,6 @@
                 </select>
             </div>
 
-            <!-- Button container for form actions -->
             <div class="btn-container mt-4 d-flex justify-content-between">
                 <button id="submit-btn" class="btn btn-primary">Submit</button>
                 <button id="undo-btn" class="btn btn-secondary">Undo</button>
@@ -64,33 +37,10 @@
             </div>
         </form>
     </div>
+{% endblock %}
 
-    <!-- Footer with copyright and logo -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-logo-placeholder"></div>
-            <p>&copy; 2024 Imagi. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <!-- jQuery and other scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
-    <script src="{% static 'builder/js/script.js' %}"></script>
-    
-    <script>
-        console.log("index.html has been successfully loaded.");
-
-        // Check if styles.css is loaded
-        const testElement = document.createElement('div');
-        testElement.style.display = 'none';
-        document.body.appendChild(testElement);
-        const computedStyle = window.getComputedStyle(testElement);
-        if (computedStyle.backgroundColor) {
-            console.log("styles.css has been successfully loaded.");
-        }
-        document.body.removeChild(testElement);
-    </script>
-</body>
-
-</html>
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+<script src="{% static 'builder/js/script.js' %}"></script>
+{% endblock %}

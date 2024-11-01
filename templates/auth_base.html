@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Imagi{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css?family=Poppins:400,500,600,700" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="auth-page">
     <div class="corner-logo">
         <a href="{% url 'landing_page' %}">
             <div class="logo-placeholder"></div>
