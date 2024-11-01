@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block navbar %}
-<div id="builder-logo" class="builder-corner-brand">
+<div id="builder-logo" class="navbar-logo">
     <a class="navbar-brand" href="{% url 'landing_page' %}">
         <div class="logo-placeholder"></div>
         Imagi
@@ -52,4 +52,20 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
 <script src="{% static 'builder/js/script.js' %}"></script>
+<script>
+    $(document).ready(function() {
+        var logo = $('#builder-logo');
+        var lastScrollTop = 0;
+
+        $(window).scroll(function() {
+            var st = $(this).scrollTop();
+            if (st > lastScrollTop) {
+                logo.fadeOut(); // Scroll down
+            } else {
+                logo.fadeIn(); // Scroll up
+            }
+            lastScrollTop = st;
+        });
+    });
+</script>
 {% endblock %}

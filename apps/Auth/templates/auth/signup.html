@@ -13,7 +13,7 @@
             <label for="id_username">Username</label>
             <div class="input-group">
                 <span class="input-group-addon"><i class="fas fa-user"></i></span>
-                {{ form.username }}
+                <input type="text" name="username" id="id_username" class="input-with-icon" {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
             </div>
             {% if form.username.errors %}
                 <div class="error-message">{{ form.username.errors.0 }}</div>
@@ -23,7 +23,7 @@
             <label for="id_password1">Password</label>
             <div class="input-group">
                 <span class="input-group-addon"><i class="fas fa-lock"></i></span>
-                {{ form.password1 }}
+                <input type="password" name="password1" id="id_password1" class="input-with-icon">
             </div>
             {% if form.password1.errors %}
                 <div class="error-message">{{ form.password1.errors.0 }}</div>
@@ -33,7 +33,7 @@
             <label for="id_password2">Confirm Password</label>
             <div class="input-group">
                 <span class="input-group-addon"><i class="fas fa-lock"></i></span>
-                {{ form.password2 }}
+                <input type="password" name="password2" id="id_password2" class="input-with-icon">
             </div>
             {% if form.password2.errors %}
                 <div class="error-message">{{ form.password2.errors.0 }}</div>
