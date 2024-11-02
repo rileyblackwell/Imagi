@@ -14,7 +14,7 @@
 /* Override the global body styles */
 body {
     font-family: 'Poppins', sans-serif;
-    line-height: 1.4;
+    line-height: 1.3;
     margin: 0;
     padding: 0;
     color: var(--text-color);
@@ -29,11 +29,11 @@ body {
     flex: 1 0 auto;
     width: 95%;
     max-width: 1000px;
-    margin: 30px auto;
+    margin: 20px auto;
     padding: 20px;
     background: var(--container-gradient);
-    border-radius: 20px;
-    box-shadow: 0 6px 24px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 15px;
+    box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.37);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -129,7 +129,7 @@ body {
 }
 
 .tagline {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: 300;
     color: #ffffff;
     margin-bottom: 0;
@@ -139,8 +139,8 @@ body {
 
 .input-label {
     color: #ffffff;
-    font-size: 1rem;
-    margin-bottom: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
     font-weight: 500;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
@@ -509,21 +509,22 @@ body {
 
 /* Builder workspace styles */
 .builder-workspace {
-    padding: 20px;
+    padding: 25px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 20px;
+    border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
 }
 
 /* Input section styles */
 .input-section {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .input-label {
     color: #ffffff;
-    font-size: 1.2rem;
-    margin-bottom: 15px;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
     font-weight: 500;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
@@ -531,13 +532,13 @@ body {
 #user-input {
     width: 100%;
     min-height: 150px;
-    padding: 20px;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
+    border-radius: 10px;
     color: #ffffff;
-    font-size: 1rem;
-    line-height: 1.6;
+    font-size: 0.9rem;
+    line-height: 1.4;
     resize: vertical;
     transition: all 0.3s ease;
 }
@@ -546,7 +547,7 @@ body {
     outline: none;
     border-color: var(--primary-color);
     background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(0, 162, 255, 0.2);
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.15);
 }
 
 #user-input::placeholder {
@@ -556,9 +557,9 @@ body {
 /* Controls section styles */
 .controls-section {
     display: flex;
-    gap: 30px;
+    gap: 20px;
     align-items: flex-start;
-    margin-top: 30px;
+    margin-top: 20px;
 }
 
 .model-select-wrapper {
@@ -568,19 +569,19 @@ body {
 .model-select-wrapper label {
     display: block;
     color: #ffffff;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
     opacity: 0.9;
 }
 
 #model-select {
     width: 100%;
-    padding: 12px 20px;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: 10px;
     color: #ffffff;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     transition: all 0.3s ease;
 }
 
@@ -600,15 +601,15 @@ body {
 .action-buttons {
     display: flex;
     justify-content: space-between;
-    gap: 15px;
-    margin-top: 20px;
+    gap: 10px;
+    margin: 15px 0;
 }
 
 .btn {
     flex: 1;
-    padding: 12px 20px;
-    border-radius: 12px;
-    font-size: 0.95rem;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.85rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -642,37 +643,36 @@ body {
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Responsive styles */
 @media screen and (max-width: 768px) {
     .container {
         width: 95%;
-        padding: 20px;
+        padding: 15px;
         margin: 15px auto;
     }
 
     .header {
-        padding: 0 10px 20px;
-        margin-bottom: 20px;
+        padding: 0 10px 10px;
+        margin-bottom: 15px;
     }
 
     .header h1 {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 
     .tagline {
-        font-size: 1rem;
+        font-size: 0.8rem;
     }
 
     .builder-workspace {
         padding: 15px;
     }
 
-    .controls-section {
-        flex-direction: column;
-        gap: 20px;
+    .input-section {
+        margin-bottom: 15px;
     }
 
     .action-buttons {
@@ -725,8 +725,9 @@ body {
 .builder-workspace {
     padding: 25px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 20px;
+    border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
 }
 
 /* Update input section */
@@ -836,5 +837,43 @@ body {
 
     .btn {
         width: 100%;
+    }
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+/* Button styles */
+.btn-primary { background-image: var(--button-gradient-3); }
+.btn-secondary { background-image: var(--button-gradient-2); }
+.btn-danger { background-image: var(--button-gradient-1); }
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .action-buttons {
+        flex-direction: row;
+    }
+
+    .btn {
+        width: auto;
+        margin-bottom: 0;
     }
 }
