@@ -13,7 +13,13 @@
 <div class="auth-page">
     <div class="auth-wrapper">
         <div class="auth-inner">
-            {% block auth_content %}{% endblock %}
+            <div class="auth-container">
+                <div class="logo-placeholder"></div>
+                {% block auth_content %}{% endblock %}
+                <div class="auth-links">
+                    {% block auth_links %}{% endblock %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

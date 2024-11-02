@@ -11,7 +11,7 @@
     --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
 }
 
-body {
+.auth-page {
     background: linear-gradient(135deg, var(--background-start), var(--background-end)) !important;
     min-height: 100vh;
     display: flex;
