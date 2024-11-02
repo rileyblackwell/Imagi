@@ -281,3 +281,44 @@ body {
     margin-right: 12px;
 }
 
+/* Update navbar styles */
+.navbar {
+    background: rgba(13, 12, 34, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    padding: 20px 0;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.navbar:hover {
+    background: rgba(13, 12, 34, 0.9);
+}
+
+.navbar .container {
+    padding: 0 25px;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+    transition: transform 0.3s ease;
+}
+
+.brand-text {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.8rem;
+}
+
