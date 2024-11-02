@@ -32,43 +32,35 @@
             <form id="input-form" class="form" onsubmit="return false;">
                 {% csrf_token %}
                 
-                <div class="workspace-grid">
-                    <!-- Left Column -->
-                    <div class="input-column">
-                        <div class="input-section">
-                            <div class="input-label">Describe Your Vision</div>
-                            <textarea 
-                                id="user-input" 
-                                name="user-input" 
-                                placeholder="Describe the website you want to create..."
-                                rows="6"
-                            ></textarea>
-                        </div>
-                    </div>
+                <div class="input-section">
+                    <div class="input-label">Describe Your Vision</div>
+                    <textarea 
+                        id="user-input" 
+                        name="user-input" 
+                        placeholder="Describe the website you want to create..."
+                        rows="6"
+                    ></textarea>
+                </div>
 
-                    <!-- Right Column -->
-                    <div class="controls-column">
-                        <div class="model-select-wrapper">
-                            <label for="model-select">AI Model</label>
-                            <select id="model-select" name="model-select">
-                                <option value="">Choose AI Model</option>
-                                <option value="gpt-4o">GPT-4o (Recommended)</option>
-                                <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
-                            </select>
-                        </div>
+                <div class="action-buttons">
+                    <button id="submit-btn" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Generate
+                    </button>
+                    <button id="undo-btn" class="btn btn-secondary">
+                        <i class="fas fa-undo"></i> Undo
+                    </button>
+                    <button id="clear-btn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Reset
+                    </button>
+                </div>
 
-                        <div class="action-buttons">
-                            <button id="submit-btn" class="btn btn-primary">
-                                <i class="fas fa-magic"></i> Generate
-                            </button>
-                            <button id="undo-btn" class="btn btn-secondary">
-                                <i class="fas fa-undo"></i> Undo
-                            </button>
-                            <button id="clear-btn" class="btn btn-danger">
-                                <i class="fas fa-trash"></i> Reset
-                            </button>
-                        </div>
-                    </div>
+                <div class="model-select-wrapper">
+                    <label for="model-select">AI Model</label>
+                    <select id="model-select" name="model-select">
+                        <option value="">Choose AI Model</option>
+                        <option value="gpt-4o">GPT-4o (Recommended)</option>
+                        <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                    </select>
                 </div>
             </form>
         </div>
