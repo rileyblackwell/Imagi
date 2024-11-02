@@ -201,26 +201,8 @@ a {
     position: relative;
 }
 
-a::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    bottom: -2px;
-    left: 0;
-    background: linear-gradient(90deg, #00ffc6, #00a2ff);
-    transform: scaleX(0);
-    transform-origin: right;
-    transition: transform 0.3s ease;
-}
-
 a:hover {
     color: #00a2ff;
-}
-
-a:hover::after {
-    transform: scaleX(1);
-    transform-origin: left;
 }
 
 .error-message {
