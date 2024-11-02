@@ -14,7 +14,7 @@
 /* Override the global body styles */
 body {
     font-family: 'Poppins', sans-serif;
-    line-height: 1.6;
+    line-height: 1.4;
     margin: 0;
     padding: 0;
     color: var(--text-color);
@@ -30,10 +30,10 @@ body {
     width: 95%;
     max-width: 1000px;
     margin: 30px auto;
-    padding: 40px;
+    padding: 20px;
     background: var(--container-gradient);
-    border-radius: 24px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 20px;
+    box-shadow: 0 6px 24px 0 rgba(31, 38, 135, 0.37);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -109,17 +109,17 @@ body {
 
 .header {
     text-align: center;
-    padding: 0 20px 30px;
-    margin-bottom: 30px;
+    padding: 0 20px 15px;
+    margin-bottom: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header h1 {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     color: #ffffff;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -132,7 +132,7 @@ body {
 }
 
 .tagline {
-    font-size: 1.1rem;
+    font-size: 0.8rem;
     font-weight: 300;
     color: #ffffff;
     margin-bottom: 0;
@@ -142,8 +142,8 @@ body {
 
 .input-label {
     color: #ffffff;
-    font-size: 1.2rem;
-    margin-bottom: 15px;
+    font-size: 1rem;
+    margin-bottom: 10px;
     font-weight: 500;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
@@ -182,18 +182,18 @@ body {
 #user-input, #model-select {
     background-color: var(--input-bg);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
+    border-radius: 8px;
     color: #ffffff;
     transition: all 0.3s ease;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     width: 100%;
-    padding: 12px 15px;
+    padding: 10px;
 }
 
 #user-input {
-    height: 120px;
-    margin-bottom: 20px;
+    height: 100px;
+    margin-bottom: 15px;
     resize: vertical;
 }
 
@@ -237,9 +237,9 @@ body {
 }
 
 .btn {
-    padding: 0.7rem 1.5rem;
-    border-radius: 25px;
-    font-size: 0.9rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
     flex: 1;
     text-align: center;
     white-space: nowrap;
@@ -247,9 +247,9 @@ body {
     color: #ffffff;
     text-shadow: 0 1px 1px rgba(0,0,0,0.2);
     background-size: 100% 100%;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -310,19 +310,19 @@ body {
 @media screen and (max-width: 768px) {
     .container {
         width: 95%;
-        padding: 30px 20px;
-        margin: 20px auto;
+        padding: 15px;
+        margin: 15px auto;
     }
 
-    .header h1 { font-size: 2.2rem; }
-    .tagline { font-size: 1.1rem; }
-    .input-label { font-size: 1.3rem; }
+    .header h1 { font-size: 1.8rem; }
+    .tagline { font-size: 0.8rem; }
+    .input-label { font-size: 0.9rem; }
     
-    #user-input, #model-select { font-size: 0.9rem; }
+    #user-input, #model-select { font-size: 0.85rem; }
     
     .btn {
-        padding: 0.6rem 1.2rem;
-        font-size: 0.8rem;
+        padding: 0.4rem 1rem;
+        font-size: 0.75rem;
     }
 
     .btn-container {
@@ -498,7 +498,7 @@ body {
 /* Responsive adjustments */
 @media screen and (max-width: 991px) {
     .navbar {
-        padding: 15px 0;
+        padding: 12px 0;
     }
 
     .navbar .container {
@@ -508,7 +508,7 @@ body {
 
 /* Adjust body padding to account for fixed navbar */
 body {
-    padding-top: 80px;
+    padding-top: 120px !important;
 }
 
 /* Builder workspace styles */
