@@ -130,24 +130,24 @@ body {
 
 #model-select {
     width: 100%;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.7);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    color: #ffffff;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #00a2ff;
+    border-radius: 5px;
+    color: #333333;
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease;
+    appearance: none;
 }
 
 #model-select option {
-    background-color: #1e0f3d;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #333333;
 }
 
 #model-select:focus {
     border-color: #00a2ff;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.2);
-    background: rgba(0, 0, 0, 0.8);
+    outline: none;
 }
 
 /* Action buttons styles */
