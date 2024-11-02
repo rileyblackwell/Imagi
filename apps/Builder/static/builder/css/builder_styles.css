@@ -109,20 +109,17 @@ body {
 
 .header {
     text-align: center;
-    padding: 0 20px 15px;
-    margin-bottom: 20px;
+    padding: 0 20px 10px;
+    margin-bottom: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     color: #ffffff;
     margin-bottom: 5px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
     letter-spacing: 0.5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .header .logo-placeholder {
@@ -132,7 +129,7 @@ body {
 }
 
 .tagline {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 300;
     color: #ffffff;
     margin-bottom: 0;
@@ -425,14 +422,13 @@ body {
     background: rgba(13, 12, 34, 0.8);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
-    padding: 20px 0;
+    padding: 10px 0;
     transition: all 0.3s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
     width: 100%;
-    top: 0;
     z-index: 1000;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
 }
 
 .navbar:hover {
@@ -508,7 +504,7 @@ body {
 
 /* Adjust body padding to account for fixed navbar */
 body {
-    padding-top: 120px !important;
+    padding-top: 0;
 }
 
 /* Builder workspace styles */
@@ -700,5 +696,143 @@ body {
     to { 
         opacity: 1; 
         transform: translateY(0); 
+    }
+}
+
+/* Update workspace layout */
+.workspace-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+    align-items: start;
+}
+
+.input-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.controls-column {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Update builder workspace */
+.builder-workspace {
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Update input section */
+.input-section {
+    height: 100%;
+}
+
+#user-input {
+    width: 100%;
+    height: calc(100% - 40px); /* Subtract input label height */
+    min-height: 200px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    color: #ffffff;
+    font-size: 1rem;
+    line-height: 1.6;
+    resize: none;
+    transition: all 0.3s ease;
+}
+
+/* Update model select wrapper */
+.model-select-wrapper {
+    margin-bottom: 25px;
+}
+
+.model-select-wrapper label {
+    display: block;
+    color: #ffffff;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+#model-select {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+/* Update action buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 991px) {
+    .workspace-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    #user-input {
+        min-height: 150px;
+    }
+
+    .controls-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 15px;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        flex: 1 1 calc(33.333% - 8px);
+        min-width: 120px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .controls-column {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
     }
 }
