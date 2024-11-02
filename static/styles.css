@@ -6,6 +6,8 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding: 0;
 }
 
 /* Hero section styles */
@@ -289,6 +291,8 @@ body {
     padding: 20px 0;
     transition: all 0.3s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 1000;
 }
 
 .navbar:hover {
