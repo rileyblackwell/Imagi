@@ -16,7 +16,7 @@ body {
     font-family: 'Poppins', sans-serif;
     line-height: 1.4;
     color: var(--text-color);
-    background: linear-gradient(135deg, var(--background-start), var(--background-end)) !important;
+    background: linear-gradient(135deg, var(--background-start), var(--background-end));
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -199,17 +199,6 @@ body {
 .btn:active {
     transform: translateY(1px);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-/* Footer styles */
-.footer {
-    flex-shrink: 0;
-    width: 100%;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
-    backdrop-filter: blur(10px);
-    padding: 15px 0;
-    text-align: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Responsive adjustments */
