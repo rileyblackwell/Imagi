@@ -131,22 +131,22 @@ body {
 #model-select {
     width: 100%;
     padding: 10px;
-    background: #ffffff;
-    border: 1px solid #00a2ff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 5px;
-    color: #333333;
+    color: #ffffff;
     font-size: 0.95rem;
     transition: border-color 0.3s ease;
     appearance: none;
 }
 
 #model-select option {
-    background-color: #ffffff;
-    color: #333333;
+    background-color: #1e0f3d;
+    color: #ffffff;
 }
 
 #model-select:focus {
-    border-color: #00a2ff;
+    border-color: var(--primary-color);
     outline: none;
 }
 
