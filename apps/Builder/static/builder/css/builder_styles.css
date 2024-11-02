@@ -23,10 +23,20 @@ body {
     display: flex;
     flex-direction: column;
     background-size: cover !important;
+    position: relative;
 }
 
+/* Main content wrapper */
+.content-wrapper {
+    flex: 1 0 auto; /* Allow content to grow but not shrink */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 60px); /* Subtract footer height */
+}
+
+/* Container adjustments */
 .container {
-    flex: 1 0 auto;
     width: 90%;
     max-width: 800px;
     margin: 20px auto;
@@ -104,6 +114,9 @@ body {
     box-shadow: none;
     position: relative;
     overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 #input-form::before {
@@ -136,6 +149,8 @@ body {
     font-weight: 500;
     width: 100%;
     padding: 10px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 #user-input {
@@ -286,9 +301,9 @@ body {
     background: linear-gradient(to right, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 20px 0;
+    padding: 15px 0;
     text-align: center;
-    margin-top: auto;
+    margin-top: auto; /* Push footer to bottom */
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -342,7 +357,7 @@ body {
 /* Responsive adjustments for footer */
 @media screen and (max-width: 768px) {
     .footer {
-        padding: 15px 0;
+        padding: 10px 0;
     }
 
     .footer-content {
@@ -459,11 +474,13 @@ body {
 
 /* Builder workspace styles */
 .builder-workspace {
-    padding: 25px;
+    padding: 20px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: 10px;
+    width: 100%;
+    overflow: hidden;
 }
 
 /* Input section styles */
@@ -900,4 +917,17 @@ body {
         margin-top: 15px;
         margin-bottom: 15px;
     }
+}
+
+/* Reset and prevent horizontal scroll */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    width: 100%;
+    position: relative;
 }
