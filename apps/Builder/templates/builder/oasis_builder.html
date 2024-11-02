@@ -20,33 +20,51 @@
 
 {% block content %}
     <div class="container">
-        <div class="header text-center mb-0">
+        <div class="header text-center">
             <h1>
                 <div class="logo-placeholder"></div>
                 Imagi Oasis
             </h1>
-            <p class="tagline">Create stunning websites with ease</p>
+            <p class="tagline">Transform your ideas into stunning websites</p>
         </div>
 
-        <form id="input-form" class="form p-4" onsubmit="return false;">
-            {% csrf_token %}
-            <div class="input-label">Describe Your Vision: Start Building</div>
-            <textarea id="user-input" name="user-input" placeholder="Type something..."></textarea>
+        <div class="builder-workspace">
+            <form id="input-form" class="form" onsubmit="return false;">
+                {% csrf_token %}
+                <div class="input-section">
+                    <div class="input-label">Describe Your Vision</div>
+                    <textarea 
+                        id="user-input" 
+                        name="user-input" 
+                        placeholder="Describe the website you want to create..."
+                        rows="4"
+                    ></textarea>
+                </div>
 
-            <div class="model-select-container mt-3">
-                <select id="model-select" name="model-select">
-                    <option value="">Select a Model</option>
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gpt-4o-mini">GPT-4o Mini</option>
-                </select>
-            </div>
+                <div class="controls-section">
+                    <div class="model-select-wrapper">
+                        <label for="model-select">AI Model</label>
+                        <select id="model-select" name="model-select">
+                            <option value="">Choose AI Model</option>
+                            <option value="gpt-4o">GPT-4o (Recommended)</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                        </select>
+                    </div>
 
-            <div class="btn-container mt-4 d-flex justify-content-between">
-                <button id="submit-btn" class="btn btn-primary">Submit</button>
-                <button id="undo-btn" class="btn btn-secondary">Undo</button>
-                <button id="clear-btn" class="btn btn-danger">Reset</button>
-            </div>
-        </form>
+                    <div class="action-buttons">
+                        <button id="submit-btn" class="btn btn-primary">
+                            <i class="fas fa-magic"></i> Generate
+                        </button>
+                        <button id="undo-btn" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> Undo
+                        </button>
+                        <button id="clear-btn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 {% endblock %}
 
