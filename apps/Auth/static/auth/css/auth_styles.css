@@ -63,27 +63,6 @@ body {
     background-color: transparent;
 }
 
-.logo-placeholder::before,
-.logo-placeholder::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 3px solid white;
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 20px rgba(0, 162, 255, 0.5);
-}
-
-.logo-placeholder::before {
-    transform: rotate(45deg);
-}
-
-.logo-placeholder::after {
-    transform: rotate(-45deg);
-}
-
 h2 {
     margin-bottom: 25px;
     font-size: 24px;
@@ -254,73 +233,3 @@ a:hover::after {
     text-align: left;
     border: 1px solid rgba(255, 68, 68, 0.2);
 }
-
-/* Corner logo styles */
-.corner-logo {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
-    padding: 0;
-    background: none;
-    border: none;
-}
-
-.corner-logo a {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: var(--text-color);
-    font-size: 1.2rem;
-}
-
-.corner-logo .logo-placeholder {
-    width: 35px;
-    height: 35px;
-    margin-right: 12px;
-}
-
-/* Remove hover effects */
-.corner-logo:hover {
-    background: none;
-    transform: none;
-}
-
-/* Responsive adjustments */
-@media screen and (max-width: 480px) {
-    .auth-wrapper {
-        max-width: 320px;
-        padding: 15px;
-    }
-
-    .auth-inner {
-        padding: 25px 20px;
-    }
-
-    .corner-logo {
-        padding: 8px 20px;
-    }
-
-    .corner-logo .logo-placeholder {
-        width: 30px;
-        height: 30px;
-    }
-}
-
-/* Remove or comment out the following section */
-/* Add these navbar styles at the top of the file */
-/* .navbar { ... } */
-/* .navbar:hover { ... } */
-/* .navbar .container { ... } */
-/* .navbar-brand { ... } */
-/* .brand-text { ... } */
-/* .nav-button { ... } */
-/* .nav-button i { ... } */
-/* .nav-button:hover { ... } */
-/* .nav-button:hover i { ... } */
-/* .hamburger-icon { ... } */
-/* @media screen and (max-width: 991px) { ... } */
-/* .navbar-toggler { ... } */
-/* .navbar-toggler:focus { ... } */
-
-/* Keep all other styles ... */
