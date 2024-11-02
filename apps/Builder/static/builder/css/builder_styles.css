@@ -121,6 +121,7 @@ body {
     transition: all 0.3s ease;
 }
 
+/* Standardized focus outline color */
 #user-input:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 15px rgba(0, 162, 255, 0.2);
@@ -178,7 +179,7 @@ body {
 }
 
 #model-select:focus {
-    border-color: #00ffc6;
+    border-color: var(--primary-color);
     outline: none;
 }
 
