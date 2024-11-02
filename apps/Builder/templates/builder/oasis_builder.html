@@ -9,7 +9,7 @@
 
 {% block content %}
     <div class="container">
-        <div class="main-title-section text-center">
+        <div class="main-title-section">
             <h1>Imagi Oasis</h1>
             <p class="tagline">Transform your ideas into stunning websites</p>
         </div>
@@ -19,16 +19,29 @@
                 {% csrf_token %}
                 
                 <div class="input-section">
-                    <div class="input-label">Describe Your Vision</div>
+                    <div class="input-label">
+                        <span>Describe Your Vision</span>
+                    </div>
                     <textarea 
                         id="user-input" 
                         name="user-input" 
-                        placeholder="Describe the website you want to create..."
+                        placeholder="Let your imagination flow... Describe the website of your dreams"
                         rows="6"
                     ></textarea>
                 </div>
 
-                <div class="controls-section">
+                <div class="controls-wrapper">
+                    <div class="model-select-wrapper">
+                        <label for="model-select">
+                            <span>Select AI Model</span>
+                        </label>
+                        <select id="model-select" name="model-select">
+                            <option value="">Choose AI Model</option>
+                            <option value="gpt-4o">GPT-4o (Recommended)</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
+                        </select>
+                    </div>
+
                     <div class="action-buttons">
                         <button id="submit-btn" class="btn btn-primary">
                             <i class="fas fa-magic"></i> Generate
@@ -39,15 +52,6 @@
                         <button id="clear-btn" class="btn btn-danger">
                             <i class="fas fa-trash"></i> Reset
                         </button>
-                    </div>
-
-                    <div class="model-select-wrapper">
-                        <label for="model-select">AI Model</label>
-                        <select id="model-select" name="model-select">
-                            <option value="">Choose AI Model</option>
-                            <option value="gpt-4o">GPT-4o (Recommended)</option>
-                            <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
-                        </select>
                     </div>
                 </div>
             </form>
