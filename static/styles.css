@@ -322,7 +322,7 @@ body {
     font-size: 1.8rem;
 }
 
-/* Navigation buttons */
+/* Navigation buttons base styles */
 .nav-buttons {
     margin-left: auto;
 }
@@ -360,19 +360,6 @@ body {
     border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Special styling for primary actions */
-.nav-buttons-list .nav-link.primary-action {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
-    border: none;
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
-    font-weight: 600;
-}
-
-.nav-buttons-list .nav-link.primary-action:hover {
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
-    transform: translateY(-2px);
-}
-
 /* Dropdown styles */
 .nav-buttons-list .dropdown-menu {
     background: rgba(0, 0, 0, 0.8) !important;
@@ -400,6 +387,19 @@ body {
 
 /* Mobile responsive styles */
 @media screen and (max-width: 991px) {
+    .navbar {
+        padding: 15px 0;
+        position: relative;
+    }
+    
+    body {
+        padding-top: 0;
+    }
+
+    .navbar .container {
+        padding: 0 15px;
+    }
+
     .navbar-collapse {
         background: rgba(0, 0, 0, 0.95);
         margin-top: 15px;

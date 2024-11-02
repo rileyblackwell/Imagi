@@ -41,13 +41,6 @@ body {
     transform: rotate(-45deg);
 }
 
-/* Navbar brand logo */
-.navbar-brand .logo-placeholder {
-    width: 35px;
-    height: 35px;
-    margin-right: 12px;
-}
-
 /* Hero section styles */
 .hero {
     padding: 100px 0;
@@ -207,14 +200,7 @@ body {
     }
 }
 
-/* Add these styles for the home navigation buttons */
-.home-nav-buttons {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    z-index: 1000;
-}
-
+/* Navigation buttons styles specific to home page */
 .nav-buttons {
     margin-left: auto;
 }
@@ -233,23 +219,35 @@ body {
 }
 
 .nav-buttons-list .nav-link {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    background: rgba(255, 255, 255, 0.08);
     color: #ffffff !important;
-    padding: 8px 16px !important;
-    border-radius: 15px;
+    padding: 10px 20px !important;
+    border-radius: 12px;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 4px;
-    text-decoration: none;
-    white-space: nowrap;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nav-buttons-list .nav-link:hover {
+    background: rgba(255, 255, 255, 0.12);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.nav-buttons-list .nav-link.primary-action {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+    font-weight: 600;
+}
+
+.nav-buttons-list .nav-link.primary-action:hover {
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+    transform: translateY(-2px);
 }
 
 /* Dropdown styles */
@@ -277,8 +275,10 @@ body {
     border-radius: 8px;
 }
 
-/* Mobile responsive styles */
+/* Add these to the existing mobile responsive styles */
 @media screen and (max-width: 991px) {
+    /* ... existing mobile styles ... */
+
     .nav-buttons {
         margin: 15px 0;
         width: 100%;
@@ -297,104 +297,5 @@ body {
     .nav-buttons-list .nav-link {
         justify-content: center;
         width: 100%;
-    }
-}
-
-/* Update navbar styles */
-.navbar {
-    background: rgba(13, 12, 34, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    padding: 20px 0;
-    transition: all 0.3s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-.navbar:hover {
-    background: rgba(13, 12, 34, 0.9);
-}
-
-.navbar .container {
-    padding: 0 25px;
-}
-
-.navbar-brand {
-    display: flex;
-    align-items: center;
-    color: #ffffff !important;
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 0.5px;
-    transition: transform 0.3s ease;
-}
-
-.brand-text {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 1.8rem;
-}
-
-/* Update nav buttons styles */
-.nav-buttons-list .nav-link {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff !important;
-    padding: 10px 20px !important;
-    border-radius: 12px;
-    font-weight: 500;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.nav-buttons-list .nav-link:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-1px);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-/* Special styling for primary actions */
-.nav-buttons-list .nav-link.primary-action {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
-    border: none;
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
-    font-weight: 600;
-}
-
-.nav-buttons-list .nav-link.primary-action:hover {
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
-    transform: translateY(-2px);
-}
-
-/* Responsive adjustments */
-@media screen and (max-width: 991px) {
-    .navbar {
-        padding: 15px 0;
-        position: relative;
-    }
-    
-    body {
-        padding-top: 0;
-    }
-
-    .navbar .container {
-        padding: 0 15px;
-    }
-
-    .nav-buttons-list {
-        padding: 10px 0;
-    }
-
-    .nav-buttons-list .nav-link {
-        padding: 12px 20px !important;
     }
 }
