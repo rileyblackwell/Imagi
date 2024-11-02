@@ -138,6 +138,22 @@ body {
     font-size: 0.95rem;
     transition: border-color 0.3s ease;
     appearance: none;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom arrow */
+#model-select::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #ffffff;
+    transform: translateY(-50%);
 }
 
 #model-select option {
