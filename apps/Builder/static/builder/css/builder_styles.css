@@ -176,3 +176,23 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+.btn-primary {
+    background: var(--button-gradient-3); /* Change to green gradient */
+    color: var(--text-color);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease; /* Smooth transition */
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+}
+
+/* Ensure the hover effect retains the same background */
+.btn-primary:hover {
+    background: var(--button-gradient-3); /* Keep the same green gradient on hover */
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4); /* Slightly increase shadow on hover */
+    transform: translateY(-2px); /* Optional: add a slight lift effect */
+}

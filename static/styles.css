@@ -233,13 +233,19 @@ body {
 }
 
 .btn-primary {
-    background: rgba(0, 162, 255, 0.1); /* Default background */
-    transition: none; /* Remove transition for hover */
+    background: linear-gradient(45deg, #00a2ff, #00ffc6); /* Ensure the gradient is set */
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 600;
+    transition: all 0.3s ease; /* Smooth transition */
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
 }
 
-/* Ensure no hover effect */
+/* Ensure the hover effect retains the same background */
 .btn-primary:hover {
-    background: rgba(0, 162, 255, 0.1); /* Keep the same background */
-    transform: none; /* No lift effect */
-    box-shadow: 0 1px 5px rgba(0, 162, 255, 0.1); /* Keep the same shadow */
+    background: linear-gradient(45deg, #00a2ff, #00ffc6); /* Keep the same gradient on hover */
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4); /* Slightly increase shadow on hover */
+    transform: translateY(-2px); /* Optional: add a slight lift effect */
 }

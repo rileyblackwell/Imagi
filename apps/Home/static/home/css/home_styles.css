@@ -91,6 +91,13 @@ body {
     box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
 }
 
+/* Ensure the hover effect retains the same background */
+.hero .btn-primary:hover {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+    transform: translateY(-2px);
+}
+
 /* Features section styles */
 .features {
     background: rgba(255, 255, 255, 0.1);

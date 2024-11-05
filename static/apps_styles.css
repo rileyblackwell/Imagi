@@ -81,6 +81,15 @@ h2 {
 
 .btn-primary {
     background: var(--button-gradient-3);
+    color: var(--text-color);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
 }
 
 .btn-secondary {
@@ -94,6 +103,13 @@ h2 {
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+}
+
+/* Ensure the hover effect retains the same background */
+.btn-primary:hover {
+    background: var(--button-gradient-3);
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+    transform: translateY(-2px);
 }
 
 /* Common Form Styles */
