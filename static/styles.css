@@ -223,3 +223,13 @@ body {
     box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
     font-weight: 600;
 }
+
+.btn-primary {
+    transition: all 0.3s ease; /* Ensure smooth transition */
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #00ffc6, #00a2ff); /* Slightly change the gradient on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4); /* Increase shadow on hover */
+}
