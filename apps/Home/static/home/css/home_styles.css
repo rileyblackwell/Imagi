@@ -9,6 +9,7 @@ body {
     display: flex;
     flex-direction: column;
     padding-top: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 /* Logo placeholder base styles */
@@ -46,6 +47,7 @@ body {
     padding: 100px 0;
     text-align: center;
     color: #ffffff;
+    background: transparent;
 }
 
 /* Hero logo (center of page) */
@@ -148,58 +150,6 @@ body {
     transform: none;
 }
 
-/* Responsive styles */
-@media screen and (max-width: 991px) {
-    .features .row {
-        flex-direction: column;
-    }
-
-    .features .col-md-4 {
-        flex: 0 0 100%;
-        max-width: 100%;
-        margin-bottom: 20px;
-    }
-
-    .hero h1 {
-        font-size: 2.8rem;
-    }
-
-    .hero p {
-        font-size: 1.1rem;
-    }
-}
-
-@media screen and (max-width: 768px) {
-    .hero {
-        padding: 60px 0;
-    }
-
-    .hero h1 {
-        font-size: 2.2rem;
-    }
-
-    .hero p {
-        font-size: 1rem;
-    }
-
-    .hero .btn-primary {
-        padding: 10px 30px;
-        font-size: 1rem;
-    }
-
-    .features {
-        padding: 50px 0;
-    }
-
-    .features h3 {
-        font-size: 1.3rem;
-    }
-
-    .features p {
-        font-size: 0.9rem;
-    }
-}
-
 /* Navigation buttons styles specific to home page */
 .nav-buttons {
     margin-left: auto;
@@ -275,10 +225,57 @@ body {
     border-radius: 8px;
 }
 
-/* Add these to the existing mobile responsive styles */
-@media screen and (max-width: 991px) {
-    /* ... existing mobile styles ... */
+/* Add logo placeholder base styles */
+.logo-placeholder {
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
 
+.logo-placeholder::before,
+.logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2.5px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.logo-placeholder::after {
+    transform: rotate(-45deg);
+}
+
+/* Responsive styles */
+@media screen and (max-width: 991px) {
+    .features .row {
+        flex-direction: column;
+    }
+
+    .features .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .hero h1 {
+        font-size: 2.8rem;
+    }
+
+    .hero p {
+        font-size: 1.1rem;
+    }
+
+    /* Add nav buttons responsive styles */
     .nav-buttons {
         margin: 15px 0;
         width: 100%;
@@ -297,5 +294,36 @@ body {
     .nav-buttons-list .nav-link {
         justify-content: center;
         width: 100%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .hero {
+        padding: 60px 0;
+    }
+
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .hero .btn-primary {
+        padding: 10px 30px;
+        font-size: 1rem;
+    }
+
+    .features {
+        padding: 50px 0;
+    }
+
+    .features h3 {
+        font-size: 1.3rem;
+    }
+
+    .features p {
+        font-size: 0.9rem;
     }
 }
