@@ -7,38 +7,44 @@
 <link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
 {% endblock %}
 
-{% block nav_buttons %}
-<div class="nav-buttons ml-auto">
-    <ul class="nav-buttons-list">
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fas fa-th"></i> Products
-            </a>
-            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                <a class="dropdown-item" href="{% url 'builder:index' %}">
-                    <i class="fas fa-magic"></i> Imagi Oasis
+{% block extra_nav %}
+<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+</button>
+
+<div class="collapse navbar-collapse" id="navbarContent">
+    <div class="nav-buttons ml-auto">
+        <ul class="nav-buttons-list">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-th"></i> Products
                 </a>
-            </div>
-        </li>
-        {% if user.is_authenticated %}
-            <li class="nav-item">
-                <a href="{% url 'payments:create-checkout-session' %}" class="nav-link primary-action">
-                    <i class="fas fa-coins"></i> Buy Credits
-                </a>
+                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                    <a class="dropdown-item" href="{% url 'builder:index' %}">
+                        <i class="fas fa-magic"></i> Imagi Oasis
+                    </a>
+                </div>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'logout' %}">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </li>
-        {% else %}
-            <li class="nav-item">
-                <a class="nav-link primary-action" href="{% url 'login' %}">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </a>
-            </li>
-        {% endif %}
-    </ul>
+            {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a href="{% url 'payments:create-checkout-session' %}" class="nav-link primary-action">
+                        <i class="fas fa-coins"></i> Buy Credits
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link primary-action" href="{% url 'login' %}">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
 </div>
 {% endblock %}
 
