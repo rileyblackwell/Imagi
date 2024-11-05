@@ -47,22 +47,27 @@ def undo_last_action_view(request):
     try:
         # Get the user's conversation
         conversation = get_object_or_404(Conversation, user=request.user)
-        messages = conversation.messages.all()
+        messages = conversation.messages.order_by('-created_at')  # Order by most recent first
 
-        # Undo last user and assistant messages, if available
+        # Check if there are at least two messages to undo
         if messages.count() >= 2:
-            messages.last().delete()  # Delete last assistant message
-            messages.last().delete()  # Delete last user message
+            # Retrieve the last two messages in one query
+            last_two_messages = list(messages[:2])
+            
+            # Delete both the user message and the assistant's last response
+            Message.objects.filter(id__in=[msg.id for msg in last_two_messages]).delete()
             message = 'Last action undone successfully.'
         else:
+            # Clear all messages if fewer than two messages are available
             conversation.messages.all().delete()
             message = 'Not enough history to undo last action; conversation history cleared.'
 
-        # Retrieve the last assistant response if it exists
-        previous_html = messages.last().content if messages.exists() else ''
+        # Retrieve the latest assistant response if it exists
+        updated_messages = conversation.messages.order_by('-created_at')
+        previous_html = updated_messages.first().content if updated_messages.exists() else ''
         
         # Write the last HTML response to a file (optional)
-        output_path = os.path.join(os.path.dirname(__file__), '../output.html')
+        output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
         with open(output_path, 'w') as f:
             f.write(previous_html)
 
