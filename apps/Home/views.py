@@ -4,3 +4,12 @@ from django.shortcuts import render
 def landing_page(request):
     return render(request, 'home/home_landing_page.html')
 
+def about_page(request):
+    return render(request, 'home/about.html')
+
+def privacy_page(request):
+    return render(request, 'home/privacy.html')
+
+def terms_page(request):
+    return render(request, 'home/terms.html')
+

@@ -398,11 +398,6 @@ a:hover {
     padding: 40px 20px;
 }
 
-/* Footer positioning for app pages */
-.app-footer {
-    margin-top: auto;
-}
-
 /* Mobile responsive styles */
 @media screen and (max-width: 768px) {
     .app-navbar {

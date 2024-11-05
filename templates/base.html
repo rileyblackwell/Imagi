@@ -35,22 +35,23 @@
 
     {% block content %}{% endblock %}
 
+    {% block footer %}
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-brand">
-                <div class="logo-placeholder"></div>
                 <span class="footer-brand-text">Imagi</span>
             </div>
             <div class="footer-links">
-                <a href="#" class="footer-link">About</a>
+                <a href="{% url 'about_page' %}" class="footer-link">About</a>
                 <span class="footer-divider">•</span>
-                <a href="#" class="footer-link">Privacy</a>
+                <a href="{% url 'privacy_page' %}" class="footer-link">Privacy</a>
                 <span class="footer-divider">•</span>
-                <a href="#" class="footer-link">Terms</a>
+                <a href="{% url 'terms_page' %}" class="footer-link">Terms</a>
             </div>
             <p class="footer-copyright">&copy; 2024 Imagi. All rights reserved.</p>
         </div>
     </footer>
+    {% endblock %}
 
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>

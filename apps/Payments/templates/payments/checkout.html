@@ -19,10 +19,6 @@
 </nav>
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://js.stripe.com/v3/"></script>
-{% endblock %}
-
 {% block content %}
 <div class="app-container">
     <div class="checkout-wrapper">
@@ -80,7 +76,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://js.stripe.com/v3/"></script>
 <script>
     // Wait for DOM and Stripe.js to load
     document.addEventListener('DOMContentLoaded', function() {
@@ -299,4 +298,4 @@
         });
     });
 </script>
-{% endblock %} 
+{% endblock %}
