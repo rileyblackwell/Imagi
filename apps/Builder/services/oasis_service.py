@@ -95,22 +95,30 @@ def test_html(html):
 
 def undo_last_action(conversation):
     """Removes the last user-assistant exchange from the database."""
-    messages = conversation.messages.all()
+    messages = conversation.messages.order_by('-created_at')  # Order by most recent first
+    total_messages = messages.count()
 
-    if messages.count() >= 2:
-        messages.last().delete()  # Delete last assistant message
-        messages.last().delete()  # Delete last user message
+    if total_messages >= 2:
+        # Get the previous HTML before deleting
+        # We want the most recent assistant message after removing the last exchange
+        remaining_messages = list(messages[2:])  # Skip the 2 messages we'll delete
+        previous_html = ''
+        
+        # Find the most recent assistant message from remaining messages
+        for msg in remaining_messages:
+            if msg.role == 'assistant':
+                previous_html = msg.content
+                break
+        
+        # Delete exactly 2 messages (the last exchange)
+        latest_two = messages[:2]
+        Message.objects.filter(id__in=[msg.id for msg in latest_two]).delete()
+        
         message = 'Last action undone successfully.'
     else:
-        messages.delete()
+        # Clear all messages if fewer than 2 messages exist
+        messages.all().delete()
+        previous_html = ''
         message = 'Not enough history to undo last action; conversation history cleared.'
-
-    # Retrieve updated conversation history for the last assistant response
-    conversation_history = [
-        {"role": msg.role, "content": msg.content}
-        for msg in messages
-    ]
-
-    previous_html = conversation_history[-1]['content'] if len(conversation_history) > 0 else ''
 
     return previous_html, message

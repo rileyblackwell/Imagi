@@ -30,10 +30,6 @@ def process_input(request):
     html = process_user_input(user_input, model, conversation)
     parsed_html = test_html(html)
 
-    # Save user message and assistant response to the database
-    Message.objects.create(conversation=conversation, role="user", content=user_input)
-    Message.objects.create(conversation=conversation, role="assistant", content=parsed_html)
-
     # Write the AI-generated HTML to a file (optional for debugging or review)
     output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
     with open(output_path, 'w') as f:
@@ -47,26 +43,11 @@ def undo_last_action_view(request):
     try:
         # Get the user's conversation
         conversation = get_object_or_404(Conversation, user=request.user)
-        messages = conversation.messages.order_by('-created_at')  # Order by most recent first
-
-        # Check if there are at least two messages to undo
-        if messages.count() >= 2:
-            # Retrieve the last two messages in one query
-            last_two_messages = list(messages[:2])
-            
-            # Delete both the user message and the assistant's last response
-            Message.objects.filter(id__in=[msg.id for msg in last_two_messages]).delete()
-            message = 'Last action undone successfully.'
-        else:
-            # Clear all messages if fewer than two messages are available
-            conversation.messages.all().delete()
-            message = 'Not enough history to undo last action; conversation history cleared.'
-
-        # Retrieve the latest assistant response if it exists
-        updated_messages = conversation.messages.order_by('-created_at')
-        previous_html = updated_messages.first().content if updated_messages.exists() else ''
         
-        # Write the last HTML response to a file (optional)
+        # Use the service function to handle the undo operation
+        previous_html, message = undo_last_action(conversation)
+        
+        # Write the previous HTML response to a file (optional)
         output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
         with open(output_path, 'w') as f:
             f.write(previous_html)
@@ -75,6 +56,7 @@ def undo_last_action_view(request):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 
 
 @require_http_methods(['POST'])
