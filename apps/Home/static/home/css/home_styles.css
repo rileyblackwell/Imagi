@@ -78,7 +78,7 @@ body {
 }
 
 .hero .btn-primary {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    background: linear-gradient(45deg, #28a745, #85e89e);
     border: none;
     padding: 12px 35px;
     font-size: 1.1rem;
@@ -91,9 +91,9 @@ body {
     box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
 }
 
-/* Ensure the hover effect retains the same background */
+/* Ensure the hover effect retains the same gradient */
 .hero .btn-primary:hover {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    background: linear-gradient(45deg, #218838, #6fdc8a);
     box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
     transform: translateY(-2px);
 }
