@@ -111,7 +111,7 @@ body {
 
 #user-input:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 162, 255, 0.3);
     background: rgba(255, 255, 255, 0.1);
     outline: none;
 }
