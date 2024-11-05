@@ -131,14 +131,19 @@ body {
     width: 100%;
     padding: 8px 30px 8px 8px;
     background: rgba(255, 255, 255, 0.1);
-    border: 2px solid var(--primary-color);
+    border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 5px;
     color: #ffffff;
     font-size: 0.9rem;
-    transition: border-color 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     appearance: none;
     position: relative;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+#model-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px rgba(0, 162, 255, 0.3);
 }
 
 #model-select option {
