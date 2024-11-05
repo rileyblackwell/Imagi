@@ -16,7 +16,6 @@
     <nav class="navbar navbar-expand-lg navbar-light {% if request.path == '/' %}home-nav{% else %}app-nav{% endif %}">
         <div class="container {% if request.path == '/' %}nav-container{% endif %}">
             {% block navbar_content %}
-            <!-- Default navbar content -->
             <a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
                 <div class="logo-placeholder"></div>
                 <span class="brand-text">Imagi</span>

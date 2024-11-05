@@ -307,6 +307,19 @@ a:hover {
     padding: 1rem 0;
 }
 
+/* Ensure the navbar brand is aligned to the top left */
+.navbar .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 1.4rem;
+    position: absolute; /* Position it absolutely */
+    left: 20px; /* Adjust as needed */
+    top: 10px; /* Adjust as needed */
+}
+
 /* Home page specific navbar */
 .home-nav .nav-container {
     background: var(--container-gradient);
