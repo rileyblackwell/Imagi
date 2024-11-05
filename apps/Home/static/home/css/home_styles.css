@@ -78,7 +78,7 @@ body {
 }
 
 .hero .btn-primary {
-    background: linear-gradient(45deg, #4caf50, #81c784);
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
     border: none;
     padding: 12px 35px;
     font-size: 1.1rem;
@@ -186,13 +186,15 @@ body {
 .nav-buttons-list .nav-link.primary-action {
     background: linear-gradient(45deg, #00a2ff, #00ffc6);
     border: none;
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+    box-shadow: 0 1px 5px rgba(0, 162, 255, 0.1);
     font-weight: 600;
+    transition: all 0.3s ease;
 }
 
 .nav-buttons-list .nav-link.primary-action:hover {
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
-    transform: translateY(-2px);
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    transform: none;
+    box-shadow: 0 1px 5px rgba(0, 162, 255, 0.1);
 }
 
 /* Dropdown styles */
