@@ -174,3 +174,29 @@ a:hover {
         font-size: 14px;
     }
 }
+
+/* Attractive Button Styles */
+.btn-attractive {
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+}
+
+.btn-attractive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.5);
+}
+
+.btn-attractive:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 162, 255, 0.2);
+}
