@@ -91,11 +91,6 @@ body {
     box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
 }
 
-.hero .btn-primary:hover {
-    /* transform: translateY(-2px); */
-    /* box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4); */
-}
-
 /* Features section styles */
 .features {
     background: rgba(255, 255, 255, 0.1);
@@ -326,4 +321,10 @@ body {
     .features p {
         font-size: 0.9rem;
     }
+}
+
+/* Example of adding properties */
+.some-class {
+    display: block; /* Example property */
+    color: #333; /* Example property */
 }

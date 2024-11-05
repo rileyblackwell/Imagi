@@ -156,3 +156,12 @@
         padding: 10px 12px 10px 25px;
     }
 }
+
+/* Centering the cancel and return home phrase */
+.cancel-return-container {
+    display: flex;
+    justify-content: center; /* Centers horizontally */
+    align-items: center; /* Centers vertically if height is defined */
+    text-align: center; /* Ensures text is centered */
+    margin: 20px 0; /* Optional: adds some margin */
+}
