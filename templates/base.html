@@ -11,10 +11,10 @@
     <link rel="stylesheet" href="{% static 'styles.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
-<body {% if request.path != '/builder/' %}class="animated-bg"{% endif %}>
+<body>
     {% block navbar %}
-    <nav class="navbar navbar-expand-lg navbar-light {% if request.path == '/' %}home-nav{% else %}app-nav{% endif %}">
-        <div class="container {% if request.path == '/' %}nav-container{% endif %}">
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
             {% block navbar_content %}
             <a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
                 <div class="logo-placeholder"></div>
@@ -38,7 +38,7 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-brand">
-                <div class="footer-logo-placeholder"></div>
+                <div class="logo-placeholder"></div>
                 <span class="footer-brand-text">Imagi</span>
             </div>
             <div class="footer-links">

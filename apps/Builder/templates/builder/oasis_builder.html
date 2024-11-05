@@ -8,14 +8,19 @@
 <link rel="stylesheet" href="{% static 'builder/css/builder_styles.css' %}">
 {% endblock %}
 
-{% block navbar_content %}
-<a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
-    <div class="logo-placeholder"></div>
-    <span class="brand-text">Imagi</span>
-</a>
+{% block navbar %}
+<nav class="navbar navbar-expand-lg app-navbar">
+    <div class="container">
+        <a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
+            <div class="logo-placeholder"></div>
+            <span class="brand-text">Imagi</span>
+        </a>
+    </div>
+</nav>
 {% endblock %}
 
 {% block content %}
+<div class="app-container">
     <div class="container">
         <div class="main-title-section">
             <h1>Imagi Oasis</h1>
@@ -65,6 +70,7 @@
             </form>
         </div>
     </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

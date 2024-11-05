@@ -3,6 +3,10 @@
 
 {% block title %}Imagi - Natural Language To Code Platform{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
+{% endblock %}
+
 {% block nav_buttons %}
 <div class="nav-buttons ml-auto">
     <ul class="nav-buttons-list">
@@ -73,8 +77,4 @@
             </div>
         </div>
     </section>
-{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
 {% endblock %}

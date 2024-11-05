@@ -358,3 +358,62 @@ a:hover {
 .navbar-brand .brand-text {
     color: var(--text-color);
 }
+
+/* App-specific navbar styles */
+.app-navbar {
+    background: rgba(13, 12, 34, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 0;
+}
+
+.app-navbar .container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 25px;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+}
+
+.app-navbar .navbar-brand {
+    position: relative;
+    left: 0;
+    top: 0;
+}
+
+.app-navbar .nav-buttons-list {
+    display: none;
+}
+
+/* Common container styles for app pages */
+.app-container {
+    min-height: calc(100vh - 160px);
+    display: flex;
+    flex-direction: column;
+    padding: 40px 20px;
+}
+
+/* Footer positioning for app pages */
+.app-footer {
+    margin-top: auto;
+}
+
+/* Mobile responsive styles */
+@media screen and (max-width: 768px) {
+    .app-navbar {
+        padding: 15px 0;
+    }
+
+    .app-navbar .container {
+        padding: 0 15px;
+    }
+
+    .app-container {
+        padding: 20px 15px;
+    }
+}

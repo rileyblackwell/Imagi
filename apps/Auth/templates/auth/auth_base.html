@@ -1,27 +1,33 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block navbar_content %}
-<a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
-    <div class="logo-placeholder"></div>
-    <span class="brand-text">Imagi</span>
-</a>
-{% endblock %}
-
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'apps_styles.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
 {% endblock %}
 
+{% block navbar %}
+<nav class="navbar navbar-expand-lg app-navbar">
+    <div class="container">
+        <a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
+            <div class="logo-placeholder"></div>
+            <span class="brand-text">Imagi</span>
+        </a>
+    </div>
+</nav>
+{% endblock %}
+
 {% block content %}
-<div class="auth-page">
-    <div class="auth-wrapper">
-        <div class="auth-inner">
-            <div class="auth-container">
-                <div class="logo-placeholder"></div>
-                {% block auth_content %}{% endblock %}
-                <div class="auth-links">
-                    {% block auth_links %}{% endblock %}
+<div class="app-container">
+    <div class="auth-page">
+        <div class="auth-wrapper">
+            <div class="auth-inner">
+                <div class="auth-container">
+                    <div class="logo-placeholder"></div>
+                    {% block auth_content %}{% endblock %}
+                    <div class="auth-links">
+                        {% block auth_links %}{% endblock %}
+                    </div>
                 </div>
             </div>
         </div>
