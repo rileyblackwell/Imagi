@@ -35,7 +35,7 @@ def process_input(request):
     Message.objects.create(conversation=conversation, role="assistant", content=parsed_html)
 
     # Write the AI-generated HTML to a file (optional for debugging or review)
-    output_path = os.path.join(os.path.dirname(__file__), '../output.html')
+    output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
     with open(output_path, 'w') as f:
         f.write(parsed_html)
 
