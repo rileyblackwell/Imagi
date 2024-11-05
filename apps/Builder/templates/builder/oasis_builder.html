@@ -8,6 +8,13 @@
 <link rel="stylesheet" href="{% static 'builder/css/builder_styles.css' %}">
 {% endblock %}
 
+{% block navbar_content %}
+<a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
+    <div class="logo-placeholder"></div>
+    <span class="brand-text">Imagi</span>
+</a>
+{% endblock %}
+
 {% block content %}
     <div class="container">
         <div class="main-title-section">

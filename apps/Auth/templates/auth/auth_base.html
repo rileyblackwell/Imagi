@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block navbar_content %}
+<a class="navbar-brand main-nav-brand" href="{% url 'landing_page' %}">
+    <div class="logo-placeholder"></div>
+    <span class="brand-text">Imagi</span>
+</a>
+{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'apps_styles.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
