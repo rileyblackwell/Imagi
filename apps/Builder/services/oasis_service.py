@@ -100,14 +100,13 @@ def undo_last_action(conversation):
 
     if total_messages >= 2:
         # Get the previous HTML before deleting
-        # We want the most recent assistant message after removing the last exchange
         remaining_messages = list(messages[2:])  # Skip the 2 messages we'll delete
         previous_html = ''
         
         # Find the most recent assistant message from remaining messages
         for msg in remaining_messages:
             if msg.role == 'assistant':
-                previous_html = msg.content
+                previous_html = test_html(msg.content)  # Apply test_html here
                 break
         
         # Delete exactly 2 messages (the last exchange)

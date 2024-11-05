@@ -47,6 +47,9 @@ def undo_last_action_view(request):
         # Use the service function to handle the undo operation
         previous_html, message = undo_last_action(conversation)
         
+        # Ensure we're only returning valid HTML
+        previous_html = test_html(previous_html) if previous_html else ''
+        
         # Write the previous HTML response to a file (optional)
         output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
         with open(output_path, 'w') as f:
