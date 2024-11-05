@@ -41,10 +41,7 @@ def process_input(request):
 @require_http_methods(['POST'])
 def undo_last_action_view(request):
     try:
-        # Get the user's conversation
         conversation = get_object_or_404(Conversation, user=request.user)
-        
-        # Use the service function to handle the undo operation
         previous_html, message = undo_last_action(conversation)
         
         # Ensure we're only returning valid HTML
@@ -55,11 +52,10 @@ def undo_last_action_view(request):
         with open(output_path, 'w') as f:
             f.write(previous_html)
 
-        return JsonResponse({'message': message, 'html': previous_html})
+        return JsonResponse({'html': previous_html, 'message': message})
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
 
 
 @require_http_methods(['POST'])

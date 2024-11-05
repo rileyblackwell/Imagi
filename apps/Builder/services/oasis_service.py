@@ -100,24 +100,15 @@ def undo_last_action(conversation):
 
     if total_messages >= 2:
         # Get the previous HTML before deleting
-        remaining_messages = list(messages[2:])  # Skip the 2 messages we'll delete
-        previous_html = ''
-        
-        # Find the most recent assistant message from remaining messages
-        for msg in remaining_messages:
-            if msg.role == 'assistant':
-                previous_html = test_html(msg.content)  # Apply test_html here
-                break
+        previous_html = messages[2].content if total_messages > 2 else ''
         
         # Delete exactly 2 messages (the last exchange)
         latest_two = messages[:2]
         Message.objects.filter(id__in=[msg.id for msg in latest_two]).delete()
         
-        message = 'Last action undone successfully.'
+        return previous_html, 'Last action undone successfully.'
     else:
-        # Clear all messages if fewer than 2 messages exist
+        # If less than 2 messages, just clear everything
         messages.all().delete()
         previous_html = ''
-        message = 'Not enough history to undo last action; conversation history cleared.'
-
-    return previous_html, message
+        return previous_html, 'Not enough history to undo last action; conversation history cleared.'
