@@ -24,7 +24,7 @@ body {
 }
 
 .navbar:hover {
-    background: rgba(13, 12, 34, 0.9);
+    background: rgba(13, 12, 34, 0.8);
 }
 
 /* Remove app-navbar specific styling that was causing the grey background */

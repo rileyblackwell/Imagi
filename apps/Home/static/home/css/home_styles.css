@@ -92,8 +92,8 @@ body {
 }
 
 .hero .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
+    /* transform: translateY(-2px); */
+    /* box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4); */
 }
 
 /* Features section styles */
@@ -183,9 +183,9 @@ body {
 }
 
 .nav-buttons-list .nav-link:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-1px);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: transparent;
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .nav-buttons-list .nav-link.primary-action {
