@@ -3,6 +3,7 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+from ..models import Message, Conversation
 
 # Load environment variables from .env
 load_dotenv()
@@ -49,20 +50,37 @@ def get_system_message():
     }
 
 
-def process_user_input(user_input, model, conversation_history):
-    """Processes user input and generates a response using the OpenAI API."""
+def process_user_input(user_input, model, conversation):
+    """Processes user input, generates a response, and saves it in the database."""
+    # Retrieve existing messages from the conversation for OpenAI
+    conversation_history = [
+        {"role": msg.role, "content": msg.content}
+        for msg in conversation.messages.all()
+    ]
+    
+    # Add system message if it doesn't exist in conversation history
     if not any(msg['role'] == 'system' for msg in conversation_history):
         conversation_history.insert(0, get_system_message())
-        
+    
+    # Append user input to the conversation history
     conversation_history.append({"role": "user", "content": user_input})
     
+    # Attempt to generate response from OpenAI
     try:
         completion = client.chat.completions.create(
             model=model,
             messages=conversation_history
         )
-        return completion.choices[0].message.content  # AI-generated HTML
+        assistant_response = completion.choices[0].message.content  # AI-generated HTML
+
+        # Save user input and assistant response to the database
+        Message.objects.create(conversation=conversation, role="user", content=user_input)
+        Message.objects.create(conversation=conversation, role="assistant", content=assistant_response)
+
+        return assistant_response
     except Exception as e:
+        # Log or handle the exception as needed
+        print(f"Error in process_user_input: {e}")
         return str(e)
 
 
@@ -75,16 +93,24 @@ def test_html(html):
     return html[start_idx:end_idx] if start_idx != -1 and end_idx != -1 else html
 
 
-def undo_last_action(conversation_history):
-    """Removes the last user-assistant exchange from conversation history."""
-    if len(conversation_history) >= 2:
-        conversation_history = conversation_history[:-2]
+def undo_last_action(conversation):
+    """Removes the last user-assistant exchange from the database."""
+    messages = conversation.messages.all()
+
+    if messages.count() >= 2:
+        messages.last().delete()  # Delete last assistant message
+        messages.last().delete()  # Delete last user message
         message = 'Last action undone successfully.'
     else:
-        conversation_history.clear()
+        messages.delete()
         message = 'Not enough history to undo last action; conversation history cleared.'
-    
-    if not any(msg['role'] == 'system' for msg in conversation_history):
-        conversation_history.insert(0, get_system_message())
-    
-    return conversation_history, message
+
+    # Retrieve updated conversation history for the last assistant response
+    conversation_history = [
+        {"role": msg.role, "content": msg.content}
+        for msg in messages
+    ]
+
+    previous_html = conversation_history[-1]['content'] if len(conversation_history) > 0 else ''
+
+    return previous_html, message
