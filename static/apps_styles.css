@@ -211,14 +211,6 @@ a:hover {
 
 /* Mobile responsive styles */
 @media screen and (max-width: 768px) {
-    .app-navbar {
-        padding: 15px 0;
-    }
-
-    .app-navbar .container {
-        padding: 0 15px;
-    }
-
     .app-container {
         padding: 20px 15px;
     }

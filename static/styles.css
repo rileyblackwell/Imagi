@@ -1,3 +1,16 @@
+/* Body styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+}
+
 /* Navbar base styles */
 .navbar {
     background: rgba(13, 12, 34, 0.8);
@@ -12,6 +25,14 @@
 
 .navbar:hover {
     background: rgba(13, 12, 34, 0.9);
+}
+
+/* Remove app-navbar specific styling that was causing the grey background */
+.app-navbar {
+    background: rgba(13, 12, 34, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .navbar .container {
@@ -34,6 +55,26 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
     font-size: 1.8rem;
+}
+
+/* Mobile styles */
+@media screen and (max-width: 991px) {
+    .navbar {
+        padding: 15px 0;
+    }
+
+    .navbar .container {
+        padding: 0 15px;
+    }
+
+    /* Style for collapsed menu only in home page */
+    .navbar-collapse {
+        background: rgba(0, 0, 0, 0.95);
+        margin-top: 15px;
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
 }
 
 /* Footer styles */
@@ -105,25 +146,6 @@
     font-weight: 400;
     margin: 0;
     text-align: center;
-}
-
-/* Mobile responsive styles */
-@media screen and (max-width: 991px) {
-    .navbar {
-        padding: 15px 0;
-    }
-
-    .navbar .container {
-        padding: 0 15px;
-    }
-
-    .navbar-collapse {
-        background: rgba(0, 0, 0, 0.95);
-        margin-top: 15px;
-        padding: 20px;
-        border-radius: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
 }
 
 @media screen and (max-width: 480px) {
