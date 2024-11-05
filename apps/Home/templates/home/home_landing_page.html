@@ -16,7 +16,7 @@
     <div class="nav-buttons ml-auto">
         <ul class="nav-buttons-list">
             <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <a class="nav-link dropdown-toggle primary-action" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     <i class="fas fa-th"></i> Products
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
@@ -32,13 +32,13 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'logout' %}">
+                    <a href="{% url 'logout' %}" class="nav-link primary-action">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </li>
             {% else %}
                 <li class="nav-item">
-                    <a class="nav-link primary-action" href="{% url 'login' %}">
+                    <a href="{% url 'login' %}" class="nav-link primary-action">
                         <i class="fas fa-sign-in-alt"></i> Login
                     </a>
                 </li>

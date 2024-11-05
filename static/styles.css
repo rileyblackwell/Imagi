@@ -216,3 +216,10 @@ body {
     height: 35px;
     margin-right: 12px;
 }
+
+.nav-buttons-list .nav-link.primary-action {
+    background: linear-gradient(45deg, #00a2ff, #00ffc6); /* Match the Buy Credits button */
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+    font-weight: 600;
+}
