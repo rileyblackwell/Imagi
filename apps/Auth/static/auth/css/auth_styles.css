@@ -40,6 +40,11 @@
     transition: border-color 0.3s, box-shadow 0.3s;
 }
 
+.input-with-icon:not(:placeholder-shown) {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 1);
+}
+
 .input-with-icon:focus {
     border-color: rgba(255, 255, 255, 1);
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
@@ -48,8 +53,16 @@
 .input-group-addon {
     position: absolute;
     left: 15px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(0, 0, 0, 0.7);
     font-size: 16px;
+}
+
+.input-with-icon:not(:placeholder-shown) + .input-group-addon {
+    color: black;
+}
+
+.input-with-icon:focus + .input-group-addon {
+    color: black;
 }
 
 .auth-links {
