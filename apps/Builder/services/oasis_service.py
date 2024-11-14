@@ -3,7 +3,7 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from ..models import Message, Conversation
+from ..models import Message, Conversation, Page
 
 # Load environment variables from .env
 load_dotenv()
@@ -50,36 +50,43 @@ def get_system_message():
     }
 
 
-def process_user_input(user_input, model, conversation):
-    """Processes user input, generates a response, and saves it in the database."""
-    # Retrieve existing messages from the conversation for OpenAI
+def process_user_input(user_input, model, conversation, page):
+    """Processes user input for a specific page."""
+    # Get messages specific to this page
     conversation_history = [
         {"role": msg.role, "content": msg.content}
-        for msg in conversation.messages.all()
+        for msg in page.messages.all()
     ]
     
-    # Add system message if it doesn't exist in conversation history
+    # Add system message if it doesn't exist
     if not any(msg['role'] == 'system' for msg in conversation_history):
         conversation_history.insert(0, get_system_message())
     
-    # Append user input to the conversation history
     conversation_history.append({"role": "user", "content": user_input})
     
-    # Attempt to generate response from OpenAI
     try:
         completion = client.chat.completions.create(
             model=model,
             messages=conversation_history
         )
-        assistant_response = completion.choices[0].message.content  # AI-generated HTML
+        assistant_response = completion.choices[0].message.content
 
-        # Save user input and assistant response to the database
-        Message.objects.create(conversation=conversation, role="user", content=user_input)
-        Message.objects.create(conversation=conversation, role="assistant", content=assistant_response)
+        # Save messages with page reference
+        Message.objects.create(
+            conversation=conversation,
+            page=page,
+            role="user",
+            content=user_input
+        )
+        Message.objects.create(
+            conversation=conversation,
+            page=page,
+            role="assistant",
+            content=assistant_response
+        )
 
         return assistant_response
     except Exception as e:
-        # Log or handle the exception as needed
         print(f"Error in process_user_input: {e}")
         return str(e)
 
@@ -93,22 +100,16 @@ def test_html(html):
     return html[start_idx:end_idx] if start_idx != -1 and end_idx != -1 else html
 
 
-def undo_last_action(conversation):
-    """Removes the last user-assistant exchange from the database."""
-    messages = conversation.messages.order_by('-created_at')  # Order by most recent first
+def undo_last_action(conversation, page):
+    """Removes the last user-assistant exchange from the specific page."""
+    messages = page.messages.order_by('-created_at')
     total_messages = messages.count()
 
     if total_messages >= 2:
-        # Get the previous HTML before deleting
         previous_html = messages[2].content if total_messages > 2 else ''
-        
-        # Delete exactly 2 messages (the last exchange)
         latest_two = messages[:2]
         Message.objects.filter(id__in=[msg.id for msg in latest_two]).delete()
-        
         return previous_html, 'Last action undone successfully.'
     else:
-        # If less than 2 messages, just clear everything
         messages.all().delete()
-        previous_html = ''
-        return previous_html, 'Not enough history to undo last action; conversation history cleared.'
+        return '', 'Not enough history to undo last action; page history cleared.'

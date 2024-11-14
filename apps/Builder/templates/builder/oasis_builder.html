@@ -20,19 +20,25 @@
             <form id="input-form" class="form" onsubmit="return false;">
                 {% csrf_token %}
                 
-                <div class="input-section">
-                    <div class="input-label">
-                        <span>Describe Your Vision</span>
-                    </div>
-                    <textarea 
-                        id="user-input" 
-                        name="user-input" 
-                        placeholder="Let your imagination flow... Describe the website of your dreams"
-                        rows="6"
-                    ></textarea>
-                </div>
-
                 <div class="controls-wrapper">
+                    <div class="page-select-wrapper">
+                        <label for="page-select">
+                            <span>Select Page</span>
+                        </label>
+                        <select id="page-select" name="page-select">
+                            <option value="index.html">Home Page (index.html)</option>
+                            <option value="about.html">About Page</option>
+                            <option value="contact.html">Contact Page</option>
+                            <option value="custom">Add New Page...</option>
+                        </select>
+                        <div id="custom-page-input" style="display: none;">
+                            <input type="text" id="custom-page-name" placeholder="Enter page name (e.g., services.html)">
+                            <button id="add-page-btn" class="btn btn-secondary">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="model-select-wrapper">
                         <label for="model-select">
                             <span>Select AI Model</span>
@@ -55,6 +61,18 @@
                             <i class="fas fa-trash"></i> Reset
                         </button>
                     </div>
+                </div>
+
+                <div class="input-section">
+                    <div class="input-label">
+                        <span>Describe Your Vision</span>
+                    </div>
+                    <textarea 
+                        id="user-input" 
+                        name="user-input" 
+                        placeholder="Let your imagination flow... Describe the website of your dreams"
+                        rows="6"
+                    ></textarea>
                 </div>
             </form>
         </div>

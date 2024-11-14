@@ -11,43 +11,118 @@ $(document).ready(function() {
     });
     
     var websiteTab = null;
+    var currentPages = ['index.html', 'about.html', 'contact.html'];
 
-    // Click event for the submit button
-    $('#submit-btn').click(function(event) {
-        event.preventDefault(); // Prevent default form submission
-        console.log("Submit Button Clicked!"); // Log submit button click
+    // Handle custom page input
+    $('#page-select').change(function() {
+        if ($(this).val() === 'custom') {
+            $('#custom-page-input').show();
+        } else {
+            $('#custom-page-input').hide();
+        }
+    });
 
-        // Get the user input and model values
-        var userInput = $('#user-input').val();
-        var model = $('#model-select').val(); 
+    // Handle adding new pages
+    $('#add-page-btn').click(function(event) {
+        event.preventDefault();
+        var newPage = $('#custom-page-name').val();
         
-        console.log("User Input:", userInput); // Log user input
-        console.log("Model Selected:", model); // Log selected model
+        if (!newPage) {
+            alert('Please enter a page name');
+            return;
+        }
+        
+        if (!newPage.endsWith('.html')) {
+            newPage += '.html';
+        }
+        
+        if (currentPages.includes(newPage)) {
+            alert('This page already exists');
+            return;
+        }
 
-        // Clear the input field immediately
+        // Add new page to select options
+        $('#page-select').append(
+            $('<option></option>').val(newPage).html(newPage)
+        );
+        
+        currentPages.push(newPage);
+        
+        // Reset custom input
+        $('#custom-page-name').val('');
+        $('#custom-page-input').hide();
+        $('#page-select').val(newPage);
+    });
+
+    // Modified submit button handler
+    $('#submit-btn').click(function(event) {
+        event.preventDefault();
+        
+        var userInput = $('#user-input').val();
+        var model = $('#model-select').val();
+        var selectedPage = $('#page-select').val();
+        
+        if (!model) {
+            alert('Please select an AI model');
+            return;
+        }
+
         $('#user-input').val('');
 
-        // Perform the AJAX request
         $.ajax({
             type: 'POST',
-            url: '/builder/process-input/',  // Updated URL
+            url: '/builder/process-input/',
             data: {
                 'user_input': userInput,
                 'model': model,
-                'csrfmiddlewaretoken': csrftoken // Explicitly include the CSRF token
+                'page': selectedPage,
+                'csrfmiddlewaretoken': csrftoken
             },
             success: function(response) {
-                console.log("AJAX Success: Response received"); // Log on success
                 if (websiteTab === null || websiteTab.closed) {
                     websiteTab = window.open('', '_blank');
                 } else {
-                    websiteTab.location.href = ''; // Clear the tab
+                    websiteTab.location.href = '';
                 }
-                websiteTab.document.write(response.html); // Write the response HTML to the new tab
+                websiteTab.document.write(response.html);
                 websiteTab.document.close();
             },
             error: function(xhr, status, error) {
-                console.error("AJAX Error:", error); // Log errors to console
+                console.error("AJAX Error:", error);
+            }
+        });
+    });
+
+    // Modified undo button handler
+    $('#undo-btn').click(function(event) {
+        event.preventDefault();
+        var selectedPage = $('#page-select').val();
+
+        $.ajax({
+            type: 'POST',
+            url: '/builder/undo-last-action/',
+            data: {
+                'page': selectedPage,
+                'csrfmiddlewaretoken': csrftoken
+            },
+            success: function(response) {
+                console.log("Undo Success:", response.message);
+                if (response.html) {
+                    if (websiteTab === null || websiteTab.closed) {
+                        websiteTab = window.open('', '_blank');
+                    } else {
+                        websiteTab.location.href = '';
+                    }
+                    websiteTab.document.write(response.html);
+                    websiteTab.document.close();
+                } else {
+                    if (websiteTab && !websiteTab.closed) {
+                        websiteTab.close();
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Undo Error:", error);
             }
         });
     });
@@ -67,45 +142,6 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error("Clear History Error:", error); // Log errors
-            }
-        });
-    });
-
-    // Click event for the undo button
-    $('#undo-btn').click(function(event) {
-        event.preventDefault(); // Prevent default action
-        console.log("Undo Button Clicked: Removing last two entries from conversation history");
-
-        $.ajax({
-            type: 'POST',
-            url: '/builder/undo-last-action/',  // Updated URL
-            data: {
-                'csrfmiddlewaretoken': csrftoken // Include CSRF token
-            },
-            success: function(response) {
-                console.log("Undo Success:", response.message); // Log on success
-                // alert(response.message); // Removed the alert message
-
-                // Check if there is HTML to render
-                if (response.html) {
-                    // Update the webpage with the new HTML
-                    if (websiteTab === null || websiteTab.closed) {
-                        websiteTab = window.open('', '_blank');
-                    } else {
-                        websiteTab.location.href = ''; // Clear the tab
-                    }
-                    websiteTab.document.write(response.html); // Write the new HTML to the tab
-                    websiteTab.document.close();
-                } else {
-                    // If no HTML is returned, close the tab if it's open
-                    if (websiteTab && !websiteTab.closed) {
-                        websiteTab.close();
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("Undo Error:", error); // Log errors
-                alert("An error occurred while undoing the last action.");
             }
         });
     });

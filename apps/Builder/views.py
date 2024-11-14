@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Conversation, Message
+from .models import Conversation, Message, Page
 from .services.oasis_service import process_user_input, test_html, undo_last_action, get_system_message
 import os
 
@@ -18,20 +18,28 @@ def index(request):
 def process_input(request):
     user_input = request.POST.get('user_input')
     model = request.POST.get('model')
+    page_name = request.POST.get('page')
 
-    # Check if input and model are provided
-    if not user_input or not model:
-        return JsonResponse({'error': 'Invalid input or model selection.'}, status=400)
+    if not all([user_input, model, page_name]):
+        return JsonResponse({'error': 'Invalid input, model selection, or page.'}, status=400)
 
-    # Get or create a conversation for the logged-in user
     conversation, created = Conversation.objects.get_or_create(user=request.user)
+    
+    # Get or create the page
+    page, created = Page.objects.get_or_create(
+        conversation=conversation,
+        filename=page_name
+    )
 
-    # Process user input
-    html = process_user_input(user_input, model, conversation)
+    # Process user input for specific page
+    html = process_user_input(user_input, model, conversation, page)
     parsed_html = test_html(html)
 
-    # Write the AI-generated HTML to a file (optional for debugging or review)
-    output_path = os.path.join(os.path.dirname(__file__), 'website/homepage.html')
+    # Write the AI-generated HTML to a file
+    output_dir = os.path.join(os.path.dirname(__file__), 'website')
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, page_name)
+    
     with open(output_path, 'w') as f:
         f.write(parsed_html)
 
@@ -42,13 +50,15 @@ def process_input(request):
 def undo_last_action_view(request):
     try:
         conversation = get_object_or_404(Conversation, user=request.user)
-        previous_html, message = undo_last_action(conversation)
+        page_name = request.POST.get('page')
+        page = get_object_or_404(Page, conversation=conversation, filename=page_name)
         
-        # Ensure we're only returning valid HTML
+        previous_html, message = undo_last_action(conversation, page)
         previous_html = test_html(previous_html) if previous_html else ''
         
-        # Write the previous HTML response to a file (optional)
-        output_path = os.path.join(os.path.dirname(__file__), 'website/homepage.html')
+        output_dir = os.path.join(os.path.dirname(__file__), 'website')
+        output_path = os.path.join(output_dir, page_name)
+        
         with open(output_path, 'w') as f:
             f.write(previous_html)
 
