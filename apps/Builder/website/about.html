@@ -8,12 +8,12 @@
         body {
             margin: 0;
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(to right, #f9f9f9, #e2e2e2);
+            background: linear-gradient(to right, #f0eaf5, #d1c6e7);
             color: #333;
             line-height: 1.6;
         }
         header {
-            background: #FF6F61;
+            background: #6A0FAD; /* Violet */
             color: white;
             padding: 20px 0;
             text-align: center;
@@ -30,21 +30,27 @@
             color: white;
             text-decoration: none;
             font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        nav a:hover {
+            color: #FFD700; /* Gold */
         }
         .container {
             max-width: 900px;
             margin: 20px auto;
             padding: 20px;
-            background: white;
+            background: #ffffff; /* White */
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
         }
         h2 {
-            color: #FF6F61;
+            color: #FF6F61; /* Coral */
             margin-bottom: 10px;
+            font-size: 2rem;
         }
         p {
             margin-bottom: 20px;
+            color: #333; /* Dark Gray */
         }
         .cta {
             text-align: center;
@@ -52,25 +58,30 @@
         }
         .cta button {
             padding: 10px 20px;
-            background: #28A745;
+            background: #28A745; /* Green */
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-size: 1rem;
-            transition: background 0.3s ease;
+            transition: background 0.3s ease, transform 0.3s ease;
         }
         .cta button:hover {
-            background: #218838;
+            background: #218838; /* Darker Green */
+            transform: scale(1.05);
         }
         footer {
             text-align: center;
             padding: 20px;
-            background: #FF6F61;
+            background: #6A0FAD; /* Violet */
             color: white;
             position: relative;
             bottom: 0;
             width: 100%;
+        }
+        footer p {
+            margin: 0;
+            font-size: 0.9rem;
         }
         @media (max-width: 600px) {
             h1 {
