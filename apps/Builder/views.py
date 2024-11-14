@@ -23,10 +23,9 @@ def process_input(request):
     model = request.POST.get('model', '').strip()
     file_name = request.POST.get('file', 'index.html').strip()  # Default to index.html
 
-    # Debug logging
-    print(f"Raw POST data: {dict(request.POST)}")
-    print(f"Processed data: user_input={user_input}, model={model}, file={file_name}")
-
+    # Remove the debug logging for raw POST data
+    # print(f"Raw POST data: {dict(request.POST)}")
+    
     # Validate required fields
     if not user_input:
         return JsonResponse({'error': 'User input is required'}, status=400)
