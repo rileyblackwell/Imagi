@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WealthWise Financial Coaching</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.6;
+            background: linear-gradient(to bottom, #e8f5e9, #ffffff); /* Gradient background */
+        }
+        header {
+            background: linear-gradient(to right, #003366, #00509d);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        header p {
+            font-size: 1.2rem;
+            margin-top: 8px;
+        }
+        .main-content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .main-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        section {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        section:hover {
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+        section h2 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            color: #003366;
+            border-bottom: 2px solid #00509d;
+            padding-bottom: 5px;
+        }
+        .progress-bar {
+            height: 20px;
+            width: 100%;
+            background-color: #f1f1f1;
+            border-radius: 25px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar div {
+            height: 100%;
+            width: 50%;
+            background-color: #4caf50; /* Green color for progress */
+            animation: progressAnimation 2s infinite alternate;
+            transition: width 0.4s ease;
+        }
+        @keyframes progressAnimation {
+            0% { width: 0; }
+            100% { width: 80%; }
+        }
+        .testimonials {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .testimonial {
+            flex: 0 0 300px;
+            border-radius: 8px;
+            background: #00509d;
+            color: white;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .testimonial h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        .faq {
+            list-style: none;
+            padding: 0;
+        }
+        .faq li {
+            margin-bottom: 10px;
+        }
+        .faq .question {
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            margin: 0;
+            padding: 10px;
+            background-color: #003366;
+            border-radius: 8px;
+            color: white;
+        }
+        .faq .answer {
+            display: none;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        .contact-form {
+            display: grid;
+            gap: 10px;
+        }
+        .contact-form label {
+            font-weight: bold;
+        }
+        .contact-form input, .contact-form select, .contact-form textarea, .contact-form button {
+            font-size: 1rem;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: border 0.3s ease;
+        }
+        .contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus {
+            border-color: #00509d;
+        }
+        .contact-form button {
+            background: #003366;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+        }
+        .contact-form button:hover {
+            background: #4caf50; /* Green color for button hover */
+            transform: translateY(-2px);
+        }
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>WealthWise Financial Coaching</h1>
+        <p>Master Your Money, Secure Your Future</p>
+    </header>
+    <main class="main-content" role="main">
+        <section aria-labelledby="about-us">
+            <h2 id="about-us">About Us</h2>
+            <p>I am a certified financial planner with years of experience in assisting clients in mastering money management through personalized coaching and group workshops. I strive to empower individuals to reach financial independence.</p>
+            <div class="progress-bar">
+                <div></div>
+            </div>
+            <div class="testimonials" aria-label="Client Testimonials">
+                <div class="testimonial" aria-label="Testimonial from John D.">
+                    <h3>John D.</h3>
+                    <p>I've reduced my debt by half and can now save effectively!</p>
+                </div>
+                <div class="testimonial" aria-label="Testimonial from Maria S.">
+                    <h3>Maria S.</h3>
+                    <p>Truly transformative. I now have a clear plan for my financial future.</p>
+                </div>
+            </div>
+        </section>
+        <section aria-labelledby="contact-us">
+            <h2 id="contact-us">Contact Us</h2>
+            <form class="contact-form" aria-labelledby="contact-form">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" required aria-required="true">
+                
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required aria-required="true">
+                
+                <label for="session">Session Type</label>
+                <select id="session" name="session" aria-required="true">
+                    <option value="phone">Phone</option>
+                    <option value="video">Video</option>
+                    <option value="in-person">In-Person</option>
+                </select>
+                
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="5"></textarea>
+                
+                <button type="submit" aria-label="Send message">Send</button>
+            </form>
+        </section>
+    </main>
+    <section aria-labelledby="coaching-services">
+        <h2 id="coaching-services">Coaching Services</h2>
+        <ul class="faq">
+            <li>
+                <div class="question" aria-expanded="false">What can I expect from a one-on-one coaching session?</div>
+                <div class="answer">A personalized session to tailor-fit your financial situation, including budgeting, saving for emergencies, and debt reduction strategies.</div>
+            </li>
+            <li>
+                <div class="question" aria-expanded="false">How are group workshops conducted?</div>
+                <div class="answer">Group workshops are educational sessions on topics like budgeting, saving, and investing, providing practical tools and strategies.</div>
+            </li>
+        </ul>
+    </section>
+    <script>
+        document.querySelectorAll('.faq .question').forEach(question => {
+            question.addEventListener('click', () => {
+                const answer = question.nextElementSibling;
+                const isExpanded = question.getAttribute('aria-expanded') === 'true';
+                question.setAttribute('aria-expanded', !isExpanded);
+                answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+            });
+        });
+    </script>
+</body>
+</html>

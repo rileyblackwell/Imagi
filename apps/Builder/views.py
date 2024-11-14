@@ -31,7 +31,7 @@ def process_input(request):
     parsed_html = test_html(html)
 
     # Write the AI-generated HTML to a file (optional for debugging or review)
-    output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
+    output_path = os.path.join(os.path.dirname(__file__), 'website/homepage.html')
     with open(output_path, 'w') as f:
         f.write(parsed_html)
 
@@ -48,7 +48,7 @@ def undo_last_action_view(request):
         previous_html = test_html(previous_html) if previous_html else ''
         
         # Write the previous HTML response to a file (optional)
-        output_path = os.path.join(os.path.dirname(__file__), '../../../output.html')
+        output_path = os.path.join(os.path.dirname(__file__), 'website/homepage.html')
         with open(output_path, 'w') as f:
             f.write(previous_html)
 
