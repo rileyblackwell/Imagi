@@ -49,6 +49,19 @@
                 <!-- Bottom Controls -->
                 <div class="bottom-controls">
                     <div class="select-wrapper">
+                        <label for="file-select">
+                            <span>Select File</span>
+                        </label>
+                        <select id="file-select" name="file-select" class="styled-select">
+                            <option value="index.html">Home Page (index.html)</option>
+                            <option value="about.html">About Page</option>
+                            <option value="contact.html">Contact Page</option>
+                            <option value="styles.css">Styles (styles.css)</option>
+                            <option value="custom">Add New Page...</option>
+                        </select>
+                    </div>
+
+                    <div class="select-wrapper">
                         <label for="model-select">
                             <span>Select AI Model</span>
                         </label>
@@ -56,18 +69,6 @@
                             <option value="">Choose AI Model</option>
                             <option value="gpt-4o">GPT-4o (Recommended)</option>
                             <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
-                        </select>
-                    </div>
-
-                    <div class="select-wrapper">
-                        <label for="page-select">
-                            <span>Select Page</span>
-                        </label>
-                        <select id="page-select" name="page-select" class="styled-select">
-                            <option value="index.html">Home Page (index.html)</option>
-                            <option value="about.html">About Page</option>
-                            <option value="contact.html">Contact Page</option>
-                            <option value="custom">Add New Page...</option>
                         </select>
                     </div>
                 </div>

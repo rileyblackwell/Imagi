@@ -3,122 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us | Doggy Style Grooming</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(to right, #f0eaf5, #d1c6e7);
-            color: #333;
-            line-height: 1.6;
-        }
-        header {
-            background: #6A0FAD; /* Violet */
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-        }
-        h1 {
-            margin: 0;
-            font-size: 2.5rem;
-        }
-        nav {
-            margin-top: 10px;
-        }
-        nav a {
-            margin: 0 15px;
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-            transition: color 0.3s ease;
-        }
-        nav a:hover {
-            color: #FFD700; /* Gold */
-        }
-        .container {
-            max-width: 900px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #ffffff; /* White */
-            border-radius: 8px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #FF6F61; /* Coral */
-            margin-bottom: 10px;
-            font-size: 2rem;
-        }
-        p {
-            margin-bottom: 20px;
-            color: #333; /* Dark Gray */
-        }
-        .cta {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .cta button {
-            padding: 10px 20px;
-            background: #28A745; /* Green */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s ease, transform 0.3s ease;
-        }
-        .cta button:hover {
-            background: #218838; /* Darker Green */
-            transform: scale(1.05);
-        }
-        footer {
-            text-align: center;
-            padding: 20px;
-            background: #6A0FAD; /* Violet */
-            color: white;
-            position: relative;
-            bottom: 0;
-            width: 100%;
-        }
-        footer p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 2rem;
-            }
-            .container {
-                padding: 15px;
-            }
-            .cta button {
-                width: 100%;
-            }
-        }
-    </style>
+    <link rel='stylesheet' href='styles.css'>
+    <title>About Us - Dog Grooming</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Doggy Style Grooming</h1>
+        <h1>About Our Dog Grooming Service</h1>
         <nav>
-            <a href="#">Home</a>
-            <a href="#">Services</a>
-            <a href="#">Contact</a>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
         </nav>
     </header>
     
-    <div class="container">
-        <h2>About Us</h2>
-        <p>Welcome to Doggy Style Grooming, where we treat your furry friend like family! Our mission is simple: to provide the best grooming services for your dogs in a loving and caring environment.</p>
-        <p>With over 10 years of experience, our certified groomers use only the finest products and techniques to ensure your dog not only looks good but feels great too. From bath times to stylish cuts, we do it all.</p>
-        <p>We believe that grooming is an essential part of pet care, and our personalized approach means we cater to the unique needs of every pup in our care.</p>
-        
-        <div class="cta">
-            <button onclick="location.href='#contact'">Book an Appointment</button>
-        </div>
-    </div>
-    
+    <main>
+        <section>
+            <h2>Our Mission</h2>
+            <p>At our dog grooming service, we prioritize the health and happiness of your furry friends. We aim to provide a safe and enjoyable grooming experience for all dogs.</p>
+        </section>
+        <section>
+            <h2>Our Story</h2>
+            <p>Founded by dog lovers, our grooming service has been dedicated to pampering pooches since 2010. With a team of experienced groomers, we ensure that every dog leaves looking and feeling great.</p>
+        </section>
+        <section>
+            <h2>Meet Our Team</h2>
+            <div id="team-members">
+                <p>Our team consists of certified groomers who understand the specific needs of different dog breeds. We treat every dog with love and care.</p>
+                <button id="show-team">Show Team Members</button>
+                <div id="team" style="display: none;">
+                    <ul>
+                        <li>Jane Doe - Lead Groomer</li>
+                        <li>John Smith - Assistant Groomer</li>
+                        <li>Emily Johnson - Bathing Specialist</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
     <footer>
-        <p>&copy; 2023 Doggy Style Grooming - All Rights Reserved</p>
+        <p>© 2023 Dog Grooming. All rights reserved.</p>
     </footer>
+    
+    <script>
+        document.getElementById('show-team').addEventListener('click', function() {
+            const teamDiv = document.getElementById('team');
+            teamDiv.style.display = teamDiv.style.display === 'none' ? 'block' : 'none';
+        });
+    </script>
 </body>
 </html>

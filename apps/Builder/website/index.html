@@ -1,198 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Professional Dog Grooming Services">
-    <title>Pawfect Grooming</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-            background: linear-gradient(to right, #ffdde1, #ee9ca7);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-            animation: fadeIn 1s ease-out;
+    <link rel="stylesheet" href="styles.css">
+    <title>Dog Grooming Services</title>
+    <script>
+        function showWelcomeMessage() {
+            alert("Welcome to our Dog Grooming Services!");
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        header {
-            background: #2980b9;
-            color: #fff;
-            width: 100%;
-            text-align: center;
-            padding: 2rem 0;
-            border-bottom: 5px solid #3498db;
-        }
-
-        h1 {
-            margin: 0.5rem 0;
-            font-size: 2.8rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-
-        .hero {
-            max-width: 700px;
-            margin: 2rem;
-            text-align: center;
-            padding: 2rem;
-            border-radius: 15px;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .hero p {
-            margin: 1.5rem 0;
-            font-size: 1.2rem;
-            line-height: 1.5;
-        }
-
-        .cta-button {
-            background-color: #ffcc00;
-            color: #fff;
-            padding: 0.75rem 2rem;
-            text-decoration: none;
-            border-radius: 25px;
-            transition: background-color 0.3s, transform 0.3s;
-            font-weight: bold;
-            display: inline-block;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            border: 2px solid #e67e22;
-        }
-
-        .cta-button:hover {
-            background-color: #f39c12;
-            transform: scale(1.05);
-        }
-
-        .services {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 2rem;
-            padding: 2rem;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .service-card {
-            border-radius: 20px;
-            padding: 2rem;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-        }
-
-        .service-card:nth-child(1) {
-            background: #ffafbd; /* Light pink */
-        }
-
-        .service-card:nth-child(2) {
-            background: #ffc3a0; /* Light orange */
-        }
-
-        .service-card:nth-child(3) {
-            background: #ff677d; /* Coral */
-        }
-
-        .service-card:nth-child(4) {
-            background: #d4a5a5; /* Soft brown */
-        }
-
-        .service-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        h3 {
-            margin-top: 0;
-            font-size: 1.6rem;
-            position: relative;
-            display: inline-block;
-            color: #2c3e50;
-        }
-
-        footer {
-            margin-top: auto;
-            padding: 1rem;
-            background-color: #8e44ad;
-            color: white;
-            text-align: center;
-            width: 100%;
-            border-top: 5px solid #9b59b6;
-        }
-
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 2.2rem;
-            }
-
-            .cta-button {
-                padding: 0.5rem 1.5rem;
-            }
-
-            .hero p {
-                font-size: 1rem;
-            }
-        }
-    </style>
+        window.onload = showWelcomeMessage;
+    </script>
 </head>
-
 <body>
     <header>
-        <h1>Pawfect Grooming</h1>
-        <p>Your trusted dog grooming service</p>
+        <h1>Dog Grooming Services</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Our Services</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+            </ul>
+        </nav>
     </header>
+    
+    <main>
+        <section>
+            <h2>Welcome!</h2>
+            <p>Your dog deserves the best grooming. We provide top-notch grooming services to keep your furry friend looking and feeling great!</p>
+        </section>
 
-    <div class="hero">
-        <h2 style="color: #2980b9;">Give Your Dog the Treat They Deserve!</h2>
-        <p>We offer professional grooming services that ensure your furry friend looks and feels their best. Our experienced groomers are here to pamper your pet with love and care.</p>
-        <a href="#" class="cta-button">Book Now</a>
-    </div>
+        <section>
+            <h2>Why Choose Us?</h2>
+            <p>At Dog Grooming Services, we pride ourselves on delivering a safe and comfortable environment for your pets. Our trained professionals use the latest techniques and equipment while maintaining the highest standards of hygiene.</p>
+        </section>
 
-    <div class="services">
-        <div class="service-card">
-            <h3>Full Grooming</h3>
-            <p>Includes bath, haircut, nail trimming, and ear cleaning.</p>
-        </div>
-        <div class="service-card">
-            <h3>Bath Only</h3>
-            <p>A refreshing bath and drying session for your dog.</p>
-        </div>
-        <div class="service-card">
-            <h3>Nail Trimming</h3>
-            <p>Keep your dog's nails trimmed and healthy with our quick service.</p>
-        </div>
-        <div class="service-card">
-            <h3>Teeth Cleaning</h3>
-            <p>Professional dental cleaning for your pet’s bright smile.</p>
-        </div>
-    </div>
-
+        <section>
+            <h2>Customer Testimonials</h2>
+            <blockquote>
+                <p>"They did an amazing job with my golden retriever! So friendly and attentive. Highly recommend!" - Sarah L.</p>
+            </blockquote>
+            <blockquote>
+                <p>"Best grooming service I’ve ever had. My dog has never looked better!" - Mark T.</p>
+            </blockquote>
+        </section>
+    </main>
+    
     <footer>
-        <p>&copy; 2023 Pawfect Grooming. All rights reserved.</p>
+        <p>&copy; 2023 Dog Grooming Services. All Rights Reserved.</p>
     </footer>
-
-    <script>
-        document.querySelector('.cta-button').addEventListener('click', function (event) {
-            event.preventDefault();
-            alert('Thank you for your interest! We will get back to you shortly.');
-        });
-    </script>
 </body>
-
 </html>
