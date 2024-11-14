@@ -127,31 +127,6 @@ body {
     margin-bottom: 15px;
 }
 
-#model-select {
-    width: 100%;
-    padding: 8px 30px 8px 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid transparent;
-    border-radius: 5px;
-    color: #ffffff;
-    font-size: 0.9rem;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    appearance: none;
-    position: relative;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-#model-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(0, 162, 255, 0.3);
-    outline: none;
-}
-
-#model-select option {
-    background-color: #1e0f3d;
-    color: #ffffff;
-}
-
 /* Action Buttons */
 .action-buttons {
     display: grid;
@@ -180,27 +155,30 @@ body {
     font-weight: 500;
 }
 
-.styled-select {
+.builder-workspace .styled-select {
     width: 100%;
-    padding: 12px;
+    padding: 8px 30px 8px 8px;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid transparent;
-    border-radius: 8px;
+    border-radius: 5px;
     color: #ffffff;
     font-size: 0.9rem;
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     appearance: none;
-    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    position: relative;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
 }
 
-.styled-select:focus {
+.builder-workspace .styled-select:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 10px rgba(0, 162, 255, 0.3);
     outline: none;
 }
 
-.styled-select option {
+.builder-workspace .styled-select option {
     background-color: #1e0f3d;
     color: #ffffff;
     padding: 8px;
