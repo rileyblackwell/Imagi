@@ -1,7 +1,18 @@
 $(document).ready(function() {
     console.log("script.js has been successfully loaded.");
 
+    // Get CSRF token for AJAX requests
     var csrftoken = Cookies.get('csrftoken');
+
+    // Set up CSRF token for all AJAX requests
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!(/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
+
     var websiteTab = null;
     var currentPages = ['index.html', 'about.html', 'contact.html', 'styles.css'];
 
@@ -51,7 +62,7 @@ $(document).ready(function() {
         $('#file-select').val(newPage);
     });
 
-    // Modified submit button handler
+    // Modified submit button handler with improved error handling
     $('#submit-btn').click(function(event) {
         event.preventDefault();
         
@@ -81,7 +92,8 @@ $(document).ready(function() {
             return;
         }
 
-        $('#user-input').val('');
+        // Show loading state
+        $('#submit-btn').prop('disabled', true).text('Generating...');
 
         $.ajax({
             type: 'POST',
@@ -94,6 +106,7 @@ $(document).ready(function() {
             },
             success: function(response) {
                 console.log('Success response:', response);
+                $('#user-input').val('');
                 
                 if (selectedFile === 'styles.css') {
                     console.log('Updated styles.css, fetching index.html');
@@ -118,6 +131,7 @@ $(document).ready(function() {
                         },
                         error: function(xhr, status, error) {
                             console.error("Error fetching index.html:", error);
+                            alert('Error fetching index.html. Please try again.');
                         }
                     });
                 } else {
@@ -138,6 +152,10 @@ $(document).ready(function() {
                 console.error("Status:", status);
                 console.error("Response:", xhr.responseText);
                 alert('Error: ' + (xhr.responseJSON?.error || 'Something went wrong. Please try again.'));
+            },
+            complete: function() {
+                // Reset button state
+                $('#submit-btn').prop('disabled', false).html('<i class="fas fa-magic"></i> Generate');
             }
         });
     });

@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Conversation, Message, Page
-from .services.oasis_service import process_user_input, test_html, undo_last_action, get_system_message
+from .services.oasis_service import process_user_input, test_html, test_css, undo_last_action, get_system_message
 import os
 from django.views.static import serve
 from django.conf import settings
@@ -54,8 +54,13 @@ def process_input(request):
         if file_name == 'styles.css':
             # Save the CSS file
             css_path = os.path.join(output_dir, 'styles.css')
+            # Use test_css function to ensure valid CSS
+            parsed_css = test_css(response_content)
+            if not parsed_css:
+                return JsonResponse({'error': 'No valid CSS content found'}, status=400)
+                
             with open(css_path, 'w') as f:
-                f.write(response_content)
+                f.write(parsed_css)
             
             # Get and return the index.html content
             index_path = os.path.join(output_dir, 'index.html')
@@ -69,6 +74,8 @@ def process_input(request):
             # Handle HTML files
             html_path = os.path.join(output_dir, file_name)
             parsed_html = test_html(response_content)
+            if not parsed_html:
+                return JsonResponse({'error': 'No valid HTML content found'}, status=400)
             
             # Ensure the HTML includes a link to styles.css
             if '<link rel="stylesheet" href="styles.css">' not in parsed_html:
