@@ -154,4 +154,47 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Add undo button handler
+    $('#undo-btn').click(function(event) {
+        event.preventDefault();
+        
+        var selectedFile = $('#file-select').val();
+        
+        if (selectedFile === 'custom') {
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '/builder/undo-last-action/',
+            data: {
+                'page': selectedFile,
+                'csrfmiddlewaretoken': csrftoken
+            },
+            success: function(response) {
+                console.log('Undo Success:', response);
+                
+                if (response.html) {
+                    if (websiteTab === null || websiteTab.closed) {
+                        websiteTab = window.open('', '_blank');
+                    }
+                    if (websiteTab) {
+                        websiteTab.document.open();
+                        var htmlWithBase = response.html.replace('<head>', 
+                            '<head><base href="/builder/website/">');
+                        websiteTab.document.write(htmlWithBase);
+                        websiteTab.document.close();
+                    }
+                } else if (websiteTab && !websiteTab.closed) {
+                    websiteTab.close();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Undo Error:", error);
+                console.error("Status:", status);
+                console.error("Response:", xhr.responseText);
+            }
+        });
+    });
 });
