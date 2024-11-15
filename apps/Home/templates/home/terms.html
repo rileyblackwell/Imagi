@@ -16,59 +16,57 @@
     </div>
 </section>
 
-<section class="features">
+<section class="tos-content">
     <div class="container">
         <div class="row">
             <div class="col-md-8 mx-auto">
-                <div class="row mb-5">
-                    <div class="col-md-6 text-center mb-4">
-                        <i class="fas fa-tools feature-icon"></i>
-                        <h3>Service Description</h3>
-                        <ul class="list-unstyled">
-                            <li class="mb-3">• AI-powered website building</li>
-                            <li class="mb-3">• Custom solutions</li>
-                            <li class="mb-3">• Hosting services</li>
-                            <li class="mb-3">• Technical support</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6 text-center mb-4">
-                        <i class="fas fa-user-check feature-icon"></i>
-                        <h3>User Responsibilities</h3>
-                        <ul class="list-unstyled">
-                            <li class="mb-3">• Accurate information</li>
-                            <li class="mb-3">• Account security</li>
-                            <li class="mb-3">• Legal compliance</li>
-                            <li class="mb-3">• Respect IP rights</li>
-                        </ul>
-                    </div>
-                </div>
+                <h2>1. Acceptance of Terms</h2>
+                <p>By accessing or using Imagi's services, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you must discontinue use of our services immediately.</p>
 
-                <div class="row mb-5">
-                    <div class="col-md-6 text-center mb-4">
-                        <i class="fas fa-credit-card feature-icon"></i>
-                        <h3>Payment Terms</h3>
-                        <ul class="list-unstyled">
-                            <li class="mb-3">• Subscription options</li>
-                            <li class="mb-3">• Enterprise pricing</li>
-                            <li class="mb-3">• Secure processing</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6 text-center mb-4">
-                        <i class="fas fa-file-alt feature-icon"></i>
-                        <h3>Content Guidelines</h3>
-                        <ul class="list-unstyled">
-                            <li class="mb-3">• Legal compliance</li>
-                            <li class="mb-3">• Third-party rights</li>
-                            <li class="mb-3">• Appropriate content</li>
-                        </ul>
-                    </div>
-                </div>
+                <h2>2. Service Description</h2>
+                <p>Imagi provides an AI-powered website builder and related services, including hosting and technical support. We reserve the right to modify or discontinue any part of the service at any time without prior notice.</p>
 
-                <div class="text-center">
-                    <a href="{% url 'contact' %}" class="btn btn-primary btn-lg">Contact Support</a>
+                <h2>3. User Responsibilities</h2>
+                <ul>
+                    <li><strong>Accurate Information:</strong> You agree to provide accurate, complete, and current information when creating an account and using our services.</li>
+                    <li><strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your account credentials and are liable for any activities under your account.</li>
+                    <li><strong>Compliance:</strong> You must comply with all applicable laws and regulations when using our services.</li>
+                    <li><strong>Intellectual Property:</strong> You agree not to infringe on the intellectual property rights of Imagi or third parties.</li>
+                </ul>
+
+                <h2>4. Payment Terms</h2>
+                <ul>
+                    <li><strong>Subscription Fees:</strong> Our services may be subject to subscription fees or other charges. By purchasing a subscription, you authorize us to charge your payment method on a recurring basis.</li>
+                    <li><strong>Refunds:</strong> All payments are non-refundable unless otherwise required by law.</li>
+                    <li><strong>Pricing Changes:</strong> Imagi reserves the right to change pricing and payment terms. We will provide notice of any changes affecting your existing subscriptions.</li>
+                </ul>
+
+                <h2>5. Intellectual Property</h2>
+                <p>All content, software, and technology used or displayed by Imagi are the property of Imagi or its licensors. You are granted a limited, non-exclusive, and non-transferable license to use our services. You may not copy, modify, distribute, or create derivative works from our content without explicit permission.</p>
+
+                <h2>6. Limitation of Liability</h2>
+                <p>To the fullest extent permitted by law, Imagi disclaims all warranties, express or implied, regarding the service. Imagi will not be liable for any indirect, incidental, special, or consequential damages, including loss of profits, data, or use of the service.</p>
+
+                <h2>7. Indemnification</h2>
+                <p>You agree to indemnify and hold Imagi, its affiliates, officers, and employees harmless from any claims, damages, or expenses arising from your use of the service, violation of these terms, or infringement of any third-party rights.</p>
+
+                <h2>8. Termination</h2>
+                <p>We reserve the right to suspend or terminate your access to our services at any time, with or without notice, for any reason, including violation of these terms or misuse of the service.</p>
+
+                <h2>9. Governing Law</h2>
+                <p>These Terms of Service are governed by and construed in accordance with the laws of the jurisdiction where Imagi is headquartered. Any disputes arising from these terms will be resolved in the courts of this jurisdiction.</p>
+
+                <h2>10. Changes to Terms</h2>
+                <p>We may update these Terms of Service from time to time. You are responsible for reviewing the most current version of the terms. Continued use of our services constitutes acceptance of the updated terms.</p>
+
+                <h2>11. Contact Us</h2>
+                <p>If you have any questions about these Terms of Service, please contact us at <a href="{% url 'contact' %}">Contact Support</a>.</p>
+
+                <div class="text-center mt-4">
+                    <a href="{% url 'landing_page' %}" class="btn btn-primary btn-lg">Return to Home</a>
                 </div>
             </div>
         </div>
     </div>
 </section>
-{% endblock %} 
+{% endblock %}
