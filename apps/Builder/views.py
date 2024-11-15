@@ -44,6 +44,9 @@ def process_input(request):
             filename=file_name
         )
 
+        # Get the conversation history before processing
+        conversation_history = get_conversation_history(conversation, page)
+
         # Process user input
         response_content = process_user_input(user_input, model, conversation, page)
 
@@ -67,7 +70,10 @@ def process_input(request):
             if os.path.exists(index_path):
                 with open(index_path, 'r') as f:
                     index_content = f.read()
-                return JsonResponse({'html': index_content})
+                return JsonResponse({
+                    'html': index_content, 
+                    'conversation_history': conversation_history
+                })
             else:
                 return JsonResponse({'message': 'CSS file updated successfully, but index.html not found'})
         else:
@@ -84,7 +90,10 @@ def process_input(request):
             
             with open(html_path, 'w') as f:
                 f.write(parsed_html)
-            return JsonResponse({'html': parsed_html})
+            return JsonResponse({
+                'html': parsed_html, 
+                'conversation_history': conversation_history
+            })
 
     except Exception as e:
         print(f"Error in process_input: {str(e)}")
@@ -176,3 +185,41 @@ def serve_website_file(request, path):
     if not os.path.exists(website_dir):
         os.makedirs(website_dir)
     return serve(request, path, document_root=website_dir)
+
+def get_conversation_history(conversation, page):
+    """Helper function to get the conversation history in a serializable format"""
+    conversation_history = [get_system_message()]
+    
+    all_messages = conversation.messages.all().order_by('created_at')
+    
+    if page.filename == 'styles.css':
+        # For styles.css, include the most recent HTML content of each page
+        html_pages = Page.objects.filter(
+            conversation=conversation
+        ).exclude(filename='styles.css')
+        
+        for html_page in html_pages:
+            latest_html = html_page.messages.filter(
+                role='assistant'
+            ).order_by('-created_at').first()
+            
+            if latest_html:
+                conversation_history.append({
+                    "role": "assistant",
+                    "content": f"Current HTML for {html_page.filename}:\n{latest_html.content}"
+                })
+    
+    # Process each message
+    for msg in all_messages:
+        if msg.role == 'user':
+            conversation_history.append({
+                "role": "user",
+                "content": msg.content
+            })
+        elif msg.role == 'assistant' and msg.page == page:
+            conversation_history.append({
+                "role": "assistant",
+                "content": msg.content
+            })
+    
+    return conversation_history

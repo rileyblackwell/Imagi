@@ -90,6 +90,15 @@ $(document).ready(function() {
             success: function(response) {
                 console.log('Success response:', response);
                 
+                // Log the conversation history in a more readable format
+                console.group('Submitted conversation history:');
+                response.conversation_history.forEach((message, index) => {
+                    console.log(`${index + 1}. ${message.role.toUpperCase()}:`);
+                    console.log(message.content);
+                    console.log('-------------------');
+                });
+                console.groupEnd();
+                
                 if (selectedFile === 'styles.css') {
                     console.log('Updated styles.css, fetching index.html');
                     $.ajax({

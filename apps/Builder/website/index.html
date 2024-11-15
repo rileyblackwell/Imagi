@@ -1,76 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='stylesheet' href='styles.css'>
-    <title>Dog Grooming - Pricing</title>
+    <title>Canvas Expressions - Home</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Dog Grooming - Pricing</h1>
+        <div class="logo">Canvas Expressions</div>
         <nav>
-            <a href="index.html">Home</a>
-            <a href="services.html">Services</a>
-            <a href="about.html">About Us</a>
-            <a href="contact.html">Contact</a>
-            <a href="pricing.html">Pricing</a>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
         </nav>
     </header>
-    <div class="main">
-        <h2>Our Pricing Plans</h2>
-        <p>We offer a variety of grooming packages to meet your needs and keep your furry friends looking their best.</p>
 
-        <h3>Grooming Packages</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Package</th>
-                    <th>Description</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Basic Bath</td>
-                    <td>A thorough bath and drying.</td>
-                    <td>$30</td>
-                </tr>
-                <tr>
-                    <td>Full Groom</td>
-                    <td>Includes bath, nail clipping, and hair trimming.</td>
-                    <td>$50</td>
-                </tr>
-                <tr>
-                    <td>Specialized Groom</td>
-                    <td>Full groom with specialized fur treatment.</td>
-                    <td>$75</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>Additional Services</h3>
-        <ul>
-            <li>Nail Clipping: $10</li>
-            <li>Teeth Brushing: $15</li>
-            <li>Ear Cleaning: $10</li>
-        </ul>
-
-        <h3>Why Choose Our Pricing?</h3>
-        <ul>
-            <li>Transparent Pricing with No Hidden Fees</li>
-            <li>Quality Guaranteed by Experienced Groomers</li>
-            <li>Special Offers on Package Deals</li>
-        </ul>
-
-        <div class="testimonial">
-            <p>"Incredible service at a great price! I highly recommend checking them out!" - Mia L.</p>
-        </div>
-
-        <h3>Schedule an Appointment!</h3>
-        <button onclick="alert('To schedule an appointment, please contact us!')">Contact Us</button>
+    <div class="banner">
+        <h1>Explore the World of Art</h1>
+        <p>Curated Collections and Original Masterpieces</p>
     </div>
+
+    <section class="gallery-preview">
+        <h2>Featured Artworks</h2>
+        <div class="art-grid">
+            <div class="art-piece" onmouseover="showDescription(this)" onmouseout="hideDescription(this)">
+                <div class="art-title">Starry Night</div>
+                <div class="artist-name">Vincent van Gogh</div>
+                <div class="description">This masterpiece captures the tumultuous beauty of the night sky, with swirling stars radiating energy and emotion, reflecting van Gogh's profound connection to his surroundings.</div>
+            </div>
+            <div class="art-piece" onmouseover="showDescription(this)" onmouseout="hideDescription(this)">
+                <div class="art-title">Mona Lisa</div>
+                <div class="artist-name">Leonardo da Vinci</div>
+                <div class="description">Renowned for her enigmatic expression, this portrait captures the fascination of millions, epitomizing the beauty of the Renaissance and the depth of human emotion.</div>
+            </div>
+            <div class="art-piece" onmouseover="showDescription(this)" onmouseout="hideDescription(this)">
+                <div class="art-title">The Persistence of Memory</div>
+                <div class="artist-name">Salvador Dalí</div>
+                <div class="description">A surreal exploration of time, this iconic painting features melting clocks and dream-like imagery, inviting viewers to ponder the nature of reality and the fluidity of time.</div>
+            </div>
+            <div class="art-piece" onmouseover="showDescription(this)" onmouseout="hideDescription(this)">
+                <div class="art-title">The Scream</div>
+                <div class="artist-name">Edvard Munch</div>
+                <div class="description">This haunting work embodies modern existential angst, portraying a figure wracked with anxiety against a tumultuous sky, encapsulating the human experience's fears and insecurities.</div>
+            </div>
+        </div>
+        <button class="view-more" onclick="location.href='gallery.html'">View More</button>
+    </section>
+
+    <section class="testimonials">
+        <h2>What Our Clients Say</h2>
+        <div class="testimonial-carousel">
+            <div class="testimonial">
+                <p>"Canvas Expressions transformed my living room with an exquisite painting that serves as a constant source of inspiration. The quality and craftsmanship are unmatched. Highly recommend!"</p>
+                <cite>- Sarah M.</cite>
+            </div>
+            <div class="testimonial">
+                <p>"I love the variety of pieces available at Canvas Expressions! There's always something that speaks to my soul. A true treasure trove for art lovers!"</p>
+                <cite>- John D.</cite>
+            </div>
+            <div class="testimonial">
+                <p>"The customer service was exceptional. They helped me select a piece that perfectly fit my home decor, and I couldn't be happier with my purchase!"</p>
+                <cite>- Emily L.</cite>
+            </div>
+        </div>
+    </section>
+
     <footer>
-        <p>© 2023 Dog Grooming. All rights reserved.</p>
+        <div class="social-links">
+            <a href="#">Instagram</a>
+            <a href="#">Facebook</a>
+            <a href="#">Twitter</a>
+        </div>
+        <p>&copy; 2023 Canvas Expressions. All rights reserved.</p>
     </footer>
+
+    <script>
+        function showDescription(element) {
+            element.querySelector('.description').style.display = 'block';
+        }
+        function hideDescription(element) {
+            element.querySelector('.description').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
