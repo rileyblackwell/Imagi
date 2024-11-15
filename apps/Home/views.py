@@ -13,3 +13,6 @@ def privacy_page(request):
 def terms_page(request):
     return render(request, 'home/terms.html')
 
+def contact_page(request):
+    return render(request, 'home/contact.html')
+

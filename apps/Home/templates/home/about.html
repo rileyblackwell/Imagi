@@ -3,9 +3,66 @@
 
 {% block title %}About - Imagi{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h1>About Imagi</h1>
-    <p>Add your about page content here.</p>
-</div>
-{% endblock %} 
+<section class="hero" style="padding: 60px 0;">
+    <div class="container">
+        <div class="logo-placeholder hero-logo"></div>
+        <h1>About Imagi</h1>
+        <p class="lead">Revolutionizing the way businesses and startups build their digital presence.</p>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="text-center mb-5">
+                    <p>Welcome to <strong>Imagi</strong>, where we believe that creating a website should be as simple as describing your vision. That's why we built <strong>Imagi Oasis</strong>, an innovative website builder that transforms natural language inputs into sleek, professional webpages.</p>
+                </div>
+
+                <div class="row mb-5">
+                    <div class="col-md-6 text-center mb-4">
+                        <i class="fas fa-bullseye feature-icon"></i>
+                        <h3>Our Mission</h3>
+                        <p>To empower users of all technical backgrounds to bring their ideas to life without complex coding skills.</p>
+                    </div>
+                    <div class="col-md-6 text-center mb-4">
+                        <i class="fas fa-star feature-icon"></i>
+                        <h3>Why Choose Imagi?</h3>
+                        <p>We prioritize innovation, simplicity, and user experience to help you create a digital presence that truly reflects your brand.</p>
+                    </div>
+                </div>
+
+                <div class="text-center mb-5">
+                    <h2>What We Offer</h2>
+                    <div class="row mt-4">
+                        <div class="col-md-4 text-center mb-4">
+                            <i class="fas fa-magic feature-icon"></i>
+                            <h3>Imagi Oasis</h3>
+                            <p>AI-powered website builder for polished, responsive webpages.</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-4">
+                            <i class="fas fa-cogs feature-icon"></i>
+                            <h3>Custom Solutions</h3>
+                            <p>Tailored services for unique business needs.</p>
+                        </div>
+                        <div class="col-md-4 text-center mb-4">
+                            <i class="fas fa-hands-helping feature-icon"></i>
+                            <h3>Support</h3>
+                            <p>Dedicated team to assist you every step of the way.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <a href="{% url 'contact' %}" class="btn btn-primary btn-lg">Get in Touch</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

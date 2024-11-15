@@ -3,9 +3,64 @@
 
 {% block title %}Privacy Policy - Imagi{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-    <h1>Privacy Policy</h1>
-    <p>Add your privacy policy content here.</p>
-</div>
+<section class="hero" style="padding: 60px 0;">
+    <div class="container">
+        <div class="logo-placeholder hero-logo"></div>
+        <h1>Privacy Policy</h1>
+        <p class="lead">We take your privacy seriously</p>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="row mb-5">
+                    <div class="col-md-6 text-center mb-4">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <h3>Information We Collect</h3>
+                        <ul class="list-unstyled">
+                            <li class="mb-3">• Account information</li>
+                            <li class="mb-3">• Website preferences</li>
+                            <li class="mb-3">• Usage data</li>
+                            <li class="mb-3">• Payment information</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6 text-center mb-4">
+                        <i class="fas fa-tasks feature-icon"></i>
+                        <h3>How We Use It</h3>
+                        <ul class="list-unstyled">
+                            <li class="mb-3">• Improve our services</li>
+                            <li class="mb-3">• Enhance AI algorithms</li>
+                            <li class="mb-3">• Process payments</li>
+                            <li class="mb-3">• Provide support</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="row mb-5">
+                    <div class="col-md-6 text-center mb-4">
+                        <i class="fas fa-lock feature-icon"></i>
+                        <h3>Data Security</h3>
+                        <p>We implement industry-standard security measures to protect your data, including encryption and regular security audits.</p>
+                    </div>
+                    <div class="col-md-6 text-center mb-4">
+                        <i class="fas fa-user-shield feature-icon"></i>
+                        <h3>Your Rights</h3>
+                        <p>Access, correct, or delete your data at any time. You control your information.</p>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <a href="{% url 'contact' %}" class="btn btn-primary btn-lg">Contact Privacy Team</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 {% endblock %} 
