@@ -73,6 +73,23 @@ def process_user_input(user_input, model, conversation, page):
     # Get all messages from the conversation, ordered by creation time
     all_messages = conversation.messages.all().order_by('created_at')
     
+    if page.filename == 'styles.css':
+        # For styles.css, include the most recent HTML content of each page
+        html_pages = Page.objects.filter(
+            conversation=conversation
+        ).exclude(filename='styles.css')
+        
+        for html_page in html_pages:
+            latest_html = html_page.messages.filter(
+                role='assistant'
+            ).order_by('-created_at').first()
+            
+            if latest_html:
+                conversation_history.append({
+                    "role": "assistant",
+                    "content": f"Current HTML for {html_page.filename}:\n{latest_html.content}"
+                })
+    
     # Process each message
     for msg in all_messages:
         if msg.role == 'user':

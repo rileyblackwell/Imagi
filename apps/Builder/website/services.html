@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Grooming Services</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Dog Grooming Services</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="about.html">About Us</a>
+            <a href="services.html" class="active">Services</a>
+            <a href="contact.html">Contact</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="services-intro">
+            <h2>Our Services</h2>
+            <p>We offer a range of grooming services to keep your furry friend looking and feeling their best.</p>
+        </section>
+
+        <section id="service-list">
+            <div class="service-item" onclick="toggleDetails('basic')">
+                <h3>Basic Grooming</h3>
+                <p>Includes bathing, nail trimming, and ear cleaning.</p>
+                <div id="basic-details" class="service-details" style="display: none;">
+                    <p>Duration: 1 Hour</p>
+                    <p>Price: $30</p>
+                </div>
+            </div>
+
+            <div class="service-item" onclick="toggleDetails('deluxe')">
+                <h3>Deluxe Grooming</h3>
+                <p>All basic services plus teeth brushing and hair trimming.</p>
+                <div id="deluxe-details" class="service-details" style="display: none;">
+                    <p>Duration: 1.5 Hours</p>
+                    <p>Price: $50</p>
+                </div>
+            </div>
+
+            <div class="service-item" onclick="toggleDetails('spa')">
+                <h3>Spa Package</h3>
+                <p>A luxurious spa treatment for complete relaxation.</p>
+                <div id="spa-details" class="service-details" style="display: none;">
+                    <p>Duration: 2 Hours</p>
+                    <p>Price: $70</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Dog Grooming Services</p>
+    </footer>
+
+    <script>
+        function toggleDetails(serviceId) {
+            let details = document.getElementById(serviceId + '-details');
+            if (details.style.display === 'none') {
+                details.style.display = 'block';
+            } else {
+                details.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
