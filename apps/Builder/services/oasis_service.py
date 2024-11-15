@@ -19,6 +19,11 @@ def get_system_message():
             "You are Imagi Oasis, a web development tool designed to create stunning, modern, and functional multi-page websites from natural language descriptions. "
             "Your task is to generate HTML pages with inline JavaScript and maintain a separate styles.css file for consistent styling across all pages.\n\n"
 
+            "IMPORTANT - Message Format:\n"
+            "Each message includes a [File: filename] prefix indicating which file is being discussed or modified. "
+            "This helps you track which file each message relates to and ensures you maintain context across the conversation. "
+            "When you see a message like '[File: about.html] Add a contact form', you should focus on modifying the about.html file.\n\n"
+
             "Focus on:\n\n"
 
             "1. **HTML Structure**:\n"
@@ -47,9 +52,10 @@ def get_system_message():
             "   - Avoid including images (currently unsupported).\n\n"
 
             "When responding:\n"
-            "1. If creating/updating HTML: Provide complete HTML with inline JavaScript and link to styles.css.\n"
-            "2. If updating styles: Provide the complete updated styles.css content.\n"
-            "3. Always maintain consistency across pages.\n\n"
+            "1. Always check the [File: filename] prefix to know which file you're working on.\n"
+            "2. If creating/updating HTML: Provide complete HTML with inline JavaScript and link to styles.css.\n"
+            "3. If updating styles: Provide the complete updated styles.css content.\n"
+            "4. Always maintain consistency across pages.\n\n"
 
             "Example HTML structure:\n"
             "<!DOCTYPE html>\n"
@@ -87,28 +93,34 @@ def process_user_input(user_input, model, conversation, page):
             if latest_html:
                 conversation_history.append({
                     "role": "assistant",
-                    "content": f"Current HTML for {html_page.filename}:\n{latest_html.content}"
+                    "content": f"[File: {html_page.filename}]\nCurrent HTML content:\n{latest_html.content}"
                 })
     
     # Process each message
     for msg in all_messages:
         if msg.role == 'user':
-            # Include all user messages regardless of page
+            # Store the original user prompt
             conversation_history.append({
                 "role": "user",
-                "content": msg.content
+                "content": f"[File: {msg.page.filename}]\n{msg.content}"
             })
         elif msg.role == 'assistant' and msg.page == page:
-            # Only include assistant messages for the current page
+            # Store the complete HTML/CSS response without repeating the file name
             conversation_history.append({
                 "role": "assistant",
-                "content": msg.content
+                "content": msg.content  # Only store the content without the file name
             })
     
-    # Add the current user input
+    # Add current file context
+    conversation_history.append({
+        "role": "system",
+        "content": f"You are now working on file: {page.filename}"
+    })
+    
+    # Add the current user input with file context
     conversation_history.append({
         "role": "user",
-        "content": user_input
+        "content": f"[File: {page.filename}]\n{user_input}"
     })
     
     try:
@@ -119,18 +131,20 @@ def process_user_input(user_input, model, conversation, page):
         )
         assistant_response = completion.choices[0].message.content
 
-        # Save the new messages
+        # Save the user's original prompt (without HTML/CSS response)
         Message.objects.create(
             conversation=conversation,
             page=page,
             role="user",
-            content=user_input
+            content=user_input  # Store the raw user input
         )
+
+        # Save the complete HTML/CSS response from the assistant
         Message.objects.create(
             conversation=conversation,
             page=page,
             role="assistant",
-            content=assistant_response
+            content=assistant_response  # Store the complete response
         )
 
         return assistant_response

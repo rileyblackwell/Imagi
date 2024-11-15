@@ -188,6 +188,7 @@ def serve_website_file(request, path):
 
 def get_conversation_history(conversation, page):
     """Helper function to get the conversation history in a serializable format"""
+    # Start with system message
     conversation_history = [get_system_message()]
     
     all_messages = conversation.messages.all().order_by('created_at')
@@ -206,20 +207,28 @@ def get_conversation_history(conversation, page):
             if latest_html:
                 conversation_history.append({
                     "role": "assistant",
-                    "content": f"Current HTML for {html_page.filename}:\n{latest_html.content}"
+                    "content": f"[File: {html_page.filename}]\nCurrent HTML content:\n{latest_html.content}"
                 })
     
     # Process each message
     for msg in all_messages:
         if msg.role == 'user':
+            # Include file context for user messages, same format as assistant messages
             conversation_history.append({
                 "role": "user",
-                "content": msg.content
+                "content": f"[File: {msg.page.filename}]\n{msg.content}"
             })
         elif msg.role == 'assistant' and msg.page == page:
+            # Keep file context for assistant messages
             conversation_history.append({
                 "role": "assistant",
-                "content": msg.content
+                "content": f"[File: {msg.page.filename}]\n{msg.content}"
             })
+    
+    # Add the current file context as the last message
+    conversation_history.append({
+        "role": "system",
+        "content": f"You are now working on file: {page.filename}"
+    })
     
     return conversation_history
