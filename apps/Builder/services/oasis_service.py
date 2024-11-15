@@ -67,26 +67,42 @@ def get_system_message():
 
 def process_user_input(user_input, model, conversation, page):
     """Processes user input for a specific page."""
-    # Get messages specific to this page
-    conversation_history = [
-        {"role": msg.role, "content": msg.content}
-        for msg in page.messages.all()
-    ]
+    # Start with system message
+    conversation_history = [get_system_message()]
     
-    # Add system message if it doesn't exist
-    if not any(msg['role'] == 'system' for msg in conversation_history):
-        conversation_history.insert(0, get_system_message())
+    # Get all messages from the conversation, ordered by creation time
+    all_messages = conversation.messages.all().order_by('created_at')
     
-    conversation_history.append({"role": "user", "content": user_input})
+    # Process each message
+    for msg in all_messages:
+        if msg.role == 'user':
+            # Include all user messages regardless of page
+            conversation_history.append({
+                "role": "user",
+                "content": msg.content
+            })
+        elif msg.role == 'assistant' and msg.page == page:
+            # Only include assistant messages for the current page
+            conversation_history.append({
+                "role": "assistant",
+                "content": msg.content
+            })
+    
+    # Add the current user input
+    conversation_history.append({
+        "role": "user",
+        "content": user_input
+    })
     
     try:
+        # Get response from OpenAI
         completion = client.chat.completions.create(
             model=model,
             messages=conversation_history
         )
         assistant_response = completion.choices[0].message.content
 
-        # Save messages with page reference
+        # Save the new messages
         Message.objects.create(
             conversation=conversation,
             page=page,

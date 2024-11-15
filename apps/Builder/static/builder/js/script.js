@@ -33,6 +33,7 @@ $(document).ready(function() {
         var newPage = $('#custom-page-name').val().trim();
         
         if (!newPage) {
+            alert('Please enter a page name');
             return;
         }
         
@@ -41,6 +42,7 @@ $(document).ready(function() {
         }
         
         if (currentPages.includes(newPage)) {
+            alert('This page already exists');
             return;
         }
 
@@ -66,6 +68,13 @@ $(document).ready(function() {
         if (selectedFile === 'custom' || !userInput || !model) {
             return;
         }
+
+        // Log the request details
+        console.log('Sending generate request:', {
+            user_input: userInput,
+            model: model,
+            file: selectedFile
+        });
 
         $('#user-input').val('');
 
