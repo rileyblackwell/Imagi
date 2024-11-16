@@ -1,8 +1,13 @@
 # Imagi project
 - root directory: ~/startups/Imagi
 
+# coding instructions
+- Use the cursor rules to guide your coding.
+- Always update all related files when you update a file.
+
 # terminal
 - Distributor ID: Ubuntu
 - Description:    Ubuntu 22.04.5 LTS
 - Release:        22.04
 - Codename:       jammy
+
