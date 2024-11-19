@@ -3,140 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canvas Expressions - Home</title>
+    <title>My Art Studio</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Header -->
     <header>
-        <div class="header-content">
-            <div class="logo">Canvas Expressions</div>
-            <nav>
-                <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="gallery.html">Gallery</a></li>
-                    <li><a href="about.html">About</a></li>
-                    <li><a href="contact.html">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-        <div class="banner">
-            <h1>Explore the World of Art: Curated Collections and Original Masterpieces</h1>
-        </div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
     </header>
 
-    <!-- Gallery Section -->
-    <section class="gallery">
-        <h2>Featured Artworks</h2>
-        <div class="art-grid">
-            <div class="art-piece">
-                <div class="art-thumbnail">[Artwork Image Placeholder]</div>
-                <div class="art-details">
-                    <h3>Artwork Title</h3>
-                    <p>by Artist Name</p>
-                    <div class="art-description">
-                        <p>A brief description of the artwork.</p>
-                    </div>
-                </div>
+    <main>
+        <section id="hero">
+            <div class="hero-text">
+                <h1>Welcome to My Art Studio</h1>
+                <p>Discover the beauty of creativity and expression.</p>
             </div>
-            <div class="art-piece">
-                <div class="art-thumbnail">[Artwork Image Placeholder]</div>
-                <div class="art-details">
-                    <h3>Artwork Title</h3>
-                    <p>by Artist Name</p>
-                    <div class="art-description">
-                        <p>A brief description of the artwork.</p>
-                    </div>
-                </div>
+        </section>
+        
+        <section id="features">
+            <div class="feature">
+                <h2>Workshops</h2>
+                <p>Join our creative workshops designed for all skill levels.</p>
             </div>
-            <!-- Repeat for other artworks -->
-        </div>
-        <button class="view-more">View More</button>
-    </section>
+            <div class="feature">
+                <h2>Exhibitions</h2>
+                <p>Explore our stunning exhibitions showcasing diverse art styles.</p>
+            </div>
+            <div class="feature">
+                <h2>Artists</h2>
+                <p>Meet the talented artists who bring our studio to life.</p>
+            </div>
+        </section>
+    </main>
 
-    <!-- About Section -->
-    <section class="about">
-        <h2>About Canvas Expressions</h2>
-        <p>At Canvas Expressions, our mission is to bring unique and diverse art pieces to a global audience. We curate works from emerging and established artists worldwide.</p>
-        <div class="featured-artist">
-            <div class="artist-portrait">[Artist Portrait Placeholder]</div>
-            <div class="artist-bio">
-                <h3>Featured Artist: Artist Name</h3>
-                <p>A short bio about the artist and their work.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section class="testimonials">
-        <h2>What Our Customers Say</h2>
-        <div class="testimonial-carousel">
-            <div class="testimonial">
-                <p>"An amazing gallery with a stunning selection of art!"</p>
-                <p>- Customer Name</p>
-            </div>
-            <div class="testimonial">
-                <p>"I found the perfect piece for my home. Thank you, Canvas Expressions!"</p>
-                <p>- Customer Name</p>
-            </div>
-            <div class="testimonial">
-                <p>"Exceptional service and beautiful artwork. Highly recommend!"</p>
-                <p>- Customer Name</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- News & Events Section -->
-    <section class="news-events">
-        <h2>News & Upcoming Events</h2>
-        <article class="event">
-            <h3>Winter Art Show</h3>
-            <p>Join us for our annual winter art show featuring local artists. The event will take place on December 15, 2023, from 5 PM to 9 PM.</p>
-        </article>
-        <article class="event">
-            <h3>Artist Talk: Jane Doe</h3>
-            <p>Don't miss the chance to hear from our featured artist, Jane Doe, as she discusses her creative process and inspirations. January 22, 2024, at 6 PM.</p>
-        </article>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="contact">
-        <h2>Contact Us</h2>
-        <form>
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-            <label for="message">Message:</label>
-            <textarea id="message" name="message" required></textarea>
-            <button type="submit">Send</button>
-        </form>
-        <div class="map-placeholder">[Map Placeholder]</div>
-    </section>
-
-    <!-- Footer -->
     <footer>
-        <div class="social-media">
-            <a href="#" class="instagram">Instagram</a>
-            <a href="#" class="facebook">Facebook</a>
-            <a href="#" class="twitter">Twitter</a>
-        </div>
-        <p>&copy; 2023 Canvas Expressions. All rights reserved.</p>
+        <p>&copy; 2023 My Art Studio. All Rights Reserved.</p>
     </footer>
 
     <script>
-        // JavaScript for carousel slider
-            
-        let slideIndex = 0;
-        const slides = document.querySelectorAll('.testimonial-carousel .testimonial');
-        const showSlides = () => {
-            slides.forEach((slide, index) => {
-                slide.style.display = index === slideIndex ? 'block' : 'none';
-            });
-            slideIndex = (slideIndex + 1) % slides.length;
-            setTimeout(showSlides, 3000);
-        };
-        showSlides();
+        // JavaScript for any interactive components can be added here
     </script>
 </body>
 </html>

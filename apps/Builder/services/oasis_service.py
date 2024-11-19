@@ -132,23 +132,35 @@ def process_user_input(user_input, model, conversation, page):
         )
         assistant_response = completion.choices[0].message.content
 
-        # Save the user's original prompt (without HTML/CSS response)
+        # Validate and clean the response based on file type
+        if page.filename.endswith('.html'):
+            cleaned_response = test_html(assistant_response)
+        elif page.filename == 'styles.css':
+            cleaned_response = test_css(assistant_response)
+        else:
+            cleaned_response = assistant_response
+
+        # If validation failed (empty response), return error
+        if not cleaned_response:
+            raise ValueError(f"Invalid {page.filename.split('.')[-1].upper()} content received")
+
+        # Save the user's original prompt
         Message.objects.create(
             conversation=conversation,
             page=page,
             role="user",
-            content=user_input  # Store the raw user input
+            content=user_input
         )
 
-        # Save the complete HTML/CSS response from the assistant
+        # Save the validated response from the assistant
         Message.objects.create(
             conversation=conversation,
             page=page,
             role="assistant",
-            content=assistant_response  # Store the complete response
+            content=cleaned_response  # Store the validated response
         )
 
-        return assistant_response
+        return cleaned_response
     except Exception as e:
         print(f"Error in process_user_input: {e}")
         return str(e)

@@ -1,5 +1,3 @@
-import re
-
 def test_html(html):
     """Ensures only valid HTML content is returned."""
     # Look for complete HTML document
@@ -17,94 +15,60 @@ def test_html(html):
     return html[start_idx:end_idx + 7]  # 7 is the length of '</html>'
 
 def test_css(css_content):
-    """Extracts CSS content and removes any plain text or non-CSS comments."""
-    # Remove markdown code block indicators
-    css_content = css_content.replace('```css', '').replace('```', '')
+    """Ensures that only valid CSS content is returned.
+       All plain text and non-CSS comments are removed."""
+    import re
     
-    # Split content into lines
-    lines = css_content.split('\n')
-    css_lines = []
-    in_comment = False
-    current_selector = None
-    current_properties = []
+    # Remove markdown code block indicators and extra whitespace
+    css_content = css_content.replace('```css', '').replace('```', '').strip()
     
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-            
-        # Skip markdown and explanatory text lines
-        if any(text in line.lower() for text in [
-            'below', 'example', 'here', 'can', 'how', 'incorporate',
-            'following', 'create', 'update', 'add', 'style'
-        ]):
-            continue
-            
-        # Skip markdown and list markers
-        if line.startswith(('#', '>', '-', '1.', '2.', '3.', '*')):
-            continue
-            
-        # Handle CSS comments
-        if '/*' in line and '*/' in line:
-            css_lines.append(line)
-            continue
-            
-        if '/*' in line:
-            in_comment = True
-            css_lines.append(line)
-            continue
-            
-        if '*/' in line:
-            in_comment = False
-            css_lines.append(line)
-            continue
-            
-        if in_comment:
-            css_lines.append(line)
-            continue
-            
-        # Handle properties without a selector (add * selector)
-        if ':' in line and ';' in line and not current_selector and not line.strip().startswith('@'):
-            if not any(char in line for char in ['{', '}']):
-                if not current_properties:
-                    current_selector = '*'
-                    css_lines.append(f'{current_selector} {{')
-                current_properties.append(line)
-                continue
-                
-        # Handle rule starts
-        if '{' in line:
-            # Write previous rule if it exists
-            if current_selector and current_properties:
-                if not css_lines[-1].endswith('{'):
-                    css_lines.append('}')
-            current_selector = line.split('{')[0].strip()
-            current_properties = []
-            css_lines.append(line)
-            continue
-            
-        # Handle rule ends
-        if '}' in line:
-            current_selector = None
-            current_properties = []
-            css_lines.append(line)
-            continue
-            
-        # Handle properties inside rules
-        if ':' in line:
-            css_lines.append(line)
-            continue
+    # Remove file headers and descriptive text before CSS content
+    css_start = css_content.find('/*')
+    if css_start == -1:
+        # If no comment, look for first CSS rule
+        match = re.search(r'[\w\s\#\.\[\]]+\s*\{', css_content)
+        if match:
+            css_start = match.start()
+        else:
+            return ''
     
-    # Close any open rule
-    if current_selector and current_properties:
-        css_lines.append('}')
+    css_content = css_content[css_start:]
     
-    # Join lines back together
-    css = '\n'.join(css_lines)
+    # Pattern to match valid CSS constructs
+    css_pattern = re.compile(
+        r"""
+        (?P<comments>/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|    # CSS comments
+        (?P<atrules>@[^{]+\{[^}]*\})|                    # At-rules with blocks
+        (?P<simpleimports>@[\w-]+[^;]*;)|                # Simple at-rules
+        (?P<rules>                                        # Style rules
+            [^@/\s][^{]*\{
+                [^}]*
+            \}
+        )
+        """,
+        re.VERBOSE | re.MULTILINE
+    )
     
-    # Clean up the CSS
-    css = css.replace(';;', ';')
-    css = css.replace('} }', '}}')
-    css = css.replace('{ {', '{{')
+    # Find all valid CSS parts
+    matches = css_pattern.finditer(css_content)
+    valid_parts = []
     
-    return css.strip()
+    for match in matches:
+        # Get the matched content
+        if match.group('comments'):
+            valid_parts.append(match.group('comments'))
+        elif match.group('atrules'):
+            valid_parts.append(match.group('atrules'))
+        elif match.group('simpleimports'):
+            valid_parts.append(match.group('simpleimports'))
+        elif match.group('rules'):
+            valid_parts.append(match.group('rules'))
+    
+    # Join valid parts with newlines
+    result = '\n'.join(valid_parts)
+    
+    # Clean up any double newlines and extra whitespace
+    result = re.sub(r'\n\s*\n', '\n\n', result)
+    return result.strip()
+
+ 
