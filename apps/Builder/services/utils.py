@@ -34,6 +34,14 @@ def test_css(css_content):
     
     css_content = css_content[css_start:]
     
+    # Count opening and closing braces
+    open_braces = css_content.count('{')
+    close_braces = css_content.count('}')
+    
+    # Add missing closing braces if needed
+    if open_braces > close_braces:
+        css_content += '\n}' * (open_braces - close_braces)
+    
     # Pattern to match valid CSS constructs
     css_pattern = re.compile(
         r"""
@@ -64,11 +72,18 @@ def test_css(css_content):
         elif match.group('rules'):
             valid_parts.append(match.group('rules'))
     
-    # Join valid parts with newlines
-    result = '\n'.join(valid_parts)
+    # Join valid parts with newlines and add a blank line between rules
+    result = '\n\n'.join(valid_parts)  # Two newlines for spacing
     
     # Clean up any double newlines and extra whitespace
     result = re.sub(r'\n\s*\n', '\n\n', result)
+    
+    # Final brace count validation
+    final_open_braces = result.count('{')
+    final_close_braces = result.count('}')
+    if final_open_braces > final_close_braces:
+        result += '\n}' * (final_open_braces - final_close_braces)
+    
     return result.strip()
 
  
