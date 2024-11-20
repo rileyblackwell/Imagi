@@ -179,10 +179,27 @@ def undo_last_action(conversation, page):
     total_messages = messages.count()
 
     if total_messages >= 2:
-        previous_html = messages[2].content if total_messages > 2 else ''
+        # Get the previous content (before the last change)
+        previous_content = messages[2].content if total_messages > 2 else ''
+        
+        # Delete only the last exchange (last two messages)
         latest_two = messages[:2]
         Message.objects.filter(id__in=[msg.id for msg in latest_two]).delete()
-        return previous_html, 'Last action undone successfully.'
+
+        # For styles.css, we need to ensure we return valid CSS
+        if page.filename == 'styles.css':
+            previous_content = test_css(previous_content)
+            if not previous_content:
+                # If no previous CSS exists, return empty string but don't delete file
+                return '', 'No previous CSS version available.'
+        else:
+            previous_content = test_html(previous_content) if previous_content else ''
+
+        return previous_content, 'Last action undone successfully.'
     else:
-        messages.all().delete()
-        return '', 'Not enough history to undo last action; page history cleared.'
+        # Don't delete all messages for styles.css when there's not enough history
+        if page.filename == 'styles.css':
+            return '', 'Not enough history to undo last action.'
+        else:
+            messages.all().delete()
+            return '', 'Not enough history to undo last action; page history cleared.'

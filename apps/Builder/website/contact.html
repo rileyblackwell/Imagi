@@ -3,80 +3,40 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Contact Us - Studio Nova</title>
+    <title>High-End Dock Building</title>
     <link rel='stylesheet' href='styles.css'>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Header -->
     <header>
-        <div class="logo">Studio Nova</div>
+        <h1>Arkansas Dock Masters</h1>
         <nav>
             <ul>
                 <li><a href="index.html">Home</a></li>
-                <li><a href="classes.html">Classes</a></li>
-                <li><a href="gallery.html">Gallery</a></li>
-                <li><a href="about.html">About Us</a></li>
-                <li><a href="contact.html" class="active">Contact</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
             </ul>
         </nav>
     </header>
-
-    <!-- Contact Section -->
-    <section id="contact">
-        <h1>Contact Us</h1>
-        <p>Get in touch with us to inquire about our classes or events at Studio Nova.</p>
-
-        <div class="contact-container">
-            <!-- Contact Form -->
-            <form class="contact-form">
-                <label for="name">Name</label>
-                <input type="text" id="name" name="name" required>
-
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-
-                <label for="message">Message</label>
-                <textarea id="message" name="message" rows="5" required></textarea>
-
-                <button type="submit">Send Message</button>
-            </form>
-
-            <!-- Studio Info -->
-            <div class="studio-info">
-                <h2>Visit Us</h2>
-                <p>123 Art Lane<br>Creative City, CC 12345</p>
-                <p>Phone: (123) 456-7890</p>
-                <div class="map-placeholder">Map Placeholder</div>
-                <h2>Follow Us</h2>
-                <ul class="social-media">
-                    <li><a href="#">Instagram</a></li>
-                    <li><a href="#">Facebook</a></li>
-                    <li><a href="#">Twitter</a></li>
-                </ul>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
+    
+    <main>
+        <section class="intro">
+            <h2>Welcome to Arkansas Dock Masters</h2>
+            <p>Your premier destination for high-end dock building in Arkansas.</p>
+            <p>We specialize in crafting exceptional post docks and docks with gazebos.</p>
+        </section>
+        
+        <section class="expertise">
+            <h2>Why Choose Us?</h2>
+            <p>With years of experience, we are the most trusted dock builders in Arkansas. Our expertise in 
+            designing and constructing customized docks ensures that your waterfront property stands out.</p>
+            <p>We offer timber sourcing options that cater to unique preferences, including exotic options 
+            like petrified wood from Lake Michigan.</p>
+        </section>
+    </main>
+    
     <footer>
-        <div class="footer-content">
-            <p>&copy; 2023 Studio Nova. All rights reserved.</p>
-            <ul>
-                <li><a href="#">Instagram</a></li>
-                <li><a href="#">Facebook</a></li>
-                <li><a href="#">Twitter</a></li>
-            </ul>
-        </div>
+        <p>&copy; 2023 Arkansas Dock Masters</p>
     </footer>
-
-    <script>
-        // Simple form submission handler
-        document.querySelector('.contact-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Message Sent! We will get back to you soon.');
-            // Perform form submission actions here
-        });
-    </script>
 </body>
 </html>

@@ -107,16 +107,34 @@ def undo_last_action_view(request):
         page_name = request.POST.get('page')
         page = get_object_or_404(Page, conversation=conversation, filename=page_name)
         
-        previous_html, message = undo_last_action(conversation, page)
-        previous_html = test_html(previous_html) if previous_html else ''
+        previous_content, message = undo_last_action(conversation, page)
         
         output_dir = os.path.join(os.path.dirname(__file__), 'website')
         output_path = os.path.join(output_dir, page_name)
         
-        with open(output_path, 'w') as f:
-            f.write(previous_html)
-
-        return JsonResponse({'html': previous_html, 'message': message})
+        if page_name == 'styles.css':
+            if previous_content:  # Only write if we have valid previous content
+                with open(output_path, 'w') as f:
+                    f.write(previous_content)
+            # Get and return index.html content
+            try:
+                with open(os.path.join(output_dir, 'index.html'), 'r') as f:
+                    html_content = f.read()
+                return JsonResponse({
+                    'html': html_content,
+                    'message': message
+                })
+            except FileNotFoundError:
+                return JsonResponse({
+                    'error': 'Index.html not found',
+                    'message': message
+                })
+        else:
+            # Handle HTML files as before
+            previous_content = test_html(previous_content) if previous_content else ''
+            with open(output_path, 'w') as f:
+                f.write(previous_content)
+            return JsonResponse({'html': previous_content, 'message': message})
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
