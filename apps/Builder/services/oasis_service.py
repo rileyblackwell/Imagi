@@ -33,10 +33,11 @@ def get_system_message():
             "   - Ensure proper linking between pages.\n\n"
 
             "2. **CSS Management**:\n"
-            "   - Maintain a shared styles.css file for consistent styling across all pages.\n"
+            "   - When editing styles.css, ALWAYS provide the complete CSS file including ALL existing styles.\n"
+            "   - Never provide partial CSS updates - always include the entire stylesheet.\n"
+            "   - Maintain consistent styling across all pages through the shared styles.css file.\n"
             "   - Use CSS classes and IDs that work across different pages.\n"
-            "   - Create reusable components and styles.\n"
-            "   - When asked to modify styles, update the styles.css file appropriately.\n\n"
+            "   - Create reusable components and styles.\n\n"
 
             "3. **Visual Design**:\n"
             "   - Create cohesive designs that work across all pages.\n"
@@ -55,7 +56,7 @@ def get_system_message():
             "When responding:\n"
             "1. Always check the [File: filename] prefix to know which file you're working on.\n"
             "2. If creating/updating HTML: Provide complete HTML with inline JavaScript and link to styles.css.\n"
-            "3. If updating styles: Provide the complete updated styles.css content.\n"
+            "3. If updating styles.css: ALWAYS provide the COMPLETE stylesheet with ALL styles, not just the changes.\n"
             "4. Always maintain consistency across pages.\n\n"
 
             "Example HTML structure:\n"
