@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classes - Studio Nova</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Studio Nova</h1>
+        </div>
+        <nav>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="classes.html" class="active">Classes</a></li>
+                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="classes-hero" class="hero-section">
+            <div class="hero-text">
+                <h2>Discover Our Art Classes</h2>
+                <p>Immerse yourself in creativity with our diverse range of classes.</p>
+            </div>
+        </section>
+
+        <section id="classes-list" class="classes-section">
+            <h2>Our Classes</h2>
+            <div class="class-card">
+                <h3>Painting</h3>
+                <p>Explore your artistic skills through various painting techniques.</p>
+                <button onclick="showClassDetails('Painting')">Learn More</button>
+            </div>
+            <div class="class-card">
+                <h3>Sculpture</h3>
+                <p>Experience the art of shaping and carving with our sculpture classes.</p>
+                <button onclick="showClassDetails('Sculpture')">Learn More</button>
+            </div>
+            <div class="class-card">
+                <h3>Digital Art</h3>
+                <p>Unleash your imagination with our state-of-the-art digital tools.</p>
+                <button onclick="showClassDetails('Digital Art')">Learn More</button>
+            </div>
+        </section>
+
+        <section id="student-testimonials" class="testimonials-section">
+            <h2>Testimonials</h2>
+            <div class="testimonial">
+                <p>"Studio Nova has reignited my passion for painting. The instructors are phenomenal!"</p>
+                <span>- Jenna L.</span>
+            </div>
+            <div class="testimonial">
+                <p>"The sculpture class was beyond my expectations. I learned so much."</p>
+                <span>- Mark S.</span>
+            </div>
+            <div class="testimonial">
+                <p>"The digital art course was a game-changer for my career in design."</p>
+                <span>- Lisa T.</span>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="social-media">
+                <a href="#">Instagram</a> | <a href="#">Facebook</a> | <a href="#">Twitter</a>
+            </div>
+            <p>&copy; 2023 Studio Nova. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function showClassDetails(className) {
+            alert('More details about ' + className + ' class coming soon!');
+        }
+    </script>
+</body>
+</html>

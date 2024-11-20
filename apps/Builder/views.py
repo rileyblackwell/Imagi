@@ -191,35 +191,46 @@ def get_conversation_history(conversation, page):
     # Start with system message
     conversation_history = [get_system_message()]
     
-    all_messages = conversation.messages.all().order_by('created_at')
+    # Include the most recent content of each page
+    all_pages = Page.objects.filter(conversation=conversation)
     
-    if page.filename == 'styles.css':
-        # For styles.css, include the most recent HTML content of each page
-        html_pages = Page.objects.filter(
-            conversation=conversation
-        ).exclude(filename='styles.css')
+    # First add HTML files
+    html_pages = all_pages.exclude(filename='styles.css')
+    for html_page in html_pages:
+        latest_html = html_page.messages.filter(
+            role='assistant'
+        ).order_by('-created_at').first()
         
-        for html_page in html_pages:
-            latest_html = html_page.messages.filter(
-                role='assistant'
-            ).order_by('-created_at').first()
-            
-            if latest_html:
-                conversation_history.append({
-                    "role": "assistant",
-                    "content": f"[File: {html_page.filename}]\nCurrent HTML content:\n{latest_html.content}"
-                })
+        if latest_html:
+            conversation_history.append({
+                "role": "assistant",
+                "content": f"[File: {html_page.filename}]\nCurrent HTML content:\n{latest_html.content}"
+            })
+    
+    # Then add CSS file
+    css_page = all_pages.filter(filename='styles.css').first()
+    if css_page:
+        latest_css = css_page.messages.filter(
+            role='assistant'
+        ).order_by('-created_at').first()
+        
+        if latest_css:
+            conversation_history.append({
+                "role": "assistant",
+                "content": f"[File: styles.css]\nCurrent CSS content:\n{latest_css.content}"
+            })
+    
+    # Add the conversation messages for the current page
+    all_messages = conversation.messages.filter(page=page).order_by('created_at')
     
     # Process each message
     for msg in all_messages:
         if msg.role == 'user':
-            # Include file context for user messages, same format as assistant messages
             conversation_history.append({
                 "role": "user",
                 "content": f"[File: {msg.page.filename}]\n{msg.content}"
             })
-        elif msg.role == 'assistant' and msg.page == page:
-            # Keep file context for assistant messages
+        elif msg.role == 'assistant':
             conversation_history.append({
                 "role": "assistant",
                 "content": f"[File: {msg.page.filename}]\n{msg.content}"

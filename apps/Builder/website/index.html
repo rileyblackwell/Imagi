@@ -3,51 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Art Studio</title>
+    <title>Studio Nova | Home</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
+    <!-- Header Section -->
+    <header id="main-header">
+        <div class="logo">Studio Nova</div>
         <nav>
             <ul>
                 <li><a href="index.html">Home</a></li>
+                <li><a href="classes.html">Classes</a></li>
                 <li><a href="gallery.html">Gallery</a></li>
-                <li><a href="about.html">About</a></li>
+                <li><a href="about.html">About Us</a></li>
                 <li><a href="contact.html">Contact</a></li>
             </ul>
         </nav>
     </header>
+    
+    <!-- Banner Section -->
+    <section id="banner">
+        <div class="banner-content">
+            <h1>Unleash Your Creativity at Studio Nova</h1>
+            <button onclick="document.location.href='classes.html'">Explore Classes</button>
+        </div>
+    </section>
+    
+    <!-- About Section -->
+    <section id="about">
+        <h2>About Studio Nova</h2>
+        <p>At Studio Nova, our mission is to inspire and nurture the artistic talent within everyone. Our vision is to create a community where creativity thrives and every individual can pursue their passion for art.</p>
+        <ul>
+            <li><strong>Professional Instructors</strong> - World-class artists and educators guiding your journey.</li>
+            <li><strong>Inspiring Environment</strong> - A beautiful space designed to spark your imagination.</li>
+            <li><strong>Diverse Classes</strong> - From painting to digital art, we offer something for everyone.</li>
+        </ul>
+    </section>
 
-    <main>
-        <section id="hero">
-            <div class="hero-text">
-                <h1>Welcome to My Art Studio</h1>
-                <p>Discover the beauty of creativity and expression.</p>
+    <!-- Classes Section -->
+    <section id="classes">
+        <h2>Our Classes</h2>
+        <div class="class-list">
+            <div class="class-item">
+                <h3>Painting</h3>
+                <p>Discover the joy of painting with our expert-led courses.</p>
+                <button onclick="document.location.href='classes.html#painting'">Learn More</button>
             </div>
-        </section>
-        
-        <section id="features">
-            <div class="feature">
-                <h2>Workshops</h2>
-                <p>Join our creative workshops designed for all skill levels.</p>
+            <div class="class-item">
+                <h3>Sculpture</h3>
+                <p>Shape your imagination into beautiful forms.</p>
+                <button onclick="document.location.href='classes.html#sculpture'">Learn More</button>
             </div>
-            <div class="feature">
-                <h2>Exhibitions</h2>
-                <p>Explore our stunning exhibitions showcasing diverse art styles.</p>
+            <div class="class-item">
+                <h3>Digital Art</h3>
+                <p>Explore the latest techniques in digital illustration and design.</p>
+                <button onclick="document.location.href='classes.html#digital-art'">Learn More</button>
             </div>
-            <div class="feature">
-                <h2>Artists</h2>
-                <p>Meet the talented artists who bring our studio to life.</p>
-            </div>
-        </section>
-    </main>
+        </div>
+        <div class="testimonials">
+            <h3>What Our Students Say</h3>
+            <blockquote>"An incredible place to learn and grow as an artist!" – Alex T.</blockquote>
+            <blockquote>"The classes are well-organized and the instructors are fantastic." – Jamie L.</blockquote>
+        </div>
+    </section>
 
+    <!-- Gallery Section -->
+    <section id="gallery">
+        <h2>Artwork Gallery</h2>
+        <div class="art-grid">
+            <div class="art-item" title="Click for more">
+                <h4>Art Piece Title</h4>
+                <p>Artist: Name<br>Description: An inspiring piece from our studio.</p>
+            </div>
+            <!-- More artwork items go here -->
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section id="events">
+        <h2>Upcoming Events</h2>
+        <div class="event-list">
+            <div class="event-item">
+                <h3>Workshop Title</h3>
+                <p><strong>Date:</strong> MM/DD/YYYY <strong>Time:</strong> HH:MM AM/PM</p>
+                <p>Description of the event.</p>
+            </div>
+            <!-- More event items go here -->
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact">
+        <h2>Get In Touch</h2>
+        <form id="contact-form">
+            <input type="text" placeholder="Your Name" required>
+            <input type="email" placeholder="Your Email" required>
+            <textarea placeholder="Your Message"></textarea>
+            <button type="submit">Send</button>
+        </form>
+        <div class="contact-info">
+            <p><strong>Address:</strong> 123 Art Lane, Creativity City</p>
+            <p><strong>Phone:</strong> (123) 456-7890</p>
+            <div class="social-links">
+                <a href="#">Instagram</a>
+                <a href="#">Facebook</a>
+                <a href="#">Twitter</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
     <footer>
-        <p>&copy; 2023 My Art Studio. All Rights Reserved.</p>
+        <p>&copy; 2023 Studio Nova. All rights reserved.</p>
+        <div class="footer-social-links">
+            <a href="#">Instagram</a>
+            <a href="#">Facebook</a>
+            <a href="#">Twitter</a>
+        </div>
     </footer>
 
     <script>
-        // JavaScript for any interactive components can be added here
+        // Add any page-specific JavaScript here
     </script>
 </body>
 </html>
