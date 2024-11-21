@@ -16,12 +16,20 @@ def get_system_message():
             "   - Never include markdown, plain text, or explanations\n\n"
 
             "2. When editing styles.css:\n"
-            "   - ONLY return valid CSS code\n"
+            "   - ONLY return complete, valid CSS code\n"
             "   - Include ONLY valid CSS comments (/* comment */)\n"
             "   - Never include markdown, plain text, or explanations\n"
-            "   - All CSS rules must be properly nested in selectors\n"
+            "   - All CSS rules must be properly nested and complete\n"
+            "   - Never include empty rule sets\n"
             "   - All CSS variables must be defined within :root {}\n"
-            "   - Ensure all braces are properly closed\n\n"
+            "   - All CSS rules must have at least one property\n"
+            "   - All properties must have valid values\n"
+            "   - All braces must be properly closed\n"
+            "   - All rules must end with a semicolon\n"
+            "   - Maintain proper spacing and formatting\n"
+            "   - Keep existing styles unless explicitly asked to remove them\n"
+            "   - Group related styles together\n"
+            "   - Use comments to organize sections\n\n"
 
             "IMPORTANT - Message Format:\n"
             "Each message includes a [File: filename] prefix indicating which file is being discussed or modified. "
@@ -124,38 +132,54 @@ def test_css(css_content):
         r"""
         (?P<comments>/\*[^*]*\*+(?:[^/*][^*]*\*+)*/)|    # CSS comments
         (?P<root>:root\s*\{[^}]*\})|                     # :root block
-        (?P<atrules>@[^{]+\{[^}]*\})|                    # At-rules with blocks
-        (?P<simpleimports>@[\w-]+[^;]*;)|                # Simple at-rules
+        (?P<keyframes>@keyframes\s+[\w-]+\s*\{[^}]*\})|  # @keyframes
+        (?P<media>@media[^{]*\{[^}]*\})|                 # @media queries
+        (?P<imports>@import\s+[^;]+;)|                   # @import rules
         (?P<rules>                                        # Style rules
-            [^@/\s][^{]*\{
-                [^}]*
+            [^@/\s{]+[^{]*\{
+                [^}]+
             \}
         )
         """,
-        re.VERBOSE | re.MULTILINE
+        re.VERBOSE | re.MULTILINE | re.DOTALL
     )
     
     # Find all valid CSS parts
-    matches = css_pattern.finditer(css_content)
+    matches = list(css_pattern.finditer(css_content))
     valid_parts = []
     
+    # Process matches in order
     for match in matches:
+        matched_text = None
         if match.group('comments'):
-            valid_parts.append(match.group('comments'))
+            matched_text = match.group('comments')
         elif match.group('root'):
-            valid_parts.append(match.group('root'))
-        elif match.group('atrules'):
-            valid_parts.append(match.group('atrules'))
-        elif match.group('simpleimports'):
-            valid_parts.append(match.group('simpleimports'))
+            matched_text = match.group('root')
+        elif match.group('keyframes'):
+            matched_text = match.group('keyframes')
+        elif match.group('media'):
+            matched_text = match.group('media')
+        elif match.group('imports'):
+            matched_text = match.group('imports')
         elif match.group('rules'):
-            valid_parts.append(match.group('rules'))
+            rule_text = match.group('rules')
+            # Only include rules that have properties
+            if re.search(r'\{[^}]*:[^}]+\}', rule_text):
+                matched_text = rule_text
+        
+        if matched_text:
+            # Ensure all properties end with semicolons
+            matched_text = re.sub(r'([^;{}])\s*}', r'\1;}', matched_text)
+            valid_parts.append(matched_text)
     
-    # Join valid parts with newlines and add a blank line between rules
+    # Join valid parts with newlines
     result = '\n\n'.join(valid_parts)
     
-    # Clean up any double newlines and extra whitespace
-    result = re.sub(r'\n\s*\n', '\n\n', result)
+    # Clean up spacing
+    result = re.sub(r'\s*\n\s*\n\s*\n+', '\n\n', result)  # Remove extra newlines
+    result = re.sub(r'{\s+', '{\n    ', result)  # Consistent indent after {
+    result = re.sub(r';\s+', ';\n    ', result)  # Consistent indent after ;
+    result = re.sub(r'\s+}', '\n}', result)      # Consistent closing brace
     
     # Ensure all braces are properly closed
     open_braces = result.count('{')

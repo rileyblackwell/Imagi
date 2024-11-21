@@ -107,26 +107,20 @@ def get_conversation_history(request):
         # Add current request
         current_request = f"[File: {file_name}]\n{user_input}"
         
-        if model == 'claude-sonnet':
-            full_system_message = system_msg["content"] + "\n\n" + file_context
-            return JsonResponse({
-                "model": "claude-sonnet",
-                "system": full_system_message,
-                "messages": [
-                    *conversation_history,
-                    {"role": "user", "content": current_request}
-                ]
-            })
-        else:
-            return JsonResponse({
-                "model": "gpt",
-                "messages": [
-                    {"role": "system", "content": system_msg["content"]},
-                    *conversation_history,
-                    {"role": "system", "content": file_context},
-                    {"role": "user", "content": current_request}
-                ]
-            })
+        # Create the messages array (same format for both models)
+        ai_messages = [
+            {"role": "system", "content": system_msg["content"]},  # Main system prompt
+            *conversation_history,  # Current file state + conversation history
+            {"role": "system", "content": file_context},  # File context
+            {"role": "user", "content": current_request}  # Current request
+        ]
+
+        # Return the same format for both models
+        return JsonResponse({
+            "model": model,
+            "messages": ai_messages,
+            "system": system_msg["content"] + "\n\n" + file_context  # For reference
+        })
             
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

@@ -104,44 +104,42 @@ def process_user_input(user_input, model, conversation, page):
         # Add the current request
         current_request = f"[File: {page.filename}]\n{user_input}"
         
-        # Create the exact messages that will be sent to the AI models
-        if model == 'claude-sonnet':
-            # For Claude, use the system parameter instead of system messages
-            full_system_message = system_msg["content"] + "\n\n" + file_context
-            ai_messages = [
-                *conversation_history,
-                {"role": "user", "content": current_request}
-            ]
-            # Store the full conversation for logging
-            full_conversation = {
-                "model": "claude-sonnet",
-                "system": full_system_message,  # Main system prompt + file context
-                "messages": ai_messages  # Current file state + conversation history + current request
-            }
-        else:
-            # For OpenAI, include system messages in the conversation history
-            ai_messages = [
-                {"role": "system", "content": system_msg["content"]},  # Main system prompt
-                *conversation_history,  # Current file state + conversation history
-                {"role": "system", "content": file_context},  # File context
-                {"role": "user", "content": current_request}  # Current request
-            ]
-            full_conversation = {
-                "model": "gpt",
-                "messages": ai_messages
-            }
+        # Create the messages array that will be used for both models
+        ai_messages = [
+            {"role": "system", "content": system_msg["content"]},  # Main system prompt
+            *conversation_history,  # Current file state + conversation history
+            {"role": "system", "content": file_context},  # File context
+            {"role": "user", "content": current_request}  # Current request
+        ]
+
+        # Store the full conversation for logging (same format for both models)
+        full_conversation = {
+            "model": model,
+            "messages": ai_messages,
+            "system": system_msg["content"] + "\n\n" + file_context  # For reference
+        }
 
         # Process based on model
         try:
             if model == 'claude-sonnet':
+                # For Claude, combine system messages and pass as system parameter
+                system_content = system_msg["content"] + "\n\n" + file_context
+                
+                # Filter out system messages from the conversation history
+                claude_messages = [
+                    msg for msg in ai_messages 
+                    if msg["role"] != "system"
+                ]
+                
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=2048,
-                    system=full_system_message,
-                    messages=ai_messages
+                    system=system_content,  # Combined system messages
+                    messages=claude_messages  # Everything except system messages
                 )
                 assistant_response = completion.content[0].text
             else:
+                # For OpenAI, use the messages array as is
                 completion = openai_client.chat.completions.create(
                     model=model,
                     messages=ai_messages
