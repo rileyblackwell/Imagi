@@ -3,13 +3,17 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+import anthropic
 from ..models import Message, Conversation, Page
 from .utils import test_html, test_css
 
 # Load environment variables from .env
 load_dotenv()
-api_key = os.getenv('OPENAI_KEY')
-client = OpenAI(api_key=api_key)
+openai_key = os.getenv('OPENAI_KEY')
+anthropic_key = os.getenv('ANTHROPIC_KEY')
+
+openai_client = OpenAI(api_key=openai_key)
+anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 
 def get_system_message():
@@ -81,77 +85,91 @@ def get_system_message():
 
 def process_user_input(user_input, model, conversation, page):
     """Processes user input for a specific page."""
-    # Start with system message
-    conversation_history = [get_system_message()]
-    
-    # Get all messages from the conversation, ordered by creation time
-    all_messages = conversation.messages.all().order_by('created_at')
-    
-    if page.filename == 'styles.css':
-        # For styles.css, include the most recent HTML content of each page
-        html_pages = Page.objects.filter(
-            conversation=conversation
-        ).exclude(filename='styles.css')
+    try:
+        # Get system message
+        system_msg = get_system_message()
         
-        for html_page in html_pages:
-            latest_html = html_page.messages.filter(
-                role='assistant'
-            ).order_by('-created_at').first()
-            
-            if latest_html:
+        # Initialize conversation history
+        conversation_history = []
+        
+        # Get all messages from the conversation, ordered by creation time
+        all_messages = conversation.messages.all().order_by('created_at')
+        
+        # Process existing messages
+        for msg in all_messages:
+            if msg.role == 'user':
+                conversation_history.append({
+                    "role": "user",
+                    "content": f"[File: {msg.page.filename}]\n{msg.content}"
+                })
+            elif msg.role == 'assistant':
                 conversation_history.append({
                     "role": "assistant",
-                    "content": f"[File: {html_page.filename}]\nCurrent HTML content:\n{latest_html.content}"
+                    "content": msg.content
                 })
-    
-    # Process each message
-    for msg in all_messages:
-        if msg.role == 'user':
-            # Store the original user prompt
-            conversation_history.append({
-                "role": "user",
-                "content": f"[File: {msg.page.filename}]\n{msg.content}"
-            })
-        elif msg.role == 'assistant' and msg.page == page:
-            # Store the complete HTML/CSS response without repeating the file name
-            conversation_history.append({
-                "role": "assistant",
-                "content": msg.content  # Only store the content without the file name
-            })
-    
-    # Add current file context
-    conversation_history.append({
-        "role": "system",
-        "content": f"You are now working on file: {page.filename}"
-    })
-    
-    # Add the current user input with file context
-    conversation_history.append({
-        "role": "user",
-        "content": f"[File: {page.filename}]\n{user_input}"
-    })
-    
-    try:
-        # Get response from OpenAI
-        completion = client.chat.completions.create(
-            model=model,
-            messages=conversation_history
+
+        # Add the current request
+        file_context = (
+            f"You are working on file: {page.filename}\n"
+            "Remember to provide a complete, valid HTML document with all required elements.\n"
+            "Include <!DOCTYPE html>, <html>, <head>, and <body> tags.\n"
         )
-        assistant_response = completion.choices[0].message.content
+        
+        current_request = f"{file_context}\n[File: {page.filename}]\n{user_input}"
+        
+        # Process based on model
+        try:
+            if model == 'claude-sonnet':
+                completion = anthropic_client.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=2048,
+                    system=system_msg["content"],  # Pass the same system message as GPT
+                    messages=[
+                        *conversation_history,
+                        {"role": "user", "content": current_request}
+                    ]
+                )
+                assistant_response = completion.content[0].text
+            else:
+                completion = openai_client.chat.completions.create(
+                    model=model,
+                    messages=[system_msg] + conversation_history + [
+                        {"role": "user", "content": current_request}
+                    ]
+                )
+                assistant_response = completion.choices[0].message.content
+        except anthropic.APIError as e:
+            raise ValueError(f"Claude API error: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"API error: {str(e)}")
 
         # Validate and clean the response based on file type
         if page.filename.endswith('.html'):
+            # For HTML files, first try to extract HTML content if it's wrapped in other text
+            import re
+            html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
+            if html_match:
+                assistant_response = html_match.group(0)
+            
+            # Then validate the HTML content
             cleaned_response = test_html(assistant_response)
+            if not cleaned_response:
+                raise ValueError("Invalid HTML content received")
+                
         elif page.filename == 'styles.css':
+            # For CSS files, extract CSS content if needed
+            css_match = re.search(r'(?s)/\*.*?\*/\s*(.*?)$', assistant_response)
+            if css_match:
+                assistant_response = css_match.group(1)
+            
+            # Validate the CSS content
             cleaned_response = test_css(assistant_response)
+            if not cleaned_response:
+                raise ValueError("Invalid CSS content received")
         else:
             cleaned_response = assistant_response
 
-        # If validation failed (empty response), return error
-        if not cleaned_response:
-            raise ValueError(f"Invalid {page.filename.split('.')[-1].upper()} content received")
-
-        # Save the user's original prompt
+        # Save the conversation
         Message.objects.create(
             conversation=conversation,
             page=page,
@@ -159,18 +177,18 @@ def process_user_input(user_input, model, conversation, page):
             content=user_input
         )
 
-        # Save the validated response from the assistant
         Message.objects.create(
             conversation=conversation,
             page=page,
             role="assistant",
-            content=cleaned_response  # Store the validated response
+            content=cleaned_response
         )
 
         return cleaned_response
+
     except Exception as e:
-        print(f"Error in process_user_input: {e}")
-        return str(e)
+        print(f"Error in process_user_input: {str(e)}")
+        raise ValueError(str(e))
 
 
 def undo_last_action(conversation, page):

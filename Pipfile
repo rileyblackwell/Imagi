@@ -10,6 +10,7 @@ python-dotenv = "*"
 openai = "*"
 bs4 = "*"
 stripe = "*"
+anthropic = ">=0.18.0"
 
 [dev-packages]
 

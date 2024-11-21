@@ -66,6 +66,7 @@ $(document).ready(function() {
         var selectedFile = $('#file-select').val();
         
         if (selectedFile === 'custom' || !userInput || !model) {
+            alert('Please fill in all required fields');
             return;
         }
 
@@ -76,7 +77,13 @@ $(document).ready(function() {
             file: selectedFile
         });
 
+        // Clear the user input immediately after capturing it
         $('#user-input').val('');
+
+        // Disable the submit button and show loading state
+        var $submitBtn = $(this);
+        $submitBtn.prop('disabled', true);
+        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Generating...');
 
         $.ajax({
             type: 'POST',
@@ -91,13 +98,15 @@ $(document).ready(function() {
                 console.log('Success response:', response);
                 
                 // Log the conversation history in a more readable format
-                console.group('Submitted conversation history:');
-                response.conversation_history.forEach((message, index) => {
-                    console.log(`${index + 1}. ${message.role.toUpperCase()}:`);
-                    console.log(message.content);
-                    console.log('-------------------');
-                });
-                console.groupEnd();
+                if (response.conversation_history) {
+                    console.group('Conversation history:');
+                    response.conversation_history.forEach((message, index) => {
+                        console.log(`${index + 1}. ${message.role.toUpperCase()}:`);
+                        console.log(message.content);
+                        console.log('-------------------');
+                    });
+                    console.groupEnd();
+                }
                 
                 if (selectedFile === 'styles.css') {
                     console.log('Updated styles.css, fetching index.html');
@@ -109,41 +118,67 @@ $(document).ready(function() {
                             'csrfmiddlewaretoken': csrftoken
                         },
                         success: function(htmlResponse) {
-                            if (websiteTab === null || websiteTab.closed) {
-                                websiteTab = window.open('', '_blank');
-                            }
-                            if (websiteTab) {
-                                websiteTab.document.open();
-                                var htmlWithBase = htmlResponse.html.replace('<head>', 
-                                    '<head><base href="/builder/website/">');
-                                websiteTab.document.write(htmlWithBase);
-                                websiteTab.document.close();
-                            }
+                            console.log('Received HTML response:', htmlResponse);
+                            updateWebsitePreview(htmlResponse.html);
                         },
-                        error: function(xhr, status, error) {
-                            console.error("Error fetching index.html:", error);
-                        }
+                        error: handleAjaxError
                     });
                 } else {
-                    if (websiteTab === null || websiteTab.closed) {
-                        websiteTab = window.open('', '_blank');
-                    }
-                    if (websiteTab) {
-                        websiteTab.document.open();
-                        var htmlWithBase = response.html.replace('<head>', 
-                            '<head><base href="/builder/website/">');
-                        websiteTab.document.write(htmlWithBase);
-                        websiteTab.document.close();
-                    }
+                    updateWebsitePreview(response.html);
                 }
             },
-            error: function(xhr, status, error) {
-                console.error("AJAX Error:", error);
-                console.error("Status:", status);
-                console.error("Response:", xhr.responseText);
+            error: handleAjaxError,
+            complete: function() {
+                // Re-enable the submit button and restore its text
+                $submitBtn.prop('disabled', false);
+                $submitBtn.html('<i class="fas fa-magic"></i> Generate');
             }
         });
     });
+
+    // New helper functions
+    function updateWebsitePreview(html) {
+        console.log('Updating website preview with HTML:', html.substring(0, 200) + '...');
+        if (websiteTab === null || websiteTab.closed) {
+            websiteTab = window.open('', '_blank');
+        }
+        if (websiteTab) {
+            websiteTab.document.open();
+            var htmlWithBase = html.replace('<head>', 
+                '<head><base href="/builder/website/">');
+            websiteTab.document.write(htmlWithBase);
+            websiteTab.document.close();
+        }
+    }
+
+    function handleAjaxError(xhr, status, error) {
+        console.error("AJAX Error:", error);
+        console.error("Status:", status);
+        console.error("Response:", xhr.responseText);
+        
+        let errorMessage = "An error occurred. Please try again.";
+        
+        if (xhr.responseText) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMessage = response.error;
+                    if (response.detail) {
+                        console.error("Error detail:", response.detail);
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing response:", e);
+                const textResponse = xhr.responseText;
+                if (textResponse.includes('<!DOCTYPE html>')) {
+                    errorMessage = "Server error occurred. Please try again later.";
+                }
+            }
+        }
+        
+        // Show error message to user
+        alert(errorMessage);
+    }
 
     // Click event for the clear button
     $('#clear-btn').click(function(event) {

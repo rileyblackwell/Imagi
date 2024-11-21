@@ -18,86 +18,52 @@ def index(request):
 
 @require_http_methods(['POST'])
 def process_input(request):
-    # Get and validate input parameters
-    user_input = request.POST.get('user_input', '').strip()
-    model = request.POST.get('model', '').strip()
-    file_name = request.POST.get('file', 'index.html').strip()  # Default to index.html
-
-    # Remove the debug logging for raw POST data
-    # print(f"Raw POST data: {dict(request.POST)}")
-    
-    # Validate required fields
-    if not user_input:
-        return JsonResponse({'error': 'User input is required'}, status=400)
-    if not model:
-        return JsonResponse({'error': 'Model selection is required'}, status=400)
-    if not file_name:
-        file_name = 'index.html'  # Ensure default if somehow empty
-
     try:
+        # Get and validate input parameters
+        user_input = request.POST.get('user_input', '').strip()
+        model = request.POST.get('model', '').strip()
+        file_name = request.POST.get('file', 'index.html').strip()
+        
+        # Validate required fields
+        if not user_input:
+            return JsonResponse({'error': 'User input is required'}, status=400)
+        if not model:
+            return JsonResponse({'error': 'Model selection is required'}, status=400)
+        if not file_name:
+            file_name = 'index.html'
+
         # Get or create conversation
-        conversation, created = Conversation.objects.get_or_create(user=request.user)
+        conversation = Conversation.objects.get_or_create(user=request.user)[0]
         
         # Get or create the page/file
-        page, created = Page.objects.get_or_create(
+        page = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
-        )
-
-        # Get the conversation history before processing
-        conversation_history = get_conversation_history(conversation, page)
+        )[0]
 
         # Process user input
         response_content = process_user_input(user_input, model, conversation, page)
-
-        # Set up the website directory
-        output_dir = os.path.join(os.path.dirname(__file__), 'website')
-        os.makedirs(output_dir, exist_ok=True)
         
-        if file_name == 'styles.css':
-            # Save the CSS file
-            css_path = os.path.join(output_dir, 'styles.css')
-            # Use test_css function to ensure valid CSS
-            parsed_css = test_css(response_content)
-            if not parsed_css:
-                return JsonResponse({'error': 'No valid CSS content found'}, status=400)
-                
-            with open(css_path, 'w') as f:
-                f.write(parsed_css)
+        # Get conversation history
+        conversation_history = get_conversation_history(conversation, page)
+        
+        # Return the response
+        return JsonResponse({
+            'html': response_content,
+            'conversation_history': conversation_history
+        })
             
-            # Get and return the index.html content
-            index_path = os.path.join(output_dir, 'index.html')
-            if os.path.exists(index_path):
-                with open(index_path, 'r') as f:
-                    index_content = f.read()
-                return JsonResponse({
-                    'html': index_content, 
-                    'conversation_history': conversation_history
-                })
-            else:
-                return JsonResponse({'message': 'CSS file updated successfully, but index.html not found'})
-        else:
-            # Handle HTML files
-            html_path = os.path.join(output_dir, file_name)
-            parsed_html = test_html(response_content)
-            if not parsed_html:
-                return JsonResponse({'error': 'No valid HTML content found'}, status=400)
-            
-            # Ensure the HTML includes a link to styles.css
-            if '<link rel="stylesheet" href="styles.css">' not in parsed_html:
-                parsed_html = parsed_html.replace('</head>', 
-                    '<link rel="stylesheet" href="styles.css">\n</head>')
-            
-            with open(html_path, 'w') as f:
-                f.write(parsed_html)
-            return JsonResponse({
-                'html': parsed_html, 
-                'conversation_history': conversation_history
-            })
-
+    except ValueError as e:
+        return JsonResponse({
+            'error': str(e),
+            'detail': 'ValueError occurred during processing'
+        }, status=400)
     except Exception as e:
         print(f"Error in process_input: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({
+            'error': 'An unexpected error occurred',
+            'detail': str(e)
+        }, status=500)
 
 
 @require_http_methods(['POST'])
