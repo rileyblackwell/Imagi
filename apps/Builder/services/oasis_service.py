@@ -8,7 +8,6 @@ import anthropic
 from ..models import Message, Conversation, Page
 from .utils import (
     test_html, 
-    test_css, 
     get_system_message, 
     get_file_context,
     ensure_website_directory
@@ -122,20 +121,46 @@ def process_user_input(user_input, model, conversation, page):
         # Process based on model
         try:
             if model == 'claude-sonnet':
-                # For Claude, combine system messages and pass as system parameter
-                system_content = system_msg["content"] + "\n\n" + file_context
+                # For Claude, combine system messages and make the file context more prominent
+                system_content = (
+                    f"{system_msg['content']}\n\n"
+                    f"CURRENT TASK:\n"
+                    f"{file_context}\n\n"
+                    f"IMPORTANT: You must return a complete, valid {page.filename} file.\n"
+                    f"Your response must contain only the file content, no explanations."
+                )
                 
-                # Filter out system messages from the conversation history
+                # For Claude, we'll structure messages differently
                 claude_messages = [
-                    msg for msg in ai_messages 
-                    if msg["role"] != "system"
+                    # First add the current state of the file being edited
+                    {"role": "assistant", "content": f"Current content of {page.filename}:"},
                 ]
+                
+                # Add the current file's content if it exists
+                try:
+                    with open(os.path.join(output_dir, page.filename), 'r') as f:
+                        current_content = f.read()
+                        claude_messages.append({
+                            "role": "assistant",
+                            "content": current_content
+                        })
+                except FileNotFoundError:
+                    pass
+                
+                # Add the user's request
+                claude_messages.append({
+                    "role": "user",
+                    "content": (
+                        f"Update the above {page.filename} file with these changes: {user_input}\n"
+                        f"Remember to return the complete file with all content."
+                    )
+                })
                 
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=2048,
-                    system=system_content,  # Combined system messages
-                    messages=claude_messages  # Everything except system messages
+                    system=system_content,
+                    messages=claude_messages
                 )
                 assistant_response = completion.content[0].text
             else:
@@ -151,31 +176,51 @@ def process_user_input(user_input, model, conversation, page):
 
         # Validate and clean the response based on file type
         if page.filename.endswith('.html'):
+            # For vague requests, try to get the existing file content first
+            if user_input.lower().strip() in ['update this webpage', 'update webpage', 'update this page', 'update page']:
+                try:
+                    with open(os.path.join(output_dir, page.filename), 'r') as f:
+                        existing_content = f.read()
+                        if existing_content and '<!DOCTYPE html>' in existing_content:
+                            assistant_response = existing_content
+                except FileNotFoundError:
+                    pass
+
             # For HTML files, first try to extract HTML content if it's wrapped in other text
             html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
             if html_match:
                 assistant_response = html_match.group(0)
+            else:
+                print("Error: Response does not contain a complete HTML document")
+                print("Response received:", assistant_response)
+                raise ValueError(
+                    "Response must be a complete HTML document starting with <!DOCTYPE html> "
+                    "and containing all required tags (<html>, <head>, <meta>, <title>, <link>, <body>)"
+                )
             
             # Then validate the HTML content
             cleaned_response = test_html(assistant_response)
             if not cleaned_response:
-                raise ValueError("Invalid HTML content received")
+                print("Error: HTML validation failed")
+                print("HTML content:", assistant_response)
+                raise ValueError(
+                    "Invalid HTML content. Response must be a complete HTML document "
+                    "with all required tags and proper structure."
+                )
                 
         elif page.filename == 'styles.css':
-            # For CSS files, extract CSS content if needed
-            css_match = re.search(r'(?s)/\*.*?\*/\s*(.*?)$', assistant_response)
-            if css_match:
-                assistant_response = css_match.group(1)
+            # For CSS files, just remove any markdown code block indicators if present
+            cleaned_response = assistant_response.replace('```css', '').replace('```', '').strip()
             
-            # Validate and clean the CSS content
-            cleaned_response = test_css(assistant_response)
-            if not cleaned_response:
-                raise ValueError("Invalid CSS content received")
-            
-            # Add a debug print to see the cleaned CSS
-            print("Cleaned CSS content:", cleaned_response)
+            # Basic check to ensure we're not getting HTML or other content
+            if '<!DOCTYPE' in cleaned_response or '<html' in cleaned_response:
+                raise ValueError("Response contains HTML instead of CSS")
         else:
             cleaned_response = assistant_response
+
+        # Add debug print for successful validation
+        print(f"Successfully validated {page.filename}")
+        print(f"First 200 chars of cleaned response: {cleaned_response[:200]}...")
 
         # Save only the current file being edited
         output_path = os.path.join(output_dir, page.filename)
@@ -240,7 +285,7 @@ def undo_last_action(conversation, page):
 
         # For styles.css, we need to ensure we return valid CSS
         if page.filename == 'styles.css':
-            previous_content = test_css(previous_content)
+            # Just return the previous content without validation
             if not previous_content:
                 # If no previous CSS exists, return empty string but don't delete file
                 return '', 'No previous CSS version available.'
