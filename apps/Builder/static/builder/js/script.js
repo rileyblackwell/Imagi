@@ -3,7 +3,7 @@ $(document).ready(function() {
 
     var csrftoken = Cookies.get('csrftoken');
     var websiteTab = null;
-    var currentPages = ['index.html', 'about.html', 'contact.html', 'styles.css'];
+    var currentPages = ['index.html', 'about.html', 'styles.css'];
 
     // Set default file selection on page load
     if (!$('#file-select').val()) {
@@ -77,8 +77,25 @@ $(document).ready(function() {
             file: selectedFile
         });
 
-        // Clear the user input immediately after capturing it
-        $('#user-input').val('');
+        // Clear the textarea and start ripple effect
+        var $textarea = $('#user-input');
+        $textarea.val('');
+        
+        // Set initial state with placeholder
+        $textarea.attr('placeholder', 'building');
+        
+        // Make sure to clear any existing intervals
+        if (window.rippleInterval) {
+            clearInterval(window.rippleInterval);
+        }
+        
+        // Start new ripple effect with dots
+        var dots = 0;
+        window.rippleInterval = setInterval(function() {
+            var placeholder = 'building' + '.'.repeat(dots);
+            $textarea.attr('placeholder', placeholder);
+            dots = (dots + 1) % 4; // Cycles through 0, 1, 2, 3
+        }, 500);
 
         // Disable the submit button and show loading state
         var $submitBtn = $(this);
@@ -135,6 +152,12 @@ $(document).ready(function() {
             success: function(response) {
                 console.log('Success response:', response);
                 
+                // Clear the ripple effect
+                if (window.rippleInterval) {
+                    clearInterval(window.rippleInterval);
+                }
+                $textarea.attr('placeholder', 'let your imagination flow...');
+
                 if (selectedFile === 'styles.css') {
                     if (response.html) {
                         updateWebsitePreview(response.html);
@@ -143,7 +166,15 @@ $(document).ready(function() {
                     updateWebsitePreview(response.html || response);
                 }
             },
-            error: handleAjaxError,
+            error: function(xhr, status, error) {
+                // Clear the ripple effect
+                if (window.rippleInterval) {
+                    clearInterval(window.rippleInterval);
+                }
+                $textarea.attr('placeholder', 'let your imagination flow...');
+                
+                handleAjaxError(xhr, status, error);
+            },
             complete: function() {
                 // Re-enable the submit button and restore its text
                 $submitBtn.prop('disabled', false);
