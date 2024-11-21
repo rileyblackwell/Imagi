@@ -94,6 +94,44 @@ $(document).ready(function() {
                 'file': selectedFile,
                 'csrfmiddlewaretoken': csrftoken
             },
+            beforeSend: function() {
+                // Get the conversation history from the backend first
+                $.ajax({
+                    type: 'POST',
+                    url: '/builder/get-conversation-history/',
+                    async: false,  // Make this synchronous so we get the history before the main request
+                    data: {
+                        'model': model,
+                        'file': selectedFile,
+                        'user_input': userInput,
+                        'csrfmiddlewaretoken': csrftoken
+                    },
+                    success: function(historyResponse) {
+                        console.group('Conversation History (Being sent to AI):');
+                        
+                        if (historyResponse.model === 'claude-sonnet') {
+                            console.log('SYSTEM MESSAGE:');
+                            console.log(historyResponse.system);
+                            console.log('-------------------');
+                            
+                            console.log('MESSAGES:');
+                            historyResponse.messages.forEach((msg, index) => {
+                                console.log(`${msg.role.toUpperCase()}:`);
+                                console.log(msg.content);
+                                console.log('-------------------');
+                            });
+                        } else {
+                            historyResponse.messages.forEach((msg, index) => {
+                                console.log(`${index + 1}. ${msg.role.toUpperCase()}:`);
+                                console.log(msg.content);
+                                console.log('-------------------');
+                            });
+                        }
+                        
+                        console.groupEnd();
+                    }
+                });
+            },
             success: function(response) {
                 console.log('Success response:', response);
                 
@@ -116,7 +154,6 @@ $(document).ready(function() {
 
     // New helper functions
     function updateWebsitePreview(html) {
-        console.log('Updating website preview with HTML:', html.substring(0, 200) + '...');
         if (websiteTab === null || websiteTab.closed) {
             websiteTab = window.open('', '_blank');
         }

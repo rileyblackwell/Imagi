@@ -5,10 +5,20 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Conversation, Message, Page
-from .services.oasis_service import process_user_input, test_html, test_css, undo_last_action, get_system_message
+from .services.oasis_service import (
+    process_user_input, 
+    build_conversation_history,
+    undo_last_action
+)
+from .services.utils import (
+    test_html, 
+    test_css, 
+    get_system_message,
+    get_file_context,
+    ensure_website_directory
+)
 import os
 from django.views.static import serve
-from django.conf import settings
 
 
 @login_required
@@ -44,17 +54,13 @@ def process_input(request):
         # Process user input
         response_content = process_user_input(user_input, model, conversation, page)
         
-        # Get conversation history
-        conversation_history = get_conversation_history(conversation, page)
-        
         # Handle different response types
         if isinstance(response_content, dict):
-            response_content['conversation_history'] = conversation_history
             return JsonResponse(response_content)
         else:
             return JsonResponse({
                 'html': response_content,
-                'conversation_history': conversation_history
+                'conversation_history': response_content.get('conversation_history', {})
             })
             
     except ValueError as e:
@@ -68,6 +74,62 @@ def process_input(request):
             'error': 'An unexpected error occurred',
             'detail': str(e)
         }, status=500)
+
+
+@require_http_methods(['POST'])
+def get_conversation_history(request):
+    try:
+        user_input = request.POST.get('user_input', '').strip()
+        model = request.POST.get('model', '').strip()
+        file_name = request.POST.get('file', 'index.html').strip()
+        
+        # Get or create conversation
+        conversation = Conversation.objects.get_or_create(user=request.user)[0]
+        
+        # Get or create the page/file
+        page = Page.objects.get_or_create(
+            conversation=conversation,
+            filename=file_name
+        )[0]
+        
+        # Get system message
+        system_msg = get_system_message()
+        
+        # Set up output directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
+        
+        # Build conversation history
+        conversation_history = build_conversation_history(system_msg, page, output_dir)
+        
+        # Add file context
+        file_context = get_file_context(file_name)
+        
+        # Add current request
+        current_request = f"[File: {file_name}]\n{user_input}"
+        
+        if model == 'claude-sonnet':
+            full_system_message = system_msg["content"] + "\n\n" + file_context
+            return JsonResponse({
+                "model": "claude-sonnet",
+                "system": full_system_message,
+                "messages": [
+                    *conversation_history,
+                    {"role": "user", "content": current_request}
+                ]
+            })
+        else:
+            return JsonResponse({
+                "model": "gpt",
+                "messages": [
+                    {"role": "system", "content": system_msg["content"]},
+                    *conversation_history,
+                    {"role": "system", "content": file_context},
+                    {"role": "user", "content": current_request}
+                ]
+            })
+            
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_http_methods(['POST'])
@@ -117,8 +179,11 @@ def clear_conversation_history(request):
         conversation = get_object_or_404(Conversation, user=request.user)
         
         # Delete all messages and pages
-        conversation.messages.all().delete()
-        conversation.pages.all().delete()
+        Message.objects.filter(conversation=conversation).delete()
+        Page.objects.filter(conversation=conversation).delete()
+        
+        # Delete the conversation itself
+        conversation.delete()
         
         # Clear the website directory
         output_dir = os.path.join(os.path.dirname(__file__), 'website')
@@ -173,61 +238,3 @@ def serve_website_file(request, path):
     if not os.path.exists(website_dir):
         os.makedirs(website_dir)
     return serve(request, path, document_root=website_dir)
-
-def get_conversation_history(conversation, page):
-    """Helper function to get the conversation history in a serializable format"""
-    # Start with system message
-    conversation_history = [get_system_message()]
-    
-    # Include the most recent content of each page
-    all_pages = Page.objects.filter(conversation=conversation)
-    
-    # First add HTML files
-    html_pages = all_pages.exclude(filename='styles.css')
-    for html_page in html_pages:
-        latest_html = html_page.messages.filter(
-            role='assistant'
-        ).order_by('-created_at').first()
-        
-        if latest_html:
-            conversation_history.append({
-                "role": "assistant",
-                "content": f"[File: {html_page.filename}]\nCurrent HTML content:\n{latest_html.content}"
-            })
-    
-    # Then add CSS file
-    css_page = all_pages.filter(filename='styles.css').first()
-    if css_page:
-        latest_css = css_page.messages.filter(
-            role='assistant'
-        ).order_by('-created_at').first()
-        
-        if latest_css:
-            conversation_history.append({
-                "role": "assistant",
-                "content": f"[File: styles.css]\nCurrent CSS content:\n{latest_css.content}"
-            })
-    
-    # Add the conversation messages for the current page
-    all_messages = conversation.messages.filter(page=page).order_by('created_at')
-    
-    # Process each message
-    for msg in all_messages:
-        if msg.role == 'user':
-            conversation_history.append({
-                "role": "user",
-                "content": f"[File: {msg.page.filename}]\n{msg.content}"
-            })
-        elif msg.role == 'assistant':
-            conversation_history.append({
-                "role": "assistant",
-                "content": f"[File: {msg.page.filename}]\n{msg.content}"
-            })
-    
-    # Add the current file context as the last message
-    conversation_history.append({
-        "role": "system",
-        "content": f"You are now working on file: {page.filename}"
-    })
-    
-    return conversation_history

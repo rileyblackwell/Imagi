@@ -6,7 +6,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import anthropic
 from ..models import Message, Conversation, Page
-from .utils import test_html, test_css
+from .utils import (
+    test_html, 
+    test_css, 
+    get_system_message, 
+    get_file_context,
+    ensure_website_directory
+)
 
 # Load environment variables from .env
 load_dotenv()
@@ -17,71 +23,66 @@ openai_client = OpenAI(api_key=openai_key)
 anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 
-def get_system_message():
-    """Generates the system message content for the assistant."""
-    return {
-        "role": "system",
-        "content": (
-            "You are Imagi Oasis, a web development tool designed to create stunning, modern, and functional multi-page websites from natural language descriptions. "
-            "Your task is to generate HTML pages with inline JavaScript and maintain a separate styles.css file for consistent styling across all pages.\n\n"
-
-            "IMPORTANT - Message Format:\n"
-            "Each message includes a [File: filename] prefix indicating which file is being discussed or modified. "
-            "This helps you track which file each message relates to and ensures you maintain context across the conversation. "
-            "When you see a message like '[File: about.html] Add a contact form', you should focus on modifying the about.html file.\n\n"
-
-            "Focus on:\n\n"
-
-            "1. **HTML Structure**:\n"
-            "   - When editing any HTML file, ALWAYS provide the complete HTML document including ALL existing content.\n"
-            "   - Never provide partial HTML updates - always include the entire document.\n"
-            "   - Create clean, semantic HTML that links to the shared styles.css file.\n"
-            "   - Include inline JavaScript for page-specific functionality.\n"
-            "   - Ensure proper linking between pages.\n\n"
-
-            "2. **CSS Management**:\n"
-            "   - When editing styles.css, ALWAYS provide the complete CSS file including ALL existing styles.\n"
-            "   - Never provide partial CSS updates - always include the entire stylesheet.\n"
-            "   - Maintain consistent styling across all pages through the shared styles.css file.\n"
-            "   - Use CSS classes and IDs that work across different pages.\n"
-            "   - Create reusable components and styles.\n\n"
-
-            "3. **Visual Design**:\n"
-            "   - Create cohesive designs that work across all pages.\n"
-            "   - Use consistent color schemes and typography.\n"
-            "   - Ensure responsive layouts using CSS Grid and Flexbox.\n\n"
-
-            "4. **User Interaction**:\n"
-            "   - Add smooth animations and transitions via CSS.\n"
-            "   - Ensure accessibility following WCAG guidelines.\n\n"
-
-            "5. **Performance**:\n"
-            "   - Optimize CSS for reusability and performance.\n"
-            "   - Minimize redundant styles.\n"
-            "   - Avoid including images (currently unsupported).\n\n"
-
-            "When responding:\n"
-            "1. Always check the [File: filename] prefix to know which file you're working on.\n"
-            "2. If creating/updating HTML: ALWAYS provide the COMPLETE HTML document with ALL existing content, not just the changes.\n"
-            "3. If updating styles.css: ALWAYS provide the COMPLETE stylesheet with ALL styles, not just the changes.\n"
-            "4. Always maintain consistency across pages.\n\n"
-
-            "Required HTML structure (always include ALL parts):\n"
-            "<!DOCTYPE html>\n"
-            "<html>\n"
-            "<head>\n"
-            "    <meta charset='UTF-8'>\n"
-            "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>\n"
-            "    <title>Page Title</title>\n"
-            "    <link rel='stylesheet' href='styles.css'>\n"
-            "</head>\n"
-            "<body>\n"
-            "    <!-- ALL existing content must be preserved and modified as needed -->\n"
-            "    <!-- Include inline JavaScript within the body -->\n"
-            "</body>\n"
-            "</html>"
-        )
-    }
+def build_conversation_history(system_msg, page, output_dir):
+    """Builds the conversation history in the exact format sent to AI models.
+    
+    Structure:
+    1. System prompt (main Imagi Oasis instructions)
+    2. Most recent version of all HTML and CSS files
+    3. All user and assistant messages for the current file
+    4. File-specific system prompt
+    """
+    conversation_history = []
+    
+    # 1. Add current state of all files (most recent versions)
+    if os.path.exists(output_dir):
+        # First add all HTML files
+        html_files = [f for f in os.listdir(output_dir) if f.endswith('.html')]
+        html_files.sort()  # Ensure consistent order (index.html first)
+        if 'index.html' in html_files:  # Move index.html to front if it exists
+            html_files.remove('index.html')
+            html_files.insert(0, 'index.html')
+            
+        for filename in html_files:
+            file_path = os.path.join(output_dir, filename)
+            try:
+                with open(file_path, 'r') as f:
+                    file_content = f.read()
+                    conversation_history.append({
+                        "role": "assistant",
+                        "content": f"[File: {filename}]\nCurrent HTML content:\n{file_content}"
+                    })
+            except FileNotFoundError:
+                continue
+        
+        # Then add CSS file if it exists
+        css_path = os.path.join(output_dir, 'styles.css')
+        if os.path.exists(css_path):
+            try:
+                with open(css_path, 'r') as f:
+                    css_content = f.read()
+                    conversation_history.append({
+                        "role": "assistant",
+                        "content": f"[File: styles.css]\nCurrent CSS content:\n{css_content}"
+                    })
+            except FileNotFoundError:
+                pass
+    
+    # 2. Add conversation history for the current file being edited
+    current_file_messages = page.messages.all().order_by('created_at')
+    for msg in current_file_messages:
+        if msg.role == 'user':
+            conversation_history.append({
+                "role": "user",
+                "content": f"[File: {msg.page.filename}]\n{msg.content}"
+            })
+        elif msg.role == 'assistant':
+            conversation_history.append({
+                "role": "assistant",
+                "content": msg.content
+            })
+    
+    return conversation_history
 
 
 def process_user_input(user_input, model, conversation, page):
@@ -90,62 +91,65 @@ def process_user_input(user_input, model, conversation, page):
         # Get system message
         system_msg = get_system_message()
         
-        # Initialize conversation history
-        conversation_history = []
+        # Set up output directory - ensure it exists
+        base_dir = os.path.dirname(__file__)
+        output_dir = ensure_website_directory(os.path.join(base_dir, '..'))
         
-        # Get all messages from the conversation, ordered by creation time
-        all_messages = conversation.messages.all().order_by('created_at')
+        # Build conversation history - this should only read files, never delete them
+        conversation_history = build_conversation_history(system_msg, page, output_dir)
         
-        # Process existing messages
-        for msg in all_messages:
-            if msg.role == 'user':
-                conversation_history.append({
-                    "role": "user",
-                    "content": f"[File: {msg.page.filename}]\n{msg.content}"
-                })
-            elif msg.role == 'assistant':
-                conversation_history.append({
-                    "role": "assistant",
-                    "content": msg.content
-                })
-
+        # Add the current file context
+        file_context = get_file_context(page.filename)
+        
         # Add the current request
-        file_context = (
-            f"You are working on file: {page.filename}\n"
-            "Remember to provide a complete, valid HTML document with all required elements.\n"
-            "Include <!DOCTYPE html>, <html>, <head>, and <body> tags.\n"
-        )
+        current_request = f"[File: {page.filename}]\n{user_input}"
         
-        current_request = f"{file_context}\n[File: {page.filename}]\n{user_input}"
-        
+        # Create the exact messages that will be sent to the AI models
+        if model == 'claude-sonnet':
+            # For Claude, use the system parameter instead of system messages
+            full_system_message = system_msg["content"] + "\n\n" + file_context
+            ai_messages = [
+                *conversation_history,
+                {"role": "user", "content": current_request}
+            ]
+            # Store the full conversation for logging
+            full_conversation = {
+                "model": "claude-sonnet",
+                "system": full_system_message,  # Main system prompt + file context
+                "messages": ai_messages  # Current file state + conversation history + current request
+            }
+        else:
+            # For OpenAI, include system messages in the conversation history
+            ai_messages = [
+                {"role": "system", "content": system_msg["content"]},  # Main system prompt
+                *conversation_history,  # Current file state + conversation history
+                {"role": "system", "content": file_context},  # File context
+                {"role": "user", "content": current_request}  # Current request
+            ]
+            full_conversation = {
+                "model": "gpt",
+                "messages": ai_messages
+            }
+
         # Process based on model
         try:
             if model == 'claude-sonnet':
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=2048,
-                    system=system_msg["content"],
-                    messages=[
-                        *conversation_history,
-                        {"role": "user", "content": current_request}
-                    ]
+                    system=full_system_message,
+                    messages=ai_messages
                 )
                 assistant_response = completion.content[0].text
             else:
                 completion = openai_client.chat.completions.create(
                     model=model,
-                    messages=[system_msg] + conversation_history + [
-                        {"role": "user", "content": current_request}
-                    ]
+                    messages=ai_messages
                 )
                 assistant_response = completion.choices[0].message.content
 
         except Exception as e:
             raise ValueError(f"API error: {str(e)}")
-
-        # Create website directory if it doesn't exist
-        output_dir = os.path.join(os.path.dirname(__file__), '..', 'website')
-        os.makedirs(output_dir, exist_ok=True)
 
         # Validate and clean the response based on file type
         if page.filename.endswith('.html'):
@@ -172,7 +176,7 @@ def process_user_input(user_input, model, conversation, page):
         else:
             cleaned_response = assistant_response
 
-        # Save the file
+        # Save only the current file being edited
         output_path = os.path.join(output_dir, page.filename)
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
@@ -198,11 +202,22 @@ def process_user_input(user_input, model, conversation, page):
             try:
                 with open(index_path, 'r') as f:
                     index_content = f.read()
-                return {'html': index_content, 'css': cleaned_response}
+                return {
+                    'html': index_content, 
+                    'css': cleaned_response,
+                    'conversation_history': full_conversation
+                }
             except FileNotFoundError:
-                return {'html': '', 'css': cleaned_response}
+                return {
+                    'html': '', 
+                    'css': cleaned_response,
+                    'conversation_history': full_conversation
+                }
 
-        return cleaned_response
+        return {
+            'html': cleaned_response,
+            'conversation_history': full_conversation
+        }
 
     except Exception as e:
         print(f"Error in process_user_input: {str(e)}")
