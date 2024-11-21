@@ -28,7 +28,7 @@ def build_conversation_history(system_msg, page, output_dir):
     
     Structure:
     1. System prompt (main Imagi Oasis instructions)
-    2. Most recent version of all HTML and CSS files
+    2. Most recent version of all current HTML and CSS files
     3. All user and assistant messages for the current file
     4. File-specific system prompt
     """

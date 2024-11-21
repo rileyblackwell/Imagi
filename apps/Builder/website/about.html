@@ -1,58 +1,182 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>About Us - Studio Nova</title>
-    <link rel='stylesheet' href='styles.css'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Skyline Roofing Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <div class="logo">Studio Nova</div>
-        <nav>
-            <ul>
-                <li><a href='index.html'>Home</a></li>
-                <li><a href='classes.html'>Classes</a></li>
-                <li><a href='gallery.html'>Gallery</a></li>
-                <li><a href='about.html'>About Us</a></li>
-                <li><a href='contact.html'>Contact</a></li>
-            </ul>
-        </nav>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content container">
+            <div class="logo">
+                <h1>Skyline Roofing Solutions</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="index.html#services">Services</a></li>
+                    <li><a href="index.html#projects">Projects</a></li>
+                    <li><a href="about.html" class="active">About Us</a></li>
+                    <li><a href="index.html#contact">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="header-cta">
+                <a href="tel:1234567890" class="phone-number">123-456-7890</a>
+                <button class="btn btn-primary">Get a Free Estimate</button>
+            </div>
+        </div>
     </header>
 
-    <section class="about">
-        <h1>About Studio Nova</h1>
-        <p>Founded in 2023, Studio Nova aims to be a hub of creativity and artistic expression. Our team of experienced instructors is dedicated to providing high-quality art education. We cater to artists of all skill levels, from beginners to advanced practitioners.</p>
-        
-        <h2>Our Mission</h2>
-        <p>At Studio Nova, our mission is to inspire creativity and foster artistic growth in a nurturing and supportive environment.</p>
+    <!-- About Hero Section -->
+    <section class="about-hero">
+        <div class="container">
+            <h2>Our Story</h2>
+            <p>Building Trust Through Quality Roofing Since 1995</p>
+        </div>
+    </section>
 
-        <h2>Our Vision</h2>
-        <p>We envision a community where art is accessible to everyone, enhancing lives through creative expression.</p>
-
-        <h2>Meet Our Instructors</h2>
-        <div class="instructor-list">
-            <div class="instructor">
-                <h3>Jane Doe</h3>
-                <p>Specializes in Painting and Watercolor Techniques.</p>
-            </div>
-            <div class="instructor">
-                <h3>John Smith</h3>
-                <p>Expert in Sculpting and Mixed Media Art.</p>
-            </div>
-            <div class="instructor">
-                <h3>Emily Davis</h3>
-                <p>Focuses on Digital Art and Graphic Design.</p>
+    <!-- Company History -->
+    <section class="company-history">
+        <div class="container">
+            <div class="history-content">
+                <h3>Our Journey</h3>
+                <p>Founded in 1995, Skyline Roofing Solutions has grown from a small family business to one of the most trusted roofing companies in the region. Our commitment to quality workmanship and customer satisfaction has remained unchanged throughout our journey.</p>
+                <div class="milestone-grid">
+                    <div class="milestone">
+                        <h4>1995</h4>
+                        <p>Company founded by John Smith</p>
+                    </div>
+                    <div class="milestone">
+                        <h4>2005</h4>
+                        <p>Expanded to commercial roofing</p>
+                    </div>
+                    <div class="milestone">
+                        <h4>2015</h4>
+                        <p>Achieved 1000+ successful projects</p>
+                    </div>
+                    <div class="milestone">
+                        <h4>2023</h4>
+                        <p>Regional leader in sustainable roofing</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <footer>
-        <p>&copy; 2023 Studio Nova. All Rights Reserved.</p>
+    <!-- Team Section -->
+    <section class="team-section">
+        <div class="container">
+            <h3>Meet Our Leadership Team</h3>
+            <div class="team-grid">
+                <div class="team-member">
+                    <div class="member-info">
+                        <h4>John Smith</h4>
+                        <p class="position">Founder & CEO</p>
+                        <p class="bio">30+ years of roofing expertise and industry leadership</p>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-info">
+                        <h4>Sarah Johnson</h4>
+                        <p class="position">Operations Director</p>
+                        <p class="bio">15 years of project management excellence</p>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-info">
+                        <h4>Mike Wilson</h4>
+                        <p class="position">Technical Director</p>
+                        <p class="bio">20 years of roofing system expertise</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Values Section -->
+    <section class="values-section">
+        <div class="container">
+            <h3>Our Core Values</h3>
+            <div class="values-grid">
+                <div class="value-card">
+                    <h4>Quality</h4>
+                    <p>We never compromise on materials or workmanship</p>
+                </div>
+                <div class="value-card">
+                    <h4>Integrity</h4>
+                    <p>Honest communication and transparent pricing</p>
+                </div>
+                <div class="value-card">
+                    <h4>Safety</h4>
+                    <p>Rigorous safety standards for every project</p>
+                </div>
+                <div class="value-card">
+                    <h4>Innovation</h4>
+                    <p>Embracing modern roofing technologies</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Certifications Section -->
+    <section class="certifications-section">
+        <div class="container">
+            <h3>Our Certifications</h3>
+            <div class="cert-grid">
+                <div class="cert-item">
+                    <h4>Licensed Contractor</h4>
+                    <p>License #ABC123456</p>
+                </div>
+                <div class="cert-item">
+                    <h4>GAF Certified</h4>
+                    <p>Master Elite Contractor</p>
+                </div>
+                <div class="cert-item">
+                    <h4>BBB Accredited</h4>
+                    <p>A+ Rating</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p>&copy; 2023 Skyline Roofing Solutions. All rights reserved.</p>
+                    <p>Licensed & Insured - License #ABC123456</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Sitemap</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script>
-        // Add any inline JavaScript here if needed
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Add active class to current navigation item
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = document.querySelector('.main-nav a[href="about.html"]');
+            if (currentPage) {
+                currentPage.classList.add('active');
+            }
+        });
     </script>
 </body>
 </html>

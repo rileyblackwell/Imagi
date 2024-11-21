@@ -11,8 +11,6 @@ from .services.oasis_service import (
     undo_last_action
 )
 from .services.utils import (
-    test_html, 
-    test_css, 
     get_system_message,
     get_file_context,
     ensure_website_directory
@@ -157,7 +155,6 @@ def undo_last_action_view(request):
                 })
         else:
             # Handle HTML files as before
-            previous_content = test_html(previous_content) if previous_content else ''
             with open(output_path, 'w') as f:
                 f.write(previous_content)
             return JsonResponse({'html': previous_content, 'message': message})

@@ -1,125 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Studio Nova</title>
-    <link rel='stylesheet' href='styles.css'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyline Roofing Solutions - Professional Roofing Services</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <div class="logo">Studio Nova</div>
-        <nav>
-            <ul>
-                <li><a href='index.html'>Home</a></li>
-                <li><a href='classes.html'>Classes</a></li>
-                <li><a href='gallery.html'>Gallery</a></li>
-                <li><a href='about.html'>About Us</a></li>
-                <li><a href='contact.html'>Contact</a></li>
-            </ul>
-        </nav>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content container">
+            <div class="logo">
+                <h1>Skyline Roofing Solutions</h1>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#services">Services</a></li>
+                    <li><a href="#projects">Projects</a></li>
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="header-cta">
+                <a href="tel:1234567890" class="phone-number">123-456-7890</a>
+                <button class="btn btn-primary">Get a Free Estimate</button>
+            </div>
+        </div>
     </header>
 
-    <section class="banner">
-        <div class="banner-text">
-            <h1>Unleash Your Creativity at Studio Nova</h1>
-            <a href='classes.html' class="cta-button">Explore Classes</a>
+    <!-- Hero Section -->
+    <section id="hero" class="hero-section">
+        <div class="hero-content container">
+            <h2>Your Trusted Roofing Experts for Homes and Businesses</h2>
+            <p>Durable, reliable, and affordable roofing solutions tailored to your needs</p>
+            <button class="btn btn-large">Request a Free Quote</button>
         </div>
     </section>
 
-    <section class="about">
-        <h2>About Us</h2>
-        <p>At Studio Nova, our mission is to inspire creativity and foster artistic growth. We believe in providing an engaging environment led by professional instructors.</p>
-        <ul>
-            <li>Professional Instructors</li>
-            <li>Inspiring Environment</li>
-            <li>Diverse Classes</li>
-        </ul>
-    </section>
-
-    <section class="classes">
-        <h2>Art Classes</h2>
-        <div class="class-list">
-            <div class="class-item">
-                <h3>Painting</h3>
-                <p>Explore the world of colors and techniques.</p>
-                <a href='class-details.html' class="learn-more">Learn More</a>
-            </div>
-            <div class="class-item">
-                <h3>Sculpture</h3>
-                <p>Shape your imagination into 3D forms.</p>
-                <a href='class-details.html' class="learn-more">Learn More</a>
-            </div>
-            <div class="class-item">
-                <h3>Digital Art</h3>
-                <p>Transform your ideas into stunning digital masterpieces.</p>
-                <a href='class-details.html' class="learn-more">Learn More</a>
-            </div>
-        </div>
-        <div class="testimonials">
-            <h3>Testimonials</h3>
-            <p>"Studio Nova has changed my life! I've found my passion for art." - Jane Doe</p>
-        </div>
-    </section>
-
-    <section class="gallery">
-        <h2>Gallery</h2>
-        <div class="artwork-grid">
-            <div class="artwork-item">
-                <h4>Sunset Bliss</h4>
-                <p>by John Smith</p>
-                <div class="artwork-description">A beautiful sunset painting.</div>
-            </div>
-            <div class="artwork-item">
-                <h4>Abstract Dreams</h4>
-                <p>by Emily Davis</p>
-                <div class="artwork-description">An abstract interpretation of dreams.</div>
-            </div>
-            <div class="artwork-item">
-                <h4>Nature's Touch</h4>
-                <p>by Michael Brown</p>
-                <div class="artwork-description">A sculpture inspired by nature.</div>
+    <!-- Services Section -->
+    <section id="services" class="services-section">
+        <div class="container">
+            <h2>Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🏠</div>
+                    <h3>Residential Roofing</h3>
+                    <p>New roof installations, roof replacements, and repairs for homes.</p>
+                    <a href="#" class="btn btn-secondary">Learn More</a>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🏢</div>
+                    <h3>Commercial Roofing</h3>
+                    <p>High-quality roofing solutions for offices, warehouses, and commercial buildings.</p>
+                    <a href="#" class="btn btn-secondary">Learn More</a>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔧</div>
+                    <h3>Roof Repairs</h3>
+                    <p>Fixing leaks, replacing shingles, and addressing storm damage.</p>
+                    <a href="#" class="btn btn-secondary">Learn More</a>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="events">
-        <h2>Upcoming Events</h2>
-        <div class="event-item">
-            <h3>Art Workshop</h3>
-            <p>Date: March 10, 2023, Time: 2 PM - 5 PM</p>
-            <p>Join us for a hands-on workshop where you can explore various art techniques.</p>
-        </div>
-    </section>
-
-    <section class="contact">
-        <h2>Contact Us</h2>
-        <form action='#'>
-            <label for='name'>Name:</label>
-            <input type='text' id='name' name='name' required>
-            <label for='email'>Email:</label>
-            <input type='email' id='email' name='email' required>
-            <label for='message'>Message:</label>
-            <textarea id='message' name='message' required></textarea>
-            <button type='submit'>Send Message</button>
-        </form>
-        <div class="contact-info">
-            <p>Location: 123 Art St, Creativity City</p>
-            <p>Phone: (123) 456-7890</p>
-            <div class="social-links">
-                <a href='#'>Instagram</a>
-                <a href='#'>Facebook</a>
-                <a href='#'>Twitter</a>
+    <!-- Why Choose Us Section -->
+    <section id="why-us" class="why-us-section">
+        <div class="container">
+            <h2>Why Choose Us</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">👨‍🔧</div>
+                    <h3>Experienced Team</h3>
+                    <p>Certified professionals with years of experience</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Quality Materials</h3>
+                    <p>Premium materials and superior craftsmanship</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💰</div>
+                    <h3>Competitive Pricing</h3>
+                    <p>Fair prices and flexible financing options</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Customer Service</h3>
+                    <p>Dedicated support and warranty-backed work</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <footer>
-        <p>&copy; 2023 Studio Nova. All Rights Reserved.</p>
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <h2>Get in Touch</h2>
+            <div class="contact-grid">
+                <form class="contact-form">
+                    <input type="text" placeholder="Your Name" required>
+                    <input type="email" placeholder="Your Email" required>
+                    <input type="tel" placeholder="Your Phone">
+                    <input type="text" placeholder="Your Address">
+                    <textarea placeholder="Your Message" required></textarea>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+                <div class="contact-info">
+                    <div class="info-item">
+                        <h3>Contact Information</h3>
+                        <p>📞 123-456-7890</p>
+                        <p>📧 info@skylineroofing.com</p>
+                        <p>📍 123 Roofing Street, City, State 12345</p>
+                    </div>
+                    <div class="social-links">
+                        <a href="#" class="social-link">Facebook</a>
+                        <a href="#" class="social-link">Instagram</a>
+                        <a href="#" class="social-link">LinkedIn</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p>&copy; 2023 Skyline Roofing Solutions. All rights reserved.</p>
+                    <p>Licensed & Insured - License #ABC123456</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Sitemap</a>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script>
-        // Add any inline JavaScript here if needed
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Form submission handling
+        document.querySelector('.contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thank you for your message. We will get back to you soon!');
+            this.reset();
+        });
     </script>
 </body>
 </html>
