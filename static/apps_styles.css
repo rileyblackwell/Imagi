@@ -88,16 +88,36 @@ h2 {
     cursor: pointer;
     font-size: 15px;
     font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2);
+}
+
+.btn-primary:hover {
+    background: var(--button-gradient-3);
+    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+    transform: scale(1.02);
 }
 
 .btn-secondary {
     background: var(--button-gradient-2);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--button-gradient-2);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
 }
 
 .btn-danger {
     background: var(--button-gradient-1);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-danger:hover {
+    background: var(--button-gradient-1);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
 }
 
 .btn:hover {
@@ -108,8 +128,8 @@ h2 {
 /* Ensure the hover effect retains the same background */
 .btn-primary:hover {
     background: var(--button-gradient-3);
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4);
-    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+    transform: none;
 }
 
 /* Common Form Styles */
