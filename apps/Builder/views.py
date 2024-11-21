@@ -47,11 +47,15 @@ def process_input(request):
         # Get conversation history
         conversation_history = get_conversation_history(conversation, page)
         
-        # Return the response
-        return JsonResponse({
-            'html': response_content,
-            'conversation_history': conversation_history
-        })
+        # Handle different response types
+        if isinstance(response_content, dict):
+            response_content['conversation_history'] = conversation_history
+            return JsonResponse(response_content)
+        else:
+            return JsonResponse({
+                'html': response_content,
+                'conversation_history': conversation_history
+            })
             
     except ValueError as e:
         return JsonResponse({

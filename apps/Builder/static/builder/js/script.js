@@ -97,34 +97,12 @@ $(document).ready(function() {
             success: function(response) {
                 console.log('Success response:', response);
                 
-                // Log the conversation history in a more readable format
-                if (response.conversation_history) {
-                    console.group('Conversation history:');
-                    response.conversation_history.forEach((message, index) => {
-                        console.log(`${index + 1}. ${message.role.toUpperCase()}:`);
-                        console.log(message.content);
-                        console.log('-------------------');
-                    });
-                    console.groupEnd();
-                }
-                
                 if (selectedFile === 'styles.css') {
-                    console.log('Updated styles.css, fetching index.html');
-                    $.ajax({
-                        type: 'POST',
-                        url: '/builder/get-page/',
-                        data: {
-                            'file': 'index.html',
-                            'csrfmiddlewaretoken': csrftoken
-                        },
-                        success: function(htmlResponse) {
-                            console.log('Received HTML response:', htmlResponse);
-                            updateWebsitePreview(htmlResponse.html);
-                        },
-                        error: handleAjaxError
-                    });
+                    if (response.html) {
+                        updateWebsitePreview(response.html);
+                    }
                 } else {
-                    updateWebsitePreview(response.html);
+                    updateWebsitePreview(response.html || response);
                 }
             },
             error: handleAjaxError,

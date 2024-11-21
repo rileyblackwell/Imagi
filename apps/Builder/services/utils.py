@@ -1,3 +1,5 @@
+import re
+
 def test_html(html):
     """Ensures only valid HTML content is returned."""
     # Look for complete HTML document
@@ -17,8 +19,6 @@ def test_html(html):
 def test_css(css_content):
     """Ensures that only valid CSS content is returned.
        All plain text and non-CSS comments are removed."""
-    import re
-    
     # Remove markdown code block indicators and extra whitespace
     css_content = css_content.replace('```css', '').replace('```', '').strip()
     

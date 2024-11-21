@@ -1,6 +1,7 @@
 # builder/services/oasis_service.py
 
 import os
+import re
 from dotenv import load_dotenv
 from openai import OpenAI
 import anthropic
@@ -123,7 +124,7 @@ def process_user_input(user_input, model, conversation, page):
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=2048,
-                    system=system_msg["content"],  # Pass the same system message as GPT
+                    system=system_msg["content"],
                     messages=[
                         *conversation_history,
                         {"role": "user", "content": current_request}
@@ -138,15 +139,17 @@ def process_user_input(user_input, model, conversation, page):
                     ]
                 )
                 assistant_response = completion.choices[0].message.content
-        except anthropic.APIError as e:
-            raise ValueError(f"Claude API error: {str(e)}")
+
         except Exception as e:
             raise ValueError(f"API error: {str(e)}")
+
+        # Create website directory if it doesn't exist
+        output_dir = os.path.join(os.path.dirname(__file__), '..', 'website')
+        os.makedirs(output_dir, exist_ok=True)
 
         # Validate and clean the response based on file type
         if page.filename.endswith('.html'):
             # For HTML files, first try to extract HTML content if it's wrapped in other text
-            import re
             html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
             if html_match:
                 assistant_response = html_match.group(0)
@@ -169,6 +172,11 @@ def process_user_input(user_input, model, conversation, page):
         else:
             cleaned_response = assistant_response
 
+        # Save the file
+        output_path = os.path.join(output_dir, page.filename)
+        with open(output_path, 'w') as f:
+            f.write(cleaned_response)
+
         # Save the conversation
         Message.objects.create(
             conversation=conversation,
@@ -183,6 +191,16 @@ def process_user_input(user_input, model, conversation, page):
             role="assistant",
             content=cleaned_response
         )
+
+        # For CSS updates, also return the current index.html content
+        if page.filename == 'styles.css':
+            index_path = os.path.join(output_dir, 'index.html')
+            try:
+                with open(index_path, 'r') as f:
+                    index_content = f.read()
+                return {'html': index_content, 'css': cleaned_response}
+            except FileNotFoundError:
+                return {'html': '', 'css': cleaned_response}
 
         return cleaned_response
 
