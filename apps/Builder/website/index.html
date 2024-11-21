@@ -1,140 +1,190 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Paws & Shine - Dog Grooming</title>
-    <link rel='stylesheet' href='styles.css'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Nova - Unleash Your Creativity</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <header>
-        <div class="logo">Paws & Shine</div>
-        <nav>
-            <ul>
-                <li><a href='index.html'>Home</a></li>
-                <li><a href='services.html'>Services</a></li>
-                <li><a href='gallery.html'>Gallery</a></li>
-                <li><a href='about.html'>About Us</a></li>
-                <li><a href='contact.html'>Contact</a></li>
+    <header class="main-header">
+        <nav class="nav-container">
+            <div class="logo">Studio Nova</div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="classes.html">Classes</a></li>
+                <li><a href="gallery.html">Gallery</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="contact.html">Contact</a></li>
             </ul>
+            <button class="mobile-menu" aria-label="Toggle Menu">
+                <span></span><span></span><span></span>
+            </button>
         </nav>
-        <p class="tagline">Keeping Your Pups Happy, Healthy, and Beautiful.</p>
-        <a href='booking.html' class="button">Book an Appointment</a>
+        <div class="hero-banner">
+            <h1>Unleash Your Creativity at Studio Nova</h1>
+            <p>Where Art Meets Innovation</p>
+            <button class="cta-button">Explore Classes</button>
+        </div>
     </header>
-    
-    <section class="hero">
-        <div class="banner">
-            <h1>Exceptional Grooming for Your Furry Friends.</h1>
-            <a href='services.html' class="cta-button">View Services</a>
-        </div>
-    </section>
-    
-    <section class="services">
-        <h2>Our Services</h2>
-        <div class="service-item">
-            <h3>Bath and Brush</h3>
-            <p>A refreshing bath and thorough brushing to keep your pup clean and healthy.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-        <div class="service-item">
-            <h3>Haircuts</h3>
-            <p>Stylish grooming tailored to your dog's breed and personality.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-        <div class="service-item">
-            <h3>Nail Trimming</h3>
-            <p>Keeping your pup's nails short and safe to avoid discomfort.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-        <div class="service-item">
-            <h3>Teeth Cleaning</h3>
-            <p>Maintaining oral hygiene to ensure a happy and healthy smile.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-    </section>
 
-    <section class="cats">
-        <h2>Our Cat Grooming Services</h2>
-        <div class="service-item">
-            <h3>Cat Bath</h3>
-            <p>A gentle bath specifically designed for your feline friend, making them clean and fresh.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
+    <main>
+        <section id="about" class="section-padding">
+            <div class="container">
+                <h2>Welcome to Studio Nova</h2>
+                <div class="about-grid">
+                    <div class="about-content">
+                        <p>Studio Nova is where artistic dreams take flight. Our mission is to nurture creativity and inspire artists of all levels in a supportive, professional environment.</p>
+                        <div class="features">
+                            <div class="feature-item">
+                                <i class="fas fa-user-graduate"></i>
+                                <h3>Expert Instructors</h3>
+                                <p>Learn from industry professionals</p>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-paint-brush"></i>
+                                <h3>Creative Space</h3>
+                                <p>State-of-the-art facilities</p>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-users"></i>
+                                <h3>Community</h3>
+                                <p>Join a vibrant artistic community</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="classes" class="section-padding">
+            <div class="container">
+                <h2>Our Classes</h2>
+                <div class="classes-grid">
+                    <div class="class-card">
+                        <div class="class-content">
+                            <h3>Oil Painting</h3>
+                            <p>Master the techniques of classical oil painting</p>
+                            <button class="learn-more">Learn More</button>
+                        </div>
+                    </div>
+                    <div class="class-card">
+                        <div class="class-content">
+                            <h3>Sculpture</h3>
+                            <p>Create three-dimensional masterpieces</p>
+                            <button class="learn-more">Learn More</button>
+                        </div>
+                    </div>
+                    <div class="class-card">
+                        <div class="class-content">
+                            <h3>Digital Art</h3>
+                            <p>Explore the world of digital creativity</p>
+                            <button class="learn-more">Learn More</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="testimonials" class="section-padding">
+            <div class="container">
+                <h2>Student Testimonials</h2>
+                <div class="testimonials-slider">
+                    <div class="testimonial">
+                        <p>"Studio Nova transformed my approach to art. The instructors are fantastic!"</p>
+                        <cite>- Sarah Johnson</cite>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="events" class="section-padding">
+            <div class="container">
+                <h2>Upcoming Events</h2>
+                <div class="events-grid">
+                    <div class="event-card">
+                        <div class="event-date">
+                            <span class="month">JUN</span>
+                            <span class="day">15</span>
+                        </div>
+                        <div class="event-details">
+                            <h3>Summer Art Exhibition</h3>
+                            <p>6:00 PM - 9:00 PM</p>
+                            <p>Join us for an evening of art and inspiration</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="section-padding">
+            <div class="container">
+                <h2>Get in Touch</h2>
+                <div class="contact-grid">
+                    <form class="contact-form">
+                        <input type="text" placeholder="Name" required>
+                        <input type="email" placeholder="Email" required>
+                        <textarea placeholder="Message" required></textarea>
+                        <button type="submit" class="submit-button">Send Message</button>
+                    </form>
+                    <div class="contact-info">
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <p>123 Art Street, Creative City</p>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-phone"></i>
+                            <p>+1 (555) 123-4567</p>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <p>info@studionova.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Studio Nova</h3>
+                    <p>Where creativity knows no bounds</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Connect With Us</h3>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 Studio Nova. All rights reserved.</p>
+            </div>
         </div>
-        <div class="service-item">
-            <h3>Cat Haircuts</h3>
-            <p>Professional trimming to keep your cat comfortable and looking stylish.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-        <div class="service-item">
-            <h3>Nail Trimming</h3>
-            <p>Careful nail trimming to prevent scratches and injuries for both cats and humans.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-        <div class="service-item">
-            <h3>De-shedding Treatments</h3>
-            <p>A specialized treatment to reduce excess shedding and keep your home cleaner.</p>
-            <a href='services.html' class="learn-more">Learn More</a>
-        </div>
-    </section>
-    
-    <section class="gallery">
-        <h2>Gallery</h2>
-        <!-- Gallery layout will be implemented later -->
-    </section>
-    
-    <section class="about">
-        <h2>About Us</h2>
-        <p>At Paws & Shine, our mission is to provide top-notch grooming services with a personal touch. Our experienced team treats every pet with love and care.</p>
-        <h3>Testimonials</h3>
-        <!-- Testimonials section to be added later -->
-    </section>
-    
-    <section class="pricing">
-        <h2>Pricing</h2>
-        <!-- Pricing table layout will be implemented later -->
-    </section>
-    
-    <section class="testimonials">
-        <h2>Client Testimonials</h2>
-        <!-- Testimonials slider will be implemented later -->
-    </section>
-    
-    <section class="contact">
-        <h2>Contact Us</h2>
-        <form id="contact-form">
-            <input type="text" name="name" placeholder="Your Name" required>
-            <input type="email" name="email" placeholder="Your Email" required>
-            <input type="tel" name="phone" placeholder="Your Phone" required>
-            <input type="text" name="petName" placeholder="Your Pet's Name" required>
-            <textarea name="message" placeholder="Your Message" required></textarea>
-            <button type="submit">Send Message</button>
-        </form>
-        <div class="contact-info">
-            <p>Phone: (123) 456-7890</p>
-            <p>Email: info@pawsandshine.com</p>
-            <p>Address: 123 Pet Lane, Dogtown, USA</p>
-            <!-- Map placeholder will be included later -->
-        </div>
-        <div class="social-media">
-            <a href="#" class="social-icon">Instagram</a>
-            <a href="#" class="social-icon">Facebook</a>
-        </div>
-    </section>
-    
-    <footer>
-        <p>&copy; 2023 Paws & Shine. All rights reserved.</p>
-        <p>Designed with Love</p>
-        <ul>
-            <li><a href='index.html'>Home</a></li>
-            <li><a href='services.html'>Services</a></li>
-            <li><a href='gallery.html'>Gallery</a></li>
-            <li><a href='about.html'>About Us</a></li>
-            <li><a href='contact.html'>Contact</a></li>
-        </ul>
     </footer>
 
     <script>
-        // Inline JavaScript for form submission can be added here
+        // Mobile menu functionality
+        document.querySelector('.mobile-menu').addEventListener('click', function() {
+            document.querySelector('.nav-links').classList.toggle('active');
+            this.classList.toggle('active');
+        });
+
+        // Smooth scroll functionality
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
     </script>
 </body>
 </html>

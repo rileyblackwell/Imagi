@@ -175,14 +175,30 @@ def undo_last_action_view(request):
 @require_http_methods(['POST'])
 def clear_conversation_history(request):
     try:
-        # Get the user's conversation
-        conversation = get_object_or_404(Conversation, user=request.user)
+        # Try to get the user's conversation
+        conversation = Conversation.objects.filter(user=request.user).first()
         
-        # Delete all messages and pages
+        # If there's no conversation, just clear the website directory and return success
+        if not conversation:
+            # Clear the website directory
+            output_dir = os.path.join(os.path.dirname(__file__), 'website')
+            if os.path.exists(output_dir):
+                for file_name in os.listdir(output_dir):
+                    file_path = os.path.join(output_dir, file_name)
+                    try:
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
+                    except Exception as e:
+                        print(f'Failed to delete {file_path}. Reason: {e}')
+            
+            return JsonResponse({
+                'message': 'Website files cleared successfully (no conversation history found)',
+                'status': 'success'
+            })
+        
+        # If there is a conversation, delete everything
         Message.objects.filter(conversation=conversation).delete()
         Page.objects.filter(conversation=conversation).delete()
-        
-        # Delete the conversation itself
         conversation.delete()
         
         # Clear the website directory

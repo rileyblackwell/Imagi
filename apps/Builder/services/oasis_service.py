@@ -169,10 +169,13 @@ def process_user_input(user_input, model, conversation, page):
             if css_match:
                 assistant_response = css_match.group(1)
             
-            # Validate the CSS content
+            # Validate and clean the CSS content
             cleaned_response = test_css(assistant_response)
             if not cleaned_response:
                 raise ValueError("Invalid CSS content received")
+            
+            # Add a debug print to see the cleaned CSS
+            print("Cleaned CSS content:", cleaned_response)
         else:
             cleaned_response = assistant_response
 
