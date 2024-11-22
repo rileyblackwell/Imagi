@@ -105,20 +105,36 @@ def get_conversation_history(request):
         # Add current request
         current_request = f"[File: {file_name}]\n{user_input}"
         
-        # Create the messages array (same format for both models)
-        ai_messages = [
-            {"role": "system", "content": system_msg["content"]},  # Main system prompt
-            *conversation_history,  # Current file state + conversation history
-            {"role": "system", "content": file_context},  # File context
-            {"role": "user", "content": current_request}  # Current request
-        ]
-
-        # Return the same format for both models
-        return JsonResponse({
-            "model": model,
-            "messages": ai_messages,
-            "system": system_msg["content"] + "\n\n" + file_context  # For reference
-        })
+        if model == 'claude-sonnet':
+            # For Claude, combine system messages and only show actual messages
+            system_content = (
+                f"{system_msg['content']}\n\n"
+                f"CURRENT TASK: You are editing {file_name}\n\n"
+                f"IMPORTANT: Return only the complete, valid file content for {file_name}."
+            )
+            
+            # Only include non-system messages
+            messages = [msg for msg in conversation_history if msg["role"] != "system"]
+            messages.append({"role": "user", "content": current_request})
+            
+            return JsonResponse({
+                "model": model,
+                "messages": messages,
+                "system": system_content
+            })
+        else:
+            # For GPT models, include everything
+            messages = [
+                {"role": "system", "content": system_msg["content"]},
+                *conversation_history,
+                {"role": "system", "content": file_context},
+                {"role": "user", "content": current_request}
+            ]
+            
+            return JsonResponse({
+                "model": model,
+                "messages": messages
+            })
             
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

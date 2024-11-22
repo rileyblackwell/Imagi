@@ -115,27 +115,35 @@ def process_user_input(user_input, model, conversation, page):
             {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
         ]
 
-        # Store the full conversation for logging
-        full_conversation = {
-            "model": model,
-            "messages": complete_messages,
-            "system": system_msg["content"]
-        }
-
         try:
             if model == 'claude-sonnet':
-                # For Claude, we'll use the same structure but format slightly differently
+                # For Claude, combine all system messages into one system prompt
                 system_content = (
                     f"{system_msg['content']}\n\n"
                     f"CURRENT TASK: You are editing {page.filename}\n\n"
                     f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
                 )
                 
-                # Use the same messages as GPT, but exclude the system messages from the messages array
-                claude_messages = [
-                    msg for msg in complete_messages[1:]  # Skip the first system message
-                    if msg["role"] != "system"  # Skip any other system messages
-                ]
+                # For Claude's messages, only include non-system messages
+                claude_messages = []
+                
+                # Add all conversation history except system messages
+                for msg in conversation_history:
+                    if msg["role"] != "system":
+                        claude_messages.append(msg)
+                
+                # Add the current user request
+                claude_messages.append({
+                    "role": "user",
+                    "content": f"[File: {page.filename}]\n{user_input}"
+                })
+                
+                # Store the conversation history that's actually being sent to Claude
+                full_conversation = {
+                    "model": model,
+                    "messages": claude_messages,  # Only the messages being sent to Claude
+                    "system": system_content  # The combined system message
+                }
                 
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
@@ -151,8 +159,15 @@ def process_user_input(user_input, model, conversation, page):
                     messages=complete_messages
                 )
                 assistant_response = completion.choices[0].message.content
+                
+                # Store the conversation history for GPT
+                full_conversation = {
+                    "model": model,
+                    "messages": complete_messages
+                }
 
         except Exception as e:
+            print(f"API Error details: {str(e)}")  # Add detailed error logging
             raise ValueError(f"API error: {str(e)}")
 
         # Validate and clean the response based on file type
