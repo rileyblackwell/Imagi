@@ -73,19 +73,6 @@ body {
     font-weight: 500;
 }
 
-/* Create the ring effect */
-.input-section::before {
-    content: '';
-    position: absolute;
-    top: 60px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    z-index: 0;
-}
-
 #user-input {
     width: 100%;
     height: calc(100% - 60px);
