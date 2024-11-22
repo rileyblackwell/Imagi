@@ -5,9 +5,9 @@
     --background-end: #0a4d68;
     --text-color: #ffffff;
     --input-bg: rgba(255, 255, 255, 0.15);
-    --button-gradient-1: linear-gradient(45deg, #ff3e7f, #ff8a5b);
-    --button-gradient-2: linear-gradient(45deg, #00a2ff, #00ffc6);
-    --button-gradient-3: linear-gradient(45deg, #2ecc71, #00ff9d);
+    --gradient-generate: linear-gradient(45deg, #2ecc71, #00ff9d);
+    --gradient-undo: linear-gradient(45deg, #00a2ff, #00ffc6);
+    --gradient-reset: linear-gradient(45deg, #ff3e7f, #ff8a5b);
     --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
 }
 
@@ -168,7 +168,7 @@ body {
 }
 
 .btn-generate {
-    background: var(--button-gradient-3);
+    background: var(--gradient-generate);
     color: var(--text-color);
     padding: 12px 20px;
     border-radius: 12px;
@@ -181,29 +181,29 @@ body {
 }
 
 .btn-generate:hover {
-    background: var(--button-gradient-3);
+    background: var(--gradient-generate);
     box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
     transform: scale(1.02);
 }
 
 .btn-undo {
-    background: var(--button-gradient-2);
+    background: var(--gradient-undo);
     transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-undo:hover {
-    background: var(--button-gradient-2);
+    background: var(--gradient-undo);
     box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
     transform: scale(1.02);
 }
 
 .btn-reset {
-    background: var(--button-gradient-1);
+    background: var(--gradient-reset);
     transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-reset:hover {
-    background: var(--button-gradient-1);
+    background: var(--gradient-reset);
     box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
     transform: scale(1.02);
 }
