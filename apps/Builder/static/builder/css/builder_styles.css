@@ -48,8 +48,8 @@ body {
 
 /* Input section styles */
 .input-section {
-    width: 300px;
-    height: 300px;
+    width: 350px;
+    height: 350px;
     position: relative;
     margin: 0 auto 10px;
     display: flex;
@@ -92,7 +92,7 @@ body {
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    padding: 60px;
+    padding: 80px;
     color: rgba(255, 255, 255, 0.7);
     font-size: 1.2rem;
     resize: none;
@@ -236,8 +236,8 @@ body {
     }
 
     .input-section {
-        width: 250px;
-        height: 250px;
+        width: 300px;
+        height: 300px;
     }
 
     .input-label span {
@@ -245,7 +245,7 @@ body {
     }
 
     #user-input {
-        padding: 40px;
+        padding: 60px;
         font-size: 1rem;
     }
 
