@@ -167,6 +167,47 @@ body {
     margin-bottom: 40px;
 }
 
+.btn-generate {
+    background: var(--button-gradient-3);
+    color: var(--text-color);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2);
+}
+
+.btn-generate:hover {
+    background: var(--button-gradient-3);
+    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+    transform: scale(1.02);
+}
+
+.btn-undo {
+    background: var(--button-gradient-2);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-undo:hover {
+    background: var(--button-gradient-2);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
+.btn-reset {
+    background: var(--button-gradient-1);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-reset:hover {
+    background: var(--button-gradient-1);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
 /* Bottom Controls */
 .bottom-controls {
     display: grid;
@@ -248,46 +289,4 @@ body {
     .action-buttons {
         grid-template-columns: 1fr;
     }
-}
-
-.btn-primary {
-    background: var(--button-gradient-3); /* Change to green gradient */
-    color: var(--text-color);
-    padding: 12px 20px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 600;
-    transition: background 0.2s ease, box-shadow 0.2s ease; /* Adjusted transition */
-    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2); /* Reduced shadow */
-}
-
-/* Ensure the hover effect retains the same background */
-.btn-primary:hover {
-    background: var(--button-gradient-3); /* Keep the same green gradient on hover */
-    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3); /* Slightly increase shadow on hover */
-    transform: scale(1.02); /* Subtle scaling effect */
-}
-
-.btn-secondary {
-    background: var(--button-gradient-2);
-    transition: background 0.2s ease, box-shadow 0.2s ease; /* Adjusted transition */
-}
-
-.btn-secondary:hover {
-    background: var(--button-gradient-2); /* Keep the same background on hover */
-    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2); /* Reduced shadow */
-    transform: scale(1.02); /* Subtle scaling effect */
-}
-
-.btn-danger {
-    background: var(--button-gradient-1);
-    transition: background 0.2s ease, box-shadow 0.2s ease; /* Adjusted transition */
-}
-
-.btn-danger:hover {
-    background: var(--button-gradient-1); /* Keep the same background on hover */
-    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2); /* Reduced shadow */
-    transform: scale(1.02); /* Subtle scaling effect */
 }
