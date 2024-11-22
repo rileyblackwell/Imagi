@@ -49,39 +49,6 @@ body.app-page {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Blue Gradient Button */
-.app-button-blue {
-    background: var(--app-button-blue-gradient);
-    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2);
-}
-
-.app-button-blue:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.3);
-}
-
-/* Pink Gradient Button */
-.app-button-pink {
-    background: var(--app-button-pink-gradient);
-    box-shadow: 0 4px 10px rgba(255, 68, 68, 0.2);
-}
-
-.app-button-pink:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(255, 68, 68, 0.3);
-}
-
-/* Red Gradient Button */
-.app-button-red {
-    background: var(--app-button-red-gradient);
-    box-shadow: 0 4px 10px rgba(255, 0, 0, 0.2);
-}
-
-.app-button-red:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(255, 0, 0, 0.3);
-}
-
 /* Common Form Styles */
 .form-group {
     margin-bottom: 20px;
