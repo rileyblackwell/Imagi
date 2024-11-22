@@ -119,20 +119,20 @@ body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* Action Buttons - adjust size and position */
+/* Action Buttons - adjust layout and style */
 .action-buttons {
     display: flex;
-    justify-content: center;
-    gap: 30px;
-    margin: 0 auto;
+    justify-content: space-around;
+    gap: 15px;
+    margin: 15px auto;
     width: 100%;
     max-width: 600px;
 }
 
 /* Button adjustments */
 .btn-action {
-    padding: 12px 20px;
-    min-width: 120px;
+    padding: 15px 25px;
+    min-width: 130px;
     border-radius: 30px;
     border: none;
     cursor: pointer;
@@ -142,6 +142,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: background 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* Button hover effects */
@@ -154,12 +155,12 @@ body {
 .btn-undo { background: var(--gradient-undo); }
 .btn-reset { background: var(--gradient-reset); }
 
-/* Bottom Controls - adjust layout and position */
+/* Bottom Controls - adjust layout and style */
 .bottom-controls {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
-    margin-top: 5px;
+    gap: 15px;
+    margin-top: 10px;
     width: 100%;
     max-width: 600px;
 }
@@ -182,6 +183,7 @@ body {
     border-radius: 25px;
     color: white;
     cursor: pointer;
+    transition: background 0.3s ease;
 }
 
 /* Dropdown options styling */
