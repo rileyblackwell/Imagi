@@ -11,9 +11,51 @@
     --container-gradient: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
 }
 
+/* Common Button Styles */
+.btn-action {
+    color: var(--text-color);
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2);
+}
+
+.btn-generate {
+    background: var(--gradient-generate);
+}
+
+.btn-generate:hover {
+    background: var(--gradient-generate);
+    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+    transform: scale(1.02);
+}
+
+.btn-undo {
+    background: var(--gradient-undo);
+}
+
+.btn-undo:hover {
+    background: var(--gradient-undo);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
+.btn-reset {
+    background: var(--gradient-reset);
+}
+
+.btn-reset:hover {
+    background: var(--gradient-reset);
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
 /* Body styles */
 body {
-    font-family: 'Poppins', sans-serif;
     line-height: 1.3;
     color: var(--text-color);
     background: linear-gradient(135deg, var(--background-start), var(--background-end));
@@ -165,47 +207,6 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 15px;
     margin-bottom: 40px;
-}
-
-.btn-generate {
-    background: var(--gradient-generate);
-    color: var(--text-color);
-    padding: 12px 20px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 600;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2);
-}
-
-.btn-generate:hover {
-    background: var(--gradient-generate);
-    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
-    transform: scale(1.02);
-}
-
-.btn-undo {
-    background: var(--gradient-undo);
-    transition: background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-undo:hover {
-    background: var(--gradient-undo);
-    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
-    transform: scale(1.02);
-}
-
-.btn-reset {
-    background: var(--gradient-reset);
-    transition: background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-reset:hover {
-    background: var(--gradient-reset);
-    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
-    transform: scale(1.02);
 }
 
 /* Bottom Controls */
