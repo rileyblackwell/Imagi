@@ -42,7 +42,7 @@ body {
     flex-direction: column;
     align-items: center;
     position: relative;
-    padding: 20px 40px;
+    padding: 15px 40px;
     transform: scaleX(1.1);
 }
 
@@ -51,7 +51,7 @@ body {
     width: 350px;
     height: 350px;
     position: relative;
-    margin: 0 auto 10px;
+    margin: 0 auto 5px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -122,16 +122,16 @@ body {
 /* Action Buttons */
 .action-buttons {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     gap: 10px;
-    margin: 15px auto;
-    width: auto;
-    max-width: none;
+    margin: 10px auto;
+    width: 100%;
+    max-width: 600px;
 }
 
 .btn-action {
-    padding: 10px 20px;
-    min-width: 120px;
+    padding: 10px 15px;
+    min-width: 100px;
     border-radius: 25px;
     border: none;
     cursor: pointer;
@@ -150,18 +150,20 @@ body {
 
 /* Bottom Controls */
 .bottom-controls {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-top: 15px;
-    width: 85%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
     max-width: 600px;
 }
 
 .select-wrapper {
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-bottom: 10px;
 }
 
 .select-wrapper label {
@@ -171,7 +173,7 @@ body {
 
 .styled-select {
     width: 100%;
-    padding: 8px 16px;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 25px;
@@ -197,7 +199,7 @@ body {
 
 /* Custom Page Input */
 .custom-page-section {
-    margin-top: 15px;
+    margin-top: 10px;
     display: flex;
     gap: 10px;
     width: 100%;
@@ -237,12 +239,13 @@ body {
     }
 
     .bottom-controls {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+        width: 100%;
     }
 
     .action-buttons {
         flex-direction: column;
-        width: 80%;
+        width: 100%;
     }
 
     .btn-action {
