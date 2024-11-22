@@ -83,22 +83,6 @@ def test_html(html):
 
 def get_file_context(filename):
     """Generates the file-specific context message."""
-    if filename.endswith('.html'):
-        return (
-            f"You are working on file: {filename}\n"
-            "REQUIREMENTS:\n"
-            "1. Ensure proper linking to styles.css.\n"
-            "2. Ensure proper linking to all other HTML webpages.\n"
-            "3. Maintain consistent styling across all pages.\n"
-        )
-
-    elif filename == 'styles.css':
-        return (
-            f"You are working on file: {filename}\n"
-            "REQUIREMENTS:\n"
-            "1. Group related styles together for better organization.\n"           
-            "2. Use CSS variables in :root {} for consistent theming.\n"        
-        )
     return f"You are working on file: {filename}"
 
 def ensure_website_directory(base_dir):
