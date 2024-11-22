@@ -184,7 +184,8 @@ body {
 /* Common Button Hover Styles */
 .btn-action-hover {
     box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
-    transform: scale(1.02);
+    transform: scale(1.01);
+    transition: background 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
 }
 
 .btn-generate {
