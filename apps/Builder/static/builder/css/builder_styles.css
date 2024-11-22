@@ -117,7 +117,7 @@ body {
 
 /* Add this rule to ensure the placeholder text is smaller and lowercase */
 #user-input::placeholder {
-    font-size: 4rem;
+    font-size: 2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
@@ -125,7 +125,7 @@ body {
 
 /* Add specific webkit placeholder styling */
 #user-input::-webkit-input-placeholder {
-    font-size: 4rem;
+    font-size: 2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
@@ -133,7 +133,7 @@ body {
 
 /* Add specific Firefox placeholder styling */
 #user-input::-moz-placeholder {
-    font-size: 4rem;
+    font-size: 2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
@@ -141,7 +141,7 @@ body {
 
 /* Add specific IE placeholder styling */
 #user-input:-ms-input-placeholder {
-    font-size: 4rem;
+    font-size: 2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
