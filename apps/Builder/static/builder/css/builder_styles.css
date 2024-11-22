@@ -124,7 +124,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin: 10px auto;
+    margin: 0 auto;
     width: 100%;
     max-width: 600px;
 }
@@ -154,12 +154,12 @@ body {
 .btn-undo { background: var(--gradient-undo); }
 .btn-reset { background: var(--gradient-reset); }
 
-/* Bottom Controls - adjust layout */
+/* Bottom Controls - adjust layout and position */
 .bottom-controls {
     display: flex;
     justify-content: space-between;
-    gap: 15px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 5px;
     width: 100%;
     max-width: 600px;
 }
@@ -196,9 +196,9 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Custom Page Input */
+/* Custom Page Input - move up */
 .custom-page-section {
-    margin-top: 10px;
+    margin-top: 5px;
     display: flex;
     gap: 10px;
     width: 100%;
