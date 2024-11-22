@@ -71,8 +71,16 @@ body {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.9rem;
     resize: none;
-    text-align: center;
+    text-align: left;
+    position: relative;
+    z-index: 1;
     outline: none;
+}
+
+/* Add focus outline */
+#user-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px var(--primary-color);
 }
 
 /* Responsive Design */
