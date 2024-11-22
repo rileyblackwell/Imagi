@@ -23,67 +23,62 @@ anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 
 def build_conversation_history(system_msg, page, output_dir):
-    """Builds the conversation history in the exact format sent to AI models.
+    """Builds the conversation history with the complete website context.
     
     Structure:
-    1. Most recent version of all current HTML and CSS files
-    2. All user and assistant messages for the current file
+    1. Current state of all HTML and CSS files
+    2. Conversation history for the current file
     """
     conversation_history = []
     
-    # 1. Add current state of all files (most recent versions)
+    # 1. Add current state of ALL files
     if os.path.exists(output_dir):
         # First add all HTML files
         html_files = [f for f in os.listdir(output_dir) if f.endswith('.html')]
-        html_files.sort()  # Ensure consistent order (index.html first)
-        if 'index.html' in html_files:  # Move index.html to front if it exists
+        html_files.sort()
+        
+        # Ensure index.html is first
+        if 'index.html' in html_files:
             html_files.remove('index.html')
             html_files.insert(0, 'index.html')
-            
+        
+        # Add all HTML files (including the current one)
         for filename in html_files:
-            if filename == page.filename:  # Skip current file, it will be handled separately
-                continue
             file_path = os.path.join(output_dir, filename)
             try:
                 with open(file_path, 'r') as f:
                     file_content = f.read()
                     conversation_history.append({
                         "role": "assistant",
-                        "content": f"[File: {filename}]\n{file_content}"
+                        "content": f"[File: {filename}]\nCurrent HTML content:\n{file_content}"
                     })
             except FileNotFoundError:
                 continue
         
-        # Then add CSS file if it exists and isn't the current file
+        # Add CSS file if it exists
         css_path = os.path.join(output_dir, 'styles.css')
-        if os.path.exists(css_path) and page.filename != 'styles.css':
+        if os.path.exists(css_path):
             try:
                 with open(css_path, 'r') as f:
                     css_content = f.read()
                     conversation_history.append({
                         "role": "assistant",
-                        "content": f"[File: styles.css]\n{css_content}"
+                        "content": f"[File: styles.css]\nCurrent CSS content:\n{css_content}"
                     })
             except FileNotFoundError:
                 pass
     
-    # 2. Add current file content if it exists
-    try:
-        with open(os.path.join(output_dir, page.filename), 'r') as f:
-            current_content = f.read()
-            conversation_history.append({
-                "role": "assistant",
-                "content": f"[File: {page.filename}]\n{current_content}"
-            })
-    except FileNotFoundError:
-        pass
-    
-    # 3. Add conversation history for the current file being edited
+    # 2. Add conversation history for the current file
     current_file_messages = page.messages.all().order_by('created_at')
     for msg in current_file_messages:
+        # Ensure all messages are properly tagged with the file context
+        content = msg.content
+        if msg.role == "user" and not content.startswith("[File:"):
+            content = f"[File: {page.filename}]\n{content}"
+        
         conversation_history.append({
             "role": msg.role,
-            "content": f"[File: {page.filename}]\n{msg.content}" if msg.role == "user" else msg.content
+            "content": content
         })
     
     return conversation_history
@@ -105,58 +100,47 @@ def process_user_input(user_input, model, conversation, page):
         # Add the current file context
         file_context = get_file_context(page.filename)
         
-        # Add the current request
-        current_request = f"[File: {page.filename}]\n{user_input}"
-        
-        # Create the messages array that will be used for both models
-        ai_messages = [
-            {"role": "system", "content": system_msg["content"]},  # Main system prompt only once
-            *conversation_history,  # Current file states + conversation history
-            {"role": "system", "content": file_context},  # File context
-            {"role": "user", "content": current_request}  # Current request
+        # Create the complete messages array with proper structure
+        complete_messages = [
+            # 1. System prompt
+            {"role": "system", "content": system_msg["content"]},
+            
+            # 2. Current state of all website files (from conversation_history)
+            *conversation_history,
+            
+            # 3. File context (which file we're editing)
+            {"role": "system", "content": file_context},
+            
+            # 4. Current user request
+            {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
         ]
 
-        # Store the full conversation for logging (same format for both models)
+        # Store the full conversation for logging
         full_conversation = {
             "model": model,
-            "messages": ai_messages,
-            "system": system_msg["content"] + "\n\n" + file_context  # For reference
+            "messages": complete_messages,
+            "system": system_msg["content"]
         }
 
-        # Process based on model
         try:
             if model == 'claude-sonnet':
-                # For Claude, we only need to combine the file context into the system message
+                # For Claude, we'll use the same structure but format slightly differently
                 system_content = (
                     f"{system_msg['content']}\n\n"
-                    f"CURRENT TASK:\n"
-                    f"{file_context}\n\n"
-                    f"IMPORTANT: You must return a complete, valid {page.filename} file.\n"
-                    f"Your response must contain only the file content, no explanations."
+                    f"CURRENT TASK: You are editing {page.filename}\n\n"
+                    f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
                 )
                 
-                # Build messages array for Claude focusing on current file content
+                # Convert complete_messages to Claude's format
                 claude_messages = []
                 
-                # Add the current file's content if it exists
-                try:
-                    with open(os.path.join(output_dir, page.filename), 'r') as f:
-                        current_content = f.read()
+                # Add all messages except the original system message
+                for msg in complete_messages[1:]:  # Skip the first system message
+                    if msg["role"] != "system":  # Skip secondary system messages
                         claude_messages.append({
-                            "role": "assistant", 
-                            "content": f"Current content of {page.filename}:\n{current_content}"
+                            "role": msg["role"],
+                            "content": msg["content"]
                         })
-                except FileNotFoundError:
-                    pass
-                
-                # Add the user's request
-                claude_messages.append({
-                    "role": "user",
-                    "content": (
-                        f"Update the above {page.filename} file with these changes: {user_input}\n"
-                        f"Remember to return the complete file with all content."
-                    )
-                })
                 
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
@@ -166,10 +150,10 @@ def process_user_input(user_input, model, conversation, page):
                 )
                 assistant_response = completion.content[0].text
             else:
-                # For OpenAI, use the messages array as is
+                # For OpenAI, use the complete messages array as is
                 completion = openai_client.chat.completions.create(
                     model=model,
-                    messages=ai_messages
+                    messages=complete_messages
                 )
                 assistant_response = completion.choices[0].message.content
 

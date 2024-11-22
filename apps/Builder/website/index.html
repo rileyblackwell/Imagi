@@ -1,75 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Dog Grooming Services</title>
-    <link rel='stylesheet' href='styles.css'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purr-fect Cats | Home</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Welcome to Our Dog Grooming Services</h1>
-        <nav>
-            <ul>
-                <li><a href='index.html'>Home</a></li>
-                <li><a href='services.html'>Services</a></li>
-                <li><a href='about.html'>About Us</a></li>
-                <li><a href='contact.html'>Contact</a></li>
+        <nav class="navbar">
+            <div class="logo">
+                <h1>🐱 Purr-fect Cats</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Home</a></li>
+                <li><a href="breeds.html">Cat Breeds</a></li>
+                <li><a href="care.html">Cat Care</a></li>
+                <li><a href="contact.html">Contact</a></li>
             </ul>
         </nav>
     </header>
-    
+
     <main>
-        <section>
-            <h2>Why Choose Us?</h2>
-            <p>We provide exceptional grooming services to ensure your furry friends look and feel their best. Our professional groomers are skilled, compassionate, and use only the best products.</p>
-        </section>
-        
-        <section>
-            <h2>Our Services</h2>
-            <ul>
-                <li>Bathing</li>
-                <li>Haircuts</li>
-                <li>Nail Trimming</li>
-                <li>Ear Cleaning</li>
-                <li>Specialized Treatments</li>
-            </ul>
+        <section class="hero">
+            <div class="hero-content">
+                <h2>Welcome to the Wonderful World of Cats</h2>
+                <p>Discover everything you need to know about our feline friends</p>
+                <a href="breeds.html" class="cta-button">Explore Breeds</a>
+            </div>
         </section>
 
-        <section>
-            <h2>Our Process</h2>
-            <p>At our grooming facility, we follow a simple yet effective process:</p>
-            <ol>
-                <li>Consultation to understand your pet's specific needs.</li>
-                <li>Bathing with high-quality, pet-friendly products.</li>
-                <li>Detailed grooming and styling tailored to your pet's breed.</li>
-                <li>Final touches including nail trimming and cleaning ears.</li>
-                <li>Feedback and recommendations for maintaining your pet's grooming at home.</li>
-            </ol>
-        </section>
-        
-        <section>
-            <h2>Testimonials</h2>
-            <blockquote>
-                <p>"Absolutely the best grooming experience! My dog has never looked better!" - Sarah L.</p>
-            </blockquote>
-            <blockquote>
-                <p>"The staff is so friendly and my dog loves coming here. Highly recommend!" - Mike T.</p>
-            </blockquote>
+        <section class="features">
+            <div class="feature-card">
+                <img src="https://source.unsplash.com/400x300/?cat" alt="Cat Portrait">
+                <h3>Cat Breeds</h3>
+                <p>Explore different cat breeds and find your perfect match</p>
+            </div>
+            <div class="feature-card">
+                <img src="https://source.unsplash.com/400x300/?kitten" alt="Kitten Playing">
+                <h3>Cat Care Tips</h3>
+                <p>Learn how to keep your cat healthy and happy</p>
+            </div>
+            <div class="feature-card">
+                <img src="https://source.unsplash.com/400x300/?cats" alt="Cats Together">
+                <h3>Cat Community</h3>
+                <p>Join our community of cat lovers and share your stories</p>
+            </div>
         </section>
 
-        <section>
-            <h2>Frequently Asked Questions</h2>
-            <h3>How often should I groom my dog?</h3>
-            <p>It depends on the breed. Generally, dogs with longer hair require more frequent grooming, while short-haired breeds can be groomed less often.</p>
-            
-            <h3>Do I need an appointment?</h3>
-            <p>We recommend making an appointment to ensure the best service and availability for your pet.</p>
+        <section class="newsletter">
+            <h3>Stay Updated</h3>
+            <p>Subscribe to our newsletter for the latest cat care tips and news</p>
+            <form class="newsletter-form">
+                <input type="email" placeholder="Enter your email" required>
+                <button type="submit">Subscribe</button>
+            </form>
         </section>
     </main>
 
     <footer>
-        <p>&copy; 2023 Dog Grooming Services. All rights reserved.</p>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>About Us</h4>
+                <p>Dedicated to helping cat lovers provide the best care for their feline companions.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="breeds.html">Cat Breeds</a></li>
+                    <li><a href="care.html">Cat Care</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Connect With Us</h4>
+                <div class="social-links">
+                    <a href="#" aria-label="Facebook">📱</a>
+                    <a href="#" aria-label="Instagram">📷</a>
+                    <a href="#" aria-label="Twitter">🐦</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Purr-fect Cats. All rights reserved.</p>
+        </div>
     </footer>
 </body>
 </html>
