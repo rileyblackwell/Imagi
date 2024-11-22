@@ -40,8 +40,8 @@ body {
 /* Title section styles */
 .main-title-section {
     text-align: center;
-    padding: 30px 15px;
-    margin-bottom: 30px;
+    padding: 15px 15px;
+    margin-bottom: 20px;
     position: relative;
     overflow: hidden;
 }
@@ -115,9 +115,9 @@ body {
     outline: none;
 }
 
-/* Update placeholder text size to be slightly larger */
+/* Update placeholder text size to be 1.2rem */
 #user-input::placeholder {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
@@ -125,7 +125,7 @@ body {
 
 /* Add specific webkit placeholder styling */
 #user-input::-webkit-input-placeholder {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
@@ -133,7 +133,7 @@ body {
 
 /* Add specific Firefox placeholder styling */
 #user-input::-moz-placeholder {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
@@ -141,7 +141,7 @@ body {
 
 /* Add specific IE placeholder styling */
 #user-input:-ms-input-placeholder {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     color: rgba(255, 255, 255, 0.7);
     text-transform: lowercase;
     line-height: 1.2;
