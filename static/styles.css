@@ -1,135 +1,167 @@
 /* Root variables for global styles */
 :root {
-    --font-family: 'Poppins', sans-serif;
-    --primary-color: #ffffff;
-    --secondary-color: rgba(255, 255, 255, 0.8);
-    --background-dark: rgba(13, 12, 34, 0.8);
-    --background-blur: 15px;
-    --border-color-light: rgba(255, 255, 255, 0.1);
-    --gradient-primary: linear-gradient(45deg, #00a2ff, #00ffc6);
-    --button-shadow: rgba(0, 162, 255, 0.3);
-    --button-shadow-hover: rgba(0, 162, 255, 0.4);
-    --footer-gradient: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+    /* Font family */
+    --global-font-family: 'Poppins', sans-serif;
+
+    /* Colors */
+    --global-text-color: #ffffff;
+    --global-muted-text-color: rgba(255, 255, 255, 0.8);
+    --global-background-dark: rgba(13, 12, 34, 0.8);
+    --global-border-light: rgba(255, 255, 255, 0.1);
+    --global-footer-gradient: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+
+    /* Spacing and layout */
+    --global-line-height: 1.6;
+    --global-container-padding: 25px;
+
+    /* Gradients */
+    --global-highlight-gradient: linear-gradient(45deg, #00a2ff, #00ffc6);
+
+    /* Shadows */
+    --global-button-shadow: rgba(0, 162, 255, 0.3);
+    --global-button-shadow-hover: rgba(0, 162, 255, 0.4);
+
+    /* Blur effect */
+    --global-blur-intensity: 15px;
 }
 
 /* Body styles */
 body {
-    font-family: var(--font-family);
-    line-height: 1.6;
+    font-family: var(--global-font-family);
+    line-height: var(--global-line-height);
     margin: 0;
     padding: 0;
-    color: var(--primary-color);
+    color: var(--global-text-color);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding-top: 0;
+    background-color: var(--global-background-dark);
 }
 
-/* Navbar base styles */
-.navbar {
-    background: var(--background-dark);
-    backdrop-filter: blur(var(--background-blur));
-    -webkit-backdrop-filter: blur(var(--background-blur));
+/* Header (Navbar) styles */
+.header-navbar {
+    background: var(--global-background-dark);
+    backdrop-filter: blur(var(--global-blur-intensity));
+    -webkit-backdrop-filter: blur(var(--global-blur-intensity));
     padding: 20px 0;
-    transition: all 0.3s ease;
-    border-bottom: 1px solid var(--border-color-light);
+    border-bottom: 1px solid var(--global-border-light);
     position: relative;
     z-index: 1000;
+    transition: background 0.3s ease;
 }
 
-.navbar:hover {
-    background: var(--background-dark);
+.header-navbar:hover {
+    background: var(--global-background-dark);
 }
 
-/* Remove app-navbar specific styling that was causing the grey background */
-.app-navbar {
-    background: var(--background-dark);
-    backdrop-filter: blur(var(--background-blur));
-    -webkit-backdrop-filter: blur(var(--background-blur));
-    border-bottom: 1px solid var(--border-color-light);
+.header-navbar .navbar-container {
+    padding: 0 var(--global-container-padding);
 }
 
-.navbar .container {
-    padding: 0 25px;
-}
-
-.navbar-brand {
+.header-brand {
     display: flex;
     align-items: center;
-    color: var(--primary-color) !important;
+    color: var(--global-text-color);
     font-weight: 700;
     font-size: 1.5rem;
     letter-spacing: 0.5px;
+    text-transform: uppercase;
     transition: transform 0.3s ease;
 }
 
-.brand-text {
-    background: var(--gradient-primary);
+.header-brand-highlight {
+    background: var(--global-highlight-gradient);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     font-size: 1.8rem;
 }
 
-/* Mobile styles */
-@media screen and (max-width: 991px) {
-    .navbar {
-        padding: 15px 0;
-    }
-
-    .navbar .container {
-        padding: 0 15px;
-    }
-
-    .navbar-collapse {
-        background: rgba(0, 0, 0, 0.95);
-        margin-top: 15px;
-        padding: 20px;
-        border-radius: 15px;
-        border: 1px solid var(--border-color-light);
-    }
-}
-
 /* Footer styles */
-.footer {
+.site-footer {
     flex-shrink: 0;
     width: 100%;
-    background: var(--footer-gradient);
+    background: var(--global-footer-gradient);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 25px 0;
     text-align: center;
     margin-top: auto;
-    border-top: 1px solid var(--border-color-light);
+    border-top: 1px solid var(--global-border-light);
 }
 
-/* Other styles updated to use variables */
-.footer-link {
-    color: var(--secondary-color);
+.site-footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 var(--global-container-padding);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.site-footer-links {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.site-footer-link {
+    color: var(--global-muted-text-color);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease;
 }
 
-.footer-link:hover {
-    color: var(--primary-color);
-    text-shadow: 0 0 10px var(--primary-color);
+.site-footer-link:hover {
+    color: var(--global-text-color);
+    text-shadow: 0 0 10px var(--global-text-color);
 }
 
-.btn-primary {
-    background: var(--gradient-primary);
-    border: none;
-    padding: 12px 20px;
-    border-radius: 12px;
-    color: var(--primary-color);
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px var(--button-shadow);
+.site-footer-divider {
+    color: var(--global-muted-text-color);
+    font-size: 0.8rem;
 }
 
-.btn-primary:hover {
-    background: var(--gradient-primary);
-    box-shadow: 0 6px 20px var(--button-shadow-hover);
-    transform: translateY(-2px);
+.site-footer-copyright {
+    color: var(--global-muted-text-color);
+    font-size: 0.85rem;
+    font-weight: 400;
+    margin: 0;
+    text-align: center;
+}
+
+/* Global layout utilities */
+.global-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--global-container-padding);
+}
+
+.global-text-center {
+    text-align: center;
+}
+
+/* Mobile styles */
+@media screen and (max-width: 991px) {
+    .header-navbar {
+        padding: 15px 0;
+    }
+
+    .header-navbar .navbar-container {
+        padding: 0 15px;
+    }
+
+    .site-footer-content {
+        gap: 12px;
+    }
+
+    .site-footer-link {
+        font-size: 0.85rem;
+    }
+
+    .site-footer-copyright {
+        font-size: 0.8rem;
+    }
 }
