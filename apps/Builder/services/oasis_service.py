@@ -26,10 +26,8 @@ def build_conversation_history(system_msg, page, output_dir):
     """Builds the conversation history in the exact format sent to AI models.
     
     Structure:
-    1. System prompt (main Imagi Oasis instructions)
-    2. Most recent version of all current HTML and CSS files
-    3. All user and assistant messages for the current file
-    4. File-specific system prompt
+    1. Most recent version of all current HTML and CSS files
+    2. All user and assistant messages for the current file
     """
     conversation_history = []
     
@@ -43,43 +41,50 @@ def build_conversation_history(system_msg, page, output_dir):
             html_files.insert(0, 'index.html')
             
         for filename in html_files:
+            if filename == page.filename:  # Skip current file, it will be handled separately
+                continue
             file_path = os.path.join(output_dir, filename)
             try:
                 with open(file_path, 'r') as f:
                     file_content = f.read()
                     conversation_history.append({
                         "role": "assistant",
-                        "content": f"[File: {filename}]\nCurrent HTML content:\n{file_content}"
+                        "content": f"[File: {filename}]\n{file_content}"
                     })
             except FileNotFoundError:
                 continue
         
-        # Then add CSS file if it exists
+        # Then add CSS file if it exists and isn't the current file
         css_path = os.path.join(output_dir, 'styles.css')
-        if os.path.exists(css_path):
+        if os.path.exists(css_path) and page.filename != 'styles.css':
             try:
                 with open(css_path, 'r') as f:
                     css_content = f.read()
                     conversation_history.append({
                         "role": "assistant",
-                        "content": f"[File: styles.css]\nCurrent CSS content:\n{css_content}"
+                        "content": f"[File: styles.css]\n{css_content}"
                     })
             except FileNotFoundError:
                 pass
     
-    # 2. Add conversation history for the current file being edited
-    current_file_messages = page.messages.all().order_by('created_at')
-    for msg in current_file_messages:
-        if msg.role == 'user':
-            conversation_history.append({
-                "role": "user",
-                "content": f"[File: {msg.page.filename}]\n{msg.content}"
-            })
-        elif msg.role == 'assistant':
+    # 2. Add current file content if it exists
+    try:
+        with open(os.path.join(output_dir, page.filename), 'r') as f:
+            current_content = f.read()
             conversation_history.append({
                 "role": "assistant",
-                "content": msg.content
+                "content": f"[File: {page.filename}]\n{current_content}"
             })
+    except FileNotFoundError:
+        pass
+    
+    # 3. Add conversation history for the current file being edited
+    current_file_messages = page.messages.all().order_by('created_at')
+    for msg in current_file_messages:
+        conversation_history.append({
+            "role": msg.role,
+            "content": f"[File: {page.filename}]\n{msg.content}" if msg.role == "user" else msg.content
+        })
     
     return conversation_history
 
@@ -105,8 +110,8 @@ def process_user_input(user_input, model, conversation, page):
         
         # Create the messages array that will be used for both models
         ai_messages = [
-            {"role": "system", "content": system_msg["content"]},  # Main system prompt
-            *conversation_history,  # Current file state + conversation history
+            {"role": "system", "content": system_msg["content"]},  # Main system prompt only once
+            *conversation_history,  # Current file states + conversation history
             {"role": "system", "content": file_context},  # File context
             {"role": "user", "content": current_request}  # Current request
         ]
@@ -121,7 +126,7 @@ def process_user_input(user_input, model, conversation, page):
         # Process based on model
         try:
             if model == 'claude-sonnet':
-                # For Claude, combine system messages and make the file context more prominent
+                # For Claude, we only need to combine the file context into the system message
                 system_content = (
                     f"{system_msg['content']}\n\n"
                     f"CURRENT TASK:\n"
@@ -130,19 +135,16 @@ def process_user_input(user_input, model, conversation, page):
                     f"Your response must contain only the file content, no explanations."
                 )
                 
-                # For Claude, we'll structure messages differently
-                claude_messages = [
-                    # First add the current state of the file being edited
-                    {"role": "assistant", "content": f"Current content of {page.filename}:"},
-                ]
+                # Build messages array for Claude focusing on current file content
+                claude_messages = []
                 
                 # Add the current file's content if it exists
                 try:
                     with open(os.path.join(output_dir, page.filename), 'r') as f:
                         current_content = f.read()
                         claude_messages.append({
-                            "role": "assistant",
-                            "content": current_content
+                            "role": "assistant", 
+                            "content": f"Current content of {page.filename}:\n{current_content}"
                         })
                 except FileNotFoundError:
                     pass
