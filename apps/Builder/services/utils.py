@@ -17,7 +17,8 @@ def get_system_message():
             "- Make requested changes (e.g., add a contact form, modify a color) and ensure they integrate seamlessly.\n"
             "- Preserve existing content unless explicitly instructed to remove it.\n"
             "- Ensure proper formatting, structure, and valid syntax.\n"
-            "- Return only the file content without explanations or markdown.\n\n"
+            "- Return only the file content without explanations or markdown.\n"
+            "- Do not include images in the generated content, as images are not supported right now.\n\n"
 
             "2. File Consistency:\n"
             "- Do not provide partial updates; always generate the complete file.\n"

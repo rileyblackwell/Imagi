@@ -131,16 +131,11 @@ def process_user_input(user_input, model, conversation, page):
                     f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
                 )
                 
-                # Convert complete_messages to Claude's format
-                claude_messages = []
-                
-                # Add all messages except the original system message
-                for msg in complete_messages[1:]:  # Skip the first system message
-                    if msg["role"] != "system":  # Skip secondary system messages
-                        claude_messages.append({
-                            "role": msg["role"],
-                            "content": msg["content"]
-                        })
+                # Use the same messages as GPT, but exclude the system messages from the messages array
+                claude_messages = [
+                    msg for msg in complete_messages[1:]  # Skip the first system message
+                    if msg["role"] != "system"  # Skip any other system messages
+                ]
                 
                 completion = anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
