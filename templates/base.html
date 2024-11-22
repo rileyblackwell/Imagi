@@ -25,10 +25,12 @@
     {% block navbar %}
     <nav class="header-navbar navbar navbar-expand-lg">
         <div class="global-container">
-            <a class="header-brand" href="{% url 'landing_page' %}">
-                <div class="logo-placeholder"></div>
-                <span class="header-brand-highlight">Imagi</span>
-            </a>
+            <div class="navbar-header">
+                <a class="header-brand" href="{% url 'landing_page' %}">
+                    <div class="header-logo-placeholder"></div>
+                    <span class="header-brand-highlight">Imagi</span>
+                </a>
+            </div>
 
             <!-- Additional Navbar Links -->
             {% block navbar_links %}{% endblock %}

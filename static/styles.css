@@ -58,15 +58,58 @@ body {
     padding: 0 var(--global-container-padding);
 }
 
+.navbar-header {
+    display: flex;
+    align-items: center;
+}
+
 .header-brand {
     display: flex;
     align-items: center;
+    gap: 10px;
     color: var(--global-text-color);
     font-weight: 700;
     font-size: 1.5rem;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    transition: transform 0.3s ease;
+    text-decoration: none;
+}
+
+.header-brand:hover {
+    text-decoration: none;
+    color: var(--global-text-color);
+}
+
+/* Logo placeholder styles for header */
+.header-logo-placeholder {
+    width: 30px;
+    height: 30px;
+    position: relative;
+    display: inline-block;
+    transform: rotate(45deg);
+    border-radius: 50% / 30%;
+    overflow: hidden;
+}
+
+.header-logo-placeholder::before,
+.header-logo-placeholder::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px solid white;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.header-logo-placeholder::before {
+    transform: rotate(45deg);
+}
+
+.header-logo-placeholder::after {
+    transform: rotate(-45deg);
 }
 
 .header-brand-highlight {
@@ -163,5 +206,18 @@ body {
 
     .site-footer-copyright {
         font-size: 0.8rem;
+    }
+
+    .header-brand {
+        font-size: 1.3rem;
+    }
+
+    .header-logo-placeholder {
+        width: 25px;
+        height: 25px;
+    }
+
+    .header-brand-highlight {
+        font-size: 1.5rem;
     }
 }
