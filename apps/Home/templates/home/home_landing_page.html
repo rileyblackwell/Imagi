@@ -8,10 +8,10 @@
 {% endblock %}
 
 {% block navbar_links %}
-<div class="home-nav-buttons">
-    <ul class="home-nav-buttons-list">
-        <li class="home-nav-item dropdown">
-            <a class="home-nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+<div class="nav-buttons">
+    <ul class="nav-buttons-list">
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle primary-action" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-th"></i> Products
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
@@ -21,19 +21,19 @@
             </div>
         </li>
         {% if user.is_authenticated %}
-            <li class="home-nav-item">
-                <a href="{% url 'payments:create-checkout-session' %}" class="home-nav-link">
+            <li class="nav-item">
+                <a href="{% url 'payments:create-checkout-session' %}" class="nav-link primary-action">
                     <i class="fas fa-coins"></i> Buy Credits
                 </a>
             </li>
-            <li class="home-nav-item">
-                <a href="{% url 'logout' %}" class="home-nav-link primary-action">
+            <li class="nav-item">
+                <a href="{% url 'logout' %}" class="nav-link primary-action">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </li>
         {% else %}
-            <li class="home-nav-item">
-                <a href="{% url 'login' %}" class="home-nav-link primary-action">
+            <li class="nav-item">
+                <a href="{% url 'login' %}" class="nav-link primary-action">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </a>
             </li>
