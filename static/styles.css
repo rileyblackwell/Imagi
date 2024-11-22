@@ -1,10 +1,24 @@
+/* Root variables for global styles */
+:root {
+    --font-family: 'Poppins', sans-serif;
+    --primary-color: #ffffff;
+    --secondary-color: rgba(255, 255, 255, 0.8);
+    --background-dark: rgba(13, 12, 34, 0.8);
+    --background-blur: 15px;
+    --border-color-light: rgba(255, 255, 255, 0.1);
+    --gradient-primary: linear-gradient(45deg, #00a2ff, #00ffc6);
+    --button-shadow: rgba(0, 162, 255, 0.3);
+    --button-shadow-hover: rgba(0, 162, 255, 0.4);
+    --footer-gradient: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+}
+
 /* Body styles */
 body {
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--font-family);
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    color: #ffffff;
+    color: var(--primary-color);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -13,26 +27,26 @@ body {
 
 /* Navbar base styles */
 .navbar {
-    background: rgba(13, 12, 34, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+    background: var(--background-dark);
+    backdrop-filter: blur(var(--background-blur));
+    -webkit-backdrop-filter: blur(var(--background-blur));
     padding: 20px 0;
     transition: all 0.3s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color-light);
     position: relative;
     z-index: 1000;
 }
 
 .navbar:hover {
-    background: rgba(13, 12, 34, 0.8);
+    background: var(--background-dark);
 }
 
 /* Remove app-navbar specific styling that was causing the grey background */
 .app-navbar {
-    background: rgba(13, 12, 34, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--background-dark);
+    backdrop-filter: blur(var(--background-blur));
+    -webkit-backdrop-filter: blur(var(--background-blur));
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .navbar .container {
@@ -42,7 +56,7 @@ body {
 .navbar-brand {
     display: flex;
     align-items: center;
-    color: #ffffff !important;
+    color: var(--primary-color) !important;
     font-weight: 700;
     font-size: 1.5rem;
     letter-spacing: 0.5px;
@@ -50,7 +64,7 @@ body {
 }
 
 .brand-text {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -67,13 +81,12 @@ body {
         padding: 0 15px;
     }
 
-    /* Style for collapsed menu only in home page */
     .navbar-collapse {
         background: rgba(0, 0, 0, 0.95);
         margin-top: 15px;
         padding: 20px;
         border-radius: 15px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--border-color-light);
     }
 }
 
@@ -81,48 +94,18 @@ body {
 .footer {
     flex-shrink: 0;
     width: 100%;
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+    background: var(--footer-gradient);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 25px 0;
     text-align: center;
     margin-top: auto;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color-light);
 }
 
-.footer-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
-
-.footer-brand {
-    display: flex;
-    align-items: center;
-    margin-bottom: 5px;
-}
-
-.footer-brand-text {
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-left: 12px;
-    color: #ffffff;
-}
-
-.footer-links {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 5px;
-}
-
+/* Other styles updated to use variables */
 .footer-link {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--secondary-color);
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
@@ -130,122 +113,23 @@ body {
 }
 
 .footer-link:hover {
-    color: #ffffff;
-    text-decoration: none;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.footer-divider {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.8rem;
-}
-
-.footer-copyright {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
-    font-weight: 400;
-    margin: 0;
-    text-align: center;
-}
-
-@media screen and (max-width: 480px) {
-    .footer {
-        padding: 20px 0;
-    }
-
-    .footer-content {
-        gap: 12px;
-    }
-
-    .footer-brand {
-        margin-bottom: 3px;
-    }
-
-    .footer-brand-text {
-        font-size: 1.1rem;
-    }
-
-    .footer-links {
-        gap: 12px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .footer-link {
-        font-size: 0.85rem;
-    }
-
-    .footer-copyright {
-        font-size: 0.8rem;
-    }
-}
-
-/* Add logo placeholder base styles */
-.logo-placeholder {
-    position: relative;
-    display: inline-block;
-    transform: rotate(45deg);
-    border-radius: 50% / 30%;
-    overflow: hidden;
-}
-
-.logo-placeholder::before,
-.logo-placeholder::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2.5px solid white;
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
-}
-
-.logo-placeholder::before {
-    transform: rotate(45deg);
-}
-
-.logo-placeholder::after {
-    transform: rotate(-45deg);
-}
-
-/* Navbar brand logo */
-.navbar-brand .logo-placeholder {
-    width: 35px;
-    height: 35px;
-    margin-right: 12px;
-}
-
-.nav-buttons-list .nav-link.primary-action {
-    background: rgba(0, 162, 255, 0.1); /* Default background */
-    border: none;
-    box-shadow: 0 1px 5px rgba(0, 162, 255, 0.1); /* Reduced shadow */
-    font-weight: 600;
-    transition: none; /* Remove transition for hover */
-}
-
-/* Ensure no hover effect */
-.nav-buttons-list .nav-link.primary-action:hover {
-    background: rgba(0, 162, 255, 0.1); /* Keep the same background */
-    transform: none; /* No lift effect */
-    box-shadow: 0 1px 5px rgba(0, 162, 255, 0.1); /* Keep the same shadow */
+    color: var(--primary-color);
+    text-shadow: 0 0 10px var(--primary-color);
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6); /* Ensure the gradient is set */
+    background: var(--gradient-primary);
     border: none;
     padding: 12px 20px;
     border-radius: 12px;
-    color: #ffffff;
+    color: var(--primary-color);
     font-weight: 600;
-    transition: all 0.3s ease; /* Smooth transition */
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px var(--button-shadow);
 }
 
-/* Ensure the hover effect retains the same background */
 .btn-primary:hover {
-    background: linear-gradient(45deg, #00a2ff, #00ffc6); /* Keep the same gradient on hover */
-    box-shadow: 0 6px 20px rgba(0, 162, 255, 0.4); /* Slightly increase shadow on hover */
-    transform: translateY(-2px); /* Optional: add a slight lift effect */
+    background: var(--gradient-primary);
+    box-shadow: 0 6px 20px var(--button-shadow-hover);
+    transform: translateY(-2px);
 }
