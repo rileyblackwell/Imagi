@@ -25,31 +25,49 @@ body {
     height: 100%;
 }
 
-/* Container adjustments to make it smaller */
+/* Container adjustments to make it more like the reference image */
 .container {
-    width: 80%;
-    max-width: 700px;
-    min-height: 350px;
+    width: 85%;
+    max-width: 900px;
+    min-height: 280px;
     margin: 10px auto;
+    padding: 20px 40px;
     background: rgba(255, 255, 255, 0.07);
-    border-radius: 400px / 150px;
+    border-radius: 500px / 140px;
     box-shadow: 
-        0 6px 24px rgba(31, 38, 135, 0.37),
-        inset 0 0 50px rgba(255, 255, 255, 0.05);
+        0 10px 30px rgba(31, 38, 135, 0.37),
+        inset 0 0 70px rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
-    padding: 20px 30px;
     transform: scaleX(1.1);
 }
 
-/* Input section styles - reduce size */
+/* Add subtle gradient overlay for depth */
+.container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    border-radius: 500px / 140px;
+    pointer-events: none;
+}
+
+/* Input section styles - increase size */
 .input-section {
-    width: 350px;
-    height: 300px;
+    width: 400px;
+    height: 400px;
     position: relative;
     margin: 0 auto 5px;
     display: flex;
@@ -79,9 +97,9 @@ body {
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    padding: 50px;
+    padding: 80px;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     resize: none;
     text-align: left;
     position: relative;
@@ -122,8 +140,8 @@ body {
 /* Action Buttons - adjust layout and style */
 .action-buttons {
     display: flex;
-    justify-content: center;
-    gap: 20px;
+    justify-content: space-between;
+    gap: 15px;
     margin: 10px auto;
     width: 100%;
     max-width: 600px;
@@ -131,7 +149,7 @@ body {
 
 /* Button adjustments */
 .btn-action {
-    padding: 12px 24px;
+    padding: 12px 20px;
     min-width: 120px;
     border-radius: 30px;
     border: none;
@@ -220,8 +238,8 @@ body {
     .container {
         width: 90%;
         min-height: 260px;
-        padding: 15px 20px;
-        border-radius: 250px / 110px;
+        padding: 15px 30px;
+        border-radius: 400px / 120px;
         transform: scaleX(1.05);
     }
 
