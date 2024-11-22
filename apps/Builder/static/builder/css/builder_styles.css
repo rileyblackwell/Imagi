@@ -102,7 +102,7 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     color: #ffffff;
-    font-size: 8rem !important;
+    font-size: 8rem;
     line-height: 1.2;
     resize: vertical;
     transition: all 0.3s ease;
@@ -115,36 +115,36 @@ body {
     outline: none;
 }
 
-/* Add this rule to ensure the placeholder text is large and lowercase */
+/* Add this rule to ensure the placeholder text is smaller and lowercase */
 #user-input::placeholder {
-    font-size: 8rem !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    text-transform: lowercase !important;
-    line-height: 1.2 !important;
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: lowercase;
+    line-height: 1.2;
 }
 
 /* Add specific webkit placeholder styling */
 #user-input::-webkit-input-placeholder {
-    font-size: 8rem !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    text-transform: lowercase !important;
-    line-height: 1.2 !important;
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: lowercase;
+    line-height: 1.2;
 }
 
 /* Add specific Firefox placeholder styling */
 #user-input::-moz-placeholder {
-    font-size: 8rem !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    text-transform: lowercase !important;
-    line-height: 1.2 !important;
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: lowercase;
+    line-height: 1.2;
 }
 
 /* Add specific IE placeholder styling */
 #user-input:-ms-input-placeholder {
-    font-size: 8rem !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    text-transform: lowercase !important;
-    line-height: 1.2 !important;
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: lowercase;
+    line-height: 1.2;
 }
 
 /* Model selection styles */
