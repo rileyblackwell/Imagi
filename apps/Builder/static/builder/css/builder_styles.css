@@ -24,14 +24,18 @@
     box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2);
 }
 
+/* Common Button Hover Styles */
+.btn-action-hover {
+    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
+    transform: scale(1.02);
+}
+
 .btn-generate {
     background: var(--gradient-generate);
 }
 
 .btn-generate:hover {
     background: var(--gradient-generate);
-    box-shadow: 0 4px 12px rgba(0, 162, 255, 0.3);
-    transform: scale(1.02);
 }
 
 .btn-undo {
@@ -40,8 +44,6 @@
 
 .btn-undo:hover {
     background: var(--gradient-undo);
-    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
-    transform: scale(1.02);
 }
 
 .btn-reset {
@@ -50,8 +52,6 @@
 
 .btn-reset:hover {
     background: var(--gradient-reset);
-    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
-    transform: scale(1.02);
 }
 
 /* Body styles */
