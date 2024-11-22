@@ -64,34 +64,37 @@ body {
     pointer-events: none;
 }
 
-/* Central circular element */
+/* Input section styles - remove the second circle outline */
 .input-section {
-    width: 300px;
-    height: 300px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 20px 0;
+    width: 400px;
+    height: 400px;
     position: relative;
-    z-index: 1;
+    margin: 0 auto 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
-/* User input styling */
+/* Remove the second circle outline */
+.input-section::before {
+    display: none;
+}
+
+/* Adjust user input box size */
 #user-input {
-    width: 80%;
-    height: 80%;
+    width: 100%;
+    height: calc(100% - 60px);
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    padding: 20px;
+    padding: 60px;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 1rem;
+    font-size: 1.2rem;
     resize: none;
-    text-align: center;
-    outline: none;
+    text-align: left;
+    position: relative;
+    z-index: 1;
 }
 
 #user-input::placeholder {
