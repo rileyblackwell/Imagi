@@ -59,13 +59,10 @@ body {
 .main-title-section h1 {
     font-size: 2.8rem;
     margin-bottom: 10px;
-    background: linear-gradient(45deg, var(--primary-color), #00ffc6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 800;
+    color: var(--primary-color);
+    font-weight: 700;
     letter-spacing: 1px;
-    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
 }
 
 .tagline {
