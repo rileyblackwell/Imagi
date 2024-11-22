@@ -25,12 +25,12 @@ body {
     height: 100%;
 }
 
-/* Container adjustments to match the reference image */
+/* Container adjustments to make it pointy like an American football */
 .container {
-    width: 90%;
-    max-width: 1000px;
+    width: 85%;
+    max-width: 900px;
     min-height: 300px;
-    margin: 20px auto;
+    margin: 10px auto;
     padding: 20px 40px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 500px / 150px;
@@ -43,70 +43,57 @@ body {
     flex-direction: column;
     align-items: center;
     position: relative;
-    transform: scaleX(1.2);
 }
 
-/* Add subtle gradient overlay for depth */
-.container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.1) 0%,
-        rgba(255, 255, 255, 0.05) 50%,
-        rgba(255, 255, 255, 0.02) 100%
-    );
-    border-radius: 500px / 140px;
-    pointer-events: none;
-}
-
-/* Input section styles - remove the second circle outline */
+/* Central circular element */
 .input-section {
-    width: 400px;
-    height: 400px;
-    position: relative;
-    margin: 0 auto 5px;
+    width: 320px;
+    height: 280px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    margin: 0 auto 5px;
+    position: relative;
+    z-index: 1;
 }
 
-/* Remove the second circle outline */
-.input-section::before {
-    display: none;
-}
-
-/* Adjust user input box size */
+/* User input styling */
 #user-input {
     width: 100%;
     height: calc(100% - 60px);
     background: rgba(255, 255, 255, 0.07);
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 50%;
-    padding: 60px;
+    padding: 40px;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     resize: none;
-    text-align: left;
-    position: relative;
-    z-index: 1;
-}
-
-#user-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 1rem;
-}
-
-#user-input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 30px rgba(0, 162, 255, 0.2);
+    text-align: center;
     outline: none;
-    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .container {
+        width: 90%;
+        min-height: 220px;
+        padding: 15px 20px;
+        border-radius: 500px / 120px;
+        transform: scaleX(1.2);
+    }
+
+    .input-section {
+        width: 280px;
+        height: 250px;
+    }
+
+    #user-input {
+        padding: 15px;
+        font-size: 0.8rem;
+    }
 }
 
 /* Title section styles - reduce size */
@@ -118,13 +105,13 @@ body {
 }
 
 .main-title-section h1 {
-    font-size: 2rem;
+    font-size: 1.6rem;
     color: var(--primary-color);
     margin-bottom: 5px;
 }
 
 .tagline {
-    font-size: 1rem;
+    font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.8);
 }
 
@@ -140,12 +127,12 @@ body {
 
 /* Button adjustments */
 .btn-action {
-    padding: 12px 20px;
-    min-width: 120px;
+    padding: 8px 16px;
+    min-width: 90px;
     border-radius: 30px;
     border: none;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -168,8 +155,8 @@ body {
 .bottom-controls {
     display: flex;
     justify-content: space-between;
-    gap: 15px;
-    margin-top: 10px;
+    gap: 10px;
+    margin-top: 5px;
     width: 100%;
     max-width: 600px;
 }
@@ -185,8 +172,8 @@ body {
 /* Ensure select elements take full width */
 .styled-select {
     width: 100%;
-    padding: 12px;
-    font-size: 0.9rem;
+    padding: 8px;
+    font-size: 0.85rem;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 25px;
@@ -222,44 +209,4 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 25px;
     color: white;
-}
-
-/* Responsive Design */
-@media screen and (max-width: 768px) {
-    .container {
-        width: 95%;
-        min-height: 260px;
-        padding: 15px 30px;
-        border-radius: 400px / 120px;
-        transform: scaleX(1.1);
-    }
-
-    .input-section {
-        width: 250px;
-        height: 250px;
-    }
-
-    .input-label span {
-        font-size: 1.5rem;
-    }
-
-    #user-input {
-        padding: 15px;
-        font-size: 0.9rem;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .bottom-controls {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .btn-action {
-        width: 100%;
-        font-size: 0.85rem;
-    }
 }
