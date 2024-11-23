@@ -1,3 +1,6 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
 /* App-Specific Variables */
 :root {
     /* Home-specific background */
@@ -283,28 +286,293 @@ section:nth-child(even) {
     -webkit-backdrop-filter: blur(10px);
 }
 
-/* Hero section styles */
-.hero {
+/* Hero Section Styles */
+.hero-section {
     padding: 120px 0 80px;
-    text-align: center;
-    background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 100%);
+    position: relative;
+    overflow: hidden;
+    background-attachment: fixed;
 }
 
-.hero h1 {
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(0, 255, 204, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-content {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-title {
     font-size: 3.5rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
-    background: linear-gradient(45deg, #ffffff, #e0e0e0);
+    background: linear-gradient(45deg, #ffffff, #00ffcc);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: titleFadeIn 1s ease-out;
 }
 
-.hero .lead {
+.hero-lead {
     font-size: 1.3rem;
     color: rgba(255, 255, 255, 0.9);
-    max-width: 800px;
-    margin: 0 auto 2rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    animation: leadFadeIn 1s ease-out 0.3s both;
+}
+
+/* Content Container Styles */
+.content-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* Section Styles */
+section {
+    margin-bottom: 60px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    animation: sectionFadeIn 0.6s ease-out both;
+}
+
+section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Feature Icons */
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, #00ff7f, #00ffcc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.feature-icon:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Card Styles */
+.card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+/* Form Styles */
+.form-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 20px;
+    color: #ffffff;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #00ffcc;
+    box-shadow: 0 0 0 0.2rem rgba(0, 255, 204, 0.25);
+}
+
+/* Button Styles */
+.btn-start-building {
+    background: linear-gradient(45deg, #00ff7f, #00ffcc);
+    color: #000000;
+    font-weight: 600;
+    padding: 15px 40px;
+    border-radius: 30px;
+    border: none;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-start-building:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 255, 204, 0.3);
+    color: #000000;
+}
+
+.btn-start-building::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.btn-start-building:hover::before {
+    transform: translateX(100%);
+}
+
+/* Testimonial Styles */
+blockquote {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 4px solid #00ffcc;
+    border-radius: 15px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+blockquote:hover {
+    transform: translateY(-5px);
+}
+
+blockquote::before {
+    content: '"';
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-size: 4rem;
+    color: rgba(0, 255, 204, 0.2);
+    font-family: Georgia, serif;
+}
+
+/* Animations */
+@keyframes titleFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes leadFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes sectionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .hero-lead {
+        font-size: 1.1rem;
+    }
+
+    section {
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .btn-start-building {
+        padding: 12px 30px;
+    }
+}
+
+/* Additional Enhancements */
+.team-member img {
+    border: 3px solid #00ffcc;
+    box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+    transition: all 0.3s ease;
+}
+
+.team-member:hover img {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
+}
+
+h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+    background: linear-gradient(45deg, #ffffff, #00ffcc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(45deg, #00ff7f, #00ffcc);
+    border-radius: 3px;
 }
 
 /* Features section styles */
@@ -774,6 +1042,50 @@ section:nth-child(4) { animation-delay: 0.3s; }
     .feature-icon {
         font-size: 2rem;
     }
+}
+
+/* Home Landing Page Title Styles */
+.hero {
+    background: linear-gradient(135deg, rgba(0, 162, 255, 0.5), rgba(0, 255, 204, 0.5)), url('/path/to/your/background-image.jpg') no-repeat center center/cover; /* Add a background image */
+    padding: 100px 0; /* Increase padding for more space */
+    border-radius: 15px; /* Rounded corners */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+}
+
+.hero h1 {
+    font-size: 3rem; /* Increase font size */
+    color: #ffffff; /* White text color */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Text shadow for better readability */
+    margin-bottom: 20px; /* Space below the title */
+}
+
+.hero p {
+    font-size: 1.2em; /* Slightly larger font size for the paragraph */
+    color: rgba(255, 255, 255, 0.9); /* Light color for the paragraph */
+    margin-bottom: 30px; /* Space below the paragraph */
+}
+
+.btn-start-building {
+    background: linear-gradient(45deg, #00ff7f, #32cd32); /* Gradient background for the button */
+    color: #ffffff; /* White text color */
+    border-radius: 30px; /* Rounded button */
+    padding: 15px 40px; /* Increased padding for the button */
+    transition: transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
+}
+
+.btn-start-building:hover {
+    transform: scale(1.05); /* Slightly enlarge button on hover */
+    box-shadow: 0 6px 20px rgba(0, 255, 127, 0.4); /* Shadow effect on hover */
+}
+
+/* Home Landing Page Title Styles */
+.hero h1,
+.header-brand-highlight {
+    font-family: 'Roboto', sans-serif; /* Apply the new font */
+}
+
+.hero p {
+    font-family: 'Roboto', sans-serif; /* Apply the new font to the paragraph */
 }
 
  

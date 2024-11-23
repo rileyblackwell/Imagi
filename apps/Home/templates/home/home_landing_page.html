@@ -11,10 +11,10 @@
 <div class="nav-buttons">
     <ul class="nav-buttons-list">
         <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle primary-action" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="nav-link dropdown-toggle nav-products" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-th"></i> Products
             </a>
-            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <div class="dropdown-menu animated fadeIn" aria-labelledby="navbarDropdown">
                 <a class="dropdown-item" href="{% url 'builder:index' %}">
                     <i class="fas fa-magic"></i> Imagi Oasis
                 </a>
@@ -22,18 +22,18 @@
         </li>
         {% if user.is_authenticated %}
             <li class="nav-item">
-                <a href="{% url 'payments:create-checkout-session' %}" class="nav-link primary-action">
+                <a href="{% url 'payments:create-checkout-session' %}" class="nav-link nav-credits">
                     <i class="fas fa-coins"></i> Buy Credits
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'logout' %}" class="nav-link primary-action">
+                <a href="{% url 'logout' %}" class="nav-link nav-logout">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </li>
         {% else %}
             <li class="nav-item">
-                <a href="{% url 'login' %}" class="nav-link primary-action">
+                <a href="{% url 'login' %}" class="nav-link nav-login">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </a>
             </li>
@@ -43,82 +43,150 @@
 {% endblock %}
 
 {% block content %}
-<section class="hero">
-    <div class="container">
-        <div class="logo-placeholder hero-logo"></div>
-        <h1>The Natural Language to Code Platform</h1>
-        <p style="font-size: 1.1em;">Imagi Oasis empowers you to transform your ideas into functional code using the simplicity of natural language.</p>
-        <a href="{% if user.is_authenticated %}{% url 'builder:index' %}{% else %}{% url 'login' %}{% endif %}" class="btn btn-start-building btn-lg">Start Building</a>
+<section class="hero-main">
+    <div class="hero-background">
+        <div class="animated-gradient"></div>
+        <div class="floating-shapes"></div>
     </div>
-</section>
-
-<section id="features" class="features">
     <div class="container">
-        <h2 class="text-center mb-5">Features</h2>
-        <div class="row">
-            <div class="col-md-4 text-center">
-                <i class="fas fa-magic feature-icon"></i>
-                <h3>AI-Powered Code Generation</h3>
-                <p>Simply describe your vision, and our cutting-edge AI transforms it into clean, functional code in seconds.</p>
+        <div class="hero-content text-center">
+            <div class="logo-container">
+                <div class="header-logo-placeholder pulse"></div>
+                <h1 class="header-brand-highlight glow">Imagi</h1>
             </div>
-            <div class="col-md-4 text-center">
-                <i class="fas fa-users feature-icon"></i>
-                <h3>Seamless Collaboration</h3>
-                <p>Share projects and collaborate with your team in real-time to create and refine your ideas together.</p>
-            </div>
-            <div class="col-md-4 text-center">
-                <i class="fas fa-code feature-icon"></i>
-                <h3>Intuitive Interface</h3>
-                <p>Designed for everyone, from beginners to experts, ensuring a smooth and intuitive experience for all users.</p>
+            <h2 class="hero-subtitle slide-up">The Natural Language to Code Platform</h2>
+            <p class="hero-description fade-in">Transform your ideas into functional code using the simplicity of natural language with Imagi Oasis.</p>
+            <div class="cta-container">
+                <a href="{% if user.is_authenticated %}{% url 'builder:index' %}{% else %}{% url 'login' %}{% endif %}" 
+                   class="btn-cta pulse-grow">
+                    <span>Start Building</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
             </div>
         </div>
     </div>
 </section>
 
-<section class="benefits">
+<section id="features" class="features-section">
     <div class="container">
-        <h2 class="text-center mb-5">Why Choose Imagi?</h2>
-        <ul class="list-unstyled">
-            <li><i class="fas fa-check-circle"></i> The leading natural language to code platform—no technical skills required.</li>
-            <li><i class="fas fa-check-circle"></i> Save time and resources with automated code generation.</li>
-            <li><i class="fas fa-check-circle"></i> Build websites and applications effortlessly with AI.</li>
-            <li><i class="fas fa-check-circle"></i> Collaborate with your team for better project outcomes.</li>
-        </ul>
+        <h2 class="section-title">Powerful Features</h2>
+        <div class="row features-grid">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-magic feature-icon"></i>
+                    </div>
+                    <h3>AI-Powered Code Generation</h3>
+                    <p>Transform your vision into clean, functional code in seconds with our cutting-edge AI technology.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-users feature-icon"></i>
+                    </div>
+                    <h3>Seamless Collaboration</h3>
+                    <p>Work together with your team in real-time to create and refine your projects efficiently.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-code feature-icon"></i>
+                    </div>
+                    <h3>Intuitive Interface</h3>
+                    <p>An easy-to-use platform designed for everyone, from beginners to experienced developers.</p>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<section class="testimonials">
+<section class="benefits-section">
     <div class="container">
-        <h2 class="text-center mb-5">What Our Users Say</h2>
-        <div class="row">
-            <div class="col-md-4 text-center">
-                <blockquote>
+        <h2 class="section-title">Why Choose Imagi?</h2>
+        <div class="benefits-grid">
+            <div class="benefit-item">
+                <i class="fas fa-check-circle"></i>
+                <p>Leading natural language to code platform—no technical skills required</p>
+            </div>
+            <div class="benefit-item">
+                <i class="fas fa-check-circle"></i>
+                <p>Save time and resources with automated code generation</p>
+            </div>
+            <div class="benefit-item">
+                <i class="fas fa-check-circle"></i>
+                <p>Build websites and applications effortlessly with AI</p>
+            </div>
+            <div class="benefit-item">
+                <i class="fas fa-check-circle"></i>
+                <p>Collaborate with your team for better project outcomes</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="testimonials-section">
+    <div class="container">
+        <h2 class="section-title">What Our Users Say</h2>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-content">
+                    <i class="fas fa-quote-left"></i>
                     <p>"Imagi Oasis turned my business idea into a professional website in no time!"</p>
-                    <footer>- Alex J.</footer>
-                </blockquote>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="author-info">
+                            <h4>Alex J.</h4>
+                            <p>Entrepreneur</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-4 text-center">
-                <blockquote>
+            <div class="testimonial-card">
+                <div class="testimonial-content">
+                    <i class="fas fa-quote-left"></i>
                     <p>"I love how easy it is to use Imagi. It's perfect for non-tech founders like me."</p>
-                    <footer>- Sarah K.</footer>
-                </blockquote>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="author-info">
+                            <h4>Sarah K.</h4>
+                            <p>Startup Founder</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-4 text-center">
-                <blockquote>
+            <div class="testimonial-card">
+                <div class="testimonial-content">
+                    <i class="fas fa-quote-left"></i>
                     <p>"The collaboration tools have revolutionized how my team works on projects together."</p>
-                    <footer>- Michael T.</footer>
-                </blockquote>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="author-info">
+                            <h4>Michael T.</h4>
+                            <p>Project Manager</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="call-to-action">
+<section class="cta-section">
     <div class="container text-center">
         <h2>Start Using the Natural Language to Code Platform</h2>
         <p>Join thousands of users transforming their ideas into reality with Imagi Oasis.</p>
-        <a href="{% url 'login' %}" class="btn btn-start-building btn-lg">Create Your Account</a>
+        <a href="{% url 'login' %}" class="btn-cta">
+            <span>Create Your Account</span>
+            <i class="fas fa-arrow-right"></i>
+        </a>
     </div>
 </section>
-
 {% endblock %}
