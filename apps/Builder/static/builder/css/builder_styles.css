@@ -121,16 +121,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    transition: none;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* Button hover effects */
+/* Ensure no hover effects */
 .btn-action:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-    background-color: rgba(255, 255, 255, 0.1);
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    transform: none;
+    box-shadow: none;
+    background-color: transparent;
 }
 
 /* Specific button styles */
