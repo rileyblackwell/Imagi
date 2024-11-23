@@ -6,53 +6,49 @@
 {% block page_lead %}Understanding how we use cookies to improve your experience{% endblock %}
 
 {% block page_content %}
-<div class="policy-content">
-    <section class="content-section">
-        <h2 class="section-title">1. What Are Cookies?</h2>
-        <p>Cookies are small text files that are placed on your device when you visit our website. They help us provide you with a better experience by:</p>
-        <ul>
-            <li>Remembering your preferences and settings</li>
-            <li>Understanding how you use our website</li>
-            <li>Improving site performance and functionality</li>
-            <li>Providing personalized content and features</li>
-        </ul>
-    </section>
+<div class="content-wrapper">
+    <div class="policy-content">
+        <section class="section-card">
+            <h2 class="section-title">1. What Are Cookies?</h2>
+            <p>Cookies are small text files that are placed on your device when you visit our website. They help us provide you with a better experience by:</p>
+            <ul>
+                <li>Remembering your preferences and settings</li>
+                <li>Understanding how you use our website</li>
+                <li>Improving site performance and functionality</li>
+                <li>Providing personalized content and features</li>
+            </ul>
+        </section>
 
-    <section class="content-section">
-        <h2 class="section-title">2. Types of Cookies We Use</h2>
-        <div class="cookie-types">
-            <h3>Essential Cookies</h3>
-            <p>Required for the website to function properly. These cannot be disabled.</p>
-            
-            <h3>Performance Cookies</h3>
-            <p>Help us understand how visitors interact with our website by collecting anonymous information.</p>
-            
-            <h3>Functionality Cookies</h3>
-            <p>Remember choices you make to provide enhanced, personalized features.</p>
-            
-            <h3>Targeting Cookies</h3>
-            <p>Used to deliver relevant content and advertising based on your interests.</p>
-        </div>
-    </section>
+        <section class="section-card">
+            <h2 class="section-title">2. Types of Cookies We Use</h2>
+            <div class="cookie-types">
+                <h3>Essential Cookies</h3>
+                <p>Required for the website to function properly. These cannot be disabled.</p>
+                
+                <h3>Performance Cookies</h3>
+                <p>Help us understand how visitors interact with our website by collecting anonymous information.</p>
+            </div>
+        </section>
 
-    <section class="content-section">
-        <h2 class="section-title">3. Managing Cookies</h2>
-        <p>You can control and manage cookies in various ways:</p>
-        <ul>
-            <li>Browser Settings: Configure your browser to accept, reject, or delete cookies</li>
-            <li>Privacy Settings: Adjust your privacy preferences on our website</li>
-            <li>Third-Party Tools: Use available tools to manage your cookie preferences</li>
-        </ul>
-    </section>
+        <section class="section-card">
+            <h2 class="section-title">3. Managing Cookies</h2>
+            <p>You can control and manage cookies in various ways:</p>
+            <ul>
+                <li>Browser Settings: Configure your browser to accept, reject, or delete cookies</li>
+                <li>Privacy Settings: Adjust your privacy preferences on our website</li>
+                <li>Third-Party Tools: Use available tools to manage your cookie preferences</li>
+            </ul>
+        </section>
 
-    <section class="content-section">
-        <h2 class="section-title">4. Updates to This Policy</h2>
-        <p>We may update this Cookie Policy periodically. Please check back regularly to stay informed about our use of cookies.</p>
-    </section>
+        <section class="section-card">
+            <h2 class="section-title">4. Updates to This Policy</h2>
+            <p>We may update this Cookie Policy periodically. Please check back regularly to stay informed about our use of cookies.</p>
+        </section>
 
-    <section class="content-section">
-        <h2 class="section-title">4. Contact Us</h2>
-        <p>If you have any questions regarding our Cookie Policy, please <a href="{% url 'contact' %}">contact us</a>.</p>
-    </section>
+        <section class="section-card">
+            <h2 class="section-title">4. Contact Us</h2>
+            <p>If you have any questions regarding our Cookie Policy, please <a href="{% url 'contact' %}">contact us</a>.</p>
+        </section>
+    </div>
 </div>
 {% endblock %} 
