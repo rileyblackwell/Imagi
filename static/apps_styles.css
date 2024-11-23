@@ -9,16 +9,21 @@
     --app-box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     --app-border-color: rgba(255, 255, 255, 0.2);
     --app-blur-intensity: 8px;
+
+    /* New Variables for Unified Design */
+    --app-background-color: #1e0f3d; /* Dark background for pages */
+    --app-card-background: rgba(255, 255, 255, 0.1); /* Card background */
+    --app-button-color: #00a2ff; /* Button color */
 }
 
 /* App-Specific Background */
 body.app-page {
-    background: linear-gradient(135deg, #1e0f3d, #0a4d68);
+    background: var(--app-background-color);
 }
 
 /* App-Specific Container Styles */
 .app-container {
-    background: var(--app-container-gradient);
+    background: var(--app-card-background);
     border-radius: 20px;
     padding: 30px;
     box-shadow: var(--app-box-shadow);
@@ -42,6 +47,7 @@ body.app-page {
     letter-spacing: 1px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    background: var(--app-button-color); /* Updated button color */
 }
 
 .app-button:hover {
@@ -77,7 +83,7 @@ label {
 }
 
 .input-group:focus-within {
-    border-color: #00a2ff;
+    border-color: var(--app-button-color);
     box-shadow: 0 0 0 3px rgba(0, 162, 255, 0.2);
 }
 
