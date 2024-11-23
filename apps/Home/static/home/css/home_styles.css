@@ -3,15 +3,15 @@
     /* Home-specific background */
     --home-background-start: #667eea;
     --home-background-end: #764ba2;
-
-    /* Home-specific button gradients */
-    --home-primary-gradient: linear-gradient(45deg, #00a2ff, #00ffc6);
-    --home-secondary-gradient: linear-gradient(45deg, #ff3e7f, #ff8a5b);
+    --section-bg-light: rgba(255, 255, 255, 0.05);
+    --section-border: rgba(255, 255, 255, 0.1);
+    --card-bg: rgba(255, 255, 255, 0.08);
 }
 
 /* Body styles */
 body {
     background: linear-gradient(135deg, var(--home-background-start) 0%, var(--home-background-end) 100%);
+    min-height: 100vh;
 }
 
 /* Home Navbar Button Styles */
@@ -273,17 +273,158 @@ body {
 
 /* General section styles */
 section {
-    padding: 60px 0; /* Consistent padding for all sections */
+    padding: 80px 0;
+    position: relative;
+}
+
+section:nth-child(even) {
+    background: var(--section-bg-light);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 /* Hero section styles */
 .hero {
-    background: linear-gradient(135deg, var(--home-background-start) 0%, var(--home-background-end) 100%);
-    color: #ffffff; /* Ensure text is readable */
-    text-align: center; /* Center align text */
-    border-radius: 15px; /* Rounded corners for the hero section */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-    padding: 80px 20px; /* Increased padding for a more spacious feel */
+    padding: 120px 0 80px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 100%);
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, #ffffff, #e0e0e0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero .lead {
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 800px;
+    margin: 0 auto 2rem;
+}
+
+/* Features section styles */
+.features {
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
+
+/* Benefits section styles */
+.benefits {
+    padding: 80px 0;
+}
+
+.benefits ul {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.benefits li {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    padding: 20px;
+    background: var(--card-bg);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--section-border);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: transform 0.3s ease;
+}
+
+.benefits li:hover {
+    transform: translateX(10px);
+}
+
+.benefits i {
+    font-size: 1.5rem;
+    color: #00ffc6;
+}
+
+/* Testimonials section styles */
+.testimonials {
+    padding: 80px 0;
+}
+
+blockquote {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px solid var(--section-border);
+    margin: 0;
+    height: 100%;
+    transition: transform 0.3s ease;
+}
+
+blockquote:hover {
+    transform: translateY(-5px);
+}
+
+blockquote p {
+    font-size: 1.1rem;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+blockquote footer {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+/* Team section styles */
+.meet-the-team {
+    padding: 80px 0;
+}
+
+.team-member {
+    text-align: center;
+    padding: 20px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    border: 1px solid var(--section-border);
+    transition: transform 0.3s ease;
+}
+
+.team-member:hover {
+    transform: translateY(-5px);
+}
+
+.team-member img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Call to action section styles */
+.call-to-action {
+    background: linear-gradient(45deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+    padding: 100px 0;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.call-to-action h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Button styles */
@@ -298,60 +439,102 @@ section {
     transform: translateY(-2px); /* Lift effect on hover */
 }
 
-/* Feature icon styles */
-.feature-icon {
-    font-size: 2rem; /* Larger icons for better visibility */
-    color: var(--global-highlight-gradient); /* Use gradient color for icons */
-}
-
-/* Testimonials styles */
-.testimonials blockquote {
-    background: rgba(255, 255, 255, 0.1); /* Light background for quotes */
-    border-left: 5px solid var(--global-highlight-gradient); /* Highlight border */
-    padding: 15px; /* Padding for quotes */
-    border-radius: 10px; /* Rounded corners for quotes */
-    margin: 20px 0; /* Margin for spacing */
-}
-
-/* Call to Action styles */
-.call-to-action {
-    background: rgba(0, 0, 0, 0.8); /* Dark background for contrast */
-    color: #ffffff; /* White text for readability */
-    padding: 40px 20px; /* Padding for the section */
-    border-radius: 15px; /* Rounded corners */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-}
-
-/* Footer styles */
-.site-footer {
-    background: rgba(0, 0, 0, 0.8); /* Darker footer for contrast */
-    color: var(--global-muted-text-color);
-    padding: 40px 0; /* Increased padding */
-}
-
-/* Responsive styles */
-@media screen and (max-width: 991px) {
-    .hero {
-        padding: 60px 10px; /* Adjust padding for smaller screens */
-    }
-
-    .call-to-action {
-        padding: 30px 10px; /* Adjust padding for smaller screens */
-    }
-}
-
-/* Add this new gradient style for the button */
+/* Button styles */
 .btn-start-building {
-    background: linear-gradient(45deg, #00ff7f, #32cd32); /* Green gradient */
-    color: #ffffff; /* White text for contrast */
-    border: none; /* Remove border */
-    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3); /* Optional shadow */
+    background: linear-gradient(45deg, #00ff7f, #32cd32);
+    color: #ffffff;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-radius: 30px;
+    box-shadow: 0 4px 15px rgba(0, 255, 127, 0.3);
+    transition: all 0.3s ease;
 }
 
 .btn-start-building:hover {
-    background: linear-gradient(45deg, #00ff7f, #32cd32); /* Keep the original green gradient */
-    transform: scale(1.02); /* Slightly increase size on hover for a subtle effect */
-    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2); /* Reduced shadow effect */
-    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
-    color: #ffffff; /* Ensure text remains white on hover */
+    background: linear-gradient(45deg, #00ff7f, #32cd32);
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(0, 255, 127, 0.4);
+    color: #ffffff;
+}
+
+/* Section headings */
+section h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    text-align: center;
+    background: linear-gradient(45deg, #ffffff, #e0e0e0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+
+    .hero .lead {
+        font-size: 1.1rem;
+    }
+
+    section {
+        padding: 60px 0;
+    }
+
+    section h2 {
+        font-size: 2rem;
+    }
+
+    .benefits li {
+        font-size: 1rem;
+        padding: 15px;
+    }
+
+    blockquote {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+}
+
+/* Animation for sections */
+section {
+    animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hover effects for cards and sections */
+.features .col-md-4,
+.benefits li,
+blockquote,
+.team-member {
+    transition: all 0.3s ease;
+}
+
+.features .col-md-4:hover {
+    transform: translateY(-5px);
+}
+
+/* Navigation buttons */
+.nav-buttons-list .nav-link {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.nav-buttons-list .nav-link:hover {
+    transform: translateY(-2px);
 }
