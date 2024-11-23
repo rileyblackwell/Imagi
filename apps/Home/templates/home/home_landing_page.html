@@ -46,8 +46,8 @@
 <section class="hero">
     <div class="container">
         <div class="logo-placeholder hero-logo"></div>
-        <h1>Natural Language To Code Platform</h1>
-        <p style="font-size: 1.1em;">Imagi transforms your visions into functional code, empowering you to bring your ideas to life effortlessly.</p>
+        <h1>The Natural Language to Code Platform</h1>
+        <p style="font-size: 1.1em;">Imagi Oasis empowers you to transform your ideas into functional code using the simplicity of natural language.</p>
         <a href="{% if user.is_authenticated %}{% url 'builder:index' %}{% else %}{% url 'login' %}{% endif %}" class="btn btn-start-building btn-lg">Start Building</a>
     </div>
 </section>
@@ -58,56 +58,54 @@
         <div class="row">
             <div class="col-md-4 text-center">
                 <i class="fas fa-magic feature-icon"></i>
-                <h3>AI Powered No-Code tools</h3>
-                <p>Imagi empowers everyone to effortlessly write in natural language and generate code with our intuitive Oasis Code Engine, making development accessible to all.</p>
+                <h3>AI-Powered Code Generation</h3>
+                <p>Simply describe your vision, and our cutting-edge AI transforms it into clean, functional code in seconds.</p>
             </div>
             <div class="col-md-4 text-center">
                 <i class="fas fa-users feature-icon"></i>
-                <h3>Collaborative Development</h3>
-                <p>Work together in real-time with your team, sharing ideas and code seamlessly, ensuring everyone is on the same page throughout the development process.</p>
+                <h3>Seamless Collaboration</h3>
+                <p>Share projects and collaborate with your team in real-time to create and refine your ideas together.</p>
             </div>
             <div class="col-md-4 text-center">
                 <i class="fas fa-code feature-icon"></i>
-                <h3>Efficient Code Generation</h3>
-                <p>Generate clean, efficient code automatically, allowing you to focus on creativity and innovation.</p>
+                <h3>Intuitive Interface</h3>
+                <p>Designed for everyone, from beginners to experts, ensuring a smooth and intuitive experience for all users.</p>
             </div>
         </div>
     </div>
 </section>
 
-<!-- New Section: Benefits -->
 <section class="benefits">
     <div class="container">
-        <h2 class="text-center mb-5">Benefits of Using Imagi</h2>
+        <h2 class="text-center mb-5">Why Choose Imagi?</h2>
         <ul class="list-unstyled">
+            <li><i class="fas fa-check-circle"></i> The leading natural language to code platform—no technical skills required.</li>
             <li><i class="fas fa-check-circle"></i> Save time and resources with automated code generation.</li>
-            <li><i class="fas fa-check-circle"></i> No coding experience required—perfect for beginners.</li>
-            <li><i class="fas fa-check-circle"></i> Enhance collaboration with team members through shared projects.</li>
-            <li><i class="fas fa-check-circle"></i> Access to a wide range of templates and tools to kickstart your projects.</li>
+            <li><i class="fas fa-check-circle"></i> Build websites and applications effortlessly with AI.</li>
+            <li><i class="fas fa-check-circle"></i> Collaborate with your team for better project outcomes.</li>
         </ul>
     </div>
 </section>
 
-<!-- New Section: Testimonials -->
 <section class="testimonials">
     <div class="container">
         <h2 class="text-center mb-5">What Our Users Say</h2>
         <div class="row">
             <div class="col-md-4 text-center">
                 <blockquote>
-                    <p>"Imagi has completely changed the way I approach coding. It's so easy to use!"</p>
+                    <p>"Imagi Oasis turned my business idea into a professional website in no time!"</p>
                     <footer>- Alex J.</footer>
                 </blockquote>
             </div>
             <div class="col-md-4 text-center">
                 <blockquote>
-                    <p>"I was able to build my website in just a few hours. Highly recommend!"</p>
+                    <p>"I love how easy it is to use Imagi. It's perfect for non-tech founders like me."</p>
                     <footer>- Sarah K.</footer>
                 </blockquote>
             </div>
             <div class="col-md-4 text-center">
                 <blockquote>
-                    <p>"The collaborative features are a game changer for my team!"</p>
+                    <p>"The collaboration tools have revolutionized how my team works on projects together."</p>
                     <footer>- Michael T.</footer>
                 </blockquote>
             </div>
@@ -115,14 +113,12 @@
     </div>
 </section>
 
-<!-- New Section: Call to Action -->
 <section class="call-to-action">
     <div class="container text-center">
-        <h2>Ready to Get Started?</h2>
-        <p>Join thousands of users who are transforming their ideas into reality with Imagi.</p>
+        <h2>Start Using the Natural Language to Code Platform</h2>
+        <p>Join thousands of users transforming their ideas into reality with Imagi Oasis.</p>
         <a href="{% url 'login' %}" class="btn btn-start-building btn-lg">Create Your Account</a>
     </div>
 </section>
 
 {% endblock %}
-
