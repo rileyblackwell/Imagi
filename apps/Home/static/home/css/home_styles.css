@@ -281,6 +281,9 @@ section {
     background: linear-gradient(135deg, var(--home-background-start) 0%, var(--home-background-end) 100%);
     color: #ffffff; /* Ensure text is readable */
     text-align: center; /* Center align text */
+    border-radius: 15px; /* Rounded corners for the hero section */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+    padding: 80px 20px; /* Increased padding for a more spacious feel */
 }
 
 /* Button styles */
@@ -301,11 +304,40 @@ section {
     color: var(--global-highlight-gradient); /* Use gradient color for icons */
 }
 
+/* Testimonials styles */
+.testimonials blockquote {
+    background: rgba(255, 255, 255, 0.1); /* Light background for quotes */
+    border-left: 5px solid var(--global-highlight-gradient); /* Highlight border */
+    padding: 15px; /* Padding for quotes */
+    border-radius: 10px; /* Rounded corners for quotes */
+    margin: 20px 0; /* Margin for spacing */
+}
+
+/* Call to Action styles */
+.call-to-action {
+    background: rgba(0, 0, 0, 0.8); /* Dark background for contrast */
+    color: #ffffff; /* White text for readability */
+    padding: 40px 20px; /* Padding for the section */
+    border-radius: 15px; /* Rounded corners */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+}
+
 /* Footer styles */
 .site-footer {
     background: rgba(0, 0, 0, 0.8); /* Darker footer for contrast */
     color: var(--global-muted-text-color);
     padding: 40px 0; /* Increased padding */
+}
+
+/* Responsive styles */
+@media screen and (max-width: 991px) {
+    .hero {
+        padding: 60px 10px; /* Adjust padding for smaller screens */
+    }
+
+    .call-to-action {
+        padding: 30px 10px; /* Adjust padding for smaller screens */
+    }
 }
 
 /* Add this new gradient style for the button */
