@@ -16,3 +16,6 @@ def terms_page(request):
 def contact_page(request):
     return render(request, 'home/contact.html')
 
+def cookie_policy(request):
+    return render(request, 'home/cookie_policy.html')
+
