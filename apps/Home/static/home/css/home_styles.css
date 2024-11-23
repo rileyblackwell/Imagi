@@ -514,3 +514,16 @@ blockquote,
 .nav-buttons-list .nav-link:hover {
     transform: translateY(-2px);
 }
+
+/* Link styles for better readability */
+a {
+    color: #00ffcc; /* Change link color to a lighter blue for better contrast */
+    text-decoration: none; /* Remove underline from links */
+}
+
+a:hover {
+    color: #00ffcc; /* Change hover color to a brighter shade for emphasis */
+    text-decoration: none; /* Ensure no underline on hover */
+}
+
+ 
