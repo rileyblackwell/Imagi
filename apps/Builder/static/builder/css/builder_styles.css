@@ -5,8 +5,6 @@
     --ring-color: rgb(255, 248, 240);
     --shadow-color: rgba(160, 150, 140, 0.2);
     --text-color: #4a4a4a;
-    --background-start: #1e0f3d;
-    --background-end: #0a4d68;
     --gradient-generate: linear-gradient(45deg, #2ecc71, #00ff9d);
     --gradient-undo: linear-gradient(45deg, #00a2ff, #00ffc6);
     --gradient-reset: linear-gradient(45deg, #ff3e7f, #ff8a5b);
@@ -14,7 +12,6 @@
 
 /* Body styles */
 body {
-    background: linear-gradient(135deg, var(--background-start), var(--background-end));
     color: white;
     line-height: 1.3;
     display: flex;
@@ -32,7 +29,6 @@ body {
     min-height: 300px;
     margin: 10px auto;
     padding: 20px 40px;
-    background: rgba(255, 255, 255, 0.1);
     border-radius: 600px / 150px;
     box-shadow: 
         0 10px 30px rgba(31, 38, 135, 0.3),
@@ -49,7 +45,6 @@ body {
 .input-section {
     width: 450px;
     height: 350px;
-    background: rgba(255, 255, 255, 0.1);
     border-radius: 300px / 150px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
     display: flex;
