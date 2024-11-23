@@ -1,27 +1,26 @@
 {% extends "home/home_base.html" %}
 {% load static %}
 
-{% block title %}About - Imagi{% endblock %}
+{% block hero_class %}about-hero{% endblock %}
 
 {% block page_title %}About Imagi{% endblock %}
-{% block page_lead %}Redefining how ideas turn into websites through the power of natural language.{% endblock %}
+{% block page_lead %}Redefining how ideas transform into reality through the power of AI{% endblock %}
 
 {% block page_content %}
-<section class="features">
-    <h2 class="text-center mb-5">Our Features</h2>
-    <div class="row">
-        <div class="col-md-6 text-center mb-4">
+<div class="content-section">
+    <div class="section-grid">
+        <div class="section-card">
             <i class="fas fa-bullseye feature-icon"></i>
             <h3>Our Mission</h3>
             <p>To empower users of all technical backgrounds to create stunning, functional websites using only natural language commands.</p>
         </div>
-        <div class="col-md-6 text-center mb-4">
+        <div class="section-card">
             <i class="fas fa-star feature-icon"></i>
             <h3>Why Choose Imagi?</h3>
             <p>We blend cutting-edge AI with intuitive design to deliver a seamless experience for businesses and startups looking to establish their digital presence effortlessly.</p>
         </div>
     </div>
-</section>
+</div>
 
 <section class="our-story">
     <h2 class="text-center mb-5">Our Story</h2>

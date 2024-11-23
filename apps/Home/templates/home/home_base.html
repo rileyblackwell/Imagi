@@ -2,24 +2,60 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'styles.css' %}">
 <link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
 {% endblock %}
 
+{% block navbar_links %}
+<div class="home-nav-buttons">
+    <ul class="home-nav-list">
+        <li class="home-nav-item dropdown">
+            <a class="home-nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-th"></i> Products
+            </a>
+            <div class="home-dropdown-menu dropdown-menu" aria-labelledby="navbarDropdown">
+                <a class="home-dropdown-item dropdown-item" href="{% url 'builder:index' %}">
+                    <i class="fas fa-magic"></i> Imagi Oasis
+                </a>
+            </div>
+        </li>
+        {% if user.is_authenticated %}
+            <li class="home-nav-item">
+                <a href="{% url 'payments:create-checkout-session' %}" class="home-nav-link">
+                    <i class="fas fa-coins"></i> Buy Credits
+                </a>
+            </li>
+            <li class="home-nav-item">
+                <a href="{% url 'logout' %}" class="home-nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        {% else %}
+            <li class="home-nav-item">
+                <a href="{% url 'login' %}" class="home-nav-link">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}
+
 {% block content %}
-<section class="hero-section" style="background: linear-gradient(135deg, rgba(0, 255, 127, 0.1), rgba(0, 255, 204, 0.1));">
+<!-- Hero Section -->
+<section class="hero-section {% block hero_class %}{% endblock %}">
     <div class="hero-container">
         <div class="hero-content">
-            <div class="logo-placeholder hero-logo"></div>
             <h1 class="hero-title">{% block page_title %}{% endblock %}</h1>
-            <p class="hero-lead">{% block page_lead %}{% endblock %}</p>
+            <p class="hero-description">{% block page_lead %}{% endblock %}</p>
+            {% block hero_cta %}{% endblock %}
         </div>
     </div>
 </section>
 
-<section class="page-content">
-    <div class="content-container">
+<!-- Main Content Section -->
+<div class="content-wrapper">
+    <div class="container">
         {% block page_content %}{% endblock %}
     </div>
-</section>
+</div>
 {% endblock %}

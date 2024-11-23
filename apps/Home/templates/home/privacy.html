@@ -1,69 +1,75 @@
 {% extends "home/home_base.html" %}
 
-{% block title %}Privacy Policy - Imagi{% endblock %}
+{% block hero_class %}privacy-hero{% endblock %}
 
 {% block page_title %}Privacy Policy{% endblock %}
-{% block page_lead %}Your privacy is critically important to us.{% endblock %}
+{% block page_lead %}Your privacy is important to us{% endblock %}
 
 {% block page_content %}
-<h2 class="text-center mb-4"><i class="fas fa-shield-alt"></i> Introduction</h2>
-<p>Imagi Oasis ("we," "us," or "our") is committed to protecting your personal information and your right to privacy. This Privacy Policy explains what information we collect, how we use it, and your rights concerning your data. By using our services, you consent to the practices described in this policy.</p>
+<div class="policy-content">
+    <section class="content-section">
+        <h2 class="section-title">1. Information We Collect</h2>
+        <p>We collect information that you provide directly to us, including:</p>
+        <ul>
+            <li>Account information (name, email, password)</li>
+            <li>Profile information</li>
+            <li>Payment information</li>
+            <li>Usage data and analytics</li>
+        </ul>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-info-circle"></i> Information We Collect</h2>
-<p>We collect information that you voluntarily provide to us, as well as information that is automatically collected through your use of our services. This includes:</p>
-<ul>
-    <li><strong>Account Information:</strong> Your name, email address, username, and password.</li>
-    <li><strong>Payment Information:</strong> Payment details (processed securely via third-party payment processors).</li>
-    <li><strong>Usage Data:</strong> Information about your interactions with our platform, including IP address, browser type, device information, and log data.</li>
-    <li><strong>AI Interaction Data:</strong> Data inputted into Imagi Oasis for website generation, which may be used to improve our AI algorithms in an anonymized and aggregated form.</li>
-</ul>
+    <section class="content-section">
+        <h2 class="section-title">2. How We Use Your Information</h2>
+        <p>We use the information we collect to:</p>
+        <ul>
+            <li>Provide and maintain our services</li>
+            <li>Process your transactions</li>
+            <li>Send you technical notices and updates</li>
+            <li>Respond to your comments and questions</li>
+            <li>Analyze usage patterns and improve our services</li>
+        </ul>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-cogs"></i> How We Use Your Information</h2>
-<p>Your information is used to:</p>
-<ul>
-    <li>Provide, operate, and improve our services.</li>
-    <li>Process transactions securely through third-party payment providers.</li>
-    <li>Analyze usage trends to enhance user experience.</li>
-    <li>Develop and refine AI algorithms using anonymized data.</li>
-    <li>Communicate with you about updates, promotions, and other relevant matters (with your consent).</li>
-</ul>
+    <section class="content-section">
+        <h2 class="section-title">3. Information Sharing</h2>
+        <p>We do not sell your personal information. We may share your information with:</p>
+        <ul>
+            <li>Service providers who assist in our operations</li>
+            <li>Professional advisors</li>
+            <li>Law enforcement when required by law</li>
+        </ul>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-share-alt"></i> Sharing Your Information</h2>
-<p>We do not sell your personal information. However, we may share your data with trusted third parties, such as:</p>
-<ul>
-    <li><strong>Service Providers:</strong> To facilitate operations, including hosting, analytics, and payment processing.</li>
-    <li><strong>Legal Requirements:</strong> To comply with applicable laws, legal proceedings, or enforceable governmental requests.</li>
-    <li><strong>Business Transfers:</strong> In connection with any merger, sale, or transfer of company assets.</li>
-</ul>
+    <section class="content-section">
+        <h2 class="section-title">4. Data Security</h2>
+        <p>We implement appropriate technical and organizational measures to protect your personal information, including encryption and secure server infrastructure.</p>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-database"></i> Data Retention</h2>
-<p>We retain your data only for as long as necessary to fulfill the purposes outlined in this Privacy Policy unless otherwise required by law. Anonymized and aggregated data may be retained indefinitely for analysis and research purposes.</p>
+    <section class="content-section">
+        <h2 class="section-title">5. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li>Access your personal information</li>
+            <li>Correct inaccurate data</li>
+            <li>Request deletion of your data</li>
+            <li>Object to processing of your data</li>
+            <li>Data portability</li>
+        </ul>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-user-shield"></i> Your Rights</h2>
-<ul>
-    <li><strong>Access and Portability:</strong> Request a copy of the data we hold about you in a structured format.</li>
-    <li><strong>Correction:</strong> Update inaccurate or incomplete information.</li>
-    <li><strong>Deletion:</strong> Request the deletion of your personal data, subject to legal obligations.</li>
-    <li><strong>Restrict Processing:</strong> Limit the processing of your data under certain circumstances.</li>
-    <li><strong>Opt-Out:</strong> Withdraw consent for marketing communications at any time.</li>
-</ul>
+    <section class="content-section">
+        <h2 class="section-title">6. Cookies and Tracking</h2>
+        <p>We use cookies and similar tracking technologies to collect information about your browsing activities and preferences.</p>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-lock"></i> Data Security</h2>
-<p>We implement industry-standard measures to protect your personal information from unauthorized access, use, or disclosure. However, no electronic transmission or storage is 100% secure, and we cannot guarantee absolute security.</p>
-
-<h2 class="text-center mb-4"><i class="fas fa-child"></i> Children's Privacy</h2>
-<p>Imagi Oasis is not directed at children under the age of 13. We do not knowingly collect personal information from children. If we become aware that a child’s data has been collected, we will delete it promptly.</p>
-
-<h2 class="text-center mb-4"><i class="fas fa-globe"></i> International Data Transfers</h2>
-<p>Your information may be transferred to, stored, and processed in countries other than your own. By using our services, you consent to the transfer of your data to countries with different data protection laws.</p>
-
-<h2 class="text-center mb-4"><i class="fas fa-sync-alt"></i> Updates to This Privacy Policy</h2>
-<p>We may update this policy from time to time to reflect changes in our practices or legal obligations. Updates will be posted with a revised "Last Updated" date, and significant changes will be communicated to you directly.</p>
-
-<h2 class="text-center mb-4"><i class="fas fa-envelope"></i> Contact Us</h2>
-<p>If you have questions about this policy, please <a href="{% url 'contact' %}">contact our Privacy Team</a>.</p>
-
-<div class="text-center mt-4">
-    <a href="{% url 'landing_page' %}" class="btn btn-start-building btn-lg">Return to Home</a>
+    <section class="content-section">
+        <h2 class="section-title">7. Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please contact us at:</p>
+        <ul>
+            <li>Email: privacy@imagi.com</li>
+            <li>Phone: (616) 881-3592</li>
+            <li>Address: 123 Innovation Drive, Tech City, TX 12345</li>
+        </ul>
+    </section>
 </div>
 {% endblock %}

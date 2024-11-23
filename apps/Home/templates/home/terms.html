@@ -1,42 +1,54 @@
 {% extends "home/home_base.html" %}
 
-{% block title %}Terms of Service - Imagi{% endblock %}
+{% block hero_class %}terms-hero{% endblock %}
 
 {% block page_title %}Terms of Service{% endblock %}
 {% block page_lead %}Understanding our service agreement{% endblock %}
 
 {% block page_content %}
-<h2 class="text-center mb-4"><i class="fas fa-file-contract"></i> Acceptance of Terms</h2>
-<p>By accessing or using Imagi's services, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you must discontinue use of our services immediately.</p>
+<div class="policy-content">
+    <section class="content-section">
+        <h2 class="section-title">1. Acceptance of Terms</h2>
+        <p>By accessing or using Imagi's services, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you must discontinue use of our services immediately.</p>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-cogs"></i> Service Description</h2>
-<p>Imagi provides an AI-powered website builder and related services, including hosting and technical support. We reserve the right to modify or discontinue any part of the service at any time without prior notice.</p>
+    <section class="content-section">
+        <h2 class="section-title">2. Service Description</h2>
+        <p>Imagi provides an AI-powered website builder and related services, including hosting and technical support. We reserve the right to modify or discontinue any part of the service at any time without prior notice.</p>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-user"></i> User Responsibilities</h2>
-<ul>
-    <li><strong>Accurate Information:</strong> You agree to provide accurate, complete, and current information when creating an account and using our services.</li>
-    <li><strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your account credentials and are liable for any activities under your account.</li>
-    <li><strong>Compliance:</strong> You must comply with all applicable laws and regulations when using our services.</li>
-    <li><strong>Intellectual Property:</strong> You agree not to infringe on the intellectual property rights of Imagi or third parties.</li>
-</ul>
+    <section class="content-section">
+        <h2 class="section-title">3. User Responsibilities</h2>
+        <ul>
+            <li>Maintain the confidentiality of your account credentials</li>
+            <li>Provide accurate and complete information when using our services</li>
+            <li>Comply with all applicable laws and regulations</li>
+            <li>Respect intellectual property rights</li>
+        </ul>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-credit-card"></i> Payment Terms</h2>
-<ul>
-    <li><strong>Subscription Fees:</strong> Our services may be subject to subscription fees or other charges. By purchasing a subscription, you authorize us to charge your payment method on a recurring basis.</li>
-    <li><strong>Refunds:</strong> All payments are non-refundable unless otherwise required by law.</li>
-    <li><strong>Pricing Changes:</strong> Imagi reserves the right to change pricing and payment terms. We will provide notice of any changes affecting your existing subscriptions.</li>
-</ul>
+    <section class="content-section">
+        <h2 class="section-title">4. Payment Terms</h2>
+        <ul>
+            <li>All payments are non-refundable unless required by law</li>
+            <li>Subscription fees are charged on a recurring basis</li>
+            <li>Prices may change with notice to existing subscribers</li>
+        </ul>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-exclamation-triangle"></i> Limitation of Liability</h2>
-<p>To the fullest extent permitted by law, Imagi disclaims all warranties, express or implied, regarding the service. Imagi will not be liable for any indirect, incidental, special, or consequential damages, including loss of profits, data, or use of the service.</p>
+    <section class="content-section">
+        <h2 class="section-title">5. Intellectual Property</h2>
+        <p>All content and materials available through Imagi, including but not limited to text, graphics, website names, code, images and logos are the intellectual property of Imagi and are protected by applicable copyright and trademark law.</p>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-sync-alt"></i> Changes to Terms</h2>
-<p>We may update these Terms of Service from time to time. You are responsible for reviewing the most current version of the terms. Continued use of our services constitutes acceptance of the updated terms.</p>
+    <section class="content-section">
+        <h2 class="section-title">6. Limitation of Liability</h2>
+        <p>Imagi shall not be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.</p>
+    </section>
 
-<h2 class="text-center mb-4"><i class="fas fa-envelope"></i> Contact Us</h2>
-<p>If you have any questions about these Terms of Service, please contact us at <a href="{% url 'contact' %}">Contact Support</a>.</p>
-
-<div class="text-center mt-4">
-    <a href="{% url 'landing_page' %}" class="btn btn-start-building btn-lg">Return to Home</a>
+    <section class="content-section">
+        <h2 class="section-title">7. Changes to Terms</h2>
+        <p>We reserve the right to modify these terms at any time. We will notify users of any material changes via email or through our website.</p>
+    </section>
 </div>
 {% endblock %}
