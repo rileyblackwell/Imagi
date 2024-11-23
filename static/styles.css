@@ -226,3 +226,29 @@ body {
         font-size: 1.5rem;
     }
 }
+
+/* Custom scrollbar styles for Webkit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+    width: 12px; /* Width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2); /* Darker background for the scrollbar track */
+    border-radius: 20px; /* Increased border-radius for a pill shape */
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, rgba(0, 162, 255, 0.7), rgba(0, 255, 127, 0.7)); /* Gradient color for the scrollbar thumb */
+    border-radius: 20px; /* Increased border-radius for a pill shape */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, rgba(0, 162, 255, 1), rgba(0, 255, 127, 1)); /* Brighter gradient on hover */
+    transition: background 0.3s; /* Smooth transition for hover effect */
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin; /* Use a thin scrollbar */
+    scrollbar-color: rgba(0, 162, 255, 0.7) rgba(0, 0, 0, 0.2); /* Thumb color and track color */
+}
