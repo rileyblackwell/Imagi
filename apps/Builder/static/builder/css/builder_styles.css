@@ -22,14 +22,14 @@ body {
     height: 100%;
 }
 
-/* Container adjustments to make it more oval and football-shaped */
+/* Container adjustments to maintain football shape */
 .container {
     width: 85%;
     max-width: 900px;
-    min-height: 300px;
+    min-height: 400px;
     margin: 10px auto;
-    padding: 20px 40px;
-    border-radius: 600px / 150px;
+    padding: 40px 50px;
+    border-radius: 500px / 150px;
     box-shadow: 
         0 10px 30px rgba(31, 38, 135, 0.3),
         inset 0 0 70px rgba(255, 255, 255, 0.1);
@@ -83,51 +83,52 @@ body {
 /* Title section styles - increase size */
 .main-title-section {
     text-align: center;
-    padding: 10px 5px;
+    padding: 30px 5px;
     width: 100%;
     max-width: 400px;
+    margin: 0 auto;
 }
 
 .main-title-section h1 {
-    font-size: 2rem;
+    font-size: 2.5rem;
     color: var(--primary-color);
-    margin-bottom: 5px;
+    margin-bottom: 15px;
 }
 
 .tagline {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     color: rgba(255, 255, 255, 0.8);
 }
 
 /* Action Buttons - adjust layout and style */
 .action-buttons {
     display: flex;
-    justify-content: center;
-    gap: 25px;
-    margin: 15px auto;
+    justify-content: space-around;
+    margin: 20px auto;
     width: 100%;
     max-width: 600px;
 }
 
 /* Button adjustments */
 .btn-action {
-    padding: 12px 24px;
-    min-width: 130px;
+    padding: 14px 28px;
+    min-width: 140px;
     border-radius: 30px;
     border: none;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s ease, transform 0.2s ease;
+    transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* Button hover effects */
 .btn-action:hover {
     transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
 }
 
 /* Specific button styles */
@@ -157,13 +158,13 @@ body {
 .styled-select {
     width: 100%;
     padding: 12px;
-    font-size: 0.9rem;
+    font-size: 1rem;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 25px;
     color: white;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 /* Add focus outline with a blue highlight for dropdowns */
