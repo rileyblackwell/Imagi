@@ -345,16 +345,6 @@ section:nth-child(even) {
     display: flex;
     align-items: center;
     gap: 15px;
-    transition: transform 0.3s ease;
-}
-
-.benefits li:hover {
-    transform: translateX(10px);
-}
-
-.benefits i {
-    font-size: 1.5rem;
-    color: #00ffc6;
 }
 
 /* Testimonials section styles */
@@ -369,11 +359,6 @@ blockquote {
     border: 1px solid var(--section-border);
     margin: 0;
     height: 100%;
-    transition: transform 0.3s ease;
-}
-
-blockquote:hover {
-    transform: translateY(-5px);
 }
 
 blockquote p {
@@ -398,11 +383,6 @@ blockquote footer {
     background: var(--card-bg);
     border-radius: 20px;
     border: 1px solid var(--section-border);
-    transition: transform 0.3s ease;
-}
-
-.team-member:hover {
-    transform: translateY(-5px);
 }
 
 .team-member img {
@@ -522,10 +502,6 @@ section {
 blockquote,
 .team-member {
     transition: all 0.3s ease;
-}
-
-.features .col-md-4:hover {
-    transform: translateY(-5px);
 }
 
 /* Navigation buttons */
