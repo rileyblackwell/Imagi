@@ -678,11 +678,7 @@ ul li {
 }
 
 ul li:before {
-    content: '•';
-    position: absolute;
-    left: 0;
-    color: #00ffcc;
-    font-size: 1.1em;
+    content: none;
 }
 
 /* Testimonial Styles */
