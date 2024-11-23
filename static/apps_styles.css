@@ -11,14 +11,14 @@
     --app-blur-intensity: 8px;
 
     /* New Variables for Unified Design */
-    --app-background-color: #1e0f3d; /* Dark background for pages */
+    --app-background: linear-gradient(135deg, #1e0f3d, #0a4d68); /* Gradient background for pages */
     --app-card-background: rgba(255, 255, 255, 0.1); /* Card background */
     --app-button-color: #00a2ff; /* Button color */
 }
 
 /* App-Specific Background */
 body.app-page {
-    background: var(--app-background-color);
+    background: var(--app-background); /* Apply the new gradient background */
 }
 
 /* App-Specific Container Styles */
