@@ -268,3 +268,58 @@ body {
         justify-content: center;
     }
 }
+
+/* Add new styles for improved layout and design */
+
+/* General section styles */
+section {
+    padding: 60px 0; /* Consistent padding for all sections */
+}
+
+/* Hero section styles */
+.hero {
+    background: linear-gradient(135deg, var(--home-background-start) 0%, var(--home-background-end) 100%);
+    color: #ffffff; /* Ensure text is readable */
+    text-align: center; /* Center align text */
+}
+
+/* Button styles */
+.btn {
+    border-radius: 25px; /* Rounded buttons */
+    padding: 12px 30px; /* Increased padding for buttons */
+    font-size: 1.1rem; /* Larger font size for buttons */
+    transition: background-color 0.3s, transform 0.3s; /* Smooth transitions */
+}
+
+.btn:hover {
+    transform: translateY(-2px); /* Lift effect on hover */
+}
+
+/* Feature icon styles */
+.feature-icon {
+    font-size: 2rem; /* Larger icons for better visibility */
+    color: var(--global-highlight-gradient); /* Use gradient color for icons */
+}
+
+/* Footer styles */
+.site-footer {
+    background: rgba(0, 0, 0, 0.8); /* Darker footer for contrast */
+    color: var(--global-muted-text-color);
+    padding: 40px 0; /* Increased padding */
+}
+
+/* Add this new gradient style for the button */
+.btn-start-building {
+    background: linear-gradient(45deg, #00ff7f, #32cd32); /* Green gradient */
+    color: #ffffff; /* White text for contrast */
+    border: none; /* Remove border */
+    box-shadow: 0 4px 15px rgba(0, 162, 255, 0.3); /* Optional shadow */
+}
+
+.btn-start-building:hover {
+    background: linear-gradient(45deg, #00ff7f, #32cd32); /* Keep the original green gradient */
+    transform: scale(1.02); /* Slightly increase size on hover for a subtle effect */
+    box-shadow: 0 4px 10px rgba(0, 162, 255, 0.2); /* Reduced shadow effect */
+    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
+    color: #ffffff; /* Ensure text remains white on hover */
+}
