@@ -48,7 +48,7 @@
         <div class="logo-placeholder hero-logo"></div>
         <h1>Natural Language To Code Platform</h1>
         <p style="font-size: 1.1em;">Imagi transforms your visions into functional code, empowering you to bring your ideas to life effortlessly.</p>
-        <a href="{% url 'login' %}" class="btn btn-start-building btn-lg">Start Building</a>
+        <a href="{% if user.is_authenticated %}{% url 'builder:index' %}{% else %}{% url 'signup' %}{% endif %}" class="btn btn-start-building btn-lg">Start Building</a>
     </div>
 </section>
 
