@@ -1,100 +1,79 @@
-{% extends "base.html" %}
+{% extends "home/home_base.html" %}
 {% load static %}
 
 {% block title %}About - Imagi{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'home/css/home_styles.css' %}">
-{% endblock %}
+{% block page_title %}About Imagi{% endblock %}
+{% block page_lead %}Revolutionizing the way businesses and startups build their digital presence.{% endblock %}
 
-{% block content %}
-<section class="hero">
-    <div class="container">
-        <div class="logo-placeholder hero-logo"></div>
-        <h1>About Imagi</h1>
-        <p class="lead">Revolutionizing the way businesses and startups build their digital presence.</p>
-    </div>
-</section>
-
+{% block page_content %}
 <section class="features">
-    <div class="container">
-        <h2 class="text-center mb-5">Our Features</h2>
-        <div class="row">
-            <div class="col-md-6 text-center mb-4">
-                <i class="fas fa-bullseye feature-icon"></i>
-                <h3>Our Mission</h3>
-                <p>To empower users of all technical backgrounds to bring their ideas to life without complex coding skills.</p>
-            </div>
-            <div class="col-md-6 text-center mb-4">
-                <i class="fas fa-star feature-icon"></i>
-                <h3>Why Choose Imagi?</h3>
-                <p>We prioritize innovation, simplicity, and user experience to help you create a digital presence that truly reflects your brand.</p>
-            </div>
+    <h2 class="text-center mb-5">Our Features</h2>
+    <div class="row">
+        <div class="col-md-6 text-center mb-4">
+            <i class="fas fa-bullseye feature-icon"></i>
+            <h3>Our Mission</h3>
+            <p>To empower users of all technical backgrounds to bring their ideas to life without complex coding skills.</p>
+        </div>
+        <div class="col-md-6 text-center mb-4">
+            <i class="fas fa-star feature-icon"></i>
+            <h3>Why Choose Imagi?</h3>
+            <p>We prioritize innovation, simplicity, and user experience to help you create a digital presence that truly reflects your brand.</p>
         </div>
     </div>
 </section>
 
-<!-- New Section: Our Story -->
 <section class="our-story">
-    <div class="container">
-        <h2 class="text-center mb-5">Our Story</h2>
-        <p>Founded in 2020, Imagi was created with the vision of making coding accessible to everyone. Our team of passionate developers and designers came together to build a platform that simplifies the coding process, allowing users to focus on their ideas rather than the complexities of programming.</p>
-        <p>Since our launch, we have helped thousands of users transform their concepts into reality, providing them with the tools they need to succeed in the digital world.</p>
-    </div>
+    <h2 class="text-center mb-5">Our Story</h2>
+    <p>Founded in 2020, Imagi was created with the vision of making coding accessible to everyone. Our team of passionate developers and designers came together to build a platform that simplifies the coding process, allowing users to focus on their ideas rather than the complexities of programming.</p>
+    <p>Since our launch, we have helped thousands of users transform their concepts into reality, providing them with the tools they need to succeed in the digital world.</p>
 </section>
 
-<!-- New Section: Meet the Team -->
 <section class="meet-the-team">
-    <div class="container">
-        <h2 class="text-center mb-5">Meet the Team</h2>
-        <div class="row">
-            <div class="col-md-4 text-center">
-                <img src="{% static 'images/team_member_1.jpg' %}" alt="Team Member 1" class="img-fluid rounded-circle" />
-                <h3>Jane Doe</h3>
-                <p>Co-Founder & CEO</p>
-            </div>
-            <div class="col-md-4 text-center">
-                <img src="{% static 'images/team_member_2.jpg' %}" alt="Team Member 2" class="img-fluid rounded-circle" />
-                <h3>John Smith</h3>
-                <p>Co-Founder & CTO</p>
-            </div>
-            <div class="col-md-4 text-center">
-                <img src="{% static 'images/team_member_3.jpg' %}" alt="Team Member 3" class="img-fluid rounded-circle" />
-                <h3>Emily Johnson</h3>
-                <p>Head of Marketing</p>
-            </div>
+    <h2 class="text-center mb-5">Meet the Team</h2>
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <img src="{% static 'images/team_member_1.jpg' %}" alt="Team Member 1" class="img-fluid rounded-circle" />
+            <h3>Jane Doe</h3>
+            <p>Co-Founder & CEO</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <img src="{% static 'images/team_member_2.jpg' %}" alt="Team Member 2" class="img-fluid rounded-circle" />
+            <h3>John Smith</h3>
+            <p>Co-Founder & CTO</p>
+        </div>
+        <div class="col-md-4 text-center">
+            <img src="{% static 'images/team_member_3.jpg' %}" alt="Team Member 3" class="img-fluid rounded-circle" />
+            <h3>Emily Johnson</h3>
+            <p>Head of Marketing</p>
         </div>
     </div>
 </section>
 
-<!-- New Section: User Testimonials -->
 <section class="testimonials">
-    <div class="container">
-        <h2 class="text-center mb-5">What Our Users Say</h2>
-        <div class="row">
-            <div class="col-md-4 text-center">
-                <blockquote>
-                    <p>"Imagi has completely changed the way I approach coding. It's so easy to use!"</p>
-                    <footer>- Alex J.</footer>
-                </blockquote>
-            </div>
-            <div class="col-md-4 text-center">
-                <blockquote>
-                    <p>"I was able to build my website in just a few hours. Highly recommend!"</p>
-                    <footer>- Sarah K.</footer>
-                </blockquote>
-            </div>
-            <div class="col-md-4 text-center">
-                <blockquote>
-                    <p>"The collaborative features are a game changer for my team!"</p>
-                    <footer>- Michael T.</footer>
-                </blockquote>
-            </div>
+    <h2 class="text-center mb-5">What Our Users Say</h2>
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <blockquote>
+                <p>"Imagi has completely changed the way I approach coding. It's so easy to use!"</p>
+                <footer>- Alex J.</footer>
+            </blockquote>
+        </div>
+        <div class="col-md-4 text-center">
+            <blockquote>
+                <p>"I was able to build my website in just a few hours. Highly recommend!"</p>
+                <footer>- Sarah K.</footer>
+            </blockquote>
+        </div>
+        <div class="col-md-4 text-center">
+            <blockquote>
+                <p>"The collaborative features are a game changer for my team!"</p>
+                <footer>- Michael T.</footer>
+            </blockquote>
         </div>
     </div>
 </section>
 
-<!-- New Section: Call to Action -->
 <section class="call-to-action">
     <div class="container text-center">
         <h2>Join Us Today!</h2>
@@ -102,5 +81,4 @@
         <a href="{% url 'login' %}" class="btn btn-start-building btn-lg">Create Your Account</a>
     </div>
 </section>
-
 {% endblock %}
