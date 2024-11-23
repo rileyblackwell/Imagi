@@ -103,14 +103,16 @@
 </section>
 
 <!-- Call to Action Section -->
+{% if not user.is_authenticated %}
 <section class="content-section text-center">
     <div class="container">
         <h2 class="section-title">Ready to Start Building?</h2>
         <p class="hero-description">Join thousands of users transforming their ideas into reality with Imagi Oasis.</p>
-        <a href="{% url 'login' %}" class="btn-cta">
+        <a href="{% url 'signup' %}" class="btn-cta">
             <span>Create Your Account</span>
             <i class="fas fa-arrow-right"></i>
         </a>
     </div>
 </section>
+{% endif %}
 {% endblock %}
