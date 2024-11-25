@@ -244,7 +244,7 @@ $(document).ready(function() {
                 }
                 $('#user-input').val('');
                 $('#file-select').val('index.html');
-                $('#model-select').val('');
+                $('#model-select').val('claude-sonnet');
             },
             error: function(xhr, status, error) {
                 console.error("Clear History Error:", error);
