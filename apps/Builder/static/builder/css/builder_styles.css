@@ -187,21 +187,42 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* Custom Page Input - move up */
+/* Custom Page Input Section - ensure it uses flexbox for alignment */
 .custom-page-section {
     margin-top: 5px;
-    display: flex;
-    gap: 10px;
+    display: flex; /* Use flexbox for horizontal alignment */
+    gap: 10px; /* Space between input and button */
     width: 100%;
 }
 
+/* Custom Page Input - update styles to make it wider */
 #custom-page-name {
-    flex: 1;
+    flex: 1; /* Allow it to grow */
     padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.07);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 25px;
     color: white;
+    outline: none;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+/* Style the Add button to match other action buttons */
+#add-page-btn {
+    padding: 12px 24px;
+    border-radius: 30px;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.8);
+    background: var(--gradient-generate);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* Responsive Design */
@@ -222,3 +243,16 @@ body {
     color: rgba(255, 255, 255, 0.4); /* Keep the placeholder color */
     font-size: 1.1rem; /* Changed to 1.1rem for a slightly larger size */
 }
+
+/* Add focus outline with a blue highlight for the custom page input */
+#custom-page-name:focus {
+    border-color: var(--primary-color); /* Blue border on focus */
+    box-shadow: 0 0 5px var(--primary-color); /* Blue glow effect */
+}
+
+/* Adjust placeholder text color for the custom page input */
+#custom-page-name::placeholder {
+    color: rgba(255, 255, 255, 0.4); /* Change to a brighter color for better readability */
+    font-size: 1.1rem; /* Keep the font size consistent */
+}
+
