@@ -12,10 +12,6 @@ from .utils import (
     get_file_context,
     ensure_website_directory
 )
-import time
-from functools import wraps
-import random
-import traceback
 
 # Load environment variables from .env
 load_dotenv()
@@ -24,36 +20,6 @@ anthropic_key = os.getenv('ANTHROPIC_KEY')
 
 openai_client = OpenAI(api_key=openai_key)
 anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
-
-def retry_on_error(max_retries=3, initial_delay=1, max_delay=8, exponential_base=2):
-    """
-    Decorator that implements exponential backoff retry logic
-    """
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            delay = initial_delay
-            last_exception = None
-            
-            for retry in range(max_retries):
-                try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    last_exception = e
-                    error_str = str(e).lower()
-                    
-                    if 'overloaded' in error_str or '429' in error_str or '529' in error_str:
-                        if retry < max_retries - 1:
-                            jitter = random.uniform(0, 0.1 * delay)
-                            sleep_time = min(delay + jitter, max_delay)
-                            time.sleep(sleep_time)
-                            delay *= exponential_base
-                    else:
-                        raise
-            
-            raise last_exception
-        return wrapper
-    return decorator
 
 def build_conversation_history(system_msg, page, output_dir):
     """Builds the conversation history with organized sections."""
@@ -111,7 +77,7 @@ def build_conversation_history(system_msg, page, output_dir):
     if page:
         # Get all messages for this specific page and project
         all_messages = Message.objects.filter(
-            conversation__project=page.conversation.project,  # Filter by project
+            conversation__project=page.conversation.project,
             page=page
         ).order_by('created_at')
         
@@ -158,96 +124,57 @@ def build_conversation_history(system_msg, page, output_dir):
     
     return conversation_history
 
-@retry_on_error(max_retries=3, initial_delay=1, max_delay=8)
 def make_api_call(model, system_msg, conversation_history, page, user_input, complete_messages):
-    print(f"\n=== make_api_call START ===")
-    print(f"Model: {model}")
-    print(f"Page: {page.filename}")
-    
-    try:
-        if model == 'claude-3-5-sonnet-20241022':
-            print("Using Claude 3.5 Sonnet model")
-            system_content = (
-                f"{system_msg['content']}\n\n"
-                f"CURRENT TASK: You are editing {page.filename}\n\n"
-                f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
-            )
-            
-            messages = [msg for msg in conversation_history if msg["role"] != "system"]
-            messages.append({
-                "role": "user",
-                "content": f"[File: {page.filename}]\n{user_input}"
-            })
-            
-            print("Sending request to Claude API...")
-            completion = anthropic_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=2048,
-                system=system_content,
-                messages=messages
-            )
-            
-            print("Claude API Response received")
-            print(f"Response type: {type(completion)}")
-            print(f"Response content type: {type(completion.content)}")
-            
-            if completion.content:
-                response_text = completion.content[0].text
-                print(f"Response text type: {type(response_text)}")
-                return response_text
-            raise ValueError("Empty response from Claude API")
-                
-        elif model in ['gpt-4o', 'gpt-4o-mini']:
-            print(f"Using OpenAI model: {model}")
-            print("Sending request to OpenAI API...")
-            
-            completion = openai_client.chat.completions.create(
-                model=model,
-                messages=complete_messages,
-                temperature=0.7,
-                max_tokens=2048
-            )
-            
-            print("OpenAI API Response received")
-            print(f"Response type: {type(completion)}")
-            response = completion.choices[0].message.content
-            print(f"Response content type: {type(response)}")
-            return response
-                
-    except Exception as e:
-        print(f"\n=== API Error Details ===")
-        print(f"Error type: {type(e)}")
-        print(f"Error message: {str(e)}")
-        if 'completion' in locals():
-            print(f"Response structure: {completion}")
-        raise
+    if model == 'claude-3-5-sonnet-20241022':
+        system_content = (
+            f"{system_msg['content']}\n\n"
+            f"CURRENT TASK: You are editing {page.filename}\n\n"
+            f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
+        )
         
-    print("=== make_api_call END ===\n")
+        messages = [msg for msg in conversation_history if msg["role"] != "system"]
+        messages.append({
+            "role": "user",
+            "content": f"[File: {page.filename}]\n{user_input}"
+        })
+        
+        completion = anthropic_client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2048,
+            system=system_content,
+            messages=messages
+        )
+        
+        if completion.content:
+            return completion.content[0].text
+        raise ValueError("Empty response from Claude API")
+            
+    elif model in ['gpt-4o', 'gpt-4o-mini']:
+        completion = openai_client.chat.completions.create(
+            model=model,
+            messages=complete_messages,
+            temperature=0.7,
+            max_tokens=2048
+        )
+        
+        return completion.choices[0].message.content
+    
+    else:
+        raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
 
 def process_user_input(user_input, model, conversation, page):
     """Processes user input for a specific page."""
-    print(f"\n=== process_user_input START ===")
-    print(f"Processing input for page: {page.filename}")
-    print(f"Project: {conversation.project.name}")
-    print(f"Model: {model}")
-    print(f"Input length: {len(user_input)}")
-    
     try:
         system_msg = get_system_message()
         base_dir = os.path.dirname(__file__)
-        
-        # Ensure we're using the project-specific directory
         output_dir = ensure_website_directory(
             os.path.join(base_dir, '..'), 
             conversation.project.id
         )
-        print(f"Using project directory: {output_dir}")
         
-        print("Building conversation history...")
         conversation_history = build_conversation_history(system_msg, page, output_dir)
-        print(f"Conversation history length: {len(conversation_history)}")
-        
         file_context = get_file_context(page.filename)
+        
         complete_messages = [
             {"role": "system", "content": system_msg["content"]},
             *conversation_history,
@@ -255,7 +182,6 @@ def process_user_input(user_input, model, conversation, page):
             {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
         ]
         
-        print("Making API call...")
         assistant_response = make_api_call(
             model=model,
             system_msg=system_msg,
@@ -264,16 +190,12 @@ def process_user_input(user_input, model, conversation, page):
             user_input=user_input,
             complete_messages=complete_messages
         )
-        
-        print(f"API response received, type: {type(assistant_response)}")
-        print(f"Response length: {len(str(assistant_response))}")
 
         if not assistant_response:
             raise ValueError("Empty response from AI service")
 
         # Process response based on file type
         if page.filename.endswith('.html'):
-            print("Processing HTML response...")
             html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
             if html_match:
                 assistant_response = html_match.group(0)
@@ -285,7 +207,6 @@ def process_user_input(user_input, model, conversation, page):
                 raise ValueError("Invalid HTML content")
                 
         elif page.filename == 'styles.css':
-            print("Processing CSS response...")
             cleaned_response = assistant_response.replace('```css', '').replace('```', '').strip()
             
             if '<!DOCTYPE' in cleaned_response or '<html' in cleaned_response:
@@ -297,7 +218,6 @@ def process_user_input(user_input, model, conversation, page):
         output_path = os.path.join(output_dir, page.filename)
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
-        print(f"File saved: {output_path}")
 
         # Save messages
         Message.objects.create(
@@ -313,7 +233,6 @@ def process_user_input(user_input, model, conversation, page):
             role="assistant",
             content=cleaned_response
         )
-        print("Messages saved to database")
 
         if page.filename == 'styles.css':
             index_path = os.path.join(output_dir, 'index.html')
@@ -324,14 +243,9 @@ def process_user_input(user_input, model, conversation, page):
             except FileNotFoundError:
                 return {'html': '', 'css': cleaned_response}
 
-        print("=== process_user_input END ===\n")
         return cleaned_response
 
     except Exception as e:
-        print(f"\n=== Error in process_user_input ===")
-        print(f"Error type: {type(e)}")
-        print(f"Error message: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
         raise ValueError(str(e))
 
 def undo_last_action(conversation, page):
@@ -349,16 +263,13 @@ def undo_last_action(conversation, page):
 
         # For styles.css, we need to ensure we return valid CSS
         if page.filename == 'styles.css':
-            # Just return the previous content without validation
             if not previous_content:
-                # If no previous CSS exists, return empty string but don't delete file
                 return '', 'No previous CSS version available.'
         else:
             previous_content = test_html(previous_content) if previous_content else ''
 
         return previous_content, 'Last action undone successfully.'
     else:
-        # Don't delete all messages for styles.css when there's not enough history
         if page.filename == 'styles.css':
             return '', 'Not enough history to undo last action.'
         else:
@@ -368,93 +279,78 @@ def undo_last_action(conversation, page):
 def process_chat_input(user_input, model, conversation, conversation_history, file_name):
     """Processes chat input without generating website files."""
     try:
-        print(f"\n=== process_chat_input START ===")
-        print(f"Project: {conversation.project.name}")
-        print(f"File: {file_name}")
-        
         system_msg = get_system_message()
         base_dir = os.path.dirname(__file__)
-        
-        # Ensure we're using the project-specific directory
         output_dir = ensure_website_directory(
             os.path.join(base_dir, '..'), 
             conversation.project.id
         )
         
-        # Get or create the page for this file
         page = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
         )[0]
         
-        # Build conversation history with project context
         conversation_history = build_conversation_history(system_msg, page, output_dir)
         
-        try:
-            if model == 'claude-3-5-sonnet-20241022':  # Updated model name
-                system_content = (
-                    f"{system_msg['content']}\n\n"
-                    f"CURRENT TASK: You are in chat mode discussing {file_name}. "
-                    "Provide helpful responses about website development and design. "
-                    "You can reference the current content of the file and suggest improvements "
-                    "or explain concepts, but do not generate actual code updates.\n\n"
-                    f"CONTEXT: The conversation is about {file_name}"
-                )
-                
-                messages = [msg for msg in conversation_history if msg["role"] != "system"]
-                messages.append({
-                    "role": "user", 
-                    "content": f"[Chat][File: {file_name}]\n{user_input}"
-                })
-                
-                completion = anthropic_client.messages.create(
-                    model="claude-3-5-sonnet-20241022",
-                    max_tokens=2048,
-                    system=system_content,
-                    messages=messages
-                )
-                
-                # Simplified response handling
-                if completion.content:
-                    response = completion.content[0].text
-                else:
-                    raise ValueError("Empty response from Claude API")
-                
+        if model == 'claude-3-5-sonnet-20241022':
+            system_content = (
+                f"{system_msg['content']}\n\n"
+                f"CURRENT TASK: You are in chat mode discussing {file_name}. "
+                "Provide helpful responses about website development and design. "
+                "You can reference the current content of the file and suggest improvements "
+                "or explain concepts, but do not generate actual code updates.\n\n"
+                f"CONTEXT: The conversation is about {file_name}"
+            )
+            
+            messages = [msg for msg in conversation_history if msg["role"] != "system"]
+            messages.append({
+                "role": "user", 
+                "content": f"[Chat][File: {file_name}]\n{user_input}"
+            })
+            
+            completion = anthropic_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=2048,
+                system=system_content,
+                messages=messages
+            )
+            
+            if completion.content:
+                response = completion.content[0].text
             else:
-                messages = [
-                    {"role": "system", "content": system_msg["content"]},
-                    {"role": "system", "content": f"You are discussing {file_name}"},
-                    *conversation_history,
-                    {"role": "user", "content": f"[Chat][File: {file_name}]\n{user_input}"}
-                ]
-                
-                completion = openai_client.chat.completions.create(
-                    model=model,
-                    messages=messages
-                )
-                response = completion.choices[0].message.content
-
-            # Save the chat messages to the conversation
-            Message.objects.create(
-                conversation=conversation,
-                page=page,
-                role="user",
-                content=f"[Chat][File: {file_name}]\n{user_input}"
+                raise ValueError("Empty response from Claude API")
+            
+        else:
+            messages = [
+                {"role": "system", "content": system_msg["content"]},
+                {"role": "system", "content": f"You are discussing {file_name}"},
+                *conversation_history,
+                {"role": "user", "content": f"[Chat][File: {file_name}]\n{user_input}"}
+            ]
+            
+            completion = openai_client.chat.completions.create(
+                model=model,
+                messages=messages
             )
+            response = completion.choices[0].message.content
 
-            Message.objects.create(
-                conversation=conversation,
-                page=page,
-                role="assistant",
-                content=f"[Chat][File: {file_name}]\n{response}"
-            )
+        # Save the chat messages to the conversation
+        Message.objects.create(
+            conversation=conversation,
+            page=page,
+            role="user",
+            content=f"[Chat][File: {file_name}]\n{user_input}"
+        )
 
-            return response
+        Message.objects.create(
+            conversation=conversation,
+            page=page,
+            role="assistant",
+            content=f"[Chat][File: {file_name}]\n{response}"
+        )
 
-        except Exception as e:
-            print(f"API Error in process_chat_input: {str(e)}")
-            raise ValueError(f"API error: {str(e)}")
+        return response
 
     except Exception as e:
-        print(f"Error in process_chat_input: {str(e)}")
         raise ValueError(str(e))

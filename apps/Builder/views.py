@@ -354,10 +354,19 @@ def process_chat(request):
         if not user_input or not model or not file_name:
             return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-        # Get or create conversation
-        conversation = Conversation.objects.get_or_create(user=request.user)[0]
+        # Get the active conversation for the specific project using latest updated project
+        conversation = Conversation.objects.filter(
+            user=request.user,
+            project__isnull=False
+        ).select_related('project').latest('project__updated_at')
         
-        # Get or create the page/file for context
+        if not conversation:
+            return JsonResponse({
+                'error': 'No active project found',
+                'detail': 'Please select or create a project first'
+            }, status=400)
+        
+        # Get or create the page for this file
         page = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
@@ -367,7 +376,10 @@ def process_chat(request):
         system_msg = get_system_message()
         
         # Set up output directory
-        output_dir = ensure_website_directory(os.path.dirname(__file__))
+        output_dir = ensure_website_directory(
+            os.path.dirname(__file__), 
+            conversation.project.id
+        )
         
         # Build conversation history with the output directory and page context
         conversation_history = build_conversation_history(system_msg, page, output_dir)

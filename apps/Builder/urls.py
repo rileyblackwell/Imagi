@@ -8,7 +8,7 @@ app_name = 'builder'  # Define a namespace for the app
 urlpatterns = [
     # Landing page
     path('', views.landing_page, name='landing_page'),
-    path('builder/', views.index, name='index'),  # Renamed from index to builder
+    path('oasis/', views.index, name='index'),  # Updated from 'builder/' to 'oasis/'
     
     # Project management
     path('create-project/', views.create_project, name='create_project'),
@@ -22,5 +22,5 @@ urlpatterns = [
     path('undo-last-action/', views.undo_last_action_view, name='undo_last_action'),
     path('get-page/', views.get_page, name='get_page'),
     path('website/<path:path>', views.serve_website_file, name='serve_website_file'),
-    path('chat/', views.process_chat, name='process_chat'),
+    path('chat/', views.process_chat, name='process_chat'),  # Added chat endpoint
 ]
