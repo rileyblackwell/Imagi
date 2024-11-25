@@ -1,6 +1,6 @@
 # builder/views.py
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -20,6 +20,9 @@ import os
 from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
+from django.urls import reverse
+from django.http import Http404
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect, csrf_exempt
 
 
 @login_required
@@ -28,6 +31,7 @@ def landing_page(request):
     return render(request, 'builder/builder_landing_page.html', {'projects': projects})
 
 
+@csrf_protect
 @login_required
 def create_project(request):
     if request.method == 'POST':
@@ -42,8 +46,45 @@ def create_project(request):
                 user=request.user,
                 project=project
             )
-            return redirect('builder:index')
+            # Redirect to the project-specific workspace using URL-safe name
+            return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
     return redirect('builder:landing_page')
+
+
+@login_required
+def project_workspace(request, project_name):
+    try:
+        # Get the project using the URL-safe name
+        projects = Project.objects.filter(user=request.user)
+        project = None
+        
+        for p in projects:
+            if p.get_url_safe_name() == project_name:
+                project = p
+                break
+        
+        if not project:
+            messages.error(request, f"Project '{project_name}' not found.")
+            return redirect('builder:landing_page')
+        
+        # Get or create conversation for this project
+        conversation, created = Conversation.objects.get_or_create(
+            user=request.user,
+            project=project
+        )
+        
+        # Update project's last modified time
+        project.updated_at = timezone.now()
+        project.save()
+        
+        return render(request, 'builder/oasis_builder.html', {
+            'project': project,
+            'conversation': conversation
+        })
+        
+    except Exception as e:
+        messages.error(request, f"An error occurred: {str(e)}")
+        return redirect('builder:landing_page')
 
 
 @login_required
@@ -60,23 +101,17 @@ def load_project(request, project_id):
     project.updated_at = timezone.now()
     project.save()
     
-    return redirect('builder:index')
+    # Redirect to the project-specific workspace using URL-safe name
+    return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
 
 
 @login_required
 def index(request):
-    # Check if user has an active project
-    active_conversation = Conversation.objects.filter(
-        user=request.user,
-        project__isnull=False
-    ).first()
-    
-    if not active_conversation:
-        return redirect('builder:landing_page')
-        
-    return render(request, 'builder/oasis_builder.html')
+    # This view is deprecated - redirect to landing page
+    return redirect('builder:landing_page')
 
 
+@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def process_input(request):
     try:
@@ -137,6 +172,7 @@ def process_input(request):
         }, status=500)
 
 
+@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def get_conversation_history(request):
     try:
@@ -214,6 +250,7 @@ def get_conversation_history(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def undo_last_action_view(request):
     try:
@@ -253,6 +290,7 @@ def undo_last_action_view(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def clear_conversation_history(request):
     try:
@@ -344,6 +382,7 @@ def serve_website_file(request, path):
     return serve(request, path, document_root=website_dir)
 
 
+@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def process_chat(request):
     try:
@@ -397,6 +436,7 @@ def process_chat(request):
         }, status=500)
 
 
+@csrf_protect
 @login_required
 def delete_project(request, project_id):
     if request.method == 'POST':
@@ -417,3 +457,21 @@ def delete_project(request, project_id):
         messages.success(request, f"Project '{project.name}' has been deleted.")
     
     return redirect('builder:landing_page')
+
+
+def csrf_failure(request, reason=""):
+    return HttpResponseForbidden(
+        'CSRF verification failed. Please try refreshing the page.'
+    )
+
+# For views that need to be CSRF exempt (use sparingly)
+@csrf_exempt
+def some_api_view(request):
+    # View logic here
+    pass
+
+# For views that need to ensure the CSRF cookie is set
+@ensure_csrf_cookie
+def some_view(request):
+    # View logic here
+    pass

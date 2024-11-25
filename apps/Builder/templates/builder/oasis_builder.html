@@ -95,10 +95,23 @@
         </div>
     </div>
 </div>
+</body>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+<script>
+    // Updated CSRF token handling
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
+</script>
 <script src="{% static 'builder/js/script.js' %}"></script>
 {% endblock %} 

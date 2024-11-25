@@ -144,7 +144,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Change these lines at the end of the file
-LOGIN_REDIRECT_URL = 'landing_page'  # Redirect to landing page after login
+LOGIN_REDIRECT_URL = 'builder:landing_page'  # Redirect to builder landing page after login
 LOGOUT_REDIRECT_URL = 'landing_page'  # Redirect to landing page after logout
 LOGIN_URL = 'login'  # URL name for the login page
 
@@ -174,3 +174,26 @@ CSRF_COOKIE_SECURE = not DEBUG  # Ensures CSRF cookies are only sent over HTTPS
 
 # For development, you might want to add localhost to ALLOWED_HOSTS
 ALLOWED_HOSTS = ['localhost', '127.0.0.1'] if DEBUG else ['your-production-domain.com']
+
+# Add these CSRF-related settings
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
+
+# If you're using HTTPS in development, add these as well:
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend(['https://localhost:8000', 'https://127.0.0.1:8000'])
+
+# Ensure CSRF middleware is properly ordered
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',  # Make sure this is present and in this order
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# Add custom CSRF failure view
+CSRF_FAILURE_VIEW = 'apps.Builder.views.csrf_failure'

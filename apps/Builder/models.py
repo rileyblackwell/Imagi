@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.text import slugify
 
 
 class Project(models.Model):
@@ -12,6 +13,10 @@ class Project(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.user.username}"
+    
+    def get_url_safe_name(self):
+        """Returns a URL-safe version of the project name"""
+        return slugify(self.name)
 
 
 class Conversation(models.Model):
