@@ -269,12 +269,19 @@ def process_chat(request):
     try:
         user_input = request.POST.get('user_input', '').strip()
         model = request.POST.get('model', '').strip()
+        file_name = request.POST.get('file', '').strip()
         
-        if not user_input or not model:
+        if not user_input or not model or not file_name:
             return JsonResponse({'error': 'Missing required fields'}, status=400)
 
         # Get or create conversation
         conversation = Conversation.objects.get_or_create(user=request.user)[0]
+        
+        # Get or create the page/file for context
+        page = Page.objects.get_or_create(
+            conversation=conversation,
+            filename=file_name
+        )[0]
         
         # Get system message
         system_msg = get_system_message()
@@ -282,11 +289,11 @@ def process_chat(request):
         # Set up output directory
         output_dir = ensure_website_directory(os.path.dirname(__file__))
         
-        # Build conversation history with the output directory
-        conversation_history = build_conversation_history(system_msg, None, output_dir)
+        # Build conversation history with the output directory and page context
+        conversation_history = build_conversation_history(system_msg, page, output_dir)
         
         # Process chat using the AI service
-        response_content = process_chat_input(user_input, model, conversation, conversation_history)
+        response_content = process_chat_input(user_input, model, conversation, conversation_history, file_name)
         
         return JsonResponse({'message': response_content})
             

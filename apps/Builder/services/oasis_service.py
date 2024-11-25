@@ -23,11 +23,22 @@ anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 
 def build_conversation_history(system_msg, page, output_dir):
-    """Builds the conversation history with the complete website context."""
+    """Builds the conversation history with organized sections."""
     conversation_history = []
     
-    # Only add file contents if we have a valid output directory
+    # 1. Add system message first
+    conversation_history.append({
+        "role": "system",
+        "content": "=== SYSTEM PROMPT ===\n" + system_msg["content"]
+    })
+    
+    # 2. Add current state of ALL files
     if output_dir and os.path.exists(output_dir):
+        conversation_history.append({
+            "role": "system",
+            "content": "\n=== CURRENT WEBSITE FILES ===\n"
+        })
+        
         # First add all HTML files
         html_files = [f for f in os.listdir(output_dir) if f.endswith('.html')]
         html_files.sort()
@@ -45,7 +56,7 @@ def build_conversation_history(system_msg, page, output_dir):
                     file_content = f.read()
                     conversation_history.append({
                         "role": "assistant",
-                        "content": f"[File: {filename}]\nCurrent HTML content:\n{file_content}"
+                        "content": f"[File: {filename}]\n{file_content}"
                     })
             except FileNotFoundError:
                 continue
@@ -58,24 +69,56 @@ def build_conversation_history(system_msg, page, output_dir):
                     css_content = f.read()
                     conversation_history.append({
                         "role": "assistant",
-                        "content": f"[File: styles.css]\nCurrent CSS content:\n{css_content}"
+                        "content": f"[File: styles.css]\n{css_content}"
                     })
             except FileNotFoundError:
                 pass
     
-    # Add conversation history for the current file if page is provided
+    # 3. Add file-specific history if page is provided
     if page:
-        current_file_messages = page.messages.all().order_by('created_at')
-        for msg in current_file_messages:
-            # Ensure all messages are properly tagged with the file context
-            content = msg.content
-            if msg.role == "user" and not content.startswith("[File:"):
-                content = f"[File: {page.filename}]\n{content}"
-            
+        # Get all messages for this page
+        all_messages = page.messages.all().order_by('created_at')
+        
+        # Separate chat and build messages
+        chat_messages = [msg for msg in all_messages if msg.content.startswith('[Chat]')]
+        build_messages = [msg for msg in all_messages if not msg.content.startswith('[Chat]')]
+        
+        # Add chat history section if there are chat messages
+        if chat_messages:
             conversation_history.append({
-                "role": msg.role,
-                "content": content
+                "role": "system",
+                "content": f"\n=== CHAT HISTORY FOR {page.filename} ===\n"
             })
+            
+            for msg in chat_messages:
+                conversation_history.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        # Add build history section if there are build messages
+        if build_messages:
+            conversation_history.append({
+                "role": "system",
+                "content": f"\n=== BUILD HISTORY FOR {page.filename} ===\n"
+            })
+            
+            for msg in build_messages:
+                content = msg.content
+                if msg.role == "user" and not content.startswith("[File:"):
+                    content = f"[File: {page.filename}]\n{content}"
+                
+                conversation_history.append({
+                    "role": msg.role,
+                    "content": content
+                })
+    
+    # 4. Add current file context at the end
+    if page:
+        conversation_history.append({
+            "role": "system",
+            "content": f"\n=== CURRENT TASK ===\nYou are working on: {page.filename}"
+        })
     
     return conversation_history
 
@@ -294,7 +337,7 @@ def undo_last_action(conversation, page):
             return '', 'Not enough history to undo last action; page history cleared.'
 
 
-def process_chat_input(user_input, model, conversation, conversation_history):
+def process_chat_input(user_input, model, conversation, conversation_history, file_name):
     """Processes chat input without generating website files."""
     try:
         # Get system message
@@ -304,12 +347,14 @@ def process_chat_input(user_input, model, conversation, conversation_history):
         if model == 'claude-sonnet':
             system_content = (
                 f"{system_msg['content']}\n\n"
-                "CURRENT TASK: You are in chat mode. Provide helpful responses about "
-                "website development and design without generating actual code. "
-                "Help users refine their ideas and explain concepts clearly."
+                f"CURRENT TASK: You are in chat mode discussing {file_name}. "
+                "Provide helpful responses about website development and design. "
+                "You can reference the current content of the file and suggest improvements "
+                "or explain concepts, but do not generate actual code updates.\n\n"
+                f"CONTEXT: The conversation is about {file_name}"
             )
             
-            messages = [{"role": "user", "content": user_input}]
+            messages = [{"role": "user", "content": f"[File: {file_name}]\n{user_input}"}]
             
             completion = anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
@@ -322,8 +367,9 @@ def process_chat_input(user_input, model, conversation, conversation_history):
         else:
             messages = [
                 {"role": "system", "content": system_msg["content"]},
+                {"role": "system", "content": f"You are discussing {file_name}"},
                 *conversation_history,
-                {"role": "user", "content": user_input}
+                {"role": "user", "content": f"[File: {file_name}]\n{user_input}"}
             ]
             
             completion = openai_client.chat.completions.create(
@@ -332,17 +378,17 @@ def process_chat_input(user_input, model, conversation, conversation_history):
             )
             response = completion.choices[0].message.content
 
-        # Save the conversation
+        # Save the conversation with chat tag
         Message.objects.create(
             conversation=conversation,
             role="user",
-            content=user_input
+            content=f"[Chat][File: {file_name}]\n{user_input}"
         )
 
         Message.objects.create(
             conversation=conversation,
             role="assistant",
-            content=response
+            content=f"[Chat][File: {file_name}]\n{response}"
         )
 
         return response

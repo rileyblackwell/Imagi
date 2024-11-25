@@ -64,10 +64,9 @@ $(document).ready(function() {
         
         if (mode === 'chat') {
             $textarea.attr('placeholder', 'Chat with AI about your website ideas...');
-            $('#file-select').parent().hide(); // Hide file selection in chat mode
         } else {
             $textarea.attr('placeholder', 'let your imagination flow...');
-            $('#file-select').parent().show(); // Show file selection in build mode
+            $('#file-select').parent().show();
         }
     });
 
@@ -80,6 +79,14 @@ $(document).ready(function() {
         var mode = $('#mode-select').val();
         var selectedFile = $('#file-select').val();
         
+        // Log the request details
+        console.group('🚀 Generate Request');
+        console.log('Mode:', mode);
+        console.log('Model:', model);
+        console.log('File:', selectedFile);
+        console.log('User Input:', userInput);
+        console.groupEnd();
+
         // Validate input based on mode
         if (mode === 'build') {
             if (selectedFile === 'custom' || !userInput || !model) {
@@ -87,15 +94,15 @@ $(document).ready(function() {
                 return;
             }
         } else if (mode === 'chat') {
-            if (!userInput || !model) {
-                alert('Please enter your message and select an AI model');
+            if (!userInput || !model || selectedFile === 'custom') {
+                alert('Please enter your message, select an AI model, and choose a file to discuss');
                 return;
             }
         }
 
-        // Clear the textarea and start ripple effect
+        // Clear only the input textarea, not the response window
         var $textarea = $('#user-input');
-        var originalInput = userInput; // Store original input for chat mode
+        var originalInput = userInput;
         $textarea.val('');
         
         // Set initial state with placeholder
@@ -129,8 +136,103 @@ $(document).ready(function() {
                 'mode': mode,
                 'csrfmiddlewaretoken': csrftoken
             },
+            beforeSend: function() {
+                $.ajax({
+                    type: 'POST',
+                    url: '/builder/get-conversation-history/',
+                    async: false,
+                    data: {
+                        'model': model,
+                        'file': selectedFile,
+                        'user_input': userInput,
+                        'csrfmiddlewaretoken': csrftoken
+                    },
+                    success: function(historyResponse) {
+                        console.group('📜 Conversation History (Being sent to AI)');
+                        
+                        // Common function to handle message logging
+                        function logMessage(msg) {
+                            if (msg.content.includes('=== SYSTEM PROMPT ===')) {
+                                console.group('🤖 System Prompt');
+                                console.log(msg.content.split('===')[2]?.trim() || msg.content);
+                                console.groupEnd();
+                            } else if (msg.content.includes('=== CURRENT WEBSITE FILES ===')) {
+                                console.group('📄 Website Files');
+                                console.log(msg.content.split('===')[2]?.trim() || msg.content);
+                            } else if (msg.content.includes('=== CHAT HISTORY FOR')) {
+                                console.group('💬 Chat History');
+                                console.log(msg.content.split('===')[2]?.trim() || msg.content);
+                            } else if (msg.content.includes('=== BUILD HISTORY FOR')) {
+                                console.group('🏗️ Build History');
+                                console.log(msg.content.split('===')[2]?.trim() || msg.content);
+                            } else if (msg.content.includes('=== CURRENT TASK ===')) {
+                                console.group('🎯 Current Task');
+                                console.log(msg.content.split('===')[2]?.trim() || msg.content);
+                            } else {
+                                // Regular message content
+                                console.log(`${msg.role.toUpperCase()}:`);
+                                console.log(msg.content);
+                                console.log('-------------------');
+                            }
+                            
+                            // Close group for section headers
+                            if (msg.content.includes('===') && 
+                                !msg.content.includes('=== SYSTEM PROMPT ===')) {
+                                console.groupEnd();
+                            }
+                        }
+                        
+                        if (historyResponse.model === 'claude-sonnet') {
+                            // For Claude, first log the system message in the same format
+                            console.group('🤖 System Prompt');
+                            console.log(historyResponse.system);
+                            console.groupEnd();
+                            
+                            // Create a messages array that includes section headers
+                            let messages = [];
+                            let hasFiles = false;
+                            let hasChat = false;
+                            let hasBuild = false;
+                            
+                            // Process messages to identify sections
+                            historyResponse.messages.forEach(msg => {
+                                if (msg.content.startsWith('[File:') && !hasFiles) {
+                                    messages.push({
+                                        role: 'system',
+                                        content: '=== CURRENT WEBSITE FILES ==='
+                                    });
+                                    hasFiles = true;
+                                } else if (msg.content.startsWith('[Chat]') && !hasChat) {
+                                    messages.push({
+                                        role: 'system',
+                                        content: '=== CHAT HISTORY ==='
+                                    });
+                                    hasChat = true;
+                                } else if (!msg.content.startsWith('[Chat]') && 
+                                         msg.content.startsWith('[File:') && !hasBuild) {
+                                    messages.push({
+                                        role: 'system',
+                                        content: '=== BUILD HISTORY ==='
+                                    });
+                                    hasBuild = true;
+                                }
+                                messages.push(msg);
+                            });
+                            
+                            // Log all messages with proper sections
+                            messages.forEach(logMessage);
+                        } else {
+                            // For GPT models, log all messages including system message
+                            historyResponse.messages.forEach(logMessage);
+                        }
+                        
+                        console.groupEnd();
+                    }
+                });
+            },
             success: function(response) {
-                console.log('Success response:', response);
+                console.group('✨ AI Response');
+                console.log('Response:', response);
                 
                 // Clear the ripple effect
                 if (window.rippleInterval) {
@@ -138,12 +240,25 @@ $(document).ready(function() {
                 }
 
                 if (mode === 'chat') {
-                    // For chat mode, display the conversation in the textarea
-                    $textarea.val('You: ' + originalInput + '\n\nAI: ' + response.message);
+                    // For chat mode, append the conversation to the response window
+                    var $responseWindow = $('#response-window');
+                    var newMessage = 'You: ' + originalInput + '\n\nAI: ' + response.message + '\n\n';
+                    $responseWindow.append(newMessage);
+                    
+                    // Scroll to bottom of response window
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                    
+                    // Reset input placeholder
                     $textarea.attr('placeholder', 'Chat with AI about your website ideas...');
                 } else {
-                    // For build mode, handle as before
+                    // For build mode, show the generated content in the response window
+                    var $responseWindow = $('#response-window');
+                    $responseWindow.text('Generated content has been applied to: ' + selectedFile);
+                    
+                    // Reset input placeholder
                     $textarea.attr('placeholder', 'let your imagination flow...');
+                    
+                    // Update website preview
                     if (selectedFile === 'styles.css') {
                         if (response.html) {
                             updateWebsitePreview(response.html);
@@ -154,7 +269,12 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                // Handle errors as before
+                console.group('❌ Error');
+                console.error("AJAX Error:", error);
+                console.error("Status:", status);
+                console.error("Response:", xhr.responseText);
+                console.groupEnd();
+                
                 handleAjaxError(xhr, status, error);
             },
             complete: function() {
@@ -225,10 +345,11 @@ $(document).ready(function() {
                     websiteTab.close();
                 }
                 $('#user-input').val('');
+                $('#response-window').empty(); // Clear the response window
                 $('#file-select').val('index.html');
                 $('#model-select').val('claude-sonnet');
-                $('#mode-select').val('build'); // Reset mode to build
-                $('#file-select').parent().show(); // Show file selection
+                $('#mode-select').val('build');
+                $('#file-select').parent().show();
             },
             error: function(xhr, status, error) {
                 console.error("Clear History Error:", error);

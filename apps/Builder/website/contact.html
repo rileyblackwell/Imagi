@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Contact Us - Dog Lovers</title>
+    <link rel='stylesheet' href='styles.css'>
+</head>
+<body>
+    <header>
+        <h1>Contact Dog Lovers</h1>
+        <nav>
+            <ul>
+                <li><a href='index.html'>Home</a></li>
+                <li><a href='about.html'>About</a></li>
+                <li><a href='contact.html'>Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="contact-intro">
+            <h2>Get in Touch</h2>
+            <p>We'd love to hear from you! Whether you have questions about dog care, want to join our community, or need assistance, our team is here to help.</p>
+        </section>
+
+        <section class="contact-grid">
+            <div class="contact-info">
+                <h3>Contact Information</h3>
+                <div class="info-item">
+                    <h4>Address</h4>
+                    <p>123 Paw Street<br>Dogtown, DG 12345<br>United States</p>
+                </div>
+                <div class="info-item">
+                    <h4>Phone</h4>
+                    <p>(555) 123-4567</p>
+                </div>
+                <div class="info-item">
+                    <h4>Email</h4>
+                    <p>info@doglovers.com</p>
+                </div>
+                <div class="info-item">
+                    <h4>Hours</h4>
+                    <p>Monday - Friday: 9:00 AM - 6:00 PM<br>
+                    Saturday: 10:00 AM - 4:00 PM<br>
+                    Sunday: Closed</p>
+                </div>
+            </div>
+
+            <div class="contact-form">
+                <h3>Send Us a Message</h3>
+                <form action="/submit" method="POST">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject *</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Select a subject</option>
+                            <option value="general">General Inquiry</option>
+                            <option value="membership">Membership Questions</option>
+                            <option value="support">Dog Care Support</option>
+                            <option value="events">Events & Workshops</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Message *</label>
+                        <textarea id="message" name="message" rows="5" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="newsletter" id="newsletter">
+                            Subscribe to our newsletter for updates and tips
+                        </label>
+                    </div>
+
+                    <button type="submit" class="submit-button">Send Message</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="faq">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>How can I join the Dog Lovers community?</h3>
+                    <p>Simply fill out the contact form above or email us directly to get started. We'll guide you through the membership process.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Do you offer emergency support?</h3>
+                    <p>For pet emergencies, please contact your local veterinarian or emergency animal hospital. We can provide referrals during business hours.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>How quickly will I receive a response?</h3>
+                    <p>We typically respond to all inquiries within 24-48 business hours.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Can I volunteer with Dog Lovers?</h3>
+                    <p>Yes! We're always looking for passionate volunteers. Contact us to learn about current opportunities.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <p>Follow us on social media for daily updates and tips!</p>
+            </div>
+        </div>
+        <p class="copyright">&copy; 2023 Dog Lovers. All rights reserved.</p>
+    </footer>
+</body>
+</html>

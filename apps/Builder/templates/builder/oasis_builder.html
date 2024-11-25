@@ -21,12 +21,17 @@
             <form id="input-form" class="form" onsubmit="return false;">
                 {% csrf_token %}
                 
-                <!-- Vision Input Section -->
+                <!-- Response Display Window -->
+                <div id="response-window" class="response-window">
+                    <!-- AI responses will be displayed here -->
+                </div>
+
+                <!-- User Input Section -->
                 <textarea 
                     id="user-input" 
                     name="user-input" 
                     placeholder="let your imagination flow..."
-                    rows="6"
+                    rows="4"
                 ></textarea>
 
                 <!-- Action Buttons -->
