@@ -86,16 +86,14 @@ def get_file_context(filename):
     """Generates the file-specific context message."""
     return f"You are working on file: {filename}"
 
-def ensure_website_directory(base_dir, project_id=None):
+def ensure_website_directory(base_dir):
     """Ensures the website directory exists and returns its path."""
-    if project_id:
-        # Create project-specific directory
-        output_dir = os.path.join(base_dir, 'website', f'project_{project_id}')
-    else:
-        # Fallback to base website directory
-        output_dir = os.path.join(base_dir, 'website')
+    # Create single website directory for current project
+    output_dir = os.path.join(base_dir, 'website')
     
+    # Create the directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
+    
     return output_dir
 
  

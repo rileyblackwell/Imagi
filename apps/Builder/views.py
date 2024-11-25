@@ -46,6 +46,16 @@ def create_project(request):
                 user=request.user,
                 project=project
             )
+            
+            # Clear the website directory for the new project
+            output_dir = ensure_website_directory(os.path.dirname(__file__))
+            
+            if os.path.exists(output_dir):
+                for file in os.listdir(output_dir):
+                    file_path = os.path.join(output_dir, file)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+            
             # Redirect to the project-specific workspace using URL-safe name
             return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
     return redirect('builder:landing_page')
@@ -76,6 +86,30 @@ def project_workspace(request, project_name):
         # Update project's last modified time
         project.updated_at = timezone.now()
         project.save()
+
+        # Load project files into website directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
+        
+        # Clear existing files in the directory
+        if os.path.exists(output_dir):
+            for file in os.listdir(output_dir):
+                file_path = os.path.join(output_dir, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+
+        # Load the latest version of each file from the messages
+        pages = Page.objects.filter(conversation__project=project)
+        for page in pages:
+            latest_message = Message.objects.filter(
+                conversation__project=project,
+                page=page,
+                role='assistant'
+            ).order_by('-created_at').first()
+            
+            if latest_message:
+                file_path = os.path.join(output_dir, page.filename)
+                with open(file_path, 'w') as f:
+                    f.write(latest_message.content)
         
         return render(request, 'builder/oasis_builder.html', {
             'project': project,
@@ -132,38 +166,40 @@ def process_input(request):
         conversation = Conversation.objects.filter(
             user=request.user,
             project__isnull=False
-        ).select_related('project').latest('project__updated_at')
-        
-        print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
+        ).select_related('project').order_by('-project__updated_at').first()
         
         if not conversation:
             return JsonResponse({
                 'error': 'No active project found',
                 'detail': 'Please select or create a project first'
             }, status=400)
+            
+        print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
         
         # Get or create the page/file
-        page = Page.objects.get_or_create(
+        page, created = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
-        )[0]
+        )
 
-        # Process user input
-        response_content = process_user_input(user_input, model, conversation, page)
-        
-        # Handle different response types
-        if isinstance(response_content, dict):
-            return JsonResponse(response_content)
-        else:
-            return JsonResponse({
-                'html': response_content
-            })
+        try:
+            # Process user input
+            response_content = process_user_input(user_input, model, conversation, page)
             
-    except ValueError as e:
-        return JsonResponse({
-            'error': str(e),
-            'detail': 'ValueError occurred during processing'
-        }, status=400)
+            # Handle different response types
+            if isinstance(response_content, dict):
+                return JsonResponse(response_content)
+            else:
+                return JsonResponse({
+                    'html': response_content
+                })
+                
+        except ValueError as e:
+            return JsonResponse({
+                'error': str(e),
+                'detail': 'ValueError occurred during processing'
+            }, status=400)
+            
     except Exception as e:
         print(f"Error in process_input: {str(e)}")
         return JsonResponse({
@@ -184,9 +220,7 @@ def get_conversation_history(request):
         conversation = Conversation.objects.filter(
             user=request.user,
             project__isnull=False
-        ).select_related('project').latest('project__updated_at')
-        
-        print(f"Getting conversation history for project: {conversation.project.name} (ID: {conversation.project.id})")
+        ).select_related('project').order_by('-project__updated_at').first()
         
         if not conversation:
             return JsonResponse({
@@ -194,100 +228,172 @@ def get_conversation_history(request):
                 'detail': 'Please select or create a project first'
             }, status=400)
         
+        print(f"Getting conversation history for project: {conversation.project.name} (ID: {conversation.project.id})")
+        
         # Get or create the page/file
-        page = Page.objects.get_or_create(
+        page, created = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
-        )[0]
+        )
         
         # Get system message
         system_msg = get_system_message()
         
-        # Set up output directory for the specific project
-        output_dir = ensure_website_directory(
-            os.path.dirname(__file__), 
-            conversation.project.id
-        )
+        # Set up output directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
         
-        # Build conversation history
-        conversation_history = build_conversation_history(system_msg, page, output_dir)
-        
-        # Add file context
-        file_context = get_file_context(file_name)
-        
-        # Add current request
-        current_request = f"[File: {file_name}]\n{user_input}"
-        
-        if model == 'claude-sonnet':
-            system_content = (
-                f"{system_msg['content']}\n\n"
-                f"CURRENT TASK: You are editing {file_name}\n\n"
-                f"IMPORTANT: Return only the complete, valid file content for {file_name}."
-            )
+        try:
+            # Build conversation history
+            conversation_history = build_conversation_history(system_msg, page, output_dir)
             
-            messages = [msg for msg in conversation_history if msg["role"] != "system"]
-            messages.append({"role": "user", "content": current_request})
+            # Add file context
+            file_context = get_file_context(file_name)
             
+            # Add current request
+            current_request = f"[File: {file_name}]\n{user_input}"
+            
+            if model == 'claude-3-5-sonnet-20241022':
+                system_content = (
+                    f"{system_msg['content']}\n\n"
+                    f"CURRENT TASK: You are editing {file_name}\n\n"
+                    f"IMPORTANT: Return only the complete, valid file content for {file_name}."
+                )
+                
+                messages = [msg for msg in conversation_history if msg["role"] != "system"]
+                messages.append({"role": "user", "content": current_request})
+                
+                return JsonResponse({
+                    "model": "claude-sonnet",
+                    "messages": messages,
+                    "system": system_content
+                })
+            else:
+                messages = [
+                    {"role": "system", "content": system_msg["content"]},
+                    *conversation_history,
+                    {"role": "system", "content": file_context},
+                    {"role": "user", "content": current_request}
+                ]
+                
+                return JsonResponse({
+                    "model": model,
+                    "messages": messages
+                })
+                
+        except Exception as e:
+            print(f"Error building conversation history: {str(e)}")
             return JsonResponse({
-                "model": model,
-                "messages": messages,
-                "system": system_content
-            })
-        else:
-            messages = [
-                {"role": "system", "content": system_msg["content"]},
-                *conversation_history,
-                {"role": "system", "content": file_context},
-                {"role": "user", "content": current_request}
-            ]
-            
-            return JsonResponse({
-                "model": model,
-                "messages": messages
-            })
+                'error': 'Error building conversation history',
+                'detail': str(e)
+            }, status=500)
             
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        print(f"Error in get_conversation_history: {str(e)}")
+        return JsonResponse({
+            'error': str(e),
+            'detail': 'An unexpected error occurred'
+        }, status=500)
 
 
 @ensure_csrf_cookie
 @require_http_methods(['POST'])
 def undo_last_action_view(request):
     try:
-        conversation = get_object_or_404(Conversation, user=request.user)
+        # Get the active conversation
+        conversation = Conversation.objects.filter(
+            user=request.user,
+            project__isnull=False
+        ).order_by('-created_at').first()
+        
+        if not conversation:
+            return JsonResponse({
+                'message': 'Nothing to undo'
+            }, status=200)  # Return 200 instead of error
+        
         page_name = request.POST.get('page')
-        page = get_object_or_404(Page, conversation=conversation, filename=page_name)
+        if not page_name:
+            return JsonResponse({
+                'message': 'Nothing to undo'
+            }, status=200)  # Return 200 instead of error
+            
+        # Try to get the page, if it doesn't exist return quietly
+        try:
+            page = Page.objects.get(conversation=conversation, filename=page_name)
+        except Page.DoesNotExist:
+            return JsonResponse({
+                'message': 'Nothing to undo'
+            }, status=200)  # Return 200 instead of error
         
-        previous_content, message = undo_last_action(conversation, page)
-        
-        output_dir = os.path.join(os.path.dirname(__file__), 'website')
+        # Get the output directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
         output_path = os.path.join(output_dir, page_name)
         
+        # Get previous content
+        messages = Message.objects.filter(
+            conversation=conversation,
+            page=page,
+            role='assistant'
+        ).order_by('-created_at')
+        
+        if messages.count() < 2:
+            # No previous version exists - return quietly
+            if page_name == 'styles.css':
+                # For styles.css, try to return index.html content
+                try:
+                    with open(os.path.join(output_dir, 'index.html'), 'r') as f:
+                        html_content = f.read()
+                    return JsonResponse({
+                        'html': html_content,
+                        'message': 'Nothing to undo'
+                    }, status=200)
+                except FileNotFoundError:
+                    return JsonResponse({
+                        'message': 'Nothing to undo'
+                    }, status=200)
+            else:
+                return JsonResponse({
+                    'message': 'Nothing to undo'
+                }, status=200)
+        
+        # Get the previous version (second most recent)
+        previous_content = messages[1].content if messages.count() > 1 else ''
+        
+        if not previous_content:
+            return JsonResponse({
+                'message': 'Nothing to undo'
+            }, status=200)
+        
+        # Delete the most recent version
+        messages[0].delete()
+        
+        # Write the previous content to file
+        with open(output_path, 'w') as f:
+            f.write(previous_content)
+        
+        # Return appropriate response based on file type
         if page_name == 'styles.css':
-            if previous_content:  # Only write if we have valid previous content
-                with open(output_path, 'w') as f:
-                    f.write(previous_content)
-            # Get and return index.html content
             try:
                 with open(os.path.join(output_dir, 'index.html'), 'r') as f:
                     html_content = f.read()
                 return JsonResponse({
                     'html': html_content,
-                    'message': message
+                    'message': 'Previous version restored'
                 })
             except FileNotFoundError:
                 return JsonResponse({
-                    'error': 'Index.html not found',
-                    'message': message
-                })
+                    'message': 'Nothing to undo'
+                }, status=200)
         else:
-            # Handle HTML files as before
-            with open(output_path, 'w') as f:
-                f.write(previous_content)
-            return JsonResponse({'html': previous_content, 'message': message})
+            return JsonResponse({
+                'html': previous_content,
+                'message': 'Previous version restored'
+            })
     
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        print(f"Error in undo_last_action_view: {str(e)}")
+        return JsonResponse({
+            'message': 'Nothing to undo'
+        }, status=200)  # Return 200 even for errors
 
 
 @ensure_csrf_cookie
@@ -306,15 +412,12 @@ def clear_conversation_history(request):
                 'status': 'warning'
             })
         
-        # Clear messages and pages for this conversation only
+        # Clear messages and pages for this conversation
         Message.objects.filter(conversation=conversation).delete()
         Page.objects.filter(conversation=conversation).delete()
         
-        # Clear the project's website directory
-        output_dir = ensure_website_directory(
-            os.path.dirname(__file__), 
-            conversation.project.id
-        )
+        # Clear all files in the website directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
         if os.path.exists(output_dir):
             for file_name in os.listdir(output_dir):
                 file_path = os.path.join(output_dir, file_name)
@@ -323,6 +426,10 @@ def clear_conversation_history(request):
                         os.unlink(file_path)
                 except Exception as e:
                     print(f'Failed to delete {file_path}. Reason: {e}')
+        
+        # Reset the project's updated_at timestamp
+        conversation.project.updated_at = timezone.now()
+        conversation.project.save()
         
         return JsonResponse({
             'message': 'Project history and files cleared successfully',
@@ -361,7 +468,7 @@ def get_page(request):
 
 
 def serve_website_file(request, path):
-    """Serve files from the project-specific website directory"""
+    """Serve files from the website directory"""
     # Get the active conversation for the current project
     conversation = Conversation.objects.filter(
         user=request.user,
@@ -373,12 +480,15 @@ def serve_website_file(request, path):
             'error': 'No active project found'
         }, status=404)
     
-    # Get the project-specific website directory
-    website_dir = ensure_website_directory(
-        os.path.dirname(__file__), 
-        conversation.project.id
-    )
+    # Get the website directory
+    website_dir = ensure_website_directory(os.path.dirname(__file__))
     
+    # Check if the requested file exists
+    file_path = os.path.join(website_dir, path)
+    if not os.path.exists(file_path):
+        raise Http404(f"File {path} not found")
+    
+    # Serve the file
     return serve(request, path, document_root=website_dir)
 
 
@@ -442,14 +552,19 @@ def delete_project(request, project_id):
     if request.method == 'POST':
         project = get_object_or_404(Project, id=project_id, user=request.user)
         
-        # Delete the project's website directory
-        output_dir = ensure_website_directory(
-            os.path.dirname(__file__), 
-            project.id
-        )
-        if os.path.exists(output_dir):
-            import shutil
-            shutil.rmtree(output_dir)
+        # Clear the website directory if this is the current project
+        current_conversation = Conversation.objects.filter(
+            user=request.user,
+            project__isnull=False
+        ).order_by('-created_at').first()
+        
+        if current_conversation and current_conversation.project.id == project_id:
+            output_dir = ensure_website_directory(os.path.dirname(__file__))
+            if os.path.exists(output_dir):
+                for file in os.listdir(output_dir):
+                    file_path = os.path.join(output_dir, file)
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
         
         # Delete the project (this will cascade delete related conversations, pages, and messages)
         project.delete()

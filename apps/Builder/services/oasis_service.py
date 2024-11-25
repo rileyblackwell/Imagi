@@ -168,8 +168,7 @@ def process_user_input(user_input, model, conversation, page):
         system_msg = get_system_message()
         base_dir = os.path.dirname(__file__)
         output_dir = ensure_website_directory(
-            os.path.join(base_dir, '..'), 
-            conversation.project.id
+            os.path.join(base_dir, '..')
         )
         
         conversation_history = build_conversation_history(system_msg, page, output_dir)

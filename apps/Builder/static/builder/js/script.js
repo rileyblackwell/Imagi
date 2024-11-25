@@ -20,10 +20,30 @@ $(document).ready(function() {
 
     // Handle custom page input visibility
     $('#file-select').change(function() {
-        if ($(this).val() === 'custom') {
+        var selectedFile = $(this).val();
+        if (selectedFile === 'custom') {
             $('#custom-page-input').show();
         } else {
             $('#custom-page-input').hide();
+            
+            // Load and display the selected file
+            if (selectedFile !== 'styles.css') {
+                $.ajax({
+                    type: 'GET',
+                    url: '/builder/website/' + selectedFile,
+                    success: function(response) {
+                        if (websiteTab === null || websiteTab.closed) {
+                            websiteTab = window.open('', '_blank');
+                        }
+                        if (websiteTab) {
+                            websiteTab.location.href = '/builder/website/' + selectedFile;
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading file:', error);
+                    }
+                });
+            }
         }
     });
 
@@ -294,6 +314,22 @@ $(document).ready(function() {
             websiteTab.document.open();
             var htmlWithBase = html.replace('<head>', 
                 '<head><base href="/builder/website/">');
+            
+            // Add click event handlers for navigation
+            htmlWithBase = htmlWithBase.replace('</body>', `
+                <script>
+                    document.addEventListener('click', function(e) {
+                        if (e.target.tagName === 'A') {
+                            e.preventDefault();
+                            var href = e.target.getAttribute('href');
+                            if (href) {
+                                window.location.href = '/builder/website/' + href;
+                            }
+                        }
+                    });
+                </script>
+            </body>`);
+            
             websiteTab.document.write(htmlWithBase);
             websiteTab.document.close();
         }
@@ -331,7 +367,12 @@ $(document).ready(function() {
     // Modified clear button handler
     $('#clear-btn').click(function(event) {
         event.preventDefault();
-        console.log("Clear Button Clicked: Clearing conversation history");
+        
+        if (!confirm('Are you sure you want to reset this project? This will delete all files and conversation history.')) {
+            return;
+        }
+        
+        console.log("Clear Button Clicked: Clearing conversation history and files");
         
         $.ajax({
             type: 'POST',
@@ -341,20 +382,31 @@ $(document).ready(function() {
             },
             success: function(response) {
                 console.log("Clear History Success:", response.message);
+                
+                // Close the website preview tab if it's open
                 if (websiteTab && !websiteTab.closed) {
                     websiteTab.close();
+                    websiteTab = null;
                 }
+                
+                // Clear the UI
                 $('#user-input').val('');
-                $('#response-window').empty(); // Clear the response window
+                $('#response-window').empty();
                 $('#file-select').val('index.html');
-                $('#model-select').val('claude-sonnet');
+                
+                // Set the model select to Claude Sonnet
+                $('#model-select').val('claude-3-5-sonnet-20241022').trigger('change');
+                
                 $('#mode-select').val('build');
                 $('#file-select').parent().show();
+                
+                // Show success message
+                alert('Project has been reset successfully.');
             },
             error: function(xhr, status, error) {
                 console.error("Clear History Error:", error);
-                console.error("Status:", status);
-                console.error("Response:", xhr.responseText);
+                // Don't show error to user, just log it
+                console.log("Reset note:", error);
             }
         });
     });
@@ -366,7 +418,7 @@ $(document).ready(function() {
         var selectedFile = $('#file-select').val();
         
         if (selectedFile === 'custom') {
-            return;
+            return;  // Silently do nothing for custom pages
         }
 
         $.ajax({
@@ -377,37 +429,26 @@ $(document).ready(function() {
                 'csrfmiddlewaretoken': csrftoken
             },
             success: function(response) {
-                console.log('Undo Success:', response);
+                console.log('Undo Response:', response);
                 
-                if (selectedFile === 'styles.css') {
-                    // Handle styles.css undo the same way as generate
+                if (response.html) {
+                    // Update the website preview with the previous version
                     if (websiteTab === null || websiteTab.closed) {
                         websiteTab = window.open('', '_blank');
                     }
                     if (websiteTab) {
-                        websiteTab.document.open();
-                        var htmlWithBase = response.html.replace('<head>', 
-                            '<head><base href="/builder/website/">');
-                        websiteTab.document.write(htmlWithBase);
-                        websiteTab.document.close();
+                        updateWebsitePreview(response.html);
                     }
-                } else if (response.html) {
-                    if (websiteTab === null || websiteTab.closed) {
-                        websiteTab = window.open('', '_blank');
-                    }
-                    if (websiteTab) {
-                        websiteTab.document.open();
-                        var htmlWithBase = response.html.replace('<head>', 
-                            '<head><base href="/builder/website/">');
-                        websiteTab.document.write(htmlWithBase);
-                        websiteTab.document.close();
-                    }
+                }
+                
+                // Only show message if something was actually undone
+                if (response.message && response.message !== 'Nothing to undo') {
+                    alert(response.message);
                 }
             },
             error: function(xhr, status, error) {
-                console.error("Undo Error:", error);
-                console.error("Status:", status);
-                console.error("Response:", xhr.responseText);
+                // Silently log error but don't show to user
+                console.log("Undo note:", error);
             }
         });
     });
