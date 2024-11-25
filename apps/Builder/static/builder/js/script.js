@@ -57,32 +57,49 @@ $(document).ready(function() {
         $('#file-select').val(newPage);
     });
 
+    // Handle mode selection changes
+    $('#mode-select').change(function() {
+        var mode = $(this).val();
+        var $textarea = $('#user-input');
+        
+        if (mode === 'chat') {
+            $textarea.attr('placeholder', 'Chat with AI about your website ideas...');
+            $('#file-select').parent().hide(); // Hide file selection in chat mode
+        } else {
+            $textarea.attr('placeholder', 'let your imagination flow...');
+            $('#file-select').parent().show(); // Show file selection in build mode
+        }
+    });
+
     // Modified submit button handler
     $('#submit-btn').click(function(event) {
         event.preventDefault();
         
         var userInput = $('#user-input').val().trim();
         var model = $('#model-select').val();
+        var mode = $('#mode-select').val();
         var selectedFile = $('#file-select').val();
         
-        if (selectedFile === 'custom' || !userInput || !model) {
-            alert('Please fill in all required fields');
-            return;
+        // Validate input based on mode
+        if (mode === 'build') {
+            if (selectedFile === 'custom' || !userInput || !model) {
+                alert('Please fill in all required fields');
+                return;
+            }
+        } else if (mode === 'chat') {
+            if (!userInput || !model) {
+                alert('Please enter your message and select an AI model');
+                return;
+            }
         }
-
-        // Log the request details
-        console.log('Sending generate request:', {
-            user_input: userInput,
-            model: model,
-            file: selectedFile
-        });
 
         // Clear the textarea and start ripple effect
         var $textarea = $('#user-input');
+        var originalInput = userInput; // Store original input for chat mode
         $textarea.val('');
         
         // Set initial state with placeholder
-        $textarea.attr('placeholder', 'building');
+        $textarea.attr('placeholder', mode === 'chat' ? 'thinking...' : 'building...');
         
         // Make sure to clear any existing intervals
         if (window.rippleInterval) {
@@ -92,62 +109,25 @@ $(document).ready(function() {
         // Start new ripple effect with dots
         var dots = 0;
         window.rippleInterval = setInterval(function() {
-            var placeholder = 'building' + '.'.repeat(dots);
+            var placeholder = (mode === 'chat' ? 'thinking' : 'building') + '.'.repeat(dots);
             $textarea.attr('placeholder', placeholder);
-            dots = (dots + 1) % 4; // Cycles through 0, 1, 2, 3
+            dots = (dots + 1) % 4;
         }, 500);
 
         // Disable the submit button and show loading state
         var $submitBtn = $(this);
         $submitBtn.prop('disabled', true);
-        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Generating...');
+        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> ' + (mode === 'chat' ? 'Processing...' : 'Generating...'));
 
         $.ajax({
             type: 'POST',
-            url: '/builder/process-input/',
+            url: mode === 'chat' ? '/builder/chat/' : '/builder/process-input/',
             data: {
                 'user_input': userInput,
                 'model': model,
                 'file': selectedFile,
+                'mode': mode,
                 'csrfmiddlewaretoken': csrftoken
-            },
-            beforeSend: function() {
-                // Get the conversation history from the backend first
-                $.ajax({
-                    type: 'POST',
-                    url: '/builder/get-conversation-history/',
-                    async: false,  // Make this synchronous so we get the history before the main request
-                    data: {
-                        'model': model,
-                        'file': selectedFile,
-                        'user_input': userInput,
-                        'csrfmiddlewaretoken': csrftoken
-                    },
-                    success: function(historyResponse) {
-                        console.group('Conversation History (Being sent to AI):');
-                        
-                        if (historyResponse.model === 'claude-sonnet') {
-                            console.log('SYSTEM MESSAGE:');
-                            console.log(historyResponse.system);
-                            console.log('-------------------');
-                            
-                            console.log('MESSAGES:');
-                            historyResponse.messages.forEach((msg, index) => {
-                                console.log(`${msg.role.toUpperCase()}:`);
-                                console.log(msg.content);
-                                console.log('-------------------');
-                            });
-                        } else {
-                            historyResponse.messages.forEach((msg, index) => {
-                                console.log(`${index + 1}. ${msg.role.toUpperCase()}:`);
-                                console.log(msg.content);
-                                console.log('-------------------');
-                            });
-                        }
-                        
-                        console.groupEnd();
-                    }
-                });
             },
             success: function(response) {
                 console.log('Success response:', response);
@@ -156,29 +136,31 @@ $(document).ready(function() {
                 if (window.rippleInterval) {
                     clearInterval(window.rippleInterval);
                 }
-                $textarea.attr('placeholder', 'let your imagination flow...');
 
-                if (selectedFile === 'styles.css') {
-                    if (response.html) {
-                        updateWebsitePreview(response.html);
-                    }
+                if (mode === 'chat') {
+                    // For chat mode, display the conversation in the textarea
+                    $textarea.val('You: ' + originalInput + '\n\nAI: ' + response.message);
+                    $textarea.attr('placeholder', 'Chat with AI about your website ideas...');
                 } else {
-                    updateWebsitePreview(response.html || response);
+                    // For build mode, handle as before
+                    $textarea.attr('placeholder', 'let your imagination flow...');
+                    if (selectedFile === 'styles.css') {
+                        if (response.html) {
+                            updateWebsitePreview(response.html);
+                        }
+                    } else {
+                        updateWebsitePreview(response.html || response);
+                    }
                 }
             },
             error: function(xhr, status, error) {
-                // Clear the ripple effect
-                if (window.rippleInterval) {
-                    clearInterval(window.rippleInterval);
-                }
-                $textarea.attr('placeholder', 'let your imagination flow...');
-                
+                // Handle errors as before
                 handleAjaxError(xhr, status, error);
             },
             complete: function() {
                 // Re-enable the submit button and restore its text
                 $submitBtn.prop('disabled', false);
-                $submitBtn.html('<i class="fas fa-magic"></i> Generate');
+                $submitBtn.html('<i class="fas fa-magic"></i> ' + (mode === 'chat' ? 'Send' : 'Generate'));
             }
         });
     });
@@ -226,7 +208,7 @@ $(document).ready(function() {
         alert(errorMessage);
     }
 
-    // Click event for the clear button
+    // Modified clear button handler
     $('#clear-btn').click(function(event) {
         event.preventDefault();
         console.log("Clear Button Clicked: Clearing conversation history");
@@ -245,6 +227,8 @@ $(document).ready(function() {
                 $('#user-input').val('');
                 $('#file-select').val('index.html');
                 $('#model-select').val('claude-sonnet');
+                $('#mode-select').val('build'); // Reset mode to build
+                $('#file-select').parent().show(); // Show file selection
             },
             error: function(xhr, status, error) {
                 console.error("Clear History Error:", error);

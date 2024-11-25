@@ -18,4 +18,5 @@ urlpatterns = [
     # File management
     path('get-page/', views.get_page, name='get_page'),
     path('website/<path:path>', views.serve_website_file, name='serve_website_file'),
+    path('chat/', views.process_chat, name='process_chat'),
 ]

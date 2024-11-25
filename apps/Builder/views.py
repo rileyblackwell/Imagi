@@ -8,7 +8,8 @@ from .models import Conversation, Message, Page
 from .services.oasis_service import (
     process_user_input, 
     build_conversation_history,
-    undo_last_action
+    undo_last_action,
+    process_chat_input
 )
 from .services.utils import (
     get_system_message,
@@ -261,3 +262,37 @@ def serve_website_file(request, path):
     if not os.path.exists(website_dir):
         os.makedirs(website_dir)
     return serve(request, path, document_root=website_dir)
+
+
+@require_http_methods(['POST'])
+def process_chat(request):
+    try:
+        user_input = request.POST.get('user_input', '').strip()
+        model = request.POST.get('model', '').strip()
+        
+        if not user_input or not model:
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+        # Get or create conversation
+        conversation = Conversation.objects.get_or_create(user=request.user)[0]
+        
+        # Get system message
+        system_msg = get_system_message()
+        
+        # Set up output directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
+        
+        # Build conversation history with the output directory
+        conversation_history = build_conversation_history(system_msg, None, output_dir)
+        
+        # Process chat using the AI service
+        response_content = process_chat_input(user_input, model, conversation, conversation_history)
+        
+        return JsonResponse({'message': response_content})
+            
+    except Exception as e:
+        print(f"Error in process_chat: {str(e)}")
+        return JsonResponse({
+            'error': 'An unexpected error occurred',
+            'detail': str(e)
+        }, status=500)
