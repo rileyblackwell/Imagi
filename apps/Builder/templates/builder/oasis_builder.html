@@ -18,7 +18,7 @@
         </div>
 
         <div class="builder-workspace">
-            <form id="input-form" class="form" onsubmit="return false;">
+            <form id="input-form" class="form">
                 {% csrf_token %}
                 
                 <!-- Response Display Window -->
@@ -36,13 +36,13 @@
 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <button id="submit-btn" class="btn btn-generate btn-action btn-action-hover">
+                    <button type="button" id="submit-btn" class="btn btn-generate btn-action btn-action-hover">
                         <i class="fas fa-magic"></i> Generate
                     </button>
-                    <button id="undo-btn" class="btn btn-undo btn-action btn-action-hover">
+                    <button type="button" id="undo-btn" class="btn btn-undo btn-action btn-action-hover">
                         <i class="fas fa-undo"></i> Undo
                     </button>
-                    <button id="clear-btn" class="btn btn-reset btn-action btn-action-hover">
+                    <button type="button" id="clear-btn" class="btn btn-reset btn-action btn-action-hover">
                         <i class="fas fa-trash"></i> Reset
                     </button>
                 </div>
@@ -77,7 +77,7 @@
                             <span>Select AI Model</span>
                         </label>
                         <select id="model-select" name="model-select" class="styled-select">
-                            <option value="claude-sonnet">Recommended (Claude 3.5 Sonnet)</option>
+                            <option value="claude-3-5-sonnet-20241022">Recommended (Claude 3.5 Sonnet)</option>
                             <option value="gpt-4o">Best for Writing (GPT-4o)</option>
                             <option value="gpt-4o-mini">Cheapest (GPT-4o Mini)</option>
                         </select>

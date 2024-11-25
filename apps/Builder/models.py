@@ -4,12 +4,23 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class Project(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.user.username}"
+
+
 class Conversation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="conversations")
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="conversations", null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Conversation {self.id} for {self.user.username}"
+        return f"Conversation {self.id} for {self.user.username} - Project: {self.project.name if self.project else 'None'}"
 
 
 class Page(models.Model):
