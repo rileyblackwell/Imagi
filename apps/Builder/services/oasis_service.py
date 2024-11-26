@@ -7,11 +7,11 @@ from openai import OpenAI
 import anthropic
 from ..models import Message, Conversation, Page
 from .utils import (
-    test_html, 
     get_system_message, 
     get_file_context,
     ensure_website_directory,
-    build_conversation_history
+    build_conversation_history,
+    make_api_call
 )
 
 # Load environment variables from .env
@@ -22,43 +22,42 @@ anthropic_key = os.getenv('ANTHROPIC_KEY')
 openai_client = OpenAI(api_key=openai_key)
 anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
-def make_api_call(model, system_msg, conversation_history, page, user_input, complete_messages):
-    if model == 'claude-3-5-sonnet-20241022':
-        system_content = (
-            f"{system_msg['content']}\n\n"
-            f"CURRENT TASK: You are editing {page.filename}\n\n"
-            f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
-        )
-        
-        messages = [msg for msg in conversation_history if msg["role"] != "system"]
-        messages.append({
-            "role": "user",
-            "content": f"[File: {page.filename}]\n{user_input}"
-        })
-        
-        completion = anthropic_client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=2048,
-            system=system_content,
-            messages=messages
-        )
-        
-        if completion.content:
-            return completion.content[0].text
-        raise ValueError("Empty response from Claude API")
-            
-    elif model in ['gpt-4o', 'gpt-4o-mini']:
-        completion = openai_client.chat.completions.create(
-            model=model,
-            messages=complete_messages,
-            temperature=0.7,
-            max_tokens=2048
-        )
-        
-        return completion.choices[0].message.content
+def get_active_conversation(user):
+    """Retrieve the active conversation for the user."""
+    conversation = Conversation.objects.filter(
+        user=user,
+        project__isnull=False
+    ).select_related('project').order_by('-project__updated_at').first()
     
-    else:
-        raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
+    if not conversation:
+        raise ValueError('No active project found. Please select or create a project first.')
+    
+    return conversation
+
+def clean_response(page_filename, assistant_response):
+    """Cleans the assistant response based on the file type."""
+    if page_filename.endswith('.html'):
+        html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
+        if html_match:
+            return html_match.group(0)
+        raise ValueError("Response must be a complete HTML document")
+        
+    elif page_filename == 'styles.css':
+        # Clean CSS content - remove any file prefix and only keep CSS content
+        css_content = assistant_response
+        if '[File: styles.css]' in css_content:
+            css_content = css_content.split('[File: styles.css]')[1].strip()
+        
+        # Remove any markdown code block markers if present
+        css_content = css_content.replace('```css', '').replace('```', '').strip()
+        
+        # Validate that it looks like CSS (basic check)
+        if '{' not in css_content or '}' not in css_content:
+            raise ValueError("Invalid CSS content")
+        
+        return css_content
+    
+    return assistant_response  # For other file types, return the response as is
 
 def process_builder_mode_input_service(user_input, model, file_name, user):
     """
@@ -80,16 +79,10 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         if not model:
             raise ValueError('Model selection is required')
         if not file_name:
-            file_name = 'index.html'
+            raise ValueError('File selection is required')
 
         # Get the active conversation for the specific project
-        conversation = Conversation.objects.filter(
-            user=user,
-            project__isnull=False
-        ).select_related('project').order_by('-project__updated_at').first()
-        
-        if not conversation:
-            raise ValueError('No active project found. Please select or create a project first.')
+        conversation = get_active_conversation(user)
             
         print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
         
@@ -124,47 +117,16 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             conversation_history=conversation_history,
             page=page,
             user_input=user_input,
-            complete_messages=complete_messages
+            complete_messages=complete_messages,
+            openai_client=openai_client,
+            anthropic_client=anthropic_client
         )
 
         if not assistant_response:
             raise ValueError("Empty response from AI service")
 
-        # Process response based on file type
-        if page.filename.endswith('.html'):
-            html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
-            if html_match:
-                assistant_response = html_match.group(0)
-            else:
-                raise ValueError("Response must be a complete HTML document")
-                
-            cleaned_response = test_html(assistant_response)
-            if not cleaned_response:
-                raise ValueError("Invalid HTML content")
-            
-            # Ensure proper CSS linking
-            if '<link rel="stylesheet" href="styles.css">' in cleaned_response:
-                cleaned_response = cleaned_response.replace(
-                    '<link rel="stylesheet" href="styles.css">',
-                    '<link rel="stylesheet" href="/builder/oasis/styles.css">'
-                )
-                
-        elif page.filename == 'styles.css':
-            # Clean CSS content - remove any file prefix and only keep CSS content
-            css_content = assistant_response
-            if '[File: styles.css]' in css_content:
-                css_content = css_content.split('[File: styles.css]')[1].strip()
-            
-            # Remove any markdown code block markers if present
-            css_content = css_content.replace('```css', '').replace('```', '').strip()
-            
-            # Validate that it looks like CSS (basic check)
-            if '{' not in css_content or '}' not in css_content:
-                raise ValueError("Invalid CSS content")
-                
-            cleaned_response = css_content
-        else:
-            cleaned_response = assistant_response
+        # Use the new helper function to clean the response
+        cleaned_response = clean_response(page.filename, assistant_response)
 
         # Save the file
         output_path = os.path.join(output_dir, page.filename)

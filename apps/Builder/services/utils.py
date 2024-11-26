@@ -1,5 +1,8 @@
 import os
 from ..models import Message, Conversation, Page
+from openai import OpenAI
+import anthropic
+import re
 
 def get_system_message():
     """Generates the system message content for the assistant."""
@@ -65,23 +68,6 @@ def get_system_message():
             "}\n\n"
         )
     }
-
-
-def test_html(html):
-    """Ensures only valid HTML content is returned."""
-    # Look for complete HTML document
-    start_idx = html.find('<!DOCTYPE html>')
-    if start_idx == -1:
-        start_idx = html.find('<html')
-    
-    if start_idx == -1:
-        return ''
-        
-    end_idx = html.find('</html>')
-    if end_idx == -1:
-        return ''
-        
-    return html[start_idx:end_idx + 7]  # 7 is the length of '</html>'
 
 def get_file_context(filename):
     """Generates the file-specific context message."""
@@ -226,5 +212,43 @@ def build_conversation_history(system_msg, page, output_dir):
         })
     
     return conversation_history
+
+def make_api_call(model, system_msg, conversation_history, page, user_input, complete_messages, openai_client, anthropic_client):
+    if model == 'claude-3-5-sonnet-20241022':
+        system_content = (
+            f"{system_msg['content']}\n\n"
+            f"CURRENT TASK: You are editing {page.filename}\n\n"
+            f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
+        )
+        
+        messages = [msg for msg in conversation_history if msg["role"] != "system"]
+        messages.append({
+            "role": "user",
+            "content": f"[File: {page.filename}]\n{user_input}"
+        })
+        
+        completion = anthropic_client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2048,
+            system=system_content,
+            messages=messages
+        )
+        
+        if completion.content:
+            return completion.content[0].text
+        raise ValueError("Empty response from Claude API")
+            
+    elif model in ['gpt-4o', 'gpt-4o-mini']:
+        completion = openai_client.chat.completions.create(
+            model=model,
+            messages=complete_messages,
+            temperature=0.7,
+            max_tokens=2048
+        )
+        
+        return completion.choices[0].message.content
+    
+    else:
+        raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
 
  
