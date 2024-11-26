@@ -196,6 +196,13 @@ def process_user_input(user_input, model, conversation, page):
             cleaned_response = test_html(assistant_response)
             if not cleaned_response:
                 raise ValueError("Invalid HTML content")
+            
+            # Ensure proper CSS linking
+            if '<link rel="stylesheet" href="styles.css">' in cleaned_response:
+                cleaned_response = cleaned_response.replace(
+                    '<link rel="stylesheet" href="styles.css">',
+                    '<link rel="stylesheet" href="/builder/oasis/styles.css">'
+                )
                 
         elif page.filename == 'styles.css':
             # Clean CSS content - remove any file prefix and only keep CSS content

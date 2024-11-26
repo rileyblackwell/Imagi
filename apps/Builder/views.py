@@ -1,6 +1,6 @@
 # builder/views.py
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -435,16 +435,37 @@ def serve_website_file(request, path):
         # Get the website directory
         website_dir = ensure_website_directory(os.path.dirname(__file__))
         
-        # If path is empty or is styles.css, serve index.html
-        if not path or path == 'styles.css':
-            path = 'index.html'
+        # If path is styles.css, serve it directly
+        if path == 'styles.css':
+            file_path = os.path.join(website_dir, path)
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as f:
+                    content = f.read()
+                return HttpResponse(content, content_type='text/css')
+            else:
+                raise Http404("CSS file not found")
         
-        # Check if the requested file exists
-        file_path = os.path.join(website_dir, path)
-        if not os.path.exists(file_path):
-            raise Http404(f"File {path} not found")
+        # For HTML files or root path, serve the HTML file
+        if not path or path.endswith('.html'):
+            file_name = path if path else 'index.html'
+            file_path = os.path.join(website_dir, file_name)
+            
+            if not os.path.exists(file_path):
+                raise Http404(f"File {file_name} not found")
+            
+            # Read the HTML content
+            with open(file_path, 'r') as f:
+                content = f.read()
+            
+            # Ensure the CSS link is correct
+            if '<link rel="stylesheet" href="styles.css">' not in content:
+                # Add or update the CSS link
+                content = content.replace('</head>',
+                    '    <link rel="stylesheet" href="/builder/oasis/styles.css">\n</head>')
+            
+            return HttpResponse(content, content_type='text/html')
         
-        # Serve the file
+        # For other files, use Django's serve function
         return serve(request, path, document_root=website_dir)
         
     except Exception as e:
