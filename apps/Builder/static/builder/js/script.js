@@ -26,13 +26,30 @@ $(document).ready(function() {
         } else {
             $('#custom-page-input').hide();
             
-            // Load and display the selected file
+            // Check if the file exists before trying to open it
             if (selectedFile !== 'styles.css') {
-                if (websiteTab === null || websiteTab.closed) {
-                    websiteTab = window.open('/builder/website/' + selectedFile, '_blank');
-                } else {
-                    websiteTab.location.href = '/builder/website/' + selectedFile;
-                }
+                $.ajax({
+                    type: 'POST',
+                    url: '/builder/get-page/',
+                    data: {
+                        'file': selectedFile,
+                        'csrfmiddlewaretoken': csrftoken
+                    },
+                    success: function(response) {
+                        // Only open the file if it exists and has content
+                        if (response.html) {
+                            if (websiteTab === null || websiteTab.closed) {
+                                websiteTab = window.open('/builder/website/' + selectedFile, '_blank');
+                            } else {
+                                websiteTab.location.href = '/builder/website/' + selectedFile;
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // File doesn't exist yet - do nothing
+                        console.log("Note: File not created yet:", selectedFile);
+                    }
+                });
             }
         }
     });
