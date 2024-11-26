@@ -1,6 +1,6 @@
 # builder/views.py
 
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -21,7 +21,6 @@ from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
 from django.http import Http404
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect, csrf_exempt
 
 
 @login_required
@@ -29,8 +28,6 @@ def landing_page(request):
     projects = Project.objects.filter(user=request.user).order_by('-updated_at')
     return render(request, 'builder/builder_landing_page.html', {'projects': projects})
 
-
-@csrf_protect
 @login_required
 def create_project(request):
     if request.method == 'POST':
@@ -146,8 +143,6 @@ def index(request):
     # This view is deprecated - redirect to landing page
     return redirect('builder:landing_page')
 
-
-@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def process_input(request):
     try:
@@ -217,8 +212,6 @@ def process_input(request):
             'detail': str(e)
         }, status=500)
 
-
-@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def get_conversation_history(request):
     try:
@@ -304,8 +297,6 @@ def get_conversation_history(request):
             'detail': 'An unexpected error occurred'
         }, status=500)
 
-
-@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def undo_last_action_view(request):
     try:
@@ -405,8 +396,6 @@ def undo_last_action_view(request):
             'message': 'Nothing to undo'
         }, status=200)  # Return 200 even for errors
 
-
-@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def clear_conversation_history(request):
     try:
@@ -501,8 +490,6 @@ def serve_website_file(request, path):
     # Serve the file
     return serve(request, path, document_root=website_dir)
 
-
-@ensure_csrf_cookie
 @require_http_methods(['POST'])
 def process_chat(request):
     try:
@@ -555,8 +542,6 @@ def process_chat(request):
             'detail': str(e)
         }, status=500)
 
-
-@csrf_protect
 @login_required
 def delete_project(request, project_id):
     if request.method == 'POST':
@@ -583,20 +568,3 @@ def delete_project(request, project_id):
     
     return redirect('builder:landing_page')
 
-
-def csrf_failure(request, reason=""):
-    return HttpResponseForbidden(
-        'CSRF verification failed. Please try refreshing the page.'
-    )
-
-# For views that need to be CSRF exempt (use sparingly)
-@csrf_exempt
-def some_api_view(request):
-    # View logic here
-    pass
-
-# For views that need to ensure the CSRF cookie is set
-@ensure_csrf_cookie
-def some_view(request):
-    # View logic here
-    pass
