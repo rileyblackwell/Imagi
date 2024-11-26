@@ -196,4 +196,4 @@ MIDDLEWARE = [
 ]
 
 # Add custom CSRF failure view
-CSRF_FAILURE_VIEW = 'apps.Builder.views.csrf_failure'
+CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'

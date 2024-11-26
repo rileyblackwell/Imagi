@@ -8,7 +8,7 @@ from .models import Conversation, Message, Page, Project
 from .services.oasis_service import (
     process_user_input, 
     build_conversation_history,
-    undo_last_action,
+    undo_last_action_service,
     process_chat_input
 )
 from .services.utils import (
@@ -300,101 +300,20 @@ def get_conversation_history(request):
 @require_http_methods(['POST'])
 def undo_last_action_view(request):
     try:
-        # Get the active conversation
-        conversation = Conversation.objects.filter(
-            user=request.user,
-            project__isnull=False
-        ).order_by('-created_at').first()
-        
-        if not conversation:
-            return JsonResponse({
-                'message': 'Nothing to undo'
-            }, status=200)  # Return 200 instead of error
-        
         page_name = request.POST.get('page')
-        if not page_name:
-            return JsonResponse({
-                'message': 'Nothing to undo'
-            }, status=200)  # Return 200 instead of error
-            
-        # Try to get the page, if it doesn't exist return quietly
-        try:
-            page = Page.objects.get(conversation=conversation, filename=page_name)
-        except Page.DoesNotExist:
-            return JsonResponse({
-                'message': 'Nothing to undo'
-            }, status=200)  # Return 200 instead of error
+        content, message, status_code = undo_last_action_service(request.user, page_name)
         
-        # Get the output directory
-        output_dir = ensure_website_directory(os.path.dirname(__file__))
-        output_path = os.path.join(output_dir, page_name)
+        response_data = {'message': message}
+        if content is not None:
+            response_data['html'] = content
+                
+        return JsonResponse(response_data, status=status_code)
         
-        # Get previous content
-        messages = Message.objects.filter(
-            conversation=conversation,
-            page=page,
-            role='assistant'
-        ).order_by('-created_at')
-        
-        if messages.count() < 2:
-            # No previous version exists - return quietly
-            if page_name == 'styles.css':
-                # For styles.css, try to return index.html content
-                try:
-                    with open(os.path.join(output_dir, 'index.html'), 'r') as f:
-                        html_content = f.read()
-                    return JsonResponse({
-                        'html': html_content,
-                        'message': 'Nothing to undo'
-                    }, status=200)
-                except FileNotFoundError:
-                    return JsonResponse({
-                        'message': 'Nothing to undo'
-                    }, status=200)
-            else:
-                return JsonResponse({
-                    'message': 'Nothing to undo'
-                }, status=200)
-        
-        # Get the previous version (second most recent)
-        previous_content = messages[1].content if messages.count() > 1 else ''
-        
-        if not previous_content:
-            return JsonResponse({
-                'message': 'Nothing to undo'
-            }, status=200)
-        
-        # Delete the most recent version
-        messages[0].delete()
-        
-        # Write the previous content to file
-        with open(output_path, 'w') as f:
-            f.write(previous_content)
-        
-        # Return appropriate response based on file type
-        if page_name == 'styles.css':
-            try:
-                with open(os.path.join(output_dir, 'index.html'), 'r') as f:
-                    html_content = f.read()
-                return JsonResponse({
-                    'html': html_content,
-                    'message': 'Previous version restored'
-                })
-            except FileNotFoundError:
-                return JsonResponse({
-                    'message': 'Nothing to undo'
-                }, status=200)
-        else:
-            return JsonResponse({
-                'html': previous_content,
-                'message': 'Previous version restored'
-            })
-    
     except Exception as e:
         print(f"Error in undo_last_action_view: {str(e)}")
         return JsonResponse({
             'message': 'Nothing to undo'
-        }, status=200)  # Return 200 even for errors
+        }, status=200)
 
 @require_http_methods(['POST'])
 def clear_conversation_history(request):

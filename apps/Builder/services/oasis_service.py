@@ -247,33 +247,67 @@ def process_user_input(user_input, model, conversation, page):
     except Exception as e:
         raise ValueError(str(e))
 
-def undo_last_action(conversation, page):
-    """Removes the last user-assistant exchange from the specific page."""
-    messages = page.messages.order_by('-created_at')
-    total_messages = messages.count()
-
-    if total_messages >= 2:
-        # Get the previous content (before the last change)
-        previous_content = messages[2].content if total_messages > 2 else ''
+def undo_last_action_service(user, page_name):
+    """
+    Service function to handle the business logic for undoing the last action.
+    Returns a tuple of (content, message, status_code)
+    """
+    try:
+        # Get the active conversation
+        conversation = Conversation.objects.filter(
+            user=user,
+            project__isnull=False
+        ).order_by('-created_at').first()
         
-        # Delete only the last exchange (last two messages)
-        latest_two = messages[:2]
-        Message.objects.filter(id__in=[msg.id for msg in latest_two]).delete()
-
-        # For styles.css, we need to ensure we return valid CSS
-        if page.filename == 'styles.css':
-            if not previous_content:
-                return '', 'No previous CSS version available.'
+        if not conversation or not page_name:
+            return None, 'Nothing to undo', 200
+            
+        # Try to get the page
+        try:
+            page = Page.objects.get(conversation=conversation, filename=page_name)
+        except Page.DoesNotExist:
+            return None, 'Nothing to undo', 200
+        
+        # Get previous content
+        messages = Message.objects.filter(
+            conversation=conversation,
+            page=page,
+            role='assistant'
+        ).order_by('-created_at')
+        
+        if messages.count() < 2:
+            return None, 'Nothing to undo', 200
+        
+        # Get the previous version (second most recent)
+        previous_content = messages[1].content if messages.count() > 1 else ''
+        
+        if not previous_content:
+            return None, 'Nothing to undo', 200
+        
+        # Delete the most recent version
+        messages[0].delete()
+        
+        # Get the output directory and write the previous content to file
+        output_dir = ensure_website_directory(os.path.dirname(os.path.dirname(__file__)))
+        output_path = os.path.join(output_dir, page_name)
+        
+        with open(output_path, 'w') as f:
+            f.write(previous_content)
+        
+        # For CSS files, we need to return the HTML content to re-render the page
+        if page_name == 'styles.css':
+            try:
+                with open(os.path.join(output_dir, 'index.html'), 'r') as f:
+                    html_content = f.read()
+                return html_content, 'Previous version restored', 200
+            except FileNotFoundError:
+                return previous_content, 'Previous version restored', 200
         else:
-            previous_content = test_html(previous_content) if previous_content else ''
-
-        return previous_content, 'Last action undone successfully.'
-    else:
-        if page.filename == 'styles.css':
-            return '', 'Not enough history to undo last action.'
-        else:
-            messages.all().delete()
-            return '', 'Not enough history to undo last action; page history cleared.'
+            return previous_content, 'Previous version restored', 200
+            
+    except Exception as e:
+        print(f"Error in undo_last_action_service: {str(e)}")
+        return None, 'Nothing to undo', 200
 
 def process_chat_input(user_input, model, conversation, conversation_history, file_name):
     """Processes chat input without generating website files."""
