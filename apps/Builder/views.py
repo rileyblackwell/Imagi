@@ -246,7 +246,7 @@ def get_conversation_history(request):
         output_dir = ensure_website_directory(os.path.dirname(__file__))
         
         try:
-            # Build conversation history
+            # Build conversation history (already includes system message)
             conversation_history = build_conversation_history(system_msg, page, output_dir)
             
             # Add file context
@@ -262,6 +262,7 @@ def get_conversation_history(request):
                     f"IMPORTANT: Return only the complete, valid file content for {file_name}."
                 )
                 
+                # Remove system messages from conversation history since we're adding system content separately
                 messages = [msg for msg in conversation_history if msg["role"] != "system"]
                 messages.append({"role": "user", "content": current_request})
                 
@@ -271,8 +272,8 @@ def get_conversation_history(request):
                     "system": system_content
                 })
             else:
+                # For non-Claude models, don't add system message again since it's in conversation_history
                 messages = [
-                    {"role": "system", "content": system_msg["content"]},
                     *conversation_history,
                     {"role": "system", "content": file_context},
                     {"role": "user", "content": current_request}
