@@ -47,14 +47,8 @@ def create_project(request):
                 project=project
             )
             
-            # Clear the website directory for the new project
-            output_dir = ensure_website_directory(os.path.dirname(__file__))
-            
-            if os.path.exists(output_dir):
-                for file in os.listdir(output_dir):
-                    file_path = os.path.join(output_dir, file)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
+            # Clear and initialize the website directory for the new project
+            load_project_files(project)  # This will clear the directory since there are no files yet
             
             # Redirect to the project-specific workspace using URL-safe name
             return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
@@ -88,28 +82,7 @@ def project_workspace(request, project_name):
         project.save()
 
         # Load project files into website directory
-        output_dir = ensure_website_directory(os.path.dirname(__file__))
-        
-        # Clear existing files in the directory
-        if os.path.exists(output_dir):
-            for file in os.listdir(output_dir):
-                file_path = os.path.join(output_dir, file)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-
-        # Load the latest version of each file from the messages
-        pages = Page.objects.filter(conversation__project=project)
-        for page in pages:
-            latest_message = Message.objects.filter(
-                conversation__project=project,
-                page=page,
-                role='assistant'
-            ).order_by('-created_at').first()
-            
-            if latest_message:
-                file_path = os.path.join(output_dir, page.filename)
-                with open(file_path, 'w') as f:
-                    f.write(latest_message.content)
+        load_project_files(project)
         
         return render(request, 'builder/oasis_builder.html', {
             'project': project,
@@ -119,6 +92,36 @@ def project_workspace(request, project_name):
     except Exception as e:
         messages.error(request, f"An error occurred: {str(e)}")
         return redirect('builder:landing_page')
+
+
+def load_project_files(project):
+    """Load all files for a project from the database into the website directory."""
+    output_dir = ensure_website_directory(os.path.dirname(__file__))
+    
+    # Clear existing files in the directory
+    if os.path.exists(output_dir):
+        for file in os.listdir(output_dir):
+            file_path = os.path.join(output_dir, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+    # Load all pages for this project
+    pages = Page.objects.filter(
+        conversation__project=project
+    ).select_related('conversation')
+
+    # For each page, get the latest content and write to file
+    for page in pages:
+        latest_message = Message.objects.filter(
+            conversation__project=project,
+            page=page,
+            role='assistant'
+        ).order_by('-created_at').first()
+        
+        if latest_message:
+            file_path = os.path.join(output_dir, page.filename)
+            with open(file_path, 'w') as f:
+                f.write(latest_message.content)
 
 
 @login_required
@@ -185,6 +188,14 @@ def process_input(request):
         try:
             # Process user input
             response_content = process_user_input(user_input, model, conversation, page)
+            
+            # Save the file content to the database
+            Message.objects.create(
+                conversation=conversation,
+                page=page,
+                role="assistant",
+                content=response_content if isinstance(response_content, str) else response_content.get('html', '')
+            )
             
             # Handle different response types
             if isinstance(response_content, dict):
