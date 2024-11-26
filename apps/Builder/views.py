@@ -505,8 +505,7 @@ def process_chat(request):
         
         # Set up output directory
         output_dir = ensure_website_directory(
-            os.path.dirname(__file__), 
-            conversation.project.id
+            os.path.dirname(__file__)
         )
         
         # Build conversation history with the output directory and page context

@@ -87,7 +87,15 @@ def get_file_context(filename):
     return f"You are working on file: {filename}"
 
 def ensure_website_directory(base_dir):
-    """Ensures the website directory exists and returns its path."""
+    """
+    Ensures the website directory exists and returns its path.
+    
+    Args:
+        base_dir (str): The base directory path where the website directory should be created
+        
+    Returns:
+        str: The path to the website directory
+    """
     # Create website directory directly under base_dir
     output_dir = os.path.join(base_dir, 'website')
     
