@@ -73,7 +73,34 @@ def build_conversation_history(system_msg, page, output_dir):
             except FileNotFoundError:
                 pass
     
-    # 3. Add file-specific build history if page is provided
+    # 3. Add chat history for this specific page
+    if page:
+        chat_messages = Message.objects.filter(
+            conversation__project=page.conversation.project,
+            page=page,
+            content__startswith='[Chat]'
+        ).order_by('created_at')
+        
+        if chat_messages.exists():
+            conversation_history.append({
+                "role": "system",
+                "content": f"\n=== CHAT HISTORY FOR {page.filename} ===\n"
+            })
+            
+            # Track seen content to avoid duplicates
+            seen_content = set()
+            
+            for msg in chat_messages:
+                content = msg.content
+                content_hash = hash(content)
+                if content_hash not in seen_content:
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": content
+                    })
+                    seen_content.add(content_hash)
+    
+    # 4. Add file-specific build history if page is provided
     if page:
         # Get all messages for this specific page, excluding chat messages
         build_messages = Message.objects.filter(
@@ -107,7 +134,7 @@ def build_conversation_history(system_msg, page, output_dir):
                     })
                     seen_content.add(content_hash)
     
-    # 4. Add current file context at the end
+    # 5. Add current file context at the end
     if page:
         conversation_history.append({
             "role": "system",
