@@ -198,10 +198,19 @@ def process_user_input(user_input, model, conversation, page):
                 raise ValueError("Invalid HTML content")
                 
         elif page.filename == 'styles.css':
-            cleaned_response = assistant_response.replace('```css', '').replace('```', '').strip()
+            # Clean CSS content - remove any file prefix and only keep CSS content
+            css_content = assistant_response
+            if '[File: styles.css]' in css_content:
+                css_content = css_content.split('[File: styles.css]')[1].strip()
             
-            if '<!DOCTYPE' in cleaned_response or '<html' in cleaned_response:
-                raise ValueError("Response contains HTML instead of CSS")
+            # Remove any markdown code block markers if present
+            css_content = css_content.replace('```css', '').replace('```', '').strip()
+            
+            # Validate that it looks like CSS (basic check)
+            if '{' not in css_content or '}' not in css_content:
+                raise ValueError("Invalid CSS content")
+                
+            cleaned_response = css_content
         else:
             cleaned_response = assistant_response
 
