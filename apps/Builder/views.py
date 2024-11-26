@@ -14,7 +14,8 @@ from .services.oasis_service import (
 from .services.utils import (
     get_system_message,
     get_file_context,
-    ensure_website_directory
+    ensure_website_directory,
+    build_conversation_history
 )
 import os
 from django.views.static import serve

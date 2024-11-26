@@ -1,4 +1,5 @@
 import os
+from ..models import Message, Conversation, Page
 
 def get_system_message():
     """Generates the system message content for the assistant."""
@@ -103,5 +104,127 @@ def ensure_website_directory(base_dir):
     os.makedirs(output_dir, exist_ok=True)
     
     return output_dir
+
+def build_conversation_history(system_msg, page, output_dir):
+    """Builds the conversation history with organized sections."""
+    conversation_history = []
+    
+    # 1. Add system message first
+    conversation_history.append({
+        "role": "system",
+        "content": "=== SYSTEM PROMPT ===\n" + system_msg["content"]
+    })
+    
+    # 2. Add current state of ALL files for this specific project
+    if output_dir and os.path.exists(output_dir):
+        conversation_history.append({
+            "role": "system",
+            "content": "\n=== CURRENT WEBSITE FILES ===\n"
+        })
+        
+        # First add all HTML files
+        html_files = [f for f in os.listdir(output_dir) if f.endswith('.html')]
+        html_files.sort()
+        
+        # Ensure index.html is first
+        if 'index.html' in html_files:
+            html_files.remove('index.html')
+            html_files.insert(0, 'index.html')
+        
+        # Add all HTML files
+        for filename in html_files:
+            file_path = os.path.join(output_dir, filename)
+            try:
+                with open(file_path, 'r') as f:
+                    file_content = f.read()
+                    conversation_history.append({
+                        "role": "assistant",
+                        "content": f"[File: {filename}]\n{file_content}"
+                    })
+            except FileNotFoundError:
+                continue
+        
+        # Add CSS file if it exists
+        css_path = os.path.join(output_dir, 'styles.css')
+        if os.path.exists(css_path):
+            try:
+                with open(css_path, 'r') as f:
+                    css_content = f.read()
+                    conversation_history.append({
+                        "role": "assistant",
+                        "content": f"[File: styles.css]\n{css_content}"
+                    })
+            except FileNotFoundError:
+                pass
+    
+    # 3. Add chat history for this specific page
+    if page:
+        chat_messages = Message.objects.filter(
+            conversation__project=page.conversation.project,
+            page=page,
+            content__startswith='[Chat]'
+        ).order_by('created_at')
+        
+        if chat_messages.exists():
+            conversation_history.append({
+                "role": "system",
+                "content": f"\n=== CHAT HISTORY FOR {page.filename} ===\n"
+            })
+            
+            # Track seen content to avoid duplicates
+            seen_content = set()
+            
+            for msg in chat_messages:
+                content = msg.content
+                content_hash = hash(content)
+                if content_hash not in seen_content:
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": content
+                    })
+                    seen_content.add(content_hash)
+    
+    # 4. Add file-specific build history if page is provided
+    if page:
+        # Get all messages for this specific page, excluding chat messages
+        build_messages = Message.objects.filter(
+            conversation__project=page.conversation.project,
+            page=page
+        ).exclude(
+            content__startswith='[Chat]'
+        ).order_by('created_at')
+        
+        if build_messages.exists():
+            conversation_history.append({
+                "role": "system",
+                "content": f"\n=== BUILD HISTORY FOR {page.filename} ===\n"
+            })
+            
+            # Track seen content to avoid duplicates
+            seen_content = set()
+            
+            for msg in build_messages:
+                content = msg.content
+                # For user messages, ensure they have the file prefix
+                if msg.role == "user" and not content.startswith("[File:"):
+                    content = f"[File: {page.filename}]\n{content}"
+                
+                # Only add if we haven't seen this exact content before
+                content_hash = hash(content)
+                if content_hash not in seen_content:
+                    conversation_history.append({
+                        "role": msg.role,
+                        "content": content
+                    })
+                    seen_content.add(content_hash)
+    
+    # 5. Add current file context at the end
+    if page:
+        conversation_history.append({
+            "role": "system",
+            "content": f"\n=== CURRENT TASK ===\nYou are working on: {page.filename} in project: {page.conversation.project.name}"
+        })
+    
+    return conversation_history
 
  
