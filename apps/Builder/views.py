@@ -6,10 +6,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from .models import Conversation, Message, Page, Project
 from .services.oasis_service import (
-    process_user_input, 
-    build_conversation_history,
+    process_builder_mode_input_service,
     undo_last_action_service,
-    process_chat_input
+    process_chat_mode_input_service
 )
 from .services.utils import (
     get_system_message,
@@ -146,68 +145,30 @@ def index(request):
 
 @require_http_methods(['POST'])
 def process_input(request):
+    """View to handle processing user input for website generation."""
     try:
-        # Get and validate input parameters
+        # Get input parameters
         user_input = request.POST.get('user_input', '').strip()
         model = request.POST.get('model', '').strip()
         file_name = request.POST.get('file', 'index.html').strip()
         
-        # Validate required fields
-        if not user_input:
-            return JsonResponse({'error': 'User input is required'}, status=400)
-        if not model:
-            return JsonResponse({'error': 'Model selection is required'}, status=400)
-        if not file_name:
-            file_name = 'index.html'
-
-        # Get the active conversation for the specific project
-        conversation = Conversation.objects.filter(
-            user=request.user,
-            project__isnull=False
-        ).select_related('project').order_by('-project__updated_at').first()
+        # Call the updated service function
+        result = process_builder_mode_input_service(user_input, model, file_name, request.user)
         
-        if not conversation:
+        if not result['success']:
             return JsonResponse({
-                'error': 'No active project found',
-                'detail': 'Please select or create a project first'
+                'error': result['error'],
+                'detail': result.get('detail', '')
             }, status=400)
             
-        print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
-        
-        # Get or create the page/file
-        page, created = Page.objects.get_or_create(
-            conversation=conversation,
-            filename=file_name
-        )
-
-        try:
-            # Process user input
-            response_content = process_user_input(user_input, model, conversation, page)
-            
-            # Save the file content to the database
-            Message.objects.create(
-                conversation=conversation,
-                page=page,
-                role="assistant",
-                content=response_content if isinstance(response_content, str) else response_content.get('html', '')
-            )
-            
-            # Handle different response types
-            if isinstance(response_content, dict):
-                return JsonResponse(response_content)
-            else:
-                return JsonResponse({
-                    'html': response_content
-                })
-                
-        except ValueError as e:
-            return JsonResponse({
-                'error': str(e),
-                'detail': 'ValueError occurred during processing'
-            }, status=400)
+        # Return the appropriate response based on the result type
+        if result['type'] == 'dict':
+            return JsonResponse(result['response'])
+        else:
+            return JsonResponse(result['response'])
             
     except Exception as e:
-        print(f"Error in process_input: {str(e)}")
+        print(f"Error in process_input view: {str(e)}")
         return JsonResponse({
             'error': 'An unexpected error occurred',
             'detail': str(e)
@@ -512,8 +473,8 @@ def process_chat(request):
         # Build conversation history with the output directory and page context
         conversation_history = build_conversation_history(system_msg, page, output_dir)
         
-        # Process chat using the AI service
-        response_content = process_chat_input(user_input, model, conversation, conversation_history, file_name)
+        # Process chat using the updated AI service
+        response_content = process_chat_mode_input_service(user_input, model, conversation, conversation_history, file_name)
         
         return JsonResponse({'message': response_content})
             

@@ -60,15 +60,53 @@ def make_api_call(model, system_msg, conversation_history, page, user_input, com
     else:
         raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
 
-def process_user_input(user_input, model, conversation, page):
-    """Processes user input for a specific page."""
+def process_builder_mode_input_service(user_input, model, file_name, user):
+    """
+    Handles all business logic for processing user input and generating website content.
+    
+    Args:
+        user_input (str): The input from the user
+        model (str): The AI model to use
+        file_name (str): The name of the file being edited
+        user: The user making the request
+        
+    Returns:
+        dict: Response containing generated content and any error messages
+    """
     try:
+        # Validate required fields
+        if not user_input:
+            raise ValueError('User input is required')
+        if not model:
+            raise ValueError('Model selection is required')
+        if not file_name:
+            file_name = 'index.html'
+
+        # Get the active conversation for the specific project
+        conversation = Conversation.objects.filter(
+            user=user,
+            project__isnull=False
+        ).select_related('project').order_by('-project__updated_at').first()
+        
+        if not conversation:
+            raise ValueError('No active project found. Please select or create a project first.')
+            
+        print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
+        
+        # Get or create the page/file
+        page, created = Page.objects.get_or_create(
+            conversation=conversation,
+            filename=file_name
+        )
+
+        # Set up the system message and directories
         system_msg = get_system_message()
         base_dir = os.path.dirname(__file__)
         output_dir = ensure_website_directory(
             os.path.join(base_dir, '..')
         )
         
+        # Build conversation history and context
         conversation_history = build_conversation_history(system_msg, page, output_dir)
         file_context = get_file_context(page.filename)
         
@@ -79,6 +117,7 @@ def process_user_input(user_input, model, conversation, page):
             {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
         ]
         
+        # Make API call to get response
         assistant_response = make_api_call(
             model=model,
             system_msg=system_msg,
@@ -132,7 +171,7 @@ def process_user_input(user_input, model, conversation, page):
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
 
-        # Save messages
+        # Save user message
         Message.objects.create(
             conversation=conversation,
             page=page,
@@ -140,6 +179,7 @@ def process_user_input(user_input, model, conversation, page):
             content=user_input
         )
 
+        # Save assistant message
         Message.objects.create(
             conversation=conversation,
             page=page,
@@ -147,19 +187,46 @@ def process_user_input(user_input, model, conversation, page):
             content=cleaned_response
         )
 
+        # Handle special case for CSS files
         if page.filename == 'styles.css':
             index_path = os.path.join(output_dir, 'index.html')
             try:
                 with open(index_path, 'r') as f:
                     index_content = f.read()
-                return {'html': index_content, 'css': cleaned_response}
+                response_content = {'html': index_content, 'css': cleaned_response}
             except FileNotFoundError:
-                return {'html': '', 'css': cleaned_response}
+                response_content = {'html': '', 'css': cleaned_response}
+        else:
+            response_content = cleaned_response
 
-        return cleaned_response
-
+        # Format the response based on the type of content
+        if isinstance(response_content, dict):
+            return {
+                'success': True,
+                'response': response_content,
+                'type': 'dict'
+            }
+        else:
+            return {
+                'success': True,
+                'response': {'html': response_content},
+                'type': 'str'
+            }
+            
+    except ValueError as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'detail': 'ValueError occurred during processing'
+        }
+        
     except Exception as e:
-        raise ValueError(str(e))
+        print(f"Error in process_input_service: {str(e)}")
+        return {
+            'success': False,
+            'error': 'An unexpected error occurred',
+            'detail': str(e)
+        }
 
 def undo_last_action_service(user, page_name):
     """
@@ -223,7 +290,7 @@ def undo_last_action_service(user, page_name):
         print(f"Error in undo_last_action_service: {str(e)}")
         return None, 'Nothing to undo', 200
 
-def process_chat_input(user_input, model, conversation, conversation_history, file_name):
+def process_chat_mode_input_service(user_input, model, conversation, conversation_history, file_name):
     """Processes chat input without generating website files."""
     try:
         system_msg = get_system_message()
