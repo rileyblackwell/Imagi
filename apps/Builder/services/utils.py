@@ -88,8 +88,8 @@ def get_file_context(filename):
 
 def ensure_website_directory(base_dir):
     """Ensures the website directory exists and returns its path."""
-    # Create website directory under builder/website
-    output_dir = os.path.join(base_dir, 'builder', 'website')
+    # Create website directory directly under base_dir
+    output_dir = os.path.join(base_dir, 'website')
     
     # Create the directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
