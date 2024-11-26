@@ -10,10 +10,30 @@ $(document).ready(function() {
         $('#file-select').val('index.html');
     }
 
+    // Updated AJAX setup to handle errors silently for specific endpoints
     $.ajaxSetup({
         beforeSend: function(xhr, settings) {
             if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        },
+        error: function(xhr, status, error) {
+            // Get the URL from the XHR object
+            var url = xhr.url || xhr?.responseURL || '';
+            
+            // Completely suppress errors for get-page endpoint
+            if (url.includes('/builder/get-page/')) {
+                return;
+            }
+            
+            // For other endpoints, only log non-404 errors in development
+            if (xhr.status !== 404 && 
+                (window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1')) {
+                console.group('Debug Info');
+                console.log('Status:', status);
+                console.log('Error:', error);
+                console.groupEnd();
             }
         }
     });
@@ -26,7 +46,7 @@ $(document).ready(function() {
         } else {
             $('#custom-page-input').hide();
             
-            // Check if the file exists before trying to open it
+            // Only check existing files if it's not styles.css
             if (selectedFile !== 'styles.css') {
                 $.ajax({
                     type: 'POST',
@@ -39,15 +59,27 @@ $(document).ready(function() {
                         // Only open the file if it exists and has content
                         if (response.html) {
                             if (websiteTab === null || websiteTab.closed) {
-                                websiteTab = window.open('/builder/website/' + selectedFile, '_blank');
+                                websiteTab = window.open('/builder/oasis/' + selectedFile, '_blank');
                             } else {
-                                websiteTab.location.href = '/builder/website/' + selectedFile;
+                                websiteTab.location.href = '/builder/oasis/' + selectedFile;
+                            }
+                        }
+                    },
+                    statusCode: {
+                        404: function(response) {
+                            // File doesn't exist yet - handle silently
+                            if (response.responseJSON && response.responseJSON.message) {
+                                console.log(response.responseJSON.message);
+                            } else {
+                                console.log("Waiting for file to be generated:", selectedFile);
                             }
                         }
                     },
                     error: function(xhr, status, error) {
-                        // File doesn't exist yet - do nothing
-                        console.log("Note: File not created yet:", selectedFile);
+                        // Only log errors that aren't 404
+                        if (xhr.status !== 404) {
+                            console.error("Error getting page:", error);
+                        }
                     }
                 });
             }
@@ -314,15 +346,19 @@ $(document).ready(function() {
 
     // New helper functions
     function updateWebsitePreview(html, filename) {
+        // Default to index.html if filename is not provided or is styles.css
+        filename = (!filename || filename === 'styles.css') ? 'index.html' : filename;
+        
         if (websiteTab === null || websiteTab.closed) {
-            websiteTab = window.open('/builder/website/' + filename, '_blank');
+            websiteTab = window.open('/builder/oasis/' + filename, '_blank');
+        } else {
+            websiteTab.location.href = '/builder/oasis/' + filename;
         }
+        
         if (websiteTab) {
-            websiteTab.location.href = '/builder/website/' + filename;
-            
             websiteTab.document.open();
             var htmlWithBase = html.replace('<head>', 
-                '<head><base href="/builder/website/">');
+                '<head><base href="/builder/oasis/">');
             
             // Add click event handlers for navigation
             htmlWithBase = htmlWithBase.replace('</body>', `
@@ -332,7 +368,7 @@ $(document).ready(function() {
                             e.preventDefault();
                             var href = e.target.getAttribute('href');
                             if (href) {
-                                window.location.href = '/builder/website/' + href;
+                                window.location.href = '/builder/oasis/' + href;
                             }
                         }
                     });

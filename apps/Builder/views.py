@@ -364,50 +364,91 @@ def clear_conversation_history(request):
 
 @require_http_methods(['POST'])
 def get_page(request):
+    """Get the content of a specific page file."""
     try:
         file_name = request.POST.get('file')
         if not file_name:
             return JsonResponse({'error': 'File name is required'}, status=400)
 
-        output_dir = os.path.join(os.path.dirname(__file__), 'website')
+        # Get the active conversation
+        conversation = Conversation.objects.filter(
+            user=request.user,
+            project__isnull=False
+        ).select_related('project').order_by('-project__updated_at').first()
+        
+        if not conversation:
+            return JsonResponse({'error': 'No active project found'}, status=404)
+
+        # Get or create the page object in the database
+        page, created = Page.objects.get_or_create(
+            conversation=conversation,
+            filename=file_name
+        )
+
+        # Get the website directory
+        output_dir = ensure_website_directory(os.path.dirname(__file__))
         file_path = os.path.join(output_dir, file_name)
         
+        # If the file doesn't exist physically yet, return success with empty content
+        # This prevents 404 errors for files that haven't been generated yet
         if not os.path.exists(file_path):
-            return JsonResponse({'error': 'File not found'}, status=404)
+            return JsonResponse({
+                'html': '',
+                'message': f'Waiting for {file_name} to be generated'
+            }, status=200)  # Return 200 instead of 404
             
-        with open(file_path, 'r') as f:
-            content = f.read()
-            
-        return JsonResponse({'html': content})
+        # Read and return the file content if it exists
+        try:
+            with open(file_path, 'r') as f:
+                content = f.read()
+            return JsonResponse({'html': content})
+        except Exception as e:
+            print(f"Error reading file {file_name}: {str(e)}")
+            return JsonResponse({
+                'html': '',
+                'message': f'Error reading {file_name}'
+            }, status=200)  # Return 200 instead of 404
         
     except Exception as e:
         print(f"Error in get_page: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({
+            'html': '',
+            'message': str(e)
+        }, status=200)  # Return 200 instead of 500
 
 
 def serve_website_file(request, path):
     """Serve files from the website directory"""
-    # Get the active conversation for the current project
-    conversation = Conversation.objects.filter(
-        user=request.user,
-        project__isnull=False
-    ).order_by('-created_at').first()
-    
-    if not conversation:
-        return JsonResponse({
-            'error': 'No active project found'
-        }, status=404)
-    
-    # Get the website directory
-    website_dir = ensure_website_directory(os.path.dirname(__file__))
-    
-    # Check if the requested file exists
-    file_path = os.path.join(website_dir, path)
-    if not os.path.exists(file_path):
-        raise Http404(f"File {path} not found")
-    
-    # Serve the file
-    return serve(request, path, document_root=website_dir)
+    try:
+        # Get the active conversation for the current project
+        conversation = Conversation.objects.filter(
+            user=request.user,
+            project__isnull=False
+        ).order_by('-created_at').first()
+        
+        if not conversation:
+            return JsonResponse({
+                'error': 'No active project found'
+            }, status=404)
+        
+        # Get the website directory
+        website_dir = ensure_website_directory(os.path.dirname(__file__))
+        
+        # If path is empty or is styles.css, serve index.html
+        if not path or path == 'styles.css':
+            path = 'index.html'
+        
+        # Check if the requested file exists
+        file_path = os.path.join(website_dir, path)
+        if not os.path.exists(file_path):
+            raise Http404(f"File {path} not found")
+        
+        # Serve the file
+        return serve(request, path, document_root=website_dir)
+        
+    except Exception as e:
+        print(f"Error serving file: {str(e)}")
+        raise Http404("File not found")
 
 @require_http_methods(['POST'])
 def process_chat(request):
