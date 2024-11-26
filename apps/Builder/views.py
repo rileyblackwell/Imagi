@@ -20,7 +20,6 @@ import os
 from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
-from django.urls import reverse
 from django.http import Http404
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect, csrf_exempt
 
