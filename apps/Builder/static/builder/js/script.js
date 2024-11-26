@@ -28,21 +28,11 @@ $(document).ready(function() {
             
             // Load and display the selected file
             if (selectedFile !== 'styles.css') {
-                $.ajax({
-                    type: 'GET',
-                    url: '/builder/website/' + selectedFile,
-                    success: function(response) {
-                        if (websiteTab === null || websiteTab.closed) {
-                            websiteTab = window.open('', '_blank');
-                        }
-                        if (websiteTab) {
-                            websiteTab.location.href = '/builder/website/' + selectedFile;
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error loading file:', error);
-                    }
-                });
+                if (websiteTab === null || websiteTab.closed) {
+                    websiteTab = window.open('/builder/website/' + selectedFile, '_blank');
+                } else {
+                    websiteTab.location.href = '/builder/website/' + selectedFile;
+                }
             }
         }
     });
@@ -306,11 +296,13 @@ $(document).ready(function() {
     });
 
     // New helper functions
-    function updateWebsitePreview(html) {
+    function updateWebsitePreview(html, filename) {
         if (websiteTab === null || websiteTab.closed) {
-            websiteTab = window.open('', '_blank');
+            websiteTab = window.open('/builder/website/' + filename, '_blank');
         }
         if (websiteTab) {
+            websiteTab.location.href = '/builder/website/' + filename;
+            
             websiteTab.document.open();
             var htmlWithBase = html.replace('<head>', 
                 '<head><base href="/builder/website/">');
@@ -432,13 +424,9 @@ $(document).ready(function() {
                 console.log('Undo Response:', response);
                 
                 if (response.html) {
-                    // Update the website preview with the previous version
-                    if (websiteTab === null || websiteTab.closed) {
-                        websiteTab = window.open('', '_blank');
-                    }
-                    if (websiteTab) {
-                        updateWebsitePreview(response.html);
-                    }
+                    // Pass the current filename to updateWebsitePreview
+                    var currentFile = selectedFile === 'styles.css' ? 'index.html' : selectedFile;
+                    updateWebsitePreview(response.html, currentFile);
                 }
                 
                 // Only show message if something was actually undone
