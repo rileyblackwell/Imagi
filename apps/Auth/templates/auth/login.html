@@ -8,38 +8,28 @@
 <p class="subtitle">Sign in to continue to Imagi</p>
 {% endblock %}
 
-{% block auth_content %}
-<form method="post" class="auth-form">
-    {% csrf_token %}
-    
-    <div class="form-group floating">
-        <i class="fas fa-user"></i>
-        <input type="text" name="username" id="id_username" class="form-input" 
-               placeholder="Username" required 
-               {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
-    </div>
+{% block auth_form %}
+<div class="form-group floating">
+    <i class="fas fa-user"></i>
+    <input type="text" name="username" id="id_username" class="form-input" 
+           placeholder="Username" required 
+           {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
+</div>
 
-    <div class="form-group floating">
-        <i class="fas fa-lock"></i>
-        <input type="password" name="password" id="id_password" class="form-input" 
-               placeholder="Password" required>
-    </div>
-
-    <div class="form-actions">
-        <button type="submit" class="primary-button">
-            <span>Sign In</span>
-            <i class="fas fa-arrow-right"></i>
-        </button>
-    </div>
-</form>
+<div class="form-group floating">
+    <i class="fas fa-lock"></i>
+    <input type="password" name="password" id="id_password" class="form-input" 
+           placeholder="Password" required>
+</div>
 {% endblock %}
 
+{% block button_text %}Sign In{% endblock %}
+
 {% block auth_links %}
-<div class="auth-links">
-    <p>New to Imagi? <a href="{% url 'signup' %}" class="link-animated">Create an account</a></p>
-    <a href="{% url 'password_reset' %}" class="link-muted">Forgot your password?</a>
-</div>
-<p><a href="{% url 'landing_page' %}">Back to Home</a></p>
+<p>New to Imagi? <a href="{% url 'signup' %}" class="link-animated">Create an account</a></p>
+<div class="divider"></div>
+<a href="{% url 'password_reset' %}" class="link-muted">Forgot your password?</a>
+<a href="{% url 'landing_page' %}" class="link-muted">Back to Home</a>
 {% endblock %}
 
 {% block extra_js %}

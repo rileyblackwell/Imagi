@@ -8,52 +8,42 @@
 <p class="subtitle">Join Imagi today</p>
 {% endblock %}
 
-{% block auth_content %}
-<form method="post" class="auth-form">
-    {% csrf_token %}
-    
-    <div class="form-group floating">
-        <i class="fas fa-user"></i>
-        <input type="text" name="username" id="id_username" class="form-input" 
-               placeholder="Username" required 
-               {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
-    </div>
-    {% if form.username.errors %}
-        <div class="error-message">{{ form.username.errors.0 }}</div>
-    {% endif %}
+{% block auth_form %}
+<div class="form-group floating">
+    <i class="fas fa-user"></i>
+    <input type="text" name="username" id="id_username" class="form-input" 
+           placeholder="Username" required 
+           {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
+</div>
+{% if form.username.errors %}
+    <div class="error-message">{{ form.username.errors.0 }}</div>
+{% endif %}
 
-    <div class="form-group floating">
-        <i class="fas fa-lock"></i>
-        <input type="password" name="password1" id="id_password1" class="form-input" 
-               placeholder="Password" required>
-    </div>
-    {% if form.password1.errors %}
-        <div class="error-message">{{ form.password1.errors.0 }}</div>
-    {% endif %}
+<div class="form-group floating">
+    <i class="fas fa-lock"></i>
+    <input type="password" name="password1" id="id_password1" class="form-input" 
+           placeholder="Password" required>
+</div>
+{% if form.password1.errors %}
+    <div class="error-message">{{ form.password1.errors.0 }}</div>
+{% endif %}
 
-    <div class="form-group floating">
-        <i class="fas fa-lock"></i>
-        <input type="password" name="password2" id="id_password2" class="form-input" 
-               placeholder="Confirm Password" required>
-    </div>
-    {% if form.password2.errors %}
-        <div class="error-message">{{ form.password2.errors.0 }}</div>
-    {% endif %}
-
-    <div class="form-actions">
-        <button type="submit" class="primary-button">
-            <span>Create Account</span>
-            <i class="fas fa-arrow-right"></i>
-        </button>
-    </div>
-</form>
+<div class="form-group floating">
+    <i class="fas fa-lock"></i>
+    <input type="password" name="password2" id="id_password2" class="form-input" 
+           placeholder="Confirm Password" required>
+</div>
+{% if form.password2.errors %}
+    <div class="error-message">{{ form.password2.errors.0 }}</div>
+{% endif %}
 {% endblock %}
 
+{% block button_text %}Create Account{% endblock %}
+
 {% block auth_links %}
-<div class="auth-links">
-    <p>Already have an account? <a href="{% url 'login' %}" class="link-animated">Sign in</a></p>
-    <a href="{% url 'landing_page' %}" class="link-muted">Back to Home</a>
-</div>
+<p>Already have an account? <a href="{% url 'login' %}" class="link-animated">Sign in</a></p>
+<div class="divider"></div>
+<a href="{% url 'landing_page' %}" class="link-muted">Back to Home</a>
 {% endblock %}
 
 {% block extra_js %}

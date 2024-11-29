@@ -19,10 +19,20 @@
         </div>
         
         <div class="form-card">
-            {% block auth_content %}{% endblock %}
+            <form method="post" class="auth-form">
+                {% csrf_token %}
+                {% block auth_form %}{% endblock %}
+                
+                <div class="form-actions">
+                    <button type="submit" class="primary-button">
+                        <span>{% block button_text %}Submit{% endblock %}</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <div class="auth-footer">
+        <div class="auth-links">
             {% block auth_links %}{% endblock %}
         </div>
     </div>
