@@ -13,24 +13,16 @@
     {% csrf_token %}
     
     <div class="form-group floating">
-        <div class="input-wrapper">
-            <input type="text" name="username" id="id_username" class="form-input" required 
-                   {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
-            <label for="id_username">
-                <i class="fas fa-user"></i>
-                Username
-            </label>
-        </div>
+        <i class="fas fa-user"></i>
+        <input type="text" name="username" id="id_username" class="form-input" 
+               placeholder="Username" required 
+               {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
     </div>
 
     <div class="form-group floating">
-        <div class="input-wrapper">
-            <input type="password" name="password" id="id_password" class="form-input" required>
-            <label for="id_password">
-                <i class="fas fa-lock"></i>
-                Password
-            </label>
-        </div>
+        <i class="fas fa-lock"></i>
+        <input type="password" name="password" id="id_password" class="form-input" 
+               placeholder="Password" required>
     </div>
 
     <div class="form-actions">
@@ -48,4 +40,8 @@
     <a href="{% url 'password_reset' %}" class="link-muted">Forgot your password?</a>
 </div>
 <p><a href="{% url 'landing_page' %}">Back to Home</a></p>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'auth/js/script.js' %}"></script>
 {% endblock %}
