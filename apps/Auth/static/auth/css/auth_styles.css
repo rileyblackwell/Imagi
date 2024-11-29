@@ -60,12 +60,12 @@
 
 .brand-header {
     text-align: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;     /* Reduced from 2.5rem */
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2.5rem;  /* Increased gap between logo and welcome text */
-    padding: 0.5rem 0;  /* Added padding to prevent text cutoff */
+    gap: 1.5rem;            /* Reduced from 2.5rem */
+    padding: 0.25rem 0;     /* Reduced padding */
 }
 
 .logo-container {
@@ -74,12 +74,12 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    margin-bottom: 0;
-    padding-bottom: 0.5rem;  /* Added padding at the bottom */
+    margin-bottom: 0.5rem;  /* Added small margin */
+    padding-bottom: 0;      /* Removed bottom padding */
 }
 
 .brand-name {
-    font-size: 2.5rem;
+    font-size: 2.25rem;     /* Slightly smaller */
     font-weight: 600;
     background: linear-gradient(45deg, #00a2ff, #00ffc6);
     -webkit-background-clip: text;
@@ -87,6 +87,7 @@
     -webkit-text-fill-color: transparent;
     text-align: center;
     margin: 0;
+    margin-bottom: 0.5rem;  /* Added small margin */
     display: block;
     letter-spacing: -0.5px;
     filter: drop-shadow(0 0 10px rgba(0, 162, 255, 0.3));
@@ -95,9 +96,10 @@
 }
 
 .welcome-text {
-    font-size: 2rem;
+    font-size: 1.75rem;     /* Slightly smaller */
     font-weight: 600;
     margin: 0;
+    margin-bottom: 0.25rem; /* Reduced spacing */
     background: linear-gradient(45deg, #ffffff, #e0e0e0);
     -webkit-background-clip: text;
     background-clip: text;
@@ -108,22 +110,23 @@
 
 .subtitle {
     color: rgba(255, 255, 255, 0.7);
-    font-size: 1.1rem;
+    font-size: 1rem;        /* Slightly smaller */
     font-weight: 500;
     letter-spacing: 0.2px;
     opacity: 0.9;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;    /* Reduced from 0.5rem */
 }
 
 .form-card {
     background: rgba(255, 255, 255, 0.05);
-    padding: 2rem;
+    padding: 1.5rem 2rem;   /* Adjusted padding */
     border-radius: 16px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 
         0px 4px 6px -1px rgba(0, 0, 0, 0.1),
         0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+    margin-top: 1rem;       /* Added top margin */
 }
 
 .logo-placeholder {
