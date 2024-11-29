@@ -4,7 +4,33 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: radial-gradient(circle at center, rgba(0, 162, 255, 0.1), transparent);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Add animated gradient background */
+.auth-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+        rgba(0, 162, 255, 0.1), 
+        rgba(0, 255, 198, 0.1),
+        rgba(147, 51, 234, 0.1));
+    background-size: 400% 400%;
+    animation: gradientMove 15s ease infinite;
+    z-index: 0;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .auth-wrapper {
@@ -21,6 +47,61 @@
 .auth-container {
     text-align: center;
     padding: 30px;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.brand-name {
+    font-size: 2rem;
+    font-weight: 600;
+    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.welcome-text {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+}
+
+.form-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0px 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0px 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .logo-placeholder {
@@ -45,25 +126,31 @@
 .input-with-icon {
     width: 100%;
     padding: 12px 12px 12px 40px;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(5px);
+    background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    color: var(--text-color);
+    color: white;
     font-size: 14px;
     font-weight: 500;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    transition: all 0.3s ease;
     margin-bottom: 15px;
+    border-radius: 8px;
 }
 
-.input-with-icon:not(:placeholder-shown) {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 1);
+.input-with-icon::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .input-with-icon:focus {
-    border-color: rgba(0, 162, 255, 0.6);
-    box-shadow: 0 0 15px rgba(0, 162, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    border: 2px solid rgba(0, 162, 255, 0.6);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+}
+
+/* Remove the box-shadow and other effects */
+.input-with-icon:not(:placeholder-shown) {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: none;
 }
 
 .input-group {
@@ -74,13 +161,15 @@
 .input-group-addon {
     position: absolute;
     left: 15px;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 16px;
-    transition: color 0.3s ease;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    pointer-events: none;
 }
 
 .input-with-icon:not(:placeholder-shown) + .input-group-addon {
-    color: black;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .input-with-icon:focus + .input-group-addon {
@@ -157,23 +246,93 @@
 }
 
 .form-group {
-    margin-bottom: 25px;
+    margin-bottom: 1.8rem;
     text-align: left;
+    position: relative;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-weight: 500;
+.input-wrapper {
+    position: relative;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+}
+
+.form-input:focus {
+    border-color: rgba(0, 162, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(0, 162, 255, 0.1);
+}
+
+.form-input:focus::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.floating label {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.floating.focused label {
+    top: 0;
+    left: 16px;
+    font-size: 0.75rem;
+    padding: 0 4px;
+    background: rgba(0, 162, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.form-actions {
+    margin-top: 2rem;
+}
+
+.primary-button {
+    width: 100%;
+    padding: 12px 24px;
+    background: linear-gradient(45deg, 
+        rgba(0, 162, 255, 0.8), 
+        rgba(0, 255, 198, 0.8));
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(5px);
+}
+
+.primary-button:hover {
+    background: linear-gradient(45deg, 
+        rgba(0, 162, 255, 1), 
+        rgba(0, 255, 198, 1));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 162, 255, 0.2);
 }
 
 .error-message {
     color: #ff4d4d;
     font-size: 0.8rem;
-    margin-top: 5px;
-    padding: 5px 10px;
-    border-radius: 4px;
-    background: rgba(255, 77, 77, 0.1);
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 0 4px 4px 0;
+    background: rgba(255, 77, 77, 0.15);
+    border-left: 3px solid #ff4d4d;
 }

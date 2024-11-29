@@ -4,27 +4,50 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'apps_styles.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/auth_styles.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<body class="app-page">
-<div class="app-container">
-    <div class="auth-page">
-        <div class="auth-wrapper">
-            <div class="auth-inner">
-                <div class="auth-container">
-                    <div class="logo-placeholder"></div>
-                    {% block auth_content %}{% endblock %}
-                    <div class="auth-links">
-                        {% block auth_links %}{% endblock %}
-                    </div>
-                </div>
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="brand-header">
+            <div class="logo-container">
+                <div class="logo-placeholder"></div>
+                <h1 class="brand-name">Imagi</h1>
             </div>
+            {% block auth_header %}{% endblock %}
+        </div>
+        
+        <div class="form-card">
+            {% block auth_content %}{% endblock %}
+        </div>
+
+        <div class="auth-footer">
+            {% block auth_links %}{% endblock %}
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Add any additional JavaScript specific to auth pages here -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add floating label behavior
+    const inputs = document.querySelectorAll('.form-input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', () => {
+            input.parentElement.classList.add('focused');
+        });
+        input.addEventListener('blur', () => {
+            if (!input.value) {
+                input.parentElement.classList.remove('focused');
+            }
+        });
+        // Set initial state
+        if (input.value) {
+            input.parentElement.classList.add('focused');
+        }
+    });
+});
+</script>
 {% endblock %}

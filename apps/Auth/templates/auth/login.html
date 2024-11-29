@@ -3,29 +3,49 @@
 
 {% block title %}Login to Imagi{% endblock %}
 
+{% block auth_header %}
+<h2 class="welcome-text">Welcome back!</h2>
+<p class="subtitle">Sign in to continue to Imagi</p>
+{% endblock %}
+
 {% block auth_content %}
-<h2>Login to Imagi</h2>
-<form method="post">
+<form method="post" class="auth-form">
     {% csrf_token %}
-    <div class="form-group">
-        <label for="id_username">Username</label>
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fas fa-user"></i></span>
-            <input type="text" name="username" id="id_username" class="input-with-icon" {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
+    
+    <div class="form-group floating">
+        <div class="input-wrapper">
+            <input type="text" name="username" id="id_username" class="form-input" required 
+                   {% if form.username.value %}value="{{ form.username.value }}"{% endif %}>
+            <label for="id_username">
+                <i class="fas fa-user"></i>
+                Username
+            </label>
         </div>
     </div>
-    <div class="form-group">
-        <label for="id_password">Password</label>
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fas fa-lock"></i></span>
-            <input type="password" name="password" id="id_password" class="input-with-icon">
+
+    <div class="form-group floating">
+        <div class="input-wrapper">
+            <input type="password" name="password" id="id_password" class="form-input" required>
+            <label for="id_password">
+                <i class="fas fa-lock"></i>
+                Password
+            </label>
         </div>
     </div>
-    <button type="submit" class="app-button">Login</button>
+
+    <div class="form-actions">
+        <button type="submit" class="primary-button">
+            <span>Sign In</span>
+            <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
 </form>
 {% endblock %}
 
 {% block auth_links %}
-<p>Don't have an account? <a href="{% url 'signup' %}">Sign up</a></p>
+<div class="auth-links">
+    <p>New to Imagi? <a href="{% url 'signup' %}" class="link-animated">Create an account</a></p>
+    <a href="{% url 'password_reset' %}" class="link-muted">Forgot your password?</a>
+</div>
 <p><a href="{% url 'landing_page' %}">Back to Home</a></p>
 {% endblock %}
