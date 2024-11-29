@@ -429,3 +429,34 @@
         margin-bottom: 2rem;
     }
 }
+
+/* Add these styles at the end of the file */
+
+.message-card {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-icon {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.message-card.success .message-icon {
+    color: #00ffc6;
+}
+
+.message-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.message-text:last-child {
+    margin-bottom: 0;
+}
