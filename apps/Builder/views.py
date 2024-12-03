@@ -37,7 +37,13 @@ def create_project(request):
             try:
                 # Use ProjectManager service to create the project
                 service = ProjectGenerationService(request.user)
-                project = service.create_project(project_name)
+                user_project = service.create_project(project_name)
+                
+                # Create a Project instance that corresponds to the UserProject
+                project = Project.objects.create(
+                    user=request.user,
+                    name=project_name
+                )
                 
                 # Create a new conversation for this project
                 conversation = Conversation.objects.create(
@@ -46,9 +52,14 @@ def create_project(request):
                 )
                 
                 messages.success(request, f"Project '{project_name}' created successfully!")
+                
+                # Debug print
+                print(f"Redirecting to project workspace: {project.get_url_safe_name()}")
+                
                 # Redirect to the builder workspace
                 return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
             except Exception as e:
+                print(f"Error in create_project: {str(e)}")  # Debug print
                 messages.error(request, f"Failed to create project: {str(e)}")
         else:
             messages.error(request, "Project name is required.")
@@ -57,6 +68,7 @@ def create_project(request):
 
 @login_required
 def project_workspace(request, project_name):
+    print(f"Entering project_workspace view with project_name: {project_name}")  # Debug print
     try:
         # Get the project using the URL-safe name
         projects = Project.objects.filter(user=request.user)
@@ -68,8 +80,11 @@ def project_workspace(request, project_name):
                 break
         
         if not project:
+            print(f"Project not found: {project_name}")  # Debug print
             messages.error(request, f"Project '{project_name}' not found.")
             return redirect('builder:landing_page')
+        
+        print(f"Found project: {project.name}")  # Debug print
         
         # Get or create conversation for this project
         conversation, created = Conversation.objects.get_or_create(
@@ -84,13 +99,18 @@ def project_workspace(request, project_name):
         # Load project files into website directory
         load_project_files(project)
         
+        print(f"About to render oasis_builder.html")  # Debug print
+        
         # Render the builder interface
-        return render(request, 'builder/oasis_builder.html', {
+        response = render(request, 'builder/oasis_builder.html', {
             'project': project,
             'conversation': conversation
         })
+        print(f"Rendered response status: {response.status_code}")  # Debug print
+        return response
         
     except Exception as e:
+        print(f"Error in project_workspace: {str(e)}")  # Debug print
         messages.error(request, f"An error occurred: {str(e)}")
         return redirect('builder:landing_page')
 
