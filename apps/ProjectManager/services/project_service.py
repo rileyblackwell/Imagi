@@ -28,19 +28,26 @@ class ProjectGenerationService:
         project_path = os.path.join(self.base_directory, unique_name)
         
         try:
-            print(f"Creating project at: {project_path}")  # Debug print
+            print(f"Creating project at: {project_path}")
             
-            # Create the project directory first
+            # Ensure the directory doesn't exist
+            if os.path.exists(project_path):
+                shutil.rmtree(project_path)
+            
+            # Create the project directory
             os.makedirs(project_path, exist_ok=True)
             
-            # Create Django project using the full path
-            print(f"Running django-admin startproject {unique_name}")  # Debug print
+            # Create Django project directly in the target directory
+            print(f"Running django-admin startproject {unique_name}")
             result = subprocess.run(
                 ["django-admin", "startproject", unique_name, project_path],
                 check=True,
                 capture_output=True,
                 text=True
             )
+            print(f"django-admin output: {result.stdout}")
+            if result.stderr:
+                print(f"django-admin errors: {result.stderr}")
             
             # Create additional directories
             self._create_project_structure(project_path)
@@ -48,23 +55,9 @@ class ProjectGenerationService:
             # Initialize basic templates and static files
             self._initialize_project_files(project_path, project_name)
             
-            # Update manage.py to use the correct settings module
-            manage_py_path = os.path.join(project_path, 'manage.py')
-            with open(manage_py_path, 'r') as f:
-                content = f.read()
-                
-            # Replace the settings module path
-            content = content.replace(
-                f'"{unique_name}.settings"',
-                f'"{unique_name}.{unique_name}.settings"'
-            )
-            
-            with open(manage_py_path, 'w') as f:
-                f.write(content)
-            
-            # Update project settings in the correct location
-            settings_path = os.path.join(project_path, unique_name, unique_name, 'settings.py')
-            print(f"Updating settings at: {settings_path}")  # Debug print
+            # Update project settings
+            settings_path = os.path.join(project_path, unique_name, 'settings.py')
+            print(f"Updating settings at: {settings_path}")
             self._update_project_settings(settings_path, project_path)
             
             # Create project record
@@ -74,11 +67,11 @@ class ProjectGenerationService:
                 project_path=project_path
             )
             
-            print(f"UserProject created successfully: {project.id}")  # Debug print
+            print(f"UserProject created successfully: {project.id}")
             return project
             
         except Exception as e:
-            print(f"Error creating project: {str(e)}")  # Debug print
+            print(f"Error creating project: {str(e)}")
             if os.path.exists(project_path):
                 shutil.rmtree(project_path)
             raise Exception(f"Failed to create project: {str(e)}")
@@ -131,13 +124,19 @@ class ProjectGenerationService:
             f.write('/* Custom styles for your web app */')
 
     def _update_project_settings(self, settings_path, project_path):
-        """Update the Django project settings in the correct location"""
+        """Update the Django project settings"""
         with open(settings_path, 'r') as f:
             content = f.read()
         
         # Add necessary imports
         if 'import os' not in content:
-            content = 'import os\n' + content
+            content = 'import os\nfrom pathlib import Path\n' + content
+        
+        # Update BASE_DIR definition
+        content = content.replace(
+            "BASE_DIR = Path(__file__).resolve().parent.parent",
+            "BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))"
+        )
 
         # Add development settings
         additional_settings = f"""
@@ -150,6 +149,7 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Templates
 TEMPLATES[0]['DIRS'] = [
@@ -165,7 +165,7 @@ SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
 
-# Database settings (using default SQLite)
+# Database settings
 DATABASES = {{
     'default': {{
         'ENGINE': 'django.db.backends.sqlite3',
@@ -173,7 +173,7 @@ DATABASES = {{
     }}
 }}
 
-# Installed apps
+# Add staticfiles app
 INSTALLED_APPS += [
     'django.contrib.staticfiles',
 ]

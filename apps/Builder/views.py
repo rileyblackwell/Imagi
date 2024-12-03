@@ -39,40 +39,59 @@ def create_project(request):
                 
                 # Use ProjectManager service to create the project
                 service = ProjectGenerationService(request.user)
-                user_project = service.create_project(project_name)
-                
-                print(f"UserProject created at: {user_project.project_path}")  # Debug print
+                try:
+                    user_project = service.create_project(project_name)
+                    print(f"Django project created at: {user_project.project_path}")
+                except Exception as e:
+                    print(f"Error creating Django project: {str(e)}")
+                    raise e
                 
                 # Create a Project instance that corresponds to the UserProject
-                project = Project.objects.create(
-                    user=request.user,
-                    name=project_name,
-                    user_project=user_project
-                )
-                
-                print(f"Builder Project created with ID: {project.id}")  # Debug print
+                try:
+                    project = Project.objects.create(
+                        user=request.user,
+                        name=project_name,
+                        user_project=user_project
+                    )
+                    print(f"Builder Project created with ID: {project.id}")
+                except Exception as e:
+                    print(f"Error creating Builder Project: {str(e)}")
+                    # Clean up the Django project if Builder Project creation fails
+                    if os.path.exists(user_project.project_path):
+                        shutil.rmtree(user_project.project_path)
+                    user_project.delete()
+                    raise e
                 
                 # Create a new conversation for this project
-                conversation = Conversation.objects.create(
-                    user=request.user,
-                    project=project
-                )
-                
-                print(f"Conversation created with ID: {conversation.id}")  # Debug print
+                try:
+                    conversation = Conversation.objects.create(
+                        user=request.user,
+                        project=project
+                    )
+                    print(f"Conversation created with ID: {conversation.id}")
+                except Exception as e:
+                    print(f"Error creating Conversation: {str(e)}")
+                    # Clean up if conversation creation fails
+                    if os.path.exists(user_project.project_path):
+                        shutil.rmtree(user_project.project_path)
+                    user_project.delete()
+                    project.delete()
+                    raise e
                 
                 messages.success(request, f"Project '{project_name}' created successfully!")
                 
-                # Get the URL-safe name
+                # Get the URL-safe name and redirect to builder workspace
                 url_safe_name = project.get_url_safe_name()
-                print(f"Redirecting to: /builder/oasis/{url_safe_name}/")  # Debug print
-                
-                # Redirect to the builder workspace
+                print(f"Redirecting to: /builder/oasis/{url_safe_name}/")
                 return redirect('builder:project_workspace', project_name=url_safe_name)
+                
             except Exception as e:
-                print(f"Error in create_project: {str(e)}")  # Debug print
+                print(f"Error in create_project: {str(e)}")
                 messages.error(request, f"Failed to create project: {str(e)}")
+                return redirect('builder:landing_page')
         else:
             messages.error(request, "Project name is required.")
+            return redirect('builder:landing_page')
     return redirect('builder:landing_page')
 
 

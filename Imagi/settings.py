@@ -218,3 +218,6 @@ PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
 # Add this near other path-related settings
 PROJECTS_ROOT = os.path.join(BASE_DIR.parent, 'oasis_projects')
+
+# Make sure the directory exists
+os.makedirs(PROJECTS_ROOT, exist_ok=True)
