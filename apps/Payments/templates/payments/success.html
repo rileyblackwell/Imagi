@@ -1,20 +1,30 @@
-{% extends "auth_base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Payment Success - Imagi{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'apps_styles.css' %}">
+<link rel="stylesheet" href="{% static 'payments/css/payments_styles.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="logo-placeholder"></div>
-<div class="success-icon">
-    <i class="fas fa-check-circle"></i>
-</div>
-<h2>Payment Successful!</h2>
-<p>Your credits have been added to your account.</p>
-<div class="credit-info">
-    <p>Credits Added: {{ credits_added }}</p>
-    <p>New Balance: {{ new_balance }}</p>
-</div>
-<div class="auth-links">
-    <p><a href="{% url 'landing_page' %}">Return to Home</a></p>
+<div class="app-container">
+    <div class="checkout-wrapper">
+        <div class="checkout-inner">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Payment Successful!</h2>
+            <p>Your credits have been added to your account.</p>
+            <div class="credit-info">
+                <p>Credits Added: {{ credits_added }}</p>
+                <p>New Balance: {{ new_balance }}</p>
+            </div>
+            <div class="auth-links">
+                <p><a href="{% url 'landing_page' %}">Return to Home</a></p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %} 

@@ -1,17 +1,27 @@
-{% extends "auth_base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Payment Cancelled - Imagi{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'apps_styles.css' %}">
+<link rel="stylesheet" href="{% static 'payments/css/payments_styles.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="logo-placeholder"></div>
-<div class="cancel-icon">
-    <i class="fas fa-times-circle"></i>
-</div>
-<h2>Payment Cancelled</h2>
-<p>Your payment was cancelled. No credits have been added to your account.</p>
-<div class="auth-links">
-    <p><a href="{% url 'payments:create-checkout-session' %}">Try Again</a></p>
-    <p><a href="{% url 'landing_page' %}">Return to Home</a></p>
+<div class="app-container">
+    <div class="checkout-wrapper">
+        <div class="checkout-inner">
+            <div class="cancel-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <h2>Payment Cancelled</h2>
+            <p>Your payment was cancelled. No credits have been added to your account.</p>
+            <div class="auth-links">
+                <p><a href="{% url 'payments:create-checkout-session' %}">Try Again</a></p>
+                <p><a href="{% url 'landing_page' %}">Return to Home</a></p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %} 
