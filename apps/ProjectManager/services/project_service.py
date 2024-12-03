@@ -28,16 +28,22 @@ class ProjectGenerationService:
         project_path = os.path.join(self.base_directory, unique_name)
         
         try:
+            print(f"Creating project at: {project_path}")  # Debug print
+            
             # Create the project directory first
             os.makedirs(project_path, exist_ok=True)
             
-            # Create Django project
-            subprocess.run(
+            # Create Django project using the full path
+            print(f"Running django-admin startproject {unique_name}")  # Debug print
+            result = subprocess.run(
                 ["django-admin", "startproject", unique_name, project_path],
                 check=True,
                 capture_output=True,
                 text=True
             )
+            print(f"django-admin output: {result.stdout}")  # Debug print
+            if result.stderr:
+                print(f"django-admin errors: {result.stderr}")  # Debug print
             
             # Create additional directories
             self._create_project_structure(project_path)
@@ -47,6 +53,7 @@ class ProjectGenerationService:
             
             # Update project settings in the correct location
             settings_path = os.path.join(project_path, unique_name, 'settings.py')
+            print(f"Updating settings at: {settings_path}")  # Debug print
             self._update_project_settings(settings_path, project_path)
             
             # Create project record
@@ -56,9 +63,11 @@ class ProjectGenerationService:
                 project_path=project_path
             )
             
+            print(f"UserProject created successfully: {project.id}")  # Debug print
             return project
             
         except Exception as e:
+            print(f"Error creating project: {str(e)}")  # Debug print
             if os.path.exists(project_path):
                 shutil.rmtree(project_path)
             raise Exception(f"Failed to create project: {str(e)}")

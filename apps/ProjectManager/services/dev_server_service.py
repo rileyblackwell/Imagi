@@ -5,11 +5,12 @@ import psutil
 from django.conf import settings
 
 class DevServerManager:
-    def __init__(self, project):
-        self.project = project
+    def __init__(self, user_project):
+        self.user_project = user_project
         self.server_process = None
-        self.pid_file = os.path.join(settings.PROJECTS_ROOT, str(project.user.id), 
-                                    f"{project.get_url_safe_name()}_server.pid")
+        self.pid_file = os.path.join(settings.PROJECTS_ROOT, 
+                                    str(user_project.user.id), 
+                                    f"{user_project.name}_server.pid")
 
     def start_server(self):
         """Start the development server for the project"""
@@ -18,15 +19,17 @@ class DevServerManager:
             self.stop_server()
             
             # Get the project's manage.py path
-            manage_py = os.path.join(self.project.project_path, 'manage.py')
+            manage_py = os.path.join(self.user_project.project_path, 'manage.py')
             
             if not os.path.exists(manage_py):
-                raise FileNotFoundError(f"manage.py not found in {self.project.project_path}")
+                raise FileNotFoundError(f"manage.py not found in {self.user_project.project_path}")
+            
+            print(f"Starting server with manage.py at: {manage_py}")  # Debug print
             
             # Start the development server on a dynamic port
             process = subprocess.Popen(
                 ['python3', manage_py, 'runserver', '0:0'],  # Port 0 means use any available port
-                cwd=self.project.project_path,
+                cwd=self.user_project.project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True
@@ -45,6 +48,7 @@ class DevServerManager:
             raise Exception("Could not determine server port")
             
         except Exception as e:
+            print(f"Error starting server: {str(e)}")  # Debug print
             raise Exception(f"Failed to start development server: {str(e)}")
 
     def stop_server(self):

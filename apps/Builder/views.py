@@ -35,9 +35,13 @@ def create_project(request):
         project_name = request.POST.get('project_name')
         if project_name:
             try:
+                print(f"Creating project: {project_name}")  # Debug print
+                
                 # Use ProjectManager service to create the project
                 service = ProjectGenerationService(request.user)
                 user_project = service.create_project(project_name)
+                
+                print(f"UserProject created at: {user_project.project_path}")  # Debug print
                 
                 # Create a Project instance that corresponds to the UserProject
                 project = Project.objects.create(
@@ -46,19 +50,24 @@ def create_project(request):
                     user_project=user_project
                 )
                 
+                print(f"Builder Project created with ID: {project.id}")  # Debug print
+                
                 # Create a new conversation for this project
                 conversation = Conversation.objects.create(
                     user=request.user,
                     project=project
                 )
                 
+                print(f"Conversation created with ID: {conversation.id}")  # Debug print
+                
                 messages.success(request, f"Project '{project_name}' created successfully!")
                 
-                # Debug print
-                print(f"Redirecting to project workspace: {project.get_url_safe_name()}")
+                # Get the URL-safe name
+                url_safe_name = project.get_url_safe_name()
+                print(f"Redirecting to: /builder/oasis/{url_safe_name}/")  # Debug print
                 
                 # Redirect to the builder workspace
-                return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
+                return redirect('builder:project_workspace', project_name=url_safe_name)
             except Exception as e:
                 print(f"Error in create_project: {str(e)}")  # Debug print
                 messages.error(request, f"Failed to create project: {str(e)}")
@@ -549,16 +558,20 @@ def preview_project(request):
             if not project:
                 return JsonResponse({'error': 'No active project found'}, status=404)
             
-            if not project.project_path:
+            if not project.user_project:
+                return JsonResponse({'error': 'No associated user project found'}, status=404)
+                
+            if not project.user_project.project_path:
                 return JsonResponse({'error': 'Project path not found'}, status=404)
             
             # Start the development server
-            server_manager = DevServerManager(project)
+            server_manager = DevServerManager(project.user_project)
             server_url = server_manager.get_server_url()
             
             return JsonResponse({'url': server_url})
             
         except Exception as e:
+            print(f"Error in preview_project: {str(e)}")  # Debug print
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid request method'}, status=405)

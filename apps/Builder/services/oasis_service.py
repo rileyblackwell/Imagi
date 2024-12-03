@@ -85,20 +85,25 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         conversation = get_active_conversation(user)
         project = conversation.project
         
-        if not project.project_path:
+        if not project.user_project:
+            raise ValueError("No associated user project found")
+            
+        project_path = project.user_project.project_path
+        if not project_path:
             raise ValueError("Project path not found. Please ensure the project is properly set up.")
         
         # Determine the output directory based on file type
         if file_name.endswith('.html'):
-            output_dir = os.path.join(project.project_path, 'templates')
+            output_dir = os.path.join(project_path, 'templates')
         elif file_name.endswith('.css'):
-            output_dir = os.path.join(project.project_path, 'static', 'css')
+            output_dir = os.path.join(project_path, 'static', 'css')
         else:
             raise ValueError(f"Unsupported file type: {file_name}")
         
         os.makedirs(output_dir, exist_ok=True)
             
         print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
+        print(f"Saving to directory: {output_dir}")  # Debug print
         
         # Get or create the page/file
         page, created = Page.objects.get_or_create(
@@ -144,6 +149,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
 
         # Save the file to the project directory
         output_path = os.path.join(output_dir, file_name)
+        print(f"Saving file to: {output_path}")  # Debug print
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
 
