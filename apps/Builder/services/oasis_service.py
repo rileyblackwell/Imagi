@@ -9,7 +9,6 @@ from ..models import Message, Conversation, Page
 from .utils import (
     get_system_message, 
     get_file_context,
-    ensure_website_directory,
     build_conversation_history,
     make_api_call
 )
@@ -114,8 +113,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         # Set up the system message
         system_msg = get_system_message()
         
-        # Build conversation history and context
-        conversation_history = build_conversation_history(system_msg, page, output_dir)
+        # Build conversation history and context using the project's directories
+        conversation_history = build_conversation_history(system_msg, page, project_path)
         file_context = get_file_context(page.filename)
         
         complete_messages = [
@@ -149,7 +148,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
 
-        # Save user message
+        # Save messages to database
         Message.objects.create(
             conversation=conversation,
             page=page,
@@ -157,7 +156,6 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             content=user_input
         )
 
-        # Save assistant message
         Message.objects.create(
             conversation=conversation,
             page=page,
@@ -177,7 +175,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         else:
             response_content = cleaned_response
 
-        # Format the response based on the type of content
+        # Format the response
         if isinstance(response_content, dict):
             return {
                 'success': True,
@@ -239,17 +237,25 @@ def undo_last_action_service(user, page_name):
         # Delete the most recent version
         messages[0].delete()
         
-        # Get the output directory and write the previous content to file
-        output_dir = ensure_website_directory(os.path.dirname(os.path.dirname(__file__)))
+        # Get the project path and determine the correct output directory
+        project_path = conversation.project.user_project.project_path
+        if page_name.endswith('.html'):
+            output_dir = os.path.join(project_path, 'templates')
+        elif page_name.endswith('.css'):
+            output_dir = os.path.join(project_path, 'static', 'css')
+        else:
+            return None, 'Invalid file type', 400
+            
+        # Write the previous content to file
         output_path = os.path.join(output_dir, page_name)
-        
         with open(output_path, 'w') as f:
             f.write(previous_content)
         
         # For CSS files, we need to return the HTML content to re-render the page
         if page_name == 'styles.css':
             try:
-                with open(os.path.join(output_dir, 'index.html'), 'r') as f:
+                index_path = os.path.join(project_path, 'templates', 'index.html')
+                with open(index_path, 'r') as f:
                     html_content = f.read()
                 return html_content, 'Previous version restored', 200
             except FileNotFoundError:
@@ -264,18 +270,20 @@ def undo_last_action_service(user, page_name):
 def process_chat_mode_input_service(user_input, model, conversation, conversation_history, file_name):
     """Processes chat input without generating website files."""
     try:
+        # Set up the system message
         system_msg = get_system_message()
-        base_dir = os.path.dirname(__file__)
-        output_dir = ensure_website_directory(
-            os.path.join(base_dir, '..')
-        )
         
-        page = Page.objects.get_or_create(
+        # Get the project path
+        project_path = conversation.project.user_project.project_path
+        
+        # Get or create the page for this file
+        page, created = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
-        )[0]
+        )
         
-        conversation_history = build_conversation_history(system_msg, page, output_dir)
+        # Build conversation history using the project's directories
+        conversation_history = build_conversation_history(system_msg, page, project_path)
         
         if model == 'claude-3-5-sonnet-20241022':
             system_content = (

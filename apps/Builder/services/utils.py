@@ -86,25 +86,7 @@ def get_file_context(filename):
     """Generates the file-specific context message."""
     return f"You are working on file: {filename}"
 
-def ensure_website_directory(base_dir):
-    """
-    Ensures the website directory exists and returns its path.
-    
-    Args:
-        base_dir (str): The base directory path where the website directory should be created
-        
-    Returns:
-        str: The path to the website directory
-    """
-    # Create website directory directly under base_dir
-    output_dir = os.path.join(base_dir, 'website')
-    
-    # Create the directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    
-    return output_dir
-
-def build_conversation_history(system_msg, page, output_dir):
+def build_conversation_history(system_msg, page, project_path):
     """Builds the conversation history with organized sections."""
     conversation_history = []
     
@@ -115,24 +97,29 @@ def build_conversation_history(system_msg, page, output_dir):
     })
     
     # 2. Add current state of ALL files for this specific project
-    if output_dir and os.path.exists(output_dir):
-        conversation_history.append({
-            "role": "system",
-            "content": "\n=== CURRENT WEBSITE FILES ===\n"
-        })
-        
-        # First add all HTML files
-        html_files = [f for f in os.listdir(output_dir) if f.endswith('.html')]
+    templates_dir = os.path.join(project_path, 'templates')
+    css_dir = os.path.join(project_path, 'static', 'css')
+    
+    conversation_history.append({
+        "role": "system",
+        "content": "\n=== CURRENT WEBSITE FILES ===\n"
+    })
+    
+    # First add all HTML files
+    if os.path.exists(templates_dir):
+        html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
         html_files.sort()
         
-        # Ensure index.html is first
+        # Ensure base.html is first, followed by index.html
+        if 'base.html' in html_files:
+            html_files.remove('base.html')
+            html_files.insert(0, 'base.html')
         if 'index.html' in html_files:
             html_files.remove('index.html')
-            html_files.insert(0, 'index.html')
+            html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
         
-        # Add all HTML files
         for filename in html_files:
-            file_path = os.path.join(output_dir, filename)
+            file_path = os.path.join(templates_dir, filename)
             try:
                 with open(file_path, 'r') as f:
                     file_content = f.read()
@@ -142,22 +129,23 @@ def build_conversation_history(system_msg, page, output_dir):
                     })
             except FileNotFoundError:
                 continue
-        
-        # Add CSS file if it exists
-        css_path = os.path.join(output_dir, 'styles.css')
-        if os.path.exists(css_path):
-            try:
-                with open(css_path, 'r') as f:
-                    css_content = f.read()
-                    conversation_history.append({
-                        "role": "assistant",
-                        "content": f"[File: styles.css]\n{css_content}"
-                    })
-            except FileNotFoundError:
-                pass
     
-    # 3. Add chat history for this specific page
+    # Add CSS file if it exists
+    css_path = os.path.join(css_dir, 'styles.css')
+    if os.path.exists(css_path):
+        try:
+            with open(css_path, 'r') as f:
+                css_content = f.read()
+                conversation_history.append({
+                    "role": "assistant",
+                    "content": f"[File: styles.css]\n{css_content}"
+                })
+        except FileNotFoundError:
+            pass
+    
+    # Add chat and build history
     if page:
+        # Add chat history
         chat_messages = Message.objects.filter(
             conversation__project=page.conversation.project,
             page=page,
@@ -170,22 +158,17 @@ def build_conversation_history(system_msg, page, output_dir):
                 "content": f"\n=== CHAT HISTORY FOR {page.filename} ===\n"
             })
             
-            # Track seen content to avoid duplicates
             seen_content = set()
-            
             for msg in chat_messages:
-                content = msg.content
-                content_hash = hash(content)
+                content_hash = hash(msg.content)
                 if content_hash not in seen_content:
                     conversation_history.append({
                         "role": msg.role,
-                        "content": content
+                        "content": msg.content
                     })
                     seen_content.add(content_hash)
-    
-    # 4. Add file-specific build history if page is provided
-    if page:
-        # Get all messages for this specific page, excluding chat messages
+        
+        # Add build history
         build_messages = Message.objects.filter(
             conversation__project=page.conversation.project,
             page=page
@@ -199,16 +182,12 @@ def build_conversation_history(system_msg, page, output_dir):
                 "content": f"\n=== BUILD HISTORY FOR {page.filename} ===\n"
             })
             
-            # Track seen content to avoid duplicates
             seen_content = set()
-            
             for msg in build_messages:
                 content = msg.content
-                # For user messages, ensure they have the file prefix
                 if msg.role == "user" and not content.startswith("[File:"):
                     content = f"[File: {page.filename}]\n{content}"
                 
-                # Only add if we haven't seen this exact content before
                 content_hash = hash(content)
                 if content_hash not in seen_content:
                     conversation_history.append({
@@ -217,7 +196,7 @@ def build_conversation_history(system_msg, page, output_dir):
                     })
                     seen_content.add(content_hash)
     
-    # 5. Add current file context at the end
+    # Add current task context
     if page:
         conversation_history.append({
             "role": "system",
