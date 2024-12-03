@@ -21,8 +21,7 @@ from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
 from django.http import Http404
-from apps.ProjectManager.services import ProjectGenerationService
-from apps.ProjectManager.services.dev_server_service import DevServerManager
+from apps.ProjectManager.services import ProjectGenerationService, DevServerManager
 
 
 @login_required
