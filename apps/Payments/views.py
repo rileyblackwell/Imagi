@@ -94,13 +94,14 @@ def payment_success(request):
             payment.status = 'completed'
             payment.save()
             
-            # Update user credits
-            request.user.credits = request.user.credits + payment.credits
-            request.user.save()
+            # Update user profile credits
+            user_profile = request.user.profile
+            user_profile.credits += payment.credits
+            user_profile.save()
             
             return render(request, 'payments/success.html', {
                 'credits_added': payment.credits,
-                'new_balance': request.user.credits
+                'new_balance': user_profile.credits
             })
     except Exception as e:
         logger.error(f"Payment success processing failed: {str(e)}")
