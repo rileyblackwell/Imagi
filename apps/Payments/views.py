@@ -84,7 +84,7 @@ def payment_success(request):
     payment_intent_id = request.GET.get('payment_intent')
     if not payment_intent_id:
         logger.warning("Payment success called without payment_intent")
-        return redirect('dashboard')
+        return redirect('landing_page')
         
     try:
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
@@ -105,7 +105,7 @@ def payment_success(request):
     except Exception as e:
         logger.error(f"Payment success processing failed: {str(e)}")
         messages.error(request, str(e))
-        return redirect('dashboard')
+        return redirect('landing_page')
 
 @login_required
 def payment_cancel(request):
