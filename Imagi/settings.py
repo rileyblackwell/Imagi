@@ -70,6 +70,7 @@ TEMPLATES = [
             os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Payments', 'templates'),
+            os.path.join(BASE_DIR, 'apps', 'ProjectManager', 'templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {

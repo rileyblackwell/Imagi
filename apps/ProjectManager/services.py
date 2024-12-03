@@ -81,10 +81,30 @@ class ProjectGenerationService:
 
     def _initialize_project_files(self, project_path, project_name):
         """Initialize basic template and static files"""
-        # Create base template
-        base_template = render_to_string('ProjectManager/project_templates/base.html', {
-            'project_name': project_name
-        })
+        # Create base template with a simple string instead of using render_to_string
+        base_template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{project_name}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>{project_name}</h1>
+    </header>
+    
+    <main>
+        {{% block content %}}
+        {{% endblock %}}
+    </main>
+    
+    <footer>
+        <p>Created with Imagi Oasis</p>
+    </footer>
+</body>
+</html>"""
         
         with open(os.path.join(project_path, 'templates', 'base.html'), 'w') as f:
             f.write(base_template)
