@@ -213,10 +213,13 @@ def index(request):
 @require_http_methods(["POST"])
 def process_input(request):
     try:
+        print("Received process_input request")
         user_input = request.POST.get('input')
         model = request.POST.get('model', 'claude-3-5-sonnet-20241022')
         file_name = request.POST.get('file')
         mode = request.POST.get('mode', 'build')
+        
+        print(f"Request data: input={user_input}, model={model}, file={file_name}, mode={mode}")
         
         if mode == 'chat':
             # Get the active conversation
@@ -257,13 +260,15 @@ def process_input(request):
             })
             
         else:  # Build mode
+            print("Processing in build mode")
             response = process_builder_mode_input_service(
                 user_input, model, file_name, request.user
             )
-            
+            print(f"Builder response: {response}")
             return JsonResponse(response)
             
     except Exception as e:
+        print(f"Error in process_input: {str(e)}")
         return JsonResponse({
             'success': False,
             'error': str(e)

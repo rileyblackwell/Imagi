@@ -73,6 +73,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         dict: Response containing generated content and any error messages
     """
     try:
+        print(f"Processing builder mode input: {user_input}")
         # Validate required fields
         if not user_input:
             raise ValueError('User input is required')
@@ -116,6 +117,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         
         # Build conversation history and context using the project's directories
         conversation_history = build_conversation_history(system_msg, page, project_path)
+        print(f"Conversation history: {conversation_history}")
         file_context = get_file_context(page.filename)
         
         complete_messages = [
@@ -126,6 +128,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         ]
         
         # Make API call to get response
+        print(f"Making API call to {model}")
         assistant_response = make_api_call(
             model=model,
             system_msg=system_msg,
@@ -136,6 +139,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             openai_client=openai_client,
             anthropic_client=anthropic_client
         )
+        print(f"AI response: {assistant_response}")
 
         if not assistant_response:
             raise ValueError("Empty response from AI service")
@@ -164,17 +168,13 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             content=cleaned_response
         )
 
-        # Start/restart the development server
-        server_manager = DevServerManager(project.user_project)
-        server_url = server_manager.get_server_url()
-
-        # Return the URL to the file on the user's project server
+        # Return the content and file info without starting the server
         if file_name.endswith('.css'):
             return {
                 'success': True,
                 'response': {
                     'css': cleaned_response,
-                    'url': f"{server_url}/static/css/{file_name}"
+                    'file_path': f"/static/css/{file_name}"
                 },
                 'type': 'dict'
             }
@@ -183,7 +183,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
                 'success': True,
                 'response': {
                     'html': cleaned_response,
-                    'url': f"{server_url}/{file_name}"
+                    'file_path': file_name
                 },
                 'type': 'str'
             }
