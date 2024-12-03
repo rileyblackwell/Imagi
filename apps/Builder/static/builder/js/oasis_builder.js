@@ -493,4 +493,25 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Add this to your existing JavaScript
+    $('#preview-btn').click(function() {
+        $.ajax({
+            type: 'POST',
+            url: '/builder/preview-project/',
+            data: {
+                'csrfmiddlewaretoken': csrftoken
+            },
+            success: function(response) {
+                if (response.url) {
+                    window.open(response.url, '_blank');
+                } else {
+                    alert('Failed to start preview server');
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('Failed to start preview server: ' + error);
+            }
+        });
+    });
 });

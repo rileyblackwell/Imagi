@@ -1,12 +1,86 @@
 # Imagi project
 - root directory: ~/startups/Imagi
+- user projects directory: ~/startups/oasis_projects
+
+# Imagi project description
+Imagi is a natural language to code platform that allows users to create full-stack web applications using natural language. The platform, Imagi Oasis, supports both static websites and dynamic functionality, including database models, views, and APIs. Key features include:
+
+1. **User Projects**:
+   - Multiple users can create accounts and log in.
+   - Each user can create multiple isolated projects associated with their account.
+   - All projects are Django-based and located in the `/startups/oasis_projects/<user_id>/<project_name>/` directory.
+   - Users edit files like `base.html` and `index.html` in Imagi Oasis, and changes reflect in their corresponding Django project.
+
+2. **Django Integration**:
+   - Projects are generated as standalone Django projects.
+   - Generated HTML and CSS files are copied into the appropriate `templates/` and `static/` directories.
+   - A minimal `views.py` and `urls.py` render these files.
+
+3. **Scalability and Production**:
+   - Locally hosted during development, transitioning to cloud hosting later.
+   - Production setup will feature Docker containerization and Kubernetes orchestration for project isolation and scalability.
+
+4. **User Experience**:
+   - Tailored for non-technical users, ensuring ease of use.
+   - Features a website builder interface with:
+     - File selection for editing specific pages (e.g., `index.html`, `about.html`).
+     - Model selection (e.g., GPT-4.0, GPT-4.0 Mini, Cloud Summit).
+     - Modes for Chat Mode (discuss design) and Build Mode (generate webpages).
+   - Expanding functionality to include testing and deployment directly from the platform.
+
+5. **Styling and Design**:
+   - Uses external CSS files for styling.
+   - Global styles applied via `styles.css`, with individual stylesheets for app-specific pages and features.
+
+6. **Future Plans**:
+   - Support for defining models, views, and APIs directly within Imagi Oasis.
+   - Integration of testing and deployment features for complete web app lifecycle management.
+
+# Imagi apps
+
+1. **Auth App**:
+   - Handles user authentication and authorization.
+   - Features include:
+     - Login and signup pages.
+     - Django-based authentication.
+     - Future plans to integrate OAuth for third-party login options.
+
+2. **Builder App**:
+   - Main functionality of Imagi Oasis.
+   - Features include:
+     - Natural language to code web app builder.
+     - File selection for editing specific pages (e.g., `index.html`, `about.html`).
+     - Modes for Chat Mode (discuss design) and Build Mode (generate webpages).
+     - Generates HTML, CSS, and minimal Django files for user projects.
+     - Supports external CSS for styling.
+
+3. **Home App**:
+   - Contains the landing page and static information about Imagi.
+   - Features include:
+     - Marketing content.
+     - Links to login, signup, and product features.
+
+4. **Payments App**:
+   - Manages payment processing using Stripe.
+   - Features include:
+     - Checkout page for purchasing API/AI credits.
+     - Integration with user accounts to associate credits.
+     - A reusable Stripe payments module.
+
+5. **ProjectManager App**:
+   - Manages user projects within Imagi Oasis.
+   - Features include:
+     - Creating and organizing multiple projects per user.
+     - Storing project files in the `/startups/oasis_projects/` directory.
+     - Dynamic Django project creation for user projects.
 
 # coding instructions
 - Use the cursor rules to guide your coding.
-- Always update all related files when you update a file.
+- Create new files if you need them.
+- When you update a file, update all related files.
 
 # system
+- MacOS
+- 24GB unified memory
+- 1TB SSD 
 - Use zsh
-
-
-

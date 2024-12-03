@@ -21,6 +21,8 @@ from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
 from django.http import Http404
+from apps.ProjectManager.services import ProjectGenerationService
+from apps.ProjectManager.services.dev_server_service import DevServerManager
 
 
 @login_required
@@ -33,21 +35,23 @@ def create_project(request):
     if request.method == 'POST':
         project_name = request.POST.get('project_name')
         if project_name:
-            project = Project.objects.create(
-                user=request.user,
-                name=project_name
-            )
-            # Create a new conversation for this project
-            conversation = Conversation.objects.create(
-                user=request.user,
-                project=project
-            )
-            
-            # Clear and initialize the website directory for the new project
-            load_project_files(project)  # This will clear the directory since there are no files yet
-            
-            # Redirect to the project-specific workspace using URL-safe name
-            return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
+            try:
+                # Use ProjectManager service to create the project
+                service = ProjectGenerationService(request.user)
+                project = service.create_project(project_name)
+                
+                # Create a new conversation for this project
+                conversation = Conversation.objects.create(
+                    user=request.user,
+                    project=project
+                )
+                
+                messages.success(request, f"Project '{project_name}' created successfully!")
+                return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
+            except Exception as e:
+                messages.error(request, f"Failed to create project: {str(e)}")
+        else:
+            messages.error(request, "Project name is required.")
     return redirect('builder:landing_page')
 
 
@@ -510,4 +514,27 @@ def delete_project(request, project_id):
         messages.success(request, f"Project '{project.name}' has been deleted.")
     
     return redirect('builder:landing_page')
+
+@login_required
+def preview_project(request):
+    if request.method == 'POST':
+        try:
+            # Get the active project
+            project = Project.objects.filter(
+                user=request.user
+            ).order_by('-updated_at').first()
+            
+            if not project:
+                return JsonResponse({'error': 'No active project found'}, status=404)
+            
+            # Start the development server
+            server_manager = DevServerManager(project)
+            server_url = server_manager.get_server_url()
+            
+            return JsonResponse({'url': server_url})
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 

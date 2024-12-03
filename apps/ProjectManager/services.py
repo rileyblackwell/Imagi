@@ -46,6 +46,9 @@ class ProjectGenerationService:
             # Initialize basic templates and static files
             self._initialize_project_files(project_path, project_name)
             
+            # Update project settings
+            self._update_project_settings(project_path)
+            
             # Create project record
             project = UserProject.objects.create(
                 user=self.user,
@@ -55,13 +58,7 @@ class ProjectGenerationService:
             
             return project
             
-        except subprocess.CalledProcessError as e:
-            # Clean up if project creation fails
-            if os.path.exists(project_path):
-                shutil.rmtree(project_path)
-            raise Exception(f"Failed to create project: {e.stderr}")
         except Exception as e:
-            # Clean up if project creation fails
             if os.path.exists(project_path):
                 shutil.rmtree(project_path)
             raise Exception(f"Failed to create project: {str(e)}")
@@ -112,3 +109,24 @@ class ProjectGenerationService:
         # Create basic CSS file
         with open(os.path.join(project_path, 'static', 'css', 'style.css'), 'w') as f:
             f.write('/* Custom styles for your web app */')
+
+    def _update_project_settings(self, project_path):
+        """Update the Django project settings for development"""
+        settings_path = os.path.join(project_path, 'settings.py')
+        with open(settings_path, 'a') as f:
+            f.write("""
+# Development settings
+DEBUG = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# Static files
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
+# Templates
+TEMPLATES[0]['DIRS'] = [
+    os.path.join(BASE_DIR, 'templates'),
+]
+""")

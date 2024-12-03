@@ -24,4 +24,5 @@ urlpatterns = [
     # Dynamic project URLs - Put these LAST
     path('oasis/<str:project_name>/', views.project_workspace, name='project_workspace'),
     path('oasis/<path:path>', views.serve_website_file, name='serve_website_file'),
+    path('preview-project/', views.preview_project, name='preview_project'),
 ]

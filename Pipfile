@@ -12,6 +12,7 @@ bs4 = "*"
 stripe = "*"
 anthropic = ">=0.18.0"
 djangorestframework = "*"
+psutil = "*"
 
 [dev-packages]
 
