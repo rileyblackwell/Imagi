@@ -37,10 +37,19 @@ def get_active_conversation(user):
 def clean_response(page_filename, assistant_response):
     """Cleans the assistant response based on the file type."""
     if page_filename.endswith('.html'):
-        html_match = re.search(r'(?s)<!DOCTYPE html>.*?</html>', assistant_response)
-        if html_match:
-            return html_match.group(0)
-        raise ValueError("Response must be a complete HTML document")
+        # For Django templates, we need to be more flexible with the validation
+        # Look for either DOCTYPE or extends tag
+        if '<!DOCTYPE html>' in assistant_response or '{% extends' in assistant_response:
+            # Remove any markdown code block markers
+            content = assistant_response.replace('```html', '').replace('```', '').strip()
+            
+            # Ensure {% load static %} is present if needed
+            if '{% static' in content and '{% load static %}' not in content:
+                content = '{% load static %}\n' + content
+                
+            return content
+            
+        raise ValueError("Response must be a complete Django template")
         
     elif page_filename == 'styles.css':
         # Clean CSS content - remove any file prefix and only keep CSS content
