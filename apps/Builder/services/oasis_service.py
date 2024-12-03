@@ -111,12 +111,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             filename=file_name
         )
 
-        # Set up the system message and directories
+        # Set up the system message
         system_msg = get_system_message()
-        base_dir = os.path.dirname(__file__)
-        output_dir = ensure_website_directory(
-            os.path.join(base_dir, '..')
-        )
         
         # Build conversation history and context
         conversation_history = build_conversation_history(system_msg, page, output_dir)
@@ -144,19 +140,13 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         if not assistant_response:
             raise ValueError("Empty response from AI service")
 
-        # Use the new helper function to clean the response
+        # Use the helper function to clean the response
         cleaned_response = clean_response(page.filename, assistant_response)
 
         # Save the file to the project directory
         output_path = os.path.join(output_dir, file_name)
         print(f"Saving file to: {output_path}")  # Debug print
         with open(output_path, 'w') as f:
-            f.write(cleaned_response)
-
-        # Also save to Imagi's website directory for the builder interface
-        imagi_output_dir = ensure_website_directory(os.path.dirname(os.path.dirname(__file__)))
-        imagi_output_path = os.path.join(imagi_output_dir, file_name)
-        with open(imagi_output_path, 'w') as f:
             f.write(cleaned_response)
 
         # Save user message
@@ -177,8 +167,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
 
         # Handle special case for CSS files
         if page.filename == 'styles.css':
-            index_path = os.path.join(output_dir, 'index.html')
             try:
+                index_path = os.path.join(project_path, 'templates', 'index.html')
                 with open(index_path, 'r') as f:
                     index_content = f.read()
                 response_content = {'html': index_content, 'css': cleaned_response}
@@ -201,18 +191,11 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
                 'type': 'str'
             }
             
-    except ValueError as e:
-        return {
-            'success': False,
-            'error': str(e),
-            'detail': 'ValueError occurred during processing'
-        }
-        
     except Exception as e:
         print(f"Error in process_input_service: {str(e)}")
         return {
             'success': False,
-            'error': 'An unexpected error occurred',
+            'error': str(e),
             'detail': str(e)
         }
 
