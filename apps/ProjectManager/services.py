@@ -10,6 +10,7 @@ class ProjectGenerationService:
     def __init__(self, user):
         self.user = user
         self.base_directory = os.path.join(settings.PROJECTS_ROOT, str(user.id))
+        os.makedirs(self.base_directory, exist_ok=True)
 
     def _sanitize_project_name(self, name):
         """Convert project name to a valid Python identifier"""
@@ -22,20 +23,21 @@ class ProjectGenerationService:
 
     def create_project(self, project_name):
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        # Sanitize the project name for Django
         sanitized_name = self._sanitize_project_name(project_name)
         unique_name = f"{sanitized_name}_{timestamp}"
+        project_path = os.path.join(self.base_directory, unique_name)
         
         try:
-            # Create user projects directory if it doesn't exist
-            os.makedirs(self.base_directory, exist_ok=True)
-            
-            project_path = os.path.join(self.base_directory, unique_name)
+            # Create the project directory first
+            os.makedirs(project_path, exist_ok=True)
             
             # Create Django project
             subprocess.run(
-                ["django-admin", "startproject", unique_name, project_path],
-                check=True
+                ["django-admin", "startproject", unique_name, "."],  # Note the "." at the end
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=project_path  # Set the working directory to project_path
             )
             
             # Create additional directories
@@ -53,6 +55,11 @@ class ProjectGenerationService:
             
             return project
             
+        except subprocess.CalledProcessError as e:
+            # Clean up if project creation fails
+            if os.path.exists(project_path):
+                shutil.rmtree(project_path)
+            raise Exception(f"Failed to create project: {e.stderr}")
         except Exception as e:
             # Clean up if project creation fails
             if os.path.exists(project_path):

@@ -28,6 +28,10 @@ class ProjectManagerTests(TestCase):
         self.assertEqual(project.name, 'TestProject')
         self.assertTrue(project.project_path)
         
+        # Verify project is created in oasis_projects directory
+        expected_base_path = os.path.join(settings.PROJECTS_ROOT, str(self.user.id))
+        self.assertTrue(project.project_path.startswith(expected_base_path))
+        
         # Verify directory structure
         self.assertTrue(os.path.exists(project.project_path))
         self.assertTrue(os.path.exists(os.path.join(project.project_path, 'templates')))
