@@ -13,10 +13,10 @@ from .services.oasis_service import (
 from .services.utils import (
     get_system_message,
     get_file_context,
-    ensure_website_directory,
     build_conversation_history
 )
 import os
+import shutil
 from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
@@ -126,15 +126,19 @@ def project_workspace(request, project_name):
 
 
 def load_project_files(project):
-    """Load all files for a project from the database into the website directory."""
-    output_dir = ensure_website_directory(os.path.dirname(__file__))
+    """Load all files for a project from the database into the project's directories."""
+    if not project.user_project:
+        raise ValueError("No associated user project found")
+        
+    project_path = project.user_project.project_path
     
-    # Clear existing files in the directory
-    if os.path.exists(output_dir):
-        for file in os.listdir(output_dir):
-            file_path = os.path.join(output_dir, file)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
+    # Get the project's templates and static directories
+    templates_dir = os.path.join(project_path, 'templates')
+    static_css_dir = os.path.join(project_path, 'static', 'css')
+    
+    # Ensure directories exist
+    os.makedirs(templates_dir, exist_ok=True)
+    os.makedirs(static_css_dir, exist_ok=True)
 
     # Load all pages for this project
     pages = Page.objects.filter(
@@ -150,6 +154,14 @@ def load_project_files(project):
         ).order_by('-created_at').first()
         
         if latest_message:
+            # Determine the correct directory based on file type
+            if page.filename.endswith('.html'):
+                output_dir = templates_dir
+            elif page.filename.endswith('.css'):
+                output_dir = static_css_dir
+            else:
+                continue  # Skip unsupported file types
+                
             file_path = os.path.join(output_dir, page.filename)
             with open(file_path, 'w') as f:
                 f.write(latest_message.content)
@@ -178,36 +190,65 @@ def index(request):
     # This view is deprecated - redirect to landing page
     return redirect('builder:landing_page')
 
-@require_http_methods(['POST'])
+@login_required
+@require_http_methods(["POST"])
 def process_input(request):
-    """View to handle processing user input for website generation."""
     try:
-        # Get input parameters
-        user_input = request.POST.get('user_input', '').strip()
-        model = request.POST.get('model', '').strip()
-        file_name = request.POST.get('file', 'index.html').strip()
+        user_input = request.POST.get('input')
+        model = request.POST.get('model', 'claude-3-5-sonnet-20241022')
+        file_name = request.POST.get('file')
+        mode = request.POST.get('mode', 'build')
         
-        # Call the updated service function
-        result = process_builder_mode_input_service(user_input, model, file_name, request.user)
-        
-        if not result['success']:
-            return JsonResponse({
-                'error': result['error'],
-                'detail': result.get('detail', '')
-            }, status=400)
+        if mode == 'chat':
+            # Get the active conversation
+            conversation = Conversation.objects.filter(
+                user=request.user,
+                project__isnull=False
+            ).order_by('-created_at').first()
             
-        # Return the appropriate response based on the result type
-        if result['type'] == 'dict':
-            return JsonResponse(result['response'])
-        else:
-            return JsonResponse(result['response'])
+            if not conversation:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No active project found'
+                }, status=400)
+            
+            # Get conversation history from the project's directories
+            system_msg = get_system_message()
+            page = Page.objects.filter(
+                conversation=conversation,
+                filename=file_name
+            ).first()
+            
+            if not conversation.project.user_project:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No associated user project found'
+                }, status=400)
+                
+            project_path = conversation.project.user_project.project_path
+            conversation_history = build_conversation_history(system_msg, page, project_path)
+            
+            response = process_chat_mode_input_service(
+                user_input, model, conversation, conversation_history, file_name
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'response': response
+            })
+            
+        else:  # Build mode
+            response = process_builder_mode_input_service(
+                user_input, model, file_name, request.user
+            )
+            
+            return JsonResponse(response)
             
     except Exception as e:
-        print(f"Error in process_input view: {str(e)}")
         return JsonResponse({
-            'error': 'An unexpected error occurred',
-            'detail': str(e)
-        }, status=500)
+            'success': False,
+            'error': str(e)
+        }, status=400)
 
 @require_http_methods(['POST'])
 def get_conversation_history(request):
@@ -228,6 +269,13 @@ def get_conversation_history(request):
                 'detail': 'Please select or create a project first'
             }, status=400)
         
+        if not conversation.project.user_project:
+            return JsonResponse({
+                'error': 'No associated user project found',
+                'detail': 'Project setup is incomplete'
+            }, status=400)
+            
+        project_path = conversation.project.user_project.project_path
         print(f"Getting conversation history for project: {conversation.project.name} (ID: {conversation.project.id})")
         
         # Get or create the page/file
@@ -239,12 +287,9 @@ def get_conversation_history(request):
         # Get system message
         system_msg = get_system_message()
         
-        # Set up output directory
-        output_dir = ensure_website_directory(os.path.dirname(__file__))
-        
         try:
-            # Build conversation history (already includes system message)
-            conversation_history = build_conversation_history(system_msg, page, output_dir)
+            # Build conversation history using project path
+            conversation_history = build_conversation_history(system_msg, page, project_path)
             
             # Add file context
             file_context = get_file_context(file_name)
@@ -327,16 +372,37 @@ def clear_conversation_history(request):
                 'message': 'No active project found',
                 'status': 'warning'
             })
+            
+        if not conversation.project.user_project:
+            return JsonResponse({
+                'message': 'No associated user project found',
+                'status': 'warning'
+            })
+            
+        project_path = conversation.project.user_project.project_path
         
         # Clear messages and pages for this conversation
         Message.objects.filter(conversation=conversation).delete()
         Page.objects.filter(conversation=conversation).delete()
         
-        # Clear all files in the website directory
-        output_dir = ensure_website_directory(os.path.dirname(__file__))
-        if os.path.exists(output_dir):
-            for file_name in os.listdir(output_dir):
-                file_path = os.path.join(output_dir, file_name)
+        # Clear all files in the project's directories
+        templates_dir = os.path.join(project_path, 'templates')
+        static_css_dir = os.path.join(project_path, 'static', 'css')
+        
+        # Clear templates directory
+        if os.path.exists(templates_dir):
+            for file_name in os.listdir(templates_dir):
+                file_path = os.path.join(templates_dir, file_name)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                except Exception as e:
+                    print(f'Failed to delete {file_path}. Reason: {e}')
+                    
+        # Clear CSS directory
+        if os.path.exists(static_css_dir):
+            for file_name in os.listdir(static_css_dir):
+                file_path = os.path.join(static_css_dir, file_name)
                 try:
                     if os.path.isfile(file_path):
                         os.unlink(file_path)
@@ -376,6 +442,11 @@ def get_page(request):
         
         if not conversation:
             return JsonResponse({'error': 'No active project found'}, status=404)
+            
+        if not conversation.project.user_project:
+            return JsonResponse({'error': 'No associated user project found'}, status=404)
+            
+        project_path = conversation.project.user_project.project_path
 
         # Get or create the page object in the database
         page, created = Page.objects.get_or_create(
@@ -383,17 +454,20 @@ def get_page(request):
             filename=file_name
         )
 
-        # Get the website directory
-        output_dir = ensure_website_directory(os.path.dirname(__file__))
-        file_path = os.path.join(output_dir, file_name)
+        # Determine the correct directory based on file type
+        if file_name.endswith('.html'):
+            file_path = os.path.join(project_path, 'templates', file_name)
+        elif file_name.endswith('.css'):
+            file_path = os.path.join(project_path, 'static', 'css', file_name)
+        else:
+            return JsonResponse({'error': 'Unsupported file type'}, status=400)
         
         # If the file doesn't exist physically yet, return success with empty content
-        # This prevents 404 errors for files that haven't been generated yet
         if not os.path.exists(file_path):
             return JsonResponse({
                 'html': '',
                 'message': f'Waiting for {file_name} to be generated'
-            }, status=200)  # Return 200 instead of 404
+            }, status=200)
             
         # Read and return the file content if it exists
         try:
@@ -405,66 +479,49 @@ def get_page(request):
             return JsonResponse({
                 'html': '',
                 'message': f'Error reading {file_name}'
-            }, status=200)  # Return 200 instead of 404
+            }, status=200)
         
     except Exception as e:
         print(f"Error in get_page: {str(e)}")
         return JsonResponse({
             'html': '',
             'message': str(e)
-        }, status=200)  # Return 200 instead of 500
+        }, status=200)
 
 
+@login_required
 def serve_website_file(request, path):
-    """Serve files from the website directory"""
     try:
-        # Get the active conversation for the current project
-        conversation = Conversation.objects.filter(
-            user=request.user,
-            project__isnull=False
-        ).order_by('-created_at').first()
+        # Get the active project
+        project = Project.objects.filter(
+            user=request.user
+        ).order_by('-updated_at').first()
         
-        if not conversation:
-            return JsonResponse({
-                'error': 'No active project found'
-            }, status=404)
-        
-        # Get the website directory
-        website_dir = ensure_website_directory(os.path.dirname(__file__))
-        
-        # If path is styles.css, serve it directly
-        if path == 'styles.css':
-            file_path = os.path.join(website_dir, path)
-            if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
-                    content = f.read()
-                return HttpResponse(content, content_type='text/css')
-            else:
-                raise Http404("CSS file not found")
-        
-        # For HTML files or root path, serve the HTML file
-        if not path or path.endswith('.html'):
-            file_name = path if path else 'index.html'
-            file_path = os.path.join(website_dir, file_name)
+        if not project or not project.user_project:
+            raise Http404("No active project found")
             
-            if not os.path.exists(file_path):
-                raise Http404(f"File {file_name} not found")
-            
-            # Read the HTML content
-            with open(file_path, 'r') as f:
-                content = f.read()
-            
-            # Ensure the CSS link is correct
-            if '<link rel="stylesheet" href="styles.css">' not in content:
-                # Add or update the CSS link
-                content = content.replace('</head>',
-                    '    <link rel="stylesheet" href="/builder/oasis/styles.css">\n</head>')
-            
-            return HttpResponse(content, content_type='text/html')
+        project_path = project.user_project.project_path
         
-        # For other files, use Django's serve function
-        return serve(request, path, document_root=website_dir)
-        
+        # Determine the correct directory based on file type
+        if path.endswith('.html'):
+            file_path = os.path.join(project_path, 'templates', path)
+        elif path.endswith('.css'):
+            file_path = os.path.join(project_path, 'static', 'css', path)
+        else:
+            raise Http404("Unsupported file type")
+            
+        if not os.path.exists(file_path):
+            print(f"Error serving file: File {path} not found")
+            raise Http404("File not found")
+            
+        with open(file_path, 'r') as f:
+            content = f.read()
+            
+        return HttpResponse(
+            content,
+            content_type='text/html' if path.endswith('.html') else 'text/css'
+        )
+            
     except Exception as e:
         print(f"Error serving file: {str(e)}")
         raise Http404("File not found")
@@ -479,7 +536,7 @@ def process_chat(request):
         if not user_input or not model or not file_name:
             return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-        # Get the active conversation for the specific project using latest updated project
+        # Get the active conversation
         conversation = Conversation.objects.filter(
             user=request.user,
             project__isnull=False
@@ -490,6 +547,14 @@ def process_chat(request):
                 'error': 'No active project found',
                 'detail': 'Please select or create a project first'
             }, status=400)
+            
+        if not conversation.project.user_project:
+            return JsonResponse({
+                'error': 'No associated user project found',
+                'detail': 'Project setup is incomplete'
+            }, status=400)
+            
+        project_path = conversation.project.user_project.project_path
         
         # Get or create the page for this file
         page = Page.objects.get_or_create(
@@ -500,16 +565,13 @@ def process_chat(request):
         # Get system message
         system_msg = get_system_message()
         
-        # Set up output directory
-        output_dir = ensure_website_directory(
-            os.path.dirname(__file__)
-        )
-        
-        # Build conversation history with the output directory and page context
-        conversation_history = build_conversation_history(system_msg, page, output_dir)
+        # Build conversation history using project path
+        conversation_history = build_conversation_history(system_msg, page, project_path)
         
         # Process chat using the updated AI service
-        response_content = process_chat_mode_input_service(user_input, model, conversation, conversation_history, file_name)
+        response_content = process_chat_mode_input_service(
+            user_input, model, conversation, conversation_history, file_name
+        )
         
         return JsonResponse({'message': response_content})
             
@@ -525,19 +587,14 @@ def delete_project(request, project_id):
     if request.method == 'POST':
         project = get_object_or_404(Project, id=project_id, user=request.user)
         
-        # Clear the website directory if this is the current project
-        current_conversation = Conversation.objects.filter(
-            user=request.user,
-            project__isnull=False
-        ).order_by('-created_at').first()
-        
-        if current_conversation and current_conversation.project.id == project_id:
-            output_dir = ensure_website_directory(os.path.dirname(__file__))
-            if os.path.exists(output_dir):
-                for file in os.listdir(output_dir):
-                    file_path = os.path.join(output_dir, file)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
+        # Delete the project's files if they exist
+        if project.user_project and project.user_project.project_path:
+            project_path = project.user_project.project_path
+            if os.path.exists(project_path):
+                try:
+                    shutil.rmtree(project_path)
+                except Exception as e:
+                    print(f"Error deleting project files: {str(e)}")
         
         # Delete the project (this will cascade delete related conversations, pages, and messages)
         project.delete()
