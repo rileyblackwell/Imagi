@@ -15,11 +15,14 @@ logger = logging.getLogger(__name__)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
+CREDITS_PER_DOLLAR = 10  # $1 = 10 credits ($10 = 100 credits)
+
 @ensure_csrf_cookie
 @login_required
 def create_checkout_session(request):
     return render(request, 'payments/checkout.html', {
-        'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY
+        'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+        'credits_per_dollar': CREDITS_PER_DOLLAR
     })
 
 @require_http_methods(["POST"])
@@ -33,9 +36,10 @@ def create_payment_intent(request):
         if credit_amount < 5 or credit_amount > 100:
             return JsonResponse({'error': 'Amount must be between $5.00 and $100.00'}, status=400)
 
-        # Convert amount to cents and ensure it's an integer
+        # Convert amount to cents for Stripe
         amount_cents = int(credit_amount * 100)
-        credits = int(credit_amount)  # One credit per dollar
+        # Calculate credits (10 credits per dollar)
+        credits = credit_amount * CREDITS_PER_DOLLAR
 
         # Create payment intent
         intent = stripe.PaymentIntent.create(
