@@ -85,7 +85,10 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         conversation = get_active_conversation(user)
         project = conversation.project
         
-        # Get the project's templates and static directories
+        if not project.project_path:
+            raise ValueError("Project path not found. Please ensure the project is properly set up.")
+        
+        # Determine the output directory based on file type
         if file_name.endswith('.html'):
             output_dir = os.path.join(project.project_path, 'templates')
         elif file_name.endswith('.css'):
@@ -142,6 +145,12 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         # Save the file to the project directory
         output_path = os.path.join(output_dir, file_name)
         with open(output_path, 'w') as f:
+            f.write(cleaned_response)
+
+        # Also save to Imagi's website directory for the builder interface
+        imagi_output_dir = ensure_website_directory(os.path.dirname(os.path.dirname(__file__)))
+        imagi_output_path = os.path.join(imagi_output_dir, file_name)
+        with open(imagi_output_path, 'w') as f:
             f.write(cleaned_response)
 
         # Save user message

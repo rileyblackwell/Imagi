@@ -10,6 +10,7 @@ class Project(models.Model):
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    user_project = models.OneToOneField('ProjectManager.UserProject', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f"{self.name} - {self.user.username}"
@@ -17,6 +18,13 @@ class Project(models.Model):
     def get_url_safe_name(self):
         """Returns a URL-safe version of the project name"""
         return slugify(self.name)
+
+    @property
+    def project_path(self):
+        """Get the project path from the associated UserProject"""
+        if self.user_project:
+            return self.user_project.project_path
+        return None
 
 
 class Conversation(models.Model):

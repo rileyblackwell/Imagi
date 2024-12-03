@@ -42,7 +42,8 @@ def create_project(request):
                 # Create a Project instance that corresponds to the UserProject
                 project = Project.objects.create(
                     user=request.user,
-                    name=project_name
+                    name=project_name,
+                    user_project=user_project
                 )
                 
                 # Create a new conversation for this project
@@ -547,6 +548,9 @@ def preview_project(request):
             
             if not project:
                 return JsonResponse({'error': 'No active project found'}, status=404)
+            
+            if not project.project_path:
+                return JsonResponse({'error': 'Project path not found'}, status=404)
             
             # Start the development server
             server_manager = DevServerManager(project)

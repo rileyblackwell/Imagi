@@ -20,9 +20,12 @@ class DevServerManager:
             # Get the project's manage.py path
             manage_py = os.path.join(self.project.project_path, 'manage.py')
             
+            if not os.path.exists(manage_py):
+                raise FileNotFoundError(f"manage.py not found in {self.project.project_path}")
+            
             # Start the development server on a dynamic port
             process = subprocess.Popen(
-                ['python', manage_py, 'runserver', '0:0'],  # Port 0 means use any available port
+                ['python3', manage_py, 'runserver', '0:0'],  # Port 0 means use any available port
                 cwd=self.project.project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

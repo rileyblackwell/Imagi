@@ -33,11 +33,10 @@ class ProjectGenerationService:
             
             # Create Django project
             subprocess.run(
-                ["django-admin", "startproject", unique_name, "."],
+                ["django-admin", "startproject", unique_name, project_path],
                 check=True,
                 capture_output=True,
-                text=True,
-                cwd=project_path
+                text=True
             )
             
             # Create additional directories
@@ -46,8 +45,9 @@ class ProjectGenerationService:
             # Initialize basic templates and static files
             self._initialize_project_files(project_path, project_name)
             
-            # Update project settings
-            self._update_project_settings(project_path)
+            # Update project settings in the correct location
+            settings_path = os.path.join(project_path, unique_name, 'settings.py')
+            self._update_project_settings(settings_path, project_path)
             
             # Create project record
             project = UserProject.objects.create(
@@ -71,6 +71,7 @@ class ProjectGenerationService:
             os.path.join(project_path, 'static', 'css'),
             os.path.join(project_path, 'static', 'js'),
             os.path.join(project_path, 'static', 'images'),
+            os.path.join(project_path, 'media'),
         ]
         
         for dir_path in dirs:
@@ -109,11 +110,17 @@ class ProjectGenerationService:
         with open(os.path.join(project_path, 'static', 'css', 'style.css'), 'w') as f:
             f.write('/* Custom styles for your web app */')
 
-    def _update_project_settings(self, project_path):
-        """Update the Django project settings for development"""
-        settings_path = os.path.join(project_path, 'settings.py')
-        with open(settings_path, 'a') as f:
-            f.write("""
+    def _update_project_settings(self, settings_path, project_path):
+        """Update the Django project settings in the correct location"""
+        with open(settings_path, 'r') as f:
+            content = f.read()
+        
+        # Add necessary imports
+        if 'import os' not in content:
+            content = 'import os\n' + content
+
+        # Add development settings
+        additional_settings = f"""
 # Development settings
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
@@ -128,4 +135,30 @@ STATICFILES_DIRS = [
 TEMPLATES[0]['DIRS'] = [
     os.path.join(BASE_DIR, 'templates'),
 ]
-""") 
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Security settings for development
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+
+# Database settings (using default SQLite)
+DATABASES = {{
+    'default': {{
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }}
+}}
+
+# Installed apps
+INSTALLED_APPS += [
+    'django.contrib.staticfiles',
+]
+"""
+        
+        # Append the additional settings
+        with open(settings_path, 'w') as f:
+            f.write(content + additional_settings)
