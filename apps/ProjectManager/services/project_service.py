@@ -35,7 +35,7 @@ class ProjectGenerationService:
                 shutil.rmtree(project_path)
             
             # Create the project directory
-            os.makedirs(project_path, exist_ok=True)
+            os.makedirs(project_path)
             
             # Create Django project directly in the target directory
             print(f"Running django-admin startproject {unique_name}")
@@ -45,9 +45,18 @@ class ProjectGenerationService:
                 capture_output=True,
                 text=True
             )
-            print(f"django-admin output: {result.stdout}")
-            if result.stderr:
-                print(f"django-admin errors: {result.stderr}")
+            
+            # Update manage.py to use the correct settings module
+            manage_py_path = os.path.join(project_path, 'manage.py')
+            with open(manage_py_path, 'r') as f:
+                content = f.read()
+            content = content.replace(
+                'os.environ.setdefault(',
+                f'os.environ.setdefault("DJANGO_SETTINGS_MODULE", "{unique_name}.settings")\n'
+                '#os.environ.setdefault('
+            )
+            with open(manage_py_path, 'w') as f:
+                f.write(content)
             
             # Create additional directories
             self._create_project_structure(project_path)
@@ -58,7 +67,7 @@ class ProjectGenerationService:
             # Update project settings
             settings_path = os.path.join(project_path, unique_name, 'settings.py')
             print(f"Updating settings at: {settings_path}")
-            self._update_project_settings(settings_path, project_path)
+            self._update_project_settings(settings_path, project_path, unique_name)
             
             # Create project record
             project = UserProject.objects.create(
@@ -123,7 +132,7 @@ class ProjectGenerationService:
         with open(os.path.join(project_path, 'static', 'css', 'style.css'), 'w') as f:
             f.write('/* Custom styles for your web app */')
 
-    def _update_project_settings(self, settings_path, project_path):
+    def _update_project_settings(self, settings_path, project_path, unique_name):
         """Update the Django project settings"""
         with open(settings_path, 'r') as f:
             content = f.read()
@@ -152,8 +161,22 @@ STATICFILES_DIRS = [
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Templates
-TEMPLATES[0]['DIRS'] = [
-    os.path.join(BASE_DIR, 'templates'),
+TEMPLATES = [
+    {{
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {{
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        }},
+    }},
 ]
 
 # Media files
@@ -173,12 +196,55 @@ DATABASES = {{
     }}
 }}
 
-# Add staticfiles app
-INSTALLED_APPS += [
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = '{unique_name}.urls'
+WSGI_APPLICATION = '{unique_name}.wsgi.application'
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {{
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    }},
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 """
         
-        # Append the additional settings
+        # Write the complete settings file
         with open(settings_path, 'w') as f:
             f.write(content + additional_settings)
