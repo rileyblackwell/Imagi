@@ -214,7 +214,7 @@ def index(request):
 def process_input(request):
     try:
         print("Received process_input request")
-        user_input = request.POST.get('input')
+        user_input = request.POST.get('user_input')
         model = request.POST.get('model', 'claude-3-5-sonnet-20241022')
         file_name = request.POST.get('file')
         mode = request.POST.get('mode', 'build')
@@ -222,49 +222,49 @@ def process_input(request):
         print(f"Request data: input={user_input}, model={model}, file={file_name}, mode={mode}")
         
         if mode == 'chat':
-            # Get the active conversation
-            conversation = Conversation.objects.filter(
-                user=request.user,
-                project__isnull=False
-            ).order_by('-created_at').first()
-            
-            if not conversation:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No active project found'
-                }, status=400)
-            
-            # Get conversation history from the project's directories
-            system_msg = get_system_message()
-            page = Page.objects.filter(
-                conversation=conversation,
-                filename=file_name
-            ).first()
-            
-            if not conversation.project.user_project:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No associated user project found'
-                }, status=400)
-                
-            project_path = conversation.project.user_project.project_path
-            conversation_history = build_conversation_history(system_msg, page, project_path)
-            
-            response = process_chat_mode_input_service(
-                user_input, model, conversation, conversation_history, file_name
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'response': response
-            })
-            
-        else:  # Build mode
+            # Handle chat mode...
+            pass
+        else:
             print("Processing in build mode")
             response = process_builder_mode_input_service(
                 user_input, model, file_name, request.user
             )
             print(f"Builder response: {response}")
+            
+            # Get the active project
+            project = Project.objects.filter(
+                user=request.user
+            ).order_by('-updated_at').first()
+            
+            if project and project.user_project:
+                # Determine the correct directory based on file type
+                if file_name.endswith('.html'):
+                    output_dir = os.path.join(project.user_project.project_path, 'templates')
+                    file_path = os.path.join(output_dir, file_name)
+                elif file_name.endswith('.css'):
+                    output_dir = os.path.join(project.user_project.project_path, 'static', 'css')
+                    file_path = os.path.join(output_dir, file_name)
+                else:
+                    return JsonResponse({'error': 'Invalid file type'}, status=400)
+                
+                # Ensure directory exists
+                os.makedirs(output_dir, exist_ok=True)
+                
+                # Write the response to the file
+                if response.get('success', False) and (
+                    'response' in response or 
+                    'html' in response or 
+                    isinstance(response, str)
+                ):
+                    content = (
+                        response.get('response') or 
+                        response.get('html') or 
+                        response
+                    )
+                    with open(file_path, 'w') as f:
+                        f.write(content)
+                    print(f"Saved response to {file_path}")
+            
             return JsonResponse(response)
             
     except Exception as e:
