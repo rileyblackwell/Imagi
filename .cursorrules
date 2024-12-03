@@ -24,7 +24,7 @@ Imagi is a natural language to code platform that allows users to create full-st
    - Tailored for non-technical users, ensuring ease of use.
    - Features a website builder interface with:
      - File selection for editing specific pages (e.g., `index.html`, `about.html`).
-     - Model selection (e.g., GPT-4.0, GPT-4.0 Mini, Cloud Summit).
+     - Model selection (e.g., GPT-4.0, GPT-4.0 Mini, Claude 3.5 Sonnet).
      - Modes for Chat Mode (discuss design) and Build Mode (generate webpages).
    - Expanding functionality to include testing and deployment directly from the platform.
 
