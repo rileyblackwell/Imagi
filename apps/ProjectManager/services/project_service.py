@@ -41,9 +41,6 @@ class ProjectGenerationService:
                 capture_output=True,
                 text=True
             )
-            print(f"django-admin output: {result.stdout}")  # Debug print
-            if result.stderr:
-                print(f"django-admin errors: {result.stderr}")  # Debug print
             
             # Create additional directories
             self._create_project_structure(project_path)
@@ -51,8 +48,22 @@ class ProjectGenerationService:
             # Initialize basic templates and static files
             self._initialize_project_files(project_path, project_name)
             
+            # Update manage.py to use the correct settings module
+            manage_py_path = os.path.join(project_path, 'manage.py')
+            with open(manage_py_path, 'r') as f:
+                content = f.read()
+                
+            # Replace the settings module path
+            content = content.replace(
+                f'"{unique_name}.settings"',
+                f'"{unique_name}.{unique_name}.settings"'
+            )
+            
+            with open(manage_py_path, 'w') as f:
+                f.write(content)
+            
             # Update project settings in the correct location
-            settings_path = os.path.join(project_path, unique_name, 'settings.py')
+            settings_path = os.path.join(project_path, unique_name, unique_name, 'settings.py')
             print(f"Updating settings at: {settings_path}")  # Debug print
             self._update_project_settings(settings_path, project_path)
             

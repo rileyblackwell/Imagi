@@ -2,12 +2,14 @@ import subprocess
 import os
 import signal
 import psutil
+import time
 from django.conf import settings
 
 class DevServerManager:
     def __init__(self, user_project):
         self.user_project = user_project
         self.server_process = None
+        self.port = 8080
         self.pid_file = os.path.join(settings.PROJECTS_ROOT, 
                                     str(user_project.user.id), 
                                     f"{user_project.name}_server.pid")
@@ -26,9 +28,9 @@ class DevServerManager:
             
             print(f"Starting server with manage.py at: {manage_py}")  # Debug print
             
-            # Start the development server on a dynamic port
+            # Start the development server on port 8080
             process = subprocess.Popen(
-                ['python3', manage_py, 'runserver', '0:0'],  # Port 0 means use any available port
+                ['python3', manage_py, 'runserver', f'127.0.0.1:{self.port}'],
                 cwd=self.user_project.project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -39,13 +41,16 @@ class DevServerManager:
             with open(self.pid_file, 'w') as f:
                 f.write(str(process.pid))
             
-            # Read the first few lines to get the port number
-            for line in process.stdout:
-                if "Starting development server at" in line:
-                    port = line.split(":")[-1].strip().rstrip('/')
-                    return int(port)
+            # Wait a moment for the server to start
+            time.sleep(2)
             
-            raise Exception("Could not determine server port")
+            # Check if the server started successfully
+            if process.poll() is not None:
+                # Server failed to start
+                error_output = process.stderr.read()
+                raise Exception(f"Server failed to start: {error_output}")
+            
+            return self.port
             
         except Exception as e:
             print(f"Error starting server: {str(e)}")  # Debug print
@@ -65,6 +70,17 @@ class DevServerManager:
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
                 os.remove(self.pid_file)
+                
+            # Also check if port 8080 is in use and kill that process
+            for proc in psutil.process_iter(['pid', 'name', 'connections']):
+                try:
+                    for conn in proc.connections():
+                        if conn.laddr.port == self.port:
+                            proc.kill()
+                            break
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+                    
         except Exception as e:
             print(f"Error stopping server: {str(e)}")
 
