@@ -26,11 +26,11 @@ class DevServerManager:
             if not os.path.exists(manage_py):
                 raise FileNotFoundError(f"manage.py not found in {self.user_project.project_path}")
             
-            print(f"Starting server with manage.py at: {manage_py}")  # Debug print
+            print(f"Starting server with manage.py at: {manage_py}")
             
             # Start the development server on port 8080
             process = subprocess.Popen(
-                ['python3', manage_py, 'runserver', f'127.0.0.1:{self.port}'],
+                ['python3', manage_py, 'runserver', '127.0.0.1:8080'],
                 cwd=self.user_project.project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -46,14 +46,13 @@ class DevServerManager:
             
             # Check if the server started successfully
             if process.poll() is not None:
-                # Server failed to start
                 error_output = process.stderr.read()
                 raise Exception(f"Server failed to start: {error_output}")
             
-            return self.port
+            return 8080
             
         except Exception as e:
-            print(f"Error starting server: {str(e)}")  # Debug print
+            print(f"Error starting server: {str(e)}")
             raise Exception(f"Failed to start development server: {str(e)}")
 
     def stop_server(self):

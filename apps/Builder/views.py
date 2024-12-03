@@ -510,6 +510,7 @@ def get_page(request):
 
 @login_required
 def serve_website_file(request, path):
+    """Redirect to the user's Django project development server"""
     try:
         # Get the active project
         project = Project.objects.filter(
@@ -518,28 +519,13 @@ def serve_website_file(request, path):
         
         if not project or not project.user_project:
             raise Http404("No active project found")
-            
-        project_path = project.user_project.project_path
         
-        # Determine the correct directory based on file type
-        if path.endswith('.html'):
-            file_path = os.path.join(project_path, 'templates', path)
-        elif path.endswith('.css'):
-            file_path = os.path.join(project_path, 'static', 'css', path)
-        else:
-            raise Http404("Unsupported file type")
-            
-        if not os.path.exists(file_path):
-            print(f"Error serving file: File {path} not found")
-            raise Http404("File not found")
-            
-        with open(file_path, 'r') as f:
-            content = f.read()
-            
-        return HttpResponse(
-            content,
-            content_type='text/html' if path.endswith('.html') else 'text/css'
-        )
+        # Start the development server if not running
+        server_manager = DevServerManager(project.user_project)
+        server_url = server_manager.get_server_url()
+        
+        # Redirect to the appropriate URL on the user's project server
+        return redirect(f"{server_url}/{path}")
             
     except Exception as e:
         print(f"Error serving file: {str(e)}")

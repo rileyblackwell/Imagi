@@ -12,6 +12,7 @@ from .utils import (
     build_conversation_history,
     make_api_call
 )
+from apps.ProjectManager.services import DevServerManager
 
 # Load environment variables from .env
 load_dotenv()
@@ -101,8 +102,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         
         os.makedirs(output_dir, exist_ok=True)
             
-        print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
-        print(f"Saving to directory: {output_dir}")  # Debug print
+        print(f"Processing input for project: {conversation.project.name}")
+        print(f"Saving to directory: {output_dir}")
         
         # Get or create the page/file
         page, created = Page.objects.get_or_create(
@@ -144,7 +145,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
 
         # Save the file to the project directory
         output_path = os.path.join(output_dir, file_name)
-        print(f"Saving file to: {output_path}")  # Debug print
+        print(f"Saving file to: {output_path}")
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
 
@@ -163,29 +164,27 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             content=cleaned_response
         )
 
-        # Handle special case for CSS files
-        if page.filename == 'styles.css':
-            try:
-                index_path = os.path.join(project_path, 'templates', 'index.html')
-                with open(index_path, 'r') as f:
-                    index_content = f.read()
-                response_content = {'html': index_content, 'css': cleaned_response}
-            except FileNotFoundError:
-                response_content = {'html': '', 'css': cleaned_response}
-        else:
-            response_content = cleaned_response
+        # Start/restart the development server
+        server_manager = DevServerManager(project.user_project)
+        server_url = server_manager.get_server_url()
 
-        # Format the response
-        if isinstance(response_content, dict):
+        # Return the URL to the file on the user's project server
+        if file_name.endswith('.css'):
             return {
                 'success': True,
-                'response': response_content,
+                'response': {
+                    'css': cleaned_response,
+                    'url': f"{server_url}/static/css/{file_name}"
+                },
                 'type': 'dict'
             }
         else:
             return {
                 'success': True,
-                'response': {'html': response_content},
+                'response': {
+                    'html': cleaned_response,
+                    'url': f"{server_url}/{file_name}"
+                },
                 'type': 'str'
             }
             
