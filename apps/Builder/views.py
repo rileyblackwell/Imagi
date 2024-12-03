@@ -46,6 +46,7 @@ def create_project(request):
                 )
                 
                 messages.success(request, f"Project '{project_name}' created successfully!")
+                # Redirect to the builder workspace
                 return redirect('builder:project_workspace', project_name=project.get_url_safe_name())
             except Exception as e:
                 messages.error(request, f"Failed to create project: {str(e)}")
@@ -83,6 +84,7 @@ def project_workspace(request, project_name):
         # Load project files into website directory
         load_project_files(project)
         
+        # Render the builder interface
         return render(request, 'builder/oasis_builder.html', {
             'project': project,
             'conversation': conversation

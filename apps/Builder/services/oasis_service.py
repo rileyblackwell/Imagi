@@ -83,6 +83,17 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
 
         # Get the active conversation for the specific project
         conversation = get_active_conversation(user)
+        project = conversation.project
+        
+        # Get the project's templates and static directories
+        if file_name.endswith('.html'):
+            output_dir = os.path.join(project.project_path, 'templates')
+        elif file_name.endswith('.css'):
+            output_dir = os.path.join(project.project_path, 'static', 'css')
+        else:
+            raise ValueError(f"Unsupported file type: {file_name}")
+        
+        os.makedirs(output_dir, exist_ok=True)
             
         print(f"Processing input for project: {conversation.project.name} (ID: {conversation.project.id})")
         
@@ -128,8 +139,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         # Use the new helper function to clean the response
         cleaned_response = clean_response(page.filename, assistant_response)
 
-        # Save the file
-        output_path = os.path.join(output_dir, page.filename)
+        # Save the file to the project directory
+        output_path = os.path.join(output_dir, file_name)
         with open(output_path, 'w') as f:
             f.write(cleaned_response)
 
