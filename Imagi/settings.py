@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'apps.Auth.apps.AuthConfig',
     'apps.Home',
     'apps.Payments',
+    'apps.ProjectManager.apps.ProjectManagerConfig',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -212,3 +214,6 @@ PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
 # Authentication Settings
 # ...existing auth settings...
+
+# Add this near other path-related settings
+PROJECTS_ROOT = os.path.join(BASE_DIR.parent, 'oasis_projects')
