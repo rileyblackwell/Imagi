@@ -215,7 +215,36 @@ def process_input(request):
                 user_input, model, file_name, request.user
             )
             
-            # Return the response without trying to preview
+            # Get the active project
+            project = Project.objects.filter(
+                user=request.user
+            ).order_by('-updated_at').first()
+            
+            if project and project.user_project:
+                # Save the file
+                if file_name.endswith('.html'):
+                    output_dir = os.path.join(project.user_project.project_path, 'templates')
+                    file_path = os.path.join(output_dir, file_name)
+                elif file_name.endswith('.css'):
+                    output_dir = os.path.join(project.user_project.project_path, 'static', 'css')
+                    file_path = os.path.join(output_dir, file_name)
+                else:
+                    return JsonResponse({'error': 'Invalid file type'}, status=400)
+                
+                # Ensure directory exists
+                os.makedirs(output_dir, exist_ok=True)
+                
+                # Write the content
+                if response.get('success', False):
+                    content = response.get('response', '')
+                    with open(file_path, 'w') as f:
+                        f.write(content)
+                    
+                    # If this is an HTML file, update the project's views and URLs
+                    if file_name.endswith('.html') and file_name != 'base.html':
+                        service = ProjectGenerationService(request.user)
+                        service.add_page_to_project(project.user_project, file_name)
+            
             return JsonResponse({
                 'success': True,
                 'response': response.get('response', ''),

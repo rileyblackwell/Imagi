@@ -5,6 +5,7 @@ from datetime import datetime
 from django.conf import settings
 from django.template.loader import render_to_string
 from ..models import UserProject
+from .template_service import ViewTemplateService
 
 class ProjectGenerationService:
     def __init__(self, user):
@@ -32,6 +33,32 @@ class ProjectGenerationService:
             
             # Create the project directory
             os.makedirs(project_path, exist_ok=True)
+            
+            # Create Django project structure
+            project_files = {
+                '__init__.py': '',
+                'asgi.py': self._generate_asgi_content(unique_name),
+                'settings.py': self._generate_settings_content(unique_name),
+                'urls.py': self._generate_urls_content(),
+                'wsgi.py': self._generate_wsgi_content(unique_name),
+                'views.py': self._generate_views_content(),
+            }
+            
+            # Create project package directory
+            package_dir = os.path.join(project_path, unique_name)
+            os.makedirs(package_dir, exist_ok=True)
+            
+            # Create project files
+            for filename, content in project_files.items():
+                file_path = os.path.join(package_dir, filename)
+                with open(file_path, 'w') as f:
+                    f.write(content)
+            
+            # Create manage.py
+            manage_content = self._generate_manage_content(unique_name)
+            with open(os.path.join(project_path, 'manage.py'), 'w') as f:
+                f.write(manage_content)
+                os.chmod(f.name, 0o755)  # Make manage.py executable
             
             # Create additional directories
             self._create_project_structure(project_path)
@@ -64,6 +91,7 @@ class ProjectGenerationService:
             os.path.join(project_path, 'static', 'js'),
             os.path.join(project_path, 'static', 'images'),
             os.path.join(project_path, 'media'),
+            os.path.join(project_path, 'staticfiles'),
         ]
         
         for dir_path in dirs:
@@ -218,3 +246,270 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
         # Write the complete settings file
         with open(settings_path, 'w') as f:
             f.write(content + additional_settings)
+
+    def _update_project_views(self, project_path, view_name):
+        """Add a new view to the project's views.py file"""
+        # Get the project's main directory that contains the settings.py
+        project_dir = [d for d in os.listdir(project_path) 
+                      if os.path.isdir(os.path.join(project_path, d)) and 
+                      os.path.exists(os.path.join(project_path, d, 'settings.py'))][0]
+        
+        views_path = os.path.join(project_path, project_dir, 'views.py')
+        
+        # Create views.py if it doesn't exist
+        if not os.path.exists(views_path):
+            with open(views_path, 'w') as f:
+                f.write("from django.shortcuts import render\n\n")
+        
+        # Check if view already exists
+        with open(views_path, 'r') as f:
+            existing_content = f.read()
+        
+        view_signature = f"def {view_name}(request):"
+        if view_signature not in existing_content:
+            # Add the new view
+            with open(views_path, 'a') as f:
+                view_code = ViewTemplateService.generate_view_code(view_name)
+                f.write(view_code)
+                print(f"Added view for {view_name} in {views_path}")
+
+    def _update_project_urls(self, project_path, url_patterns):
+        """Update the project's urls.py file"""
+        # Get the project's main directory that contains the settings.py
+        project_dir = [d for d in os.listdir(project_path) 
+                      if os.path.isdir(os.path.join(project_path, d)) and 
+                      os.path.exists(os.path.join(project_path, d, 'settings.py'))][0]
+        
+        urls_path = os.path.join(project_path, project_dir, 'urls.py')
+        
+        # Generate the complete URLs configuration
+        urls_code = ViewTemplateService.generate_urls_code(url_patterns)
+        
+        # Write the new URLs configuration
+        with open(urls_path, 'w') as f:
+            f.write(urls_code)
+            print(f"Updated URLs in {urls_path}")
+
+    def add_page_to_project(self, project, filename):
+        """Add a new page to the project and update views/URLs"""
+        try:
+            if not filename.endswith('.html') or filename == 'base.html':
+                return
+            
+            # Get view name (remove .html and sanitize)
+            view_name = filename[:-5]  # Remove .html
+            view_name = ''.join(c if c.isalnum() else '_' for c in view_name)
+            
+            # Get project path (this is the root project directory)
+            project_path = project.project_path
+            
+            # Update views.py
+            self._update_project_views(project_path, view_name)
+            
+            # Get all HTML files to update URLs
+            templates_dir = os.path.join(project_path, 'templates')
+            html_files = [f[:-5] for f in os.listdir(templates_dir) 
+                         if f.endswith('.html') and f != 'base.html']
+            
+            # Update urls.py
+            self._update_project_urls(project_path, html_files)
+            
+            print(f"Added view and URL pattern for {filename}")
+            
+        except Exception as e:
+            print(f"Error adding page to project: {str(e)}")
+
+    def _generate_manage_content(self, project_name):
+        return f'''#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
+import os
+import sys
+
+
+def main():
+    """Run administrative tasks."""
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{project_name}.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+    main()
+'''
+
+    def _generate_asgi_content(self, project_name):
+        return f'''"""
+ASGI config for {project_name} project.
+"""
+
+import os
+
+from django.core.asgi import get_asgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{project_name}.settings')
+
+application = get_asgi_application()
+'''
+
+    def _generate_wsgi_content(self, project_name):
+        return f'''"""
+WSGI config for {project_name} project.
+"""
+
+import os
+
+from django.core.wsgi import get_wsgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{project_name}.settings')
+
+application = get_wsgi_application()
+'''
+
+    def _generate_views_content(self):
+        return '''from django.shortcuts import render
+
+def index(request):
+    """Render the index page"""
+    return render(request, 'index.html')
+'''
+
+    def _generate_urls_content(self):
+        return '''from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+from . import views
+
+urlpatterns = [
+    path('', views.index, name='index'),
+]
+
+# Serve static and media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+'''
+
+    def _generate_settings_content(self, project_name):
+        """Generate Django settings.py content"""
+        return f'''"""
+Django settings for {project_name} project.
+"""
+
+from pathlib import Path
+import os
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-development-key-change-this-in-production'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = '{project_name}.urls'
+
+TEMPLATES = [
+    {{
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates'),
+        ],
+        'APP_DIRS': True,
+        'OPTIONS': {{
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        }},
+    }},
+]
+
+WSGI_APPLICATION = '{project_name}.wsgi.application'
+
+# Database
+# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+
+DATABASES = {{
+    'default': {{
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }}
+}}
+
+# Password validation
+# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {{
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    }},
+]
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.0/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.0/howto/static-files/
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+'''
