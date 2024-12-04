@@ -30,44 +30,14 @@ class ProjectGenerationService:
         try:
             print(f"Creating project at: {project_path}")
             
-            # Ensure the directory doesn't exist
-            if os.path.exists(project_path):
-                shutil.rmtree(project_path)
-            
             # Create the project directory
-            os.makedirs(project_path)
-            
-            # Create Django project directly in the target directory
-            print(f"Running django-admin startproject {unique_name}")
-            result = subprocess.run(
-                ["django-admin", "startproject", unique_name, project_path],
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            
-            # Update manage.py to use the correct settings module
-            manage_py_path = os.path.join(project_path, 'manage.py')
-            with open(manage_py_path, 'r') as f:
-                content = f.read()
-            content = content.replace(
-                'os.environ.setdefault(',
-                f'os.environ.setdefault("DJANGO_SETTINGS_MODULE", "{unique_name}.settings")\n'
-                '#os.environ.setdefault('
-            )
-            with open(manage_py_path, 'w') as f:
-                f.write(content)
+            os.makedirs(project_path, exist_ok=True)
             
             # Create additional directories
             self._create_project_structure(project_path)
             
             # Initialize basic templates and static files
             self._initialize_project_files(project_path, project_name)
-            
-            # Update project settings
-            settings_path = os.path.join(project_path, unique_name, 'settings.py')
-            print(f"Updating settings at: {settings_path}")
-            self._update_project_settings(settings_path, project_path, unique_name)
             
             # Create project record
             project = UserProject.objects.create(
