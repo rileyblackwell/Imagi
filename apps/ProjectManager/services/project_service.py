@@ -99,13 +99,22 @@ class ProjectGenerationService:
 
     def _initialize_project_files(self, project_path, project_name):
         """Initialize basic template and static files"""
-        base_template = f"""<!DOCTYPE html>
+        # Define Django template tags separately
+        load_static = "{% load static %}"
+        static_css = "{% static 'css/styles.css' %}"
+        block_extra_css = "{% block extra_css %}{% endblock %}"
+        block_content = "{% block content %}{% endblock %}"
+        block_extra_js = "{% block extra_js %}{% endblock %}"
+        
+        base_template = f"""{load_static}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{project_name}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{static_css}">
+    {block_extra_css}
 </head>
 <body>
     <header>
@@ -113,22 +122,61 @@ class ProjectGenerationService:
     </header>
     
     <main>
-        {{% block content %}}
-        {{% endblock %}}
+        {block_content}
     </main>
     
     <footer>
         <p>Created with Imagi Oasis</p>
     </footer>
+    {block_extra_js}
 </body>
 </html>"""
         
         with open(os.path.join(project_path, 'templates', 'base.html'), 'w') as f:
             f.write(base_template)
             
-        # Create basic CSS file
-        with open(os.path.join(project_path, 'static', 'css', 'style.css'), 'w') as f:
-            f.write('/* Custom styles for your web app */')
+        # Create basic CSS file with correct name (styles.css)
+        with open(os.path.join(project_path, 'static', 'css', 'styles.css'), 'w') as f:
+            f.write('''/* Global Variables */
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --text-color: #333;
+    --background-color: #fff;
+}
+
+/* Base Styles */
+body {
+    font-family: 'Open Sans', sans-serif;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* Layout */
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+}
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+footer {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    text-align: center;
+    padding: 1rem;
+    margin-top: 2rem;
+}
+''')
 
     def _update_project_settings(self, settings_path, project_path, unique_name):
         """Update the Django project settings"""
