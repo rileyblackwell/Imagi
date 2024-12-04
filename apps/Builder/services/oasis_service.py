@@ -71,15 +71,6 @@ def clean_response(page_filename, assistant_response):
 def process_builder_mode_input_service(user_input, model, file_name, user):
     """
     Handles all business logic for processing user input and generating website content.
-    
-    Args:
-        user_input (str): The input from the user
-        model (str): The AI model to use
-        file_name (str): The name of the file being edited
-        user: The user making the request
-        
-    Returns:
-        dict: Response containing generated content and any error messages
     """
     try:
         print(f"Processing builder mode input: {user_input}")
@@ -93,49 +84,32 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
 
         # Get the active conversation for the specific project
         conversation = get_active_conversation(user)
-        project = conversation.project
         
-        if not project.user_project:
+        if not conversation.project.user_project:
             raise ValueError("No associated user project found")
             
-        project_path = project.user_project.project_path
-        if not project_path:
-            raise ValueError("Project path not found. Please ensure the project is properly set up.")
-        
-        # Determine the output directory based on file type
-        if file_name.endswith('.html'):
-            output_dir = os.path.join(project_path, 'templates')
-        elif file_name.endswith('.css'):
-            output_dir = os.path.join(project_path, 'static', 'css')
-        else:
-            raise ValueError(f"Unsupported file type: {file_name}")
-        
-        os.makedirs(output_dir, exist_ok=True)
-            
-        print(f"Processing input for project: {conversation.project.name}")
-        print(f"Saving to directory: {output_dir}")
-        
         # Get or create the page/file
         page, created = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
         )
 
-        # Set up the system message
+        # Get system message and build conversation history
         system_msg = get_system_message()
-        
-        # Build conversation history and context using the project's directories
-        conversation_history = build_conversation_history(system_msg, page, project_path)
-        print(f"Conversation history: {conversation_history}")
-        file_context = get_file_context(page.filename)
-        
+        conversation_history = build_conversation_history(
+            system_msg, 
+            page, 
+            conversation.project.user_project.project_path
+        )
+
+        # Build complete messages array
         complete_messages = [
             {"role": "system", "content": system_msg["content"]},
             *conversation_history,
-            {"role": "system", "content": file_context},
+            {"role": "system", "content": f"You are working on file: {page.filename}"},
             {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
         ]
-        
+
         # Make API call to get response
         print(f"Making API call to {model}")
         assistant_response = make_api_call(
@@ -148,19 +122,12 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             openai_client=openai_client,
             anthropic_client=anthropic_client
         )
-        print(f"AI response: {assistant_response}")
-
+        
         if not assistant_response:
             raise ValueError("Empty response from AI service")
 
-        # Use the helper function to clean the response
-        cleaned_response = clean_response(page.filename, assistant_response)
-
-        # Save the file to the project directory
-        output_path = os.path.join(output_dir, file_name)
-        print(f"Saving file to: {output_path}")
-        with open(output_path, 'w') as f:
-            f.write(cleaned_response)
+        # Clean the response
+        cleaned_response = clean_response(file_name, assistant_response)
 
         # Save messages to database
         Message.objects.create(
@@ -177,32 +144,18 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             content=cleaned_response
         )
 
-        # Return the content and file info without starting the server
-        if file_name.endswith('.css'):
-            return {
-                'success': True,
-                'response': {
-                    'css': cleaned_response,
-                    'file_path': f"/static/css/{file_name}"
-                },
-                'type': 'dict'
-            }
-        else:
-            return {
-                'success': True,
-                'response': {
-                    'html': cleaned_response,
-                    'file_path': file_name
-                },
-                'type': 'str'
-            }
+        # Return the content in a consistent format
+        return {
+            'success': True,
+            'response': cleaned_response,
+            'file': file_name
+        }
             
     except Exception as e:
-        print(f"Error in process_input_service: {str(e)}")
+        print(f"Error in process_builder_mode_input_service: {str(e)}")
         return {
             'success': False,
-            'error': str(e),
-            'detail': str(e)
+            'error': str(e)
         }
 
 def undo_last_action_service(user, page_name):

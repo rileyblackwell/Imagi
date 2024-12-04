@@ -250,22 +250,48 @@ def process_input(request):
                 # Ensure directory exists
                 os.makedirs(output_dir, exist_ok=True)
                 
-                # Write the response to the file
-                if response.get('success', False) and (
-                    'response' in response or 
-                    'html' in response or 
-                    isinstance(response, str)
-                ):
-                    content = (
-                        response.get('response') or 
-                        response.get('html') or 
-                        response
-                    )
+                # Extract the content string from the response
+                if isinstance(response, dict):
+                    if response.get('success') is False:
+                        return JsonResponse(response, status=400)
+                    
+                    content = None
+                    if 'response' in response:
+                        content = response['response']
+                    elif 'html' in response:
+                        content = response['html']
+                    
+                    if content is None:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'No content found in response'
+                        }, status=400)
+                        
+                    if not isinstance(content, str):
+                        content = str(content)
+                else:
+                    content = str(response)
+                
+                # Write the content to file
+                try:
                     with open(file_path, 'w') as f:
                         f.write(content)
                     print(f"Saved response to {file_path}")
+                except Exception as e:
+                    print(f"Error writing to file: {str(e)}")
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Failed to write to file: {str(e)}'
+                    }, status=400)
             
-            return JsonResponse(response)
+            # Return the response in a consistent format
+            if isinstance(response, dict):
+                return JsonResponse(response)
+            else:
+                return JsonResponse({
+                    'success': True,
+                    'response': str(response)
+                })
             
     except Exception as e:
         print(f"Error in process_input: {str(e)}")

@@ -219,41 +219,64 @@ def build_conversation_history(system_msg, page, project_path):
     return conversation_history
 
 def make_api_call(model, system_msg, conversation_history, page, user_input, complete_messages, openai_client, anthropic_client):
-    if model == 'claude-3-5-sonnet-20241022':
-        system_content = (
-            f"{system_msg['content']}\n\n"
-            f"CURRENT TASK: You are editing {page.filename}\n\n"
-            f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
-        )
-        
-        messages = [msg for msg in conversation_history if msg["role"] != "system"]
-        messages.append({
-            "role": "user",
-            "content": f"[File: {page.filename}]\n{user_input}"
-        })
-        
-        completion = anthropic_client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=2048,
-            system=system_content,
-            messages=messages
-        )
-        
-        if completion.content:
-            return completion.content[0].text
-        raise ValueError("Empty response from Claude API")
+    try:
+        if model == 'claude-3-5-sonnet-20241022':
+            system_content = (
+                f"{system_msg['content']}\n\n"
+                f"CURRENT TASK: You are editing {page.filename}\n\n"
+                f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
+            )
             
-    elif model in ['gpt-4o', 'gpt-4o-mini']:
-        completion = openai_client.chat.completions.create(
-            model=model,
-            messages=complete_messages,
-            temperature=0.7,
-            max_tokens=2048
-        )
+            messages = [msg for msg in conversation_history if msg["role"] != "system"]
+            messages.append({
+                "role": "user",
+                "content": f"[File: {page.filename}]\n{user_input}"
+            })
+            
+            completion = anthropic_client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=2048,
+                system=system_content,
+                messages=messages
+            )
+            
+            if completion.content:
+                return completion.content[0].text
+            raise ValueError("Empty response from Claude API")
+                
+        elif model in ['gpt-4o', 'gpt-4o-mini']:
+            # Build complete messages array if not provided
+            if not complete_messages:
+                complete_messages = [
+                    {"role": "system", "content": system_msg["content"]},
+                    *conversation_history,
+                    {"role": "system", "content": f"You are working on file: {page.filename}"},
+                    {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
+                ]
+            
+            # Ensure we have at least one message
+            if not complete_messages:
+                complete_messages = [{
+                    "role": "system",
+                    "content": system_msg["content"]
+                }]
+            
+            print("Sending messages to OpenAI:", complete_messages)  # Debug print
+            
+            completion = openai_client.chat.completions.create(
+                model=model,
+                messages=complete_messages,
+                temperature=0.7,
+                max_tokens=2048
+            )
+            
+            return completion.choices[0].message.content
         
-        return completion.choices[0].message.content
-    
-    else:
-        raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
+        else:
+            raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
+            
+    except Exception as e:
+        print(f"Error in make_api_call: {str(e)}")  # Debug print
+        raise Exception(f"Error code: {getattr(e, 'status_code', 'unknown')} - {str(e)}")
 
  
