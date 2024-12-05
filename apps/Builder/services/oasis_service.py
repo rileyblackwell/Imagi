@@ -8,11 +8,9 @@ import anthropic
 from ..models import Message, Conversation, Page
 from .utils import (
     get_system_message, 
-    get_file_context,
     build_conversation_history,
     make_api_call
 )
-from apps.ProjectManager.services import DevServerManager
 
 # Load environment variables from .env
 load_dotenv()
@@ -68,24 +66,42 @@ def clean_response(page_filename, assistant_response):
             
             # Ensure CSS is loaded with static tag
             if '<link' in content and 'stylesheet' in content:
-                # Fix any malformed static tags
+                # First, normalize any existing static tags that might be malformed
                 content = re.sub(
-                    r'href=[\'"]\{%?\s*static\s+[\'"]?css/([^\'"]+)[\'"]?\s*%?\}[\'"]',
-                    r'href="{% static \'css/\1\' %}"',
+                    r'href=([\'"])\{\s*%\s*static\s+[\'"]?(.*?)[\'"]?\s*%\s*\}\1',
+                    r'href="{% static \'css/styles.css\' %}"',
                     content
                 )
-                # Fix direct css references
+                
+                # Remove any escaped quotes in static tags
                 content = re.sub(
-                    r'href=[\'"]/?(?:static/)?css/([^\'"]+)[\'"]',
-                    r'href="{% static \'css/\1\' %}"',
+                    r'href="{% static \\[\'"](.+?)\\[\'"] %}"',
+                    r'href="{% static \'css/styles.css\' %}"',
                     content
                 )
-                # Ensure quotes are consistent
+                
+                # Fix any malformed or escaped static tags
                 content = re.sub(
-                    r'href="{% static \'(.*?)\' %}"',
-                    r'href="{% static \'\1\' %}"',
+                    r'href="{% static [\'"]?(.*?)[\'"]? %}"',
+                    r'href="{% static \'css/styles.css\' %}"',
                     content
                 )
+                
+                # Ensure proper spacing in static tags
+                content = re.sub(
+                    r'{%\s*static\s+\'(.*?)\'\s*%}',
+                    r'{% static \'\1\' %}',
+                    content
+                )
+                
+                # Final verification - ensure the static tag is exactly correct
+                if not re.search(r'href="{% static \'css/styles\.css\' %}"', content):
+                    # Force the correct format if not found
+                    content = re.sub(
+                        r'<link[^>]*stylesheet[^>]*>',
+                        r'<link rel="stylesheet" href="{% static \'css/styles.css\' %}">',
+                        content
+                    )
             
         elif page_filename.endswith('.css'):
             # Find the start of actual CSS content
