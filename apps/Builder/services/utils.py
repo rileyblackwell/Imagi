@@ -106,6 +106,22 @@ def get_system_message():
             "3. Maintain consistent styling across all pages.\n"
             "4. Use semantic HTML and modern CSS practices.\n"
             "5. Focus on responsive, mobile-first design.\n"
+
+            "OUTPUT REQUIREMENTS:\n"
+            "1. For HTML files:\n"
+            "- Return ONLY valid Django template code\n"
+            "- Start with {% extends 'base.html' %} or <!DOCTYPE html>\n"
+            "- DO NOT include any plain text explanations\n"
+            "- DO NOT include file names or headers\n"
+            "- DO NOT include markdown code blocks\n"
+            "- DO NOT include non-HTML comments\n\n"
+
+            "2. For CSS files:\n"
+            "- Return ONLY valid CSS code\n"
+            "- DO NOT include any plain text or explanations\n"
+            "- DO NOT include file names or headers\n"
+            "- DO NOT include markdown code blocks\n"
+            "- Only use CSS comments /* ... */\n\n"
         )
     }
 

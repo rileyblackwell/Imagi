@@ -36,37 +36,50 @@ def get_active_conversation(user):
 
 def clean_response(page_filename, assistant_response):
     """Cleans the assistant response based on the file type."""
-    if page_filename.endswith('.html'):
-        # For Django templates, we need to be more flexible with the validation
-        # Look for either DOCTYPE or extends tag
-        if '<!DOCTYPE html>' in assistant_response or '{% extends' in assistant_response:
-            # Remove any markdown code block markers
-            content = assistant_response.replace('```html', '').replace('```', '').strip()
+    try:
+        # Remove any markdown code block markers
+        content = assistant_response.replace('```html', '').replace('```css', '').replace('```', '').strip()
+        
+        # Remove any file headers/names that might be present
+        if '[File:' in content:
+            content = re.sub(r'\[File:.*?\]', '', content, flags=re.MULTILINE).strip()
             
-            # Ensure {% load static %} is present if needed
-            if '{% static' in content and '{% load static %}' not in content:
-                content = '{% load static %}\n' + content
+        # Remove any non-code text at the start of the file
+        if page_filename.endswith('.html'):
+            # Find the start of actual HTML content
+            html_start = content.find('{% extends') if '{% extends' in content else content.find('<!DOCTYPE')
+            if html_start == -1:
+                raise ValueError("Response must start with {% extends %} or <!DOCTYPE html>")
+            content = content[html_start:].strip()
+            
+            # Validate Django template
+            if not ('{% extends' in content or '<!DOCTYPE html>' in content):
+                raise ValueError("Response must be a complete Django template")
                 
-            return content
+        elif page_filename.endswith('.css'):
+            # Find the start of actual CSS content
+            css_start = content.find('{')
+            if css_start != -1:
+                # Look backwards from { to find the selector
+                selector_start = content[:css_start].rstrip().rfind('\n')
+                if selector_start != -1:
+                    content = content[selector_start + 1:].strip()
+                else:
+                    content = content.strip()
             
-        raise ValueError("Response must be a complete Django template")
+            # Basic CSS validation
+            if '{' not in content or '}' not in content:
+                raise ValueError("Invalid CSS content")
+            
+            # Remove any non-CSS comments
+            content = re.sub(r'//.*?\n', '\n', content)  # Remove single-line comments
+            content = re.sub(r'[^/\*]#.*?\n', '\n', content)  # Remove hash comments
+            
+        return content
         
-    elif page_filename == 'styles.css':
-        # Clean CSS content - remove any file prefix and only keep CSS content
-        css_content = assistant_response
-        if '[File: styles.css]' in css_content:
-            css_content = css_content.split('[File: styles.css]')[1].strip()
-        
-        # Remove any markdown code block markers if present
-        css_content = css_content.replace('```css', '').replace('```', '').strip()
-        
-        # Validate that it looks like CSS (basic check)
-        if '{' not in css_content or '}' not in css_content:
-            raise ValueError("Invalid CSS content")
-        
-        return css_content
-    
-    return assistant_response  # For other file types, return the response as is
+    except Exception as e:
+        print(f"Error cleaning response: {str(e)}")
+        raise ValueError(f"Invalid {page_filename} content: {str(e)}")
 
 def process_builder_mode_input_service(user_input, model, file_name, user):
     """
