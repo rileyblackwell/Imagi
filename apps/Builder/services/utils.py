@@ -25,10 +25,12 @@ def get_system_message():
             "1. Rules for Django Templates:\n"
             "- All HTML files must be valid Django templates.\n"
             "- Use Django template tags and filters correctly (e.g., {% extends %}, {% block %}).\n"
+            "- base.html must include {% load static %} at the top.\n"
+            "- All templates must include {% load static %} if they use {% static %} tags.\n"
+            "- CSS must be loaded using {% static 'css/styles.css' %}.\n"
             "- base.html defines blocks that other templates can override.\n"
             "- All templates (except base.html) must extend base.html using {% extends 'base.html' %}.\n"
             "- Content specific to each page should be wrapped in appropriate blocks (e.g., {% block content %}{% endblock %}).\n"
-            "- Use Django's static tag only for CSS: {% load static %} and {% static 'css/styles.css' %}.\n"
             "- DO NOT use {% url %} tags or create links between pages.\n\n"
 
             "2. File Structure and Consistency:\n"
@@ -111,6 +113,9 @@ def get_system_message():
             "1. For HTML files:\n"
             "- Return ONLY valid Django template code\n"
             "- Start with {% extends 'base.html' %} or <!DOCTYPE html>\n"
+            "- Include {% load static %} at the top of every template\n"
+            "- Load CSS using {% static 'css/styles.css' %}\n"
+            "- Ensure all static files are properly referenced with {% static %} tags\n"
             "- DO NOT include any plain text explanations\n"
             "- DO NOT include file names or headers\n"
             "- DO NOT include markdown code blocks\n"
@@ -122,6 +127,16 @@ def get_system_message():
             "- DO NOT include file names or headers\n"
             "- DO NOT include markdown code blocks\n"
             "- Only use CSS comments /* ... */\n\n"
+
+            "2. Example of a page template:\n"
+            "{% extends 'base.html' %}\n"
+            "{% load static %}\n\n"
+            "{% block title %}Welcome{% endblock %}\n\n"
+            "{% block content %}\n"
+            "<div class='container'>\n"
+            "    <h1>Welcome to our site</h1>\n"
+            "</div>\n"
+            "{% endblock %}\n\n"
         )
     }
 

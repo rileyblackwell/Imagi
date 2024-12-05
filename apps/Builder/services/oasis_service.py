@@ -56,6 +56,25 @@ def clean_response(page_filename, assistant_response):
             if not ('{% extends' in content or '<!DOCTYPE html>' in content):
                 raise ValueError("Response must be a complete Django template")
                 
+            # Ensure {% load static %} is present if needed
+            if '{% static' in content and '{% load static %}' not in content:
+                if '{% extends' in content:
+                    # Add after extends tag
+                    extends_end = content.find('%}', content.find('{% extends')) + 2
+                    content = content[:extends_end] + '\n{% load static %}' + content[extends_end:]
+                else:
+                    # Add at the start for base.html
+                    content = '{% load static %}\n' + content
+            
+            # Ensure CSS is loaded with static tag
+            if '<link' in content and 'stylesheet' in content:
+                if 'href="css/' in content or "href='css/" in content:
+                    content = re.sub(
+                        r'href=[\'"]css/([^\'"]+)[\'"]',
+                        r'href="{% static \'css/\1\' %}"',
+                        content
+                    )
+            
         elif page_filename.endswith('.css'):
             # Find the start of actual CSS content
             css_start = content.find('{')
