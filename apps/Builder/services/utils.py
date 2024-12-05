@@ -76,7 +76,7 @@ def get_system_message():
             "    <meta charset='UTF-8'>\n"
             "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>\n"
             "    <title>{% block title %}Default Title{% endblock %}</title>\n"
-            "    <link rel='stylesheet' href='{% static \"css/styles.css\" %}'>\n"
+            "    <link rel='stylesheet' href=\"{% static 'css/styles.css' %}\">\n"
             "    {% block extra_css %}{% endblock %}\n"
             "</head>\n"
             "<body>\n"
@@ -137,6 +137,22 @@ def get_system_message():
             "    <h1>Welcome to our site</h1>\n"
             "</div>\n"
             "{% endblock %}\n\n"
+
+            "IMPORTANT RULES FOR STATIC FILES:\n"
+            "1. Static Tag Format:\n"
+            "- ALWAYS use single quotes inside {% static %} tags\n"
+            "- ALWAYS use double quotes for HTML attributes\n"
+            "- Correct: href=\"{% static 'css/styles.css' %}\"\n"
+            "- Wrong: href='{% static \"css/styles.css\" %}'\n"
+            "- Wrong: href=\"{{ static 'css/styles.css' }}\"\n"
+            "- Wrong: href=\"{%static'css/styles.css'%}\"\n\n"
+            
+            "2. Static File Paths:\n"
+            "- CSS files must be in 'css/' directory\n"
+            "- Always include the 'css/' prefix\n"
+            "- Correct: {% static 'css/styles.css' %}\n"
+            "- Wrong: {% static 'styles.css' %}\n"
+            "- Wrong: {% static '/css/styles.css' %}\n\n"
         )
     }
 

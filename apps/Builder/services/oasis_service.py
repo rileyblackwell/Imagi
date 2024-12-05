@@ -68,12 +68,24 @@ def clean_response(page_filename, assistant_response):
             
             # Ensure CSS is loaded with static tag
             if '<link' in content and 'stylesheet' in content:
-                if 'href="css/' in content or "href='css/" in content:
-                    content = re.sub(
-                        r'href=[\'"]css/([^\'"]+)[\'"]',
-                        r'href="{% static \'css/\1\' %}"',
-                        content
-                    )
+                # Fix any malformed static tags
+                content = re.sub(
+                    r'href=[\'"]\{%?\s*static\s+[\'"]?css/([^\'"]+)[\'"]?\s*%?\}[\'"]',
+                    r'href="{% static \'css/\1\' %}"',
+                    content
+                )
+                # Fix direct css references
+                content = re.sub(
+                    r'href=[\'"]/?(?:static/)?css/([^\'"]+)[\'"]',
+                    r'href="{% static \'css/\1\' %}"',
+                    content
+                )
+                # Ensure quotes are consistent
+                content = re.sub(
+                    r'href="{% static \'(.*?)\' %}"',
+                    r'href="{% static \'\1\' %}"',
+                    content
+                )
             
         elif page_filename.endswith('.css'):
             # Find the start of actual CSS content
