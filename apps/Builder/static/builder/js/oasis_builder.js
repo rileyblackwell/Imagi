@@ -123,6 +123,28 @@ $(document).ready(function() {
         console.log('User Input:', userInput);
         console.groupEnd();
 
+        // Function to animate loading dots
+        function animateLoadingDots($element, baseText) {
+            let dots = 0;
+            return setInterval(() => {
+                $element.attr('placeholder', baseText + '.'.repeat(dots + 1));
+                dots = (dots + 1) % 3;
+            }, 500);
+        }
+
+        // Clear the input textarea and show loading state
+        var $textarea = $('#user-input');
+        var $submitBtn = $(this);
+        $textarea.val('');
+        
+        // Start loading animation
+        const baseText = mode === 'chat' ? 'thinking' : 'building';
+        $textarea.attr('placeholder', baseText + '...');
+        const loadingAnimation = animateLoadingDots($textarea, baseText);
+        
+        $submitBtn.prop('disabled', true);
+        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> ' + (mode === 'chat' ? 'Processing...' : 'Generating...'));
+
         // Get conversation history before making request
         $.ajax({
             type: 'POST',
@@ -204,9 +226,11 @@ $(document).ready(function() {
                 },
                 complete: function() {
                     // Reset button and placeholder
-                    $('#submit-btn').prop('disabled', false);
-                    $('#submit-btn').html('<i class="fas fa-magic"></i> ' + (mode === 'chat' ? 'Send' : 'Generate'));
-                    $('#user-input').attr('placeholder', mode === 'chat' ? 
+                    $submitBtn.prop('disabled', false);
+                    $submitBtn.html('<i class="fas fa-magic"></i> ' + (mode === 'chat' ? 'Send' : 'Generate'));
+                    // Clear the loading animation
+                    clearInterval(loadingAnimation);
+                    $textarea.attr('placeholder', mode === 'chat' ? 
                         'Chat with AI about your website ideas...' : 
                         'let your imagination flow...');
                 }
