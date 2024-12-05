@@ -283,7 +283,6 @@ def get_conversation_history(request):
             }, status=400)
             
         project_path = conversation.project.user_project.project_path
-        print(f"Getting conversation history for project: {conversation.project.name} (ID: {conversation.project.id})")
         
         # Get or create the page/file
         page, created = Page.objects.get_or_create(
@@ -294,54 +293,26 @@ def get_conversation_history(request):
         # Get system message
         system_msg = get_system_message()
         
-        try:
-            # Build conversation history using project path
-            conversation_history = build_conversation_history(system_msg, page, project_path)
-            
-            # Add file context
-            file_context = get_file_context(file_name)
-            
-            # Add current request
-            current_request = f"[File: {file_name}]\n{user_input}"
-            
-            if model == 'claude-3-5-sonnet-20241022':
-                system_content = (
-                    f"{system_msg['content']}\n\n"
-                    f"CURRENT TASK: You are editing {file_name}\n\n"
-                    f"IMPORTANT: Return only the complete, valid file content for {file_name}."
-                )
-                
-                # Remove system messages from conversation history since we're adding system content separately
-                messages = [msg for msg in conversation_history if msg["role"] != "system"]
-                messages.append({"role": "user", "content": current_request})
-                
-                return JsonResponse({
-                    "model": "claude-sonnet",
-                    "messages": messages,
-                    "system": system_content
-                })
-            else:
-                # For non-Claude models, don't add system message again since it's in conversation_history
-                messages = [
-                    *conversation_history,
-                    {"role": "system", "content": file_context},
-                    {"role": "user", "content": current_request}
-                ]
-                
-                return JsonResponse({
-                    "model": model,
-                    "messages": messages
-                })
-                
-        except Exception as e:
-            print(f"Error building conversation history: {str(e)}")
-            return JsonResponse({
-                'error': 'Error building conversation history',
-                'detail': str(e)
-            }, status=500)
+        # Build conversation history
+        conversation_history = build_conversation_history(
+            system_msg, 
+            page, 
+            project_path
+        )
+        
+        # Add current request to history
+        complete_messages = [
+            *conversation_history,
+            {"role": "system", "content": f"You are working on file: {page.filename}"},
+            {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
+        ]
+        
+        return JsonResponse({
+            'messages': complete_messages
+        })
             
     except Exception as e:
-        print(f"Error in get_conversation_history: {str(e)}")
+        print(f"Error getting conversation history: {str(e)}")
         return JsonResponse({
             'error': str(e),
             'detail': 'An unexpected error occurred'

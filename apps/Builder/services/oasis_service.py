@@ -192,7 +192,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         return {
             'success': True,
             'response': cleaned_response,
-            'file': file_name
+            'file': file_name,
+            'conversation_history': complete_messages
         }
             
     except Exception as e:

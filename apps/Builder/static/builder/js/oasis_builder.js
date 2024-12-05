@@ -123,76 +123,95 @@ $(document).ready(function() {
         console.log('User Input:', userInput);
         console.groupEnd();
 
-        // Clear the input textarea
-        var $textarea = $('#user-input');
-        var originalInput = userInput;
-        $textarea.val('');
-        
-        // Show loading state
-        $textarea.attr('placeholder', mode === 'chat' ? 'thinking...' : 'building...');
-        var $submitBtn = $(this);
-        $submitBtn.prop('disabled', true);
-        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> ' + (mode === 'chat' ? 'Processing...' : 'Generating...'));
-
-        // Make the request
+        // Get conversation history before making request
         $.ajax({
             type: 'POST',
-            url: mode === 'chat' ? '/builder/chat/' : '/builder/process-input/',
+            url: '/builder/get-conversation-history/',
             data: {
                 'user_input': userInput,
                 'model': model,
                 'file': selectedFile,
-                'mode': mode,
                 'csrfmiddlewaretoken': csrftoken
             },
-            success: function(response) {
-                console.group('✨ AI Response');
-                console.log('Response:', response);
+            success: function(historyResponse) {
+                // Log conversation history
+                console.group('📜 Conversation History');
+                historyResponse.messages.forEach(msg => {
+                    console.log(`${msg.role.toUpperCase()}:`, msg.content);
+                });
                 console.groupEnd();
-
-                var $responseWindow = $('#response-window');
                 
-                if (mode === 'chat') {
-                    // Show chat response
-                    var newMessage = 'You: ' + originalInput + '\n\nAI: ' + response.message + '\n\n';
-                    $responseWindow.append(newMessage);
-                } else {
-                    // Show file generation success
-                    if (response.success === false) {
-                        alert(response.error || 'An error occurred while generating content');
-                        return;
-                    }
-                    
-                    // Show success message and file content
-                    var successMessage = `\nFile generated successfully: ${selectedFile}\n`;
-                    successMessage += `\nContent Preview:\n${response.response || ''}\n`;
-                    $responseWindow.append(successMessage);
-                    
-                    // Log the generated content
-                    console.group('📄 Generated File');
-                    console.log('File:', selectedFile);
-                    console.log('Content:', response.response || response);
-                    console.groupEnd();
-                }
-                
-                // Scroll to bottom
-                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                // Now make the actual generate request
+                makeGenerateRequest();
             },
             error: function(xhr, status, error) {
-                console.error("AJAX Error:", error);
-                console.error("Status:", status);
-                console.error("Response:", xhr.responseText);
-                alert("An error occurred. Please try again.");
-            },
-            complete: function() {
-                // Reset button and placeholder
-                $submitBtn.prop('disabled', false);
-                $submitBtn.html('<i class="fas fa-magic"></i> ' + (mode === 'chat' ? 'Send' : 'Generate'));
-                $textarea.attr('placeholder', mode === 'chat' ? 
-                    'Chat with AI about your website ideas...' : 
-                    'let your imagination flow...');
+                console.error("Error getting conversation history:", error);
+                // Continue with generate request even if history fails
+                makeGenerateRequest();
             }
         });
+
+        // Make the request
+        function makeGenerateRequest() {
+            $.ajax({
+                type: 'POST',
+                url: mode === 'chat' ? '/builder/chat/' : '/builder/process-input/',
+                data: {
+                    'user_input': userInput,
+                    'model': model,
+                    'file': selectedFile,
+                    'mode': mode,
+                    'csrfmiddlewaretoken': csrftoken
+                },
+                success: function(response) {
+                    console.group('✨ AI Response');
+                    console.log('Response:', response);
+                    console.groupEnd();
+
+                    var $responseWindow = $('#response-window');
+                    
+                    if (mode === 'chat') {
+                        // Show chat response
+                        var newMessage = 'You: ' + userInput + '\n\nAI: ' + response.message + '\n\n';
+                        $responseWindow.append(newMessage);
+                    } else {
+                        // Show file generation success
+                        if (response.success === false) {
+                            alert(response.error || 'An error occurred while generating content');
+                            return;
+                        }
+                        
+                        // Show success message and file content
+                        var successMessage = `\nFile generated successfully: ${selectedFile}\n`;
+                        successMessage += `\nContent Preview:\n${response.response || ''}\n`;
+                        $responseWindow.append(successMessage);
+                        
+                        // Log the generated content
+                        console.group('📄 Generated File');
+                        console.log('File:', selectedFile);
+                        console.log('Content:', response.response || response);
+                        console.groupEnd();
+                    }
+                    
+                    // Scroll to bottom
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", error);
+                    console.error("Status:", status);
+                    console.error("Response:", xhr.responseText);
+                    alert("An error occurred. Please try again.");
+                },
+                complete: function() {
+                    // Reset button and placeholder
+                    $('#submit-btn').prop('disabled', false);
+                    $('#submit-btn').html('<i class="fas fa-magic"></i> ' + (mode === 'chat' ? 'Send' : 'Generate'));
+                    $('#user-input').attr('placeholder', mode === 'chat' ? 
+                        'Chat with AI about your website ideas...' : 
+                        'let your imagination flow...');
+                }
+            });
+        }
     });
 
     // Clear button handler
