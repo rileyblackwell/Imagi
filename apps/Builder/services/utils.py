@@ -23,7 +23,11 @@ def get_system_message():
 
             "2. **Template Tags and Filters**:\n"
             "   - Include `{% load static %}` at the top of every template.\n"
-            "   - CSS must be linked as `<link rel=\"stylesheet\" href=\"{% static 'css/styles.css' %}\">`.\n"
+            "   - CSS must be linked EXACTLY as: <link rel=\"stylesheet\" href=\"{% static 'css/styles.css' %}\">\n"
+            "   - CRITICAL: Do not escape quotes in static tags. Use single quotes inside {% static %} and double quotes for HTML attributes.\n"
+            "   - WRONG: href=\"{% static \'css/styles.css\' %}\"  (escaped quotes)\n"
+            "   - WRONG: href='{% static \"css/styles.css\" %}'   (wrong quote placement)\n"
+            "   - CORRECT: href=\"{% static 'css/styles.css' %}\"  (unescaped, proper quotes)\n"
             "   - Use `{% block %}` tags to define and override content areas (e.g., `{% block title %}`).\n"
             "   - Do not use unnecessary tags like `{% url %}` or custom links.\n\n"
 
@@ -36,7 +40,7 @@ def get_system_message():
             "       <meta charset=\"UTF-8\">\n"
             "       <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
             "       <title>{% block title %}Default Title{% endblock %}</title>\n"
-            "       <link rel=\"stylesheet\" href=\"{% static 'css/styles.css' %}\">\n"
+            "       <link rel=\"stylesheet\" href=\"{% static 'css/styles.css' %}\">  <!-- EXACT format required -->\n"
             "       {% block extra_css %}{% endblock %}\n"
             "   </head>\n"
             "   <body>\n"

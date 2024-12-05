@@ -1,7 +1,6 @@
 # builder/services/oasis_service.py
 
 import os
-import re
 from dotenv import load_dotenv
 from openai import OpenAI
 import anthropic
@@ -31,102 +30,6 @@ def get_active_conversation(user):
         raise ValueError('No active project found. Please select or create a project first.')
     
     return conversation
-
-def clean_response(page_filename, assistant_response):
-    """Cleans the assistant response based on the file type."""
-    try:
-        # Remove any markdown code block markers
-        content = assistant_response.replace('```html', '').replace('```css', '').replace('```', '').strip()
-        
-        # Remove any file headers/names that might be present
-        if '[File:' in content:
-            content = re.sub(r'\[File:.*?\]', '', content, flags=re.MULTILINE).strip()
-            
-        # Remove any non-code text at the start of the file
-        if page_filename.endswith('.html'):
-            # Find the start of actual HTML content
-            html_start = content.find('{% extends') if '{% extends' in content else content.find('<!DOCTYPE')
-            if html_start == -1:
-                raise ValueError("Response must start with {% extends %} or <!DOCTYPE html>")
-            content = content[html_start:].strip()
-            
-            # Validate Django template
-            if not ('{% extends' in content or '<!DOCTYPE html>' in content):
-                raise ValueError("Response must be a complete Django template")
-                
-            # Ensure {% load static %} is present if needed
-            if '{% static' in content and '{% load static %}' not in content:
-                if '{% extends' in content:
-                    # Add after extends tag
-                    extends_end = content.find('%}', content.find('{% extends')) + 2
-                    content = content[:extends_end] + '\n{% load static %}' + content[extends_end:]
-                else:
-                    # Add at the start for base.html
-                    content = '{% load static %}\n' + content
-            
-            # Ensure CSS is loaded with static tag
-            if '<link' in content and 'stylesheet' in content:
-                # First, normalize any existing static tags that might be malformed
-                content = re.sub(
-                    r'href=([\'"])\{\s*%\s*static\s+[\'"]?(.*?)[\'"]?\s*%\s*\}\1',
-                    r'href="{% static \'css/styles.css\' %}"',
-                    content
-                )
-                
-                # Remove any escaped quotes in static tags
-                content = re.sub(
-                    r'href="{% static \\[\'"](.+?)\\[\'"] %}"',
-                    r'href="{% static \'css/styles.css\' %}"',
-                    content
-                )
-                
-                # Fix any malformed or escaped static tags
-                content = re.sub(
-                    r'href="{% static [\'"]?(.*?)[\'"]? %}"',
-                    r'href="{% static \'css/styles.css\' %}"',
-                    content
-                )
-                
-                # Ensure proper spacing in static tags
-                content = re.sub(
-                    r'{%\s*static\s+\'(.*?)\'\s*%}',
-                    r'{% static \'\1\' %}',
-                    content
-                )
-                
-                # Final verification - ensure the static tag is exactly correct
-                if not re.search(r'href="{% static \'css/styles\.css\' %}"', content):
-                    # Force the correct format if not found
-                    content = re.sub(
-                        r'<link[^>]*stylesheet[^>]*>',
-                        r'<link rel="stylesheet" href="{% static \'css/styles.css\' %}">',
-                        content
-                    )
-            
-        elif page_filename.endswith('.css'):
-            # Find the start of actual CSS content
-            css_start = content.find('{')
-            if css_start != -1:
-                # Look backwards from { to find the selector
-                selector_start = content[:css_start].rstrip().rfind('\n')
-                if selector_start != -1:
-                    content = content[selector_start + 1:].strip()
-                else:
-                    content = content.strip()
-            
-            # Basic CSS validation
-            if '{' not in content or '}' not in content:
-                raise ValueError("Invalid CSS content")
-            
-            # Remove any non-CSS comments
-            content = re.sub(r'//.*?\n', '\n', content)  # Remove single-line comments
-            content = re.sub(r'[^/\*]#.*?\n', '\n', content)  # Remove hash comments
-            
-        return content
-        
-    except Exception as e:
-        print(f"Error cleaning response: {str(e)}")
-        raise ValueError(f"Invalid {page_filename} content: {str(e)}")
 
 def process_builder_mode_input_service(user_input, model, file_name, user):
     """
@@ -186,8 +89,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         if not assistant_response:
             raise ValueError("Empty response from AI service")
 
-        # Clean the response
-        cleaned_response = clean_response(file_name, assistant_response)
+        # Remove markdown code block markers only
+        cleaned_response = assistant_response.replace('```html', '').replace('```css', '').replace('```', '').strip()
 
         # Save messages to database
         Message.objects.create(
