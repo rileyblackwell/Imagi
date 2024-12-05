@@ -174,9 +174,6 @@ def build_conversation_history(system_msg, page, project_path):
     templates_dir = os.path.join(project_path, 'templates')
     css_dir = os.path.join(project_path, 'static', 'css')
     
-    # Track all project files for logging
-    project_files = []
-    
     # First add all HTML files
     if os.path.exists(templates_dir):
         html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
@@ -195,7 +192,6 @@ def build_conversation_history(system_msg, page, project_path):
             try:
                 with open(file_path, 'r') as f:
                     file_content = f.read()
-                    project_files.append(f"=== {filename} ===\n{file_content}")
                     conversation_history.append({
                         "role": "assistant",
                         "content": f"[File: {filename}]\n{file_content}"
@@ -209,20 +205,12 @@ def build_conversation_history(system_msg, page, project_path):
         try:
             with open(css_path, 'r') as f:
                 css_content = f.read()
-                project_files.append(f"=== styles.css ===\n{css_content}")
                 conversation_history.append({
                     "role": "assistant",
                     "content": f"[File: styles.css]\n{css_content}"
                 })
         except FileNotFoundError:
             pass
-    
-    # Add project files overview for better context
-    if project_files:
-        conversation_history.insert(1, {
-            "role": "system",
-            "content": "=== CURRENT WEBSITE FILES ===\n" + "\n\n".join(project_files)
-        })
     
     # Add chat and build history
     if page:
