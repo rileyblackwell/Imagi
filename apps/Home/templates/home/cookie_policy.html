@@ -6,49 +6,84 @@
 {% block page_lead %}Understanding how we use cookies to improve your experience{% endblock %}
 
 {% block page_content %}
-<div class="content-wrapper">
-    <div class="policy-content">
-        <section class="section-card">
-            <h2 class="section-title">1. What Are Cookies?</h2>
-            <p>Cookies are small text files that are placed on your device when you visit our website. They help us provide you with a better experience by:</p>
-            <ul>
-                <li>Remembering your preferences and settings</li>
-                <li>Understanding how you use our website</li>
-                <li>Improving site performance and functionality</li>
-                <li>Providing personalized content and features</li>
-            </ul>
-        </section>
+<div class="text-content">
+    <section>
+        <h2 class="section-header">Cookie Overview</h2>
+        <div class="content-grid">
+            <div class="content-card">
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-cookie-bite"></i>
+                </div>
+                <h3 class="card-header">What Are Cookies?</h3>
+                <p>Small text files stored on your device that help us provide a better browsing experience.</p>
+            </div>
+            <div class="content-card">
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <h3 class="card-header">How We Use Them</h3>
+                <p>To remember preferences, analyze site usage, and enhance functionality.</p>
+            </div>
+        </div>
+    </section>
 
-        <section class="section-card">
-            <h2 class="section-title">2. Types of Cookies We Use</h2>
-            <div class="cookie-types">
-                <h3>Essential Cookies</h3>
-                <p>Required for the website to function properly. These cannot be disabled.</p>
-                
-                <h3>Performance Cookies</h3>
+    <section>
+        <h2 class="section-header">Types of Cookies</h2>
+        <div class="content-grid">
+            <div class="content-card">
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="card-header">Essential Cookies</h3>
+                <p>Required for core website functionality. These cannot be disabled as they are necessary for the site to work properly.</p>
+            </div>
+            <div class="content-card">
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="card-header">Analytics Cookies</h3>
                 <p>Help us understand how visitors interact with our website by collecting anonymous information.</p>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section class="section-card">
-            <h2 class="section-title">3. Managing Cookies</h2>
-            <p>You can control and manage cookies in various ways:</p>
+    <section>
+        <h2 class="section-header">Cookie Management</h2>
+        <div class="content-text">
+            <p>You have several options to manage your cookie preferences:</p>
             <ul>
                 <li>Browser Settings: Configure your browser to accept, reject, or delete cookies</li>
-                <li>Privacy Settings: Adjust your privacy preferences on our website</li>
-                <li>Third-Party Tools: Use available tools to manage your cookie preferences</li>
+                <li>Privacy Settings: Adjust your privacy preferences directly on our website</li>
+                <li>Third-Party Tools: Use available cookie management tools</li>
             </ul>
-        </section>
+        </div>
+    </section>
 
-        <section class="section-card">
-            <h2 class="section-title">4. Updates to This Policy</h2>
-            <p>We may update this Cookie Policy periodically. Please check back regularly to stay informed about our use of cookies.</p>
-        </section>
+    <section>
+        <h2 class="section-header">Third-Party Cookies</h2>
+        <div class="content-grid">
+            <div class="content-card">
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-analytics"></i>
+                </div>
+                <h3 class="card-header">Analytics Partners</h3>
+                <p>We use trusted analytics services to improve our website performance.</p>
+            </div>
+            <div class="content-card">
+                <div class="feature-icon-wrapper">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h3 class="card-header">Payment Processors</h3>
+                <p>Secure payment processing through trusted financial partners.</p>
+            </div>
+        </div>
+    </section>
 
-        <section class="section-card">
-            <h2 class="section-title">4. Contact Us</h2>
-            <p>If you have any questions regarding our Cookie Policy, please <a href="{% url 'contact' %}">contact us</a>.</p>
-        </section>
-    </div>
+    <section>
+        <h2 class="section-header">Updates & Contact</h2>
+        <div class="content-text">
+            <p>We may update this Cookie Policy periodically. For questions or concerns, please <a href="{% url 'contact' %}" class="link link-primary">contact us</a>.</p>
+        </div>
+    </section>
 </div>
 {% endblock %} 
