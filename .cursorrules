@@ -31,6 +31,11 @@ Imagi is a natural language to code platform that allows users to create full-st
 5. **Styling and Design**:
    - Uses external CSS files for styling.
    - Global styles applied via `styles.css`, with individual stylesheets for app-specific pages and features.
+   - Design inspiration for CSS should be drawn from leading companies like **Stripe**, **Airbnb**, **Twilio**, and **Apple**, focusing on:
+     - Minimalist, elegant layouts.
+     - Clean typography and consistent spacing.
+     - Modern web design trends (e.g., gradients, animations, responsive design).
+     - Intuitive and visually appealing interfaces.
 
 6. **Future Plans**:
    - Support for defining models, views, and APIs directly within Imagi Oasis.
@@ -82,5 +87,20 @@ Imagi is a natural language to code platform that allows users to create full-st
 # system
 - MacOS
 - 24GB unified memory
-- 1TB SSD 
+- 1TB SSD
 - Use zsh
+
+# Task Descriptions and Tags
+- **task:** Use this tag to describe the specific task to be completed (e.g., "Create a new webpage template").
+- **background:** Use this tag to provide context or additional information about the task (e.g., "This task is part of creating a landing page for Imagi Oasis").
+- **study:** Use this tag to share details, inspiration, or examples for future reference (e.g., "Review how similar platforms implement their user dashboards").
+
+# CSS Design Inspiration
+- When creating or editing CSS stylesheets:
+  - Draw inspiration from companies like **Stripe**, **Airbnb**, **Twilio**, and **Apple**.
+  - Focus on minimalist, elegant designs with clean layouts and responsive functionality.
+  - Prioritize modern typography, spacing, and user-friendly interfaces.
+  - Incorporate advanced web design trends, such as:
+    - Subtle animations (e.g., hover effects, transitions).
+    - Intuitive grid and flexbox layouts.
+    - Eye-catching color schemes inspired by the mentioned companies.
