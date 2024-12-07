@@ -9,29 +9,29 @@
 <div class="home-nav-buttons">
     <ul class="home-nav-list">
         <li class="home-nav-item dropdown">
-            <a class="link link-nav dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <a class="home-nav-btn dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-th"></i> Products
             </a>
             <div class="home-dropdown-menu dropdown-menu" aria-labelledby="navbarDropdown">
-                <a class="link link-glass dropdown-item" href="{% url 'builder:landing_page' %}">
+                <a class="home-dropdown-btn dropdown-item" href="{% url 'builder:landing_page' %}">
                     <i class="fas fa-magic"></i> Imagi Oasis
                 </a>
             </div>
         </li>
         {% if user.is_authenticated %}
             <li class="home-nav-item">
-                <a href="{% url 'payments:create-checkout-session' %}" class="link link-nav">
+                <a href="{% url 'payments:create-checkout-session' %}" class="home-nav-btn">
                     <i class="fas fa-coins"></i> Buy Credits
                 </a>
             </li>
             <li class="home-nav-item">
-                <a href="{% url 'logout' %}" class="link link-nav">
+                <a href="{% url 'logout' %}" class="home-nav-btn">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </li>
         {% else %}
             <li class="home-nav-item">
-                <a href="{% url 'login' %}" class="link link-nav">
+                <a href="{% url 'login' %}" class="home-nav-btn">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </a>
             </li>

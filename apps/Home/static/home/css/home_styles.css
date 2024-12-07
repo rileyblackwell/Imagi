@@ -202,7 +202,8 @@ blockquote footer {
     align-items: center;
 }
 
-.home-nav-link {
+/* Primary Nav Button */
+.home-nav-btn {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary) !important;
     padding: 8px 16px;
@@ -217,20 +218,20 @@ blockquote footer {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.home-nav-link:hover {
+.home-nav-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
     text-decoration: none;
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-.home-nav-link i {
+.home-nav-btn i {
     font-size: 1rem;
     color: #00ffcc;
     transition: transform 0.3s ease;
 }
 
-.home-nav-link:hover i {
+.home-nav-btn:hover i {
     transform: scale(1.1);
 }
 
@@ -246,7 +247,7 @@ blockquote footer {
     min-width: 180px;
 }
 
-.home-dropdown-item {
+.home-dropdown-btn {
     color: var(--text-primary) !important;
     padding: 8px 16px;
     border-radius: 6px;
@@ -254,14 +255,18 @@ blockquote footer {
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
+    text-decoration: none;
+    width: 100%;
+    text-align: left;
 }
 
-.home-dropdown-item:hover {
+.home-dropdown-btn:hover {
     background: rgba(255, 255, 255, 0.1) !important;
     transform: translateX(3px);
+    text-decoration: none;
 }
 
-.home-dropdown-item i {
+.home-dropdown-btn i {
     color: #00ffcc;
 }
 
@@ -282,7 +287,7 @@ blockquote footer {
         width: 100%;
     }
 
-    .home-nav-link {
+    .home-nav-btn {
         width: 100%;
         justify-content: center;
     }
@@ -292,7 +297,7 @@ blockquote footer {
         margin-top: 5px;
     }
 
-    .home-dropdown-item {
+    .home-dropdown-btn {
         justify-content: center;
     }
 }
