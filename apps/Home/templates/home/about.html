@@ -7,65 +7,30 @@
 {% block page_lead %}Redefining how ideas transform into reality through the power of AI{% endblock %}
 
 {% block page_content %}
-<div class="content-wrapper">
-    <div class="section-grid">
-        <div class="section-card">
-            <i class="fas fa-bullseye feature-icon"></i>
-            <h3>Our Mission</h3>
+<div class="about-section">
+    <!-- Mission Section -->
+    <div class="mission-grid">
+        <div class="mission-card">
+            <h3>
+                <i class="fas fa-bullseye feature-icon"></i>
+                Our Mission
+            </h3>
             <p>To empower users of all technical backgrounds to create stunning, functional websites using only natural language commands.</p>
         </div>
-        <div class="section-card">
-            <i class="fas fa-star feature-icon"></i>
-            <h3>Why Choose Imagi?</h3>
+        <div class="mission-card">
+            <h3>
+                <i class="fas fa-star feature-icon"></i>
+                Why Choose Imagi?
+            </h3>
             <p>We blend cutting-edge AI with intuitive design to deliver a seamless experience for businesses and startups looking to establish their digital presence effortlessly.</p>
         </div>
     </div>
 
-    <div class="our-story">
-        <h2 class="section-title">Our Story</h2>
-        <div class="section-card">
-            <p>Founded in 2024 by Riley Blackwell, Imagi Oasis was born from a simple but transformative idea: making website creation accessible to everyone, regardless of technical expertise. As the sole founder and team member, Riley envisioned a platform where users could turn their ideas into fully functional websites through the power of natural language processing.</p>
-            <p>Imagi Oasis combines state-of-the-art artificial intelligence with user-friendly tools, enabling users to focus on their vision while the platform handles the complexities of coding. Since its inception, Imagi Oasis has become a trusted solution for businesses and startups aiming to bring their ideas to life quickly and effectively.</p>
-        </div>
+    <!-- Story Section -->
+    <div class="about-story">
+        <h2>Our Story</h2>
+        <p>Founded in 2024 by Riley Blackwell, Imagi Oasis was born from a simple but transformative idea: making website creation accessible to everyone, regardless of technical expertise. As the sole founder and team member, Riley envisioned a platform where users could turn their ideas into fully functional websites through the power of natural language processing.</p>
+        <p>Imagi Oasis combines state-of-the-art artificial intelligence with user-friendly tools, enabling users to focus on their vision while the platform handles the complexities of coding. Since its inception, Imagi Oasis has become a trusted solution for businesses and startups aiming to bring their ideas to life quickly and effectively.</p>
     </div>
-
-    <div class="meet-the-team">
-        <h2 class="section-title">Meet the Founder</h2>
-        <div class="section-card text-center">
-            <img src="{% static 'images/team_member_1.jpg' %}" alt="Riley Blackwell" class="team-member-img" />
-            <h3>Riley Blackwell</h3>
-            <p class="text-muted">Founder & CEO</p>
-            <p>Riley is a software engineer with a passion for simplifying technology and making powerful tools accessible to everyone. As the visionary behind Imagi Oasis, he brings years of coding experience and a commitment to helping others succeed in the digital age.</p>
-        </div>
-    </div>
-
-    <div class="testimonials">
-        <h2 class="section-title">What Our Users Say</h2>
-        <div class="section-grid">
-            <div class="section-card">
-                <blockquote>
-                    <p>"Imagi Oasis took my idea and turned it into a polished website in minutes!"</p>
-                    <footer>- Alex J.</footer>
-                </blockquote>
-            </div>
-            <div class="section-card">
-                <blockquote>
-                    <p>"This tool is a lifesaver for non-technical founders like me. Highly recommend!"</p>
-                    <footer>- Sarah K.</footer>
-                </blockquote>
-            </div>
-        </div>
-    </div>
-
-    {% if not user.is_authenticated %}
-    <section class="content-section text-center">
-        <h2 class="section-title">Join Us Today!</h2>
-        <p class="hero-description">Become part of the Imagi Oasis community and start building your vision with ease.</p>
-        <a href="{% url 'login' %}" class="btn btn-primary btn-lg">
-            <span>Create Your Account</span>
-            <i class="fas fa-arrow-right"></i>
-        </a>
-    </section>
-    {% endif %}
 </div>
 {% endblock %}
