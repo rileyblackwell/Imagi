@@ -1,35 +1,66 @@
 /* App-Specific Variables */
 :root {
-    --app-button-blue-gradient: linear-gradient(45deg, #00a2ff, #00ffc6);
-    --app-button-pink-gradient: linear-gradient(45deg, #ff3e7f, #ff8a5b);
-    --app-button-red-gradient: linear-gradient(45deg, #ff4d4d, #ff9999);
-    --app-text-color: #ffffff;
-    --app-input-bg: rgba(255, 255, 255, 0.15);
-    --app-container-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
-    --app-box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    --app-border-color: rgba(255, 255, 255, 0.2);
-    --app-blur-intensity: 8px;
-
-    /* New Variables for Unified Design */
-    --app-background: linear-gradient(135deg, #1e0f3d, #0a4d68); /* Gradient background for pages */
-    --app-card-background: rgba(255, 255, 255, 0.1); /* Card background */
-    --app-button-color: #00a2ff; /* Button color */
+    /* Primary Colors */
+    --app-primary: #6366f1; /* Main brand color - inspired by Stripe/Twilio */
+    --app-primary-dark: #4f46e5;
+    --app-primary-light: #818cf8;
+    
+    /* Secondary Colors */
+    --app-secondary: #ec4899; /* Secondary accent - inspired by modern web apps */
+    --app-secondary-dark: #db2777;
+    --app-secondary-light: #f472b6;
+    
+    /* Gradients */
+    --app-gradient-primary: linear-gradient(135deg, #6366f1, #818cf8);
+    --app-gradient-secondary: linear-gradient(135deg, #ec4899, #f472b6);
+    --app-gradient-success: linear-gradient(135deg, #10b981, #34d399);
+    --app-gradient-danger: linear-gradient(135deg, #ef4444, #f87171);
+    
+    /* Background Colors */
+    --app-bg-primary: #0f172a; /* Dark theme background */
+    --app-bg-secondary: #1e293b;
+    --app-bg-elevated: rgba(255, 255, 255, 0.08);
+    
+    /* Glass Effect Colors */
+    --app-glass-bg: rgba(255, 255, 255, 0.06);
+    --app-glass-border: rgba(255, 255, 255, 0.1);
+    --app-glass-shadow: 0 8px 32px rgba(15, 23, 42, 0.3);
+    
+    /* Text Colors */
+    --app-text-primary: rgba(255, 255, 255, 0.95);
+    --app-text-secondary: rgba(255, 255, 255, 0.7);
+    --app-text-muted: rgba(255, 255, 255, 0.5);
+    
+    /* Input Colors */
+    --app-input-bg: rgba(255, 255, 255, 0.06);
+    --app-input-border: rgba(255, 255, 255, 0.1);
+    --app-input-focus: rgba(99, 102, 241, 0.5);
+    
+    /* Status Colors */
+    --app-success: #10b981;
+    --app-warning: #f59e0b;
+    --app-error: #ef4444;
+    --app-info: #3b82f6;
+    
+    /* Effects */
+    --app-blur-intensity: 12px;
+    --app-transition: all 0.2s ease;
 }
 
 /* App-Specific Background */
 body.app-page {
-    background: var(--app-background); /* Apply the new gradient background */
+    background: linear-gradient(135deg, var(--app-bg-primary), var(--app-bg-secondary));
 }
 
 /* App-Specific Container Styles */
 .app-container {
-    background: var(--app-card-background);
+    background: var(--app-glass-bg);
     border-radius: 20px;
     padding: 30px;
-    box-shadow: var(--app-box-shadow);
+    box-shadow: var(--app-glass-shadow);
     backdrop-filter: blur(var(--app-blur-intensity));
     -webkit-backdrop-filter: blur(var(--app-blur-intensity));
-    border: 1px solid var(--app-border-color);
+    border: 1px solid var(--app-glass-border);
     display: flex;
     flex-direction: column;
 }
@@ -42,17 +73,17 @@ body.app-page {
     cursor: pointer;
     font-size: 15px;
     font-weight: 600;
-    color: var(--app-text-color);
+    color: var(--app-text-primary);
     text-transform: uppercase;
     letter-spacing: 1px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    background: var(--app-button-color); /* Updated button color */
+    background: var(--app-gradient-primary);
 }
 
 .app-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
 }
 
 /* Common Form Styles */
@@ -66,7 +97,7 @@ label {
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 600;
-    color: var(--app-text-color);
+    color: var(--app-text-primary);
 }
 
 .input-group {
@@ -74,17 +105,17 @@ label {
     align-items: center;
     background: var(--app-input-bg);
     border-radius: 12px;
-    border: 1px solid var(--app-border-color);
+    border: 1px solid var(--app-input-border);
     transition: all 0.3s ease;
 }
 
 .input-group:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--app-glass-bg);
 }
 
 .input-group:focus-within {
-    border-color: var(--app-button-color);
-    box-shadow: 0 0 0 3px rgba(0, 162, 255, 0.2);
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 3px var(--app-input-focus);
 }
 
 /* Common Utility Classes */
@@ -106,4 +137,103 @@ label {
         padding: 10px 16px;
         font-size: 14px;
     }
+}
+
+/* Status variations */
+.app-button.success {
+    background: var(--app-gradient-success);
+}
+
+.app-button.danger {
+    background: var(--app-gradient-danger);
+}
+
+/* Card variations */
+.app-card {
+    background: var(--app-glass-bg);
+    border: 1px solid var(--app-glass-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: var(--app-transition);
+}
+
+.app-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--app-glass-shadow);
+}
+
+/* Text variations */
+.text-primary {
+    color: var(--app-primary);
+}
+
+.text-secondary {
+    color: var(--app-secondary);
+}
+
+.text-success {
+    color: var(--app-success);
+}
+
+.text-error {
+    color: var(--app-error);
+}
+
+/* Badge variations */
+.app-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.app-badge.primary {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--app-primary-light);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.app-badge.secondary {
+    background: rgba(236, 72, 153, 0.1);
+    color: var(--app-secondary-light);
+    border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+/* Glass panel variations */
+.glass-panel {
+    background: var(--app-glass-bg);
+    backdrop-filter: blur(var(--app-blur-intensity));
+    -webkit-backdrop-filter: blur(var(--app-blur-intensity));
+    border: 1px solid var(--app-glass-border);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.glass-panel.elevated {
+    background: var(--app-bg-elevated);
+    box-shadow: var(--app-glass-shadow);
+}
+
+/* Form elements */
+.form-label {
+    color: var(--app-text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--app-input-bg);
+    border: 1px solid var(--app-input-border);
+    border-radius: 8px;
+    color: var(--app-text-primary);
+    transition: var(--app-transition);
+}
+
+.form-input:focus {
+    border-color: var(--app-primary);
+    box-shadow: 0 0 0 3px var(--app-input-focus);
+    outline: none;
 }
