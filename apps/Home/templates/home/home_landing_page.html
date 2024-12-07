@@ -8,7 +8,7 @@
 {% block hero_cta %}
 <div class="cta-container">
     <a href="{% if user.is_authenticated %}{% url 'builder:landing_page' %}{% else %}{% url 'login' %}{% endif %}" 
-       class="btn-cta">
+       class="btn btn-primary btn-lg">
         <span>Start Building</span>
         <i class="fas fa-arrow-right"></i>
     </a>
@@ -108,7 +108,7 @@
     <div class="container">
         <h2 class="section-title">Ready to Start Building?</h2>
         <p class="hero-description">Join thousands of users transforming their ideas into reality with Imagi Oasis.</p>
-        <a href="{% url 'signup' %}" class="btn-cta">
+        <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">
             <span>Create Your Account</span>
             <i class="fas fa-arrow-right"></i>
         </a>

@@ -25,7 +25,7 @@
                     <form method="POST" action="{% url 'builder:create_project' %}" class="project-form">
                         {% csrf_token %}
                         <input type="text" name="project_name" placeholder="Enter project name" required>
-                        <button type="submit" class="btn-action btn-create">
+                        <button type="submit" class="btn btn-success">
                             <i class="fas fa-magic"></i> Create Project
                         </button>
                     </form>
@@ -48,7 +48,7 @@
                                         </a>
                                         <form method="POST" action="{% url 'builder:delete_project' project.id %}" class="delete-project-form" onsubmit="return confirm('Are you sure you want to delete this project? This action cannot be undone.');">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn-delete" title="Delete project">
+                                            <button type="submit" class="btn btn-danger btn-icon btn-sm" title="Delete project">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
