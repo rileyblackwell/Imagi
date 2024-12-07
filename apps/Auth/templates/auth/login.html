@@ -26,10 +26,10 @@
 {% block button_text %}Sign In{% endblock %}
 
 {% block auth_links %}
-<p>New to Imagi? <a href="{% url 'signup' %}" class="link-animated">Create an account</a></p>
+<p>New to Imagi? <a href="{% url 'signup' %}" class="link link-animated">Create an account</a></p>
 <div class="divider"></div>
-<a href="{% url 'password_reset' %}" class="link-muted">Forgot your password?</a>
-<a href="{% url 'landing_page' %}" class="link-muted">Back to Home</a>
+<a href="{% url 'password_reset' %}" class="link link-muted">Forgot your password?</a>
+<a href="{% url 'landing_page' %}" class="link link-muted">Back to Home</a>
 {% endblock %}
 
 {% block extra_js %}

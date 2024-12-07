@@ -42,7 +42,7 @@
                             {% for project in projects %}
                                 <div class="project-item">
                                     <div class="project-item-content">
-                                        <a href="{% url 'builder:project_workspace' project.get_url_safe_name %}" class="project-link">
+                                        <a href="{% url 'builder:project_workspace' project.get_url_safe_name %}" class="link link-glass project-link">
                                             <span class="project-name">{{ project.name }}</span>
                                             <span class="project-date">Last modified: {{ project.updated_at|date:"M d, Y" }}</span>
                                         </a>

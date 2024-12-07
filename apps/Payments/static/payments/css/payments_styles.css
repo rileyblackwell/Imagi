@@ -174,20 +174,3 @@
     font-size: 16px;
     color: rgba(255, 255, 255, 0.9);
 }
-
-/* Auth links */
-.auth-links {
-    margin-top: 25px;
-    text-align: center;
-}
-
-.auth-links a {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.auth-links a:hover {
-    color: #00ffc6;
-    text-shadow: 0 0 10px rgba(0, 255, 198, 0.5);
-}
