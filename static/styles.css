@@ -24,13 +24,13 @@
     /* Blur effect */
     --global-blur-intensity: 15px;
 
-    /* Button Colors */
+    /* Button Gradients */
     --btn-primary-gradient: linear-gradient(135deg, 
         rgba(99, 102, 241, 0.25),
         rgba(66, 153, 255, 0.15)
     );
     --btn-secondary-gradient: linear-gradient(135deg, 
-        rgba(236, 72, 153, 0.25),
+        rgba(255, 82, 182, 0.25),
         rgba(255, 124, 163, 0.15)
     );
     --btn-success-gradient: linear-gradient(135deg, 
@@ -41,50 +41,18 @@
         rgba(255, 71, 87, 0.25),
         rgba(255, 126, 126, 0.15)
     );
-    --btn-warning-gradient: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1));
-    --btn-info-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(96, 165, 250, 0.1));
-    --btn-light-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-    
+
     /* Button Borders */
-    --btn-primary-border: rgba(99, 102, 241, 0.2);
-    --btn-secondary-border: rgba(236, 72, 153, 0.2);
-    --btn-success-border: rgba(20, 255, 170, 0.2);
-    --btn-danger-border: rgba(255, 71, 87, 0.2);
-    --btn-warning-border: rgba(245, 158, 11, 0.2);
-    --btn-info-border: rgba(59, 130, 246, 0.2);
-    --btn-light-border: rgba(255, 255, 255, 0.1);
-
-    /* Button Shadows */
-    --btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-
-    /* Button Text Colors */
-    --btn-text-light: rgba(255, 255, 255, 0.95);
-    --btn-text-dark: rgba(17, 24, 39, 0.95);
+    --btn-primary-border: rgba(111, 76, 255, 0.4);
+    --btn-secondary-border: rgba(255, 82, 182, 0.4);
+    --btn-success-border: rgba(20, 255, 170, 0.4);
+    --btn-danger-border: rgba(255, 71, 87, 0.4);
 
     /* Link Colors */
-    --link-primary: #6366f1;
-    --link-hover: #818cf8;
+    --link-primary: rgba(255, 255, 255, 0.9);
+    --link-hover: #00ffcc;
     --link-muted: rgba(255, 255, 255, 0.6);
-    --link-light: rgba(255, 255, 255, 0.9);
-    --link-glass: rgba(255, 255, 255, 0.8);
-
-    /* Button Variants */
-    --btn-primary-hover: linear-gradient(135deg, 
-        rgba(111, 76, 255, 0.35),
-        rgba(66, 153, 255, 0.25)
-    );
-    --btn-secondary-hover: linear-gradient(135deg, 
-        rgba(255, 82, 182, 0.35),
-        rgba(255, 124, 163, 0.25)
-    );
-    --btn-success-hover: linear-gradient(135deg, 
-        rgba(20, 255, 170, 0.35),
-        rgba(0, 217, 255, 0.25)
-    );
-    --btn-danger-hover: linear-gradient(135deg, 
-        rgba(255, 71, 87, 0.35),
-        rgba(255, 126, 126, 0.25)
-    );
+    --link-underline: rgba(0, 255, 204, 0.3);
 }
 
 /* Body styles */
@@ -213,19 +181,6 @@ body {
     gap: 15px;
 }
 
-.site-footer-link {
-    color: var(--global-muted-text-color);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-
-.site-footer-link:hover {
-    color: var(--global-text-color);
-    text-shadow: 0 0 10px var(--global-text-color);
-}
-
 .site-footer-divider {
     color: var(--global-muted-text-color);
     font-size: 0.8rem;
@@ -267,10 +222,6 @@ body {
         gap: 12px;
     }
 
-    .site-footer-link {
-        font-size: 0.85rem;
-    }
-
     .site-footer-copyright {
         font-size: 0.8rem;
     }
@@ -289,36 +240,36 @@ body {
     }
 }
 
-/* Custom scrollbar styles for Webkit browsers (Chrome, Safari) */
+/* Custom scrollbar styles */
 ::-webkit-scrollbar {
-    width: 12px; /* Width of the scrollbar */
+    width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2); /* Darker background for the scrollbar track */
-    border-radius: 20px; /* Increased border-radius for a pill shape */
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, rgba(0, 162, 255, 0.7), rgba(0, 255, 127, 0.7)); /* Gradient color for the scrollbar thumb */
-    border-radius: 20px; /* Increased border-radius for a pill shape */
+    background: linear-gradient(45deg, rgba(0, 162, 255, 0.7), rgba(0, 255, 127, 0.7));
+    border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, rgba(0, 162, 255, 1), rgba(0, 255, 127, 1)); /* Brighter gradient on hover */
-    transition: background 0.3s; /* Smooth transition for hover effect */
+    background: linear-gradient(45deg, rgba(0, 162, 255, 1), rgba(0, 255, 127, 1));
+    transition: background 0.3s;
 }
 
 /* For Firefox */
 * {
-    scrollbar-width: thin; /* Use a thin scrollbar */
-    scrollbar-color: rgba(0, 162, 255, 0.7) rgba(0, 0, 0, 0.2); /* Thumb color and track color */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 162, 255, 0.7) rgba(0, 0, 0, 0.2);
 }
 
-/* Base Button Styles */
+/* Base Button Style */
 .btn {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--text-primary) !important;
+    color: var(--global-text-color) !important;
     padding: 10px 18px;
     border-radius: 12px;
     font-weight: 500;
@@ -328,15 +279,18 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 40px;
 }
 
-/* Button Icon Styles */
+/* Button Icon Style */
 .btn i {
     font-size: 1.1rem;
     color: #00ffcc;
+    transition: transform 0.3s ease;
 }
 
 /* Button Variants */
@@ -360,17 +314,19 @@ body {
     border-color: var(--btn-danger-border);
 }
 
-/* Button Size Variations */
+/* Button Sizes */
 .btn-sm {
-    padding: 8px 16px;
+    padding: 6px 14px;
     font-size: 0.875rem;
     border-radius: 10px;
+    min-height: 32px;
 }
 
 .btn-lg {
     padding: 12px 24px;
-    font-size: 1.1rem;
+    font-size: 1rem;
     border-radius: 14px;
+    min-height: 48px;
 }
 
 /* Disabled State */
@@ -379,186 +335,121 @@ body {
     cursor: not-allowed;
 }
 
-/* Group Buttons - Inspired by Twilio */
-.btn-group {
-    display: inline-flex;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.btn-group .btn {
-    border-radius: 0;
-}
-
-.btn-group .btn:first-child {
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-}
-
-.btn-group .btn:last-child {
-    border-top-right-radius: 12px;
-    border-bottom-right-radius: 12px;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .btn {
-        width: 100%;
-        padding: 14px 20px;
-    }
-    
-    .btn-lg {
-        padding: 16px 24px;
-    }
-    
-    .btn-group {
-        width: 100%;
-    }
-}
-
 /* Base Link Styles */
 .link {
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-/* Link Variants */
-.link-primary {
     color: var(--link-primary);
-    font-weight: 500;
-}
-
-.link-primary:hover {
-    color: var(--link-hover);
-}
-
-/* Animated Link */
-.link-animated {
-    color: var(--link-primary);
-    font-weight: 500;
     text-decoration: none;
     position: relative;
+    transition: color 0.2s ease;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 2px 0;
 }
 
+.link:hover {
+    color: var(--link-hover);
+    text-decoration: none;
+}
+
+/* Animated Link - Remove underline animation */
+.link-animated {
+    position: relative;
+    color: var(--link-primary);
+    text-decoration: none;
+    padding-bottom: 2px;
+    font-weight: 500;
+}
+
+/* Remove the underline animation effect */
 .link-animated::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -2px;
-    width: 100%;
-    height: 2px;
-    background: var(--btn-primary-gradient);
-    transform: scaleX(0);
-    transform-origin: right;
-    transition: transform 0.3s ease;
+    display: none;
 }
 
 .link-animated:hover {
     color: var(--link-hover);
-}
-
-.link-animated:hover::after {
-    transform: scaleX(1);
-    transform-origin: left;
-}
-
-/* Muted Link */
-.link-muted {
-    color: var(--link-muted);
-    font-size: 0.9rem;
     text-decoration: none;
 }
 
-.link-muted:hover {
-    color: var(--link-light);
-}
-
-/* Glass Link */
+/* Glass Effect Link */
 .link-glass {
-    color: var(--link-glass);
+    color: var(--link-primary);
     text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .link-glass:hover {
-    color: var(--link-light);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* Nav Link */
-.link-nav {
-    color: var(--link-light);
     text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.link-nav:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--link-light);
 }
 
 /* Icon Link */
 .link-icon {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
+    color: var(--link-primary);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 6px;
 }
 
-.link-icon i {
-    transition: transform 0.2s ease;
+.link-icon:hover {
+    background: rgba(255, 255, 255, 0.05);
+    text-decoration: none;
 }
 
-.link-icon:hover i {
-    transform: translateX(4px);
+/* Muted Link */
+.link-muted {
+    color: var(--link-muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    font-size: 0.9rem;
 }
 
-/* Update icon color in success buttons to match new gradient */
-.btn-success i {
-    color: #14ffaa;  /* Bright teal */
-    text-shadow: 0 0 10px rgba(20, 255, 170, 0.6);
+.link-muted:hover {
+    color: var(--link-primary);
+    text-decoration: none;
 }
 
-/* Update icon colors for all button variants */
-.btn-primary i {
-    color: #6f4cff;  /* Vibrant purple */
-    text-shadow: 0 0 10px rgba(111, 76, 255, 0.6);
+/* Navigation Link */
+.link-nav {
+    color: var(--link-primary);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    font-size: 0.95rem;
 }
 
-.btn-secondary i {
-    color: #ff52b6;  /* Vibrant pink */
-    text-shadow: 0 0 10px rgba(255, 82, 182, 0.6);
+.link-nav:hover {
+    background: rgba(255, 255, 255, 0.1);
+    text-decoration: none;
 }
 
-.btn-success i {
-    color: #14ffaa;  /* Bright teal */
-    text-shadow: 0 0 10px rgba(20, 255, 170, 0.6);
+/* Active States */
+.link.active,
+.link-nav.active {
+    color: var(--link-hover);
+    font-weight: 600;
 }
 
-.btn-danger i {
-    color: #ff4757;  /* Vibrant red */
-    text-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+/* Focus States for Accessibility */
+.link:focus,
+.link-animated:focus,
+.link-glass:focus,
+.link-icon:focus,
+.link-muted:focus,
+.link-nav:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.3);
 }
 
-/* Remove ALL hover states */
-.btn:hover,
-.btn:active,
-.btn:focus,
-.btn-primary:hover,
-.btn-primary:active,
-.btn-primary:focus,
-.btn-secondary:hover,
-.btn-secondary:active,
-.btn-secondary:focus,
-.btn-success:hover,
-.btn-success:active,
-.btn-success:focus,
-.btn-danger:hover,
-.btn-danger:active,
-.btn-danger:focus {
-    background: inherit;
-    border-color: inherit;
-    box-shadow: none;
-    transform: none;
-    opacity: 1;
-}
+

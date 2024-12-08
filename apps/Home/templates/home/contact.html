@@ -61,10 +61,12 @@
                     </label>
                     <textarea class="form-control" id="message" rows="5" required></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">
-                    <span>Send Message</span>
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <span>Send Message</span>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
             </form>
         </div>
     </section>
@@ -88,5 +90,11 @@
             </div>
         </div>
     </section>
+</div>
+
+<div class="auth-links">
+    <a href="{% url 'landing_page' %}" class="link link-icon">
+        <i class="fas fa-arrow-left"></i> Return to Home
+    </a>
 </div>
 {% endblock %}

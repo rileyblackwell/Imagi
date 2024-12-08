@@ -6,8 +6,9 @@
 {% endblock %}
 
 {% block navbar_links %}
-<div class="home-nav-buttons">
+<nav class="home-nav-buttons">
     <ul class="home-nav-list">
+        {% if user.is_authenticated %}
         <li class="home-nav-item dropdown">
             <a class="home-nav-btn btn-products dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-th"></i> Products
@@ -18,26 +19,28 @@
                 </a>
             </div>
         </li>
-        {% if user.is_authenticated %}
-            <li class="home-nav-item">
-                <a href="{% url 'payments:create-checkout-session' %}" class="home-nav-btn btn-credits">
-                    <i class="fas fa-coins"></i> Buy Credits
-                </a>
-            </li>
-            <li class="home-nav-item">
-                <a href="{% url 'logout' %}" class="home-nav-btn btn-auth">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </li>
-        {% else %}
-            <li class="home-nav-item">
-                <a href="{% url 'login' %}" class="home-nav-btn btn-auth">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </a>
-            </li>
+        <li class="home-nav-item">
+            <a href="{% url 'payments:create-checkout-session' %}" class="btn btn-success">
+                <i class="fas fa-coins"></i>
+                <span>Buy Credits</span>
+            </a>
+        </li>
         {% endif %}
+        <li class="home-nav-item">
+            {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="btn btn-secondary">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn btn-secondary">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login</span>
+            </a>
+            {% endif %}
+        </li>
     </ul>
-</div>
+</nav>
 {% endblock %}
 
 {% block content %}

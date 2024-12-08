@@ -18,14 +18,10 @@
             <h2>Payment Cancelled</h2>
             <p>Your payment was cancelled. No credits have been added to your account.</p>
             <div class="auth-links">
-                <p>
-                    <a href="{% url 'payments:create-checkout-session' %}" class="btn btn-success btn-lg">Try Again</a>
-                </p>
-                <p>
-                    <a href="{% url 'landing_page' %}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-arrow-left"></i> Return to Home
-                    </a>
-                </p>
+                <a href="{% url 'payments:create-checkout-session' %}" class="btn btn-success btn-lg">Try Again</a>
+                <a href="{% url 'landing_page' %}" class="link link-icon">
+                    <i class="fas fa-arrow-left"></i> Return to Home
+                </a>
             </div>
         </div>
     </div>
