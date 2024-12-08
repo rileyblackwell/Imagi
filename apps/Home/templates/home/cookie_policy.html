@@ -6,90 +6,86 @@
 {% block page_lead %}Understanding how we use cookies to improve your experience{% endblock %}
 
 {% block main_content %}
-<div class="text-content">
-    <section>
-        <h2 class="section-header">Cookie Overview</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-cookie-bite"></i>
+<section class="content-section">
+    <div class="text-content">
+        <section>
+            <h2 class="section-header">Cookie Overview</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-cookie-bite"></i>
+                    </div>
+                    <h3 class="feature-title">What Are Cookies?</h3>
+                    <p>Small text files stored on your device that help us provide a better browsing experience.</p>
                 </div>
-                <h3 class="card-header">What Are Cookies?</h3>
-                <p>Small text files stored on your device that help us provide a better browsing experience.</p>
-            </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-tasks"></i>
+                <div class="content-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h3 class="feature-title">How We Use Them</h3>
+                    <p>To remember preferences, analyze site usage, and enhance functionality.</p>
                 </div>
-                <h3 class="card-header">How We Use Them</h3>
-                <p>To remember preferences, analyze site usage, and enhance functionality.</p>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section>
-        <h2 class="section-header">Types of Cookies</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-shield-alt"></i>
+        <section>
+            <h2 class="section-header">Types of Cookies</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Essential Cookies</h3>
+                    <p>Required for core website functionality. These cannot be disabled as they are necessary for the site to work properly.</p>
                 </div>
-                <h3 class="card-header">Essential Cookies</h3>
-                <p>Required for core website functionality. These cannot be disabled as they are necessary for the site to work properly.</p>
-            </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-chart-line"></i>
+                <div class="content-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="feature-title">Analytics Cookies</h3>
+                    <p>Help us understand how visitors interact with our website by collecting anonymous information.</p>
                 </div>
-                <h3 class="card-header">Analytics Cookies</h3>
-                <p>Help us understand how visitors interact with our website by collecting anonymous information.</p>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section>
-        <h2 class="section-header">Cookie Management</h2>
-        <div class="content-text">
-            <p>You have several options to manage your cookie preferences:</p>
-            <ul>
-                <li>Browser Settings: Configure your browser to accept, reject, or delete cookies</li>
-                <li>Privacy Settings: Adjust your privacy preferences directly on our website</li>
-                <li>Third-Party Tools: Use available cookie management tools</li>
-            </ul>
-        </div>
-    </section>
+        <section>
+            <h2 class="section-header">Cookie Management</h2>
+            <div class="content-text">
+                <p>You have several options to manage your cookie preferences:</p>
+                <ul>
+                    <li>Browser Settings: Configure your browser to accept, reject, or delete cookies</li>
+                    <li>Privacy Settings: Adjust your privacy preferences directly on our website</li>
+                    <li>Third-Party Tools: Use available cookie management tools</li>
+                </ul>
+            </div>
+        </section>
 
-    <section>
-        <h2 class="section-header">Third-Party Cookies</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-analytics"></i>
+        <section>
+            <h2 class="section-header">Third-Party Cookies</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3 class="feature-title">Analytics Partners</h3>
+                    <p>We use trusted analytics services to improve our website performance.</p>
                 </div>
-                <h3 class="card-header">Analytics Partners</h3>
-                <p>We use trusted analytics services to improve our website performance.</p>
-            </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-credit-card"></i>
+                <div class="content-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h3 class="feature-title">Payment Processors</h3>
+                    <p>Secure payment processing through trusted financial partners.</p>
                 </div>
-                <h3 class="card-header">Payment Processors</h3>
-                <p>Secure payment processing through trusted financial partners.</p>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section>
-        <h2 class="section-header">Updates & Contact</h2>
-        <div class="content-text">
-            <p>We may update this Cookie Policy periodically. For questions or concerns, please <a href="{% url 'contact' %}" class="link link-primary">contact us</a>.</p>
-        </div>
-    </section>
-</div>
-
-<div class="auth-links">
-    <a href="{% url 'landing_page' %}" class="link link-icon">
-        <i class="fas fa-arrow-left"></i> Return to Home
-    </a>
-</div>
+        <section>
+            <h2 class="section-header">Updates & Contact</h2>
+            <div class="content-text">
+                <p>We may update this Cookie Policy periodically. For questions or concerns, please <a href="{% url 'contact' %}" class="link">contact us</a>.</p>
+            </div>
+        </section>
+    </div>
+</section>
 {% endblock %} 

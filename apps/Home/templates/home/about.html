@@ -7,98 +7,75 @@
 {% block page_lead %}Transforming natural language into powerful web applications{% endblock %}
 
 {% block main_content %}
-<div class="text-content">
+<section class="content-section">
     <!-- Mission Section -->
-    <section>
-        <h2 class="section-header">Our Mission</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-bullseye"></i>
-                </div>
-                <h3 class="card-header">Democratizing Web Development</h3>
-                <p>Our mission is to make web development accessible to everyone by transforming natural language into professional code. We believe that great ideas shouldn't be limited by technical barriers.</p>
+    <h2 class="section-header">Our Mission</h2>
+    <div class="content-grid">
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-bullseye"></i>
             </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-star"></i>
-                </div>
-                <h3 class="card-header">AI-Powered Innovation</h3>
-                <p>By combining cutting-edge AI with intuitive design, we're revolutionizing how websites and applications are built, making the development process faster, easier, and more accessible than ever before.</p>
-            </div>
+            <h3 class="feature-title">Democratizing Web Development</h3>
+            <p>Our mission is to make web development accessible to everyone by transforming natural language into professional code.</p>
         </div>
-    </section>
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-star"></i>
+            </div>
+            <h3 class="feature-title">AI-Powered Innovation</h3>
+            <p>By combining cutting-edge AI with intuitive design, we're revolutionizing how websites and applications are built.</p>
+        </div>
+    </div>
+</section>
 
+<section class="content-section">
     <!-- Story Section -->
-    <section>
-        <h2 class="section-header">Our Story</h2>
-        <div class="content-text">
-            <p>Founded in 2024 by Riley Blackwell, Imagi was born from a simple observation: while the world is full of innovative ideas, many remain unrealized due to the technical complexity of web development. As a software engineer with years of experience, Riley witnessed countless entrepreneurs and businesses struggle to bring their digital visions to life.</p>
-            <p>This insight led to the creation of Imagi's natural language processing platform, which transforms plain English descriptions into functional code. Our technology understands your requirements and generates professional-grade web applications, complete with modern features, responsive design, and clean code.</p>
-        </div>
-    </section>
+    <h2 class="section-header">Our Story</h2>
+    <div class="text-content">
+        <p>Founded in 2024, Imagi was born from a simple observation: while the world is full of innovative ideas, many remain unrealized due to the technical complexity of web development.</p>
+        <p>This insight led to the creation of Imagi's natural language processing platform, which transforms plain English descriptions into functional code.</p>
+    </div>
+</section>
 
-    <!-- How It Works -->
-    <section>
-        <h2 class="section-header">How Imagi Works</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <h3 class="card-header">Natural Language Input</h3>
-                <p>Simply describe your website or application in plain English. Our AI understands your requirements, features, and design preferences.</p>
+<section class="content-section">
+    <!-- Technology Section -->
+    <h2 class="section-header">Our Technology</h2>
+    <div class="content-grid">
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-robot"></i>
             </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-code"></i>
-                </div>
-                <h3 class="card-header">Code Generation</h3>
-                <p>Our advanced AI transforms your description into clean, efficient code using modern frameworks and best practices.</p>
-            </div>
+            <h3 class="feature-title">AI Understanding</h3>
+            <p>Advanced natural language processing to understand context, requirements, and user intent.</p>
         </div>
-    </section>
-
-    <!-- Technology -->
-    <section>
-        <h2 class="section-header">Our Technology</h2>
-        <div class="content-text">
-            <p>Imagi leverages state-of-the-art artificial intelligence and natural language processing to understand context, requirements, and user intent. Our platform generates:</p>
-            <ul>
-                <li>Responsive web applications that work across all devices</li>
-                <li>Clean, maintainable code following industry best practices</li>
-                <li>Modern user interfaces with intuitive navigation</li>
-                <li>Secure, scalable backend systems</li>
-                <li>Database structures and API integrations</li>
-            </ul>
-        </div>
-    </section>
-
-    <!-- Vision -->
-    <section>
-        <h2 class="section-header">Our Vision</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-rocket"></i>
-                </div>
-                <h3 class="card-header">Future of Development</h3>
-                <p>We envision a future where creating web applications is as simple as describing your idea. Where technical barriers no longer limit innovation and creativity.</p>
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-code-branch"></i>
             </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-users"></i>
-                </div>
-                <h3 class="card-header">Community Impact</h3>
-                <p>By making web development accessible to everyone, we're empowering entrepreneurs, businesses, and creators to bring their digital ideas to life.</p>
-            </div>
+            <h3 class="feature-title">Clean Code</h3>
+            <p>Generate maintainable code following industry best practices.</p>
         </div>
-    </section>
-</div>
+    </div>
+</section>
 
-<div class="auth-links">
-    <a href="{% url 'landing_page' %}" class="link link-icon">
-        <i class="fas fa-arrow-left"></i> Return to Home
-    </a>
-</div>
+<section class="content-section">
+    <!-- Vision Section -->
+    <h2 class="section-header">Our Vision</h2>
+    <div class="content-grid">
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h3 class="feature-title">Future of Development</h3>
+            <p>We envision a future where creating web applications is as simple as describing your idea.</p>
+        </div>
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="feature-title">Community Impact</h3>
+            <p>Empowering entrepreneurs, businesses, and creators to bring their digital ideas to life.</p>
+        </div>
+    </div>
+</section>
 {% endblock %}

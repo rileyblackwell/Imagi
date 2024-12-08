@@ -6,95 +6,87 @@
 {% block page_lead %}We're here to help you bring your ideas to life{% endblock %}
 
 {% block main_content %}
-<div class="text-content">
-    <section>
-        <h2 class="section-header">Contact Methods</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-envelope"></i>
-                </div>
-                <h3 class="card-header">Email Support</h3>
-                <a href="mailto:rileyblackwell5@gmail.com" class="link link-primary">rileyblackwell5@gmail.com</a>
-                <p>For general inquiries and support</p>
-            </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-phone"></i>
-                </div>
-                <h3 class="card-header">Phone Support</h3>
-                <a href="tel:6168813592" class="link link-primary">616-881-3592</a>
-                <p>Available during business hours</p>
-            </div>
-        </div>
-    </section>
-
-    <section>
-        <h2 class="section-header">Send Us a Message</h2>
+<section class="content-section">
+    <h2 class="section-header">Contact Methods</h2>
+    <div class="content-grid">
         <div class="content-card">
-            <form class="contact-form">
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-user"></i>
-                        Name
-                    </label>
-                    <input type="text" class="form-control" id="name" required>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-envelope"></i>
-                        Email
-                    </label>
-                    <input type="email" class="form-control" id="email" required>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-tag"></i>
-                        Subject
-                    </label>
-                    <input type="text" class="form-control" id="subject" required>
-                </div>
-                <div class="form-group">
-                    <label>
-                        <i class="fas fa-comment"></i>
-                        Message
-                    </label>
-                    <textarea class="form-control" id="message" rows="5" required></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <span>Send Message</span>
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </section>
-
-    <section>
-        <h2 class="section-header">Response Time</h2>
-        <div class="content-grid">
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <h3 class="card-header">General Support</h3>
-                <p>We typically respond within 24 hours during business days.</p>
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-envelope"></i>
             </div>
-            <div class="content-card">
-                <div class="feature-icon-wrapper">
-                    <i class="fas fa-exclamation-circle"></i>
-                </div>
-                <h3 class="card-header">Urgent Issues</h3>
-                <p>For urgent matters, please use our phone support for immediate assistance.</p>
-            </div>
+            <h3 class="feature-title">Email Support</h3>
+            <p>For general inquiries and support</p>
+            <a href="mailto:rileyblackwell5@gmail.com" class="link">rileyblackwell5@gmail.com</a>
         </div>
-    </section>
-</div>
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-phone"></i>
+            </div>
+            <h3 class="feature-title">Phone Support</h3>
+            <p>Available during business hours</p>
+            <a href="tel:6168813592" class="link">616-881-3592</a>
+        </div>
+    </div>
+</section>
 
-<div class="auth-links">
-    <a href="{% url 'landing_page' %}" class="link link-icon">
-        <i class="fas fa-arrow-left"></i> Return to Home
-    </a>
-</div>
+<section class="content-section">
+    <h2 class="section-header">Send Us a Message</h2>
+    <div class="text-content">
+        <form class="contact-form">
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-user"></i>
+                    Name
+                </label>
+                <input type="text" class="form-control" id="name" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-envelope"></i>
+                    Email
+                </label>
+                <input type="email" class="form-control" id="email" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-tag"></i>
+                    Subject
+                </label>
+                <input type="text" class="form-control" id="subject" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <i class="fas fa-comment"></i>
+                    Message
+                </label>
+                <textarea class="form-control" id="message" rows="5" required></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <span>Send Message</span>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="content-section">
+    <h2 class="section-header">Response Time</h2>
+    <div class="content-grid">
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3 class="feature-title">General Support</h3>
+            <p>We typically respond within 24 hours during business days.</p>
+        </div>
+        <div class="content-card">
+            <div class="feature-icon-wrapper">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3 class="feature-title">Urgent Issues</h3>
+            <p>For urgent matters, please use our phone support for immediate assistance.</p>
+        </div>
+    </div>
+</section>
 {% endblock %}
