@@ -87,7 +87,10 @@ function initializePayment(stripeKey, creditsPerDollar) {
                         fontWeightMedium: '500',
                         fontLineHeight: '1.6',
                         colorTextPlaceholder: 'rgba(255, 255, 255, 0.5)',
-                        colorLogo: 'light'
+                        colorLogo: 'light',
+                        colorIcon: '#ffffff',
+                        colorIconHover: '#ffffff',
+                        colorIconSelected: '#ffffff'
                     },
                     rules: {
                         '.Input': {
@@ -121,18 +124,6 @@ function initializePayment(stripeKey, creditsPerDollar) {
                         '.TabIcon': {
                             color: '#ffffff'
                         },
-                        '.Tab--selected .TabIcon': {
-                            color: '#00ffc6'
-                        },
-                        '.Tab:hover .TabIcon': {
-                            color: '#00ffc6'
-                        },
-                        '.Tab:hover .TabLabel': {
-                            color: '#ffffff'
-                        },
-                        '.Tab--selected .TabLabel': {
-                            color: '#ffffff'
-                        },
                         '.Input::placeholder': {
                             color: 'rgba(255, 255, 255, 0.5)'
                         },
@@ -150,6 +141,18 @@ function initializePayment(stripeKey, creditsPerDollar) {
                             backgroundColor: 'rgba(0, 255, 198, 0.1)',
                             borderColor: '#00ffc6',
                             color: '#ffffff'
+                        },
+                        '[class*="Icon"]': {
+                            color: '#ffffff !important',
+                            fill: '#ffffff !important'
+                        },
+                        '.PaymentElement [class*="Icon"]': {
+                            color: '#ffffff !important',
+                            fill: '#ffffff !important'
+                        },
+                        '.PaymentElement .Card [class*="Icon"]': {
+                            color: '#ffffff !important',
+                            fill: '#ffffff !important'
                         }
                     }
                 };
