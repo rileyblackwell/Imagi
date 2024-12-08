@@ -332,6 +332,13 @@ textarea.form-control {
     gap: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.home-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .home-nav-btn i {
@@ -354,6 +361,22 @@ textarea.form-control {
 .home-nav-btn.btn-auth {
     background: linear-gradient(135deg, rgba(0, 255, 204, 0.1), rgba(0, 162, 255, 0.1));
     border-color: rgba(0, 255, 204, 0.2);
+}
+
+/* Special Button Hover Effects */
+.home-nav-btn.btn-products:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(0, 255, 204, 0.2));
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.home-nav-btn.btn-credits:hover {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(0, 255, 204, 0.2));
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+.home-nav-btn.btn-auth:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(0, 162, 255, 0.2));
+    border-color: rgba(0, 255, 204, 0.3);
 }
 
 /* Dropdown Menu */
@@ -483,6 +506,11 @@ textarea.form-control {
         width: 100%;
         justify-content: center;
     }
+}
+
+/* Dropdown Button Hover */
+.home-dropdown-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
  
