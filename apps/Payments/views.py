@@ -20,10 +20,13 @@ CREDITS_PER_DOLLAR = 10  # $1 = 10 credits ($10 = 100 credits)
 @ensure_csrf_cookie
 @login_required
 def create_checkout_session(request):
-    return render(request, 'payments/checkout.html', {
+    context = {
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
         'credits_per_dollar': CREDITS_PER_DOLLAR
-    })
+    }
+    logger.info(f"Stripe Key (first 10 chars): {settings.STRIPE_PUBLISHABLE_KEY[:10]}...")
+    logger.info(f"Credits per dollar: {CREDITS_PER_DOLLAR}")
+    return render(request, 'payments/checkout.html', context)
 
 @require_http_methods(["POST"])
 @login_required

@@ -81,12 +81,24 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://js.stripe.com/v3/"></script>
-<script src="{% static 'payments/js/checkout.js' %}"></script>
-<script 
-    type="text/javascript" 
-    data-stripe-key="{{ stripe_publishable_key }}"
-    data-credits-per-dollar="{{ credits_per_dollar }}"
-    src="{% static 'payments/js/init.js' %}">
+<!-- Debug info -->
+<script type="text/javascript">
+    console.log('Template variables:', {
+        hasStripeKey: Boolean('{{ stripe_publishable_key|escapejs }}'),
+        hasCreditsPerDollar: Boolean('{{ credits_per_dollar|escapejs }}')
+    });
 </script>
+
+<!-- Add these variables for JavaScript access -->
+<script type="text/javascript">
+    window.stripePublishableKey = '{{ stripe_publishable_key|escapejs }}';
+    window.creditsPerDollar = Number('{{ credits_per_dollar|escapejs }}');
+</script>
+
+<!-- Load Stripe.js first -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<!-- Then load your custom scripts -->
+<script src="{% static 'payments/js/checkout.js' %}"></script>
+<script src="{% static 'payments/js/init.js' %}"></script>
 {% endblock %}

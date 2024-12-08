@@ -1,7 +1,17 @@
 // Initialize payment processing
 function initializePayment(stripeKey, creditsPerDollar) {
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Stripe
+    console.log('Initializing payment with:', { 
+        stripeKeyLength: stripeKey ? stripeKey.length : 0,
+        creditsPerDollar 
+    });
+    
+    if (!stripeKey) {
+        console.error('Stripe key is missing or invalid');
+        return;
+    }
+
+    // Initialize Stripe immediately, not inside DOMContentLoaded
+    try {
         const stripe = Stripe(stripeKey);
         let elements;
 
@@ -60,6 +70,7 @@ function initializePayment(stripeKey, creditsPerDollar) {
                 }
 
                 const { clientSecret } = await response.json();
+                console.log('Got client secret');
 
                 const appearance = {
                     theme: 'stripe',
@@ -76,19 +87,19 @@ function initializePayment(stripeKey, creditsPerDollar) {
                 
                 elements = stripe.elements({ 
                     appearance, 
-                    clientSecret,
-                    loader: 'auto',
+                    clientSecret 
                 });
 
-                const paymentElement = elements.create("payment", {
-                    layout: "tabs"
-                });
+                const paymentElement = elements.create("payment");
+                console.log('Created payment element');
 
                 await paymentElement.mount("#payment-element");
+                console.log('Mounted payment element');
+                
                 document.querySelector("#submit").disabled = false;
             } catch (error) {
-                console.error('Error:', error);
-                showMessage(error.message || "Failed to initialize payment form. Please try again.");
+                console.error('Initialization error:', error);
+                showMessage(error.message || "Failed to initialize payment form.");
             }
         }
 
@@ -205,5 +216,8 @@ function initializePayment(stripeKey, creditsPerDollar) {
 
         // Initialize the credits preview with the default value
         updateCreditsPreview(creditInput.value);
-    });
+    } catch (error) {
+        console.error('Stripe initialization error:', error);
+        showMessage("Failed to initialize payment system. Please try again later.");
+    }
 }
