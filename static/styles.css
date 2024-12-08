@@ -279,7 +279,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     cursor: pointer;
     transition: all 0.3s ease;
@@ -295,23 +295,35 @@ body {
 
 /* Button Variants */
 .btn-primary {
-    background: var(--btn-primary-gradient);
-    border-color: var(--btn-primary-border);
+    background: linear-gradient(135deg, 
+        rgba(99, 102, 241, 0.1),
+        rgba(0, 255, 204, 0.1)
+    );
+    border-color: rgba(99, 102, 241, 0.2);
 }
 
 .btn-secondary {
-    background: var(--btn-secondary-gradient);
-    border-color: var(--btn-secondary-border);
+    background: linear-gradient(135deg, 
+        rgba(236, 72, 153, 0.1),
+        rgba(0, 255, 204, 0.1)
+    );
+    border-color: rgba(236, 72, 153, 0.2);
 }
 
 .btn-success {
-    background: var(--btn-success-gradient);
-    border-color: var(--btn-success-border);
+    background: linear-gradient(135deg, 
+        rgba(0, 255, 204, 0.1),
+        rgba(0, 162, 255, 0.1)
+    );
+    border-color: rgba(0, 255, 204, 0.2);
 }
 
 .btn-danger {
-    background: var(--btn-danger-gradient);
-    border-color: var(--btn-danger-border);
+    background: linear-gradient(135deg, 
+        rgba(255, 71, 87, 0.1),
+        rgba(255, 126, 126, 0.1)
+    );
+    border-color: rgba(255, 71, 87, 0.2);
 }
 
 /* Button Sizes */
@@ -450,6 +462,45 @@ body {
 .link-nav:focus {
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.3);
+}
+
+/* Hover effects */
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, 
+        rgba(99, 102, 241, 0.2),
+        rgba(0, 255, 204, 0.15)
+    );
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, 
+        rgba(236, 72, 153, 0.2),
+        rgba(0, 255, 204, 0.15)
+    );
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, 
+        rgba(0, 255, 204, 0.2),
+        rgba(0, 162, 255, 0.15)
+    );
+    border-color: rgba(0, 255, 204, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, 
+        rgba(255, 71, 87, 0.2),
+        rgba(255, 126, 126, 0.15)
+    );
+    border-color: rgba(255, 71, 87, 0.3);
 }
 
 
