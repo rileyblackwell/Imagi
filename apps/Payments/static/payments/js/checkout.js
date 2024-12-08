@@ -73,24 +73,104 @@ function initializePayment(stripeKey, creditsPerDollar) {
                 console.log('Got client secret');
 
                 const appearance = {
-                    theme: 'stripe',
+                    theme: 'night',
                     variables: {
-                        colorPrimary: '#00a2ff',
-                        colorBackground: '#ffffff',
-                        colorText: '#30313d',
-                        colorDanger: '#df1b41',
+                        colorPrimary: '#00ffc6',
+                        colorBackground: 'rgba(13, 12, 34, 0.95)',
+                        colorText: '#ffffff',
+                        colorDanger: '#ff4d4d',
                         fontFamily: 'system-ui, sans-serif',
                         spacingUnit: '6px',
-                        borderRadius: '4px',
+                        borderRadius: '12px',
+                        fontSizeBase: '15px',
+                        fontWeightNormal: '400',
+                        fontWeightMedium: '500',
+                        fontLineHeight: '1.6',
+                        colorTextPlaceholder: 'rgba(255, 255, 255, 0.5)',
+                        colorLogo: 'light'
+                    },
+                    rules: {
+                        '.Input': {
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            boxShadow: 'none',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            color: '#ffffff'
+                        },
+                        '.Label': {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            fontSize: '14px'
+                        },
+                        '.Tab': {
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            color: '#ffffff'
+                        },
+                        '.Tab:hover': {
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            color: '#ffffff'
+                        },
+                        '.Tab--selected': {
+                            border: '1px solid #00ffc6',
+                            backgroundColor: 'rgba(0, 255, 198, 0.1)',
+                            color: '#ffffff'
+                        },
+                        '.TabLabel': {
+                            color: '#ffffff'
+                        },
+                        '.TabIcon': {
+                            color: '#ffffff'
+                        },
+                        '.Tab--selected .TabIcon': {
+                            color: '#00ffc6'
+                        },
+                        '.Tab:hover .TabIcon': {
+                            color: '#00ffc6'
+                        },
+                        '.Tab:hover .TabLabel': {
+                            color: '#ffffff'
+                        },
+                        '.Tab--selected .TabLabel': {
+                            color: '#ffffff'
+                        },
+                        '.Input::placeholder': {
+                            color: 'rgba(255, 255, 255, 0.5)'
+                        },
+                        '.Block': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            color: '#ffffff'
+                        },
+                        '.Block:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            color: '#ffffff'
+                        },
+                        '.Block--selected': {
+                            backgroundColor: 'rgba(0, 255, 198, 0.1)',
+                            borderColor: '#00ffc6',
+                            color: '#ffffff'
+                        }
                     }
                 };
                 
+                const paymentElementOptions = {
+                    layout: "tabs",
+                    defaultValues: {
+                        billingDetails: {
+                            name: '{{ user.get_full_name }}',
+                            email: '{{ user.email }}'
+                        }
+                    }
+                };
+
                 elements = stripe.elements({ 
                     appearance, 
-                    clientSecret 
+                    clientSecret,
+                    loader: 'auto' 
                 });
 
-                const paymentElement = elements.create("payment");
+                const paymentElement = elements.create("payment", paymentElementOptions);
                 console.log('Created payment element');
 
                 await paymentElement.mount("#payment-element");

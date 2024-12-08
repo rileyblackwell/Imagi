@@ -9,70 +9,99 @@
 {% endblock %}
 
 {% block content %}
-<body class="app-page">
-<div class="app-container">
+<div class="app-container payment-container">
     <div class="checkout-wrapper">
         <div class="checkout-inner">
-            <h2 class="text-center">Purchase API Credits</h2>
-            
-            <div class="checkout-section">
-                <div class="credit-selection">
-                    <label for="credit_amount">Amount to Purchase</label>
-                    <div class="credit-input-wrapper">
-                        <span class="currency-symbol">$</span>
-                        <input 
-                            type="number" 
-                            name="credit_amount" 
-                            id="credit_amount" 
-                            class="credit-input" 
-                            min="5" 
-                            max="100" 
-                            step="0.01"
-                            value="10.00"
-                            required
-                        >
-                    </div>
-                    <div id="amount-error" class="error-message hidden"></div>
-                    <div class="credits-preview">
-                        <i class="fas fa-coins"></i>
-                        You'll receive <span id="credits-amount">100</span> credits
-                    </div>
-                    <div class="credits-info">
-                        <p><i class="fas fa-info-circle"></i> Credit Usage Guide</p>
-                        <ul>
-                            <li>GPT-4 or Claude-Sonnet: 1 credit per use</li>
-                            <li>GPT-4-mini: 0.05 credits per use</li>
-                        </ul>
-                    </div>
-                </div>
+            <!-- Header Section -->
+            <div class="checkout-header">
+                <h2>Purchase Credits</h2>
+                <p class="checkout-subtitle">Power your AI interactions with Imagi credits</p>
             </div>
 
-            <div class="checkout-section">
-                <form id="payment-form">
-                    {% csrf_token %}
-                    <div class="payment-element-container">
-                        <div id="payment-element">
-                            <!-- Stripe.js will insert the Payment Element here -->
+            <!-- Main Grid Layout -->
+            <div class="checkout-grid">
+                <!-- Left Column: Credit Selection -->
+                <div class="credit-selection-column">
+                    <div class="credit-card">
+                        <div class="credit-selection">
+                            <label for="credit_amount">Amount to Purchase</label>
+                            <div class="credit-input-wrapper">
+                                <span class="currency-symbol">$</span>
+                                <input 
+                                    type="number" 
+                                    name="credit_amount" 
+                                    id="credit_amount" 
+                                    class="credit-input" 
+                                    min="5" 
+                                    max="100" 
+                                    step="0.01"
+                                    value="10.00"
+                                    required
+                                >
+                            </div>
+                            <div id="amount-error" class="error-message hidden"></div>
+                        </div>
+
+                        <div class="credits-preview">
+                            <div class="credits-icon">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="credits-text">
+                                <span class="credits-amount" id="credits-amount">100</span>
+                                <span class="credits-label">credits</span>
+                            </div>
+                        </div>
+
+                        <div class="credits-info">
+                            <div class="info-header">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Credit Usage Guide</span>
+                            </div>
+                            <ul class="info-list">
+                                <li>
+                                    <span class="model">GPT-4 or Claude-Sonnet</span>
+                                    <span class="cost">1 credit per use</span>
+                                </li>
+                                <li>
+                                    <span class="model">GPT-4-mini</span>
+                                    <span class="cost">0.05 credits per use</span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                    <button id="submit" class="btn btn-success btn-lg">
-                        <div class="spinner hidden" id="spinner"></div>
-                        <span id="button-text">
-                            <i class="fas fa-lock"></i> Complete Purchase
-                        </span>
-                    </button>
-                    <div id="payment-message" class="hidden"></div>
-                </form>
+                </div>
 
-                <div class="secure-badge">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Secure payment powered by Stripe</span>
+                <!-- Right Column: Payment Form -->
+                <div class="payment-column">
+                    <div class="payment-card">
+                        <form id="payment-form">
+                            {% csrf_token %}
+                            <div class="payment-element-container">
+                                <div id="payment-element"></div>
+                            </div>
+                            <button id="submit" class="payment-button">
+                                <div class="spinner hidden" id="spinner"></div>
+                                <span id="button-text">
+                                    <i class="fas fa-lock"></i>
+                                    Complete Purchase
+                                </span>
+                            </button>
+                            <div id="payment-message" class="hidden"></div>
+                        </form>
+
+                        <div class="secure-badge">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Secure payment powered by Stripe</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="auth-links">
-                <a href="{% url 'landing_page' %}" class="link link-icon">
-                    <i class="fas fa-arrow-left"></i> Return to Home
+            <!-- Footer Navigation -->
+            <div class="checkout-footer">
+                <a href="{% url 'landing_page' %}" class="back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    Return to Home
                 </a>
             </div>
         </div>
@@ -81,24 +110,11 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Debug info -->
-<script type="text/javascript">
-    console.log('Template variables:', {
-        hasStripeKey: Boolean('{{ stripe_publishable_key|escapejs }}'),
-        hasCreditsPerDollar: Boolean('{{ credits_per_dollar|escapejs }}')
-    });
-</script>
-
-<!-- Add these variables for JavaScript access -->
 <script type="text/javascript">
     window.stripePublishableKey = '{{ stripe_publishable_key|escapejs }}';
     window.creditsPerDollar = Number('{{ credits_per_dollar|escapejs }}');
 </script>
-
-<!-- Load Stripe.js first -->
 <script src="https://js.stripe.com/v3/"></script>
-
-<!-- Then load your custom scripts -->
 <script src="{% static 'payments/js/checkout.js' %}"></script>
 <script src="{% static 'payments/js/init.js' %}"></script>
 {% endblock %}

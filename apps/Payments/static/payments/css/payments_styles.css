@@ -1,176 +1,345 @@
-/* Payments-specific styles */
+/* Payment Container Layout */
+.payment-container {
+    min-height: calc(100vh - 200px);
+    padding: 40px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(
+        circle at top right,
+        rgba(0, 255, 204, 0.1),
+        transparent 50%
+    );
+}
+
 .checkout-wrapper {
     width: 100%;
-    max-width: 600px;
-    padding: 30px;
-    margin: 60px auto;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .checkout-inner {
-    position: relative;
+    background: rgba(13, 12, 34, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px;
 }
 
-.checkout-inner h2 {
-    font-size: 28px;
+/* Header Styles */
+.checkout-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.checkout-header h2 {
+    font-size: 32px;
     font-weight: 600;
-    margin-bottom: 30px;
-    background: linear-gradient(45deg, #00a2ff, #00ffc6);
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #00a2ff, #00ffc6);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-/* Credit selection styles */
-.credit-selection {
-    margin-bottom: 30px;
+.checkout-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+}
+
+/* Grid Layout */
+.checkout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+/* Credit Selection Column */
+.credit-selection-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.credit-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    transition: all 0.3s ease;
+}
+
+.credit-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 162, 255, 0.2);
+}
+
+/* Input Styles */
+.credit-selection label {
+    display: block;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
 }
 
 .credit-input-wrapper {
     position: relative;
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 5px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.credit-input-wrapper:hover {
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.credit-input-wrapper:focus-within {
-    border-color: #00a2ff;
-    box-shadow: 0 0 0 3px rgba(0, 162, 255, 0.2);
+    margin-bottom: 20px;
 }
 
 .currency-symbol {
     position: absolute;
     left: 15px;
-    color: #fff;
-    font-weight: 600;
-    font-size: 16px;
-    opacity: 0.8;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
 }
 
 .credit-input {
     width: 100%;
-    padding: 15px 15px 15px 32px;
-    border: none;
-    border-radius: 10px;
+    padding: 15px 15px 15px 35px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
     font-size: 16px;
-    font-weight: 500;
-    color: #fff;
-    background: transparent;
+    transition: all 0.3s ease;
 }
 
+.credit-input:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.credit-input:focus {
+    outline: none;
+    border-color: #00ffc6;
+    box-shadow: 0 0 0 2px rgba(0, 255, 198, 0.2);
+}
+
+/* Credits Preview */
 .credits-preview {
-    margin-top: 20px;
-    color: #00ffc6;
-    font-size: 15px;
-    text-align: center;
-    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(0, 255, 198, 0.05);
+    border: 1px solid rgba(0, 255, 198, 0.2);
+    border-radius: 16px;
+    margin: 20px 0;
+}
+
+.credits-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(0, 255, 198, 0.1);
     border-radius: 12px;
-    border: 1px solid rgba(0, 255, 198, 0.2);
-    backdrop-filter: blur(10px);
 }
 
-.credits-info {
-    margin-top: 20px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.credits-icon i {
+    color: #00ffc6;
+    font-size: 20px;
 }
 
-.credits-info p {
+.credits-text {
+    flex: 1;
+}
+
+.credits-amount {
+    display: block;
+    color: #00ffc6;
+    font-size: 24px;
     font-weight: 600;
-    margin-bottom: 10px;
-    color: rgba(255, 255, 255, 0.9);
 }
 
-.credits-info ul {
+.credits-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+/* Credits Info */
+.credits-info {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.info-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    margin-bottom: 15px;
+}
+
+.info-header i {
+    color: #00ffc6;
+}
+
+.info-list {
     list-style: none;
-    padding-left: 0;
+    padding: 0;
     margin: 0;
 }
 
-.credits-info li {
+.info-list li {
+    display: flex;
+    justify-content: space-between;
     padding: 8px 0;
     color: rgba(255, 255, 255, 0.7);
     font-size: 14px;
+}
+
+/* Payment Column */
+.payment-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.payment-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+}
+
+/* Stripe Elements Container */
+.payment-element-container {
+    margin-bottom: 25px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Add these styles to ensure Stripe iframe is visible */
+#payment-element {
+    min-height: 300px;
+}
+
+#payment-element iframe {
+    background: transparent;
+    min-height: 300px;
+}
+
+/* Payment Button */
+.payment-button {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, 
+        rgba(0, 255, 204, 0.1),
+        rgba(0, 162, 255, 0.1)
+    );
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
     display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-.credits-info li:before {
-    content: "•";
+.payment-button:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, 
+        rgba(0, 255, 204, 0.2),
+        rgba(0, 162, 255, 0.15)
+    );
+    border-color: rgba(0, 255, 204, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.payment-button i {
     color: #00ffc6;
-    margin-right: 10px;
 }
 
-/* Stripe Elements container */
-.payment-element-container {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 25px;
-    border-radius: 15px;
-    margin-bottom: 25px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-}
-
-/* Secure badge */
+/* Secure Badge */
 .secure-badge {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin-top: 25px;
+    margin-top: 20px;
     padding: 12px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
 }
 
 .secure-badge i {
     color: #00ffc6;
-    font-size: 16px;
 }
 
-/* Success/Cancel pages */
-.success-icon,
-.cancel-icon {
-    font-size: 48px;
-    margin-bottom: 20px;
+/* Footer */
+.checkout-footer {
     text-align: center;
+    margin-top: 30px;
 }
 
-.success-icon i {
+.back-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.back-link:hover {
     color: #00ffc6;
-    text-shadow: 0 0 20px rgba(0, 255, 198, 0.5);
 }
 
-.cancel-icon i {
+/* Error Message */
+.error-message {
     color: #ff4d4d;
-    text-shadow: 0 0 20px rgba(255, 77, 77, 0.5);
+    font-size: 14px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 77, 77, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 77, 77, 0.2);
 }
 
-.credit-info {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 20px;
-    border-radius: 12px;
-    margin: 25px 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+/* Loading Spinner */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
 }
 
-.credit-info p {
-    margin: 10px 0;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.9);
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .checkout-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .checkout-inner {
+        padding: 20px;
+    }
+
+    .payment-container {
+        padding: 20px 10px;
+    }
 }
