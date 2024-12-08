@@ -300,6 +300,7 @@
 
 .back-link:hover {
     color: #00ffc6;
+    text-decoration: none;
 }
 
 /* Error Message */
