@@ -26,44 +26,37 @@
 
     /* Button Colors */
     --btn-primary-gradient: linear-gradient(135deg, 
-        rgba(99, 102, 241, 0.25), 
-        rgba(0, 255, 204, 0.15)
+        rgba(99, 102, 241, 0.25),
+        rgba(66, 153, 255, 0.15)
     );
     --btn-secondary-gradient: linear-gradient(135deg, 
-        rgba(236, 72, 153, 0.25), 
-        rgba(0, 255, 204, 0.15)
+        rgba(236, 72, 153, 0.25),
+        rgba(255, 124, 163, 0.15)
     );
     --btn-success-gradient: linear-gradient(135deg, 
-        rgba(0, 255, 204, 0.25), 
-        rgba(0, 162, 255, 0.15)
+        rgba(20, 255, 170, 0.25),
+        rgba(0, 217, 255, 0.15)
     );
     --btn-danger-gradient: linear-gradient(135deg, 
-        rgba(239, 68, 68, 0.25), 
-        rgba(248, 113, 113, 0.15)
+        rgba(255, 71, 87, 0.25),
+        rgba(255, 126, 126, 0.15)
     );
     --btn-warning-gradient: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1));
     --btn-info-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(96, 165, 250, 0.1));
     --btn-light-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
     
     /* Button Borders */
-    --btn-primary-border: rgba(99, 102, 241, 0.35);
-    --btn-secondary-border: rgba(236, 72, 153, 0.35);
-    --btn-success-border: rgba(0, 255, 204, 0.35);
-    --btn-danger-border: rgba(239, 68, 68, 0.35);
+    --btn-primary-border: rgba(99, 102, 241, 0.2);
+    --btn-secondary-border: rgba(236, 72, 153, 0.2);
+    --btn-success-border: rgba(20, 255, 170, 0.2);
+    --btn-danger-border: rgba(255, 71, 87, 0.2);
     --btn-warning-border: rgba(245, 158, 11, 0.2);
     --btn-info-border: rgba(59, 130, 246, 0.2);
     --btn-light-border: rgba(255, 255, 255, 0.1);
 
     /* Button Shadows */
-    --btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.05),
-                  0 1px 2px rgba(0, 0, 0, 0.1);
-    --btn-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
-                        0 2px 4px rgba(0, 0, 0, 0.05);
-    --btn-primary-glow: 0 0 20px rgba(99, 102, 241, 0.15);
-    --btn-secondary-glow: 0 0 20px rgba(236, 72, 153, 0.15);
-    --btn-success-glow: 0 0 20px rgba(0, 255, 204, 0.15);
-    --btn-danger-glow: 0 0 20px rgba(239, 68, 68, 0.15);
-    
+    --btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
     /* Button Text Colors */
     --btn-text-light: rgba(255, 255, 255, 0.95);
     --btn-text-dark: rgba(17, 24, 39, 0.95);
@@ -74,6 +67,24 @@
     --link-muted: rgba(255, 255, 255, 0.6);
     --link-light: rgba(255, 255, 255, 0.9);
     --link-glass: rgba(255, 255, 255, 0.8);
+
+    /* Button Variants */
+    --btn-primary-hover: linear-gradient(135deg, 
+        rgba(111, 76, 255, 0.35),
+        rgba(66, 153, 255, 0.25)
+    );
+    --btn-secondary-hover: linear-gradient(135deg, 
+        rgba(255, 82, 182, 0.35),
+        rgba(255, 124, 163, 0.25)
+    );
+    --btn-success-hover: linear-gradient(135deg, 
+        rgba(20, 255, 170, 0.35),
+        rgba(0, 217, 255, 0.25)
+    );
+    --btn-danger-hover: linear-gradient(135deg, 
+        rgba(255, 71, 87, 0.35),
+        rgba(255, 126, 126, 0.25)
+    );
 }
 
 /* Body styles */
@@ -306,88 +317,47 @@ body {
 
 /* Base Button Styles */
 .btn {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-primary) !important;
-    padding: 12px 24px;
+    padding: 10px 18px;
     border-radius: 12px;
     font-weight: 500;
     font-size: 0.95rem;
-    letter-spacing: -0.01em;
     text-decoration: none !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--btn-shadow),
-                0 0 15px rgba(255, 255, 255, 0.1);
 }
 
 /* Button Icon Styles */
 .btn i {
     font-size: 1.1rem;
     color: #00ffcc;
-    filter: brightness(1.2);
-    text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Button Variants with Improved Visibility */
+/* Button Variants */
 .btn-primary {
     background: var(--btn-primary-gradient);
     border-color: var(--btn-primary-border);
-    box-shadow: var(--btn-shadow), var(--btn-primary-glow);
 }
 
 .btn-secondary {
     background: var(--btn-secondary-gradient);
     border-color: var(--btn-secondary-border);
-    box-shadow: var(--btn-shadow), var(--btn-secondary-glow);
 }
 
 .btn-success {
     background: var(--btn-success-gradient);
     border-color: var(--btn-success-border);
-    box-shadow: var(--btn-shadow), var(--btn-success-glow);
 }
 
-/* Enhanced Initial State */
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        rgba(255, 255, 255, 0.1),
-        rgba(255, 255, 255, 0.05)
-    );
-    opacity: 0.5;
-    transition: opacity 0.2s ease;
-}
-
-/* Hover Effects */
-.btn:hover::before {
-    opacity: 1;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--btn-hover-shadow),
-                0 0 20px rgba(255, 255, 255, 0.2);
-}
-
-/* Active State */
-.btn:active {
-    transform: translateY(0);
-    box-shadow: var(--btn-shadow),
-                0 0 10px rgba(255, 255, 255, 0.1);
+.btn-danger {
+    background: var(--btn-danger-gradient);
+    border-color: var(--btn-danger-border);
 }
 
 /* Button Size Variations */
@@ -398,48 +368,15 @@ body {
 }
 
 .btn-lg {
-    padding: 16px 32px;
+    padding: 12px 24px;
     font-size: 1.1rem;
     border-radius: 14px;
-    letter-spacing: -0.02em;
-}
-
-/* Focus State - Inspired by Apple */
-.btn:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.3),
-                var(--btn-shadow);
-}
-
-/* Loading State - Inspired by Stripe */
-.btn.loading {
-    position: relative;
-    color: transparent !important;
-    pointer-events: none;
-}
-
-.btn.loading::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: button-loading-spinner 0.6s linear infinite;
-}
-
-@keyframes button-loading-spinner {
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 /* Disabled State */
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    pointer-events: none;
 }
 
 /* Group Buttons - Inspired by Twilio */
@@ -447,12 +384,10 @@ body {
     display: inline-flex;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: var(--btn-shadow);
 }
 
 .btn-group .btn {
     border-radius: 0;
-    box-shadow: none;
 }
 
 .btn-group .btn:first-child {
@@ -576,4 +511,54 @@ body {
 
 .link-icon:hover i {
     transform: translateX(4px);
+}
+
+/* Update icon color in success buttons to match new gradient */
+.btn-success i {
+    color: #14ffaa;  /* Bright teal */
+    text-shadow: 0 0 10px rgba(20, 255, 170, 0.6);
+}
+
+/* Update icon colors for all button variants */
+.btn-primary i {
+    color: #6f4cff;  /* Vibrant purple */
+    text-shadow: 0 0 10px rgba(111, 76, 255, 0.6);
+}
+
+.btn-secondary i {
+    color: #ff52b6;  /* Vibrant pink */
+    text-shadow: 0 0 10px rgba(255, 82, 182, 0.6);
+}
+
+.btn-success i {
+    color: #14ffaa;  /* Bright teal */
+    text-shadow: 0 0 10px rgba(20, 255, 170, 0.6);
+}
+
+.btn-danger i {
+    color: #ff4757;  /* Vibrant red */
+    text-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+}
+
+/* Remove ALL hover states */
+.btn:hover,
+.btn:active,
+.btn:focus,
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-secondary:hover,
+.btn-secondary:active,
+.btn-secondary:focus,
+.btn-success:hover,
+.btn-success:active,
+.btn-success:focus,
+.btn-danger:hover,
+.btn-danger:active,
+.btn-danger:focus {
+    background: inherit;
+    border-color: inherit;
+    box-shadow: none;
+    transform: none;
+    opacity: 1;
 }
