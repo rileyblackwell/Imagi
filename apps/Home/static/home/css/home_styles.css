@@ -315,7 +315,8 @@
 }
 
 .home-dropdown-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
 }
 
 .home-dropdown-btn i {
@@ -354,6 +355,18 @@
     .home-dropdown-btn {
         justify-content: center;
     }
+}
+
+/* Update hover styles for nav buttons */
+.home-nav-btn:hover {
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* Ensure no underline on dropdown toggle */
+.home-nav-btn.dropdown-toggle:hover {
+    text-decoration: none;
 }
 
  
