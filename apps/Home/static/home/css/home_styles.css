@@ -326,7 +326,7 @@ textarea.form-control {
     border-radius: 12px;
     font-weight: 500;
     font-size: 0.95rem;
-    text-decoration: none;
+    text-decoration: none !important;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -377,7 +377,7 @@ textarea.form-control {
     display: flex;
     align-items: center;
     gap: 12px;
-    text-decoration: none;
+    text-decoration: none !important;
     width: 100%;
     text-align: left;
 }
