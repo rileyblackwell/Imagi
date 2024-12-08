@@ -29,7 +29,7 @@
 # - ProjectManager App: Manages the lifecycle of user projects, including directory creation and file organization.
 
 # Style & Design:
-# - Draw inspiration from Stripe, Airbnb, Twilio, and Apple.
+# - Draw inspiration from Stripe, Airbnb, Discord, Twilio, and Apple.
 # - Emphasize minimalist, elegant, and responsive design principles.
 # - Use external CSS for global and per-page styles.
 # - Implement modern typography, consistent spacing, and subtle animations.

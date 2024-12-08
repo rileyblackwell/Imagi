@@ -360,8 +360,46 @@
 /* Update hover styles for nav buttons */
 .home-nav-btn:hover {
     text-decoration: none;
-    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Products button hover */
+.home-nav-btn.btn-products:hover {
+    background: linear-gradient(135deg, 
+        rgba(99, 102, 241, 0.2),
+        rgba(0, 255, 204, 0.15)
+    );
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Credits button hover */
+.home-nav-btn.btn-credits:hover {
+    background: linear-gradient(135deg, 
+        rgba(0, 255, 204, 0.2),
+        rgba(0, 162, 255, 0.15)
+    );
+    border-color: rgba(0, 255, 204, 0.3);
+}
+
+/* Auth button hover */
+.home-nav-btn.btn-auth:hover {
+    background: linear-gradient(135deg, 
+        rgba(236, 72, 153, 0.2),
+        rgba(0, 255, 204, 0.15)
+    );
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+/* Dropdown button hover */
+.home-dropdown-btn:hover {
+    background: linear-gradient(135deg,
+        rgba(99, 102, 241, 0.15),
+        rgba(0, 255, 204, 0.1)
+    );
     color: var(--text-primary);
+    transform: translateX(4px);
+    transition: all 0.2s ease;
 }
 
 /* Ensure no underline on dropdown toggle */
