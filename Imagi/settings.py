@@ -65,7 +65,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),  # Global templates first
+            os.path.join(BASE_DIR, 'templates'),  # Make sure this is first
+            os.path.join(BASE_DIR, 'templates', 'admin'),  # Add this line
             os.path.join(BASE_DIR, 'apps', 'Builder', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),
             os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),
