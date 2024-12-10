@@ -12,6 +12,7 @@ from .utils import (
 )
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.db.models import F
 
 # Load environment variables from .env
 load_dotenv()
@@ -46,8 +47,11 @@ def deduct_credits(user, model):
     try:
         profile = user.profile
         credits_to_deduct = MODEL_COSTS.get(model, 1.0)
-        profile.credits -= credits_to_deduct
-        profile.save()
+        profile.credits = F('credits') - credits_to_deduct
+        profile.save(update_fields=['credits'])
+        
+        # Refresh from database to get the new value
+        profile.refresh_from_db()
         return True
     except Exception as e:
         print(f"Error deducting credits: {str(e)}")

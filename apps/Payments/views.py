@@ -20,12 +20,17 @@ CREDITS_PER_DOLLAR = 10  # $1 = 10 credits ($10 = 100 credits)
 @ensure_csrf_cookie
 @login_required
 def create_checkout_session(request):
+    # Force refresh user profile from database
+    request.user.profile.refresh_from_db()
+    
     context = {
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
-        'credits_per_dollar': CREDITS_PER_DOLLAR
+        'credits_per_dollar': CREDITS_PER_DOLLAR,
+        'current_credits': request.user.profile.credits
     }
     logger.info(f"Stripe Key (first 10 chars): {settings.STRIPE_PUBLISHABLE_KEY[:10]}...")
     logger.info(f"Credits per dollar: {CREDITS_PER_DOLLAR}")
+    logger.info(f"Current user credits: {request.user.profile.credits}")
     return render(request, 'payments/checkout.html', context)
 
 @require_http_methods(["POST"])
@@ -114,3 +119,13 @@ def payment_success(request):
 @login_required
 def payment_cancel(request):
     return render(request, 'payments/cancel.html')
+
+@login_required
+def get_credit_balance(request):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Force refresh from database
+        request.user.profile.refresh_from_db()
+        return JsonResponse({
+            'credits': float(request.user.profile.credits)
+        })
+    return JsonResponse({'error': 'Invalid request'}, status=400)

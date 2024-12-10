@@ -6,6 +6,10 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'apps_styles.css' %}">
 <link rel="stylesheet" href="{% static 'payments/css/payments_styles.css' %}">
+<!-- Prevent browser caching -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 {% endblock %}
 
 {% block content %}
@@ -56,6 +60,10 @@
                             <div class="info-header">
                                 <i class="fas fa-info-circle"></i>
                                 <span>Credit Usage Guide</span>
+                            </div>
+                            <div class="current-balance">
+                                <i class="fas fa-wallet"></i>
+                                <span>Current Balance: {{ user.profile.credits|floatformat:2 }} credits</span>
                             </div>
                             <ul class="info-list">
                                 <li>
@@ -113,6 +121,34 @@
 <script type="text/javascript">
     window.stripePublishableKey = '{{ stripe_publishable_key|escapejs }}';
     window.creditsPerDollar = Number('{{ credits_per_dollar|escapejs }}');
+    
+    // Function to refresh credit balance
+    function refreshCreditBalance() {
+        fetch('/payments/get-credit-balance/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const balanceSpan = document.querySelector('.current-balance span');
+            if (balanceSpan) {
+                balanceSpan.textContent = `Current Balance: ${Number(data.credits).toFixed(2)} credits`;
+            }
+        })
+        .catch(error => console.error('Error fetching credit balance:', error));
+    }
+    
+    // Refresh balance every 30 seconds
+    setInterval(refreshCreditBalance, 30000);
+    
+    // Refresh balance when page becomes visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            refreshCreditBalance();
+        }
+    });
 </script>
 <script src="https://js.stripe.com/v3/"></script>
 <script src="{% static 'payments/js/checkout.js' %}"></script>
