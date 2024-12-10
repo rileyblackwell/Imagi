@@ -43,6 +43,9 @@
     max-height: 500px;
     overflow-y: auto;
     color: var(--app-text-primary);
+    white-space: pre;
+    font-family: monospace;
+    line-height: 1.5;
 }
 
 /* User input textarea styling */

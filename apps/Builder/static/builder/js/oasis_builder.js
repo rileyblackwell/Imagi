@@ -17,11 +17,8 @@ $(document).ready(function() {
         } else {
             $('#custom-page-input').hide();
             
-            // Just log the file change and update UI
+            // Just log the file change
             console.log(`📂 Switched to file: ${selectedFile}`);
-            var $responseWindow = $('#response-window');
-            $responseWindow.append(`\nSwitched to file: ${selectedFile}\n`);
-            $responseWindow.scrollTop($responseWindow[0].scrollHeight);
         }
     });
 
@@ -186,11 +183,18 @@ $(document).ready(function() {
                     } else {
                         // Show only success confirmation for build mode
                         if (response.success === false) {
-                            $responseWindow.append(`❌ Error: ${response.error || 'An error occurred while generating content'}\n\n`);
+                            // Add error message with proper spacing
+                            const timestamp = new Date().toLocaleTimeString();
+                            const currentContent = $responseWindow.text();
+                            const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                            $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error: ${response.error || 'An error occurred while generating content'}\n`);
                         } else {
+                            // Add success message with proper spacing
                             const timestamp = new Date().toLocaleTimeString();
                             const fileType = selectedFile.endsWith('.html') ? 'template' : 'stylesheet';
-                            $responseWindow.append(`✅ ${timestamp} - Successfully generated ${fileType}: ${selectedFile}\n\n`);
+                            const currentContent = $responseWindow.text();
+                            const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                            $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - Successfully generated ${fileType}: ${selectedFile}\n`);
                         }
                     }
                     
@@ -200,7 +204,10 @@ $(document).ready(function() {
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", error);
                     var $responseWindow = $('#response-window');
-                    $responseWindow.append(`❌ Error: ${error}\n\n`);
+                    const timestamp = new Date().toLocaleTimeString();
+                    const currentContent = $responseWindow.text();
+                    const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                    $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error: ${error}\n`);
                     $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                 },
                 complete: function() {
