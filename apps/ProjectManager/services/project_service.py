@@ -37,15 +37,15 @@ class ProjectGenerationService:
             # Create Django project structure
             project_files = {
                 '__init__.py': '',
-                'asgi.py': self._generate_asgi_content(sanitized_name),
-                'settings.py': self._generate_settings_content(sanitized_name),
+                'asgi.py': self._generate_asgi_content(unique_name),
+                'settings.py': self._generate_settings_content(unique_name),
                 'urls.py': self._generate_urls_content(),
-                'wsgi.py': self._generate_wsgi_content(sanitized_name),
+                'wsgi.py': self._generate_wsgi_content(unique_name),
                 'views.py': self._generate_views_content(),
             }
             
-            # Create project package directory using sanitized name
-            package_dir = os.path.join(project_path, sanitized_name)
+            # Create project package directory using unique name
+            package_dir = os.path.join(project_path, unique_name)
             os.makedirs(package_dir, exist_ok=True)
             
             # Create project files
@@ -55,7 +55,7 @@ class ProjectGenerationService:
                     f.write(content)
             
             # Create manage.py with correct project name
-            manage_content = self._generate_manage_content(sanitized_name)
+            manage_content = self._generate_manage_content(unique_name)
             with open(os.path.join(project_path, 'manage.py'), 'w') as f:
                 f.write(manage_content)
                 os.chmod(f.name, 0o755)

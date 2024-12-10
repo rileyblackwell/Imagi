@@ -27,8 +27,8 @@ class DevServerManager:
             
             print(f"Starting server with manage.py at: {manage_py}")
             
-            # Get the project name from the path
-            project_name = os.path.basename(self.user_project.project_path).split('_')[0]
+            # Get the project name from the path (use full unique name)
+            project_name = os.path.basename(self.user_project.project_path)
             
             # Add the project directory to Python path
             project_dir = self.user_project.project_path
