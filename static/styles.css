@@ -15,7 +15,7 @@
     --global-container-padding: 25px;
 
     /* Gradients */
-    --global-highlight-gradient: linear-gradient(45deg, #00a2ff, #00ffc6);
+    --global-highlight-gradient: linear-gradient(45deg, #6366f1, #00ffc6);
 
     /* Shadows */
     --global-button-shadow: rgba(0, 162, 255, 0.3);
@@ -251,19 +251,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, rgba(0, 162, 255, 0.7), rgba(0, 255, 127, 0.7));
+    background: linear-gradient(45deg, rgba(99, 102, 241, 0.7), rgba(0, 255, 198, 0.7));
     border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, rgba(0, 162, 255, 1), rgba(0, 255, 127, 1));
+    background: linear-gradient(45deg, rgba(99, 102, 241, 1), rgba(0, 255, 198, 1));
     transition: background 0.3s;
 }
 
 /* For Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 162, 255, 0.7) rgba(0, 0, 0, 0.2);
+    scrollbar-color: rgba(99, 102, 241, 0.7) rgba(0, 0, 0, 0.2);
 }
 
 /* Base Button Style */
