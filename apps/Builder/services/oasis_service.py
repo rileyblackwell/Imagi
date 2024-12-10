@@ -38,8 +38,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
     try:
         print(f"Processing builder mode input: {user_input}")
         # Validate required fields
-        if not user_input:
-            raise ValueError('User input is required')
+        if not user_input or not user_input.strip():
+            raise ValueError('User input cannot be empty')
         if not model:
             raise ValueError('Model selection is required')
         if not file_name:

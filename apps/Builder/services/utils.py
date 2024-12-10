@@ -242,11 +242,20 @@ def make_api_call(model, system_msg, conversation_history, page, user_input, com
                 f"IMPORTANT: Return only the complete, valid file content for {page.filename}."
             )
             
-            messages = [msg for msg in conversation_history if msg["role"] != "system"]
-            messages.append({
-                "role": "user",
-                "content": f"[File: {page.filename}]\n{user_input}"
-            })
+            # Filter out empty messages and system messages
+            messages = [
+                msg for msg in conversation_history 
+                if msg["role"] != "system" and msg.get("content", "").strip()
+            ]
+            
+            # Add the current user input if not empty
+            if user_input.strip():
+                messages.append({
+                    "role": "user",
+                    "content": f"[File: {page.filename}]\n{user_input}"
+                })
+            else:
+                raise ValueError("User input cannot be empty")
             
             completion = anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
