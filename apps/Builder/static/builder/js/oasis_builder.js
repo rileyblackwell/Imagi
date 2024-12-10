@@ -161,6 +161,14 @@ $(document).ready(function() {
             }
         });
 
+        // Function to handle insufficient credits
+        function handleInsufficientCredits(response) {
+            const requiredCredits = response.required_credits || 1.0;
+            if (confirm(`You need ${requiredCredits} credits for this request. Would you like to purchase credits now?`)) {
+                window.location.href = response.redirect_url;
+            }
+        }
+
         // Make the request
         function makeGenerateRequest() {
             $.ajax({
@@ -204,6 +212,19 @@ $(document).ready(function() {
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", error);
                     var $responseWindow = $('#response-window');
+                    
+                    // Handle insufficient credits
+                    if (xhr.status === 402) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            handleInsufficientCredits(response);
+                            return;
+                        } catch (e) {
+                            console.error("Error parsing response:", e);
+                        }
+                    }
+                    
+                    // Handle other errors
                     const timestamp = new Date().toLocaleTimeString();
                     const currentContent = $responseWindow.text();
                     const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';

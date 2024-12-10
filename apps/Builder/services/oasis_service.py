@@ -10,6 +10,8 @@ from .utils import (
     build_conversation_history,
     make_api_call
 )
+from django.shortcuts import redirect
+from django.urls import reverse
 
 # Load environment variables from .env
 load_dotenv()
@@ -18,6 +20,38 @@ anthropic_key = os.getenv('ANTHROPIC_KEY')
 
 openai_client = OpenAI(api_key=openai_key)
 anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
+
+# Add model costs constants
+MODEL_COSTS = {
+    'claude-3-5-sonnet-20241022': 1.0,  # 1 credit per request
+    'gpt-4o': 1.0,  # 1 credit per request
+    'gpt-4o-mini': 0.05  # 0.05 credits per request
+}
+
+def check_user_credits(user, model):
+    """Check if user has enough credits for the selected model."""
+    try:
+        profile = user.profile
+        required_credits = MODEL_COSTS.get(model, 1.0)
+        
+        if profile.credits < required_credits:
+            return False, required_credits
+        return True, required_credits
+    except Exception as e:
+        print(f"Error checking user credits: {str(e)}")
+        return False, 1.0
+
+def deduct_credits(user, model):
+    """Deduct credits from user's account based on model used."""
+    try:
+        profile = user.profile
+        credits_to_deduct = MODEL_COSTS.get(model, 1.0)
+        profile.credits -= credits_to_deduct
+        profile.save()
+        return True
+    except Exception as e:
+        print(f"Error deducting credits: {str(e)}")
+        return False
 
 def get_active_conversation(user):
     """Retrieve the active conversation for the user."""
@@ -36,6 +70,16 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
     Handles all business logic for processing user input and generating website content.
     """
     try:
+        # Check if user has enough credits
+        has_credits, required_credits = check_user_credits(user, model)
+        if not has_credits:
+            return {
+                'success': False,
+                'error': 'insufficient_credits',
+                'required_credits': required_credits,
+                'redirect_url': reverse('payments:create-checkout-session')
+            }
+
         print(f"Processing builder mode input: {user_input}")
         # Validate required fields
         if not user_input or not user_input.strip():
@@ -106,6 +150,10 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             role="assistant",
             content=cleaned_response
         )
+
+        # If we get here, the request was successful, so deduct credits
+        if not deduct_credits(user, model):
+            raise ValueError("Failed to deduct credits")
 
         # Return the content in a consistent format
         return {

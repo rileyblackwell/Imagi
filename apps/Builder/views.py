@@ -212,6 +212,15 @@ def process_input(request):
                 user_input, model, file_name, request.user
             )
             
+            # Check if user needs to purchase credits
+            if not response['success'] and response.get('error') == 'insufficient_credits':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Insufficient credits',
+                    'required_credits': response.get('required_credits', 1.0),
+                    'redirect_url': response.get('redirect_url')
+                }, status=402)  # 402 Payment Required
+                
             # Get the active project
             project = Project.objects.filter(
                 user=request.user
