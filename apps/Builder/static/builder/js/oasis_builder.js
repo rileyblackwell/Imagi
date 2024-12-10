@@ -156,19 +156,10 @@ $(document).ready(function() {
                 'csrfmiddlewaretoken': csrftoken
             },
             success: function(historyResponse) {
-                // Log conversation history
-                console.group('📜 Conversation History');
-                historyResponse.messages.forEach(msg => {
-                    console.log(`${msg.role.toUpperCase()}:`, msg.content);
-                });
-                console.groupEnd();
-                
-                // Now make the actual generate request
                 makeGenerateRequest();
             },
             error: function(xhr, status, error) {
                 console.error("Error getting conversation history:", error);
-                // Continue with generate request even if history fails
                 makeGenerateRequest();
             }
         });
@@ -186,10 +177,6 @@ $(document).ready(function() {
                     'csrfmiddlewaretoken': csrftoken
                 },
                 success: function(response) {
-                    console.group('✨ AI Response');
-                    console.log('Response:', response);
-                    console.groupEnd();
-
                     var $responseWindow = $('#response-window');
                     
                     if (mode === 'chat') {
@@ -197,22 +184,14 @@ $(document).ready(function() {
                         var newMessage = 'You: ' + userInput + '\n\nAI: ' + response.message + '\n\n';
                         $responseWindow.append(newMessage);
                     } else {
-                        // Show file generation success
+                        // Show only success confirmation for build mode
                         if (response.success === false) {
-                            alert(response.error || 'An error occurred while generating content');
-                            return;
+                            $responseWindow.append(`❌ Error: ${response.error || 'An error occurred while generating content'}\n\n`);
+                        } else {
+                            const timestamp = new Date().toLocaleTimeString();
+                            const fileType = selectedFile.endsWith('.html') ? 'template' : 'stylesheet';
+                            $responseWindow.append(`✅ ${timestamp} - Successfully generated ${fileType}: ${selectedFile}\n\n`);
                         }
-                        
-                        // Show success message and file content
-                        var successMessage = `\nFile generated successfully: ${selectedFile}\n`;
-                        successMessage += `\nContent Preview:\n${response.response || ''}\n`;
-                        $responseWindow.append(successMessage);
-                        
-                        // Log the generated content
-                        console.group('📄 Generated File');
-                        console.log('File:', selectedFile);
-                        console.log('Content:', response.response || response);
-                        console.groupEnd();
                     }
                     
                     // Scroll to bottom
@@ -220,9 +199,9 @@ $(document).ready(function() {
                 },
                 error: function(xhr, status, error) {
                     console.error("AJAX Error:", error);
-                    console.error("Status:", status);
-                    console.error("Response:", xhr.responseText);
-                    alert("An error occurred. Please try again.");
+                    var $responseWindow = $('#response-window');
+                    $responseWindow.append(`❌ Error: ${error}\n\n`);
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                 },
                 complete: function() {
                     // Reset button and placeholder
@@ -242,27 +221,10 @@ $(document).ready(function() {
     $('#clear-btn').click(function(event) {
         event.preventDefault();
         
-        if (!confirm('Are you sure you want to reset this project? This will delete all files and conversation history.')) {
+        if (!confirm('Are you sure you want to clear the response window? This will not delete any generated files.')) {
             return;
         }
         
-        $.ajax({
-            type: 'POST',
-            url: '/builder/clear-conversation-history/',
-            data: {
-                'csrfmiddlewaretoken': csrftoken
-            },
-            success: function(response) {
-                $('#user-input').val('');
-                $('#response-window').empty();
-                $('#file-select').val('index.html');
-                $('#model-select').val('claude-3-5-sonnet-20241022');
-                $('#mode-select').val('build');
-                alert('Project has been reset successfully.');
-            },
-            error: function(xhr, status, error) {
-                console.error("Clear History Error:", error);
-            }
-        });
+        $('#response-window').empty();
     });
 });
