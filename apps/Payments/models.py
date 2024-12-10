@@ -6,7 +6,6 @@ from django.conf import settings
 class Payment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    credits = models.DecimalField(max_digits=10, decimal_places=2)
     stripe_payment_id = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),
@@ -20,4 +19,4 @@ class Payment(models.Model):
         db_table = 'payments_payment'
 
     def __str__(self):
-        return f"{self.user.email} - ${self.amount} - {self.credits} credits"
+        return f"{self.user.email} - ${self.amount:.2f}"

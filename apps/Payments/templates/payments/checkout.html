@@ -18,8 +18,8 @@
         <div class="checkout-inner">
             <!-- Header Section -->
             <div class="checkout-header">
-                <h2>Purchase Credits</h2>
-                <p class="checkout-subtitle">Power your AI interactions with Imagi credits</p>
+                <h2>Add Funds</h2>
+                <p class="checkout-subtitle">Power your AI interactions with Imagi</p>
             </div>
 
             <!-- Main Grid Layout -->
@@ -28,51 +28,51 @@
                 <div class="credit-selection-column">
                     <div class="credit-card">
                         <div class="credit-selection">
-                            <label for="credit_amount">Amount to Purchase</label>
+                            <label for="amount">Add Funds</label>
                             <div class="credit-input-wrapper">
                                 <span class="currency-symbol">$</span>
                                 <input 
                                     type="number" 
-                                    name="credit_amount" 
-                                    id="credit_amount" 
+                                    name="amount" 
+                                    id="amount" 
                                     class="credit-input" 
-                                    min="5" 
+                                    min="10" 
                                     max="100" 
                                     step="0.01"
-                                    value="10.00"
+                                    value="20.00"
                                     required
                                 >
                             </div>
                             <div id="amount-error" class="error-message hidden"></div>
                         </div>
 
-                        <div class="credits-preview">
-                            <div class="credits-icon">
+                        <div class="balance-preview">
+                            <div class="balance-icon">
                                 <i class="fas fa-coins"></i>
                             </div>
-                            <div class="credits-text">
-                                <span class="credits-amount" id="credits-amount">100</span>
-                                <span class="credits-label">credits</span>
+                            <div class="balance-text">
+                                <span class="balance-amount" id="balance-amount">$20.00</span>
+                                <span class="balance-label">to be added</span>
                             </div>
                         </div>
 
                         <div class="credits-info">
                             <div class="info-header">
                                 <i class="fas fa-info-circle"></i>
-                                <span>Credit Usage Guide</span>
+                                <span>Usage Pricing</span>
                             </div>
                             <div class="current-balance">
                                 <i class="fas fa-wallet"></i>
-                                <span>Current Balance: {{ user.profile.credits|floatformat:2 }} credits</span>
+                                <span>Current Balance: ${{ user.profile.balance|floatformat:2 }}</span>
                             </div>
                             <ul class="info-list">
                                 <li>
                                     <span class="model">GPT-4 or Claude-Sonnet</span>
-                                    <span class="cost">1 credit per use</span>
+                                    <span class="cost">$0.10 per use</span>
                                 </li>
                                 <li>
                                     <span class="model">GPT-4-mini</span>
-                                    <span class="cost">0.05 credits per use</span>
+                                    <span class="cost">$0.005 per use</span>
                                 </li>
                             </ul>
                         </div>
@@ -120,11 +120,10 @@
 {% block extra_js %}
 <script type="text/javascript">
     window.stripePublishableKey = '{{ stripe_publishable_key|escapejs }}';
-    window.creditsPerDollar = Number('{{ credits_per_dollar|escapejs }}');
     
     // Function to refresh credit balance
     function refreshCreditBalance() {
-        fetch('/payments/get-credit-balance/', {
+        fetch('/payments/get-balance/', {
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
@@ -134,10 +133,10 @@
         .then(data => {
             const balanceSpan = document.querySelector('.current-balance span');
             if (balanceSpan) {
-                balanceSpan.textContent = `Current Balance: ${Number(data.credits).toFixed(2)} credits`;
+                balanceSpan.textContent = `Current Balance: $${Number(data.balance).toFixed(2)}`;
             }
         })
-        .catch(error => console.error('Error fetching credit balance:', error));
+        .catch(error => console.error('Error fetching balance:', error));
     }
     
     // Refresh balance every 30 seconds

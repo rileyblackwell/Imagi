@@ -16,10 +16,10 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <h2>Payment Successful!</h2>
-            <p>Your credits have been added to your account.</p>
+            <p>Your payment has been processed successfully.</p>
             <div class="credit-info">
-                <p>Credits Added: {{ credits_added }}</p>
-                <p>New Balance: {{ new_balance }}</p>
+                <p>Amount Added: ${{ amount_added|floatformat:2 }}</p>
+                <p>New Balance: ${{ new_balance|floatformat:2 }}</p>
             </div>
             <div class="auth-links">
                 <a href="{% url 'landing_page' %}" class="link link-icon">

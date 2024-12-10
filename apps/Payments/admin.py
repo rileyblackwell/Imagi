@@ -3,12 +3,12 @@ from .models import Payment
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'amount', 'credits', 'stripe_payment_id', 'status', 'created_at')
+    list_display = ('user', 'amount', 'status', 'created_at')
     list_filter = ('status', 'created_at')
-    search_fields = ('user__email', 'stripe_payment_id')
-    readonly_fields = ('stripe_payment_id', 'created_at')
-    
-    def get_readonly_fields(self, request, obj=None):
-        if obj:  # editing an existing object
-            return self.readonly_fields + ('user', 'amount', 'credits')
-        return self.readonly_fields
+    search_fields = ('user__username', 'user__email', 'stripe_payment_id')
+    readonly_fields = ('stripe_payment_id', 'created_at', 'updated_at')
+    ordering = ('-created_at',)
+
+    def get_amount_display(self, obj):
+        return f"${obj.amount:.2f}"
+    get_amount_display.short_description = 'Amount'

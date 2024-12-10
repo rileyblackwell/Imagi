@@ -1,8 +1,7 @@
 // Initialize payment processing
-function initializePayment(stripeKey, creditsPerDollar) {
+function initializePayment(stripeKey) {
     console.log('Initializing payment with:', { 
-        stripeKeyLength: stripeKey ? stripeKey.length : 0,
-        creditsPerDollar 
+        stripeKeyLength: stripeKey ? stripeKey.length : 0
     });
     
     if (!stripeKey) {
@@ -10,7 +9,7 @@ function initializePayment(stripeKey, creditsPerDollar) {
         return;
     }
 
-    // Initialize Stripe immediately, not inside DOMContentLoaded
+    // Initialize Stripe immediately
     try {
         const stripe = Stripe(stripeKey);
         let elements;
@@ -40,7 +39,7 @@ function initializePayment(stripeKey, creditsPerDollar) {
         // Initialize Stripe and elements
         async function initialize() {
             try {
-                const amount = parseFloat(document.getElementById('credit_amount').value);
+                const amount = parseFloat(document.getElementById('amount').value);
                 const validation = validateAmount(amount);
                 
                 if (!validation.valid) {
@@ -60,7 +59,7 @@ function initializePayment(stripeKey, creditsPerDollar) {
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ 
-                        credit_amount: amount
+                        amount: amount
                     }),
                 });
                 
@@ -214,9 +213,9 @@ function initializePayment(stripeKey, creditsPerDollar) {
             }
         }
 
-        // Update payment intent when credit amount changes
-        document.getElementById('credit_amount').addEventListener('change', async () => {
-            const amount = parseFloat(document.getElementById('credit_amount').value);
+        // Update payment intent when amount changes
+        document.getElementById('amount').addEventListener('change', async () => {
+            const amount = parseFloat(document.getElementById('amount').value);
             const validation = validateAmount(amount);
             
             if (validation.valid) {
@@ -254,9 +253,9 @@ function initializePayment(stripeKey, creditsPerDollar) {
         }
 
         // Add input validation
-        const creditInput = document.getElementById('credit_amount');
+        const amountInput = document.getElementById('amount');
         const errorDiv = document.getElementById('amount-error');
-        const creditsPreview = document.getElementById('credits-amount');
+        const balancePreview = document.getElementById('balance-amount');
 
         function validateAmount(amount) {
             const numAmount = parseFloat(amount);
@@ -272,33 +271,32 @@ function initializePayment(stripeKey, creditsPerDollar) {
             return { valid: true };
         }
 
-        function updateCreditsPreview(amount) {
+        function updateBalancePreview(amount) {
             const numAmount = parseFloat(amount);
             if (!isNaN(numAmount)) {
-                const credits = numAmount * creditsPerDollar;
-                creditsPreview.textContent = credits.toFixed(2);
+                balancePreview.textContent = `$${numAmount.toFixed(2)}`;
             }
         }
 
-        creditInput.addEventListener('input', function(e) {
+        amountInput.addEventListener('input', function(e) {
             const amount = e.target.value;
             const validation = validateAmount(amount);
             
             if (!validation.valid) {
                 errorDiv.textContent = validation.message;
                 errorDiv.classList.remove('hidden');
-                creditInput.classList.add('error');
+                amountInput.classList.add('error');
                 document.querySelector("#submit").disabled = true;
             } else {
                 errorDiv.classList.add('hidden');
-                creditInput.classList.remove('error');
+                amountInput.classList.remove('error');
                 document.querySelector("#submit").disabled = false;
-                updateCreditsPreview(amount);
+                updateBalancePreview(amount);
             }
         });
 
-        // Initialize the credits preview with the default value
-        updateCreditsPreview(creditInput.value);
+        // Initialize the preview with the default value
+        updateBalancePreview(amountInput.value);
     } catch (error) {
         console.error('Stripe initialization error:', error);
         showMessage("Failed to initialize payment system. Please try again later.");

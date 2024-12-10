@@ -120,7 +120,7 @@
 }
 
 /* Credits Preview */
-.credits-preview {
+.balance-preview {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -131,7 +131,7 @@
     margin: 20px 0;
 }
 
-.credits-icon {
+.balance-icon {
     width: 40px;
     height: 40px;
     display: flex;
@@ -141,23 +141,23 @@
     border-radius: 12px;
 }
 
-.credits-icon i {
+.balance-icon i {
     color: #00ffc6;
     font-size: 20px;
 }
 
-.credits-text {
+.balance-text {
     flex: 1;
 }
 
-.credits-amount {
+.balance-amount {
     display: block;
     color: #00ffc6;
     font-size: 24px;
     font-weight: 600;
 }
 
-.credits-label {
+.balance-label {
     color: rgba(255, 255, 255, 0.7);
     font-size: 14px;
 }

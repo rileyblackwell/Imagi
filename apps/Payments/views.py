@@ -25,12 +25,10 @@ def create_checkout_session(request):
     
     context = {
         'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
-        'credits_per_dollar': CREDITS_PER_DOLLAR,
-        'current_credits': request.user.profile.credits
+        'current_balance': request.user.profile.balance
     }
     logger.info(f"Stripe Key (first 10 chars): {settings.STRIPE_PUBLISHABLE_KEY[:10]}...")
-    logger.info(f"Credits per dollar: {CREDITS_PER_DOLLAR}")
-    logger.info(f"Current user credits: {request.user.profile.credits}")
+    logger.info(f"Current user balance: ${request.user.profile.balance}")
     return render(request, 'payments/checkout.html', context)
 
 @require_http_methods(["POST"])
@@ -38,16 +36,14 @@ def create_checkout_session(request):
 def create_payment_intent(request):
     try:
         data = json.loads(request.body)
-        credit_amount = float(data.get('credit_amount', 5.00))
+        amount = float(data.get('amount', 10.00))
         
-        # Validate credit amount
-        if credit_amount < 5 or credit_amount > 100:
-            return JsonResponse({'error': 'Amount must be between $5.00 and $100.00'}, status=400)
+        # Validate amount
+        if amount < 10 or amount > 100:
+            return JsonResponse({'error': 'Amount must be between $10.00 and $100.00'}, status=400)
 
         # Convert amount to cents for Stripe
-        amount_cents = int(credit_amount * 100)
-        # Calculate credits (10 credits per dollar)
-        credits = credit_amount * CREDITS_PER_DOLLAR
+        amount_cents = int(amount * 100)
 
         # Create payment intent
         intent = stripe.PaymentIntent.create(
@@ -55,7 +51,7 @@ def create_payment_intent(request):
             currency='usd',
             metadata={
                 'user_id': str(request.user.id),
-                'credits': str(credits),
+                'amount': str(amount),
             },
             automatic_payment_methods={
                 'enabled': True,
@@ -66,8 +62,7 @@ def create_payment_intent(request):
             # Create pending payment record
             Payment.objects.create(
                 user=request.user,
-                amount=credit_amount,
-                credits=credits,
+                amount=amount,
                 stripe_payment_id=intent.id,
                 status='pending'
             )
@@ -102,14 +97,14 @@ def payment_success(request):
             payment.status = 'completed'
             payment.save()
             
-            # Update user profile credits
+            # Update user profile balance
             user_profile = request.user.profile
-            user_profile.credits += payment.credits
+            user_profile.balance += payment.amount
             user_profile.save()
             
             return render(request, 'payments/success.html', {
-                'credits_added': payment.credits,
-                'new_balance': user_profile.credits
+                'amount_added': payment.amount,
+                'new_balance': user_profile.balance
             })
     except Exception as e:
         logger.error(f"Payment success processing failed: {str(e)}")
@@ -121,11 +116,11 @@ def payment_cancel(request):
     return render(request, 'payments/cancel.html')
 
 @login_required
-def get_credit_balance(request):
+def get_balance(request):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         # Force refresh from database
         request.user.profile.refresh_from_db()
         return JsonResponse({
-            'credits': float(request.user.profile.credits)
+            'balance': float(request.user.profile.balance)
         })
     return JsonResponse({'error': 'Invalid request'}, status=400)

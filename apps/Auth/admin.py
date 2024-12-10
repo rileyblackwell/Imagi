@@ -12,11 +12,11 @@ class ProfileInline(admin.StackedInline):
 # Extend the existing UserAdmin
 class CustomUserAdmin(UserAdmin):
     inlines = (ProfileInline,)
-    list_display = ('username', 'email', 'first_name', 'last_name', 'get_credits', 'is_staff')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'get_balance', 'is_staff')
     
-    def get_credits(self, obj):
-        return obj.profile.credits if hasattr(obj, 'profile') else 0
-    get_credits.short_description = 'Credits'
+    def get_balance(self, obj):
+        return f"${obj.profile.balance:.2f}" if hasattr(obj, 'profile') else "$0.00"
+    get_balance.short_description = 'Balance'
 
 # Re-register UserAdmin
 admin.site.unregister(User)
@@ -25,6 +25,6 @@ admin.site.register(User, CustomUserAdmin)
 # Register Profile model directly if needed
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'credits')
+    list_display = ('user', 'balance')
     search_fields = ('user__username', 'user__email')
     readonly_fields = ('user',)

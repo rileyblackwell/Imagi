@@ -8,5 +8,5 @@ urlpatterns = [
     path('create-payment-intent/', views.create_payment_intent, name='create-payment-intent'),
     path('success/', views.payment_success, name='payment-success'),
     path('cancel/', views.payment_cancel, name='payment-cancel'),
-    path('get-credit-balance/', views.get_credit_balance, name='get-credit-balance'),
+    path('get-balance/', views.get_balance, name='get-balance'),
 ] 
