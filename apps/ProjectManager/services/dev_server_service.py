@@ -27,13 +27,23 @@ class DevServerManager:
             
             print(f"Starting server with manage.py at: {manage_py}")
             
-            # Start the development server on port 8080
+            # Get the project name from the path
+            project_name = os.path.basename(self.user_project.project_path).split('_')[0]
+            
+            # Add the project directory to Python path
+            project_dir = self.user_project.project_path
+            env = os.environ.copy()
+            env['PYTHONPATH'] = project_dir
+            env['DJANGO_SETTINGS_MODULE'] = f"{project_name}.settings"
+            
+            # Start the development server using pipenv run
             process = subprocess.Popen(
-                ['python3', manage_py, 'runserver', '127.0.0.1:8080'],
+                ['pipenv', 'run', 'python', 'manage.py', 'runserver', f'127.0.0.1:{self.port}'],
                 cwd=self.user_project.project_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                universal_newlines=True
+                universal_newlines=True,
+                env=env
             )
             
             # Save the PID
@@ -47,8 +57,8 @@ class DevServerManager:
             if process.poll() is not None:
                 error_output = process.stderr.read()
                 raise Exception(f"Server failed to start: {error_output}")
-            
-            return 8080
+                
+            return self.port
             
         except Exception as e:
             print(f"Error starting server: {str(e)}")
@@ -62,7 +72,9 @@ class DevServerManager:
                     pid = int(f.read().strip())
                 try:
                     process = psutil.Process(pid)
-                    for child in process.children(recursive=True):
+                    # Kill all child processes first
+                    children = process.children(recursive=True)
+                    for child in children:
                         child.kill()
                     process.kill()
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -70,13 +82,13 @@ class DevServerManager:
                 os.remove(self.pid_file)
                 
             # Also check if port 8080 is in use and kill that process
-            for proc in psutil.process_iter(['pid', 'name', 'connections']):
+            for proc in psutil.process_iter(['pid', 'name']):
                 try:
                     for conn in proc.connections():
-                        if conn.laddr.port == self.port:
+                        if hasattr(conn, 'laddr') and conn.laddr.port == self.port:
                             proc.kill()
                             break
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.Error):
                     continue
                     
         except Exception as e:

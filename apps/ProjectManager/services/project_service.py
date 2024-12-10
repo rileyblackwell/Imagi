@@ -4,6 +4,8 @@ from datetime import datetime
 from django.conf import settings
 from ..models import UserProject
 from .template_service import ViewTemplateService
+import subprocess
+from pathlib import Path
 
 class ProjectGenerationService:
     def __init__(self, user):
@@ -35,15 +37,15 @@ class ProjectGenerationService:
             # Create Django project structure
             project_files = {
                 '__init__.py': '',
-                'asgi.py': self._generate_asgi_content(unique_name),
-                'settings.py': self._generate_settings_content(unique_name),
+                'asgi.py': self._generate_asgi_content(sanitized_name),
+                'settings.py': self._generate_settings_content(sanitized_name),
                 'urls.py': self._generate_urls_content(),
-                'wsgi.py': self._generate_wsgi_content(unique_name),
+                'wsgi.py': self._generate_wsgi_content(sanitized_name),
                 'views.py': self._generate_views_content(),
             }
             
-            # Create project package directory
-            package_dir = os.path.join(project_path, unique_name)
+            # Create project package directory using sanitized name
+            package_dir = os.path.join(project_path, sanitized_name)
             os.makedirs(package_dir, exist_ok=True)
             
             # Create project files
@@ -52,17 +54,23 @@ class ProjectGenerationService:
                 with open(file_path, 'w') as f:
                     f.write(content)
             
-            # Create manage.py
-            manage_content = self._generate_manage_content(unique_name)
+            # Create manage.py with correct project name
+            manage_content = self._generate_manage_content(sanitized_name)
             with open(os.path.join(project_path, 'manage.py'), 'w') as f:
                 f.write(manage_content)
-                os.chmod(f.name, 0o755)  # Make manage.py executable
+                os.chmod(f.name, 0o755)
             
             # Create additional directories
             self._create_project_structure(project_path)
             
             # Initialize basic templates and static files
             self._initialize_project_files(project_path, project_name)
+            
+            # Create Pipfile
+            self._create_pipfile(project_path)
+            
+            # Initialize pipenv environment
+            self._initialize_pipenv(project_path)
             
             # Create project record
             project = UserProject.objects.create(
@@ -366,6 +374,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
             print(f"Error adding page to project: {str(e)}")
 
     def _generate_manage_content(self, project_name):
+        """Generate the manage.py content with the correct project name"""
         return f'''#!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
 import os
@@ -441,7 +450,7 @@ if settings.DEBUG:
 '''
 
     def _generate_settings_content(self, project_name):
-        """Generate Django settings.py content"""
+        """Generate Django settings.py content with the correct project name"""
         return f'''"""
 Django settings for {project_name} project.
 """
@@ -506,8 +515,6 @@ TEMPLATES = [
 WSGI_APPLICATION = '{project_name}.wsgi.application'
 
 # Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
 DATABASES = {{
     'default': {{
         'ENGINE': 'django.db.backends.sqlite3',
@@ -516,8 +523,6 @@ DATABASES = {{
 }}
 
 # Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {{
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -534,16 +539,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
@@ -555,7 +556,75 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 '''
+
+    def _create_pipfile(self, project_path):
+        """Create a Pipfile with Django dependencies"""
+        pipfile_content = """[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"
+"""
+        pipfile_path = os.path.join(project_path, 'Pipfile')
+        with open(pipfile_path, 'w') as f:
+            f.write(pipfile_content)
+
+    def _initialize_pipenv(self, project_path):
+        """Initialize pipenv environment and install dependencies"""
+        try:
+            # Change to project directory
+            original_dir = os.getcwd()
+            os.chdir(project_path)
+
+            # Create setup.py for the project
+            setup_content = f"""from setuptools import setup, find_packages
+
+setup(
+    name="{os.path.basename(project_path)}",
+    version="0.1",
+    packages=find_packages(),
+    install_requires=[
+        'django',
+    ],
+)
+"""
+            with open('setup.py', 'w') as f:
+                f.write(setup_content)
+
+            # Run pipenv install
+            print(f"Initializing pipenv in {project_path}")
+            result = subprocess.run(
+                ['pipenv', 'install'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print(f"Pipenv output: {result.stdout}")
+
+            # Install the project package in development mode
+            result = subprocess.run(
+                ['pipenv', 'run', 'pip', 'install', '-e', '.'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print(f"Package install output: {result.stdout}")
+
+            # Change back to original directory
+            os.chdir(original_dir)
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error running pipenv: {e.stdout} {e.stderr}")
+            raise Exception(f"Failed to initialize pipenv: {str(e)}")
+        except Exception as e:
+            print(f"Error in _initialize_pipenv: {str(e)}")
+            raise

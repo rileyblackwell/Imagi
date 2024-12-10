@@ -23,4 +23,7 @@ urlpatterns = [
     
     # Project workspace - Keep this as the last route
     path('oasis/<str:project_name>/', views.project_workspace, name='project_workspace'),
+    
+    # Preview functionality
+    path('preview-project/', views.preview_project, name='preview_project'),
 ]

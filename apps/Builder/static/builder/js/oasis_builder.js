@@ -234,4 +234,56 @@ $(document).ready(function() {
         
         $('#response-window').empty();
     });
+
+    // Preview button handler
+    $('#preview-btn').click(function(event) {
+        event.preventDefault();
+        
+        // Show loading state
+        const $previewBtn = $(this);
+        $previewBtn.prop('disabled', true);
+        $previewBtn.html('<i class="fas fa-spinner fa-spin"></i> Starting Preview...');
+        
+        // Make request to start preview server
+        $.ajax({
+            type: 'POST',
+            url: '/builder/preview-project/',
+            data: {
+                'csrfmiddlewaretoken': csrftoken
+            },
+            success: function(response) {
+                if (response.url) {
+                    // Open preview in new tab
+                    window.open(response.url, '_blank');
+                    
+                    // Add success message to response window
+                    const timestamp = new Date().toLocaleTimeString();
+                    const $responseWindow = $('#response-window');
+                    const currentContent = $responseWindow.text();
+                    const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                    $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - Preview server started at ${response.url}\n`);
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                } else {
+                    alert('Error starting preview server');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Preview Error:", error);
+                alert('Error starting preview server: ' + error);
+                
+                // Add error message to response window
+                const timestamp = new Date().toLocaleTimeString();
+                const $responseWindow = $('#response-window');
+                const currentContent = $responseWindow.text();
+                const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error starting preview: ${error}\n`);
+                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+            },
+            complete: function() {
+                // Reset button state
+                $previewBtn.prop('disabled', false);
+                $previewBtn.html('<i class="fas fa-eye"></i> Preview');
+            }
+        });
+    });
 });
