@@ -1,6 +1,5 @@
 import subprocess
 import os
-import signal
 import psutil
 import time
 from django.conf import settings

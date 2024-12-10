@@ -1,9 +1,7 @@
 import os
-import subprocess
 import shutil
 from datetime import datetime
 from django.conf import settings
-from django.template.loader import render_to_string
 from ..models import UserProject
 from .template_service import ViewTemplateService
 

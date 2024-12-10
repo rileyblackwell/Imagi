@@ -1,6 +1,6 @@
 # builder/views.py
 
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -12,15 +12,12 @@ from .services.oasis_service import (
 )
 from .services.utils import (
     get_system_message,
-    get_file_context,
     build_conversation_history
 )
 import os
 import shutil
-from django.views.static import serve
 from django.utils import timezone
 from django.contrib import messages
-from django.http import Http404
 from apps.ProjectManager.services import ProjectGenerationService, DevServerManager
 
 
