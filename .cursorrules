@@ -19,6 +19,7 @@
 # - The Imagi Oasis platform allows users to:
 #   * Log in and manage multiple projects.
 #   * Edit HTML/CSS and have changes reflected in their corresponding Django projects.
+#   * Utilize AI agents on the backend to build and enhance web apps.
 
 # Apps Overview:
 # - Auth App: Handles user authentication (login/signup). Future integration with OAuth is planned.
@@ -49,4 +50,4 @@
 # Future Considerations:
 # - Incorporate testing and deployment tools within Imagi Oasis.
 # - Expand API and model definition capabilities within the platform.
-
+# - Leverage AI agents to enable dynamic feature generation, scalability, and enhanced customization options.
