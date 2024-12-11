@@ -1,4 +1,3 @@
-import os
 from dotenv import load_dotenv
 import cssutils
 import logging
@@ -59,6 +58,10 @@ class StylesheetAgentService(BaseAgentService):
                 "   - Focus on maintainability\n"
             )
         }
+    
+    def get_additional_context(self, **kwargs):
+        """Get stylesheet-specific context."""
+        return "You are creating/editing styles.css for the project"
     
     def validate_response(self, content):
         """

@@ -1,4 +1,3 @@
-import os
 from dotenv import load_dotenv
 import re
 from .agent_service import BaseAgentService
@@ -46,6 +45,13 @@ class TemplateAgentService(BaseAgentService):
                 "   - No explanatory comments in the output\n"
             )
         }
+    
+    def get_additional_context(self, **kwargs):
+        """Get template-specific context."""
+        template_name = kwargs.get('template_name')
+        if template_name:
+            return f"You are creating/editing the template: {template_name}"
+        return None
     
     def validate_response(self, content):
         """

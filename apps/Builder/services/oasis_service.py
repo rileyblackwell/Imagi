@@ -2,25 +2,19 @@
 
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
-import anthropic
-from ..models import Message, Conversation, Page
-from .utils import (
-    get_system_message, 
-    build_conversation_history,
-    make_api_call
-)
-from django.shortcuts import redirect
 from django.urls import reverse
 from django.db.models import F
+from ..models import Message, Conversation, Page
+from apps.Agents.services.template_agent_service import TemplateAgentService
+from apps.Agents.services.stylesheet_agent_service import StylesheetAgentService
+from apps.Agents.models import AgentConversation
 
 # Load environment variables from .env
 load_dotenv()
-openai_key = os.getenv('OPENAI_KEY')
-anthropic_key = os.getenv('ANTHROPIC_KEY')
 
-openai_client = OpenAI(api_key=openai_key)
-anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
+# Initialize agents
+template_agent = TemplateAgentService()
+stylesheet_agent = StylesheetAgentService()
 
 # Add model costs constants
 MODEL_COSTS = {
@@ -105,40 +99,77 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             filename=file_name
         )
 
-        # Get system message and build conversation history
-        system_msg = get_system_message()
-        conversation_history = build_conversation_history(
-            system_msg, 
-            page, 
-            conversation.project.user_project.project_path
-        )
+        # Get or create an agent conversation
+        agent_conversation = AgentConversation.objects.filter(
+            user=user
+        ).order_by('-created_at').first()
 
-        # Build complete messages array
-        complete_messages = [
-            {"role": "system", "content": system_msg["content"]},
-            *conversation_history,
-            {"role": "system", "content": f"You are working on file: {page.filename}"},
-            {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
-        ]
+        if not agent_conversation:
+            # Create initial system prompt based on file type
+            if file_name.endswith('.css'):
+                initial_prompt = stylesheet_agent.get_system_prompt()['content']
+            else:
+                initial_prompt = template_agent.get_system_prompt()['content']
 
-        # Make API call to get response
-        print(f"Making API call to {model}")
-        assistant_response = make_api_call(
-            model=model,
-            system_msg=system_msg,
-            conversation_history=conversation_history,
-            page=page,
-            user_input=user_input,
-            complete_messages=complete_messages,
-            openai_client=openai_client,
-            anthropic_client=anthropic_client
-        )
-        
-        if not assistant_response:
-            raise ValueError("Empty response from AI service")
+            # Create new agent conversation with initial system prompt
+            result = (stylesheet_agent if file_name.endswith('.css') else template_agent).process_conversation(
+                user_input="Initialize conversation",
+                model=model,
+                user=user,
+                system_prompt_content=initial_prompt
+            )
+            if not result['success']:
+                raise ValueError(result.get('error', 'Failed to initialize agent conversation'))
 
-        # Remove markdown code block markers only
-        cleaned_response = assistant_response.replace('```html', '').replace('```css', '').replace('```', '').strip()
+        # Choose the appropriate agent based on file type
+        if file_name.endswith('.css'):
+            result = stylesheet_agent.process_conversation(
+                user_input=user_input,
+                model=model,
+                user=user
+            )
+        else:
+            result = template_agent.process_conversation(
+                user_input=user_input,
+                model=model,
+                user=user,
+                template_name=file_name
+            )
+
+        # Even if validation fails, we want to return the response
+        response = result.get('response', '')
+        if not result['success']:
+            print(f"Warning: {result.get('error', 'Unknown validation error')}")
+            # If it's a validation error, we'll still return the response
+            if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
+                # Save messages to database anyway
+                Message.objects.create(
+                    conversation=conversation,
+                    page=page,
+                    role="user",
+                    content=user_input
+                )
+
+                Message.objects.create(
+                    conversation=conversation,
+                    page=page,
+                    role="assistant",
+                    content=response
+                )
+
+                # Deduct credits since we're using the response
+                if not deduct_credits(user, model):
+                    raise ValueError("Failed to deduct credits")
+
+                return {
+                    'success': True,
+                    'response': response,
+                    'file': file_name,
+                    'warning': result.get('error')  # Include the validation error as a warning
+                }
+            else:
+                # For non-validation errors, raise the error
+                raise ValueError(result.get('error', 'Error processing request'))
 
         # Save messages to database
         Message.objects.create(
@@ -152,7 +183,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             conversation=conversation,
             page=page,
             role="assistant",
-            content=cleaned_response
+            content=response
         )
 
         # If we get here, the request was successful, so deduct credits
@@ -162,9 +193,8 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         # Return the content in a consistent format
         return {
             'success': True,
-            'response': cleaned_response,
-            'file': file_name,
-            'conversation_history': complete_messages
+            'response': response,
+            'file': file_name
         }
             
     except Exception as e:
@@ -252,62 +282,78 @@ def process_chat_mode_input_service(user_input, model, conversation, conversatio
         if not has_credits:
             raise ValueError(f"Insufficient credits. Required: ${required_credits}")
 
-        # Set up the system message
-        system_msg = get_system_message()
-        
-        # Get the project path
-        project_path = conversation.project.user_project.project_path
-        
         # Get or create the page for this file
         page, created = Page.objects.get_or_create(
             conversation=conversation,
             filename=file_name
         )
-        
-        # Build conversation history using the project's directories
-        conversation_history = build_conversation_history(system_msg, page, project_path)
-        
-        if model == 'claude-3-5-sonnet-20241022':
-            system_content = (
-                f"{system_msg['content']}\n\n"
-                f"CURRENT TASK: You are in chat mode discussing {file_name}. "
-                "Provide helpful responses about website development and design. "
-                "You can reference the current content of the file and suggest improvements "
-                "or explain concepts, but do not generate actual code updates.\n\n"
-                f"CONTEXT: The conversation is about {file_name}"
-            )
-            
-            messages = [msg for msg in conversation_history if msg["role"] != "system"]
-            messages.append({
-                "role": "user", 
-                "content": f"[Chat][File: {file_name}]\n{user_input}"
-            })
-            
-            completion = anthropic_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=2048,
-                system=system_content,
-                messages=messages
-            )
-            
-            if completion.content:
-                response = completion.content[0].text
+
+        # Get or create an agent conversation
+        agent_conversation = AgentConversation.objects.filter(
+            user=user
+        ).order_by('-created_at').first()
+
+        if not agent_conversation:
+            # Create initial system prompt based on file type
+            if file_name.endswith('.css'):
+                initial_prompt = stylesheet_agent.get_system_prompt()['content']
             else:
-                raise ValueError("Empty response from Claude API")
-            
-        else:
-            messages = [
-                {"role": "system", "content": system_msg["content"]},
-                {"role": "system", "content": f"You are discussing {file_name}"},
-                *conversation_history,
-                {"role": "user", "content": f"[Chat][File: {file_name}]\n{user_input}"}
-            ]
-            
-            completion = openai_client.chat.completions.create(
+                initial_prompt = template_agent.get_system_prompt()['content']
+
+            # Create new agent conversation with initial system prompt
+            result = (stylesheet_agent if file_name.endswith('.css') else template_agent).process_conversation(
+                user_input="Initialize conversation",
                 model=model,
-                messages=messages
+                user=user,
+                system_prompt_content=initial_prompt
             )
-            response = completion.choices[0].message.content
+            if not result['success']:
+                raise ValueError(result.get('error', 'Failed to initialize agent conversation'))
+
+        # Choose the appropriate agent based on file type
+        if file_name.endswith('.css'):
+            result = stylesheet_agent.process_conversation(
+                user_input=f"[Chat Mode] {user_input}",
+                model=model,
+                user=user
+            )
+        else:
+            result = template_agent.process_conversation(
+                user_input=f"[Chat Mode] {user_input}",
+                model=model,
+                user=user,
+                template_name=file_name
+            )
+
+        # Even if validation fails, we want to return the response
+        response = result.get('response', '')
+        if not result['success']:
+            print(f"Warning: {result.get('error', 'Unknown validation error')}")
+            # For chat mode, we don't need to validate the response
+            if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
+                # Save the chat messages anyway
+                Message.objects.create(
+                    conversation=conversation,
+                    page=page,
+                    role="user",
+                    content=f"[Chat][File: {file_name}]\n{user_input}"
+                )
+
+                Message.objects.create(
+                    conversation=conversation,
+                    page=page,
+                    role="assistant",
+                    content=f"[Chat][File: {file_name}]\n{response}"
+                )
+
+                # Deduct credits since we're using the response
+                if not deduct_credits(user, model):
+                    raise ValueError("Failed to deduct credits")
+
+                return response
+            else:
+                # For non-validation errors, raise the error
+                raise ValueError(result.get('error', 'Error processing request'))
 
         # Save the chat messages to the conversation
         Message.objects.create(

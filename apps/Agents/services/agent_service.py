@@ -33,7 +33,14 @@ class BaseAgentService:
         """
         raise NotImplementedError("Subclasses must implement validate_response()")
     
-    def process_conversation(self, user_input, model, user, system_prompt_content=None):
+    def get_additional_context(self, **kwargs):
+        """
+        Get additional context for the conversation.
+        Can be overridden by subclasses to add specific context.
+        """
+        return None
+    
+    def process_conversation(self, user_input, model, user, system_prompt_content=None, **kwargs):
         """
         Process a conversation with an AI agent.
         This is the base implementation that specialized services can build upon.
@@ -84,6 +91,14 @@ class BaseAgentService:
                 api_messages.append({
                     "role": msg.role,
                     "content": msg.content
+                })
+
+            # Add additional context if provided by subclass
+            additional_context = self.get_additional_context(**kwargs)
+            if additional_context:
+                api_messages.append({
+                    "role": "system",
+                    "content": additional_context
                 })
 
             # Add new user message
