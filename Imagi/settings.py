@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.Payments',
     'apps.ProjectManager.apps.ProjectManagerConfig',
     'rest_framework',
+    'apps.Agents',
 ]
 
 MIDDLEWARE = [

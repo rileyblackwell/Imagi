@@ -13,5 +13,6 @@ urlpatterns = [
     path('auth/', include('apps.Auth.urls')),  # Auth app URLs
     path('', include('apps.Home.urls')),  # Home app URLs
     path('payments/', include('apps.Payments.urls')),  # Payments app URLs
+    path('agents/', include('apps.Agents.urls')),  # Include the agents app URLs
     path('favicon.ico', favicon_view),
 ]
