@@ -28,6 +28,10 @@
 # - Home App: Landing and static marketing content, linking to other features.
 # - Payments App: Integrates Stripe for purchasing AI/API credits. Associates credits with user accounts.
 # - ProjectManager App: Manages the lifecycle of user projects, including directory creation and file organization.
+# - Agents App: Manages backend agentic workflows, including:
+#   * Conversation history: Keeps track of user interactions and prompts.
+#   * System prompt: Generates and manages the system prompt sent to the AI model API (e.g., GPT-4.0, Claude-Sonnet).
+#   * Integrates with AI models for web app generation and enhancement.
 
 # Style & Design:
 # - Draw inspiration from Stripe, Airbnb, Discord, Twilio, and Apple.

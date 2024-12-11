@@ -110,10 +110,6 @@ def get_system_message():
         )
     }
 
-def get_file_context(filename):
-    """Generates the file-specific context message."""
-    return f"You are working on file: {filename}"
-
 def build_conversation_history(system_msg, page, project_path):
     """Builds the conversation history with organized sections."""
     conversation_history = []
@@ -248,14 +244,10 @@ def make_api_call(model, system_msg, conversation_history, page, user_input, com
                 if msg["role"] != "system" and msg.get("content", "").strip()
             ]
             
-            # Add the current user input if not empty
-            if user_input.strip():
-                messages.append({
-                    "role": "user",
-                    "content": f"[File: {page.filename}]\n{user_input}"
-                })
-            else:
-                raise ValueError("User input cannot be empty")
+            messages.append({
+                "role": "user", 
+                "content": f"[File: {page.filename}]\n{user_input}"
+            })
             
             completion = anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
@@ -266,41 +258,18 @@ def make_api_call(model, system_msg, conversation_history, page, user_input, com
             
             if completion.content:
                 return completion.content[0].text
-            raise ValueError("Empty response from Claude API")
-                
-        elif model in ['gpt-4o', 'gpt-4o-mini']:
-            # Build complete messages array if not provided
-            if not complete_messages:
-                complete_messages = [
-                    {"role": "system", "content": system_msg["content"]},
-                    *conversation_history,
-                    {"role": "system", "content": f"You are working on file: {page.filename}"},
-                    {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
-                ]
+            else:
+                raise ValueError("Empty response from Claude API")
             
-            # Ensure we have at least one message
-            if not complete_messages:
-                complete_messages = [{
-                    "role": "system",
-                    "content": system_msg["content"]
-                }]
-            
-            print("Sending messages to OpenAI:", complete_messages)  # Debug print
-            
+        else:
             completion = openai_client.chat.completions.create(
                 model=model,
-                messages=complete_messages,
-                temperature=0.7,
-                max_tokens=2048
+                messages=complete_messages
             )
-            
             return completion.choices[0].message.content
-        
-        else:
-            raise ValueError(f"Unsupported model: {model}. Supported models are: claude-3-5-sonnet-20241022, gpt-4o, gpt-4o-mini")
-            
+
     except Exception as e:
-        print(f"Error in make_api_call: {str(e)}")  # Debug print
-        raise Exception(f"Error code: {getattr(e, 'status_code', 'unknown')} - {str(e)}")
+        print(f"Error in make_api_call: {str(e)}")
+        return None
 
  

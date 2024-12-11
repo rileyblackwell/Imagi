@@ -25,8 +25,8 @@ anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 # Add model costs constants
 MODEL_COSTS = {
     'claude-3-5-sonnet-20241022': 0.10,  # $0.10 per request
-    'gpt-4o': 0.10,  # $0.10 per request
-    'gpt-4o-mini': 0.005  # $0.005 per request
+    'gpt-4': 0.10,  # $0.10 per request
+    'gpt-4-mini': 0.005  # $0.005 per request
 }
 
 def check_user_credits(user, model):
@@ -244,9 +244,14 @@ def undo_last_action_service(user, page_name):
         print(f"Error in undo_last_action_service: {str(e)}")
         return None, 'Nothing to undo', 200
 
-def process_chat_mode_input_service(user_input, model, conversation, conversation_history, file_name):
+def process_chat_mode_input_service(user_input, model, conversation, conversation_history, file_name, user):
     """Processes chat input without generating website files."""
     try:
+        # Check if user has enough credits
+        has_credits, required_credits = check_user_credits(user, model)
+        if not has_credits:
+            raise ValueError(f"Insufficient credits. Required: ${required_credits}")
+
         # Set up the system message
         system_msg = get_system_message()
         
@@ -318,6 +323,10 @@ def process_chat_mode_input_service(user_input, model, conversation, conversatio
             role="assistant",
             content=f"[Chat][File: {file_name}]\n{response}"
         )
+
+        # Deduct credits after successful API call
+        if not deduct_credits(user, model):
+            raise ValueError("Failed to deduct credits")
 
         return response
 
