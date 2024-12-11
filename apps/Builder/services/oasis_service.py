@@ -99,40 +99,21 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             filename=file_name
         )
 
-        # Get or create an agent conversation
-        agent_conversation = AgentConversation.objects.filter(
-            user=user
-        ).order_by('-created_at').first()
-
-        if not agent_conversation:
-            # Create initial system prompt based on file type
-            if file_name.endswith('.css'):
-                initial_prompt = stylesheet_agent.get_system_prompt()['content']
-            else:
-                initial_prompt = template_agent.get_system_prompt()['content']
-
-            # Create new agent conversation with initial system prompt
-            result = (stylesheet_agent if file_name.endswith('.css') else template_agent).process_conversation(
-                user_input="Initialize conversation",
-                model=model,
-                user=user,
-                system_prompt_content=initial_prompt
-            )
-            if not result['success']:
-                raise ValueError(result.get('error', 'Failed to initialize agent conversation'))
-
         # Choose the appropriate agent based on file type
         if file_name.endswith('.css'):
             result = stylesheet_agent.process_conversation(
                 user_input=user_input,
                 model=model,
-                user=user
+                user=user,
+                project_path=conversation.project.user_project.project_path,
+                file_name=file_name
             )
         else:
             result = template_agent.process_conversation(
                 user_input=user_input,
                 model=model,
                 user=user,
+                project_path=conversation.project.user_project.project_path,
                 template_name=file_name
             )
 

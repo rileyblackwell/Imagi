@@ -153,6 +153,15 @@ $(document).ready(function() {
                 'csrfmiddlewaretoken': csrftoken
             },
             success: function(historyResponse) {
+                // Log conversation history
+                console.group('📜 Conversation History');
+                historyResponse.messages.forEach(msg => {
+                    console.log(`[${msg.role.toUpperCase()}]:`);
+                    console.log(msg.content);
+                    console.log('---');
+                });
+                console.groupEnd();
+                
                 makeGenerateRequest();
             },
             error: function(xhr, status, error) {
@@ -183,6 +192,11 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     var $responseWindow = $('#response-window');
+                    
+                    // Log AI response
+                    console.group('🤖 AI Response');
+                    console.log(response.response || response.message);
+                    console.groupEnd();
                     
                     if (mode === 'chat') {
                         // Show chat response

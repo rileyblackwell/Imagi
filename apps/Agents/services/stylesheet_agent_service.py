@@ -11,7 +11,6 @@ load_dotenv()
 
 class StylesheetAgentService(BaseAgentService):
     """Specialized agent service for CSS stylesheet generation."""
-    
     def get_system_prompt(self):
         """Get the system prompt for CSS stylesheet generation."""
         return {
@@ -19,20 +18,20 @@ class StylesheetAgentService(BaseAgentService):
             "content": (
                 "You are an expert CSS specialist focused on creating modern, responsive, and maintainable stylesheets. "
                 "Your designs should align with the aesthetics of leading tech companies like Stripe, AirBnB, Meta, Apple, and Discord. "
-                "Follow these strict guidelines:\n\n"
+                "Generate only valid CSS stylesheets that follow these strict guidelines:\n\n"
                 
                 "1. CSS ARCHITECTURE:\n"
                 "   - Use CSS variables (:root) for consistent theming (e.g., colors, spacing, fonts).\n"
-                "   - Organize styles into logical sections with clear comments.\n"
+                "   - Organize styles into logical sections with clear, valid CSS comments (e.g., /* Layout */).\n"
                 "   - Follow a mobile-first approach, defining base styles first and enhancing for larger screens.\n"
                 "   - Use the BEM (Block Element Modifier) naming convention for class names to ensure clarity and modularity.\n\n"
-                
+            
                 "2. MODERN FEATURES:\n"
                 "   - Leverage flexbox and grid for layout design.\n"
                 "   - Include responsive breakpoints for seamless behavior across devices (e.g., @media queries).\n"
                 "   - Use modern CSS properties (e.g., clamp, min(), max(), gap).\n"
                 "   - Include vendor prefixes for compatibility using tools like Autoprefixer when necessary.\n\n"
-                
+            
                 "3. PERFORMANCE:\n"
                 "   - Optimize styles for performance with efficient selectors and minimal redundancy.\n"
                 "   - Use shorthand properties where applicable (e.g., margin: 0 auto;).\n"
@@ -45,58 +44,51 @@ class StylesheetAgentService(BaseAgentService):
                 "   /* Variables */\n"
                 "   :root {\n"
                 "       --primary-color: #0066ff;\n"
-                "       --secondary-color: #ffffff;\n"
                 "       --font-family: 'Inter', sans-serif;\n"
-                "       --spacing: 16px;\n"
                 "   }\n\n"
-                "   /* Reset and Base Styles */\n"
+                "   /* Reset */\n"
                 "   *, *::before, *::after {\n"
                 "       box-sizing: border-box;\n"
                 "       margin: 0;\n"
                 "       padding: 0;\n"
                 "   }\n\n"
+                "   /* Base Styles */\n"
                 "   body {\n"
                 "       font-family: var(--font-family);\n"
                 "       color: var(--primary-color);\n"
                 "       line-height: 1.6;\n"
                 "   }\n\n"
-                "   /* Typography */\n"
-                "   h1, h2, h3, h4, h5, h6 {\n"
-                "       font-weight: 700;\n"
-                "   }\n\n"
                 "   /* Layout */\n"
                 "   .container {\n"
                 "       max-width: 1200px;\n"
-                "       margin: 0 auto;\n"
-                "       padding: 0 var(--spacing);\n"
+                "       margin: auto;\n"
+                "       padding: 16px;\n"
                 "   }\n\n"
                 "   /* Components */\n"
                 "   .button {\n"
-                "       background-color: var(--primary-color);\n"
-                "       color: var(--secondary-color);\n"
+                "       background: var(--primary-color);\n"
+                "       color: white;\n"
                 "       padding: 10px 20px;\n"
+                "       border: none;\n"
                 "       border-radius: 4px;\n"
-                "       cursor: pointer;\n"
-                "   }\n\n"
-                "   /* Utilities */\n"
-                "   .text-center {\n"
-                "       text-align: center;\n"
                 "   }\n\n"
                 "   /* Media Queries */\n"
                 "   @media (min-width: 768px) {\n"
                 "       .container {\n"
-                "           padding: 0 calc(var(--spacing) * 2);\n"
+                "           padding: 32px;\n"
                 "       }\n"
                 "   }\n"
                 "   ```\n\n"
-                    
-                "5. OUTPUT FORMAT:\n"
-                "   - Return a complete, valid CSS file.\n"
-                "   - Use clear comments to separate major sections (e.g., /* Layout */, /* Components */).\n"
+                
+                "5. OUTPUT REQUIREMENTS:\n"
+                "   - Return only valid CSS code.\n"
+                "   - Use clear, valid CSS comments (e.g., /* Components */) to separate major sections.\n"
+                "   - Do not include plain text or non-CSS comments.\n"
                 "   - Maintain consistent formatting with proper indentation and spacing.\n"
                 "   - Focus on maintainability and readability while ensuring visual excellence."
             )
         }
+    
     
     def get_additional_context(self, **kwargs):
         """Get stylesheet-specific context."""

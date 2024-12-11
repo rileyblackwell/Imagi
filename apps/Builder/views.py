@@ -10,16 +10,16 @@ from .services.oasis_service import (
     undo_last_action_service,
     process_chat_mode_input_service
 )
-from .services.utils import (
-    get_system_message,
-    build_conversation_history
-)
+from apps.ProjectManager.services import ProjectGenerationService, DevServerManager
+from apps.Agents.services.agent_service import build_conversation_history
+from apps.Agents.services.template_agent_service import TemplateAgentService
 import os
 import shutil
 from django.utils import timezone
 from django.contrib import messages
-from apps.ProjectManager.services import ProjectGenerationService, DevServerManager
 
+# Initialize template agent for system prompt
+template_agent = TemplateAgentService()
 
 @login_required
 def landing_page(request):
@@ -296,25 +296,97 @@ def get_conversation_history(request):
             filename=file_name
         )
         
-        # Get system message
-        system_msg = get_system_message()
+        # Get system message from template agent
+        system_msg = template_agent.get_system_prompt()
         
-        # Build conversation history
-        conversation_history = build_conversation_history(
-            system_msg, 
-            page, 
-            project_path
-        )
+        # Build messages array for API call
+        messages = []
         
-        # Add current request to history
-        complete_messages = [
-            *conversation_history,
-            {"role": "system", "content": f"You are working on file: {page.filename}"},
-            {"role": "user", "content": f"[File: {page.filename}]\n{user_input}"}
-        ]
+        # 1. Add system prompt
+        print("\n=== SYSTEM PROMPT ===")
+        print(system_msg['content'])
+        messages.append(system_msg)
+        
+        # 2. Add project files
+        print("\n=== PROJECT FILES ===")
+        templates_dir = os.path.join(project_path, 'templates')
+        css_dir = os.path.join(project_path, 'static', 'css')
+        
+        # Add HTML files
+        if os.path.exists(templates_dir):
+            html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
+            html_files.sort()
+            
+            # Ensure base.html is first, followed by index.html
+            if 'base.html' in html_files:
+                html_files.remove('base.html')
+                html_files.insert(0, 'base.html')
+            if 'index.html' in html_files:
+                html_files.remove('index.html')
+                html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
+            
+            for filename in html_files:
+                print(f"Adding file: {filename}")
+                file_path = os.path.join(templates_dir, filename)
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                        messages.append({
+                            "role": "assistant",
+                            "content": f"[File: {filename}]\n{content}"
+                        })
+                except FileNotFoundError:
+                    print(f"File not found: {filename}")
+                    continue
+        
+        # Add CSS file
+        css_path = os.path.join(css_dir, 'styles.css')
+        if os.path.exists(css_path):
+            print("Adding file: styles.css")
+            try:
+                with open(css_path, 'r') as f:
+                    content = f.read()
+                    messages.append({
+                        "role": "assistant",
+                        "content": f"[File: styles.css]\n{content}"
+                    })
+            except FileNotFoundError:
+                print("File not found: styles.css")
+        
+        # 3. Add conversation history
+        history_messages = Message.objects.filter(
+            conversation=conversation,
+            page=page
+        ).order_by('created_at')
+        
+        if history_messages.exists():
+            print("\n=== CONVERSATION HISTORY ===")
+            for msg in history_messages:
+                print(f"[{msg.role.upper()}]: {msg.content[:100]}...")
+                messages.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        # 4. Add current task context
+        context_msg = {
+            "role": "system",
+            "content": f"\n=== CURRENT TASK ===\nYou are working on: {file_name}"
+        }
+        print("\n=== TASK CONTEXT ===")
+        print(context_msg['content'])
+        messages.append(context_msg)
+        
+        # 5. Add current request
+        messages.append({
+            "role": "user",
+            "content": f"[File: {file_name}]\n{user_input}"
+        })
+        print("\n=== USER INPUT ===")
+        print(user_input)
         
         return JsonResponse({
-            'messages': complete_messages
+            'messages': messages
         })
             
     except Exception as e:
@@ -488,10 +560,10 @@ def process_chat(request):
         )[0]
         
         # Get system message
-        system_msg = get_system_message()
+        system_msg = template_agent.get_system_prompt()
         
         # Build conversation history using project path
-        conversation_history = build_conversation_history(system_msg, page, project_path)
+        conversation_history = build_conversation_history(conversation)
         
         # Process chat using the updated AI service
         response_content = process_chat_mode_input_service(
