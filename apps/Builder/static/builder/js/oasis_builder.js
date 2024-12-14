@@ -270,6 +270,63 @@ $(document).ready(function() {
         $('#response-window').empty();
     });
 
+    // Undo button handler
+    $('#undo-btn').click(function(event) {
+        event.preventDefault();
+        
+        // Get the currently selected file
+        var selectedFile = $('#file-select').val();
+        if (selectedFile === 'custom') {
+            alert('Please select a valid file to undo');
+            return;
+        }
+        
+        // Show loading state
+        const $undoBtn = $(this);
+        $undoBtn.prop('disabled', true);
+        $undoBtn.html('<i class="fas fa-spinner fa-spin"></i> Undoing...');
+        
+        // Make request to undo last action
+        $.ajax({
+            type: 'POST',
+            url: '/builder/undo-last-action/',
+            data: {
+                'page': selectedFile,
+                'csrfmiddlewaretoken': csrftoken
+            },
+            success: function(response) {
+                // Add success message to response window
+                const timestamp = new Date().toLocaleTimeString();
+                const $responseWindow = $('#response-window');
+                const currentContent = $responseWindow.text();
+                const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - ${response.message}\n`);
+                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                
+                // If HTML content was returned, update the preview
+                if (response.html) {
+                    // TODO: Update preview if needed
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Undo Error:", error);
+                
+                // Add error message to response window
+                const timestamp = new Date().toLocaleTimeString();
+                const $responseWindow = $('#response-window');
+                const currentContent = $responseWindow.text();
+                const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error undoing last action: ${error}\n`);
+                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+            },
+            complete: function() {
+                // Reset button state
+                $undoBtn.prop('disabled', false);
+                $undoBtn.html('<i class="fas fa-undo"></i> Undo');
+            }
+        });
+    });
+
     // Preview button handler
     $('#preview-btn').click(function(event) {
         event.preventDefault();
