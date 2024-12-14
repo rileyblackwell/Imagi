@@ -124,95 +124,97 @@ class BaseAgentService:
                         'error': 'no_active_conversation'
                     }
 
-            # Build messages array for API call
-            api_messages = []
-            
-            # 1. Add system prompt (from the specific agent service)
-            system_prompt = self.get_system_prompt()
-            print("\n=== SYSTEM PROMPT ===")
-            print(system_prompt['content'])
-            api_messages.append(system_prompt)
-            
-            # 2. Add project files if available
-            project_path = kwargs.get('project_path')
-            if project_path:
-                print("\n=== PROJECT FILES ===")
-                templates_dir = os.path.join(project_path, 'templates')
-                css_dir = os.path.join(project_path, 'static', 'css')
+            # Use provided messages if available, otherwise build them
+            api_messages = kwargs.get('messages', [])
+            if not kwargs.get('use_provided_messages', False):
+                api_messages = []
                 
-                # Add HTML files
-                if os.path.exists(templates_dir):
-                    html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
-                    html_files.sort()
+                # 1. Add system prompt (from the specific agent service)
+                system_prompt = self.get_system_prompt()
+                print("\n=== SYSTEM PROMPT ===")
+                print(system_prompt['content'])
+                api_messages.append(system_prompt)
+                
+                # 2. Add project files if available
+                project_path = kwargs.get('project_path')
+                if project_path:
+                    print("\n=== PROJECT FILES ===")
+                    templates_dir = os.path.join(project_path, 'templates')
+                    css_dir = os.path.join(project_path, 'static', 'css')
                     
-                    # Ensure base.html is first, followed by index.html
-                    if 'base.html' in html_files:
-                        html_files.remove('base.html')
-                        html_files.insert(0, 'base.html')
-                    if 'index.html' in html_files:
-                        html_files.remove('index.html')
-                        html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
+                    # Add HTML files
+                    if os.path.exists(templates_dir):
+                        html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
+                        html_files.sort()
+                        
+                        # Ensure base.html is first, followed by index.html
+                        if 'base.html' in html_files:
+                            html_files.remove('base.html')
+                            html_files.insert(0, 'base.html')
+                        if 'index.html' in html_files:
+                            html_files.remove('index.html')
+                            html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
+                        
+                        for filename in html_files:
+                            print(f"Adding file: {filename}")
+                            file_path = os.path.join(templates_dir, filename)
+                            try:
+                                with open(file_path, 'r') as f:
+                                    content = f.read()
+                                    api_messages.append({
+                                        "role": "assistant",
+                                        "content": f"[File: {filename}]\n{content}"
+                                    })
+                            except FileNotFoundError:
+                                print(f"File not found: {filename}")
+                                continue
                     
-                    for filename in html_files:
-                        print(f"Adding file: {filename}")
-                        file_path = os.path.join(templates_dir, filename)
+                    # Add CSS file
+                    css_path = os.path.join(css_dir, 'styles.css')
+                    if os.path.exists(css_path):
+                        print("Adding file: styles.css")
                         try:
-                            with open(file_path, 'r') as f:
+                            with open(css_path, 'r') as f:
                                 content = f.read()
                                 api_messages.append({
                                     "role": "assistant",
-                                    "content": f"[File: {filename}]\n{content}"
+                                    "content": f"[File: styles.css]\n{content}"
                                 })
                         except FileNotFoundError:
-                            print(f"File not found: {filename}")
-                            continue
+                            print("File not found: styles.css")
                 
-                # Add CSS file
-                css_path = os.path.join(css_dir, 'styles.css')
-                if os.path.exists(css_path):
-                    print("Adding file: styles.css")
-                    try:
-                        with open(css_path, 'r') as f:
-                            content = f.read()
-                            api_messages.append({
-                                "role": "assistant",
-                                "content": f"[File: styles.css]\n{content}"
-                            })
-                    except FileNotFoundError:
-                        print("File not found: styles.css")
-            
-            # 3. Add conversation history
-            messages = AgentMessage.objects.filter(
-                conversation=conversation
-            ).order_by('created_at')
-            
-            if messages.exists():
-                print("\n=== CONVERSATION HISTORY ===")
-                for msg in messages:
-                    print(f"[{msg.role.upper()}]: {msg.content[:100]}...")
-                    api_messages.append({
-                        "role": msg.role,
-                        "content": msg.content
-                    })
-            
-            # 4. Add current task context
-            current_file = kwargs.get('template_name') or kwargs.get('file_name')
-            if current_file:
-                context_msg = {
-                    "role": "system",
-                    "content": f"\n=== CURRENT TASK ===\nYou are working on: {current_file}"
-                }
-                print("\n=== TASK CONTEXT ===")
-                print(context_msg['content'])
-                api_messages.append(context_msg)
-            
-            # 5. Add new user message
-            api_messages.append({
-                "role": "user",
-                "content": user_input
-            })
-            print("\n=== USER INPUT ===")
-            print(user_input)
+                # 3. Add conversation history
+                messages = AgentMessage.objects.filter(
+                    conversation=conversation
+                ).order_by('created_at')
+                
+                if messages.exists():
+                    print("\n=== CONVERSATION HISTORY ===")
+                    for msg in messages:
+                        print(f"[{msg.role.upper()}]: {msg.content[:100]}...")
+                        api_messages.append({
+                            "role": msg.role,
+                            "content": msg.content
+                        })
+                
+                # 4. Add current task context
+                current_file = kwargs.get('template_name') or kwargs.get('file_name')
+                if current_file:
+                    context_msg = {
+                        "role": "system",
+                        "content": f"\n=== CURRENT TASK ===\nYou are working on: {current_file}"
+                    }
+                    print("\n=== TASK CONTEXT ===")
+                    print(context_msg['content'])
+                    api_messages.append(context_msg)
+                
+                # 5. Add new user message
+                api_messages.append({
+                    "role": "user",
+                    "content": user_input
+                })
+                print("\n=== USER INPUT ===")
+                print(user_input)
 
             # Make API call based on model
             if model.startswith('claude'):
@@ -260,17 +262,19 @@ class BaseAgentService:
                     'response': response
                 }
 
-            AgentMessage.objects.create(
-                conversation=conversation,
-                role="user",
-                content=user_input
-            )
+            # Only save messages if we're not using provided ones
+            if not kwargs.get('use_provided_messages', False):
+                AgentMessage.objects.create(
+                    conversation=conversation,
+                    role="user",
+                    content=user_input
+                )
 
-            AgentMessage.objects.create(
-                conversation=conversation,
-                role="assistant",
-                content=response
-            )
+                AgentMessage.objects.create(
+                    conversation=conversation,
+                    role="assistant",
+                    content=response
+                )
 
             return {
                 'success': True,

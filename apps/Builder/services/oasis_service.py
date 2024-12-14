@@ -99,58 +99,208 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             filename=file_name
         )
 
+        # Get or create an agent conversation
+        agent_conversation = AgentConversation.objects.filter(
+            user=user
+        ).order_by('-created_at').first()
+
         # Choose the appropriate agent based on file type
-        if file_name.endswith('.css'):
-            result = stylesheet_agent.process_conversation(
-                user_input=user_input,
+        agent = stylesheet_agent if file_name.endswith('.css') else template_agent
+
+        if not agent_conversation:
+            # Create initial system prompt based on file type
+            initial_prompt = agent.get_system_prompt()['content']
+
+            # Create new agent conversation with initial system prompt
+            init_result = agent.process_conversation(
+                user_input="Initialize conversation",
                 model=model,
                 user=user,
-                project_path=conversation.project.user_project.project_path,
-                file_name=file_name
+                system_prompt_content=initial_prompt
+            )
+            if not init_result['success']:
+                raise ValueError(init_result.get('error', 'Failed to initialize agent conversation'))
+
+        # Get project paths
+        project_path = conversation.project.user_project.project_path
+        templates_dir = os.path.join(project_path, 'templates')
+        static_css_dir = os.path.join(project_path, 'static', 'css')
+        
+        # Ensure directories exist
+        os.makedirs(templates_dir, exist_ok=True)
+        os.makedirs(static_css_dir, exist_ok=True)
+
+        # Build conversation history with all project files
+        api_messages = []
+        
+        # 1. Add system prompt
+        system_prompt = agent.get_system_prompt()
+        api_messages.append(system_prompt)
+        
+        # 2. Add all project files
+        # Add HTML files
+        if os.path.exists(templates_dir):
+            html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
+            html_files.sort()
+            
+            # Ensure base.html is first, followed by index.html
+            if 'base.html' in html_files:
+                html_files.remove('base.html')
+                html_files.insert(0, 'base.html')
+            if 'index.html' in html_files:
+                html_files.remove('index.html')
+                html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
+            
+            for filename in html_files:
+                file_path = os.path.join(templates_dir, filename)
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                        api_messages.append({
+                            "role": "assistant",
+                            "content": f"[File: {filename}]\n{content}"
+                        })
+                except FileNotFoundError:
+                    continue
+        
+        # Add CSS file
+        css_path = os.path.join(static_css_dir, 'styles.css')
+        if os.path.exists(css_path):
+            try:
+                with open(css_path, 'r') as f:
+                    content = f.read()
+                    api_messages.append({
+                        "role": "assistant",
+                        "content": f"[File: styles.css]\n{content}"
+                    })
+            except FileNotFoundError:
+                pass
+        
+        # 3. Add conversation history
+        history_messages = Message.objects.filter(
+            conversation=conversation,
+            page=page
+        ).order_by('created_at')
+        
+        for msg in history_messages:
+            api_messages.append({
+                "role": msg.role,
+                "content": msg.content
+            })
+        
+        # 4. Add current task context
+        api_messages.append({
+            "role": "system",
+            "content": f"\n=== CURRENT TASK ===\nYou are working on: {file_name}"
+        })
+
+        # 5. Add current request with enhanced instructions
+        if file_name.endswith('.html'):
+            enhanced_input = f"""
+Please generate a complete Django template following these requirements:
+1. Include {{% load static %}} at the top
+2. Use proper Django template syntax
+3. Follow responsive design principles
+4. Maintain consistent indentation
+5. Include all necessary template blocks
+
+User request: {user_input}
+"""
+        else:
+            enhanced_input = user_input
+
+        api_messages.append({
+            "role": "user",
+            "content": enhanced_input
+        })
+
+        # Make API call based on file type
+        if file_name.endswith('.css'):
+            result = stylesheet_agent.process_conversation(
+                user_input=enhanced_input,
+                model=model,
+                user=user,
+                project_path=project_path,
+                file_name=file_name,
+                messages=api_messages,
+                use_provided_messages=True  # Tell agent to use our messages
             )
         else:
             result = template_agent.process_conversation(
-                user_input=user_input,
+                user_input=enhanced_input,
                 model=model,
                 user=user,
-                project_path=conversation.project.user_project.project_path,
-                template_name=file_name
+                project_path=project_path,
+                template_name=file_name,
+                messages=api_messages,
+                use_provided_messages=True  # Tell agent to use our messages
             )
 
-        # Even if validation fails, we want to return the response
+        # Get response and handle validation
         response = result.get('response', '')
         if not result['success']:
             print(f"Warning: {result.get('error', 'Unknown validation error')}")
-            # If it's a validation error, we'll still return the response
-            if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
-                # Save messages to database anyway
-                Message.objects.create(
-                    conversation=conversation,
-                    page=page,
-                    role="user",
-                    content=user_input
-                )
+            
+            # For HTML templates, try to fix common issues
+            if file_name.endswith('.html'):
+                # Add missing {% load static %} if needed
+                if '{{% load static %}}' not in response:
+                    response = '{{% load static %}}\n' + response
+                
+                # Ensure DOCTYPE and HTML structure for base.html
+                if file_name == 'base.html' and '<!DOCTYPE html>' not in response:
+                    response = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{% block title %}}{{% endblock %}}</title>
+    {{% block extra_css %}}{{% endblock %}}
+</head>
+<body>
+    {{% block content %}}{{% endblock %}}
+    {{% block extra_js %}}{{% endblock %}}
+</body>
+</html>"""
+                
+                # Validate the fixed template
+                is_valid, error_msg = template_agent.validate_response(response)
+                if is_valid:
+                    result['success'] = True
+                    result['response'] = response
+                    print("Template fixed successfully")
+            
+            if not result['success']:
+                # If it's still a validation error, we'll return the response anyway
+                if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
+                    # Save messages to database
+                    Message.objects.create(
+                        conversation=conversation,
+                        page=page,
+                        role="user",
+                        content=user_input
+                    )
 
-                Message.objects.create(
-                    conversation=conversation,
-                    page=page,
-                    role="assistant",
-                    content=response
-                )
+                    Message.objects.create(
+                        conversation=conversation,
+                        page=page,
+                        role="assistant",
+                        content=response
+                    )
 
-                # Deduct credits since we're using the response
-                if not deduct_credits(user, model):
-                    raise ValueError("Failed to deduct credits")
+                    # Deduct credits since we're using the response
+                    if not deduct_credits(user, model):
+                        raise ValueError("Failed to deduct credits")
 
-                return {
-                    'success': True,
-                    'response': response,
-                    'file': file_name,
-                    'warning': result.get('error')  # Include the validation error as a warning
-                }
-            else:
-                # For non-validation errors, raise the error
-                raise ValueError(result.get('error', 'Error processing request'))
+                    return {
+                        'success': True,
+                        'response': response,
+                        'file': file_name,
+                        'warning': result.get('error')  # Include the validation error as a warning
+                    }
+                else:
+                    # For non-validation errors, raise the error
+                    raise ValueError(result.get('error', 'Error processing request'))
 
         # Save messages to database
         Message.objects.create(
@@ -166,6 +316,16 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
             role="assistant",
             content=response
         )
+
+        # Save the generated content to the appropriate file
+        if file_name.endswith('.html'):
+            output_path = os.path.join(templates_dir, file_name)
+        else:
+            output_path = os.path.join(static_css_dir, file_name)
+            
+        with open(output_path, 'w') as f:
+            f.write(response)
+        print(f"Saved generated content to: {output_path}")
 
         # If we get here, the request was successful, so deduct credits
         if not deduct_credits(user, model):
