@@ -241,66 +241,36 @@ User request: {user_input}
         if not result['success']:
             print(f"Warning: {result.get('error', 'Unknown validation error')}")
             
-            # For HTML templates, try to fix common issues
-            if file_name.endswith('.html'):
-                # Add missing {% load static %} if needed
-                if '{{% load static %}}' not in response:
-                    response = '{{% load static %}}\n' + response
-                
-                # Ensure DOCTYPE and HTML structure for base.html
-                if file_name == 'base.html' and '<!DOCTYPE html>' not in response:
-                    response = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{% block title %}}{{% endblock %}}</title>
-    {{% block extra_css %}}{{% endblock %}}
-</head>
-<body>
-    {{% block content %}}{{% endblock %}}
-    {{% block extra_js %}}{{% endblock %}}
-</body>
-</html>"""
-                
-                # Validate the fixed template
-                is_valid, error_msg = template_agent.validate_response(response)
-                if is_valid:
-                    result['success'] = True
-                    result['response'] = response
-                    print("Template fixed successfully")
-            
-            if not result['success']:
-                # If it's still a validation error, we'll return the response anyway
-                if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
-                    # Save messages to database
-                    Message.objects.create(
-                        conversation=conversation,
-                        page=page,
-                        role="user",
-                        content=user_input
-                    )
+            # If it's a validation warning, we'll return the response anyway
+            if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
+                # Save messages to database
+                Message.objects.create(
+                    conversation=conversation,
+                    page=page,
+                    role="user",
+                    content=user_input
+                )
 
-                    Message.objects.create(
-                        conversation=conversation,
-                        page=page,
-                        role="assistant",
-                        content=response
-                    )
+                Message.objects.create(
+                    conversation=conversation,
+                    page=page,
+                    role="assistant",
+                    content=response
+                )
 
-                    # Deduct credits since we're using the response
-                    if not deduct_credits(user, model):
-                        raise ValueError("Failed to deduct credits")
+                # Deduct credits since we're using the response
+                if not deduct_credits(user, model):
+                    raise ValueError("Failed to deduct credits")
 
-                    return {
-                        'success': True,
-                        'response': response,
-                        'file': file_name,
-                        'warning': result.get('error')  # Include the validation error as a warning
-                    }
-                else:
-                    # For non-validation errors, raise the error
-                    raise ValueError(result.get('error', 'Error processing request'))
+                return {
+                    'success': True,
+                    'response': response,
+                    'file': file_name,
+                    'warning': result.get('error')  # Include the validation error as a warning
+                }
+            else:
+                # For non-validation errors, raise the error
+                raise ValueError(result.get('error', 'Error processing request'))
 
         # Save messages to database
         Message.objects.create(
