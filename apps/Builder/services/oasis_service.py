@@ -198,7 +198,7 @@ def process_builder_mode_input_service(user_input, model, file_name, user):
         if file_name.endswith('.html'):
             enhanced_input = f"""
 Please generate a complete Django template following these requirements:
-1. Include {{% load static %}} at the top
+1. For non-base templates, start with {{% extends 'base.html' %}} BEFORE {{% load static %}}
 2. Use proper Django template syntax
 3. Follow responsive design principles
 4. Maintain consistent indentation
@@ -223,7 +223,7 @@ User request: {user_input}
                 project_path=project_path,
                 file_name=file_name,
                 messages=api_messages,
-                use_provided_messages=True  # Tell agent to use our messages
+                use_provided_messages=True
             )
         else:
             result = template_agent.process_conversation(
@@ -233,7 +233,7 @@ User request: {user_input}
                 project_path=project_path,
                 template_name=file_name,
                 messages=api_messages,
-                use_provided_messages=True  # Tell agent to use our messages
+                use_provided_messages=True
             )
 
         # Get response and handle validation
@@ -426,14 +426,18 @@ def process_chat_mode_input_service(user_input, model, conversation, conversatio
             result = stylesheet_agent.process_conversation(
                 user_input=f"[Chat Mode] {user_input}",
                 model=model,
-                user=user
+                user=user,
+                messages=conversation_history,
+                use_provided_messages=True
             )
         else:
             result = template_agent.process_conversation(
                 user_input=f"[Chat Mode] {user_input}",
                 model=model,
                 user=user,
-                template_name=file_name
+                template_name=file_name,
+                messages=conversation_history,
+                use_provided_messages=True
             )
 
         # Even if validation fails, we want to return the response
