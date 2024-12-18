@@ -8,7 +8,8 @@ from .models import Conversation, Message, Page, Project
 from .services.oasis_service import (
     process_builder_mode_input_service,
     undo_last_action_service,
-    process_chat_mode_input_service
+    process_chat_mode_input_service,
+    chat_agent
 )
 from apps.ProjectManager.services import ProjectGenerationService, DevServerManager
 from apps.Agents.services.agent_service import build_conversation_history
@@ -290,14 +291,8 @@ def get_conversation_history(request):
             
         project_path = conversation.project.user_project.project_path
         
-        # Get or create the page/file
-        page, created = Page.objects.get_or_create(
-            conversation=conversation,
-            filename=file_name
-        )
-        
-        # Get system message from template agent
-        system_msg = template_agent.get_system_prompt()
+        # Get system message from chat agent
+        system_msg = chat_agent.get_system_prompt()
         
         # Build messages array for API call
         messages = []
@@ -353,10 +348,9 @@ def get_conversation_history(request):
             except FileNotFoundError:
                 print("File not found: styles.css")
         
-        # 3. Add conversation history
+        # 3. Add conversation history from all pages
         history_messages = Message.objects.filter(
-            conversation=conversation,
-            page=page
+            conversation=conversation
         ).order_by('created_at')
         
         if history_messages.exists():
@@ -559,18 +553,38 @@ def process_chat(request):
             filename=file_name
         )[0]
         
-        # Get system message
-        system_msg = template_agent.get_system_prompt()
+        # Get all messages from all pages for this conversation
+        history_messages = Message.objects.filter(
+            conversation=conversation
+        ).order_by('created_at')
         
-        # Build conversation history using project path
-        conversation_history = build_conversation_history(conversation)
+        # Convert messages to API format
+        conversation_history = []
+        for msg in history_messages:
+            conversation_history.append({
+                "role": msg.role,
+                "content": msg.content
+            })
         
-        # Process chat using the updated AI service
-        response_content = process_chat_mode_input_service(
-            user_input, model, conversation, conversation_history, file_name
-        )
-        
-        return JsonResponse({'message': response_content})
+        try:
+            # Process chat using the updated AI service
+            response_content = process_chat_mode_input_service(
+                user_input=user_input,
+                model=model,
+                conversation=conversation,
+                conversation_history=conversation_history,
+                file_name=file_name,
+                user=request.user
+            )
+            
+            return JsonResponse({'message': response_content})
+            
+        except ValueError as e:
+            # Handle specific errors (like insufficient credits)
+            return JsonResponse({
+                'error': str(e),
+                'detail': 'Error processing chat request'
+            }, status=400)
             
     except Exception as e:
         print(f"Error in process_chat: {str(e)}")

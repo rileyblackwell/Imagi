@@ -7,6 +7,7 @@ from django.db.models import F
 from ..models import Message, Conversation, Page
 from apps.Agents.services.template_agent_service import TemplateAgentService
 from apps.Agents.services.stylesheet_agent_service import StylesheetAgentService
+from apps.Agents.services.chat_agent_service import ChatAgentService
 from apps.Agents.models import AgentConversation
 
 # Load environment variables from .env
@@ -15,6 +16,7 @@ load_dotenv()
 # Initialize agents
 template_agent = TemplateAgentService()
 stylesheet_agent = StylesheetAgentService()
+chat_agent = ChatAgentService()
 
 # Add model costs constants
 MODEL_COSTS = {
@@ -399,76 +401,22 @@ def process_chat_mode_input_service(user_input, model, conversation, conversatio
             filename=file_name
         )
 
-        # Get or create an agent conversation
-        agent_conversation = AgentConversation.objects.filter(
-            user=user
-        ).order_by('-created_at').first()
+        # Get project path
+        project_path = conversation.project.user_project.project_path
 
-        if not agent_conversation:
-            # Create initial system prompt based on file type
-            if file_name.endswith('.css'):
-                initial_prompt = stylesheet_agent.get_system_prompt()['content']
-            else:
-                initial_prompt = template_agent.get_system_prompt()['content']
+        # Process chat using the chat agent
+        result = chat_agent.process_chat(
+            user_input=user_input,
+            model=model,
+            user=user,
+            project_path=project_path,
+            conversation_history=conversation_history
+        )
 
-            # Create new agent conversation with initial system prompt
-            result = (stylesheet_agent if file_name.endswith('.css') else template_agent).process_conversation(
-                user_input="Initialize conversation",
-                model=model,
-                user=user,
-                system_prompt_content=initial_prompt
-            )
-            if not result['success']:
-                raise ValueError(result.get('error', 'Failed to initialize agent conversation'))
-
-        # Choose the appropriate agent based on file type
-        if file_name.endswith('.css'):
-            result = stylesheet_agent.process_conversation(
-                user_input=f"[Chat Mode] {user_input}",
-                model=model,
-                user=user,
-                messages=conversation_history,
-                use_provided_messages=True
-            )
-        else:
-            result = template_agent.process_conversation(
-                user_input=f"[Chat Mode] {user_input}",
-                model=model,
-                user=user,
-                template_name=file_name,
-                messages=conversation_history,
-                use_provided_messages=True
-            )
-
-        # Even if validation fails, we want to return the response
+        # Handle the response
         response = result.get('response', '')
         if not result['success']:
-            print(f"Warning: {result.get('error', 'Unknown validation error')}")
-            # For chat mode, we don't need to validate the response
-            if 'Missing' in result.get('error', '') or 'Mismatched' in result.get('error', ''):
-                # Save the chat messages anyway
-                Message.objects.create(
-                    conversation=conversation,
-                    page=page,
-                    role="user",
-                    content=f"[Chat][File: {file_name}]\n{user_input}"
-                )
-
-                Message.objects.create(
-                    conversation=conversation,
-                    page=page,
-                    role="assistant",
-                    content=f"[Chat][File: {file_name}]\n{response}"
-                )
-
-                # Deduct credits since we're using the response
-                if not deduct_credits(user, model):
-                    raise ValueError("Failed to deduct credits")
-
-                return response
-            else:
-                # For non-validation errors, raise the error
-                raise ValueError(result.get('error', 'Error processing request'))
+            raise ValueError(result.get('error', 'Error processing request'))
 
         # Save the chat messages to the conversation
         Message.objects.create(

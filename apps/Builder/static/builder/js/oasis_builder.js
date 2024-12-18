@@ -202,6 +202,7 @@ $(document).ready(function() {
                         // Show chat response
                         var newMessage = 'You: ' + userInput + '\n\nAI: ' + response.message + '\n\n';
                         $responseWindow.append(newMessage);
+                        $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                     } else {
                         // Show only success confirmation for build mode
                         if (response.success === false) {
