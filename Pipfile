@@ -4,16 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
-requests = "*"
-python-dotenv = "*"
-openai = "*"
-bs4 = "*"
-stripe = "*"
-anthropic = ">=0.18.0"
-djangorestframework = "*"
-psutil = "*"
-cssutils = "*"
 
 [dev-packages]
 

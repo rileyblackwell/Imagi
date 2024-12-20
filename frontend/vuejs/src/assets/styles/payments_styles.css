@@ -1,0 +1,256 @@
+/* Payments Page Styles */
+
+/* Checkout Container */
+.checkout-container {
+    max-width: 800px;
+    margin: 80px auto;
+    padding: var(--app-spacing-lg);
+}
+
+/* Checkout Header */
+.checkout-header {
+    text-align: center;
+    margin-bottom: var(--app-spacing-xl);
+}
+
+.checkout-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: var(--app-spacing-md);
+    background: var(--global-highlight-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.checkout-subtitle {
+    color: var(--global-muted-text-color);
+    line-height: 1.6;
+    margin-bottom: var(--app-spacing-lg);
+}
+
+/* Credit Packages */
+.credit-packages {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--app-spacing-lg);
+    margin-bottom: var(--app-spacing-xl);
+}
+
+.credit-package {
+    background: var(--app-bg-glass);
+    border: 1px solid var(--app-border-light);
+    border-radius: 12px;
+    padding: var(--app-spacing-lg);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.credit-package:hover,
+.credit-package.selected {
+    transform: translateY(-5px);
+    border-color: var(--app-primary);
+    box-shadow: var(--app-shadow-lg);
+}
+
+.package-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: var(--app-spacing-sm);
+    background: var(--global-highlight-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.package-credits {
+    font-size: 1.25rem;
+    color: var(--global-text-color);
+    margin-bottom: var(--app-spacing-md);
+}
+
+.package-price {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--global-text-color);
+    margin-bottom: var(--app-spacing-md);
+}
+
+.package-description {
+    color: var(--global-muted-text-color);
+    line-height: 1.6;
+    margin-bottom: var(--app-spacing-lg);
+}
+
+/* Payment Form */
+.payment-form {
+    background: var(--app-bg-glass);
+    border: 1px solid var(--app-border-light);
+    border-radius: 12px;
+    padding: var(--app-spacing-lg);
+    margin-bottom: var(--app-spacing-xl);
+}
+
+.payment-form-header {
+    margin-bottom: var(--app-spacing-lg);
+}
+
+.payment-form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--global-text-color);
+    margin-bottom: var(--app-spacing-sm);
+}
+
+.payment-form-subtitle {
+    color: var(--global-muted-text-color);
+}
+
+/* Stripe Elements */
+.stripe-element {
+    background: var(--app-bg-dark);
+    padding: var(--app-spacing-md);
+    border: 1px solid var(--app-border-light);
+    border-radius: 8px;
+    margin-bottom: var(--app-spacing-lg);
+}
+
+.stripe-element.StripeElement--focus {
+    border-color: var(--app-primary);
+}
+
+.stripe-element.StripeElement--invalid {
+    border-color: var(--app-danger);
+}
+
+/* Payment Summary */
+.payment-summary {
+    background: var(--app-bg-glass);
+    border: 1px solid var(--app-border-light);
+    border-radius: 12px;
+    padding: var(--app-spacing-lg);
+    margin-bottom: var(--app-spacing-lg);
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--app-spacing-sm) 0;
+    border-bottom: 1px solid var(--app-border-light);
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    color: var(--global-muted-text-color);
+}
+
+.summary-value {
+    font-weight: 600;
+    color: var(--global-text-color);
+}
+
+.summary-total {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--global-text-color);
+}
+
+/* Success/Cancel Pages */
+.payment-result {
+    text-align: center;
+    padding: var(--app-spacing-xl) 0;
+}
+
+.result-icon {
+    font-size: 4rem;
+    margin-bottom: var(--app-spacing-lg);
+}
+
+.result-icon.success {
+    background: var(--global-highlight-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.result-icon.cancel {
+    color: var(--app-danger);
+}
+
+.result-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: var(--app-spacing-md);
+    color: var(--global-text-color);
+}
+
+.result-message {
+    color: var(--global-muted-text-color);
+    line-height: 1.6;
+    margin-bottom: var(--app-spacing-xl);
+}
+
+.result-details {
+    display: inline-block;
+    background: var(--app-bg-glass);
+    border: 1px solid var(--app-border-light);
+    border-radius: 8px;
+    padding: var(--app-spacing-md) var(--app-spacing-lg);
+    margin-bottom: var(--app-spacing-xl);
+}
+
+.result-amount {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--global-text-color);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .checkout-container {
+        padding: var(--app-spacing-md);
+    }
+
+    .credit-packages {
+        grid-template-columns: 1fr;
+    }
+
+    .checkout-title {
+        font-size: 2rem;
+    }
+
+    .package-amount {
+        font-size: 1.75rem;
+    }
+
+    .package-credits {
+        font-size: 1.125rem;
+    }
+
+    .package-price {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .checkout-title {
+        font-size: 1.75rem;
+    }
+
+    .payment-form {
+        padding: var(--app-spacing-md);
+    }
+
+    .result-icon {
+        font-size: 3rem;
+    }
+
+    .result-title {
+        font-size: 1.5rem;
+    }
+} 
