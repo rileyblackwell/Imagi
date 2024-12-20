@@ -149,22 +149,29 @@ $(document).ready(function() {
                         var userMessage = formatChatMessage('user', userInput);
                         var aiMessage = formatChatMessage('assistant', response.message);
                         $responseWindow.append(userMessage + aiMessage);
-                        $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                     } else {
-                        // Show only success confirmation for build mode
+                        // Build mode - only show success/failure status
+                        const timestamp = new Date().toLocaleTimeString();
+                        const currentContent = $responseWindow.text();
+                        const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                        
                         if (response.success === false) {
-                            // Add error message with proper spacing
-                            const timestamp = new Date().toLocaleTimeString();
-                            const currentContent = $responseWindow.text();
-                            const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
-                            $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error: ${response.error || 'An error occurred while generating content'}\n`);
+                            $responseWindow.append(
+                                `<div class="build-message error">
+                                    <span class="timestamp">${timestamp}</span>
+                                    <span class="icon">❌</span>
+                                    <span class="message">Error: ${response.error || 'An error occurred while generating content'}</span>
+                                </div>`
+                            );
                         } else {
-                            // Add success message with proper spacing
-                            const timestamp = new Date().toLocaleTimeString();
                             const fileType = selectedFile.endsWith('.html') ? 'template' : 'stylesheet';
-                            const currentContent = $responseWindow.text();
-                            const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
-                            $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - Successfully generated ${fileType}: ${selectedFile}\n`);
+                            $responseWindow.append(
+                                `<div class="build-message success">
+                                    <span class="timestamp">${timestamp}</span>
+                                    <span class="icon">✅</span>
+                                    <span class="message">Successfully generated ${fileType}: ${selectedFile}</span>
+                                </div>`
+                            );
                         }
                     }
                     
@@ -287,7 +294,19 @@ $(document).ready(function() {
     // Function to format chat messages
     function formatChatMessage(role, content) {
         const roleClass = role === 'user' ? 'user' : 'assistant';
-        const roleText = role === 'user' ? 'You' : 'AI';
+        const roleText = role === 'user' ? 'You' : 'Assistant';
+        
+        // Process content for markdown-like formatting
+        content = content
+            .replace(/```(\w+)?\n([\s\S]*?)```/g, function(match, lang, code) {
+                // Code blocks
+                return `<pre><code class="language-${lang || ''}">${code.trim()}</code></pre>`;
+            })
+            .replace(/`([^`]+)`/g, '<code>$1</code>') // Inline code
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') // Bold
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Italic
+            .replace(/\n/g, '<br>'); // Line breaks
+
         return `<div class="chat-message ${roleClass}">
             <div class="role">${roleText}</div>
             <div class="content">${content}</div>
