@@ -1,13 +1,9 @@
 import { createStore } from 'vuex'
 import auth from './modules/auth'
-import projects from './modules/projects'
-import payments from './modules/payments'
 
 export default createStore({
   modules: {
-    auth,
-    projects,
-    payments
+    auth
   },
   
   state: {
@@ -19,6 +15,7 @@ export default createStore({
     SET_LOADING(state, loading) {
       state.loading = loading
     },
+    
     SET_ERROR(state, error) {
       state.error = error
     }
@@ -28,6 +25,7 @@ export default createStore({
     setLoading({ commit }, loading) {
       commit('SET_LOADING', loading)
     },
+    
     setError({ commit }, error) {
       commit('SET_ERROR', error)
     }
