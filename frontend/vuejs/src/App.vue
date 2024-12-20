@@ -1,17 +1,5 @@
 <template>
   <div id="app">
-    <nav class="header-navbar navbar navbar-expand-lg" v-if="!hideNavbar">
-      <div class="global-container">
-        <div class="navbar-header">
-          <router-link class="header-brand" to="/">
-            <div class="header-logo-placeholder"></div>
-            <span class="header-brand-highlight">Imagi</span>
-          </router-link>
-        </div>
-        <slot name="navbar-links"></slot>
-      </div>
-    </nav>
-
     <router-view></router-view>
 
     <footer class="site-footer" v-if="!hideFooter">
@@ -43,16 +31,11 @@ export default {
   setup() {
     const route = useRoute()
     
-    const hideNavbar = computed(() => {
-      return route.meta.hideNavbar || false
-    })
-    
     const hideFooter = computed(() => {
       return route.meta.hideFooter || false
     })
     
     return {
-      hideNavbar,
       hideFooter
     }
   }
@@ -94,88 +77,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-/* Header styles */
-.header-navbar {
-  background: var(--global-background-dark);
-  backdrop-filter: blur(var(--global-blur-intensity));
-  -webkit-backdrop-filter: blur(var(--global-blur-intensity));
-  padding: 20px 0;
-  border-bottom: 1px solid var(--global-border-light);
-  position: relative;
-  z-index: 1000;
-  transition: background 0.3s ease;
-}
-
-.header-navbar:hover {
-  background: var(--global-background-dark);
-}
-
-.global-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--global-container-padding);
-  width: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--global-text-color);
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  text-decoration: none;
-  padding-left: 0;
-}
-
-.header-brand:hover {
-  text-decoration: none;
-  color: var(--global-text-color);
-}
-
-.header-logo-placeholder {
-  width: 30px;
-  height: 30px;
-  position: relative;
-  display: inline-block;
-  transform: rotate(45deg);
-  border-radius: 50% / 30%;
-  overflow: hidden;
-}
-
-.header-logo-placeholder::before,
-.header-logo-placeholder::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 2px solid white;
-  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-  box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
-}
-
-.header-logo-placeholder::before {
-  transform: rotate(45deg);
-}
-
-.header-logo-placeholder::after {
-  transform: rotate(-45deg);
-}
-
-.header-brand-highlight {
-  background: var(--global-highlight-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 1.8rem;
 }
 
 /* Footer styles */
@@ -222,33 +123,12 @@ body {
 
 /* Mobile styles */
 @media screen and (max-width: 991px) {
-  .header-navbar {
-    padding: 15px 0;
-  }
-
-  .header-navbar .navbar-container {
-    padding: 0 15px;
-  }
-
   .site-footer-content {
     gap: 12px;
   }
 
   .site-footer-copyright {
     font-size: 0.8rem;
-  }
-
-  .header-brand {
-    font-size: 1.3rem;
-  }
-
-  .header-logo-placeholder {
-    width: 25px;
-    height: 25px;
-  }
-
-  .header-brand-highlight {
-    font-size: 1.5rem;
   }
 }
 </style>

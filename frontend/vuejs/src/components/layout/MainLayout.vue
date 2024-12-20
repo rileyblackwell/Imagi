@@ -1,40 +1,43 @@
 <template>
   <div class="main-layout">
-    <nav class="home-nav-buttons" v-if="isAuthenticated">
-      <ul class="home-nav-list">
-        <li class="home-nav-item dropdown">
-          <a class="home-nav-btn btn-products dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <i class="fas fa-th"></i> Products
-          </a>
-          <div class="home-dropdown-menu dropdown-menu" aria-labelledby="navbarDropdown">
-            <router-link class="home-dropdown-btn dropdown-item" to="/dashboard">
-              <i class="fas fa-magic"></i> Imagi Oasis
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <router-link to="/" class="logo-link">
+          <img src="@/assets/images/logo.webp" alt="Imagi Logo" class="logo-image" />
+          <span class="logo-text">Imagi</span>
+        </router-link>
+      </div>
+
+      <div class="navbar-menu">
+        <template v-if="isAuthenticated">
+          <div class="nav-items">
+            <div class="dropdown">
+              <button class="nav-btn btn-products dropdown-toggle" id="navbarDropdown">
+                <i class="fas fa-th"></i> Products
+              </button>
+              <div class="dropdown-menu">
+                <router-link class="dropdown-item" to="/dashboard">
+                  <i class="fas fa-magic"></i> Imagi Oasis
+                </router-link>
+              </div>
+            </div>
+            <router-link to="/payments/checkout" class="nav-btn btn-credits">
+              <i class="fas fa-coins"></i>
+              <span>Buy Credits</span>
             </router-link>
+            <button @click="logout" class="nav-btn btn-secondary">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </button>
           </div>
-        </li>
-        <li class="home-nav-item">
-          <router-link to="/payments/checkout" class="btn btn-success">
-            <i class="fas fa-coins"></i>
-            <span>Buy Credits</span>
-          </router-link>
-        </li>
-        <li class="home-nav-item">
-          <a @click.prevent="logout" href="#" class="btn btn-secondary">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-    <nav class="home-nav-buttons" v-else>
-      <ul class="home-nav-list">
-        <li class="home-nav-item">
-          <router-link to="/auth/login" class="btn btn-secondary">
+        </template>
+        <template v-else>
+          <router-link to="/auth/login" class="nav-btn btn-primary">
             <i class="fas fa-sign-in-alt"></i>
             <span>Login</span>
           </router-link>
-        </li>
-      </ul>
+        </template>
+      </div>
     </nav>
 
     <router-view></router-view>
@@ -75,155 +78,99 @@ export default {
   flex-direction: column;
 }
 
-/* Navigation Buttons */
-.home-nav-buttons {
-  margin-left: auto;
-  padding-right: 15px;
-  display: flex;
-  align-items: center;
+.navbar {
+  @apply fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between
+         bg-gray-900/80 backdrop-blur-md border-b border-gray-800;
 }
 
-.home-nav-list {
-  display: flex;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 16px;
-  align-items: center;
+.navbar-brand {
+  @apply flex items-center;
 }
 
-.home-nav-item {
-  position: relative;
+.logo-link {
+  @apply flex items-center gap-3 text-white hover:opacity-90 transition-opacity;
 }
 
-/* Primary Navigation Button */
-.home-nav-btn {
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--global-text-color);
-  padding: 10px 18px;
-  border-radius: 12px;
-  font-weight: 500;
-  font-size: 0.95rem;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+.logo-image {
+  @apply h-8 w-auto;
 }
 
-.home-nav-btn i {
-  font-size: 1.1rem;
-  color: #00ffcc;
+.logo-text {
+  @apply text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 
+         text-transparent bg-clip-text;
 }
 
-/* Special Button Variants */
-.home-nav-btn.btn-products {
-  background: linear-gradient(135deg, 
-    rgba(99, 102, 241, 0.1),
-    rgba(0, 255, 204, 0.1)
-  );
-  border-color: rgba(99, 102, 241, 0.2);
+.navbar-menu {
+  @apply flex items-center gap-4;
 }
 
-/* Dropdown Menu */
-.home-dropdown-menu {
-  background: rgba(13, 12, 34, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  margin-top: 8px;
-  padding: 8px;
-  min-width: 200px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+.nav-items {
+  @apply flex items-center gap-4;
 }
 
-.home-dropdown-btn {
-  color: var(--global-text-color);
-  padding: 12px 16px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  width: 100%;
-  text-align: left;
-  transition: background-color 0.2s ease;
+.nav-btn {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
+         hover:transform hover:scale-105;
 }
 
-.home-dropdown-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--global-text-color);
+.btn-products {
+  @apply bg-gray-800/50 text-white border border-gray-700 hover:bg-gray-700/50;
 }
 
-.home-dropdown-btn i {
-  color: #00ffcc;
-  font-size: 1.1rem;
+.btn-credits {
+  @apply bg-gradient-to-r from-green-500 to-green-600 text-white
+         hover:from-green-400 hover:to-green-500;
 }
 
-/* Responsive Navigation */
+.btn-primary {
+  @apply bg-gradient-to-r from-primary-500 to-primary-600 text-white
+         hover:from-primary-400 hover:to-primary-500
+         shadow-lg hover:shadow-primary-500/25;
+}
+
+.btn-secondary {
+  @apply bg-gray-800/50 text-white border border-gray-700
+         hover:bg-gray-700/50;
+}
+
+.dropdown {
+  @apply relative;
+}
+
+.dropdown-menu {
+  @apply absolute right-0 mt-2 w-48 py-2 bg-gray-800 rounded-lg shadow-xl border border-gray-700
+         invisible opacity-0 translate-y-2 transition-all duration-200;
+}
+
+.dropdown:hover .dropdown-menu {
+  @apply visible opacity-100 translate-y-0;
+}
+
+.dropdown-item {
+  @apply flex items-center gap-2 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700/50
+         transition-colors;
+}
+
+/* Responsive styles */
 @media (max-width: 768px) {
-  .home-nav-buttons {
-    width: 100%;
-    padding: 15px;
+  .navbar {
+    @apply px-4;
   }
 
-  .home-nav-list {
-    flex-direction: column;
-    width: 100%;
-    gap: 12px;
+  .nav-items {
+    @apply hidden;
   }
 
-  .home-nav-item {
-    width: 100%;
+  .navbar-menu {
+    @apply gap-2;
   }
 
-  .home-nav-btn {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 20px;
+  .nav-btn {
+    @apply px-3 py-2 text-sm;
   }
 
-  .home-dropdown-menu {
-    width: 100%;
-    margin-top: 5px;
+  .logo-text {
+    @apply text-lg;
   }
-
-  .home-dropdown-btn {
-    justify-content: center;
-  }
-}
-
-/* Update hover styles for nav buttons */
-.home-nav-btn:hover {
-  text-decoration: none;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Products button hover */
-.home-nav-btn.btn-products:hover {
-  background: linear-gradient(135deg, 
-    rgba(99, 102, 241, 0.2),
-    rgba(0, 255, 204, 0.15)
-  );
-  border-color: rgba(99, 102, 241, 0.3);
-}
-
-/* Dropdown button hover */
-.home-dropdown-btn:hover {
-  background: linear-gradient(135deg,
-    rgba(99, 102, 241, 0.15),
-    rgba(0, 255, 204, 0.1)
-  );
-  color: var(--global-text-color);
-  transform: translateX(4px);
-  transition: all 0.2s ease;
-}
-
-/* Ensure no underline on dropdown toggle */
-.home-nav-btn.dropdown-toggle:hover {
-  text-decoration: none;
 }
 </style>
