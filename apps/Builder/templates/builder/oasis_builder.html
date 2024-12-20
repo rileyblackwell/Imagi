@@ -38,7 +38,17 @@
                         <option value="about.html">about.html</option>
                         <option value="contact.html">contact.html</option>
                         <option value="styles.css">styles.css</option>
+                        <option value="custom">+ Add New File</option>
                     </select>
+                    <div id="custom-page-input" class="custom-page-input" style="display: none;">
+                        <div class="input-group">
+                            <input type="text" id="custom-page-name" placeholder="Enter file name (e.g., gallery.html)" class="styled-input">
+                            <button type="button" id="add-page-btn" class="sidebar-btn">
+                                <i class="fas fa-plus"></i>
+                                <span>Add</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="sidebar-buttons">
                     <button type="button" id="undo-btn" class="sidebar-btn">
@@ -49,6 +59,14 @@
                         <i class="fas fa-eye"></i>
                         <span>Preview</span>
                     </button>
+                    <div class="file-upload-wrapper">
+                        <label for="file-upload" class="file-upload-label">
+                            <i class="fas fa-upload"></i>
+                            <span>Upload File</span>
+                        </label>
+                        <input type="file" id="file-upload" class="file-upload-input" accept=".html,.css,.js">
+                        <div class="file-name-display"></div>
+                    </div>
                 </div>
             </div>
 

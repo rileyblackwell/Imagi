@@ -50,6 +50,11 @@ $(document).ready(function() {
         var userInput = $textarea.val().trim();
         if (!userInput) return;
         
+        // Hide welcome screen if it's visible
+        $('.welcome-screen').fadeOut(300, function() {
+            $(this).remove();
+        });
+        
         var model = $('#model-select').val();
         var mode = $('#mode-select').val();
         var selectedFile = $('#file-select').val();
@@ -407,5 +412,71 @@ $(document).ready(function() {
                 $previewBtn.html('<i class="fas fa-eye"></i> Preview');
             }
         });
+    });
+
+    // File upload handling
+    const $fileUpload = $('#file-upload');
+    const $fileNameDisplay = $('.file-name-display');
+
+    $fileUpload.on('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Display the selected file name
+            $fileNameDisplay.text(file.name);
+
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('csrfmiddlewaretoken', csrftoken);
+
+            // Show loading state
+            $fileNameDisplay.text('Uploading ' + file.name + '...');
+
+            // Upload the file
+            $.ajax({
+                url: '/builder/upload-file/',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    // Add success message to response window
+                    const timestamp = new Date().toLocaleTimeString();
+                    const $responseWindow = $('#response-window');
+                    const currentContent = $responseWindow.text();
+                    const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                    $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - Successfully uploaded: ${file.name}\n`);
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+
+                    // Update file name display
+                    $fileNameDisplay.text(file.name + ' - Uploaded successfully');
+
+                    // Add the new file to the file select dropdown if it's not already there
+                    const $fileSelect = $('#file-select');
+                    if (!$fileSelect.find(`option[value="${file.name}"]`).length) {
+                        $fileSelect.append($('<option></option>')
+                            .val(file.name)
+                            .text(file.name));
+                    }
+
+                    // Select the newly uploaded file
+                    $fileSelect.val(file.name);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Upload Error:", error);
+                    
+                    // Add error message to response window
+                    const timestamp = new Date().toLocaleTimeString();
+                    const $responseWindow = $('#response-window');
+                    const currentContent = $responseWindow.text();
+                    const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                    $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error uploading file: ${error}\n`);
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+
+                    // Update file name display
+                    $fileNameDisplay.text('Error uploading file');
+                }
+            });
+        }
     });
 });
