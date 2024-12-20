@@ -4,6 +4,32 @@ $(document).ready(function() {
     var csrftoken = Cookies.get('csrftoken');
     var currentPages = ['index.html', 'about.html', 'styles.css'];
 
+    // Create hidden div for measuring text height
+    $('body').append('<div class="hidden-div"></div>');
+    const $hiddenDiv = $('.hidden-div');
+    const $textarea = $('#user-input');
+
+    // Function to auto-expand textarea
+    function autoExpand() {
+        // Copy the textarea's content to the hidden div
+        $hiddenDiv.text($textarea.val() + '\n');
+        
+        // Get the height of the hidden div
+        let newHeight = $hiddenDiv.height();
+        
+        // Ensure minimum height
+        newHeight = Math.max(60, newHeight);
+        
+        // Ensure maximum height
+        newHeight = Math.min(200, newHeight);
+        
+        // Set the textarea height
+        $textarea.height(newHeight);
+    }
+
+    // Bind auto-expand to input events
+    $textarea.on('input', autoExpand);
+
     // Set default file selection on page load
     if (!$('#file-select').val()) {
         $('#file-select').val('index.html');
@@ -74,44 +100,50 @@ $(document).ready(function() {
         }
     });
 
-    // Submit button handler
+    // Function to format chat messages
+    function formatChatMessage(role, content) {
+        const roleClass = role === 'user' ? 'user' : 'assistant';
+        const roleText = role === 'user' ? 'You' : 'AI';
+        return `<div class="chat-message ${roleClass}">
+            <div class="role">${roleText}</div>
+            <div class="content">${content}</div>
+        </div>`;
+    }
+
+    // Wrap the textarea in an input container
+    $('#user-input').wrap('<div class="input-container"></div>');
+
+    // Move the submit button inside the input container
+    const $submitBtn = $('#submit-btn');
+    $submitBtn.appendTo('.input-container');
+
+    // Handle Enter key in textarea
+    $('#user-input').on('keydown', function(e) {
+        // Check if Enter is pressed without Shift
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            $submitBtn.click();
+        }
+    });
+
+    // Update the submit button handler
     $('#submit-btn').click(function(event) {
         event.preventDefault();
         
         var userInput = $('#user-input').val().trim();
+        if (!userInput) return;
+        
         var model = $('#model-select').val();
         var mode = $('#mode-select').val();
         var selectedFile = $('#file-select').val();
         
-        // Validate input based on mode
-        if (mode === 'build') {
-            if (!userInput) {
-                alert('Please enter your instructions for building the website');
-                return;
-            }
-            if (!model) {
-                alert('Please select an AI model');
-                return;
-            }
-            if (selectedFile === 'custom') {
-                alert('Please select a valid file to edit');
-                return;
-            }
-        } else if (mode === 'chat') {
-            if (!userInput) {
-                alert('Please enter your message');
-                return;
-            }
-            if (!model) {
-                alert('Please select an AI model');
-                return;
-            }
-            if (selectedFile === 'custom') {
-                alert('Please select a file to discuss');
-                return;
-            }
-        }
-
+        // Clear the input and reset its height
+        $('#user-input').val('').height(60);
+        
+        // Show loading state
+        $(this).prop('disabled', true)
+               .html('<i class="fas fa-spinner"></i>');
+        
         // Log the request details
         console.group('🚀 Generate Request');
         console.log('Mode:', mode);
@@ -200,8 +232,9 @@ $(document).ready(function() {
                     
                     if (mode === 'chat') {
                         // Show chat response
-                        var newMessage = 'You: ' + userInput + '\n\nAI: ' + response.message + '\n\n';
-                        $responseWindow.append(newMessage);
+                        var userMessage = formatChatMessage('user', userInput);
+                        var aiMessage = formatChatMessage('assistant', response.message);
+                        $responseWindow.append(userMessage + aiMessage);
                         $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                     } else {
                         // Show only success confirmation for build mode

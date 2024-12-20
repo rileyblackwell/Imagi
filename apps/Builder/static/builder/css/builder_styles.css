@@ -37,15 +37,18 @@
     background: var(--app-bg-secondary);
     border: 1px solid var(--app-glass-border);
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 0;
     margin-bottom: 1.5rem;
-    min-height: 200px;
-    max-height: 500px;
+    height: calc(100vh - 400px);
+    min-height: 300px;
     overflow-y: auto;
     color: var(--app-text-primary);
-    white-space: pre;
-    font-family: monospace;
-    line-height: 1.5;
+    white-space: pre-wrap;
+    font-family: var(--global-font-family);
+    line-height: 1.6;
+    word-wrap: break-word;
+    max-width: 100%;
+    scroll-behavior: smooth;
 }
 
 /* User input textarea styling */
@@ -54,18 +57,37 @@
     background: var(--app-input-bg);
     border: 1px solid var(--app-input-border);
     border-radius: 12px;
-    padding: 1rem;
+    padding: 1rem 3rem 1rem 1rem;
     color: var(--app-text-primary);
     font-size: 1rem;
-    resize: vertical;
+    font-family: var(--global-font-family);
+    resize: none;
     transition: var(--app-transition);
-    margin-bottom: 1.5rem;
+    min-height: 60px;
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.5;
 }
 
 #user-input:focus {
     border-color: var(--app-primary);
     box-shadow: 0 0 0 3px var(--app-input-focus);
     outline: none;
+}
+
+/* Hidden div for measuring text height */
+.hidden-div {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+    width: calc(100% - 2rem);
+    min-height: 60px;
+    font-size: 1rem;
+    font-family: var(--global-font-family);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    visibility: hidden;
 }
 
 /* Action buttons styling */
@@ -457,4 +479,128 @@
 
 .projects-list::-webkit-scrollbar-thumb:hover {
     background: var(--app-primary-light);
+}
+
+/* Chat message styling */
+.chat-message {
+    padding: 1.5rem var(--global-container-padding);
+    animation: fadeIn 0.3s ease-out;
+    position: relative;
+    margin: 0 -1.5rem;
+}
+
+.chat-message.user {
+    background: var(--app-glass-bg);
+}
+
+.chat-message.assistant {
+    background: transparent;
+}
+
+.chat-message .role {
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--app-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+}
+
+.chat-message .role::before {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: var(--app-primary);
+    display: inline-block;
+}
+
+.chat-message.user .role::before {
+    background: linear-gradient(135deg, var(--app-primary), var(--app-primary-light));
+}
+
+.chat-message.assistant .role::before {
+    background: linear-gradient(135deg, var(--app-secondary), var(--app-secondary-light));
+}
+
+.chat-message .content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--app-text-primary);
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+/* User input container - new */
+.input-container {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+/* Submit button positioning - new */
+#submit-btn {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.5rem;
+    min-width: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--app-primary);
+    border: none;
+    cursor: pointer;
+    transition: var(--app-transition);
+}
+
+#submit-btn:hover {
+    background: var(--app-primary-dark);
+    transform: translateY(-1px);
+}
+
+#submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#submit-btn i {
+    font-size: 1rem;
+    margin: 0;
+    color: white;
+}
+
+/* Loading animation for the submit button */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#submit-btn i.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .chat-message {
+        padding: 1rem var(--global-container-padding);
+    }
+    
+    .chat-message .content {
+        font-size: 0.95rem;
+    }
+    
+    .chat-message .role {
+        font-size: 0.95rem;
+    }
+    
+    .chat-message .role::before {
+        width: 20px;
+        height: 20px;
+    }
 }

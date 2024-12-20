@@ -27,18 +27,20 @@
                 </div>
 
                 <!-- User Input Section -->
-                <textarea 
-                    id="user-input" 
-                    name="user-input" 
-                    placeholder="let your imagination flow..."
-                    rows="4"
-                ></textarea>
+                <div class="input-container">
+                    <textarea 
+                        id="user-input" 
+                        name="user-input" 
+                        placeholder="let your imagination flow..."
+                        rows="1"
+                    ></textarea>
+                    <button type="button" id="submit-btn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
 
                 <!-- Action Buttons -->
                 <div class="action-buttons">
-                    <button type="button" id="submit-btn" class="btn btn-success btn-lg">
-                        <i class="fas fa-magic"></i> Generate
-                    </button>
                     <button type="button" id="undo-btn" class="btn btn-primary btn-lg">
                         <i class="fas fa-undo"></i> Undo
                     </button>
@@ -54,8 +56,8 @@
                             <span>Select Mode</span>
                         </label>
                         <select id="mode-select" name="mode-select" class="styled-select">
-                            <option value="build">Build Mode</option>
                             <option value="chat">Chat Mode</option>
+                            <option value="build">Build Mode</option>
                         </select>
                     </div>
 
