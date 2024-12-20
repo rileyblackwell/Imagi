@@ -479,4 +479,24 @@ $(document).ready(function() {
             });
         }
     });
+
+    // Sidebar collapse functionality
+    const $sidebar = $('#sidebar');
+    const $mainContent = $('#main-content');
+    const $collapseBtn = $('#collapse-sidebar');
+
+    $collapseBtn.on('click', function() {
+        $sidebar.toggleClass('collapsed');
+        $mainContent.toggleClass('expanded');
+        
+        // Store the sidebar state in localStorage
+        localStorage.setItem('sidebarCollapsed', $sidebar.hasClass('collapsed'));
+    });
+
+    // Restore sidebar state on page load
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (sidebarCollapsed) {
+        $sidebar.addClass('collapsed');
+        $mainContent.addClass('expanded');
+    }
 });

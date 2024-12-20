@@ -11,7 +11,10 @@
 {% block content %}
 <div class="app-page">
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+        <button type="button" id="collapse-sidebar" class="collapse-btn" title="Toggle sidebar">
+            <i class="fas fa-chevron-left"></i>
+        </button>
         <nav class="sidebar-nav">
             <!-- Controls Section -->
             <div class="sidebar-controls">
@@ -93,61 +96,58 @@
     </div>
 
     <!-- Main Content -->
-    <main class="main-content">
-        <div class="builder-workspace">
-            <!-- Chat Container -->
-            <div class="chat-container">
-                <div id="response-window" class="response-window">
-                    <!-- Welcome message -->
-                    <div class="welcome-screen">
-                        <div class="welcome-icon">
-                            <i class="fas fa-magic"></i>
-                        </div>
-                        <h1>Welcome to Imagi Oasis</h1>
-                        <p>Transform your ideas into stunning web apps using natural language. Just describe what you want to build, and I'll help you create it.</p>
-                        <div class="welcome-examples">
-                            <h2>Example prompts to get started:</h2>
-                            <div class="example-prompts">
-                                <button class="example-prompt">
-                                    "Create a modern landing page with a hero section and features grid"
-                                </button>
-                                <button class="example-prompt">
-                                    "Add a contact form with name, email, and message fields"
-                                </button>
-                                <button class="example-prompt">
-                                    "Style the navigation bar to be sticky and transparent"
-                                </button>
-                            </div>
+    <main class="main-content" id="main-content">
+        <div class="chat-container">
+            <div id="response-window" class="response-window">
+                <!-- Welcome message -->
+                <div class="welcome-screen">
+                    <div class="welcome-icon">
+                        <i class="fas fa-magic"></i>
+                    </div>
+                    <h1>Welcome to Imagi Oasis</h1>
+                    <p>Transform your ideas into stunning web apps using natural language. Just describe what you want to build, and I'll help you create it.</p>
+                    <div class="welcome-examples">
+                        <h2>Example prompts to get started:</h2>
+                        <div class="example-prompts">
+                            <button class="example-prompt">
+                                "Create a modern landing page with a hero section and features grid"
+                            </button>
+                            <button class="example-prompt">
+                                "Add a contact form with name, email, and message fields"
+                            </button>
+                            <button class="example-prompt">
+                                "Style the navigation bar to be sticky and transparent"
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
 
-    <!-- Chat Input -->
-    <div class="chat-input">
-        <form id="chat-form">
-            {% csrf_token %}
-            <div class="input-container">
-                <div class="input-wrapper">
-                    <textarea 
-                        id="user-input" 
-                        name="user-input" 
-                        placeholder="Message Imagi..."
-                        rows="1"
-                        required
-                    ></textarea>
-                    <button type="submit" id="submit-btn" title="Send message">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+        <!-- Chat Input -->
+        <div class="chat-input">
+            <form id="chat-form">
+                {% csrf_token %}
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="user-input" 
+                            name="user-input" 
+                            placeholder="Message Imagi..."
+                            rows="1"
+                            required
+                        ></textarea>
+                        <button type="submit" id="submit-btn" title="Send message">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <div class="bottom-text">
+                        Imagi can make mistakes. Consider checking important information.
+                    </div>
                 </div>
-                <div class="bottom-text">
-                    Imagi can make mistakes. Consider checking important information.
-                </div>
-            </div>
-        </form>
-    </div>
+            </form>
+        </div>
+    </main>
 </div>
 {% endblock %}
 
