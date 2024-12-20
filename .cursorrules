@@ -50,14 +50,16 @@
 # Style & Design:
 # - Frontend (Vue.js):
 #   * Follow component-based architecture for reusability and modularity.
+#   * Use **Tailwind CSS** for styling and layout, adhering to its utility-first design philosophy.
 #   * Ensure responsiveness and accessibility across devices and browsers.
+#   * Include a global Tailwind configuration file (`tailwind.config.js`) for custom theme extensions and consistent design tokens.
+#   * Avoid inline styles; utilize Tailwind's utility classes instead for concise and scalable CSS.
 # - Backend (Django):
 #   * Follow RESTful API design principles with proper versioning (e.g., `/api/v1/`).
 #   * Implement secure and scalable data handling.
 # - Overall Design:
 #   * Draw inspiration from Stripe, Airbnb, Apple, Twilio, Meta, Google, and Discord.
 #   * Prioritize minimalism, elegance, and responsiveness.
-#   * Use external CSS for global and per-page styles.
 #   * Incorporate modern typography, consistent spacing, and subtle animations for a polished look.
 
 # Development Environment:

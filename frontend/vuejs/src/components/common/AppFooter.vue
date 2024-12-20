@@ -1,82 +1,64 @@
 <template>
-  <footer class="site-footer">
-    <div class="site-footer-content">
-      <div class="footer-brand">
-        <span class="footer-brand-text">Imagi</span>
+  <footer class="app-footer">
+    <div class="max-w-7xl mx-auto px-4 py-12">
+      <div class="grid md:grid-cols-4 gap-8">
+        <!-- Logo and Description -->
+        <div class="col-span-2">
+          <img src="@/assets/images/logo.webp" alt="Imagi" class="h-10 w-auto mb-4" />
+          <p class="text-gray-400 max-w-md">
+            Transform your ideas into full-stack web applications using natural language. 
+            Powered by advanced AI technology.
+          </p>
+        </div>
+
+        <!-- Quick Links -->
+        <div>
+          <h3 class="text-white font-semibold mb-4">Quick Links</h3>
+          <ul class="space-y-2">
+            <li v-for="link in quickLinks" :key="link.path">
+              <router-link 
+                :to="link.path"
+                class="text-gray-400 hover:text-white transition-colors"
+              >
+                {{ link.name }}
+              </router-link>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Contact -->
+        <div>
+          <h3 class="text-white font-semibold mb-4">Contact</h3>
+          <ul class="space-y-2 text-gray-400">
+            <li>
+              <a href="mailto:support@imagi.ai" class="hover:text-white transition-colors">
+                support@imagi.ai
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
-      <div class="site-footer-links">
-        <router-link to="/about" class="link link-muted">About</router-link>
-        <span class="site-footer-divider">•</span>
-        <router-link to="/privacy" class="link link-muted">Privacy</router-link>
-        <span class="site-footer-divider">•</span>
-        <router-link to="/terms" class="link link-muted">Terms</router-link>
+
+      <!-- Copyright -->
+      <div class="mt-12 pt-8 border-t border-gray-800">
+        <p class="text-center text-gray-500">
+          © {{ new Date().getFullYear() }} Imagi. All rights reserved.
+        </p>
       </div>
-      <p class="site-footer-copyright">
-        &copy; 2024 Imagi. All rights reserved.
-      </p>
     </div>
   </footer>
 </template>
 
-<style scoped>
-.site-footer {
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
-  padding: 2rem 0;
-}
+<script setup>
+const quickLinks = [
+  { name: 'Home', path: '/' },
+  { name: 'About', path: '/about' },
+  { name: 'Start Building', path: '/builder' },
+]
+</script>
 
-.site-footer-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+<style>
+.app-footer {
+  @apply bg-gray-900 border-t border-gray-800;
 }
-
-.footer-brand-text {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.site-footer-links {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.link {
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.link-muted {
-  color: var(--text-secondary);
-}
-
-.link-muted:hover {
-  color: var(--text-primary);
-}
-
-.site-footer-divider {
-  color: var(--text-muted);
-}
-
-.site-footer-copyright {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .site-footer-content {
-    gap: 0.75rem;
-  }
-
-  .site-footer-links {
-    gap: 0.75rem;
-  }
-}
-</style> 
+</style>

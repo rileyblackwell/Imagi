@@ -1,27 +1,40 @@
-import { authAPI } from '@/services/api'
+import axios from 'axios'
 
 const state = {
-  user: null,
-  accessToken: localStorage.getItem('accessToken') || null,
-  refreshToken: localStorage.getItem('refreshToken') || null,
+  token: localStorage.getItem('token') || null,
+  user: JSON.parse(localStorage.getItem('user')) || null,
+  isAuthenticated: !!localStorage.getItem('token'),
   loading: false,
-  error: null,
-  preferences: {
-    notifications: {
-      projectUpdates: true,
-      securityAlerts: true,
-      newsletter: false
-    },
-    timezone: 'UTC'
-  }
+  error: null
 }
 
-const getters = {
-  isAuthenticated: state => !!state.accessToken,
-  currentUser: state => state.user,
-  authError: state => state.error,
-  isLoading: state => state.loading,
-  userPreferences: state => state.preferences
+const mutations = {
+  SET_TOKEN(state, token) {
+    state.token = token
+    state.isAuthenticated = !!token
+    if (token) {
+      localStorage.setItem('token', token)
+    } else {
+      localStorage.removeItem('token')
+    }
+  },
+  
+  SET_USER(state, user) {
+    state.user = user
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user))
+    } else {
+      localStorage.removeItem('user')
+    }
+  },
+  
+  SET_LOADING(state, loading) {
+    state.loading = loading
+  },
+  
+  SET_ERROR(state, error) {
+    state.error = error
+  }
 }
 
 const actions = {
@@ -30,16 +43,16 @@ const actions = {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
       
-      const response = await authAPI.login(credentials)
-      const { access, refresh } = response.data
+      const response = await axios.post('/api/auth/login/', credentials)
+      const { token, user } = response.data
       
-      commit('SET_TOKENS', { access, refresh })
+      commit('SET_TOKEN', token)
+      commit('SET_USER', user)
       
-      // Get user profile
-      const userResponse = await authAPI.getMe()
-      commit('SET_USER', userResponse.data)
+      // Set axios default headers
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       
-      return response
+      return response.data
     } catch (error) {
       commit('SET_ERROR', error.response?.data?.detail || 'Login failed')
       throw error
@@ -53,31 +66,71 @@ const actions = {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
       
-      const response = await authAPI.register(userData)
+      const response = await axios.post('/api/auth/register/', userData)
+      const { token, user } = response.data
       
-      // After registration, log the user in
-      const { username, password } = userData
-      await this.dispatch('auth/login', { username, password })
+      commit('SET_TOKEN', token)
+      commit('SET_USER', user)
       
-      return response
+      // Set axios default headers
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
+      return response.data
     } catch (error) {
-      commit('SET_ERROR', error.response?.data || 'Registration failed')
+      commit('SET_ERROR', error.response?.data?.detail || 'Registration failed')
       throw error
     } finally {
       commit('SET_LOADING', false)
     }
   },
   
-  async refreshToken({ commit, state }) {
+  async logout({ commit }) {
     try {
-      const response = await authAPI.refreshToken(state.refreshToken)
-      const { access } = response.data
+      commit('SET_LOADING', true)
       
-      commit('SET_ACCESS_TOKEN', access)
-      return response
+      await axios.post('/api/auth/logout/')
+      
+      // Clear auth state
+      commit('SET_TOKEN', null)
+      commit('SET_USER', null)
+      
+      // Remove axios default headers
+      delete axios.defaults.headers.common['Authorization']
+      
     } catch (error) {
-      commit('CLEAR_AUTH')
+      console.error('Logout error:', error)
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  
+  async forgotPassword({ commit }, email) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      await axios.post('/api/auth/password-reset/', { email })
+      
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Password reset request failed')
       throw error
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  
+  async resetPassword({ commit }, { token, password }) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      await axios.post(`/api/auth/password-reset/${token}/`, { password })
+      
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Password reset failed')
+      throw error
+    } finally {
+      commit('SET_LOADING', false)
     }
   },
   
@@ -86,120 +139,31 @@ const actions = {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
       
-      const response = await authAPI.getMe()
+      const response = await axios.get('/api/auth/user/')
       commit('SET_USER', response.data)
       
-      return response
+      return response.data
     } catch (error) {
-      commit('SET_ERROR', error.response?.data || 'Failed to fetch user')
+      commit('SET_ERROR', error.response?.data?.detail || 'Failed to fetch user data')
       throw error
     } finally {
       commit('SET_LOADING', false)
     }
-  },
-  
-  async updateProfile({ commit }, profileData) {
-    try {
-      commit('SET_LOADING', true)
-      commit('SET_ERROR', null)
-      
-      const response = await authAPI.updateProfile(profileData)
-      commit('SET_USER', response.data)
-      
-      return response
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data || 'Failed to update profile')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  async updatePassword({ commit }, passwordData) {
-    try {
-      commit('SET_LOADING', true)
-      commit('SET_ERROR', null)
-      
-      const response = await authAPI.updatePassword(passwordData)
-      return response
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data || 'Failed to update password')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  async updatePreferences({ commit }, preferences) {
-    try {
-      commit('SET_LOADING', true)
-      commit('SET_ERROR', null)
-      
-      const response = await authAPI.updatePreferences(preferences)
-      commit('SET_PREFERENCES', preferences)
-      
-      return response
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data || 'Failed to update preferences')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  logout({ commit }) {
-    commit('CLEAR_AUTH')
   }
 }
 
-const mutations = {
-  SET_USER(state, user) {
-    state.user = user
-  },
-  
-  SET_ACCESS_TOKEN(state, token) {
-    state.accessToken = token
-    localStorage.setItem('accessToken', token)
-  },
-  
-  SET_REFRESH_TOKEN(state, token) {
-    state.refreshToken = token
-    localStorage.setItem('refreshToken', token)
-  },
-  
-  SET_TOKENS(state, { access, refresh }) {
-    state.accessToken = access
-    state.refreshToken = refresh
-    localStorage.setItem('accessToken', access)
-    localStorage.setItem('refreshToken', refresh)
-  },
-  
-  SET_LOADING(state, loading) {
-    state.loading = loading
-  },
-  
-  SET_ERROR(state, error) {
-    state.error = error
-  },
-  
-  SET_PREFERENCES(state, preferences) {
-    state.preferences = preferences
-  },
-  
-  CLEAR_AUTH(state) {
-    state.user = null
-    state.accessToken = null
-    state.refreshToken = null
-    state.error = null
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-  }
+const getters = {
+  isAuthenticated: state => state.isAuthenticated,
+  user: state => state.user,
+  token: state => state.token,
+  loading: state => state.loading,
+  error: state => state.error
 }
 
 export default {
   namespaced: true,
   state,
-  getters,
+  mutations,
   actions,
-  mutations
+  getters
 } 

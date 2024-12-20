@@ -1,98 +1,10 @@
-import { projectAPI } from '@/services/api'
+import axios from 'axios'
 
 const state = {
   projects: [],
   currentProject: null,
   loading: false,
   error: null
-}
-
-const getters = {
-  allProjects: state => state.projects,
-  currentProject: state => state.currentProject,
-  isLoading: state => state.loading,
-  error: state => state.error
-}
-
-const actions = {
-  async fetchProjects({ commit }) {
-    commit('SET_LOADING', true)
-    commit('SET_ERROR', null)
-    
-    try {
-      const response = await projectAPI.getProjects()
-      commit('SET_PROJECTS', response.data)
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch projects')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  async fetchProject({ commit }, id) {
-    commit('SET_LOADING', true)
-    commit('SET_ERROR', null)
-    
-    try {
-      const response = await projectAPI.getProject(id)
-      commit('SET_CURRENT_PROJECT', response.data)
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data?.message || 'Failed to fetch project')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  async createProject({ commit, dispatch }, data) {
-    commit('SET_LOADING', true)
-    commit('SET_ERROR', null)
-    
-    try {
-      const response = await projectAPI.createProject(data)
-      await dispatch('fetchProjects')
-      return response
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data?.message || 'Failed to create project')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  async updateProject({ commit, dispatch }, { id, data }) {
-    commit('SET_LOADING', true)
-    commit('SET_ERROR', null)
-    
-    try {
-      const response = await projectAPI.updateProject(id, data)
-      commit('SET_CURRENT_PROJECT', response.data)
-      await dispatch('fetchProjects')
-      return response
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data?.message || 'Failed to update project')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  },
-  
-  async deleteProject({ commit }, id) {
-    commit('SET_LOADING', true)
-    commit('SET_ERROR', null)
-    
-    try {
-      await projectAPI.deleteProject(id)
-      commit('REMOVE_PROJECT', id)
-      commit('CLEAR_CURRENT_PROJECT')
-    } catch (error) {
-      commit('SET_ERROR', error.response?.data?.message || 'Failed to delete project')
-      throw error
-    } finally {
-      commit('SET_LOADING', false)
-    }
-  }
 }
 
 const mutations = {
@@ -104,12 +16,25 @@ const mutations = {
     state.currentProject = project
   },
   
-  CLEAR_CURRENT_PROJECT(state) {
-    state.currentProject = null
+  ADD_PROJECT(state, project) {
+    state.projects.unshift(project)
   },
   
-  REMOVE_PROJECT(state, id) {
-    state.projects = state.projects.filter(project => project.id !== id)
+  UPDATE_PROJECT(state, updatedProject) {
+    const index = state.projects.findIndex(p => p.id === updatedProject.id)
+    if (index !== -1) {
+      state.projects.splice(index, 1, updatedProject)
+    }
+    if (state.currentProject?.id === updatedProject.id) {
+      state.currentProject = updatedProject
+    }
+  },
+  
+  DELETE_PROJECT(state, projectId) {
+    state.projects = state.projects.filter(p => p.id !== projectId)
+    if (state.currentProject?.id === projectId) {
+      state.currentProject = null
+    }
   },
   
   SET_LOADING(state, loading) {
@@ -121,10 +46,113 @@ const mutations = {
   }
 }
 
+const actions = {
+  async fetchProjects({ commit }) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      const response = await axios.get('/api/projects/')
+      commit('SET_PROJECTS', response.data)
+      
+      return response.data
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Failed to fetch projects')
+      throw error
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  
+  async fetchProject({ commit }, projectId) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      const response = await axios.get(`/api/projects/${projectId}/`)
+      commit('SET_CURRENT_PROJECT', response.data)
+      
+      return response.data
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Failed to fetch project')
+      throw error
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  
+  async createProject({ commit }, projectData) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      const response = await axios.post('/api/projects/', projectData)
+      commit('ADD_PROJECT', response.data)
+      
+      return response.data
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Failed to create project')
+      throw error
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  
+  async updateProject({ commit }, { projectId, projectData }) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      const response = await axios.patch(`/api/projects/${projectId}/`, projectData)
+      commit('UPDATE_PROJECT', response.data)
+      
+      return response.data
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Failed to update project')
+      throw error
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  },
+  
+  async deleteProject({ commit }, projectId) {
+    try {
+      commit('SET_LOADING', true)
+      commit('SET_ERROR', null)
+      
+      await axios.delete(`/api/projects/${projectId}/`)
+      commit('DELETE_PROJECT', projectId)
+      
+    } catch (error) {
+      commit('SET_ERROR', error.response?.data?.detail || 'Failed to delete project')
+      throw error
+    } finally {
+      commit('SET_LOADING', false)
+    }
+  }
+}
+
+const getters = {
+  allProjects: state => state.projects,
+  currentProject: state => state.currentProject,
+  loading: state => state.loading,
+  error: state => state.error,
+  
+  projectById: state => id => {
+    return state.projects.find(project => project.id === id)
+  },
+  
+  sortedProjects: state => {
+    return [...state.projects].sort((a, b) => {
+      return new Date(b.updated_at) - new Date(a.updated_at)
+    })
+  }
+}
+
 export default {
   namespaced: true,
   state,
-  getters,
+  mutations,
   actions,
-  mutations
+  getters
 } 

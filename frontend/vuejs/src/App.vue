@@ -1,103 +1,93 @@
 <template>
   <div id="app">
-    <nav class="header-navbar">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <router-link class="brand-link" to="/">
-            <span class="brand-text">Imagi</span>
+    <nav class="header-navbar navbar navbar-expand-lg" v-if="!hideNavbar">
+      <div class="global-container">
+        <div class="navbar-header">
+          <router-link class="header-brand" to="/">
+            <div class="header-logo-placeholder"></div>
+            <span class="header-brand-highlight">Imagi</span>
           </router-link>
         </div>
-
-        <div class="nav-menu">
-          <template v-if="isAuthenticated">
-            <router-link to="/dashboard" class="nav-link">Dashboard</router-link>
-            <router-link to="/dashboard/projects" class="nav-link">Projects</router-link>
-            <button @click="handleLogout" class="btn btn-outline">
-              <i class="fas fa-sign-out-alt"></i>
-              <span>Logout</span>
-            </button>
-          </template>
-          <template v-else>
-            <router-link to="/auth/login" class="btn btn-primary">
-              <i class="fas fa-sign-in-alt"></i>
-              <span>Login</span>
-            </router-link>
-          </template>
-        </div>
+        <slot name="navbar-links"></slot>
       </div>
     </nav>
 
-    <main class="main-content">
-      <router-view></router-view>
-    </main>
+    <router-view></router-view>
+
+    <footer class="site-footer" v-if="!hideFooter">
+      <div class="site-footer-content">
+        <div class="footer-brand">
+          <span class="footer-brand-text">Imagi</span>
+        </div>
+        <div class="site-footer-links">
+          <router-link to="/about" class="link link-muted">About</router-link>
+          <span class="site-footer-divider">•</span>
+          <router-link to="/privacy" class="link link-muted">Privacy</router-link>
+          <span class="site-footer-divider">•</span>
+          <router-link to="/terms" class="link link-muted">Terms</router-link>
+        </div>
+        <p class="site-footer-copyright">
+          &copy; {{ new Date().getFullYear() }} Imagi. All rights reserved.
+        </p>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script>
-import { computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'App',
-  
   setup() {
-    const store = useStore()
-    const router = useRouter()
+    const route = useRoute()
     
-    onMounted(() => {
-      // Load Font Awesome
-      const fontAwesome = document.createElement('link')
-      fontAwesome.rel = 'stylesheet'
-      fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css'
-      document.head.appendChild(fontAwesome)
+    const hideNavbar = computed(() => {
+      return route.meta.hideNavbar || false
     })
     
-    const isAuthenticated = computed(() => store.getters['auth/isAuthenticated'])
-    const currentUser = computed(() => store.getters['auth/currentUser'])
-    
-    const handleLogout = async () => {
-      try {
-        await store.dispatch('auth/logout')
-        router.push('/auth/login')
-      } catch (err) {
-        console.error('Logout failed:', err)
-      }
-    }
+    const hideFooter = computed(() => {
+      return route.meta.hideFooter || false
+    })
     
     return {
-      isAuthenticated,
-      currentUser,
-      handleLogout
+      hideNavbar,
+      hideFooter
     }
   }
 }
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css?family=Poppins:400,700');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
 
 :root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --border-color: #e2e8f0;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  --global-font-family: 'Poppins', sans-serif;
+  --global-text-color: #ffffff;
+  --global-muted-text-color: rgba(255, 255, 255, 0.8);
+  --global-background-dark: rgba(13, 12, 34, 0.8);
+  --global-border-light: rgba(255, 255, 255, 0.1);
+  --global-footer-gradient: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+  --global-line-height: 1.6;
+  --global-container-padding: 25px;
+  --global-highlight-gradient: linear-gradient(45deg, #6366f1, #00ffc6);
+  --global-button-shadow: rgba(0, 162, 255, 0.3);
+  --global-button-shadow-hover: rgba(0, 162, 255, 0.4);
+  --global-blur-intensity: 15px;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  line-height: 1.5;
-  color: var(--text-primary);
-  background-color: var(--bg-secondary);
+  font-family: var(--global-font-family);
+  line-height: var(--global-line-height);
+  margin: 0;
+  padding: 0;
+  color: var(--global-text-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--global-background-dark);
 }
 
 #app {
@@ -106,98 +96,159 @@ body {
   flex-direction: column;
 }
 
+/* Header styles */
 .header-navbar {
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 1rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  background: var(--global-background-dark);
+  backdrop-filter: blur(var(--global-blur-intensity));
+  -webkit-backdrop-filter: blur(var(--global-blur-intensity));
+  padding: 20px 0;
+  border-bottom: 1px solid var(--global-border-light);
+  position: relative;
+  z-index: 1000;
+  transition: background 0.3s ease;
 }
 
-.nav-container {
+.header-navbar:hover {
+  background: var(--global-background-dark);
+}
+
+.global-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.nav-brand {
+  padding: 0 var(--global-container-padding);
+  width: 100%;
   display: flex;
   align-items: center;
 }
 
-.brand-link {
-  text-decoration: none;
-  font-size: 1.5rem;
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--global-text-color);
   font-weight: 700;
-  color: var(--text-primary);
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding-left: 0;
 }
 
-.brand-text {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+.header-brand:hover {
+  text-decoration: none;
+  color: var(--global-text-color);
+}
+
+.header-logo-placeholder {
+  width: 30px;
+  height: 30px;
+  position: relative;
+  display: inline-block;
+  transform: rotate(45deg);
+  border-radius: 50% / 30%;
+  overflow: hidden;
+}
+
+.header-logo-placeholder::before,
+.header-logo-placeholder::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid white;
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  box-shadow: 0 0 15px rgba(0, 162, 255, 0.5);
+}
+
+.header-logo-placeholder::before {
+  transform: rotate(45deg);
+}
+
+.header-logo-placeholder::after {
+  transform: rotate(-45deg);
+}
+
+.header-brand-highlight {
+  background: var(--global-highlight-gradient);
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.8rem;
 }
 
-.nav-menu {
+/* Footer styles */
+.site-footer {
+  flex-shrink: 0;
+  width: 100%;
+  background: var(--global-footer-gradient);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 25px 0;
+  text-align: center;
+  margin-top: auto;
+  border-top: 1px solid var(--global-border-light);
+}
+
+.site-footer-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--global-container-padding);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.site-footer-links {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 15px;
 }
 
-.nav-link {
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
+.site-footer-divider {
+  color: var(--global-muted-text-color);
+  font-size: 0.8rem;
 }
 
-.nav-link:hover {
-  color: var(--primary-color);
+.site-footer-copyright {
+  color: var(--global-muted-text-color);
+  font-size: 0.85rem;
+  font-weight: 400;
+  margin: 0;
+  text-align: center;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-  cursor: pointer;
-  border: none;
-}
+/* Mobile styles */
+@media screen and (max-width: 991px) {
+  .header-navbar {
+    padding: 15px 0;
+  }
 
-.btn i {
-  font-size: 1rem;
-}
+  .header-navbar .navbar-container {
+    padding: 0 15px;
+  }
 
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
+  .site-footer-content {
+    gap: 12px;
+  }
 
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
+  .site-footer-copyright {
+    font-size: 0.8rem;
+  }
 
-.btn-outline {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-}
+  .header-brand {
+    font-size: 1.3rem;
+  }
 
-.btn-outline:hover {
-  background-color: var(--bg-secondary);
-}
+  .header-logo-placeholder {
+    width: 25px;
+    height: 25px;
+  }
 
-.main-content {
-  flex: 1;
+  .header-brand-highlight {
+    font-size: 1.5rem;
+  }
 }
 </style>

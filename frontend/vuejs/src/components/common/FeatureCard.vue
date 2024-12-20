@@ -1,84 +1,46 @@
 <template>
-  <div class="content-card">
-    <div v-if="icon" class="feature-icon-wrapper">
-      <i :class="['fas', icon]"></i>
+  <div class="feature-card">
+    <div class="feature-icon">
+      <i :class="`fas fa-${icon}`" />
     </div>
-    <slot name="icon"></slot>
-    
     <h3 class="feature-title">{{ title }}</h3>
-    <p class="feature-description"><slot></slot></p>
-    
-    <slot name="footer"></slot>
+    <p class="feature-description">{{ description }}</p>
   </div>
 </template>
 
 <script setup>
 defineProps({
+  icon: {
+    type: String,
+    required: true
+  },
   title: {
     type: String,
     required: true
   },
-  icon: {
+  description: {
     type: String,
-    default: ''
+    required: true
   }
 })
 </script>
 
-<style scoped>
-.content-card {
-  background-color: var(--color-background);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-md);
-  transition: transform 0.2s, box-shadow 0.2s;
+<style>
+.feature-card {
+  @apply p-8 rounded-2xl bg-gray-800/50 hover:bg-gradient-to-r hover:from-cyan-500/5 hover:to-blue-500/5 
+         transition-all transform hover:scale-105 border border-gray-700/50;
 }
 
-.content-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.feature-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  background-color: var(--color-primary-light);
-  border-radius: var(--border-radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--spacing-md);
-}
-
-.feature-icon-wrapper i {
-  font-size: var(--font-size-xl);
-  color: var(--color-primary);
+.feature-icon {
+  @apply w-16 h-16 flex items-center justify-center text-2xl text-cyan-400 mb-6 
+         bg-gray-800 rounded-xl group-hover:scale-110 group-hover:rotate-6 transition-transform;
 }
 
 .feature-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--spacing-sm);
-  color: var(--color-text);
+  @apply text-xl font-bold mb-4 text-white;
 }
 
 .feature-description {
-  color: var(--color-text-muted);
-  line-height: 1.6;
+  @apply text-gray-300 leading-relaxed;
 }
-
-@media (max-width: 768px) {
-  .content-card {
-    padding: var(--spacing-lg);
-  }
-
-  .feature-icon-wrapper {
-    width: 40px;
-    height: 40px;
-  }
-
-  .feature-icon-wrapper i {
-    font-size: var(--font-size-lg);
-  }
-}
-</style> 
+</style>

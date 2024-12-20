@@ -1,0 +1,22 @@
+@layer components {
+  .main-layout {
+    @apply min-h-screen flex flex-col bg-gray-900 text-white;
+  }
+
+  .main-content {
+    @apply flex-1 flex flex-col w-full mt-[var(--header-height)];
+  }
+}
+
+/* Transitions */
+@layer utilities {
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+} 
