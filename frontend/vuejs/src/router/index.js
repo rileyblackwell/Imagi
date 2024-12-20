@@ -1,133 +1,145 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import store from '@/store'
-import HomePage from '@/views/Home.vue'
+import { useAuth } from '@/composables/useAuth'
 
 // Layouts
-import AuthLayout from '@/views/auth/AuthLayout.vue'
-import DashboardLayout from '@/views/dashboard/DashboardLayout.vue'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import AuthLayout from '@/layouts/AuthLayout.vue'
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
 
-// Auth components
-import Login from '@/views/auth/Login.vue'
-import Register from '@/views/auth/Register.vue'
-
-// Other components
+// Views
+import Home from '@/views/Home.vue'
 import About from '@/views/About.vue'
+import Contact from '@/views/Contact.vue'
 import Privacy from '@/views/Privacy.vue'
 import Terms from '@/views/Terms.vue'
-import Contact from '@/views/Contact.vue'
-import Dashboard from '@/views/Dashboard.vue'
-import Projects from '@/views/Projects.vue'
-import ProjectDetails from '@/views/ProjectDetails.vue'
-import Profile from '@/views/Profile.vue'
+import CookiePolicy from '@/views/CookiePolicy.vue'
+import Login from '@/views/auth/Login.vue'
+import Register from '@/views/auth/Register.vue'
+import ForgotPassword from '@/views/auth/ForgotPassword.vue'
+import Dashboard from '@/views/dashboard/Dashboard.vue'
+import ChangePassword from '@/views/auth/ChangePassword.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: HomePage
+    component: DefaultLayout,
+    children: [
+      {
+        path: '',
+        name: 'home',
+        component: Home
+      },
+      {
+        path: 'about',
+        name: 'about',
+        component: About
+      },
+      {
+        path: 'contact',
+        name: 'contact',
+        component: Contact
+      },
+      {
+        path: 'privacy',
+        name: 'privacy',
+        component: Privacy
+      },
+      {
+        path: 'terms',
+        name: 'terms',
+        component: Terms
+      },
+      {
+        path: 'cookie-policy',
+        name: 'cookie-policy',
+        component: CookiePolicy
+      }
+    ]
   },
   {
-    path: '/auth',
+    path: '/',
     component: AuthLayout,
     children: [
       {
         path: 'login',
-        name: 'Login',
-        component: Login,
-        meta: { guest: true }
+        name: 'login',
+        component: Login
       },
       {
         path: 'register',
-        name: 'Register',
-        component: Register,
-        meta: { guest: true }
+        name: 'register',
+        component: Register
+      },
+      {
+        path: 'forgot-password',
+        name: 'forgot-password',
+        component: ForgotPassword
       }
     ]
-  },
-  {
-    path: '/about',
-    name: 'About',
-    component: About
-  },
-  {
-    path: '/privacy',
-    name: 'Privacy',
-    component: Privacy
-  },
-  {
-    path: '/terms',
-    name: 'Terms',
-    component: Terms
-  },
-  {
-    path: '/contact',
-    name: 'Contact',
-    component: Contact
   },
   {
     path: '/dashboard',
     component: DashboardLayout,
+    meta: { requiresAuth: true },
     children: [
       {
         path: '',
-        name: 'Dashboard',
-        component: Dashboard,
-        meta: { requiresAuth: true }
+        name: 'dashboard',
+        component: Dashboard
       },
       {
-        path: 'projects',
-        name: 'Projects',
-        component: Projects,
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'projects/:id',
-        name: 'ProjectDetails',
-        component: ProjectDetails,
-        meta: { requiresAuth: true }
-      },
-      {
-        path: 'profile',
-        name: 'Profile',
-        component: Profile,
-        meta: { requiresAuth: true }
+        path: 'change-password',
+        name: 'change-password',
+        component: ChangePassword
       }
     ]
+  },
+  {
+    path: '/reset-password/:uid/:token',
+    name: 'PasswordResetConfirm',
+    component: () => import('@/views/auth/PasswordResetConfirm.vue'),
+    meta: {
+      requiresAuth: false,
+      layout: 'auth'
+    }
+  },
+  {
+    path: '/reset-password/complete',
+    name: 'PasswordResetComplete',
+    component: () => import('@/views/auth/PasswordResetComplete.vue'),
+    meta: {
+      requiresAuth: false,
+      layout: 'auth'
+    }
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
-  routes
+  history: createWebHistory(),
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  }
 })
 
-// Navigation guards
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = store.getters['auth/isAuthenticated']
-  
-  // Routes that require authentication
+// Navigation guard for protected routes
+router.beforeEach(async (to, from, next) => {
+  const { isAuthenticated } = useAuth()
+
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!isAuthenticated) {
+    if (!isAuthenticated.value) {
       next({
-        path: '/auth/login',
+        path: '/login',
         query: { redirect: to.fullPath }
       })
     } else {
       next()
     }
-  }
-  
-  // Routes for guests only (login, register)
-  else if (to.matched.some(record => record.meta.guest)) {
-    if (isAuthenticated) {
-      next('/dashboard')
-    } else {
-      next()
-    }
-  }
-  
-  // Public routes
-  else {
+  } else {
     next()
   }
 })

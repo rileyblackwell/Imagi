@@ -4,6 +4,10 @@
 # This file defines coding, design, and generation rules for the Imagi Oasis platform. 
 # It ensures consistency, adherence to best practices, and a streamlined development process.
 
+# Company Overview:
+# Imagi is a natural language to code platform. Its flagship product, Imagi Oasis, empowers users to build full-stack web applications through natural language prompts. 
+# Imagi Oasis leverages cutting-edge AI agents on the backend to construct dynamic web applications, enabling users to seamlessly translate their vision into functional code.
+
 # Core Directives:
 # 1. Always generate complete, self-contained files, including all necessary imports, dependencies, and boilerplate code.
 # 2. Write clean, maintainable, and secure code following best practices for both Python/Django and Vue.js.

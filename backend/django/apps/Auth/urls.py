@@ -30,4 +30,13 @@ urlpatterns = [
              template_name='auth/password_reset_complete.html'
          ),
          name='password_reset_complete'),
+    path('api/v1/auth/change-password/', 
+         views.change_password, 
+         name='api_change_password'),
+    path('api/v1/auth/reset-password/', 
+         views.request_password_reset, 
+         name='api_request_password_reset'),
+    path('api/v1/auth/reset-password/confirm/', 
+         views.password_reset_confirm, 
+         name='api_password_reset_confirm'),
 ]

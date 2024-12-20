@@ -137,10 +137,11 @@ export function useAuth() {
     error.value = null;
 
     try {
-      await axios.post('/api/auth/change-password/', passwordData);
+      const response = await axios.post('/api/v1/auth/change-password/', passwordData);
+      return response.data;
     } catch (err) {
       console.error('Password change failed:', err);
-      error.value = err.response?.data?.message || 'Failed to change password. Please try again.';
+      error.value = err.response?.data?.errors || { detail: 'Failed to change password. Please try again.' };
       throw err;
     } finally {
       loading.value = false;
@@ -156,10 +157,11 @@ export function useAuth() {
     error.value = null;
 
     try {
-      await axios.post('/api/auth/reset-password/', { email });
+      const response = await axios.post('/api/v1/auth/reset-password/', { email });
+      return response.data;
     } catch (err) {
       console.error('Password reset request failed:', err);
-      error.value = err.response?.data?.message || 'Failed to request password reset. Please try again.';
+      error.value = err.response?.data?.errors || { detail: 'Failed to request password reset. Please try again.' };
       throw err;
     } finally {
       loading.value = false;
@@ -170,17 +172,25 @@ export function useAuth() {
    * Reset password with token
    * @param {Object} resetData - Password reset data
    * @param {string} resetData.token - Reset token
-   * @param {string} resetData.password - New password
+   * @param {string} resetData.uid - User ID
+   * @param {string} resetData.newPassword - New password
+   * @param {string} resetData.confirmPassword - Confirm new password
    */
-  async function resetPassword(resetData) {
+  async function resetPassword({ token, uid, newPassword, confirmPassword }) {
     loading.value = true;
     error.value = null;
 
     try {
-      await axios.post('/api/auth/reset-password/confirm/', resetData);
+      const response = await axios.post('/api/v1/auth/reset-password/confirm/', {
+        token,
+        uid,
+        new_password1: newPassword,
+        new_password2: confirmPassword
+      });
+      return response.data;
     } catch (err) {
       console.error('Password reset failed:', err);
-      error.value = err.response?.data?.message || 'Failed to reset password. Please try again.';
+      error.value = err.response?.data?.errors || { detail: 'Failed to reset password. Please try again.' };
       throw err;
     } finally {
       loading.value = false;

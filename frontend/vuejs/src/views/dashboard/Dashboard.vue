@@ -146,6 +146,12 @@
   </div>
 </template>
 
+<script setup>
+defineOptions({
+  name: 'DashboardView'
+})
+</script>
+
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import { format } from 'date-fns'

@@ -28,7 +28,7 @@
         @focus="onFocus"
       >
         <option v-if="placeholder && !multiple" value="" disabled>{{ placeholder }}</option>
-        <template v-for="(option, index) in normalizedOptions" :key="option.value">
+        <template v-for="option in normalizedOptions" :key="option.value">
           <optgroup v-if="option.group" :label="option.group">
             <option
               v-for="item in option.options"

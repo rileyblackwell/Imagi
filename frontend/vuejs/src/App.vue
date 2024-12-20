@@ -30,24 +30,6 @@
     <main class="main-content">
       <router-view></router-view>
     </main>
-
-    <footer class="site-footer">
-      <div class="footer-content">
-        <div class="footer-brand">
-          <span class="footer-brand-text">Imagi</span>
-        </div>
-        <div class="footer-links">
-          <router-link to="/about" class="footer-link">About</router-link>
-          <span class="footer-divider">•</span>
-          <router-link to="/privacy" class="footer-link">Privacy</router-link>
-          <span class="footer-divider">•</span>
-          <router-link to="/terms" class="footer-link">Terms</router-link>
-        </div>
-        <p class="footer-copyright">
-          &copy; {{ new Date().getFullYear() }} Imagi. All rights reserved.
-        </p>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -217,73 +199,5 @@ body {
 
 .main-content {
   flex: 1;
-}
-
-.site-footer {
-  background-color: var(--bg-primary);
-  border-top: 1px solid var(--border-color);
-  padding: 2rem 0;
-  margin-top: auto;
-}
-
-.footer-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  text-align: center;
-}
-
-.footer-brand-text {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  display: inline-block;
-}
-
-.footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-
-.footer-link {
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: color 0.2s;
-}
-
-.footer-link:hover {
-  color: var(--primary-color);
-}
-
-.footer-divider {
-  color: var(--border-color);
-}
-
-.footer-copyright {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-@media (max-width: 768px) {
-  .nav-menu {
-    gap: 1rem;
-  }
-
-  .nav-link span {
-    display: none;
-  }
-
-  .footer-links {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .footer-divider {
-    display: none;
-  }
 }
 </style>

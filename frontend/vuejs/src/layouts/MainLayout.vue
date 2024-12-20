@@ -3,16 +3,24 @@
     <AppHeader />
     
     <main class="main-content">
-      <div class="container">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </div>
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
 
     <AppFooter />
+
+    <!-- Scroll to top button -->
+    <button
+      v-show="showScrollToTop"
+      class="scroll-to-top"
+      @click="scrollToTop"
+      aria-label="Scroll to top"
+    >
+      <i class="fas fa-arrow-up"></i>
+    </button>
 
     <!-- Notifications -->
     <div class="notifications-container">
@@ -40,12 +48,36 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useNotifications } from '@/composables/useNotifications';
 import AppHeader from '@/components/common/AppHeader.vue';
 import AppFooter from '@/components/common/AppFooter.vue';
 
 const { notifications, dismissNotification } = useNotifications();
+
+// State
+const showScrollToTop = ref(false)
+
+// Methods
+function handleScroll() {
+  showScrollToTop.value = window.scrollY > 500
+}
+
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
+// Lifecycle
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 
 function getNotificationIcon(type) {
   switch (type) {
@@ -71,8 +103,33 @@ function getNotificationIcon(type) {
 
 .main-content {
   flex: 1;
-  padding: var(--spacing-8) 0;
-  background-color: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scroll to top button */
+.scroll-to-top {
+  position: fixed;
+  bottom: var(--spacing-6);
+  right: var(--spacing-6);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.2s;
+  z-index: var(--z-fixed);
+}
+
+.scroll-to-top:hover {
+  transform: translateY(-2px);
+  background: var(--color-primary-dark);
 }
 
 /* Notifications */

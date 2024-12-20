@@ -1,34 +1,16 @@
 <template>
-  <div class="login-page">
-    <div class="login-container">
-      <h1>Welcome Back</h1>
-      <p class="lead">Sign in to your account to continue</p>
+  <div class="forgot-password-page">
+    <div class="forgot-password-container">
+      <h1>Reset Password</h1>
+      <p class="lead">Enter your email to receive password reset instructions</p>
       
-      <form @submit.prevent="handleSubmit" class="login-form">
+      <form v-if="!success" @submit.prevent="handleSubmit" class="forgot-password-form">
         <FormInput
-          v-model="form.email"
+          v-model="email"
           type="email"
           label="Email"
           required
         />
-        
-        <FormInput
-          v-model="form.password"
-          type="password"
-          label="Password"
-          required
-        />
-        
-        <div class="form-options">
-          <label class="remember-me">
-            <input type="checkbox" v-model="form.remember">
-            Remember me
-          </label>
-          
-          <router-link to="/forgot-password" class="forgot-password">
-            Forgot password?
-          </router-link>
-        </div>
         
         <div v-if="error" class="error-message">
           {{ error }}
@@ -40,14 +22,20 @@
           block
           :loading="loading"
         >
-          Sign In
+          Send Reset Link
         </BaseButton>
       </form>
       
+      <div v-else class="success-message">
+        <i class="fas fa-check-circle"></i>
+        <p>Password reset instructions have been sent to your email.</p>
+        <p>Please check your inbox and follow the instructions to reset your password.</p>
+      </div>
+      
       <div class="auth-footer">
         <p>
-          Don't have an account?
-          <router-link to="/register">Sign up</router-link>
+          Remember your password?
+          <router-link to="/login">Sign in</router-link>
         </p>
       </div>
     </div>
@@ -56,36 +44,27 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import BaseButton from '@/components/common/BaseButton.vue'
 import FormInput from '@/components/common/FormInput.vue'
 import { useAuth } from '@/composables/useAuth'
 
-defineOptions({
-  name: 'LoginPage'
-})
+const { sendPasswordResetEmail } = useAuth()
 
-const router = useRouter()
-const { login } = useAuth()
-
-const form = ref({
-  email: '',
-  password: '',
-  remember: false
-})
-
+const email = ref('')
 const loading = ref(false)
 const error = ref('')
+const success = ref(false)
 
 async function handleSubmit() {
   loading.value = true
   error.value = ''
+  success.value = false
   
   try {
-    await login(form.value)
-    router.push('/dashboard')
+    await sendPasswordResetEmail(email.value)
+    success.value = true
   } catch (err) {
-    error.value = err.message || 'Failed to login'
+    error.value = err.message || 'Failed to send reset email'
   } finally {
     loading.value = false
   }
@@ -93,7 +72,7 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
-.login-page {
+.forgot-password-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -102,7 +81,7 @@ async function handleSubmit() {
   background: var(--color-background-alt);
 }
 
-.login-container {
+.forgot-password-container {
   width: 100%;
   max-width: 400px;
   padding: var(--spacing-xl);
@@ -111,7 +90,7 @@ async function handleSubmit() {
   box-shadow: var(--shadow-lg);
 }
 
-.login-container h1 {
+.forgot-password-container h1 {
   margin-bottom: var(--spacing-xs);
   text-align: center;
 }
@@ -122,39 +101,32 @@ async function handleSubmit() {
   margin-bottom: var(--spacing-xl);
 }
 
-.login-form {
+.forgot-password-form {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-}
-
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-}
-
-.remember-me {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  color: var(--color-text-secondary);
-}
-
-.forgot-password {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.forgot-password:hover {
-  text-decoration: underline;
 }
 
 .error-message {
   color: var(--color-error);
   font-size: var(--font-size-sm);
   margin-bottom: var(--spacing-md);
+}
+
+.success-message {
+  text-align: center;
+  color: var(--color-success);
+  margin: var(--spacing-xl) 0;
+}
+
+.success-message i {
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--spacing-md);
+}
+
+.success-message p {
+  color: var(--color-text);
+  margin-bottom: var(--spacing-sm);
 }
 
 .auth-footer {

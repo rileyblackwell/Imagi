@@ -1,288 +1,354 @@
 <template>
   <div class="home">
     <!-- Hero Section -->
-    <section class="hero">
-      <div class="hero-content">
-        <h1>Welcome to Imagi</h1>
-        <p>Build your web applications with natural language</p>
-        <div class="hero-buttons">
-          <router-link to="/auth/register" class="btn btn-primary btn-lg">Get Started</router-link>
-          <router-link to="/about" class="btn btn-outline btn-lg">Learn More</router-link>
+    <section class="hero-section">
+      <div class="hero-container">
+        <h1 class="hero-title">Transform Your Ideas Into Web Applications</h1>
+        <p class="hero-description">
+          Create powerful, professional web applications using natural language with Imagi's AI technology
+        </p>
+        <div class="cta-container">
+          <router-link 
+            :to="isAuthenticated ? '/builder' : '/auth/login'" 
+            class="btn btn-success btn-lg"
+          >
+            <span>Start Building</span>
+            <i class="fas fa-arrow-right"></i>
+          </router-link>
         </div>
       </div>
     </section>
 
     <!-- Features Section -->
-    <section class="features">
-      <div class="container">
-        <h2>Why Choose Imagi?</h2>
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fas fa-magic"></i>
-            </div>
-            <h3>AI-Powered Development</h3>
-            <p>Transform your ideas into code using natural language. Let AI handle the technical details.</p>
+    <section class="content-section">
+      <h2 class="section-header">Why Choose Imagi</h2>
+      <p class="section-description">
+        Transform your ideas into reality with powerful AI-driven web development
+      </p>
+      
+      <div class="content-grid">
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-keyboard"></i>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fas fa-bolt"></i>
-            </div>
-            <h3>Lightning Fast</h3>
-            <p>Build and deploy web applications in minutes, not days or weeks.</p>
+          <h3 class="feature-title">Natural Language Input</h3>
+          <p>Describe your vision in plain English, and watch as it transforms into reality.</p>
+        </div>
+
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-bolt"></i>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <i class="fas fa-code"></i>
-            </div>
-            <h3>Clean Code</h3>
-            <p>Generate high-quality, maintainable code that follows best practices.</p>
+          <h3 class="feature-title">Rapid Development</h3>
+          <p>Build websites and applications in minutes, not months.</p>
+        </div>
+
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-code"></i>
           </div>
+          <h3 class="feature-title">Professional Code</h3>
+          <p>Generate clean, maintainable code that follows industry best practices.</p>
         </div>
       </div>
     </section>
 
     <!-- How It Works -->
-    <section class="how-it-works">
-      <div class="container">
-        <h2>How It Works</h2>
-        <div class="steps">
-          <div class="step">
-            <div class="step-number">1</div>
-            <h3>Describe Your Vision</h3>
-            <p>Tell us what you want to build using natural language.</p>
+    <section class="content-section">
+      <h2 class="section-header">How It Works</h2>
+      <div class="content-grid">
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-pencil-alt"></i>
           </div>
-          <div class="step">
-            <div class="step-number">2</div>
-            <h3>AI Generation</h3>
-            <p>Our AI transforms your description into working code.</p>
+          <h3 class="card-header">1. Describe Your Vision</h3>
+          <p>Tell us what you want to build using natural language. Describe your features, design preferences, and requirements.</p>
+        </div>
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-magic"></i>
           </div>
-          <div class="step">
-            <div class="step-number">3</div>
-            <h3>Customize & Deploy</h3>
-            <p>Fine-tune your application and deploy it to the world.</p>
+          <h3 class="card-header">2. AI Generation</h3>
+          <p>Our advanced AI analyzes your description and generates all necessary code, from frontend interfaces to backend logic.</p>
+        </div>
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-sliders-h"></i>
           </div>
+          <h3 class="card-header">3. Customize & Refine</h3>
+          <p>Review the generated application, make adjustments, and refine details using natural language commands.</p>
+        </div>
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-rocket"></i>
+          </div>
+          <h3 class="card-header">4. Launch & Scale</h3>
+          <p>Deploy your application with confidence, knowing it's built with scalable, secure, and maintainable code.</p>
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta">
-      <div class="container">
-        <h2>Ready to Start Building?</h2>
-        <p>Join thousands of developers who are already building with Imagi.</p>
-        <router-link to="/auth/register" class="btn btn-primary btn-lg">Create Free Account</router-link>
+    <!-- Use Cases -->
+    <section class="content-section">
+      <h2 class="section-header">What You Can Build</h2>
+      <div class="content-grid">
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-store"></i>
+          </div>
+          <h3 class="card-header">E-commerce Sites</h3>
+          <p>Create full-featured online stores with product catalogs, shopping carts, and secure payment processing.</p>
+        </div>
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <h3 class="card-header">Business Applications</h3>
+          <p>Build custom CRM systems, inventory management tools, and other business-specific applications.</p>
+        </div>
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3 class="card-header">Community Platforms</h3>
+          <p>Develop social networks, forums, and community-driven websites with user management and content sharing.</p>
+        </div>
+        <div class="content-card">
+          <div class="feature-icon-wrapper">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3 class="card-header">Analytics Dashboards</h3>
+          <p>Create data visualization tools and interactive dashboards for business intelligence and reporting.</p>
+        </div>
       </div>
     </section>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'HomePage'
-}
+<script setup>
+import { useAuth } from '@/composables/useAuth'
+
+const { isAuthenticated } = useAuth()
 </script>
 
 <style scoped>
+/* Root Variables */
+:root {
+  --primary-gradient: linear-gradient(135deg, #00ffcc, #00a2ff);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --shadow-color: rgba(0, 0, 0, 0.2);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* Remove top padding since we're inside main-content */
 .home {
-  background-color: var(--bg-secondary);
+  margin-top: calc(-1 * var(--spacing-8));
 }
 
-.hero {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  color: white;
-  padding: 6rem 2rem;
-  text-align: center;
+/* Hero Section - Inspired by Stripe */
+.hero-section {
+  padding: 120px 0;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(
+    circle at top right,
+    rgba(0, 255, 204, 0.15),
+    transparent 50%
+  );
 }
 
-.hero-content {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.hero h1 {
-  font-size: 3.5rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-}
-
-.hero p {
-  font-size: 1.5rem;
-  opacity: 0.9;
-  margin-bottom: 2rem;
-}
-
-.hero-buttons {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.btn-lg {
-  padding: 0.75rem 2rem;
-  font-size: 1.125rem;
-}
-
-.btn-outline {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.btn-outline:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-section {
-  padding: 6rem 2rem;
-}
-
-.container {
+.hero-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
 }
 
-section h2 {
-  text-align: center;
-  font-size: 2.5rem;
+.hero-title {
+  font-size: 4rem;
   font-weight: 700;
-  margin-bottom: 3rem;
-  color: var(--text-primary);
-}
-
-.features {
-  background-color: white;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.feature-card {
-  padding: 2rem;
-  border-radius: 1rem;
-  background-color: var(--bg-secondary);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-align: center;
-  transition: transform 0.2s;
 }
 
-.feature-card:hover {
-  transform: translateY(-5px);
-}
-
-.feature-icon {
-  width: 4rem;
-  height: 4rem;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  border-radius: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1.5rem;
-}
-
-.feature-icon i {
-  font-size: 1.5rem;
-  color: white;
-}
-
-.feature-card h3 {
+.hero-description {
   font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+  text-align: center;
 }
 
-.feature-card p {
+/* Content Sections - Inspired by Airbnb */
+.content-section {
+  padding: 100px 0;
+  position: relative;
+}
+
+.section-header {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.section-description {
+  font-size: 1.2rem;
   color: var(--text-secondary);
+  max-width: 700px;
+  margin: 0 auto 4rem;
+  text-align: center;
   line-height: 1.6;
 }
 
-.how-it-works {
-  background-color: var(--bg-secondary);
-}
-
-.steps {
+/* Grid Layout - Inspired by Meta */
+.content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2rem;
-  text-align: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
-.step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* Cards - Inspired by Google */
+.content-card {
+  background: var(--bg-card);
+  border-radius: 24px;
+  padding: 2.5rem;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.step-number {
-  width: 3rem;
-  height: 3rem;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  border-radius: 50%;
+.content-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 255, 204, 0.2);
+  box-shadow: 
+    0 20px 40px var(--shadow-color),
+    0 0 0 1px rgba(0, 255, 204, 0.1);
+}
+
+/* Feature Icons - Inspired by Twilio */
+.feature-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
+  background: linear-gradient(135deg,
+    rgba(0, 255, 204, 0.1),
+    rgba(0, 162, 255, 0.1)
+  );
   margin-bottom: 1.5rem;
+  position: relative;
 }
 
-.step h3 {
-  font-size: 1.25rem;
+.feature-icon-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--primary-gradient);
+  mask: linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.feature-icon-wrapper i {
+  font-size: 1.5rem;
+  color: #00ffcc;
+}
+
+/* Feature Titles */
+.feature-title,
+.card-header {
+  font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin: 1.5rem 0 1rem;
   color: var(--text-primary);
+  line-height: 1.3;
 }
 
-.step p {
-  color: var(--text-secondary);
+/* CTA Container */
+.cta-container {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
-.cta {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+.btn-lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.btn-success {
+  background: var(--primary-gradient);
   color: white;
-  text-align: center;
+  border: none;
+  text-decoration: none;
 }
 
-.cta h2 {
-  color: white;
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 255, 204, 0.2);
 }
 
-.cta p {
-  font-size: 1.25rem;
-  opacity: 0.9;
-  margin-bottom: 2rem;
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .hero-title {
+    font-size: 3.5rem;
+  }
+  
+  .section-header {
+    font-size: 2.5rem;
+  }
 }
 
 @media (max-width: 768px) {
-  .hero h1 {
-    font-size: 2.5rem;
+  .hero-section {
+    padding: 80px 0;
   }
 
-  .hero p {
-    font-size: 1.25rem;
+  .hero-title {
+    font-size: 2.75rem;
   }
 
-  section {
-    padding: 4rem 1.5rem;
+  .hero-description {
+    font-size: 1.1rem;
   }
 
-  section h2 {
+  .section-header {
     font-size: 2rem;
   }
 
-  .hero-buttons {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .btn-lg {
-    width: 100%;
+  .content-card {
+    padding: 2rem;
   }
 }
 </style> 
