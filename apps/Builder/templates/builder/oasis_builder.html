@@ -1,87 +1,140 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Imagi Oasis Builder{% endblock %}
+{% block title %}Imagi Oasis{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'apps_styles.css' %}">
 <link rel="stylesheet" href="{% static 'builder/css/builder_styles.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="builder-workspace">
-    <!-- Side Controls Panel -->
-    <div class="side-controls">
-        <div class="mode-selector">
-            <label for="mode-select">Mode</label>
-            <select id="mode-select" class="styled-select">
-                <option value="chat">Chat Mode</option>
-                <option value="build">Build Mode</option>
-            </select>
-        </div>
+<div class="app-page">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <nav class="sidebar-nav">
+            <!-- Controls Section -->
+            <div class="sidebar-controls">
+                <div class="select-wrapper">
+                    <label for="model-select">Model</label>
+                    <select id="model-select" name="model-select" class="styled-select">
+                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                    </select>
+                </div>
+                <div class="select-wrapper">
+                    <label for="mode-select">Mode</label>
+                    <select id="mode-select" name="mode-select" class="styled-select">
+                        <option value="chat">Chat Mode</option>
+                        <option value="build">Build Mode</option>
+                    </select>
+                </div>
+                <div class="select-wrapper">
+                    <label for="file-select">File</label>
+                    <select id="file-select" name="file-select" class="styled-select">
+                        <option value="base.html">base.html</option>
+                        <option value="index.html">index.html</option>
+                        <option value="about.html">about.html</option>
+                        <option value="contact.html">contact.html</option>
+                        <option value="styles.css">styles.css</option>
+                    </select>
+                </div>
+                <div class="sidebar-buttons">
+                    <button type="button" id="undo-btn" class="sidebar-btn">
+                        <i class="fas fa-undo"></i>
+                        <span>Undo</span>
+                    </button>
+                    <button type="button" id="preview-btn" class="sidebar-btn">
+                        <i class="fas fa-eye"></i>
+                        <span>Preview</span>
+                    </button>
+                </div>
+            </div>
 
-        <div class="file-selector">
-            <label for="file-select">Current File</label>
-            <select id="file-select" class="styled-select">
-                <option value="base.html">base.html</option>
-                <option value="index.html">index.html</option>
-                <option value="styles.css">styles.css</option>
-            </select>
-        </div>
+            <!-- Chat History -->
+            <div class="chat-history">
+                {% if conversations %}
+                    {% for conversation in conversations %}
+                        <a href="#" class="chat-history-item" data-conversation-id="{{ conversation.id }}">
+                            <i class="fas fa-comment"></i>
+                            <span class="chat-title">{{ conversation.title }}</span>
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
 
-        <div class="model-selector">
-            <label for="model-select">AI Model</label>
-            <select id="model-select" class="styled-select">
-                <option value="gpt-4">GPT-4</option>
-                <option value="claude">Claude</option>
-            </select>
-        </div>
-
-        <div class="action-buttons">
-            <button class="btn btn-secondary">
-                <i class="fas fa-code"></i>
-                View Code
-            </button>
-            <button class="btn btn-primary">
-                <i class="fas fa-eye"></i>
-                Preview
-            </button>
-        </div>
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <a href="{% url 'builder:landing_page' %}" class="sidebar-link">
+                    <i class="fas fa-th-large"></i>
+                    <span>Projects Dashboard</span>
+                </a>
+            </div>
+        </nav>
     </div>
 
-    <!-- Main Chat Area -->
-    <div class="main-chat-area">
-        <div class="chat-container">
-            <!-- Welcome Message -->
-            <div class="welcome-message">
-                <div class="welcome-icon">
-                    <i class="fas fa-wand-magic-sparkles"></i>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="builder-workspace">
+            <!-- Chat Container -->
+            <div class="chat-container">
+                <div id="response-window" class="response-window">
+                    <!-- Welcome message -->
+                    <div class="welcome-screen">
+                        <div class="welcome-icon">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <h1>Welcome to Imagi Oasis</h1>
+                        <p>Transform your ideas into stunning web apps using natural language. Just describe what you want to build, and I'll help you create it.</p>
+                        <div class="welcome-examples">
+                            <h2>Example prompts to get started:</h2>
+                            <div class="example-prompts">
+                                <button class="example-prompt">
+                                    "Create a modern landing page with a hero section and features grid"
+                                </button>
+                                <button class="example-prompt">
+                                    "Add a contact form with name, email, and message fields"
+                                </button>
+                                <button class="example-prompt">
+                                    "Style the navigation bar to be sticky and transparent"
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h2>Welcome to Imagi Oasis</h2>
-                <p>Your AI-powered web development assistant. Describe your vision, and I'll help you bring it to life.</p>
             </div>
+        </div>
+    </main>
 
-            <!-- Response Window -->
-            <div class="response-window" id="response-window">
-                <!-- Chat messages will be dynamically added here -->
-            </div>
-
-            <!-- Input Area -->
-            <div class="input-area">
-                <div class="input-container">
-                    <textarea id="user-input" placeholder="Type your message here..." rows="1"></textarea>
-                    <button class="btn-send" id="submit-btn" disabled>
+    <!-- Chat Input -->
+    <div class="chat-input">
+        <form id="chat-form">
+            {% csrf_token %}
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="user-input" 
+                        name="user-input" 
+                        placeholder="Message Imagi..."
+                        rows="1"
+                        required
+                    ></textarea>
+                    <button type="submit" id="submit-btn" title="Send message">
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
-                <div class="input-info">
-                    Press <kbd>Enter</kbd> to send, <kbd>Shift</kbd> + <kbd>Enter</kbd> for new line
+                <div class="bottom-text">
+                    Imagi can make mistakes. Consider checking important information.
                 </div>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'builder/js/builder.js' %}"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+<script src="{% static 'builder/js/oasis_builder.js' %}"></script>
 {% endblock %} 

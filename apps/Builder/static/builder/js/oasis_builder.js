@@ -1,175 +1,228 @@
 $(document).ready(function() {
     console.log("✅ Imagi Builder JavaScript loaded successfully");
 
-    // Elements
-    const $userInput = $('#user-input');
-    const $submitBtn = $('#submit-btn');
-    const $responseWindow = $('#response-window');
-    const $modeSelect = $('#mode-select');
-    const $fileSelect = $('#file-select');
-    const $modelSelect = $('#model-select');
-    
     var csrftoken = Cookies.get('csrftoken');
     var currentPages = ['index.html', 'about.html', 'styles.css'];
 
-    // Auto-resize textarea
-    function autoResizeTextarea() {
-        $userInput.css('height', 'auto');
-        $userInput.css('height', $userInput[0].scrollHeight + 'px');
+    // Create hidden div for measuring text height
+    $('body').append('<div class="hidden-div"></div>');
+    const $hiddenDiv = $('.hidden-div');
+    const $textarea = $('#user-input');
+
+    // Wrap the textarea in an input container
+    $textarea.wrap('<div class="input-container"></div>');
+
+    // Initialize submit button and move it inside the input container
+    const $submitBtn = $('#submit-btn');
+
+    // Function to auto-expand textarea
+    function autoExpand() {
+        // Copy the textarea's content to the hidden div
+        $hiddenDiv.text($textarea.val() + '\n');
         
-        // Enable/disable submit button based on input
-        $submitBtn.prop('disabled', !$userInput.val().trim());
+        // Get the height of the hidden div
+        let newHeight = $hiddenDiv.height();
+        
+        // Ensure minimum height
+        newHeight = Math.max(60, newHeight);
+        
+        // Ensure maximum height
+        newHeight = Math.min(200, newHeight);
+        
+        // Set the textarea height
+        $textarea.height(newHeight);
     }
 
-    // Handle input changes
-    $userInput.on('input', autoResizeTextarea);
+    // Bind auto-expand to input events
+    $textarea.on('input', autoExpand);
 
-    // Handle key press
-    $userInput.on('keydown', function(e) {
+    // Handle Enter key in textarea
+    $textarea.on('keydown', function(e) {
+        // Check if Enter is pressed without Shift
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            if (!$submitBtn.prop('disabled')) {
-                handleSubmit();
-            }
+            handleSubmit();
         }
     });
 
-    // Handle form submission
-    $submitBtn.on('click', handleSubmit);
+    // Function to handle form submission
+    function handleSubmit() {
+        var userInput = $textarea.val().trim();
+        if (!userInput) return;
+        
+        var model = $('#model-select').val();
+        var mode = $('#mode-select').val();
+        var selectedFile = $('#file-select').val();
+        
+        // Clear the input and reset its height
+        $textarea.val('').height(60);
+        
+        // Show loading state - just the spinner icon
+        $submitBtn.prop('disabled', true)
+                 .html('<i class="fas fa-spinner"></i>');
+        
+        // Log the request details
+        console.group('🚀 Generate Request');
+        console.log('Mode:', mode);
+        console.log('Model:', model);
+        console.log('File:', selectedFile);
+        console.log('User Input:', userInput);
+        console.groupEnd();
 
-    async function handleSubmit() {
-        const userMessage = $userInput.val().trim();
-        if (!userMessage) return;
+        // Function to animate loading dots
+        function animateLoadingDots($element, baseText) {
+            let dots = 0;
+            return setInterval(() => {
+                $element.attr('placeholder', baseText + '.'.repeat(dots + 1));
+                dots = (dots + 1) % 3;
+            }, 500);
+        }
 
-        // Disable input and button while processing
-        $userInput.prop('disabled', true);
-        $submitBtn.prop('disabled', true);
+        // Start loading animation
+        const baseText = mode === 'chat' ? 'thinking' : 'building';
+        $textarea.attr('placeholder', baseText + '...');
+        const loadingAnimation = animateLoadingDots($textarea, baseText);
+        
+        // Get conversation history before making request
+        $.ajax({
+            type: 'POST',
+            url: '/builder/get-conversation-history/',
+            data: {
+                'user_input': userInput,
+                'model': model,
+                'file': selectedFile,
+                'csrfmiddlewaretoken': csrftoken
+            },
+            success: function(historyResponse) {
+                // Log conversation history
+                console.group('📜 Conversation History');
+                historyResponse.messages.forEach(msg => {
+                    console.log(`[${msg.role.toUpperCase()}]:`);
+                    console.log(msg.content);
+                    console.log('---');
+                });
+                console.groupEnd();
+                
+                makeGenerateRequest();
+            },
+            error: function(xhr, status, error) {
+                console.error("Error getting conversation history:", error);
+                makeGenerateRequest();
+            }
+        });
 
-        // Add user message to chat
-        addMessageToChat('user', userMessage);
+        // Function to handle insufficient credits
+        function handleInsufficientCredits(response) {
+            const requiredCredits = response.required_credits || 1.0;
+            if (confirm(`You need ${requiredCredits} credits for this request. Would you like to purchase credits now?`)) {
+                window.location.href = response.redirect_url;
+            }
+        }
 
-        try {
-            // Get current mode and file
-            const mode = $modeSelect.val();
-            const currentFile = $fileSelect.val();
-            const model = $modelSelect.val();
-
-            // Send message to backend
-            const response = await fetch('/builder/chat/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
+        // Make the request
+        function makeGenerateRequest() {
+            $.ajax({
+                type: 'POST',
+                url: mode === 'chat' ? '/builder/chat/' : '/builder/process-input/',
+                data: {
+                    'user_input': userInput,
+                    'model': model,
+                    'file': selectedFile,
+                    'mode': mode,
+                    'csrfmiddlewaretoken': csrftoken
                 },
-                body: JSON.stringify({
-                    message: userMessage,
-                    mode: mode,
-                    file: currentFile,
-                    model: model
-                })
+                success: function(response) {
+                    var $responseWindow = $('#response-window');
+                    
+                    // Log AI response
+                    console.group('🤖 AI Response');
+                    console.log(response.response || response.message);
+                    console.groupEnd();
+                    
+                    if (mode === 'chat') {
+                        // Show chat response
+                        var userMessage = formatChatMessage('user', userInput);
+                        var aiMessage = formatChatMessage('assistant', response.message);
+                        $responseWindow.append(userMessage + aiMessage);
+                        $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                    } else {
+                        // Show only success confirmation for build mode
+                        if (response.success === false) {
+                            // Add error message with proper spacing
+                            const timestamp = new Date().toLocaleTimeString();
+                            const currentContent = $responseWindow.text();
+                            const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                            $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error: ${response.error || 'An error occurred while generating content'}\n`);
+                        } else {
+                            // Add success message with proper spacing
+                            const timestamp = new Date().toLocaleTimeString();
+                            const fileType = selectedFile.endsWith('.html') ? 'template' : 'stylesheet';
+                            const currentContent = $responseWindow.text();
+                            const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                            $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - Successfully generated ${fileType}: ${selectedFile}\n`);
+                        }
+                    }
+                    
+                    // Scroll to bottom
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", error);
+                    var $responseWindow = $('#response-window');
+                    
+                    // Handle insufficient credits
+                    if (xhr.status === 402) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            handleInsufficientCredits(response);
+                            return;
+                        } catch (e) {
+                            console.error("Error parsing response:", e);
+                        }
+                    }
+                    
+                    // Handle other errors
+                    const timestamp = new Date().toLocaleTimeString();
+                    const currentContent = $responseWindow.text();
+                    const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                    $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error: ${error}\n`);
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
+                },
+                complete: function() {
+                    // Reset button state - just the paper plane icon
+                    $submitBtn.prop('disabled', false)
+                             .html('<i class="fas fa-paper-plane"></i>');
+                    
+                    // Clear the loading animation
+                    clearInterval(loadingAnimation);
+                    $textarea.attr('placeholder', mode === 'chat' ? 
+                        'Chat with AI about your website ideas...' : 
+                        'let your imagination flow...');
+                }
             });
-
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            const data = await response.json();
-            
-            // Add AI response to chat
-            addMessageToChat('assistant', data.response);
-
-        } catch (error) {
-            console.error('Error:', error);
-            addMessageToChat('error', 'Sorry, there was an error processing your request.');
-        } finally {
-            // Re-enable input and button
-            $userInput.prop('disabled', false);
-            $submitBtn.prop('disabled', false);
-            
-            // Clear and reset input
-            $userInput.val('');
-            $userInput.css('height', 'auto');
-            $userInput.focus();
         }
     }
 
-    function addMessageToChat(role, content) {
-        const messageDiv = $('<div>').addClass(`chat-message ${role}-message`);
-        
-        // Add icon based on role
-        const iconDiv = $('<div>').addClass('message-icon').html(getIconForRole(role));
-        messageDiv.append(iconDiv);
-
-        // Add content
-        const contentDiv = $('<div>').addClass('message-content').html(formatMessage(content));
-        messageDiv.append(contentDiv);
-
-        $responseWindow.append(messageDiv);
-        
-        // Scroll to bottom
-        $responseWindow.scrollTop($responseWindow[0].scrollHeight);
-
-        // Add fade-in animation
-        messageDiv.css({
-            'opacity': '0',
-            'transform': 'translateY(20px)'
-        });
-        
-        requestAnimationFrame(() => {
-            messageDiv.css({
-                'transition': 'opacity 0.3s ease, transform 0.3s ease',
-                'opacity': '1',
-                'transform': 'translateY(0)'
-            });
-        });
-    }
-
-    function getIconForRole(role) {
-        switch (role) {
-            case 'user':
-                return '<i class="fas fa-user"></i>';
-            case 'assistant':
-                return '<i class="fas fa-robot"></i>';
-            case 'error':
-                return '<i class="fas fa-exclamation-circle"></i>';
-            default:
-                return '';
-        }
-    }
-
-    function formatMessage(content) {
-        // Convert markdown-style code blocks
-        content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code class="$1">$2</code></pre>');
-        
-        // Convert inline code
-        content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
-        
-        // Convert URLs to links
-        content = content.replace(
-            /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, 
-            '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-        );
-        
-        return content;
-    }
-
-    // Handle mobile menu toggle
-    const menuToggle = $('<button>')
-        .addClass('menu-toggle')
-        .html('<i class="fas fa-bars"></i>')
-        .prependTo('.main-chat-area');
-
-    menuToggle.on('click', () => {
-        $('.side-controls').toggleClass('active');
+    // Bind submit button click
+    $submitBtn.on('click', function(e) {
+        e.preventDefault();
+        handleSubmit();
     });
+
+    // Set default file selection on page load
+    if (!$('#file-select').val()) {
+        $('#file-select').val('index.html');
+    }
 
     // Handle custom page input visibility
-    $fileSelect.change(function() {
+    $('#file-select').change(function() {
         var selectedFile = $(this).val();
         if (selectedFile === 'custom') {
             $('#custom-page-input').show();
         } else {
             $('#custom-page-input').hide();
+            
+            // Just log the file change
             console.log(`📂 Switched to file: ${selectedFile}`);
         }
     });
@@ -193,7 +246,7 @@ $(document).ready(function() {
             return;
         }
 
-        $fileSelect.append(
+        $('#file-select').append(
             $('<option></option>').val(newPage).html(newPage)
         );
         
@@ -202,25 +255,39 @@ $(document).ready(function() {
         // Update UI
         $('#custom-page-name').val('');
         $('#custom-page-input').hide();
-        $fileSelect.val(newPage);
+        $('#file-select').val(newPage);
         
-        // Show confirmation
-        addMessageToChat('system', `Added new file: ${newPage}`);
+        // Show confirmation in response window
+        var $responseWindow = $('#response-window');
+        $responseWindow.append(`\nAdded new file: ${newPage}\n`);
+        $responseWindow.scrollTop($responseWindow[0].scrollHeight);
         
+        // Log the new file addition
         console.log(`📄 Added new file: ${newPage}`);
     });
 
     // Handle mode selection changes
-    $modeSelect.change(function() {
+    $('#mode-select').change(function() {
         var mode = $(this).val();
+        var $textarea = $('#user-input');
         
         if (mode === 'chat') {
-            $userInput.attr('placeholder', 'Chat with AI about your website ideas...');
+            $textarea.attr('placeholder', 'Chat with AI about your website ideas...');
         } else {
-            $userInput.attr('placeholder', 'let your imagination flow...');
-            $fileSelect.parent().show();
+            $textarea.attr('placeholder', 'let your imagination flow...');
+            $('#file-select').parent().show();
         }
     });
+
+    // Function to format chat messages
+    function formatChatMessage(role, content) {
+        const roleClass = role === 'user' ? 'user' : 'assistant';
+        const roleText = role === 'user' ? 'You' : 'AI';
+        return `<div class="chat-message ${roleClass}">
+            <div class="role">${roleText}</div>
+            <div class="content">${content}</div>
+        </div>`;
+    }
 
     // Clear button handler
     $('#clear-btn').click(function(event) {
@@ -230,23 +297,26 @@ $(document).ready(function() {
             return;
         }
         
-        $responseWindow.empty();
+        $('#response-window').empty();
     });
 
     // Undo button handler
     $('#undo-btn').click(function(event) {
         event.preventDefault();
         
-        var selectedFile = $fileSelect.val();
+        // Get the currently selected file
+        var selectedFile = $('#file-select').val();
         if (selectedFile === 'custom') {
             alert('Please select a valid file to undo');
             return;
         }
         
+        // Show loading state
         const $undoBtn = $(this);
-        $undoBtn.prop('disabled', true)
-               .html('<i class="fas fa-spinner fa-spin"></i> Undoing...');
+        $undoBtn.prop('disabled', true);
+        $undoBtn.html('<i class="fas fa-spinner fa-spin"></i> Undoing...');
         
+        // Make request to undo last action
         $.ajax({
             type: 'POST',
             url: '/builder/undo-last-action/',
@@ -255,19 +325,34 @@ $(document).ready(function() {
                 'csrfmiddlewaretoken': csrftoken
             },
             success: function(response) {
-                addMessageToChat('system', `✅ ${response.message}`);
+                // Add success message to response window
+                const timestamp = new Date().toLocaleTimeString();
+                const $responseWindow = $('#response-window');
+                const currentContent = $responseWindow.text();
+                const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - ${response.message}\n`);
+                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                 
+                // If HTML content was returned, update the preview
                 if (response.html) {
                     // TODO: Update preview if needed
                 }
             },
             error: function(xhr, status, error) {
                 console.error("Undo Error:", error);
-                addMessageToChat('error', `Error undoing last action: ${error}`);
+                
+                // Add error message to response window
+                const timestamp = new Date().toLocaleTimeString();
+                const $responseWindow = $('#response-window');
+                const currentContent = $responseWindow.text();
+                const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error undoing last action: ${error}\n`);
+                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
             },
             complete: function() {
-                $undoBtn.prop('disabled', false)
-                       .html('<i class="fas fa-undo"></i> Undo');
+                // Reset button state
+                $undoBtn.prop('disabled', false);
+                $undoBtn.html('<i class="fas fa-undo"></i> Undo');
             }
         });
     });
@@ -276,10 +361,12 @@ $(document).ready(function() {
     $('#preview-btn').click(function(event) {
         event.preventDefault();
         
+        // Show loading state
         const $previewBtn = $(this);
-        $previewBtn.prop('disabled', true)
-                  .html('<i class="fas fa-spinner fa-spin"></i> Starting Preview...');
+        $previewBtn.prop('disabled', true);
+        $previewBtn.html('<i class="fas fa-spinner fa-spin"></i> Starting Preview...');
         
+        // Make request to start preview server
         $.ajax({
             type: 'POST',
             url: '/builder/preview-project/',
@@ -288,23 +375,37 @@ $(document).ready(function() {
             },
             success: function(response) {
                 if (response.url) {
+                    // Open preview in new tab
                     window.open(response.url, '_blank');
-                    addMessageToChat('system', `✅ Preview server started at ${response.url}`);
+                    
+                    // Add success message to response window
+                    const timestamp = new Date().toLocaleTimeString();
+                    const $responseWindow = $('#response-window');
+                    const currentContent = $responseWindow.text();
+                    const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                    $responseWindow.text(currentContent + newLine + `✅ ${timestamp} - Preview server started at ${response.url}\n`);
+                    $responseWindow.scrollTop($responseWindow[0].scrollHeight);
                 } else {
                     alert('Error starting preview server');
                 }
             },
             error: function(xhr, status, error) {
                 console.error("Preview Error:", error);
-                addMessageToChat('error', `Error starting preview: ${error}`);
+                alert('Error starting preview server: ' + error);
+                
+                // Add error message to response window
+                const timestamp = new Date().toLocaleTimeString();
+                const $responseWindow = $('#response-window');
+                const currentContent = $responseWindow.text();
+                const newLine = currentContent && !currentContent.endsWith('\n') ? '\n' : '';
+                $responseWindow.text(currentContent + newLine + `❌ ${timestamp} - Error starting preview: ${error}\n`);
+                $responseWindow.scrollTop($responseWindow[0].scrollHeight);
             },
             complete: function() {
-                $previewBtn.prop('disabled', false)
-                          .html('<i class="fas fa-eye"></i> Preview');
+                // Reset button state
+                $previewBtn.prop('disabled', false);
+                $previewBtn.html('<i class="fas fa-eye"></i> Preview');
             }
         });
     });
-
-    // Initialize
-    autoResizeTextarea();
 });
