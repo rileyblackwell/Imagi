@@ -1,108 +1,87 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Imagi Oasis{% endblock %}
+{% block title %}Imagi Oasis Builder{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'apps_styles.css' %}">
 <link rel="stylesheet" href="{% static 'builder/css/builder_styles.css' %}">
 {% endblock %}
 
 {% block content %}
-<body class="app-page">
-<div class="app-container">
-    <div class="container">
-        <div class="main-title-section">
-            <h1>Imagi Oasis</h1>
-            <p class="tagline">Transform your ideas into stunning web apps</p>
+<div class="builder-workspace">
+    <!-- Side Controls Panel -->
+    <div class="side-controls">
+        <div class="mode-selector">
+            <label for="mode-select">Mode</label>
+            <select id="mode-select" class="styled-select">
+                <option value="chat">Chat Mode</option>
+                <option value="build">Build Mode</option>
+            </select>
         </div>
 
-        <div class="builder-workspace">
-            <form id="builder-form" class="builder-form">
-                {% csrf_token %}
-                
-                <!-- Response Display Window -->
-                <div id="response-window" class="response-window">
-                    <!-- AI responses will be displayed here -->
-                </div>
+        <div class="file-selector">
+            <label for="file-select">Current File</label>
+            <select id="file-select" class="styled-select">
+                <option value="base.html">base.html</option>
+                <option value="index.html">index.html</option>
+                <option value="styles.css">styles.css</option>
+            </select>
+        </div>
 
-                <!-- User Input Section -->
+        <div class="model-selector">
+            <label for="model-select">AI Model</label>
+            <select id="model-select" class="styled-select">
+                <option value="gpt-4">GPT-4</option>
+                <option value="claude">Claude</option>
+            </select>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-secondary">
+                <i class="fas fa-code"></i>
+                View Code
+            </button>
+            <button class="btn btn-primary">
+                <i class="fas fa-eye"></i>
+                Preview
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="main-chat-area">
+        <div class="chat-container">
+            <!-- Welcome Message -->
+            <div class="welcome-message">
+                <div class="welcome-icon">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </div>
+                <h2>Welcome to Imagi Oasis</h2>
+                <p>Your AI-powered web development assistant. Describe your vision, and I'll help you bring it to life.</p>
+            </div>
+
+            <!-- Response Window -->
+            <div class="response-window" id="response-window">
+                <!-- Chat messages will be dynamically added here -->
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
                 <div class="input-container">
-                    <textarea 
-                        id="user-input" 
-                        name="user-input" 
-                        placeholder="let your imagination flow..."
-                        rows="1"
-                    ></textarea>
-                    <button type="button" id="submit-btn" class="btn btn-primary btn-sm">
+                    <textarea id="user-input" placeholder="Type your message here..." rows="1"></textarea>
+                    <button class="btn-send" id="submit-btn" disabled>
                         <i class="fas fa-paper-plane"></i>
                     </button>
                 </div>
-
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button type="button" id="undo-btn" class="btn btn-primary btn-lg">
-                        <i class="fas fa-undo"></i> Undo
-                    </button>
-                    <button type="button" id="preview-btn" class="btn btn-primary btn-lg">
-                        <i class="fas fa-eye"></i> Preview
-                    </button>
+                <div class="input-info">
+                    Press <kbd>Enter</kbd> to send, <kbd>Shift</kbd> + <kbd>Enter</kbd> for new line
                 </div>
-
-                <!-- Bottom Controls -->
-                <div class="bottom-controls">
-                    <div class="select-wrapper">
-                        <label for="mode-select">
-                            <span>Select Mode</span>
-                        </label>
-                        <select id="mode-select" name="mode-select" class="styled-select">
-                            <option value="chat">Chat Mode</option>
-                            <option value="build">Build Mode</option>
-                        </select>
-                    </div>
-
-                    <div class="select-wrapper">
-                        <label for="file-select">
-                            <span>Select File</span>
-                        </label>
-                        <select id="file-select" name="file-select" class="styled-select">
-                            <option value="base.html">Base Template (base.html)</option>
-                            <option value="index.html">Home Page (index.html)</option>
-                            <option value="about.html">About Page</option>
-                            <option value="contact.html">Contact Page</option>
-                            <option value="styles.css">Styles (styles.css)</option>
-                            <option value="custom">Add New Page...</option>
-                        </select>
-                    </div>
-
-                    <div class="select-wrapper">
-                        <label for="model-select">
-                            <span>Select AI Model</span>
-                        </label>
-                        <select id="model-select" name="model-select" class="styled-select">
-                            <option value="claude-3-5-sonnet-20241022">Recommended (Claude 3.5 Sonnet)</option>
-                            <option value="gpt-4o">Best for Writing (GPT-4o)</option>
-                            <option value="gpt-4o-mini">Cheapest (GPT-4o Mini)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Custom Page Input -->
-                <div id="custom-page-input" class="custom-page-section" style="display: none;">
-                    <input type="text" id="custom-page-name" placeholder="Enter page name (e.g., services.html)">
-                    <button id="add-page-btn" class="btn btn-success btn-sm">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
-</body>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
-<script src="{% static 'builder/js/oasis_builder.js' %}"></script>
+<script src="{% static 'builder/js/builder.js' %}"></script>
 {% endblock %} 
