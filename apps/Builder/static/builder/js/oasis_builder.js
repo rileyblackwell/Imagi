@@ -284,9 +284,10 @@ $(document).ready(function() {
         var $textarea = $('#user-input');
         
         if (mode === 'chat') {
-            $textarea.attr('placeholder', 'Chat with AI about your website ideas...');
+            $textarea.attr('placeholder', 'Chat about your website ideas and get guidance...');
+            $('#file-select').parent().hide();
         } else {
-            $textarea.attr('placeholder', 'let your imagination flow...');
+            $textarea.attr('placeholder', 'Describe what you want to build or modify in this file...');
             $('#file-select').parent().show();
         }
     });
