@@ -1,104 +1,150 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-dark-900 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
-          Create your account
-        </h2>
+  <div class="auth-form-container">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h2 class="text-3xl font-bold text-white mb-2">Create Account</h2>
+      <p class="text-gray-400">Join Imagi today</p>
+    </div>
+
+    <!-- Form -->
+    <form @submit.prevent="handleSubmit" class="space-y-6">
+      <!-- Username -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Username</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-user text-gray-400"></i>
+          </span>
+          <input
+            type="text"
+            v-model="form.username"
+            required
+            placeholder="Username"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+        </label>
+        <p v-if="errors.username" class="mt-1 text-sm text-red-500">{{ errors.username }}</p>
       </div>
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <label for="name" class="sr-only">Full name</label>
-            <input
-              id="name"
-              v-model="name"
-              name="name"
-              type="text"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-dark-700 placeholder-gray-500 text-white rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm bg-dark-800"
-              placeholder="Full name"
-            />
-          </div>
-          <div>
-            <label for="email" class="sr-only">Email address</label>
-            <input
-              id="email"
-              v-model="email"
-              name="email"
-              type="email"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-dark-700 placeholder-gray-500 text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm bg-dark-800"
-              placeholder="Email address"
-            />
-          </div>
-          <div>
-            <label for="password" class="sr-only">Password</label>
-            <input
-              id="password"
-              v-model="password"
-              name="password"
-              type="password"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-dark-700 placeholder-gray-500 text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm bg-dark-800"
-              placeholder="Password"
-            />
-          </div>
-          <div>
-            <label for="confirmPassword" class="sr-only">Confirm password</label>
-            <input
-              id="confirmPassword"
-              v-model="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-dark-700 placeholder-gray-500 text-white rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm bg-dark-800"
-              placeholder="Confirm password"
-            />
-          </div>
-        </div>
 
-        <div>
-          <button
-            type="submit"
-            :disabled="isLoading || !isValid"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+      <!-- Email -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Email</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-envelope text-gray-400"></i>
+          </span>
+          <input
+            type="email"
+            v-model="form.email"
+            required
+            placeholder="Email"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           >
-            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-              <i class="fas fa-user-plus text-primary-500 group-hover:text-primary-400" aria-hidden="true"></i>
-            </span>
-            {{ isLoading ? 'Creating account...' : 'Create account' }}
-          </button>
-        </div>
-      </form>
+        </label>
+        <p v-if="errors.email" class="mt-1 text-sm text-red-500">{{ errors.email }}</p>
+      </div>
 
-      <div class="mt-6">
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-dark-700"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-dark-900 text-gray-300">
-              Already have an account?
-            </span>
-          </div>
-        </div>
-
-        <div class="mt-6">
-          <router-link
-            to="/auth/login"
-            class="w-full flex justify-center py-2 px-4 border border-dark-700 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-dark-800 hover:bg-dark-700"
+      <!-- Password -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Password</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-lock text-gray-400"></i>
+          </span>
+          <input
+            type="password"
+            v-model="form.password"
+            required
+            placeholder="Password"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           >
-            Sign in instead
-          </router-link>
+        </label>
+        <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Confirm Password</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-lock text-gray-400"></i>
+          </span>
+          <input
+            type="password"
+            v-model="form.confirmPassword"
+            required
+            placeholder="Confirm Password"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+        </label>
+        <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-500">{{ errors.confirmPassword }}</p>
+      </div>
+
+      <!-- Terms Agreement -->
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          <input
+            type="checkbox"
+            v-model="form.agreeToTerms"
+            required
+            class="w-4 h-4 border border-dark-600 rounded bg-dark-800 text-primary-600 focus:ring-primary-500"
+          >
         </div>
+        <div class="ml-3">
+          <label class="text-sm text-gray-400">
+            I agree to the 
+            <router-link to="/terms" class="text-primary-400 hover:text-primary-300">Terms of Service</router-link>
+            and
+            <router-link to="/privacy" class="text-primary-400 hover:text-primary-300">Privacy Policy</router-link>
+          </label>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        :disabled="isLoading || !form.agreeToTerms"
+        class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span v-if="isLoading">
+          <i class="fas fa-circle-notch fa-spin mr-2"></i>
+          Creating account...
+        </span>
+        <span v-else>Create Account</span>
+      </button>
+
+      <!-- Error Message -->
+      <p v-if="errors.general" class="text-center text-sm text-red-500">
+        {{ errors.general }}
+      </p>
+    </form>
+
+    <!-- Links -->
+    <div class="mt-8 space-y-4">
+      <p class="text-center text-gray-400">
+        Already have an account? 
+        <router-link to="/auth/login" class="text-primary-400 hover:text-primary-300 font-medium">
+          Sign in
+        </router-link>
+      </p>
+      <div class="flex flex-col items-center space-y-2">
+        <div class="w-full border-t border-dark-700"></div>
+        <router-link to="/" class="text-gray-400 hover:text-gray-300">
+          Back to Home
+        </router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -107,52 +153,87 @@ export default {
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
-
-    const name = ref('')
-    const email = ref('')
-    const password = ref('')
-    const confirmPassword = ref('')
+    
+    const form = ref({
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      agreeToTerms: false
+    })
+    
+    const errors = ref({
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      general: ''
+    })
+    
     const isLoading = ref(false)
 
-    const isValid = computed(() => {
-      return (
-        name.value.length > 0 &&
-        email.value.length > 0 &&
-        password.value.length >= 8 &&
-        password.value === confirmPassword.value
-      )
-    })
+    const validateForm = () => {
+      const newErrors = {}
 
-    async function handleSubmit() {
-      if (!isValid.value) return
+      if (form.value.password !== form.value.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match'
+      }
 
-      isLoading.value = true
+      if (form.value.password.length < 8) {
+        newErrors.password = 'Password must be at least 8 characters long'
+      }
+
+      errors.value = { ...errors.value, ...newErrors }
+      return Object.keys(newErrors).length === 0
+    }
+
+    const handleSubmit = async () => {
+      // Reset errors
+      errors.value = {
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        general: ''
+      }
+
+      if (!validateForm()) {
+        return
+      }
+
       try {
-        const success = await authStore.register({
-          name: name.value,
-          email: email.value,
-          password: password.value
+        isLoading.value = true
+        await authStore.register({
+          username: form.value.username,
+          email: form.value.email,
+          password: form.value.password
         })
-
-        if (success) {
-          router.push('/builder')
-        }
+        
+        // Redirect to dashboard after successful registration
+        await router.push('/dashboard')
       } catch (error) {
-        console.error('Registration error:', error)
+        if (error.response?.data?.errors) {
+          errors.value = error.response.data.errors
+        } else {
+          errors.value.general = 'An error occurred during registration. Please try again.'
+        }
       } finally {
         isLoading.value = false
       }
     }
 
     return {
-      name,
-      email,
-      password,
-      confirmPassword,
+      form,
+      errors,
       isLoading,
-      isValid,
       handleSubmit
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.auth-form-container {
+  @apply w-full max-w-md mx-auto p-8 bg-dark-900 border border-dark-700 rounded-2xl;
+}
+</style> 

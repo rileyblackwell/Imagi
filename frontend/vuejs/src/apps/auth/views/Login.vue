@@ -1,97 +1,88 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-dark-900 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-white">
-          Sign in to your account
-        </h2>
+  <div class="auth-form-container">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h2 class="text-3xl font-bold text-white mb-2">Welcome back!</h2>
+      <p class="text-gray-400">Sign in to continue to Imagi</p>
+    </div>
+
+    <!-- Form -->
+    <form @submit.prevent="handleSubmit" class="space-y-6">
+      <!-- Username -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Username</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-user text-gray-400"></i>
+          </span>
+          <input
+            type="text"
+            v-model="form.username"
+            required
+            placeholder="Username"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+          >
+        </label>
+        <p v-if="errors.username" class="mt-1 text-sm text-red-500">{{ errors.username }}</p>
       </div>
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <label for="email" class="sr-only">Email address</label>
-            <input
-              id="email"
-              v-model="email"
-              name="email"
-              type="email"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-dark-700 placeholder-gray-500 text-white rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm bg-dark-800"
-              placeholder="Email address"
-            />
-          </div>
-          <div>
-            <label for="password" class="sr-only">Password</label>
-            <input
-              id="password"
-              v-model="password"
-              name="password"
-              type="password"
-              required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-dark-700 placeholder-gray-500 text-white rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm bg-dark-800"
-              placeholder="Password"
-            />
-          </div>
-        </div>
 
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              v-model="rememberMe"
-              class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-dark-700 rounded bg-dark-800"
-            />
-            <label for="remember-me" class="ml-2 block text-sm text-gray-300">
-              Remember me
-            </label>
-          </div>
-
-          <div class="text-sm">
-            <router-link
-              to="/auth/forgot-password"
-              class="font-medium text-primary-500 hover:text-primary-400"
-            >
-              Forgot your password?
-            </router-link>
-          </div>
-        </div>
-
-        <div>
-          <button
-            type="submit"
-            :disabled="isLoading"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+      <!-- Password -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Password</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-lock text-gray-400"></i>
+          </span>
+          <input
+            type="password"
+            v-model="form.password"
+            required
+            placeholder="Password"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
           >
-            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-              <i class="fas fa-lock text-primary-500 group-hover:text-primary-400" aria-hidden="true"></i>
-            </span>
-            {{ isLoading ? 'Signing in...' : 'Sign in' }}
-          </button>
-        </div>
-      </form>
+        </label>
+        <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
+      </div>
 
-      <div class="mt-6">
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-dark-700"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-dark-900 text-gray-300">
-              New to Imagi?
-            </span>
-          </div>
-        </div>
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        :disabled="isLoading"
+        class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span v-if="isLoading">
+          <i class="fas fa-circle-notch fa-spin mr-2"></i>
+          Signing in...
+        </span>
+        <span v-else>Sign In</span>
+      </button>
 
-        <div class="mt-6">
-          <router-link
-            to="/auth/register"
-            class="w-full flex justify-center py-2 px-4 border border-dark-700 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-dark-800 hover:bg-dark-700"
-          >
-            Create an account
-          </router-link>
-        </div>
+      <!-- Error Message -->
+      <p v-if="errors.general" class="text-center text-sm text-red-500">
+        {{ errors.general }}
+      </p>
+    </form>
+
+    <!-- Links -->
+    <div class="mt-8 space-y-4">
+      <p class="text-center text-gray-400">
+        New to Imagi? 
+        <router-link to="/auth/register" class="text-primary-400 hover:text-primary-300 font-medium">
+          Create an account
+        </router-link>
+      </p>
+      <div class="flex flex-col items-center space-y-2">
+        <div class="w-full border-t border-dark-700"></div>
+        <router-link to="/auth/forgot-password" class="text-gray-400 hover:text-gray-300">
+          Forgot your password?
+        </router-link>
+        <router-link to="/" class="text-gray-400 hover:text-gray-300">
+          Back to Home
+        </router-link>
       </div>
     </div>
   </div>
@@ -108,39 +99,58 @@ export default {
     const router = useRouter()
     const route = useRoute()
     const authStore = useAuthStore()
-
-    const email = ref('')
-    const password = ref('')
-    const rememberMe = ref(false)
+    
+    const form = ref({
+      username: '',
+      password: ''
+    })
+    
+    const errors = ref({
+      username: '',
+      password: '',
+      general: ''
+    })
+    
     const isLoading = ref(false)
 
-    async function handleSubmit() {
-      isLoading.value = true
-      try {
-        const success = await authStore.login({
-          email: email.value,
-          password: password.value,
-          remember: rememberMe.value
-        })
+    const handleSubmit = async () => {
+      // Reset errors
+      errors.value = {
+        username: '',
+        password: '',
+        general: ''
+      }
 
-        if (success) {
-          const redirectPath = route.query.redirect || '/builder'
-          router.push(redirectPath)
-        }
+      try {
+        isLoading.value = true
+        await authStore.login(form.value)
+        
+        // Redirect to the intended page or dashboard
+        const redirectPath = route.query.redirect || '/dashboard'
+        await router.push(redirectPath)
       } catch (error) {
-        console.error('Login error:', error)
+        if (error.response?.data?.errors) {
+          errors.value = error.response.data.errors
+        } else {
+          errors.value.general = 'An error occurred during sign in. Please try again.'
+        }
       } finally {
         isLoading.value = false
       }
     }
 
     return {
-      email,
-      password,
-      rememberMe,
+      form,
+      errors,
       isLoading,
       handleSubmit
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.auth-form-container {
+  @apply w-full max-w-md mx-auto p-8 bg-dark-900 border border-dark-700 rounded-2xl;
+}
+</style> 
