@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <router-link to="/" class="flex items-center gap-3">
-            <img src="@/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
+            <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
             <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
               Imagi
             </span>

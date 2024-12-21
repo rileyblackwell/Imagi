@@ -1,124 +1,246 @@
 <template>
-  <div class="relative bg-dark-900">
+  <base-layout>
     <!-- Hero Section -->
-    <div class="relative overflow-hidden">
-      <div class="max-w-7xl mx-auto">
-        <div class="relative z-10 pb-8 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-          <main class="mt-24 mx-auto max-w-7xl px-4 sm:mt-32 sm:px-6 md:mt-36 lg:mt-40 lg:px-8 xl:mt-48">
-            <div class="sm:text-center lg:text-left">
-              <h1 class="text-4xl tracking-tight font-extrabold text-gray-100 sm:text-5xl md:text-6xl">
-                <span class="block">Build web apps with</span>
-                <span class="block text-primary-500">natural language</span>
-              </h1>
-              <p class="mt-3 text-base text-gray-300 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                Transform your ideas into reality with Imagi. Our AI-powered platform helps you create beautiful, functional web applications using simple natural language prompts.
-              </p>
-              <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-                <div class="rounded-md shadow">
-                  <router-link
-                    to="/auth/register"
-                    class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 md:py-4 md:text-lg md:px-10"
-                  >
-                    Get started
-                  </router-link>
+    <template #hero>
+      <div class="absolute inset-0 bg-gradient-radial from-primary-500/10 via-transparent to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="text-center max-w-3xl mx-auto">
+          <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight">
+            <span class="block text-white">Transform Your Ideas Into</span>
+            <span class="block bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+              Web Applications
+            </span>
+          </h1>
+          <p class="mt-6 text-xl text-gray-300">
+            Create powerful, professional web applications using natural language with Imagi's AI technology
+          </p>
+          <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <router-link
+              to="/auth/register"
+              class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5"
+            >
+              <span>Start Building</span>
+              <i class="fas fa-arrow-right ml-2"></i>
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Main Content -->
+    <template #default>
+      <!-- Why Choose Imagi Section -->
+      <section class="py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center">
+            <h2 class="text-3xl font-bold text-white">Why Choose Imagi</h2>
+            <p class="mt-4 text-xl text-gray-300 max-w-2xl mx-auto">
+              Transform your ideas into reality with powerful AI-driven web development
+            </p>
+          </div>
+
+          <div class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+            <!-- Natural Language Input -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-keyboard text-2xl text-primary-400"></i>
                 </div>
-                <div class="mt-3 sm:mt-0 sm:ml-3">
-                  <a
-                    href="#features"
-                    class="w-full flex items-center justify-center px-8 py-3 border border-primary-500 text-base font-medium rounded-md text-primary-500 bg-dark-800 hover:bg-dark-700 md:py-4 md:text-lg md:px-10"
-                  >
-                    Learn more
-                  </a>
-                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Natural Language Input</h3>
+                <p class="text-gray-300">Describe your vision in plain English, and watch as it transforms into reality.</p>
               </div>
             </div>
-          </main>
+
+            <!-- Rapid Development -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-bolt text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Rapid Development</h3>
+                <p class="text-gray-300">Build websites and applications in minutes, not months.</p>
+              </div>
+            </div>
+
+            <!-- Professional Code -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-code text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Professional Code</h3>
+                <p class="text-gray-300">Generate clean, maintainable code that follows industry best practices.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works Section -->
+      <section class="py-24 bg-dark-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center">
+            <h2 class="text-3xl font-bold text-white">How It Works</h2>
+          </div>
+
+          <div class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="relative group">
+              <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-pencil-alt text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">1. Describe Your Vision</h3>
+                <p class="text-gray-300">Tell us what you want to build using natural language. Describe your features, design preferences, and requirements.</p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative group">
+              <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-magic text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">2. AI Generation</h3>
+                <p class="text-gray-300">Our advanced AI analyzes your description and generates all necessary code, from frontend interfaces to backend logic.</p>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="relative group">
+              <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-sliders-h text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">3. Customize & Refine</h3>
+                <p class="text-gray-300">Review the generated application, make adjustments, and refine details using natural language commands.</p>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="relative group">
+              <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-rocket text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">4. Launch & Scale</h3>
+                <p class="text-gray-300">Deploy your application with confidence, knowing it's built with scalable, secure, and maintainable code.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- What You Can Build Section -->
+      <section class="py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center">
+            <h2 class="text-3xl font-bold text-white">What You Can Build</h2>
+          </div>
+
+          <div class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2">
+            <!-- E-commerce Sites -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-store text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">E-commerce Sites</h3>
+                <p class="text-gray-300">Create full-featured online stores with product catalogs, shopping carts, and secure payment processing.</p>
+              </div>
+            </div>
+
+            <!-- Business Applications -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-briefcase text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Business Applications</h3>
+                <p class="text-gray-300">Build custom CRM systems, inventory management tools, and other business-specific applications.</p>
+              </div>
+            </div>
+
+            <!-- Community Platforms -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-users text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Community Platforms</h3>
+                <p class="text-gray-300">Develop social networks, forums, and community-driven websites with user management and content sharing.</p>
+              </div>
+            </div>
+
+            <!-- Analytics Dashboards -->
+            <div class="relative group">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <i class="fas fa-chart-line text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Analytics Dashboards</h3>
+                <p class="text-gray-300">Create data visualization tools and interactive dashboards for business intelligence and reporting.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </template>
+
+    <!-- Footer Content -->
+    <template #footer>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-4">About Imagi</h3>
+          <p class="text-gray-400">Empowering developers and businesses to build amazing web applications through AI-driven development.</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-4">Products</h3>
+          <ul class="space-y-2">
+            <li><router-link to="/builder" class="text-gray-400 hover:text-white">Imagi Oasis</router-link></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-4">Resources</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Documentation</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">API Reference</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-4">Legal</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Terms of Service</a></li>
+          </ul>
         </div>
       </div>
-      <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-        <div class="h-56 w-full bg-gradient-to-r from-primary-500 to-primary-600 opacity-75 sm:h-72 md:h-96 lg:w-full lg:h-full"></div>
+      <div class="mt-8 pt-8 border-t border-dark-700 text-center text-gray-400">
+        <p>&copy; {{ new Date().getFullYear() }} Imagi. All rights reserved.</p>
       </div>
-    </div>
-
-    <!-- Features Section -->
-    <div id="features" class="relative py-24 bg-dark-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="lg:text-center">
-          <h2 class="text-base text-primary-500 font-semibold tracking-wide uppercase">Features</h2>
-          <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-100 sm:text-4xl">
-            Everything you need to build amazing web apps
-          </p>
-          <p class="mt-4 max-w-2xl text-xl text-gray-300 lg:mx-auto">
-            Our platform provides all the tools and features you need to bring your web application ideas to life.
-          </p>
-        </div>
-
-        <div class="mt-20">
-          <dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-            <div class="relative">
-              <dt>
-                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
-                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <p class="ml-16 text-lg leading-6 font-medium text-gray-100">Natural Language Interface</p>
-              </dt>
-              <dd class="mt-2 ml-16 text-base text-gray-300">
-                Build web applications by describing what you want in plain English. Our AI understands your intent and generates the code.
-              </dd>
-            </div>
-
-            <div class="relative">
-              <dt>
-                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
-                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                  </svg>
-                </div>
-                <p class="ml-16 text-lg leading-6 font-medium text-gray-100">Modern UI Components</p>
-              </dt>
-              <dd class="mt-2 ml-16 text-base text-gray-300">
-                Access a library of beautiful, responsive UI components that you can customize to match your brand.
-              </dd>
-            </div>
-
-            <div class="relative">
-              <dt>
-                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
-                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                  </svg>
-                </div>
-                <p class="ml-16 text-lg leading-6 font-medium text-gray-100">Full-Stack Development</p>
-              </dt>
-              <dd class="mt-2 ml-16 text-base text-gray-300">
-                Generate both frontend and backend code, complete with database models, API endpoints, and business logic.
-              </dd>
-            </div>
-
-            <div class="relative">
-              <dt>
-                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
-                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <p class="ml-16 text-lg leading-6 font-medium text-gray-100">Security & Best Practices</p>
-              </dt>
-              <dd class="mt-2 ml-16 text-base text-gray-300">
-                Your applications are built with security in mind, following industry best practices and coding standards.
-              </dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-    </div>
-  </div>
+    </template>
+  </base-layout>
 </template>
 
 <script>
+import { computed } from 'vue'
+import BaseLayout from '@/shared/layouts/BaseLayout.vue'
+
 export default {
-  name: 'Home'
+  name: 'Home',
+  components: {
+    BaseLayout
+  }
 }
-</script> 
+</script>
+
+<style>
+.shadow-glow {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 255, 204, 0.1);
+}
+
+.bg-gradient-radial {
+  background: radial-gradient(circle at top right, var(--tw-gradient-from), var(--tw-gradient-to));
+}
+</style> 

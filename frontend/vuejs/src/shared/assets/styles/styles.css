@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --header-height: 4rem;
+  }
+
+  body {
+    @apply bg-gray-900 text-white;
+  }
+}
+
+@layer utilities {
+  .drop-shadow-glow {
+    filter: drop-shadow(0 0 12px rgba(0, 255, 204, 0.4));
+  }
+
+  .drop-shadow-glow-text {
+    text-shadow: 0 0 10px rgba(255, 229, 180, 0.3);
+  }
+
+  /* Animations */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+      filter: drop-shadow(0 0 24px rgba(0, 255, 204, 0.4));
+    }
+    50% {
+      transform: translateY(-10px) scale(1.02);
+      filter: drop-shadow(0 0 32px rgba(0, 255, 204, 0.6));
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .delay-600 {
+    animation-delay: 600ms;
+  }
+
+  /* Transitions */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+} 

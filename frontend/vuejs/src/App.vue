@@ -26,10 +26,12 @@
             <!-- Brand -->
             <div class="space-y-4">
               <div class="flex items-center gap-3">
-                <img src="@/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
-                <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
-                  Imagi
-                </span>
+                <router-link to="/" class="flex items-center gap-3">
+                  <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
+                  <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
+                    Imagi
+                  </span>
+                </router-link>
               </div>
               <p class="text-dark-400 text-sm">
                 Build amazing web applications with natural language

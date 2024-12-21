@@ -2,11 +2,11 @@
   <div class="min-h-screen flex flex-col">
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 z-50 bg-dark-950/80 backdrop-blur-lg border-b border-dark-800">
-      <div class="container mx-auto px-4">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <!-- Logo -->
           <router-link to="/" class="flex items-center gap-3">
-            <img src="@/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
+            <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-8 object-contain" />
             <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
               Imagi
             </span>
@@ -18,7 +18,7 @@
               v-for="link in navigationLinks"
               :key="link.to"
               :to="link.to"
-              class="text-dark-400 hover:text-primary-400 transition-colors"
+              class="text-gray-300 hover:text-primary-400 transition-colors"
             >
               {{ link.text }}
             </router-link>
@@ -29,13 +29,13 @@
             <template v-if="isAuthenticated">
               <router-link 
                 to="/dashboard" 
-                class="text-dark-400 hover:text-primary-400 transition-colors"
+                class="text-gray-300 hover:text-primary-400 transition-colors"
               >
                 Dashboard
               </router-link>
               <button 
                 @click="handleLogout" 
-                class="text-dark-400 hover:text-primary-400 transition-colors"
+                class="text-gray-300 hover:text-primary-400 transition-colors"
               >
                 Logout
               </button>
@@ -43,7 +43,7 @@
             <template v-else>
               <router-link 
                 to="/auth/login"
-                class="text-dark-400 hover:text-primary-400 transition-colors"
+                class="text-gray-300 hover:text-primary-400 transition-colors"
               >
                 Sign In
               </router-link>
@@ -60,7 +60,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-grow pt-16">
+    <main class="min-h-screen pt-16">
       <router-view v-slot="{ Component }">
         <transition 
           name="page" 
@@ -83,7 +83,7 @@
             <!-- Brand -->
             <div class="space-y-4">
               <div class="flex items-center gap-3">
-                <img src="@/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
+                <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
                 <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
                   Imagi
                 </span>

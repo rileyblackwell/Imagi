@@ -1,0 +1,30 @@
+/* Header Component Styles */
+.header-base {
+  @apply fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-800;
+}
+
+.header-container {
+  @apply w-full max-w-7xl mx-auto px-6 h-[var(--header-height)] flex items-center justify-between;
+}
+
+.header-brand {
+  @apply flex items-center gap-2 no-underline;
+}
+
+.header-logo {
+  @apply w-10 h-10 flex items-center justify-center;
+}
+
+.header-logo-img {
+  @apply w-full h-full object-contain filter drop-shadow-glow;
+}
+
+.header-brand-text {
+  @apply text-2xl font-extrabold tracking-wider text-amber-200 ml-3 drop-shadow-glow-text;
+}
+
+.login-button {
+  @apply inline-flex items-center gap-2 px-4 py-2 text-white font-medium 
+         bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg 
+         hover:opacity-90 hover:-translate-y-0.5 transition-all;
+}
