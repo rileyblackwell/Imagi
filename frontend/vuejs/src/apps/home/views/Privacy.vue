@@ -1,249 +1,180 @@
 <template>
-  <div class="privacy-page">
+  <base-layout>
     <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="hero-container">
-        <h1 class="hero-title">Privacy Policy</h1>
-        <p class="hero-description">
-          Your privacy is important to us
-        </p>
+    <template #hero>
+      <div class="absolute inset-0 bg-gradient-radial from-primary-500/10 via-transparent to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="text-center max-w-3xl mx-auto">
+          <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-white">
+            Privacy Policy
+          </h1>
+          <p class="mt-6 text-xl text-gray-300">
+            Your privacy is important to us
+          </p>
+        </div>
       </div>
-    </section>
+    </template>
 
-    <!-- Content Section -->
-    <section class="content-section">
-      <div class="section-container">
-        <div class="policy-content">
-          <!-- Information Collection -->
-          <section class="policy-section">
-            <h2 class="section-header">Information We Collect</h2>
-            <p>We collect the following types of information to provide and improve our services:</p>
-            <ul class="policy-list">
-              <li>Account Information: Your name, email address, password, and other details provided during account registration.</li>
-              <li>Profile Information: Details you provide to customize your user profile.</li>
-              <li>Payment Information: Billing details and transaction data processed securely via third-party payment providers.</li>
-              <li>Usage Data: Information about your interactions with our services.</li>
-            </ul>
+    <!-- Main Content -->
+    <template #default>
+      <div class="py-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Information We Collect -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Information We Collect</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">We collect the following types of information to provide and improve our services:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Account Information: Your name, email address, password, and other details provided during account registration.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Profile Information: Details you provide to customize your user profile.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Payment Information: Billing details and transaction data processed securely via third-party payment providers.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Usage Data: Information about your interactions with our services.</span>
+                </li>
+              </ul>
+            </div>
           </section>
 
-          <!-- Information Usage -->
-          <section class="policy-section">
-            <h2 class="section-header">How We Use Your Information</h2>
-            <p>We use the collected information for the following purposes:</p>
-            <ul class="policy-list">
-              <li>To provide, maintain, and improve our services</li>
-              <li>To process payments securely and efficiently</li>
-              <li>To send technical notices and support messages</li>
-              <li>To analyze usage trends and enhance user experience</li>
-            </ul>
+          <!-- How We Use Your Information -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">How We Use Your Information</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">We use the collected information for the following purposes:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>To provide, maintain, and improve our services</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>To process payments securely and efficiently</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>To send technical notices and support messages</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>To analyze usage trends and enhance user experience</span>
+                </li>
+              </ul>
+            </div>
           </section>
 
           <!-- Information Sharing -->
-          <section class="policy-section">
-            <h2 class="section-header">Information Sharing</h2>
-            <p>Your personal information is not sold. However, we may share your data in the following situations:</p>
-            <ul class="policy-list">
-              <li><strong>Service Providers:</strong> Trusted third-party providers that support our operations.</li>
-              <li><strong>Legal Obligations:</strong> To comply with laws, regulations, or legal requests.</li>
-              <li><strong>Professional Advisors:</strong> Consultants, auditors, or legal counsel for business purposes.</li>
-              <li><strong>Business Transfers:</strong> In the event of a merger, sale, or acquisition.</li>
-            </ul>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Information Sharing</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">Your personal information is not sold. However, we may share your data in the following situations:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Service Providers:</strong> Trusted third-party providers that support our operations, such as hosting, analytics, and payment processing.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Legal Obligations:</strong> To comply with laws, regulations, or legal requests, including responses to subpoenas or court orders.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Professional Advisors:</strong> Consultants, auditors, or legal counsel for business or compliance purposes.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Business Transfers:</strong> In the event of a merger, sale, or acquisition, your data may be transferred as part of the transaction.</span>
+                </li>
+              </ul>
+            </div>
           </section>
 
           <!-- Data Security -->
-          <section class="policy-section">
-            <h2 class="section-header">Data Security</h2>
-            <p>We prioritize the security of your personal information by implementing industry-standard measures:</p>
-            <ul class="policy-list">
-              <li>Encryption of sensitive data during transmission and storage</li>
-              <li>Secure server infrastructure with access controls</li>
-              <li>Regular security audits and monitoring</li>
-            </ul>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Data Security</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">We prioritize the security of your personal information by implementing industry-standard measures, including:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Encryption of sensitive data during transmission and storage.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Secure server infrastructure with access controls.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Regular security audits and monitoring for vulnerabilities.</span>
+                </li>
+              </ul>
+              <p class="text-gray-300 mt-4">While we strive to protect your information, no system is 100% secure, and we cannot guarantee absolute security.</p>
+            </div>
           </section>
 
           <!-- Your Rights -->
-          <section class="policy-section">
-            <h2 class="section-header">Your Rights</h2>
-            <p>You have the following rights regarding your personal data:</p>
-            <ul class="policy-list">
-              <li><strong>Access:</strong> Request a copy of your personal data</li>
-              <li><strong>Correction:</strong> Update or correct inaccuracies</li>
-              <li><strong>Deletion:</strong> Request deletion of your data</li>
-              <li><strong>Data Portability:</strong> Obtain your data in a portable format</li>
-            </ul>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Your Rights</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">Depending on your jurisdiction (e.g., GDPR, CCPA), you may have the following rights:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Access:</strong> Request a copy of the personal data we hold about you.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Correction:</strong> Update or correct inaccuracies in your personal data.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Deletion:</strong> Request deletion of your data, subject to certain legal obligations.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Data Portability:</strong> Obtain your data in a portable format.</span>
+                </li>
+              </ul>
+            </div>
           </section>
 
-          <!-- Contact -->
-          <section class="policy-section">
-            <h2 class="section-header">Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, please contact us:</p>
-            <div class="contact-button">
-              <router-link to="/contact" class="btn btn-primary">
-                Contact Us
-                <i class="fas fa-arrow-right"></i>
-              </router-link>
+          <!-- Contact Information -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Contact Us</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300">If you have any questions about this Privacy Policy or our data practices, please contact us:</p>
+              <div class="mt-4">
+                <router-link to="/contact" class="text-primary-400 hover:text-primary-300">Contact Form →</router-link>
+              </div>
             </div>
           </section>
         </div>
       </div>
-    </section>
-  </div>
+    </template>
+  </base-layout>
 </template>
 
-<style scoped>
-.privacy-page {
-  background: var(--bg-primary);
-}
+<script>
+import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 
-/* Hero Section */
-.hero-section {
-  padding: 120px 0 80px;
-  background: radial-gradient(
-    circle at top right,
-    rgba(0, 255, 204, 0.15),
-    transparent 50%
-  );
-  text-align: center;
-}
-
-.hero-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.hero-title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 1.5rem;
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.hero-description {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* Content Section */
-.content-section {
-  padding: 80px 0;
-}
-
-.section-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.policy-content {
-  background: var(--bg-primary);
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  padding: 3rem;
-}
-
-.policy-section {
-  margin-bottom: 3rem;
-}
-
-.policy-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-header {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
-}
-
-.policy-section p {
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
-}
-
-.policy-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1.5rem;
-}
-
-.policy-list li {
-  position: relative;
-  padding-left: 1.5rem;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-.policy-list li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: var(--primary-color);
-}
-
-.policy-list li strong {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.contact-button {
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1.125rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: var(--primary-gradient);
-  color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.5rem;
+export default {
+  name: 'Privacy',
+  components: {
+    BaseLayout
   }
+}
+</script>
 
-  .hero-description {
-    font-size: 1.125rem;
-  }
-
-  .policy-content {
-    padding: 2rem;
-  }
-
-  .section-header {
-    font-size: 1.75rem;
-  }
-
-  .policy-section p,
-  .policy-list li {
-    font-size: 1rem;
-  }
+<style>
+.bg-gradient-radial {
+  background: radial-gradient(circle at top right, var(--tw-gradient-from), var(--tw-gradient-to));
 }
 </style> 

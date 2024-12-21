@@ -1,267 +1,196 @@
 <template>
-  <div class="terms-page">
+  <base-layout>
     <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="hero-container">
-        <h1 class="hero-title">Terms of Service</h1>
-        <p class="hero-description">
-          Please read these terms carefully before using our services
-        </p>
+    <template #hero>
+      <div class="absolute inset-0 bg-gradient-radial from-primary-500/10 via-transparent to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="text-center max-w-3xl mx-auto">
+          <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-white">
+            Terms of Service
+          </h1>
+          <p class="mt-6 text-xl text-gray-300">
+            Understanding our service agreement
+          </p>
+        </div>
       </div>
-    </section>
+    </template>
 
-    <!-- Content Section -->
-    <section class="content-section">
-      <div class="section-container">
-        <div class="policy-content">
-          <!-- Agreement -->
-          <section class="policy-section">
-            <h2 class="section-header">Agreement to Terms</h2>
-            <p>By accessing or using Imagi's services, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using our services.</p>
+    <!-- Main Content -->
+    <template #default>
+      <div class="py-24">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Acceptance of Terms -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Acceptance of Terms</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">By accessing or using Imagi's services, including our AI-powered website builder ("Imagi Oasis"), you agree to be bound by these Terms of Service.</p>
+              <p class="text-gray-300">These Terms constitute a legally binding agreement between you and Imagi ("we," "us," or "our").</p>
+            </div>
           </section>
 
-          <!-- Services -->
-          <section class="policy-section">
-            <h2 class="section-header">Our Services</h2>
-            <p>Imagi provides AI-powered web development services, including but not limited to:</p>
-            <ul class="policy-list">
-              <li>Natural language to code generation</li>
-              <li>Web application development tools</li>
-              <li>Project management features</li>
-              <li>Hosting and deployment services</li>
-            </ul>
+          <!-- Service Description -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Service Description</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">Imagi provides an AI-powered platform for generating code and websites using natural language input. Our services include:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Website creation tools</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Hosting services</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Collaboration features</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Technical support</span>
+                </li>
+              </ul>
+            </div>
           </section>
 
           <!-- User Responsibilities -->
-          <section class="policy-section">
-            <h2 class="section-header">User Responsibilities</h2>
-            <p>As a user of our services, you agree to:</p>
-            <ul class="policy-list">
-              <li>Provide accurate and complete information</li>
-              <li>Maintain the security of your account credentials</li>
-              <li>Use our services in compliance with applicable laws</li>
-              <li>Not engage in any unauthorized or harmful activities</li>
-            </ul>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">User Responsibilities</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">By using our services, you agree to:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Maintain the confidentiality of your account credentials and notify us immediately of any unauthorized access.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Provide accurate, current, and complete information during registration and use of the services.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Comply with all applicable laws, regulations, and these Terms when using our platform.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Refrain from using Imagi to create or distribute content that is illegal, harmful, or violates intellectual property rights.</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- Payment Terms -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Payment Terms</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Non-Refundable Payments:</strong> All payments made for services or subscriptions are non-refundable unless required by law.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Subscription Fees:</strong> Recurring subscription fees will be charged automatically at the beginning of each billing cycle.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Price Changes:</strong> We reserve the right to change prices for our services. Any changes will be communicated to existing subscribers with reasonable notice.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span><strong>Payment Methods:</strong> You must provide accurate payment information and ensure that your payment method remains valid.</span>
+                </li>
+              </ul>
+            </div>
           </section>
 
           <!-- Intellectual Property -->
-          <section class="policy-section">
-            <h2 class="section-header">Intellectual Property</h2>
-            <p>Users retain ownership of their content while granting Imagi necessary licenses to:</p>
-            <ul class="policy-list">
-              <li>Host and display your content</li>
-              <li>Improve our AI models and services</li>
-              <li>Provide features and functionality</li>
-            </ul>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Intellectual Property</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">All content, features, and materials available through Imagi, including but not limited to text, graphics, code, designs, logos, and software, are the intellectual property of Imagi or its licensors. They are protected by copyright, trademark, and other intellectual property laws.</p>
+              <p class="text-gray-300">You may not copy, distribute, modify, or create derivative works from any of our content without prior written consent from Imagi.</p>
+            </div>
           </section>
 
-          <!-- Payments -->
-          <section class="policy-section">
-            <h2 class="section-header">Payments and Credits</h2>
-            <p>Our payment terms include:</p>
-            <ul class="policy-list">
-              <li>Credit-based system for using AI services</li>
-              <li>Secure payment processing through trusted providers</li>
-              <li>No refunds for used credits or services</li>
-              <li>Automatic renewal of subscription plans</li>
-            </ul>
+          <!-- User-Generated Content -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">User-Generated Content</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">By using Imagi's services to generate or upload content, you grant us a non-exclusive, worldwide, royalty-free license to use, modify, and display such content solely for the purpose of providing our services.</p>
+              <p class="text-gray-300">You represent and warrant that you have the rights to upload or create content using our platform and that such content does not violate any applicable laws or third-party rights.</p>
+            </div>
           </section>
 
           <!-- Limitation of Liability -->
-          <section class="policy-section">
-            <h2 class="section-header">Limitation of Liability</h2>
-            <p>Imagi provides services "as is" and disclaims all warranties. We are not liable for:</p>
-            <ul class="policy-list">
-              <li>Service interruptions or downtime</li>
-              <li>Data loss or security breaches</li>
-              <li>Generated code quality or performance</li>
-              <li>Third-party services or integrations</li>
-            </ul>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Limitation of Liability</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-4">To the fullest extent permitted by law, Imagi shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation loss of profits, data, use, goodwill, or other intangible losses, arising from:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Your use of or inability to use the services.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Any unauthorized access to or use of our servers and personal information.</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Any bugs, viruses, or other harmful components transmitted through the services.</span>
+                </li>
+              </ul>
+              <p class="text-gray-300 mt-4">Our total liability for any claim relating to the services shall not exceed the amount you paid to us in the 12 months preceding the claim.</p>
+            </div>
           </section>
 
-          <!-- Termination -->
-          <section class="policy-section">
-            <h2 class="section-header">Account Termination</h2>
-            <p>We reserve the right to terminate or suspend accounts that:</p>
-            <ul class="policy-list">
-              <li>Violate these terms of service</li>
-              <li>Engage in fraudulent activity</li>
-              <li>Abuse our services or resources</li>
-              <li>Fail to pay for services</li>
-            </ul>
+          <!-- Changes to Terms -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Changes to Terms</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300">We reserve the right to modify these Terms of Service at any time. Material changes will be communicated to users via email or a prominent notice on our website. Continued use of the services after changes are made constitutes acceptance of the updated Terms.</p>
+            </div>
+          </section>
+
+          <!-- Governing Law -->
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Governing Law</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300">These Terms shall be governed by and construed in accordance with the laws of the state of Texas, United States, without regard to its conflict of law provisions. Any disputes arising from or relating to these Terms shall be resolved exclusively in the state or federal courts located in Texas.</p>
+            </div>
           </section>
 
           <!-- Contact -->
-          <section class="policy-section">
-            <h2 class="section-header">Questions About Terms</h2>
-            <p>If you have any questions about these Terms of Service, please contact us:</p>
-            <div class="contact-button">
-              <router-link to="/contact" class="btn btn-primary">
-                Contact Us
-                <i class="fas fa-arrow-right"></i>
-              </router-link>
+          <section class="mb-16">
+            <h2 class="text-3xl font-bold text-white mb-8">Contact Us</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300">If you have any questions or concerns regarding these Terms, please contact us:</p>
+              <div class="mt-4">
+                <router-link to="/contact" class="text-primary-400 hover:text-primary-300">Contact Form →</router-link>
+              </div>
             </div>
           </section>
         </div>
       </div>
-    </section>
-  </div>
+    </template>
+  </base-layout>
 </template>
 
-<style scoped>
-.terms-page {
-  background: var(--bg-primary);
-}
+<script>
+import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 
-/* Hero Section */
-.hero-section {
-  padding: 120px 0 80px;
-  background: radial-gradient(
-    circle at top right,
-    rgba(0, 255, 204, 0.15),
-    transparent 50%
-  );
-  text-align: center;
-}
-
-.hero-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.hero-title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 1.5rem;
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.hero-description {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* Content Section */
-.content-section {
-  padding: 80px 0;
-}
-
-.section-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.policy-content {
-  background: var(--bg-primary);
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  padding: 3rem;
-}
-
-.policy-section {
-  margin-bottom: 3rem;
-}
-
-.policy-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-header {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
-}
-
-.policy-section p {
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
-}
-
-.policy-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1.5rem;
-}
-
-.policy-list li {
-  position: relative;
-  padding-left: 1.5rem;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-.policy-list li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: var(--primary-color);
-}
-
-.policy-list li strong {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.contact-button {
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1.125rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: var(--primary-gradient);
-  color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.5rem;
+export default {
+  name: 'Terms',
+  components: {
+    BaseLayout
   }
+}
+</script>
 
-  .hero-description {
-    font-size: 1.125rem;
-  }
-
-  .policy-content {
-    padding: 2rem;
-  }
-
-  .section-header {
-    font-size: 1.75rem;
-  }
-
-  .policy-section p,
-  .policy-list li {
-    font-size: 1rem;
-  }
+<style>
+.bg-gradient-radial {
+  background: radial-gradient(circle at top right, var(--tw-gradient-from), var(--tw-gradient-to));
 }
 </style> 

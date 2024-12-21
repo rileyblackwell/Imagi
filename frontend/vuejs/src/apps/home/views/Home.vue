@@ -186,45 +186,10 @@
         </div>
       </section>
     </template>
-
-    <!-- Footer Content -->
-    <template #footer>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <h3 class="text-lg font-semibold text-white mb-4">About Imagi</h3>
-          <p class="text-gray-400">Empowering developers and businesses to build amazing web applications through AI-driven development.</p>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-white mb-4">Products</h3>
-          <ul class="space-y-2">
-            <li><router-link to="/builder" class="text-gray-400 hover:text-white">Imagi Oasis</router-link></li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-white mb-4">Resources</h3>
-          <ul class="space-y-2">
-            <li><a href="#" class="text-gray-400 hover:text-white">Documentation</a></li>
-            <li><a href="#" class="text-gray-400 hover:text-white">API Reference</a></li>
-            <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-white mb-4">Legal</h3>
-          <ul class="space-y-2">
-            <li><a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a></li>
-            <li><a href="#" class="text-gray-400 hover:text-white">Terms of Service</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="mt-8 pt-8 border-t border-dark-700 text-center text-gray-400">
-        <p>&copy; {{ new Date().getFullYear() }} Imagi. All rights reserved.</p>
-      </div>
-    </template>
   </base-layout>
 </template>
 
 <script>
-import { computed } from 'vue'
 import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 
 export default {

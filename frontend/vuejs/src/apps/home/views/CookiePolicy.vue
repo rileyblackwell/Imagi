@@ -1,287 +1,142 @@
 <template>
-  <div class="cookie-policy-page">
+  <base-layout>
     <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="hero-container">
-        <h1 class="hero-title">Cookie Policy</h1>
-        <p class="hero-description">
-          Understanding how we use cookies to improve your experience
-        </p>
+    <template #hero>
+      <div class="absolute inset-0 bg-gradient-radial from-primary-500/10 via-transparent to-transparent"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="text-center max-w-3xl mx-auto">
+          <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-white">
+            Cookie Policy
+          </h1>
+          <p class="mt-6 text-xl text-gray-300">
+            Understanding how we use cookies to improve your experience
+          </p>
+        </div>
       </div>
-    </section>
+    </template>
 
-    <!-- Content Section -->
-    <section class="content-section">
-      <div class="section-container">
-        <div class="policy-content">
-          <!-- Introduction -->
-          <section class="policy-section">
-            <h2 class="section-header">What Are Cookies</h2>
-            <p>Cookies are small text files that are placed on your device when you visit our website. They help us provide you with a better experience by:</p>
-            <ul class="policy-list">
-              <li>Remembering your preferences and settings</li>
-              <li>Understanding how you use our website</li>
-              <li>Improving our services based on your behavior</li>
-              <li>Providing personalized content and features</li>
-            </ul>
+    <!-- Main Content -->
+    <template #default>
+      <div class="py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <!-- Cookie Overview -->
+          <section class="mb-24">
+            <h2 class="text-3xl font-bold text-white text-center mb-16">Cookie Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6">
+                  <i class="fas fa-cookie-bite text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">What Are Cookies?</h3>
+                <p class="text-gray-300">Small text files stored on your device that help us provide a better browsing experience.</p>
+              </div>
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6">
+                  <i class="fas fa-tasks text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">How We Use Them</h3>
+                <p class="text-gray-300">To remember preferences, analyze site usage, and enhance functionality.</p>
+              </div>
+            </div>
           </section>
 
           <!-- Types of Cookies -->
-          <section class="policy-section">
-            <h2 class="section-header">Types of Cookies We Use</h2>
-            
-            <h3 class="subsection-header">Essential Cookies</h3>
-            <p>These cookies are necessary for the website to function properly. They enable core functionality such as:</p>
-            <ul class="policy-list">
-              <li>User authentication and security</li>
-              <li>Account information and preferences</li>
-              <li>Shopping cart functionality</li>
-            </ul>
-
-            <h3 class="subsection-header">Analytics Cookies</h3>
-            <p>These cookies help us understand how visitors interact with our website:</p>
-            <ul class="policy-list">
-              <li>Page views and navigation patterns</li>
-              <li>Time spent on different pages</li>
-              <li>Error encounters and usage statistics</li>
-            </ul>
-
-            <h3 class="subsection-header">Functionality Cookies</h3>
-            <p>These cookies enable enhanced functionality and personalization:</p>
-            <ul class="policy-list">
-              <li>Remembering your preferences</li>
-              <li>Customizing content based on your choices</li>
-              <li>Saving your session state</li>
-            </ul>
+          <section class="mb-24">
+            <h2 class="text-3xl font-bold text-white text-center mb-16">Types of Cookies</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6">
+                  <i class="fas fa-shield-alt text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Essential Cookies</h3>
+                <p class="text-gray-300">Required for core website functionality. These cannot be disabled as they are necessary for the site to work properly.</p>
+              </div>
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6">
+                  <i class="fas fa-chart-line text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Analytics Cookies</h3>
+                <p class="text-gray-300">Help us understand how visitors interact with our website by collecting anonymous information.</p>
+              </div>
+            </div>
           </section>
 
           <!-- Cookie Management -->
-          <section class="policy-section">
-            <h2 class="section-header">Managing Your Cookie Preferences</h2>
-            <p>You can control and manage cookies in various ways:</p>
-            <ul class="policy-list">
-              <li>Browser Settings: Configure your browser to block or alert you about cookies</li>
-              <li>Cookie Consent: Use our cookie consent tool to manage your preferences</li>
-              <li>Third-Party Tools: Utilize privacy tools and browser extensions</li>
-            </ul>
-            <div class="cookie-preferences">
-              <button class="btn btn-primary" @click="openCookiePreferences">
-                Manage Cookie Preferences
-                <i class="fas fa-cog"></i>
-              </button>
+          <section class="mb-24">
+            <h2 class="text-3xl font-bold text-white text-center mb-16">Cookie Management</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-6">You have several options to manage your cookie preferences:</p>
+              <ul class="space-y-4 text-gray-300">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Browser Settings: Configure your browser to accept, reject, or delete cookies</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Privacy Settings: Adjust your privacy preferences directly on our website</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-primary-400 mt-1.5 mr-3"></i>
+                  <span>Third-Party Tools: Use available cookie management tools</span>
+                </li>
+              </ul>
             </div>
           </section>
 
           <!-- Third-Party Cookies -->
-          <section class="policy-section">
-            <h2 class="section-header">Third-Party Cookies</h2>
-            <p>Some features and integrations on our website use cookies from third-party services:</p>
-            <ul class="policy-list">
-              <li>Analytics providers (e.g., Google Analytics)</li>
-              <li>Payment processors</li>
-              <li>Social media integrations</li>
-              <li>Advertising partners</li>
-            </ul>
+          <section class="mb-24">
+            <h2 class="text-3xl font-bold text-white text-center mb-16">Third-Party Cookies</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6">
+                  <i class="fas fa-chart-bar text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Analytics Partners</h3>
+                <p class="text-gray-300">We use trusted analytics services to improve our website performance.</p>
+              </div>
+              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6">
+                  <i class="fas fa-credit-card text-2xl text-primary-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-white mb-4">Payment Processors</h3>
+                <p class="text-gray-300">Secure payment processing through trusted financial partners.</p>
+              </div>
+            </div>
           </section>
 
-          <!-- Updates -->
-          <section class="policy-section">
-            <h2 class="section-header">Updates to This Policy</h2>
-            <p>We may update this Cookie Policy to reflect changes in our practices or for legal compliance. We encourage you to review this policy periodically.</p>
-            <div class="contact-button">
-              <router-link to="/contact" class="btn btn-secondary">
-                Questions? Contact Us
-                <i class="fas fa-arrow-right"></i>
-              </router-link>
+          <!-- Updates & Contact -->
+          <section>
+            <h2 class="text-3xl font-bold text-white text-center mb-16">Updates & Contact</h2>
+            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
+              <p class="text-gray-300 mb-6">We may update this Cookie Policy periodically. For questions or concerns, please contact us:</p>
+              <div class="text-center">
+                <router-link to="/contact" class="text-primary-400 hover:text-primary-300">Contact Form →</router-link>
+              </div>
             </div>
           </section>
         </div>
       </div>
-    </section>
-  </div>
+    </template>
+  </base-layout>
 </template>
 
-<script setup>
-const openCookiePreferences = () => {
-  // TODO: Implement cookie preferences modal
-  console.log('Opening cookie preferences')
+<script>
+import BaseLayout from '@/shared/layouts/BaseLayout.vue'
+
+export default {
+  name: 'CookiePolicy',
+  components: {
+    BaseLayout
+  }
 }
 </script>
 
-<style scoped>
-.cookie-policy-page {
-  background: var(--bg-primary);
+<style>
+.shadow-glow {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 255, 204, 0.1);
 }
 
-/* Hero Section */
-.hero-section {
-  padding: 120px 0 80px;
-  background: radial-gradient(
-    circle at top right,
-    rgba(0, 255, 204, 0.15),
-    transparent 50%
-  );
-  text-align: center;
-}
-
-.hero-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.hero-title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin-bottom: 1.5rem;
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.hero-description {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-/* Content Section */
-.content-section {
-  padding: 80px 0;
-}
-
-.section-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-.policy-content {
-  background: var(--bg-primary);
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  padding: 3rem;
-}
-
-.policy-section {
-  margin-bottom: 3rem;
-}
-
-.policy-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-header {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 1.5rem;
-}
-
-.subsection-header {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 2rem 0 1rem;
-}
-
-.policy-section p {
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
-}
-
-.policy-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1.5rem;
-}
-
-.policy-list li {
-  position: relative;
-  padding-left: 1.5rem;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-.policy-list li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  color: var(--primary-color);
-}
-
-.cookie-preferences,
-.contact-button {
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1.125rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: var(--primary-gradient);
-  color: white;
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.btn-secondary:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.5rem;
-  }
-
-  .hero-description {
-    font-size: 1.125rem;
-  }
-
-  .policy-content {
-    padding: 2rem;
-  }
-
-  .section-header {
-    font-size: 1.75rem;
-  }
-
-  .subsection-header {
-    font-size: 1.25rem;
-  }
-
-  .policy-section p,
-  .policy-list li {
-    font-size: 1rem;
-  }
+.bg-gradient-radial {
+  background: radial-gradient(circle at top right, var(--tw-gradient-from), var(--tw-gradient-to));
 }
 </style> 
