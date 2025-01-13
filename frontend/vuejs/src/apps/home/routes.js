@@ -20,7 +20,7 @@ export default {
     {
       path: 'privacy',
       name: 'privacy',
-      component: () => import('./views/Privacy.vue'),
+      component: () => import('./views/PrivacyPolicy.vue'),
       meta: {
         title: 'Privacy Policy - Imagi'
       }
@@ -28,7 +28,7 @@ export default {
     {
       path: 'terms',
       name: 'terms',
-      component: () => import('./views/Terms.vue'),
+      component: () => import('./views/TermsOfService.vue'),
       meta: {
         title: 'Terms of Service - Imagi'
       }
@@ -36,7 +36,7 @@ export default {
     {
       path: 'cookies',
       name: 'cookies',
-      component: () => import('./views/Cookies.vue'),
+      component: () => import('./views/CookiePolicy.vue'),
       meta: {
         title: 'Cookie Policy - Imagi'
       }

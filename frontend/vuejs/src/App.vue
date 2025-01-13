@@ -88,12 +88,12 @@
               <ul class="space-y-3">
                 <li>
                   <router-link to="/privacy" class="text-dark-400 hover:text-primary-400 transition-colors text-sm">
-                    Privacy
+                    Privacy Policy
                   </router-link>
                 </li>
                 <li>
                   <router-link to="/terms" class="text-dark-400 hover:text-primary-400 transition-colors text-sm">
-                    Terms
+                    Terms of Service
                   </router-link>
                 </li>
                 <li>

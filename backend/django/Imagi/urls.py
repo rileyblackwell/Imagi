@@ -19,11 +19,11 @@ urlpatterns = [
     # API endpoints
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('', include('apps.Auth.urls')),  # Include Auth URLs at root to handle both /api/auth/ and /auth/
     path('api/', include('api.urls')),
     
     # App URLs
     path('builder/', include('apps.Builder.urls')),  # Builder app URLs
-    path('auth/', include('apps.Auth.urls')),  # Auth app URLs
     path('', include('apps.Home.urls')),  # Home app URLs
     path('payments/', include('apps.Payments.urls')),  # Payments app URLs
     path('agents/', include('apps.Agents.urls')),  # Agents app URLs

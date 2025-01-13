@@ -19,9 +19,11 @@
             type="text"
             v-model="form.username"
             required
+            :disabled="authStore.isLoading"
             placeholder="Username"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </label>
         <p v-if="errors.username" class="mt-1 text-sm text-red-500">{{ errors.username }}</p>
@@ -38,9 +40,11 @@
             type="password"
             v-model="form.password"
             required
+            :disabled="authStore.isLoading"
             placeholder="Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </label>
         <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
@@ -49,12 +53,12 @@
       <!-- Submit Button -->
       <button
         type="submit"
-        :disabled="isLoading"
+        :disabled="authStore.isLoading"
         class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
                disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span v-if="isLoading">
+        <span v-if="authStore.isLoading">
           <i class="fas fa-circle-notch fa-spin mr-2"></i>
           Signing in...
         </span>
@@ -62,8 +66,8 @@
       </button>
 
       <!-- Error Message -->
-      <p v-if="errors.general" class="text-center text-sm text-red-500">
-        {{ errors.general }}
+      <p v-if="authStore.authError" class="text-center text-sm text-red-500">
+        {{ authStore.authError }}
       </p>
     </form>
 
@@ -107,42 +111,34 @@ export default {
     
     const errors = ref({
       username: '',
-      password: '',
-      general: ''
+      password: ''
     })
-    
-    const isLoading = ref(false)
 
     const handleSubmit = async () => {
       // Reset errors
       errors.value = {
         username: '',
-        password: '',
-        general: ''
+        password: ''
       }
 
       try {
-        isLoading.value = true
         await authStore.login(form.value)
         
         // Redirect to the intended page or dashboard
         const redirectPath = route.query.redirect || '/dashboard'
         await router.push(redirectPath)
       } catch (error) {
+        // Handle specific field errors if they exist
         if (error.response?.data?.errors) {
           errors.value = error.response.data.errors
-        } else {
-          errors.value.general = 'An error occurred during sign in. Please try again.'
         }
-      } finally {
-        isLoading.value = false
       }
     }
 
     return {
       form,
       errors,
-      isLoading,
+      authStore,
       handleSubmit
     }
   }

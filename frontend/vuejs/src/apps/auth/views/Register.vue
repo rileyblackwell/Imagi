@@ -19,9 +19,11 @@
             type="text"
             v-model="form.username"
             required
+            :disabled="authStore.isLoading"
             placeholder="Username"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </label>
         <p v-if="errors.username" class="mt-1 text-sm text-red-500">{{ errors.username }}</p>
@@ -38,12 +40,52 @@
             type="email"
             v-model="form.email"
             required
+            :disabled="authStore.isLoading"
             placeholder="Email"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </label>
         <p v-if="errors.email" class="mt-1 text-sm text-red-500">{{ errors.email }}</p>
+      </div>
+
+      <!-- First Name -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">First Name</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-user text-gray-400"></i>
+          </span>
+          <input
+            type="text"
+            v-model="form.firstName"
+            :disabled="authStore.isLoading"
+            placeholder="First Name (Optional)"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+        </label>
+      </div>
+
+      <!-- Last Name -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Last Name</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-user text-gray-400"></i>
+          </span>
+          <input
+            type="text"
+            v-model="form.lastName"
+            :disabled="authStore.isLoading"
+            placeholder="Last Name (Optional)"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+        </label>
       </div>
 
       <!-- Password -->
@@ -57,9 +99,11 @@
             type="password"
             v-model="form.password"
             required
+            :disabled="authStore.isLoading"
             placeholder="Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </label>
         <p v-if="errors.password" class="mt-1 text-sm text-red-500">{{ errors.password }}</p>
@@ -76,9 +120,11 @@
             type="password"
             v-model="form.confirmPassword"
             required
+            :disabled="authStore.isLoading"
             placeholder="Confirm Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </label>
         <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-500">{{ errors.confirmPassword }}</p>
@@ -91,7 +137,9 @@
             type="checkbox"
             v-model="form.agreeToTerms"
             required
-            class="w-4 h-4 border border-dark-600 rounded bg-dark-800 text-primary-600 focus:ring-primary-500"
+            :disabled="authStore.isLoading"
+            class="w-4 h-4 border border-dark-600 rounded bg-dark-800 text-primary-600 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
           >
         </div>
         <div class="ml-3">
@@ -104,25 +152,25 @@
         </div>
       </div>
 
+      <!-- Error Message -->
+      <p v-if="errors.general" class="text-center text-sm text-red-500 mt-4">
+        {{ errors.general }}
+      </p>
+
       <!-- Submit Button -->
       <button
         type="submit"
-        :disabled="isLoading || !form.agreeToTerms"
+        :disabled="authStore.isLoading || !form.agreeToTerms"
         class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
                disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span v-if="isLoading">
+        <span v-if="authStore.isLoading">
           <i class="fas fa-circle-notch fa-spin mr-2"></i>
           Creating account...
         </span>
         <span v-else>Create Account</span>
       </button>
-
-      <!-- Error Message -->
-      <p v-if="errors.general" class="text-center text-sm text-red-500">
-        {{ errors.general }}
-      </p>
     </form>
 
     <!-- Links -->
@@ -157,6 +205,8 @@ export default {
     const form = ref({
       username: '',
       email: '',
+      firstName: '',
+      lastName: '',
       password: '',
       confirmPassword: '',
       agreeToTerms: false
@@ -169,8 +219,6 @@ export default {
       confirmPassword: '',
       general: ''
     })
-    
-    const isLoading = ref(false)
 
     const validateForm = () => {
       const newErrors = {}
@@ -181,6 +229,10 @@ export default {
 
       if (form.value.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters long'
+      }
+
+      if (!form.value.agreeToTerms) {
+        newErrors.general = 'You must agree to the Terms of Service and Privacy Policy'
       }
 
       errors.value = { ...errors.value, ...newErrors }
@@ -197,35 +249,51 @@ export default {
         general: ''
       }
 
+      // Client-side validation
       if (!validateForm()) {
         return
       }
 
       try {
-        isLoading.value = true
-        await authStore.register({
+        const result = await authStore.register({
           username: form.value.username,
           email: form.value.email,
-          password: form.value.password
+          password: form.value.password,
+          firstName: form.value.firstName,
+          lastName: form.value.lastName
         })
         
-        // Redirect to dashboard after successful registration
-        await router.push('/dashboard')
-      } catch (error) {
-        if (error.response?.data?.errors) {
-          errors.value = error.response.data.errors
+        if (result?.token) {
+          // Redirect to dashboard after successful registration
+          await router.push('/dashboard')
         } else {
-          errors.value.general = 'An error occurred during registration. Please try again.'
+          errors.value.general = 'Registration successful but no token received'
         }
-      } finally {
-        isLoading.value = false
+      } catch (error) {
+        console.error('Registration error:', error)
+        
+        if (typeof error === 'object') {
+          // Handle field-specific errors
+          Object.keys(error).forEach(field => {
+            if (field in errors.value) {
+              errors.value[field] = Array.isArray(error[field]) 
+                ? error[field][0] 
+                : error[field]
+            } else if (field === 'general') {
+              errors.value.general = error[field]
+            }
+          })
+        } else {
+          // Handle string error
+          errors.value.general = error.toString()
+        }
       }
     }
 
     return {
       form,
       errors,
-      isLoading,
+      authStore,
       handleSubmit
     }
   }
