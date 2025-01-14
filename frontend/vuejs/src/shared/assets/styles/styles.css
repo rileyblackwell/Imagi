@@ -3,75 +3,35 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --header-height: 4rem;
-  }
-
   body {
-    @apply bg-gray-900 text-white;
+    @apply bg-dark-950 text-gray-100;
   }
 }
 
 @layer utilities {
-  .drop-shadow-glow {
-    filter: drop-shadow(0 0 12px rgba(0, 255, 204, 0.4));
+  .bg-gradient-radial {
+    background-image: radial-gradient(var(--tw-gradient-stops));
   }
+}
 
-  .drop-shadow-glow-text {
-    text-shadow: 0 0 10px rgba(255, 229, 180, 0.3);
-  }
+/* Custom CSS Variables */
+:root {
+  --color-dark-950: #0a0b0f;
+  --color-dark-900: #111318;
+  --color-dark-800: #1a1d24;
+  --color-dark-700: #282c35;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+}
 
-  /* Animations */
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0) scale(1);
-      filter: drop-shadow(0 0 24px rgba(0, 255, 204, 0.4));
-    }
-    50% {
-      transform: translateY(-10px) scale(1.02);
-      filter: drop-shadow(0 0 32px rgba(0, 255, 204, 0.6));
-    }
-  }
+/* Custom Animations */
+.hover\:shadow-glow:hover {
+  box-shadow: 0 0 25px -5px var(--color-primary-500);
+}
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .animate-fadeIn {
-    animation: fadeIn 0.5s ease-out forwards;
-  }
-
-  .delay-200 {
-    animation-delay: 200ms;
-  }
-
-  .delay-400 {
-    animation-delay: 400ms;
-  }
-
-  .delay-600 {
-    animation-delay: 600ms;
-  }
-
-  /* Transitions */
-  .fade-enter-active,
-  .fade-leave-active {
-    transition: opacity 0.2s ease;
-  }
-
-  .fade-enter-from,
-  .fade-leave-to {
-    opacity: 0;
-  }
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 } 

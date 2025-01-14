@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import store from '@/store'
+import { useAuthStore } from '@/stores/auth'
 
 // Layouts
-import MainLayout from '@/shared/layouts/MainLayout.vue'
 import AuthLayout from '@/shared/layouts/AuthLayout.vue'
 
 // Views
@@ -14,14 +13,8 @@ import NotFound from '@/shared/views/NotFound.vue'
 const routes = [
   {
     path: '/',
-    component: MainLayout,
-    children: [
-      {
-        path: '',
-        name: 'home',
-        component: Home
-      }
-    ]
+    name: 'home',
+    component: Home
   },
   {
     path: '/auth',
@@ -55,7 +48,8 @@ const router = createRouter({
 
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
-  const isAuthenticated = store.getters['auth/isAuthenticated']
+  const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
   
   // Check if route requires authentication
   if (to.meta.requiresAuth && !isAuthenticated) {

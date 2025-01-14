@@ -2,7 +2,9 @@
   <header class="app-header">
     <nav class="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
       <router-link to="/" class="flex items-center">
-        <img src="@/assets/images/logo.webp" alt="Imagi" class="h-12 w-auto hover:opacity-90 transition-opacity" />
+        <div class="h-12 w-12 rounded-lg bg-gradient-to-r from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
+          I
+        </div>
       </router-link>
       
       <div class="flex items-center gap-8">
@@ -52,19 +54,20 @@
 </template>
 
 <script setup>
-import { useRoute } from 'vue-router'
-import { useStore } from 'vuex'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { computed } from 'vue'
 
 const route = useRoute()
-const store = useStore()
+const router = useRouter()
+const authStore = useAuthStore()
 
 const navItems = [
   { name: 'Home', path: '/' },
   { name: 'About', path: '/about' },
 ]
 
-const isAuthenticated = computed(() => store.getters['auth/isAuthenticated'])
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const isCurrentRoute = (path) => {
   return route.path === path
@@ -72,7 +75,7 @@ const isCurrentRoute = (path) => {
 
 const handleLogout = async () => {
   try {
-    await store.dispatch('auth/logout')
+    await authStore.logout()
     router.push('/')
   } catch (error) {
     console.error('Logout failed:', error)

@@ -2,7 +2,7 @@
   <base-layout>
     <!-- Hero Section -->
     <template #hero>
-      <div class="absolute inset-0 bg-gradient-radial from-primary-500/10 via-transparent to-transparent"></div>
+      <div class="absolute inset-0 bg-gradient-radial from-primary-500/10 via-transparent to-transparent pointer-events-none"></div>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div class="text-center max-w-3xl mx-auto">
           <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight">
@@ -20,7 +20,7 @@
               class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5"
             >
               <span>Start Building</span>
-              <i class="fas fa-arrow-right ml-2"></i>
+              <font-awesome-icon icon="arrow-right" class="ml-2" />
             </router-link>
           </div>
         </div>
@@ -44,7 +44,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-keyboard text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="keyboard" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">Natural Language Input</h3>
                 <p class="text-gray-300">Describe your vision in plain English, and watch as it transforms into reality.</p>
@@ -55,7 +55,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-bolt text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="bolt" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">Rapid Development</h3>
                 <p class="text-gray-300">Build websites and applications in minutes, not months.</p>
@@ -66,7 +66,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-code text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="code" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">Professional Code</h3>
                 <p class="text-gray-300">Generate clean, maintainable code that follows industry best practices.</p>
@@ -88,7 +88,7 @@
             <div class="relative group">
               <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-pencil-alt text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="pencil-alt" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">1. Describe Your Vision</h3>
                 <p class="text-gray-300">Tell us what you want to build using natural language. Describe your features, design preferences, and requirements.</p>
@@ -99,7 +99,7 @@
             <div class="relative group">
               <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-magic text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="magic" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">2. AI Generation</h3>
                 <p class="text-gray-300">Our advanced AI analyzes your description and generates all necessary code, from frontend interfaces to backend logic.</p>
@@ -110,7 +110,7 @@
             <div class="relative group">
               <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-sliders-h text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="sliders-h" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">3. Customize & Refine</h3>
                 <p class="text-gray-300">Review the generated application, make adjustments, and refine details using natural language commands.</p>
@@ -121,7 +121,7 @@
             <div class="relative group">
               <div class="bg-dark-900/50 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-rocket text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="rocket" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">4. Launch & Scale</h3>
                 <p class="text-gray-300">Deploy your application with confidence, knowing it's built with scalable, secure, and maintainable code.</p>
@@ -143,7 +143,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-store text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="store" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">E-commerce Sites</h3>
                 <p class="text-gray-300">Create full-featured online stores with product catalogs, shopping carts, and secure payment processing.</p>
@@ -154,7 +154,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-briefcase text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="briefcase" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">Business Applications</h3>
                 <p class="text-gray-300">Build custom CRM systems, inventory management tools, and other business-specific applications.</p>
@@ -165,7 +165,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-users text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="users" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">Community Platforms</h3>
                 <p class="text-gray-300">Develop social networks, forums, and community-driven websites with user management and content sharing.</p>
@@ -176,7 +176,7 @@
             <div class="relative group">
               <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 transition-all duration-300 hover:-translate-y-2 hover:border-primary-500/20 hover:shadow-glow">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-chart-line text-2xl text-primary-400"></i>
+                  <font-awesome-icon icon="chart-line" class="text-2xl text-primary-400" />
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-4">Analytics Dashboards</h3>
                 <p class="text-gray-300">Create data visualization tools and interactive dashboards for business intelligence and reporting.</p>
@@ -198,14 +198,4 @@ export default {
     BaseLayout
   }
 }
-</script>
-
-<style>
-.shadow-glow {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 255, 204, 0.1);
-}
-
-.bg-gradient-radial {
-  background: radial-gradient(circle at top right, var(--tw-gradient-from), var(--tw-gradient-to));
-}
-</style> 
+</script> 

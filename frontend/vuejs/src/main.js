@@ -6,6 +6,22 @@ import router from './router'
 // Import global styles
 import '@/shared/assets/styles/styles.css'
 
+// Import Font Awesome
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { 
+  faKeyboard, faBolt, faCode, faPencilAlt, 
+  faMagic, faSlidersH, faRocket, faStore, 
+  faBriefcase, faUsers, faChartLine, faArrowRight 
+} from '@fortawesome/free-solid-svg-icons'
+
+// Add icons to library
+library.add(
+  faKeyboard, faBolt, faCode, faPencilAlt,
+  faMagic, faSlidersH, faRocket, faStore,
+  faBriefcase, faUsers, faChartLine, faArrowRight
+)
+
 // Configure axios for CSRF
 import axios from 'axios'
 
@@ -31,14 +47,15 @@ axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 axios.defaults.withCredentials = true
 
-// Create Vue app
+// Create Vue app and Pinia instance
 const app = createApp(App)
-
-// Create and use Pinia store
 const pinia = createPinia()
-app.use(pinia)
 
-// Use router
+// Register Font Awesome component
+app.component('font-awesome-icon', FontAwesomeIcon)
+
+// Use plugins
+app.use(pinia)
 app.use(router)
 
 // Mount app
