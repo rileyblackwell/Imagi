@@ -264,8 +264,8 @@ export default {
         })
         
         if (result?.token) {
-          // Redirect to dashboard after successful registration
-          await router.push('/dashboard')
+          // Redirect to home page after successful registration
+          await router.push('/')
         } else {
           errors.value.general = 'Registration successful but no token received'
         }

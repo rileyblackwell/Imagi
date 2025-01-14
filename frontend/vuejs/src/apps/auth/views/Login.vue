@@ -124,8 +124,8 @@ export default {
       try {
         await authStore.login(form.value)
         
-        // Redirect to the intended page or dashboard
-        const redirectPath = route.query.redirect || '/dashboard'
+        // Redirect to the home page or intended page
+        const redirectPath = route.query.redirect || '/'
         await router.push(redirectPath)
       } catch (error) {
         // Handle specific field errors if they exist
