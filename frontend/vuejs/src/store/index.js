@@ -1,9 +1,11 @@
 import { createStore } from 'vuex'
 import auth from './modules/auth'
+import payments from './modules/payments'
 
 export default createStore({
   modules: {
-    auth
+    auth,
+    payments
   },
   
   state: {

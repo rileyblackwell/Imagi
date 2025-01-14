@@ -1,10 +1,14 @@
 import axios from 'axios'
-import { API_URL } from '@/core/config'
+import config from '@/shared/config'
 
 class PaymentService {
+  constructor() {
+    this.apiUrl = '/api/payments'
+  }
+
   async createPaymentIntent(amount) {
     try {
-      const response = await axios.post(`${API_URL}/payments/create-intent/`, { amount })
+      const response = await axios.post(`${this.apiUrl}/create-payment-intent/`, { amount })
       return response.data
     } catch (error) {
       throw this.handleError(error)
@@ -13,27 +17,34 @@ class PaymentService {
 
   async getBalance() {
     try {
-      const response = await axios.get(`${API_URL}/payments/get-balance/`)
+      const response = await axios.get(`${this.apiUrl}/get-balance/`)
       return response.data
     } catch (error) {
       throw this.handleError(error)
     }
   }
 
-  async getUsagePricing() {
+  async getTransactions() {
     try {
-      const response = await axios.get(`${API_URL}/payments/usage-pricing/`)
+      const response = await axios.get(`${this.apiUrl}/transactions/`)
       return response.data
     } catch (error) {
       throw this.handleError(error)
     }
   }
 
-  async confirmPayment(paymentIntentId) {
+  async getCreditPackages() {
     try {
-      const response = await axios.post(`${API_URL}/payments/confirm/`, {
-        payment_intent_id: paymentIntentId
-      })
+      const response = await axios.get(`${this.apiUrl}/packages/`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async purchaseCredits(packageId) {
+    try {
+      const response = await axios.post(`${this.apiUrl}/purchase/`, { package_id: packageId })
       return response.data
     } catch (error) {
       throw this.handleError(error)
@@ -73,4 +84,6 @@ class PaymentService {
     }
     return true
   }
-} 
+}
+
+export default new PaymentService() 

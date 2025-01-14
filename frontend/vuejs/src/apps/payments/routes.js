@@ -1,5 +1,5 @@
 export default {
-  path: '',
+  path: '/payments',
   children: [
     {
       path: 'checkout',

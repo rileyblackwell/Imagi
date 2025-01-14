@@ -27,10 +27,10 @@
                     </router-link>
                   </div>
                 </div>
-                <router-link to="/payments/credits" class="home-nav-btn">
+                <button @click="handleBuyCredits" class="home-nav-btn">
                   <i class="fas fa-coins mr-1"></i>
                   <span>Buy Credits</span>
-                </router-link>
+                </button>
               </template>
             </slot>
           </div>
@@ -111,13 +111,14 @@
 
 <script>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store/auth'
 
 export default {
   name: 'BaseLayout',
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const authStore = useAuthStore()
     const isSidebarCollapsed = ref(false)
 
@@ -140,6 +141,17 @@ export default {
       isSidebarCollapsed.value = !isSidebarCollapsed.value
     }
 
+    const handleBuyCredits = () => {
+      if (!authStore.isAuthenticated) {
+        router.push({ 
+          path: '/auth/login',
+          query: { redirect: '/payments/checkout' }
+        })
+      } else {
+        router.push('/payments/checkout')
+      }
+    }
+
     return {
       isAuthenticated: computed(() => authStore.isAuthenticated),
       logout: () => authStore.logout(),
@@ -147,7 +159,8 @@ export default {
       isCurrentRoute,
       isSidebarCollapsed,
       toggleSidebar,
-      dashboardNavItems
+      dashboardNavItems,
+      handleBuyCredits
     }
   }
 }

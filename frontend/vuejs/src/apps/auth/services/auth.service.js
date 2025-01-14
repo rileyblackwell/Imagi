@@ -1,5 +1,5 @@
 import axios from 'axios'
-import config from '@/core/config'
+import config from '@/shared/config'
 
 const API_URL = `${config.apiUrl}/auth`
 

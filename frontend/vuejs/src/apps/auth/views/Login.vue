@@ -115,23 +115,12 @@ export default {
     })
 
     const handleSubmit = async () => {
-      // Reset errors
-      errors.value = {
-        username: '',
-        password: ''
-      }
-
       try {
         await authStore.login(form.value)
-        
-        // Redirect to the home page or intended page
         const redirectPath = route.query.redirect || '/'
-        await router.push(redirectPath)
+        router.push(redirectPath)
       } catch (error) {
-        // Handle specific field errors if they exist
-        if (error.response?.data?.errors) {
-          errors.value = error.response.data.errors
-        }
+        errors.value = error
       }
     }
 

@@ -153,8 +153,10 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import BaseLayout from '@/shared/layouts/BaseLayout.vue'
+import PaymentService from '../services/payment.service'
 
 export default {
   name: 'Credits',
@@ -162,24 +164,62 @@ export default {
     BaseLayout
   },
   setup() {
+    const router = useRouter()
     const credits = ref(0)
     const lastPurchaseDate = ref('Never')
     const validUntil = ref('N/A')
+    const isLoading = ref(false)
+    const error = ref(null)
 
     async function purchaseCredits(package_type) {
       try {
-        // TODO: Implement actual purchase logic with Stripe
-        console.log('Purchasing credits:', package_type)
-      } catch (error) {
-        console.error('Failed to purchase credits:', error)
+        isLoading.value = true
+        error.value = null
+        
+        // Create payment intent for the selected package
+        const { clientSecret } = await PaymentService.createPaymentIntent({
+          package_type,
+          return_url: `${window.location.origin}/payments/success`
+        })
+
+        // Redirect to checkout with the client secret
+        router.push({
+          name: 'checkout',
+          query: { 
+            package: package_type,
+            client_secret: clientSecret
+          }
+        })
+      } catch (err) {
+        console.error('Failed to purchase credits:', err)
+        error.value = err.message || 'Failed to purchase credits. Please try again.'
+      } finally {
+        isLoading.value = false
       }
     }
+
+    async function fetchUserCredits() {
+      try {
+        const { balance, last_purchase, valid_until } = await PaymentService.getBalance()
+        credits.value = balance
+        lastPurchaseDate.value = last_purchase || 'Never'
+        validUntil.value = valid_until || 'N/A'
+      } catch (err) {
+        console.error('Failed to fetch user credits:', err)
+      }
+    }
+
+    onMounted(() => {
+      fetchUserCredits()
+    })
 
     return {
       credits,
       lastPurchaseDate,
       validUntil,
-      purchaseCredits
+      purchaseCredits,
+      isLoading,
+      error
     }
   }
 }

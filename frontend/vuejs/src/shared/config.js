@@ -15,6 +15,12 @@ const config = {
     description: 'Natural language to code platform',
     version: '1.0.0'
   },
+
+  // Payment Configuration
+  payments: {
+    stripePublishableKey: process.env.VUE_APP_STRIPE_PUBLISHABLE_KEY,
+    creditsPerDollar: 10
+  },
   
   // Feature Flags
   features: {
