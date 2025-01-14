@@ -112,7 +112,7 @@
 <script>
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/apps/auth/store/auth'
 
 export default {
   name: 'BaseLayout',

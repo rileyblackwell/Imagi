@@ -95,7 +95,7 @@
 <script>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/apps/auth/store/auth'
 
 export default {
   name: 'Login',
