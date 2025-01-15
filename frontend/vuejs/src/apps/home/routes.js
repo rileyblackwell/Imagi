@@ -1,5 +1,5 @@
 export default {
-  path: '',
+  path: '/',
   children: [
     {
       path: '',

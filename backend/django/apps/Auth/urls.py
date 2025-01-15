@@ -3,6 +3,9 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
+    # CSRF endpoint
+    path('api/auth/csrf/', views.get_csrf_token, name='get_csrf_token'),
+    
     # API endpoints
     path('api/auth/register/', views.register_user, name='api_register'),
     path('api/auth/login/', views.login_user, name='api_login'),

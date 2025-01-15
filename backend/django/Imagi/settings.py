@@ -174,12 +174,22 @@ CSRF_COOKIE_SECURE = not DEBUG  # Ensures CSRF cookies are only sent over HTTPS
 
 # CSRF settings
 CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
+CSRF_HEADER_NAME = 'X-CSRFToken'
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000'
+]
 
 # If you're using HTTPS in development, add these as well:
 if DEBUG:
-    CSRF_TRUSTED_ORIGINS.extend(['https://localhost:8000', 'https://127.0.0.1:8000'])
+    CSRF_TRUSTED_ORIGINS.extend([
+        'https://localhost:5173',
+        'https://127.0.0.1:5173',
+        'https://localhost:8000',
+        'https://127.0.0.1:8000'
+    ])
 
 # Debug toolbar settings
 INTERNAL_IPS = [

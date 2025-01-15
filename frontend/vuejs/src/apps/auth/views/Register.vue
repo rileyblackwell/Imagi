@@ -194,7 +194,7 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/apps/auth/store/auth'
+import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'Register',
@@ -266,12 +266,9 @@ export default {
         if (result?.token) {
           // Redirect to home page after successful registration
           await router.push('/')
-        } else {
-          errors.value.general = 'Registration successful but no token received'
         }
       } catch (error) {
         console.error('Registration error:', error)
-        
         if (typeof error === 'object') {
           // Handle field-specific errors
           Object.keys(error).forEach(field => {
@@ -279,7 +276,7 @@ export default {
               errors.value[field] = Array.isArray(error[field]) 
                 ? error[field][0] 
                 : error[field]
-            } else if (field === 'general') {
+            } else {
               errors.value.general = error[field]
             }
           })

@@ -1,6 +1,6 @@
 const config = {
   // API Configuration
-  apiUrl: process.env.VUE_APP_API_URL || 'http://localhost:8000/api/v1',
+  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   
   // Authentication Configuration
   auth: {
@@ -18,7 +18,7 @@ const config = {
 
   // Payment Configuration
   payments: {
-    stripePublishableKey: process.env.VUE_APP_STRIPE_PUBLISHABLE_KEY,
+    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
     creditsPerDollar: 10
   },
   

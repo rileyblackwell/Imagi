@@ -12,51 +12,39 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { 
   faKeyboard, faBolt, faCode, faPencilAlt, 
   faMagic, faSlidersH, faRocket, faStore, 
-  faBriefcase, faUsers, faChartLine, faArrowRight 
+  faBriefcase, faUsers, faChartLine, faArrowRight,
+  faSignOutAlt, faUser, faCog
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to library
 library.add(
   faKeyboard, faBolt, faCode, faPencilAlt,
   faMagic, faSlidersH, faRocket, faStore,
-  faBriefcase, faUsers, faChartLine, faArrowRight
+  faBriefcase, faUsers, faChartLine, faArrowRight,
+  faSignOutAlt, faUser, faCog
 )
 
-// Configure axios for CSRF
+// Configure axios
 import axios from 'axios'
+import config from '@/shared/config'
 
-// Get CSRF token from cookie
-function getCookie(name) {
-  let cookieValue = null
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';')
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim()
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
-        break
-      }
-    }
-  }
-  return cookieValue
-}
+// Set base URL for API requests
+axios.defaults.baseURL = config.apiUrl
 
 // Add CSRF token to all axios requests
-axios.defaults.headers.common['X-CSRFToken'] = getCookie('csrftoken')
+axios.defaults.withCredentials = true
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
-axios.defaults.withCredentials = true
 
-// Create Vue app and Pinia instance
+// Create Vue app instance
 const app = createApp(App)
-const pinia = createPinia()
-
-// Register Font Awesome component
-app.component('font-awesome-icon', FontAwesomeIcon)
 
 // Use plugins
-app.use(pinia)
+app.use(createPinia())
 app.use(router)
+
+// Register global components
+app.component('font-awesome-icon', FontAwesomeIcon)
 
 // Mount app
 app.mount('#app')

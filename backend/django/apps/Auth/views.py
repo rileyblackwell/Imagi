@@ -7,8 +7,8 @@ from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.models import User  # Add this import
-from django.conf import settings  # Add this import
+from django.contrib.auth.models import User
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -18,6 +18,7 @@ from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.password_validation import validate_password, ValidationError
 from django.contrib.auth import update_session_auth_hash
 from rest_framework.authtoken.models import Token
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from .serializers import UserSerializer
 import logging
 
@@ -26,7 +27,93 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-# Create your views here.
+@api_view(['GET'])
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    """
+    This view sets the CSRF cookie and returns a 200 response
+    """
+    return Response({'detail': 'CSRF cookie set'})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_protect
+def register_user(request):
+    """
+    API endpoint for user registration
+    """
+    logger.info("Registration attempt with data: %s", {
+        k: v for k, v in request.data.items() if k != 'password'
+    })
+    
+    serializer = UserSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        try:
+            logger.info("Serializer is valid, attempting to save user")
+            user = serializer.save()
+            logger.info("User created successfully: %s", user.username)
+            
+            token, created = Token.objects.get_or_create(user=user)
+            logger.info("Auth token created: %s", token.key)
+            
+            return Response({
+                'token': token.key,
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error("Error during user creation: %s", str(e), exc_info=True)
+            return Response({
+                'error': 'An unexpected error occurred during registration',
+                'errors': {'detail': str(e)}
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        logger.error("Serializer validation failed: %s", serializer.errors)
+        return Response({
+            'error': 'Invalid registration data',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_protect
+def login_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    if not username or not password:
+        return Response({
+            'error': 'Please provide both username and password'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = authenticate(username=username, password=password)
+    
+    if user:
+        login(request, user)
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user': UserSerializer(user).data
+        })
+    return Response({
+        'error': 'Invalid credentials'
+    }, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['POST'])
+@csrf_protect
+def logout_user(request):
+    logout(request)
+    return Response({'message': 'Successfully logged out'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user(request):
+    """
+    API endpoint for getting the current user's profile
+    """
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
 
 def login_view(request):
     if request.method == 'POST':
@@ -229,80 +316,3 @@ def change_password(request):
     update_session_auth_hash(request, user)
 
     return Response({'detail': 'Password successfully updated'})
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def register_user(request):
-    """
-    API endpoint for user registration
-    """
-    logger.info("Registration attempt with data: %s", {
-        k: v for k, v in request.data.items() if k != 'password'
-    })
-    
-    serializer = UserSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        try:
-            logger.info("Serializer is valid, attempting to save user")
-            user = serializer.save()
-            logger.info("User created successfully: %s", user.username)
-            
-            token, created = Token.objects.get_or_create(user=user)
-            logger.info("Auth token created: %s", token.key)
-            
-            return Response({
-                'token': token.key,
-                'user': UserSerializer(user).data
-            }, status=status.HTTP_201_CREATED)
-            
-        except Exception as e:
-            logger.error("Error during user creation: %s", str(e), exc_info=True)
-            return Response({
-                'error': 'An unexpected error occurred during registration',
-                'errors': {'detail': str(e)}
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    else:
-        logger.error("Serializer validation failed: %s", serializer.errors)
-        return Response({
-            'error': 'Invalid registration data',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def login_user(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-    
-    if not username or not password:
-        return Response({
-            'error': 'Please provide both username and password'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    user = authenticate(username=username, password=password)
-    
-    if user:
-        login(request, user)
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user': UserSerializer(user).data
-        })
-    return Response({
-        'error': 'Invalid credentials'
-    }, status=status.HTTP_401_UNAUTHORIZED)
-
-@api_view(['POST'])
-def logout_user(request):
-    logout(request)
-    return Response({'message': 'Successfully logged out'})
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_user(request):
-    """
-    API endpoint for getting the current user's profile
-    """
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data)

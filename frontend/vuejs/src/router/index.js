@@ -4,18 +4,14 @@ import { useAuthStore } from '@/stores/auth'
 // Layouts
 import AuthLayout from '@/shared/layouts/AuthLayout.vue'
 
-// Views
-import Home from '@/apps/home/views/Home.vue'
+// Routes
+import homeRoutes from '@/apps/home/routes.js'
 import Login from '@/apps/auth/views/Login.vue'
 import Register from '@/apps/auth/views/Register.vue'
 import NotFound from '@/shared/views/NotFound.vue'
 
 const routes = [
-  {
-    path: '/',
-    name: 'home',
-    component: Home
-  },
+  homeRoutes,
   {
     path: '/auth',
     component: AuthLayout,

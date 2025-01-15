@@ -95,7 +95,7 @@
 <script>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/apps/auth/store/auth'
+import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'Login',
@@ -111,16 +111,39 @@ export default {
     
     const errors = ref({
       username: '',
-      password: ''
+      password: '',
+      general: ''
     })
 
     const handleSubmit = async () => {
+      // Reset errors
+      errors.value = {
+        username: '',
+        password: '',
+        general: ''
+      }
+
       try {
-        await authStore.login(form.value)
-        const redirectPath = route.query.redirect || '/'
-        router.push(redirectPath)
+        const result = await authStore.login(form.value)
+        if (result?.token) {
+          const redirectPath = route.query.redirect || '/'
+          router.push(redirectPath)
+        }
       } catch (error) {
-        errors.value = error
+        console.error('Login error:', error)
+        if (typeof error === 'object') {
+          // Handle field-specific errors
+          Object.keys(error).forEach(field => {
+            if (field in errors.value) {
+              errors.value[field] = error[field]
+            } else {
+              errors.value.general = error[field]
+            }
+          })
+        } else {
+          // Handle string error
+          errors.value.general = error.toString()
+        }
       }
     }
 
