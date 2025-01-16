@@ -13,7 +13,4 @@ export { default as BaseDropdown } from './BaseDropdown.vue'
 export { default as BaseAvatar } from './BaseAvatar.vue'
 export { default as BaseBadge } from './BaseBadge.vue'
 export { default as BaseSpinner } from './BaseSpinner.vue'
-export { default as BaseAlert } from './BaseAlert.vue'
-
-// Feature Components
-export { default as HeroSection } from './HeroSection.vue' 
+export { default as BaseAlert } from './BaseAlert.vue' 

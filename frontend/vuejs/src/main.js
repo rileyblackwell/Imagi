@@ -13,15 +13,25 @@ import {
   faKeyboard, faBolt, faCode, faPencilAlt, 
   faMagic, faSlidersH, faRocket, faStore, 
   faBriefcase, faUsers, faChartLine, faArrowRight,
-  faSignOutAlt, faUser, faCog
+  faSignOutAlt, faUser, faCog, faCheck, faEnvelope,
+  faPhone, faClock, faExclamationCircle, faBullseye,
+  faStar, faRobot, faCodeBranch
 } from '@fortawesome/free-solid-svg-icons'
+import {
+  faTwitter,
+  faGithub,
+  faLinkedin
+} from '@fortawesome/free-brands-svg-icons'
 
 // Add icons to library
 library.add(
   faKeyboard, faBolt, faCode, faPencilAlt,
   faMagic, faSlidersH, faRocket, faStore,
   faBriefcase, faUsers, faChartLine, faArrowRight,
-  faSignOutAlt, faUser, faCog
+  faSignOutAlt, faUser, faCog, faCheck, faEnvelope,
+  faPhone, faClock, faExclamationCircle, faBullseye,
+  faStar, faRobot, faCodeBranch,
+  faTwitter, faGithub, faLinkedin
 )
 
 // Configure axios

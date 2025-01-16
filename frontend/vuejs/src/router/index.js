@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import AuthLayout from '@/shared/layouts/AuthLayout.vue'
 
 // Routes
-import homeRoutes from '@/apps/home/routes.js'
+import homeRoutes from '@/apps/home/router/routes.js'
 import Login from '@/apps/auth/views/Login.vue'
 import Register from '@/apps/auth/views/Register.vue'
 import NotFound from '@/shared/views/NotFound.vue'
