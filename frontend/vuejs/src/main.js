@@ -4,7 +4,7 @@ import App from './App.vue'
 import router from './router'
 
 // Import global styles
-import '@/shared/assets/styles/styles.css'
+import '@/shared/assets/styles/base.css'
 
 // Import Font Awesome
 import { library } from '@fortawesome/fontawesome-svg-core'

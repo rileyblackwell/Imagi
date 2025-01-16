@@ -2,6 +2,27 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
+// Helper function to get CSRF token from cookies
+function getCookie(name) {
+  let cookieValue = null
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';')
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim()
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+        break
+      }
+    }
+  }
+  return cookieValue
+}
+
+// Configure axios defaults
+axios.defaults.withCredentials = true
+axios.defaults.xsrfCookieName = 'csrftoken'
+axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const token = ref(localStorage.getItem('token'))
@@ -32,11 +53,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function ensureCSRFToken() {
+    if (!getCookie('csrftoken')) {
+      // Fetch CSRF token by making a GET request to the server
+      await axios.get('/api/auth/csrf/')
+    }
+  }
+
+  async function initAuth() {
+    loading.value = true
+    error.value = null
+
+    try {
+      await ensureCSRFToken()
+      // Only attempt to fetch user if we have a token
+      if (token.value) {
+        const response = await axios.get('/api/auth/user/')
+        setUser(response.data)
+      }
+    } catch (err) {
+      error.value = err.response?.data?.detail || 'Failed to initialize auth'
+      // Clear invalid token
+      setToken(null)
+      setUser(null)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function login(credentials) {
     loading.value = true
     error.value = null
 
     try {
+      await ensureCSRFToken()
       const response = await axios.post('/api/auth/login/', {
         username: credentials.username,
         password: credentials.password
@@ -49,14 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       throw new Error('No token received from server')
     } catch (err) {
-      console.error('Login error:', err)
-      if (err.response?.data?.errors) {
-        error.value = err.response.data.errors
-      } else if (err.response?.data?.error) {
-        error.value = { general: err.response.data.error }
-      } else {
-        error.value = { general: err.message || 'An error occurred during login' }
-      }
+      error.value = err.response?.data?.detail || 'Login failed'
       throw error.value
     } finally {
       loading.value = false
@@ -142,5 +186,6 @@ export const useAuthStore = defineStore('auth', () => {
     checkAuth,
     setUser,
     setToken,
+    initAuth,
   }
 }) 

@@ -1,6 +1,6 @@
 <!-- About page -->
 <template>
-  <base-layout>
+  <div>
     <!-- Hero Section -->
     <hero-section
       title="About Imagi"
@@ -23,17 +23,6 @@
         description="By combining cutting-edge AI with intuitive design, we're revolutionizing how websites and applications are built."
       />
     </features-grid>
-
-    <!-- Story Section -->
-    <section class="py-24 bg-dark-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl font-bold text-white text-center">Our Story</h2>
-        <div class="mt-12 max-w-3xl mx-auto bg-dark-900/50 rounded-2xl p-8 border border-dark-700">
-          <p class="text-gray-300 mb-6">Founded in 2024, Imagi was born from a simple observation: while the world is full of innovative ideas, many remain unrealized due to the technical complexity of web development.</p>
-          <p class="text-gray-300">This insight led to the creation of Imagi's natural language processing platform, which transforms plain English descriptions into functional code.</p>
-        </div>
-      </div>
-    </section>
 
     <!-- Technology Section -->
     <features-grid
@@ -68,17 +57,15 @@
         description="Empowering entrepreneurs, businesses, and creators to bring their digital ideas to life."
       />
     </features-grid>
-  </base-layout>
+  </div>
 </template>
 
 <script>
-import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 import { HeroSection, FeaturesGrid, FeatureCard } from '../components'
 
 export default {
   name: 'About',
   components: {
-    BaseLayout,
     HeroSection,
     FeaturesGrid,
     FeatureCard

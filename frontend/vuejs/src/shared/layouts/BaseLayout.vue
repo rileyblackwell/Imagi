@@ -25,7 +25,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-grow">
+    <main class="flex-grow container mx-auto">
       <slot></slot>
     </main>
 

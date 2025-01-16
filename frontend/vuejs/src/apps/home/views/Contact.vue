@@ -1,10 +1,10 @@
 <!-- Contact page -->
 <template>
-  <base-layout>
+  <div>
     <!-- Hero Section -->
     <hero-section
-      title="Get in Touch"
-      description="We're here to help you bring your ideas to life"
+      title="Contact Us"
+      description="Get in touch with our team"
     />
 
     <!-- Contact Methods -->
@@ -15,22 +15,13 @@
       <feature-card
         icon="fas fa-envelope"
         title="Email Support"
-        description="For general inquiries and support"
-      >
-        <template #footer>
-          <a href="mailto:rileyblackwell5@gmail.com" class="text-primary-400 hover:text-primary-300">rileyblackwell5@gmail.com</a>
-        </template>
-      </feature-card>
-      
+        description="Send us an email and we'll get back to you within 24 hours."
+      />
       <feature-card
         icon="fas fa-phone"
         title="Phone Support"
-        description="Available during business hours"
-      >
-        <template #footer>
-          <a href="tel:6168813592" class="text-primary-400 hover:text-primary-300">616-881-3592</a>
-        </template>
-      </feature-card>
+        description="For urgent matters, call us during business hours."
+      />
     </features-grid>
 
     <!-- Contact Form Section -->
@@ -59,17 +50,15 @@
         description="For urgent matters, please use our phone support for immediate assistance."
       />
     </features-grid>
-  </base-layout>
+  </div>
 </template>
 
 <script>
-import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 import { HeroSection, FeaturesGrid, FeatureCard, ContactForm } from '../components'
 
 export default {
   name: 'Contact',
   components: {
-    BaseLayout,
     HeroSection,
     FeaturesGrid,
     FeatureCard,

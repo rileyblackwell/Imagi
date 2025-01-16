@@ -1,6 +1,6 @@
 <!-- Home page -->
 <template>
-  <base-layout>
+  <div class="space-y-24">
     <!-- Hero Section -->
     <hero-section
       title="Transform Your Ideas Into"
@@ -93,17 +93,15 @@
         description="Create data visualization tools and interactive dashboards for business intelligence and reporting."
       />
     </features-grid>
-  </base-layout>
+  </div>
 </template>
 
 <script>
-import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 import { HeroSection, FeaturesGrid, FeatureCard } from '../components'
 
 export default {
   name: 'Home',
   components: {
-    BaseLayout,
     HeroSection,
     FeaturesGrid,
     FeatureCard

@@ -1,31 +1,47 @@
 <template>
-  <div class="auth-form-container">
-    <!-- Header -->
-    <div class="text-center mb-8">
-      <h2 class="text-3xl font-bold text-white mb-2">Reset Password</h2>
-      <p class="text-gray-400">Enter your email to receive password reset instructions</p>
-    </div>
+  <div>
+    <AuthHeader 
+      title="Reset Password"
+      subtitle="Enter your email to receive password reset instructions"
+    />
 
     <!-- Form -->
     <form v-if="!success" @submit.prevent="handleSubmit" class="space-y-6">
-      <FormInput
-        v-model="email"
-        type="email"
-        placeholder="Email Address"
-        icon="fa-envelope"
-        required
-        :disabled="loading"
-        :error="error"
-      />
+      <!-- Email -->
+      <div class="form-group">
+        <label class="relative block">
+          <span class="sr-only">Email</span>
+          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+            <i class="fas fa-envelope text-gray-400"></i>
+          </span>
+          <input
+            type="email"
+            v-model="email"
+            required
+            :disabled="loading"
+            placeholder="Email Address"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+        </label>
+        <p v-if="error" class="mt-1 text-sm text-red-500">{{ error }}</p>
+      </div>
 
-      <BaseButton
+      <!-- Submit Button -->
+      <button
         type="submit"
-        variant="primary"
-        block
-        :loading="loading"
+        :disabled="loading"
+        class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
+               disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Send Reset Link
-      </BaseButton>
+        <span v-if="loading">
+          <i class="fas fa-circle-notch fa-spin mr-2"></i>
+          Sending...
+        </span>
+        <span v-else>Send Reset Link</span>
+      </button>
     </form>
 
     <!-- Success Message -->
@@ -43,60 +59,63 @@
     </div>
 
     <!-- Links -->
-    <div class="mt-8 space-y-4">
-      <p class="text-center text-gray-400">
-        Remember your password? 
-        <router-link to="/auth/login" class="text-primary-400 hover:text-primary-300 font-medium">
-          Sign in
-        </router-link>
-      </p>
-      <div class="flex flex-col items-center space-y-2">
-        <div class="w-full border-t border-dark-700"></div>
-        <router-link to="/" class="text-gray-400 hover:text-gray-300">
-          Back to Home
-        </router-link>
-      </div>
-    </div>
+    <AuthLinks
+      main-text="Remember your password?"
+      :main-link="{ to: '/auth/login', text: 'Sign in' }"
+    />
   </div>
 </template>
 
-<script setup>
+<script>
 import { ref } from 'vue'
-import BaseButton from '@/components/common/BaseButton.vue'
-import FormInput from '@/components/common/FormInput.vue'
-import { useAuthStore } from '@/apps/auth/store/auth'
+import { useAuthStore } from '@/apps/auth/store'
+import AuthHeader from '../components/AuthHeader.vue'
+import AuthLinks from '../components/AuthLinks.vue'
 
-const authStore = useAuthStore()
-const email = ref('')
-const loading = ref(false)
-const error = ref('')
-const success = ref(false)
+export default {
+  name: 'ForgotPassword',
+  components: {
+    AuthHeader,
+    AuthLinks
+  },
+  setup() {
+    const authStore = useAuthStore()
+    const email = ref('')
+    const loading = ref(false)
+    const error = ref('')
+    const success = ref(false)
 
-async function handleSubmit() {
-  if (!email.value) {
-    error.value = 'Email is required'
-    return
-  }
+    const handleSubmit = async () => {
+      if (!email.value) {
+        error.value = 'Email is required'
+        return
+      }
 
-  loading.value = true
-  error.value = ''
-  
-  try {
-    await authStore.forgotPassword(email.value)
-    success.value = true
-  } catch (err) {
-    error.value = err.message || 'Failed to send reset email'
-  } finally {
-    loading.value = false
+      loading.value = true
+      error.value = ''
+      
+      try {
+        await authStore.requestPasswordReset(email.value)
+        success.value = true
+      } catch (err) {
+        error.value = err.message || 'Failed to send reset email'
+      } finally {
+        loading.value = false
+      }
+    }
+
+    return {
+      email,
+      loading,
+      error,
+      success,
+      handleSubmit
+    }
   }
 }
 </script>
 
 <style scoped>
-.auth-form-container {
-  @apply w-full max-w-md mx-auto p-8 bg-dark-900 border border-dark-700 rounded-2xl;
-}
-
 .text-success {
   @apply text-green-500;
 }

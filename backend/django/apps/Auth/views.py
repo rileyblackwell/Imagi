@@ -20,6 +20,8 @@ from django.contrib.auth import update_session_auth_hash
 from rest_framework.authtoken.models import Token
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from .serializers import UserSerializer
+from django.middleware.csrf import get_token
+from django.http import JsonResponse
 import logging
 
 # Set up logger
@@ -33,7 +35,8 @@ def get_csrf_token(request):
     """
     This view sets the CSRF cookie and returns a 200 response
     """
-    return Response({'detail': 'CSRF cookie set'})
+    token = get_token(request)
+    return JsonResponse({'csrfToken': token})
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -42,9 +45,7 @@ def register_user(request):
     """
     API endpoint for user registration
     """
-    logger.info("Registration attempt with data: %s", {
-        k: v for k, v in request.data.items() if k != 'password'
-    })
+    logger.info("Registration attempt for username: %s", request.data.get('username'))
     
     serializer = UserSerializer(data=request.data)
     
@@ -54,11 +55,10 @@ def register_user(request):
             user = serializer.save()
             logger.info("User created successfully: %s", user.username)
             
-            token, created = Token.objects.get_or_create(user=user)
-            logger.info("Auth token created: %s", token.key)
+            # Log the user in
+            login(request, user)
             
             return Response({
-                'token': token.key,
                 'user': UserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
             
@@ -79,6 +79,9 @@ def register_user(request):
 @permission_classes([AllowAny])
 @csrf_protect
 def login_user(request):
+    """
+    API endpoint for user login
+    """
     username = request.data.get('username')
     password = request.data.get('password')
     
@@ -91,9 +94,7 @@ def login_user(request):
     
     if user:
         login(request, user)
-        token, _ = Token.objects.get_or_create(user=user)
         return Response({
-            'token': token.key,
             'user': UserSerializer(user).data
         })
     return Response({
@@ -103,6 +104,9 @@ def login_user(request):
 @api_view(['POST'])
 @csrf_protect
 def logout_user(request):
+    """
+    API endpoint for user logout
+    """
     logout(request)
     return Response({'message': 'Successfully logged out'})
 

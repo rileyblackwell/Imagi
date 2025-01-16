@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Color System */
   --primary-gradient: linear-gradient(135deg, #00ffcc 0%, #00a2ff 100%);
@@ -29,18 +33,18 @@
   --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.25);
   
   /* Spacing System */
-  --spacing-1: 0.25rem;  /* 4px */
-  --spacing-2: 0.5rem;   /* 8px */
-  --spacing-3: 0.75rem;  /* 12px */
-  --spacing-4: 1rem;     /* 16px */
-  --spacing-5: 1.5rem;   /* 24px */
-  --spacing-6: 2rem;     /* 32px */
-  --spacing-8: 3rem;     /* 48px */
-  --spacing-10: 4rem;    /* 64px */
-  --spacing-12: 5rem;    /* 80px */
-  --spacing-16: 4rem;    /* 64px */
-  --spacing-20: 5rem;    /* 80px */
-  --spacing-24: 6rem;    /* 96px */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.5rem;
+  --spacing-6: 2rem;
+  --spacing-8: 3rem;
+  --spacing-10: 4rem;
+  --spacing-12: 5rem;
+  --spacing-16: 4rem;
+  --spacing-20: 5rem;
+  --spacing-24: 6rem;
   
   /* Border Radius */
   --radius-sm: 4px;
@@ -55,16 +59,16 @@
   --font-mono: 'JetBrains Mono', monospace;
   
   /* Font Sizes */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.25rem;    /* 20px */
-  --text-2xl: 1.5rem;    /* 24px */
-  --text-3xl: 2rem;      /* 32px */
-  --text-4xl: 2.5rem;    /* 40px */
-  --text-5xl: 3rem;      /* 48px */
-  --text-6xl: 4rem;      /* 64px */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3rem;
+  --text-6xl: 4rem;
   
   /* Animation Timing */
   --transition-fast: 150ms;
@@ -82,4 +86,20 @@
   
   /* Layout */
   --header-height: 64px;
+}
+
+@layer base {
+  body {
+    @apply bg-dark-950 text-gray-100;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-radial {
+    background-image: radial-gradient(var(--tw-gradient-stops));
+  }
+  
+  .hover\:shadow-glow:hover {
+    box-shadow: 0 0 25px -5px var(--color-primary-500);
+  }
 } 

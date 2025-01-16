@@ -1,10 +1,9 @@
 <template>
-  <div class="auth-form-container">
-    <!-- Header -->
-    <div class="text-center mb-8">
-      <h2 class="text-3xl font-bold text-white mb-2">Create Account</h2>
-      <p class="text-gray-400">Join Imagi today</p>
-    </div>
+  <div>
+    <AuthHeader 
+      title="Create Account"
+      subtitle="Join Imagi today"
+    />
 
     <!-- Form -->
     <form @submit.prevent="handleSubmit" class="space-y-6">
@@ -19,7 +18,7 @@
             type="text"
             v-model="form.username"
             required
-            :disabled="authStore.isLoading"
+            :disabled="authStore.loading"
             placeholder="Username"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
                    focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
@@ -27,65 +26,6 @@
           >
         </label>
         <p v-if="errors.username" class="mt-1 text-sm text-red-500">{{ errors.username }}</p>
-      </div>
-
-      <!-- Email -->
-      <div class="form-group">
-        <label class="relative block">
-          <span class="sr-only">Email</span>
-          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-            <i class="fas fa-envelope text-gray-400"></i>
-          </span>
-          <input
-            type="email"
-            v-model="form.email"
-            required
-            :disabled="authStore.isLoading"
-            placeholder="Email"
-            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
-                   disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-        </label>
-        <p v-if="errors.email" class="mt-1 text-sm text-red-500">{{ errors.email }}</p>
-      </div>
-
-      <!-- First Name -->
-      <div class="form-group">
-        <label class="relative block">
-          <span class="sr-only">First Name</span>
-          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-            <i class="fas fa-user text-gray-400"></i>
-          </span>
-          <input
-            type="text"
-            v-model="form.firstName"
-            :disabled="authStore.isLoading"
-            placeholder="First Name (Optional)"
-            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
-                   disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-        </label>
-      </div>
-
-      <!-- Last Name -->
-      <div class="form-group">
-        <label class="relative block">
-          <span class="sr-only">Last Name</span>
-          <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-            <i class="fas fa-user text-gray-400"></i>
-          </span>
-          <input
-            type="text"
-            v-model="form.lastName"
-            :disabled="authStore.isLoading"
-            placeholder="Last Name (Optional)"
-            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
-                   disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-        </label>
       </div>
 
       <!-- Password -->
@@ -99,7 +39,7 @@
             type="password"
             v-model="form.password"
             required
-            :disabled="authStore.isLoading"
+            :disabled="authStore.loading"
             placeholder="Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
                    focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
@@ -120,7 +60,7 @@
             type="password"
             v-model="form.confirmPassword"
             required
-            :disabled="authStore.isLoading"
+            :disabled="authStore.loading"
             placeholder="Confirm Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
                    focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
@@ -137,7 +77,7 @@
             type="checkbox"
             v-model="form.agreeToTerms"
             required
-            :disabled="authStore.isLoading"
+            :disabled="authStore.loading"
             class="w-4 h-4 border border-dark-600 rounded bg-dark-800 text-primary-600 focus:ring-primary-500
                    disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -153,19 +93,19 @@
       </div>
 
       <!-- Error Message -->
-      <p v-if="errors.general" class="text-center text-sm text-red-500 mt-4">
+      <p v-if="errors.general" class="text-center text-sm text-red-500">
         {{ errors.general }}
       </p>
 
       <!-- Submit Button -->
       <button
         type="submit"
-        :disabled="authStore.isLoading || !form.agreeToTerms"
+        :disabled="authStore.loading || !form.agreeToTerms"
         class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
                disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <span v-if="authStore.isLoading">
+        <span v-if="authStore.loading">
           <i class="fas fa-circle-notch fa-spin mr-2"></i>
           Creating account...
         </span>
@@ -174,39 +114,32 @@
     </form>
 
     <!-- Links -->
-    <div class="mt-8 space-y-4">
-      <p class="text-center text-gray-400">
-        Already have an account? 
-        <router-link to="/auth/login" class="text-primary-400 hover:text-primary-300 font-medium">
-          Sign in
-        </router-link>
-      </p>
-      <div class="flex flex-col items-center space-y-2">
-        <div class="w-full border-t border-dark-700"></div>
-        <router-link to="/" class="text-gray-400 hover:text-gray-300">
-          Back to Home
-        </router-link>
-      </div>
-    </div>
+    <AuthLinks
+      main-text="Already have an account?"
+      :main-link="{ to: '/auth/login', text: 'Sign in' }"
+    />
   </div>
 </template>
 
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/apps/auth/store'
+import AuthHeader from '../components/AuthHeader.vue'
+import AuthLinks from '../components/AuthLinks.vue'
 
 export default {
   name: 'Register',
+  components: {
+    AuthHeader,
+    AuthLinks
+  },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
     
     const form = ref({
       username: '',
-      email: '',
-      firstName: '',
-      lastName: '',
       password: '',
       confirmPassword: '',
       agreeToTerms: false
@@ -214,7 +147,6 @@ export default {
     
     const errors = ref({
       username: '',
-      email: '',
       password: '',
       confirmPassword: '',
       general: ''
@@ -243,7 +175,6 @@ export default {
       // Reset errors
       errors.value = {
         username: '',
-        email: '',
         password: '',
         confirmPassword: '',
         general: ''
@@ -255,18 +186,13 @@ export default {
       }
 
       try {
-        const result = await authStore.register({
+        await authStore.register({
           username: form.value.username,
-          email: form.value.email,
-          password: form.value.password,
-          firstName: form.value.firstName,
-          lastName: form.value.lastName
+          password: form.value.password
         })
         
-        if (result?.token) {
-          // Redirect to home page after successful registration
-          await router.push('/')
-        }
+        // Redirect to home page after successful registration
+        await router.push('/')
       } catch (error) {
         console.error('Registration error:', error)
         if (typeof error === 'object') {
@@ -295,10 +221,4 @@ export default {
     }
   }
 }
-</script>
-
-<style scoped>
-.auth-form-container {
-  @apply w-full max-w-md mx-auto p-8 bg-dark-900 border border-dark-700 rounded-2xl;
-}
-</style> 
+</script> 

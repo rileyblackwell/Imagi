@@ -1,38 +1,39 @@
-import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 import Home from '../views/Home.vue'
 import About from '../views/About.vue'
 import Contact from '../views/Contact.vue'
 import Privacy from '../views/PrivacyPolicy.vue'
 import Terms from '../views/TermsOfService.vue'
 
-export default {
+const homeRoutes = {
   path: '/',
-  component: BaseLayout,
+  component: Home,
   children: [
     {
-      path: '',
+      path: '/',
       name: 'home',
       component: Home
     },
     {
-      path: 'about',
+      path: '/about',
       name: 'about',
       component: About
     },
     {
-      path: 'contact',
+      path: '/contact',
       name: 'contact',
       component: Contact
     },
     {
-      path: 'privacy',
+      path: '/privacy',
       name: 'privacy',
       component: Privacy
     },
     {
-      path: 'terms',
+      path: '/terms',
       name: 'terms',
       component: Terms
     }
   ]
-} 
+}
+
+export default homeRoutes 

@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/apps/auth/store'
 import { onMounted } from 'vue'
 
 export default {
