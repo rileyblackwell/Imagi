@@ -164,17 +164,17 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# For development, you might want to add localhost to ALLOWED_HOSTS
-ALLOWED_HOSTS = ['localhost', '127.0.0.1'] if DEBUG else ['your-production-domain.com']
-
-# Security settings
-SECURE_SSL_REDIRECT = not DEBUG  # Redirects all non-HTTPS requests to HTTPS
-SESSION_COOKIE_SECURE = not DEBUG  # Ensures cookies are only sent over HTTPS
-CSRF_COOKIE_SECURE = not DEBUG  # Ensures CSRF cookies are only sent over HTTPS
+# Session settings
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG  # Set to True in production with HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Strict' in production
 
 # CSRF settings
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'X-CSRFToken'
+CSRF_COOKIE_HTTPONLY = False  # False allows JavaScript to read the token
+CSRF_COOKIE_SECURE = not DEBUG  # Set to True in production with HTTPS
+CSRF_COOKIE_SAMESITE = 'Lax'  # Use 'Strict' in production
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
@@ -190,6 +190,12 @@ if DEBUG:
         'https://localhost:8000',
         'https://127.0.0.1:8000'
     ])
+
+# For development, you might want to add localhost to ALLOWED_HOSTS
+ALLOWED_HOSTS = ['localhost', '127.0.0.1'] if DEBUG else ['your-production-domain.com']
+
+# Security settings
+SECURE_SSL_REDIRECT = not DEBUG  # Redirects all non-HTTPS requests to HTTPS
 
 # Debug toolbar settings
 INTERNAL_IPS = [
