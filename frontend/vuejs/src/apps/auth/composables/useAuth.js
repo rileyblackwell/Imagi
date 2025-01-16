@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
-import { getCookie, setCookie, removeCookie } from '@/utils/helpers';
+import { getCookie, setCookie, removeCookie } from '../utils/auth';
 
 const user = ref(null);
 const loading = ref(false);

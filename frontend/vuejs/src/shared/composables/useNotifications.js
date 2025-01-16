@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import axios from 'axios';
-import { formatRelativeTime } from '@/utils/helpers';
+import { formatRelativeTime } from '../utils/formatting';
 
 const notifications = ref([]);
 const unreadCount = ref(0);

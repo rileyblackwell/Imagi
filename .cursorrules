@@ -26,6 +26,7 @@
 # Apps Overview:
 # - **Auth App**: 
 #   * Handles user authentication (login, signup).
+#   * Uses Django's authentication system to authenticate users.
 #   * Future integration with OAuth is planned.
 # - **Builder App**: 
 #   * Core functionality of Imagi Oasis, enabling natural language to code generation.
@@ -47,26 +48,39 @@
 #   * Handles the lifecycle of user projects.
 #   * Manages project organization, directory creation, and file handling.
 
-# Style & Design:
-# - Frontend (Vue.js):
-#   * Follow component-based architecture for reusability and modularity.
+# Frontend Details:
+# - **Framework**: Vue.js
+# - **API Calls**: Use Axios for handling API requests.
+# - **State Management**: Pinia stores are used to manage application state.
+# - **Styling**: 
 #   * Use **Tailwind CSS** for styling and layout, adhering to its utility-first design philosophy.
-#   * Ensure responsiveness and accessibility across devices and browsers.
 #   * Include a global Tailwind configuration file (`tailwind.config.js`) for custom theme extensions and consistent design tokens.
 #   * Avoid inline styles; utilize Tailwind's utility classes instead for concise and scalable CSS.
-# - Backend (Django):
+# - **Design Principles**:
+#   * Follow component-based architecture for reusability and modularity.
+#   * Ensure responsiveness and accessibility across devices and browsers.
+
+# Backend Details:
+# - **Framework**: Django
+# - **API Design**:
+#   * Handle API calls from the Vue.js frontend using **Django REST Framework (DRF)**.
 #   * Follow RESTful API design principles with proper versioning (e.g., `/api/v1/`).
-#   * Implement secure and scalable data handling.
-# - Overall Design:
-#   * Draw inspiration from Stripe, Airbnb, Apple, Twilio, Meta, Google, and Discord.
-#   * Prioritize minimalism, elegance, and responsiveness.
-#   * Incorporate modern typography, consistent spacing, and subtle animations for a polished look.
+# - **Authentication**:
+#   * Use Django's built-in authentication system to authenticate users.
+#   * Protect API endpoints requiring authentication using DRF's authentication classes.
+
+# Overall Design:
+# - Draw inspiration from Stripe, Airbnb, Apple, Twilio, Meta, Google, and Discord.
+# - Prioritize minimalism, elegance, and responsiveness.
+# - Incorporate modern typography, consistent spacing, and subtle animations for a polished look.
 
 # Development Environment:
 # - Operating System: macOS with zsh terminal.
-# - Dependency Management: Use pipenv for managing Python virtual environments and dependencies.
-# - Node.js and npm for managing frontend dependencies.
-# - Development occurs locally, with future plans for Docker and Kubernetes for production deployments.
+# - Dependency Management: 
+#   * Use pipenv for managing Python virtual environments and dependencies.
+#   * Use Node.js and npm for managing frontend dependencies.
+# - Local Development: 
+#   * Development occurs locally, with future plans for Docker and Kubernetes for production deployments.
 
 # Testing:
 # - **Backend (Django)**:
