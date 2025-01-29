@@ -12,46 +12,111 @@
         <!-- Information We Collect -->
         <section>
           <h2 class="text-3xl font-bold text-white mb-8">Information We Collect</h2>
-          <div class="space-y-6">
-            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
-              <h3 class="text-xl font-semibold text-white mb-4">Account Information</h3>
-              <p class="text-gray-300">When you create an account, we collect your name, email address, and password.</p>
-            </div>
-            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
-              <h3 class="text-xl font-semibold text-white mb-4">Profile Information</h3>
-              <p class="text-gray-300">You may choose to provide additional profile information such as a profile picture or bio.</p>
-            </div>
-            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
-              <h3 class="text-xl font-semibold text-white mb-4">Payment Information</h3>
-              <p class="text-gray-300">For paid services, we collect payment information through our secure payment processor.</p>
-            </div>
-            <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
-              <h3 class="text-xl font-semibold text-white mb-4">Usage Data</h3>
-              <p class="text-gray-300">We collect information about how you use our services, including your interactions with our platform.</p>
-            </div>
+          <div class="prose prose-invert max-w-none">
+            <p>We collect the following types of information to provide and improve our services:</p>
+            <ul>
+              <li>Account Information: Your name, email address, password, and other details provided during account registration.</li>
+              <li>Profile Information: Details you provide to customize your user profile.</li>
+              <li>Payment Information: Billing details and transaction data processed securely via third-party payment providers.</li>
+              <li>Usage Data: Information about your interactions with our services.</li>
+            </ul>
           </div>
         </section>
 
         <!-- How We Use Your Information -->
         <section>
           <h2 class="text-3xl font-bold text-white mb-8">How We Use Your Information</h2>
-          <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
-            <ul class="space-y-4 text-gray-300">
-              <li>• To provide and maintain our services</li>
-              <li>• To process your payments</li>
-              <li>• To communicate with you about our services</li>
-              <li>• To improve our platform and user experience</li>
-              <li>• To detect and prevent fraud or abuse</li>
+          <div class="prose prose-invert max-w-none">
+            <p>We use the collected information for the following purposes:</p>
+            <ul>
+              <li>To provide, maintain, and improve our services</li>
+              <li>To process payments securely and efficiently</li>
+              <li>To send technical notices and support messages</li>
+              <li>To analyze usage trends and enhance user experience</li>
             </ul>
+          </div>
+        </section>
+
+        <!-- Information Sharing -->
+        <section>
+          <h2 class="text-3xl font-bold text-white mb-8">Information Sharing</h2>
+          <div class="prose prose-invert max-w-none">
+            <p>Your personal information is not sold. However, we may share your data in the following situations:</p>
+            <ul>
+              <li><strong>Service Providers:</strong> Trusted third-party providers that support our operations, such as hosting, analytics, and payment processing.</li>
+              <li><strong>Legal Obligations:</strong> To comply with laws, regulations, or legal requests, including responses to subpoenas or court orders.</li>
+              <li><strong>Professional Advisors:</strong> Consultants, auditors, or legal counsel for business or compliance purposes.</li>
+              <li><strong>Business Transfers:</strong> In the event of a merger, sale, or acquisition, your data may be transferred as part of the transaction.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Data Security -->
+        <section>
+          <h2 class="text-3xl font-bold text-white mb-8">Data Security</h2>
+          <div class="prose prose-invert max-w-none">
+            <p>We prioritize the security of your personal information by implementing industry-standard measures, including:</p>
+            <ul>
+              <li>Encryption of sensitive data during transmission and storage.</li>
+              <li>Secure server infrastructure with access controls.</li>
+              <li>Regular security audits and monitoring for vulnerabilities.</li>
+            </ul>
+            <p>While we strive to protect your information, no system is 100% secure, and we cannot guarantee absolute security.</p>
+          </div>
+        </section>
+
+        <!-- Your Rights -->
+        <section>
+          <h2 class="text-3xl font-bold text-white mb-8">Your Rights</h2>
+          <div class="prose prose-invert max-w-none">
+            <p>Depending on your jurisdiction (e.g., GDPR, CCPA), you may have the following rights:</p>
+            <ul>
+              <li><strong>Access:</strong> Request a copy of the personal data we hold about you.</li>
+              <li><strong>Correction:</strong> Update or correct inaccuracies in your personal data.</li>
+              <li><strong>Deletion:</strong> Request deletion of your data, subject to certain legal obligations.</li>
+              <li><strong>Data Portability:</strong> Obtain your data in a portable format.</li>
+              <li><strong>Objection:</strong> Object to the processing of your data in certain circumstances.</li>
+              <li><strong>Opt-Out:</strong> Under CCPA, opt out of the sale of your personal data (if applicable).</li>
+            </ul>
+            <p>To exercise your rights, please contact us using the details below.</p>
+          </div>
+        </section>
+
+        <!-- Cookies and Tracking -->
+        <section>
+          <h2 class="text-3xl font-bold text-white mb-8">Cookies and Tracking</h2>
+          <div class="prose prose-invert max-w-none">
+            <p>We use cookies and similar technologies to enhance your experience, including:</p>
+            <ul>
+              <li>Remembering your preferences and login details.</li>
+              <li>Analyzing website traffic and usage patterns.</li>
+              <li>Providing personalized content and recommendations.</li>
+            </ul>
+            <p>You can manage your cookie preferences through your browser settings or read our <router-link to="/cookie-policy" class="text-primary-400 hover:text-primary-300">Cookie Policy</router-link> for more information.</p>
+          </div>
+        </section>
+
+        <!-- Data Retention -->
+        <section>
+          <h2 class="text-3xl font-bold text-white mb-8">Data Retention</h2>
+          <div class="prose prose-invert max-w-none">
+            <p>We retain your personal information only for as long as necessary to fulfill the purposes outlined in this policy or as required by law. Anonymized or aggregated data may be retained indefinitely for research and analysis purposes.</p>
+          </div>
+        </section>
+
+        <!-- Changes to This Privacy Policy -->
+        <section>
+          <h2 class="text-3xl font-bold text-white mb-8">Changes to This Privacy Policy</h2>
+          <div class="prose prose-invert max-w-none">
+            <p>We may update this Privacy Policy periodically to reflect changes in our practices or legal requirements. The "Last Updated" date at the top of this page indicates the most recent revision. Significant changes will be communicated to you directly where required.</p>
           </div>
         </section>
 
         <!-- Contact Us -->
         <section>
           <h2 class="text-3xl font-bold text-white mb-8">Contact Us</h2>
-          <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700">
-            <p class="text-gray-300 mb-4">If you have any questions about our Privacy Policy, please contact us:</p>
-            <router-link to="/contact" class="text-primary-400 hover:text-primary-300">Contact Form →</router-link>
+          <div class="prose prose-invert max-w-none">
+            <p>If you have any questions, concerns, or requests regarding this Privacy Policy, please <router-link to="/contact" class="text-primary-400 hover:text-primary-300">contact us</router-link>.</p>
           </div>
         </section>
       </div>

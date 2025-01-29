@@ -1,5 +1,6 @@
 <template>
   <div id="app" class="min-h-screen bg-dark-950 text-white flex flex-col">
+    <BaseNavbar />
     <router-view v-slot="{ Component }" class="flex-grow">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -12,12 +13,13 @@
 <script>
 import { useAuthStore } from '@/apps/auth/store'
 import { onMounted } from 'vue'
-import { BaseFooter } from '@/shared/components'
+import { BaseFooter, BaseNavbar } from '@/shared/components'
 
 export default {
   name: 'App',
   components: {
-    BaseFooter
+    BaseFooter,
+    BaseNavbar
   },
   setup() {
     const authStore = useAuthStore()
