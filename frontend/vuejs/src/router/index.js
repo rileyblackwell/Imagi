@@ -7,7 +7,7 @@ import authRoutes from '@/apps/auth/routes.js'
 import NotFound from '@/shared/views/NotFound.vue'
 
 const routes = [
-  homeRoutes,
+  ...homeRoutes,
   authRoutes,
   {
     path: '/:pathMatch(.*)*',
