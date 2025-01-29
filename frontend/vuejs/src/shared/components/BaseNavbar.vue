@@ -26,7 +26,7 @@
           </template>
           <template v-else>
             <router-link
-              to="/login"
+              to="/auth/login"
               class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-500 transition-colors"
             >
               <i class="fas fa-sign-in-alt mr-2"></i>
@@ -55,7 +55,7 @@ export default {
     const handleLogout = async () => {
       try {
         await authStore.logout()
-        router.push('/login')
+        router.push('/auth/login')
       } catch (error) {
         console.error('Logout failed:', error)
       }
