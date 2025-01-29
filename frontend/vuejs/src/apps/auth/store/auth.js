@@ -104,20 +104,20 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      await ensureCSRFToken()
       const response = await axios.post('/api/auth/login/', {
         username: credentials.username,
         password: credentials.password
       })
       
-      if (response.data.token) {
+      if (response.data.token && response.data.user) {
         setToken(response.data.token)
         setUser(response.data.user)
         return response.data
       }
-      throw new Error('No token received from server')
+      throw new Error('Invalid response from server')
     } catch (err) {
-      error.value = err.response?.data?.detail || 'Login failed'
+      console.error('Login error:', err)
+      error.value = err.response?.data?.error || err.message
       throw error.value
     } finally {
       loading.value = false
@@ -134,7 +134,8 @@ export const useAuthStore = defineStore('auth', () => {
         password: userData.password
       })
       
-      if (response.data.user) {
+      if (response.data.token && response.data.user) {
+        setToken(response.data.token)
         setUser(response.data.user)
         return response.data
       }

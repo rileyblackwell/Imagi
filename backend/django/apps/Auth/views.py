@@ -73,7 +73,11 @@ def register_user(request):
             # Log the user in
             login(request, user)
             
+            # Create or get auth token
+            token, _ = Token.objects.get_or_create(user=user)
+            
             response = Response({
+                'token': token.key,
                 'user': UserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
             
@@ -104,6 +108,10 @@ def login_user(request):
     """
     API endpoint for user login
     """
+    # Get the origin from the request
+    origin = request.headers.get('Origin', '')
+    allowed_origins = ['http://localhost:5173', 'http://localhost:5174']
+    
     username = request.data.get('username')
     password = request.data.get('password')
     
@@ -116,9 +124,21 @@ def login_user(request):
     
     if user:
         login(request, user)
-        return Response({
+        # Create or get auth token
+        token, _ = Token.objects.get_or_create(user=user)
+        
+        response = Response({
+            'token': token.key,
             'user': UserSerializer(user).data
         })
+        
+        # Add CORS headers
+        if origin in allowed_origins:
+            response["Access-Control-Allow-Origin"] = origin
+            response["Access-Control-Allow-Credentials"] = "true"
+        
+        return response
+        
     return Response({
         'error': 'Invalid credentials'
     }, status=status.HTTP_401_UNAUTHORIZED)
