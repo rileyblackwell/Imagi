@@ -50,8 +50,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -158,38 +158,39 @@ SIMPLE_JWT = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite dev server
-    "http://127.0.0.1:5173",
+    "http://localhost:5173",  # Vue.js development server
+    "http://localhost:5174",  # Additional Vue.js port
 ]
-
 CORS_ALLOW_CREDENTIALS = True
-
-# Session settings
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = not DEBUG  # Set to True in production with HTTPS
-SESSION_COOKIE_SAMESITE = 'Lax'  # Use 'Strict' in production
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # CSRF settings
-CSRF_COOKIE_NAME = 'csrftoken'
-CSRF_HEADER_NAME = 'X-CSRFToken'
-CSRF_COOKIE_HTTPONLY = False  # False allows JavaScript to read the token
-CSRF_COOKIE_SECURE = not DEBUG  # Set to True in production with HTTPS
-CSRF_COOKIE_SAMESITE = 'Lax'  # Use 'Strict' in production
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000'
+    "http://localhost:5173",  # Vue.js development server
+    "http://localhost:5174",  # Additional Vue.js port
 ]
-
-# If you're using HTTPS in development, add these as well:
-if DEBUG:
-    CSRF_TRUSTED_ORIGINS.extend([
-        'https://localhost:5173',
-        'https://127.0.0.1:5173',
-        'https://localhost:8000',
-        'https://127.0.0.1:8000'
-    ])
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # False to allow JavaScript access
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
 
 # For development, you might want to add localhost to ALLOWED_HOSTS
 ALLOWED_HOSTS = ['localhost', '127.0.0.1'] if DEBUG else ['your-production-domain.com']

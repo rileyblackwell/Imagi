@@ -22,6 +22,23 @@ function getCookie(name) {
 axios.defaults.withCredentials = true
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+axios.defaults.baseURL = 'http://localhost:8000'
+
+// Add axios interceptor to handle CORS and CSRF
+axios.interceptors.request.use(async config => {
+  // Ensure we have a CSRF token before making requests
+  if (!getCookie('csrftoken')) {
+    await axios.get('/api/auth/csrf/')
+  }
+  
+  // Add CSRF token to headers
+  const csrfToken = getCookie('csrftoken')
+  if (csrfToken) {
+    config.headers['X-CSRFToken'] = csrfToken
+  }
+  
+  return config
+})
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
@@ -114,27 +131,17 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await axios.post('/api/auth/register/', {
         username: userData.username,
-        email: userData.email,
-        password: userData.password,
-        first_name: userData.firstName,
-        last_name: userData.lastName
+        password: userData.password
       })
       
-      if (response.data.token) {
-        setToken(response.data.token)
+      if (response.data.user) {
         setUser(response.data.user)
         return response.data
       }
-      throw new Error('No token received from server')
+      throw new Error('Registration failed')
     } catch (err) {
       console.error('Registration error:', err)
-      if (err.response?.data?.errors) {
-        error.value = err.response.data.errors
-      } else if (err.response?.data?.error) {
-        error.value = { general: err.response.data.error }
-      } else {
-        error.value = { general: err.message || 'An error occurred during registration' }
-      }
+      error.value = err.response?.data?.errors || err.message
       throw error.value
     } finally {
       loading.value = false

@@ -23,6 +23,7 @@ from .serializers import UserSerializer
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
 import logging
+from django.views.decorators.http import require_http_methods
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -41,10 +42,24 @@ def get_csrf_token(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @csrf_protect
+@require_http_methods(["POST", "OPTIONS"])
 def register_user(request):
     """
     API endpoint for user registration
     """
+    # Get the origin from the request
+    origin = request.headers.get('Origin', '')
+    allowed_origins = ['http://localhost:5173', 'http://localhost:5174']
+    
+    if request.method == "OPTIONS":
+        response = Response()
+        if origin in allowed_origins:
+            response["Access-Control-Allow-Origin"] = origin
+            response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+            response["Access-Control-Allow-Headers"] = "Content-Type, X-CSRFToken"
+            response["Access-Control-Allow-Credentials"] = "true"
+        return response
+
     logger.info("Registration attempt for username: %s", request.data.get('username'))
     
     serializer = UserSerializer(data=request.data)
@@ -58,9 +73,16 @@ def register_user(request):
             # Log the user in
             login(request, user)
             
-            return Response({
+            response = Response({
                 'user': UserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
+            
+            # Add CORS headers
+            if origin in allowed_origins:
+                response["Access-Control-Allow-Origin"] = origin
+                response["Access-Control-Allow-Credentials"] = "true"
+            
+            return response
             
         except Exception as e:
             logger.error("Error during user creation: %s", str(e), exc_info=True)
