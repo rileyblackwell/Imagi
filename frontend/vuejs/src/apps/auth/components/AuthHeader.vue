@@ -2,8 +2,7 @@
   <div class="text-center mb-8">
     <div class="brand-header">
       <div class="logo-container">
-        <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-12 w-auto mx-auto mb-4" />
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
+        <h1 class="text-3xl font-bold text-white">
           Imagi
         </h1>
       </div>
