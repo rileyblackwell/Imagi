@@ -1,226 +1,166 @@
 <template>
-  <base-layout>
-    <template #hero>
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-          <h1 class="text-4xl font-extrabold text-white sm:text-5xl md:text-6xl">
-            <span class="block">AI Credits</span>
-            <span class="block text-primary-400">Power Your Development</span>
-          </h1>
-          <p class="mt-3 max-w-md mx-auto text-base text-gray-300 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-            Purchase credits to use our AI services for building your web applications.
-          </p>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold text-white sm:text-5xl md:text-6xl">
+        <span class="block">AI Credits</span>
+        <span class="block text-primary-400">Power Your Development</span>
+      </h1>
+      <p class="mt-3 max-w-md mx-auto text-base text-gray-300 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+        Purchase credits to use our AI services for building your web applications.
+      </p>
+    </div>
+
+    <!-- Current Balance -->
+    <div class="mb-12 bg-dark-800 rounded-lg shadow-xl p-6 border border-dark-700 max-w-xl mx-auto">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-white mb-2">Your Balance</h3>
+          <p class="text-3xl font-bold text-primary-400">${{ currentBalance }}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm text-gray-400">Last updated</p>
+          <p class="text-sm text-gray-300">{{ lastUpdated }}</p>
         </div>
       </div>
-    </template>
+    </div>
 
-    <template #default>
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- Credit Packages -->
-        <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          <!-- Starter Package -->
-          <div class="bg-dark-800 rounded-lg shadow-xl overflow-hidden border border-dark-700 hover:border-primary-500/20 transition-all duration-300">
-            <div class="p-6">
-              <h3 class="text-lg font-semibold text-white">Starter Package</h3>
-              <div class="mt-4">
-                <p class="text-3xl font-bold text-white">
-                  $10
-                </p>
-                <p class="text-sm text-gray-400">100 credits</p>
-              </div>
-              <ul class="mt-6 space-y-4">
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Build simple web applications
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Basic AI assistance
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  30-day validity
-                </li>
-              </ul>
-              <button
-                @click="purchaseCredits('starter')"
-                class="mt-8 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Purchase Now
-              </button>
-            </div>
+    <!-- Credit Packages -->
+    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-for="pkg in packages" :key="pkg.id" 
+           class="bg-dark-800 rounded-lg shadow-xl overflow-hidden border"
+           :class="[pkg.popular ? 'border-primary-500/20' : 'border-dark-700']">
+        <div class="p-6 relative">
+          <!-- Popular Badge -->
+          <div v-if="pkg.popular" 
+               class="absolute top-0 right-0 -mt-1 -mr-1 px-3 py-1 bg-primary-500 text-white text-xs font-medium rounded-bl">
+            Popular
           </div>
 
-          <!-- Pro Package -->
-          <div class="bg-dark-800 rounded-lg shadow-xl overflow-hidden border border-primary-500/20 hover:border-primary-500/40 transition-all duration-300">
-            <div class="p-6">
-              <div class="absolute top-0 right-0 -mt-1 -mr-1 px-3 py-1 bg-primary-500 text-white text-xs font-medium rounded-bl">
-                Popular
-              </div>
-              <h3 class="text-lg font-semibold text-white">Pro Package</h3>
-              <div class="mt-4">
-                <p class="text-3xl font-bold text-white">
-                  $25
-                </p>
-                <p class="text-sm text-gray-400">300 credits</p>
-              </div>
-              <ul class="mt-6 space-y-4">
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Build complex applications
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Advanced AI features
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  60-day validity
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Priority support
-                </li>
-              </ul>
-              <button
-                @click="purchaseCredits('pro')"
-                class="mt-8 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Purchase Now
-              </button>
-            </div>
+          <h3 class="text-lg font-semibold text-white">{{ pkg.name }}</h3>
+          <div class="mt-4">
+            <p class="text-3xl font-bold text-white">
+              ${{ pkg.amount }}
+            </p>
+            <p class="text-sm text-gray-400">{{ pkg.credits }} credits</p>
           </div>
 
-          <!-- Enterprise Package -->
-          <div class="bg-dark-800 rounded-lg shadow-xl overflow-hidden border border-dark-700 hover:border-primary-500/20 transition-all duration-300">
-            <div class="p-6">
-              <h3 class="text-lg font-semibold text-white">Enterprise Package</h3>
-              <div class="mt-4">
-                <p class="text-3xl font-bold text-white">
-                  $50
-                </p>
-                <p class="text-sm text-gray-400">1000 credits</p>
-              </div>
-              <ul class="mt-6 space-y-4">
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Unlimited application complexity
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Premium AI features
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  90-day validity
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  24/7 priority support
-                </li>
-                <li class="flex items-center text-gray-300">
-                  <i class="fas fa-check text-primary-400 mr-2"></i>
-                  Custom solutions
-                </li>
-              </ul>
-              <button
-                @click="purchaseCredits('enterprise')"
-                class="mt-8 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Purchase Now
-              </button>
-            </div>
-          </div>
-        </div>
+          <!-- Features -->
+          <ul class="mt-6 space-y-4">
+            <li v-for="feature in pkg.features" :key="feature" 
+                class="flex items-center text-gray-300">
+              <i class="fas fa-check text-primary-400 mr-2"></i>
+              {{ feature }}
+            </li>
+          </ul>
 
-        <!-- Current Credits -->
-        <div class="mt-12 bg-dark-800 rounded-lg shadow-xl p-6 border border-dark-700">
-          <h3 class="text-lg font-semibold text-white mb-4">Your Credits</h3>
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-3xl font-bold text-white">{{ credits }}</p>
-              <p class="text-sm text-gray-400">Available credits</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm text-gray-300">Last purchase: {{ lastPurchaseDate }}</p>
-              <p class="text-sm text-gray-400">Valid until: {{ validUntil }}</p>
-            </div>
-          </div>
+          <!-- Purchase Button -->
+          <button
+            @click="purchaseCredits(pkg.id)"
+            :disabled="isLoading"
+            class="mt-8 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="isLoading && selectedPackage === pkg.id" class="mr-2">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+            {{ isLoading && selectedPackage === pkg.id ? 'Processing...' : 'Purchase Now' }}
+          </button>
         </div>
       </div>
-    </template>
-  </base-layout>
+    </div>
+
+    <!-- Error Message -->
+    <div v-if="error" class="mt-8 text-center">
+      <p class="text-red-500">{{ error }}</p>
+    </div>
+  </div>
 </template>
 
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseLayout from '@/shared/layouts/BaseLayout.vue'
 import PaymentService from '../services/payment.service'
+import { usePaymentStore } from '../store/payments'
 
 export default {
   name: 'Credits',
-  components: {
-    BaseLayout
-  },
   setup() {
     const router = useRouter()
-    const credits = ref(0)
-    const lastPurchaseDate = ref('Never')
-    const validUntil = ref('N/A')
+    const paymentStore = usePaymentStore()
+    const packages = ref([])
+    const currentBalance = ref(0)
+    const lastUpdated = ref(new Date().toLocaleString())
     const isLoading = ref(false)
     const error = ref(null)
+    const selectedPackage = ref(null)
 
-    async function purchaseCredits(package_type) {
+    async function loadData() {
       try {
-        isLoading.value = true
-        error.value = null
-        
-        // Create payment intent for the selected package
-        const { clientSecret } = await PaymentService.createPaymentIntent({
-          package_type,
-          return_url: `${window.location.origin}/payments/success`
-        })
-
-        // Redirect to checkout with the client secret
-        router.push({
-          name: 'checkout',
-          query: { 
-            package: package_type,
-            client_secret: clientSecret
-          }
-        })
+        const [packagesData, balanceData] = await Promise.all([
+          PaymentService.getCreditPackages(),
+          PaymentService.getBalance()
+        ])
+        packages.value = packagesData
+        currentBalance.value = balanceData.balance
+        lastUpdated.value = new Date().toLocaleString()
       } catch (err) {
-        console.error('Failed to purchase credits:', err)
-        error.value = err.message || 'Failed to purchase credits. Please try again.'
-      } finally {
-        isLoading.value = false
+        error.value = 'Failed to load credit packages. Please try again.'
+        console.error('Error loading data:', err)
       }
     }
 
-    async function fetchUserCredits() {
+    async function purchaseCredits(packageId) {
       try {
-        const { balance, last_purchase, valid_until } = await PaymentService.getBalance()
-        credits.value = balance
-        lastPurchaseDate.value = last_purchase || 'Never'
-        validUntil.value = valid_until || 'N/A'
+        isLoading.value = true
+        selectedPackage.value = packageId
+        error.value = null
+
+        const result = await PaymentService.purchaseCredits(packageId)
+        
+        // Navigate to checkout with the client secret
+        router.push({
+          name: 'checkout',
+          query: { 
+            package: packageId,
+            client_secret: result.clientSecret
+          }
+        })
       } catch (err) {
-        console.error('Failed to fetch user credits:', err)
+        error.value = err.message || 'Failed to initiate purchase. Please try again.'
+        console.error('Purchase error:', err)
+      } finally {
+        isLoading.value = false
+        selectedPackage.value = null
       }
     }
 
     onMounted(() => {
-      fetchUserCredits()
+      loadData()
     })
 
     return {
-      credits,
-      lastPurchaseDate,
-      validUntil,
-      purchaseCredits,
+      packages,
+      currentBalance,
+      lastUpdated,
       isLoading,
-      error
+      error,
+      selectedPackage,
+      purchaseCredits
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+.credit-package {
+  transition: all 0.3s ease;
+}
+
+.credit-package:hover {
+  transform: translateY(-5px);
+}
+
+.popular-badge {
+  background: linear-gradient(135deg, #00ffc6, #00a2ff);
+}
+</style> 

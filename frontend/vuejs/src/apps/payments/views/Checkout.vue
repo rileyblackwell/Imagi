@@ -1,220 +1,190 @@
 <template>
-  <div class="checkout-container">
-    <div class="max-w-3xl mx-auto px-4 py-8">
-      <base-card>
-        <template #header>
-          <h2 class="text-2xl font-bold text-white">Add Credits</h2>
-          <p class="text-gray-400 mt-2">Power your AI development with Imagi credits</p>
-        </template>
-        
-        <div class="space-y-6">
-          <!-- Amount Selection -->
-          <div class="amount-selection">
-            <label class="block text-sm font-medium text-gray-300 mb-2">
-              Amount to Add
-            </label>
-            <div class="relative">
-              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
-              <input
-                v-model="amount"
-                type="number"
-                min="10"
-                max="100"
-                step="0.01"
-                class="w-full pl-8 pr-4 py-2 bg-dark-800 border border-dark-700 rounded-md text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                @input="handleAmountChange"
-              />
-            </div>
-            <p v-if="amountError" class="mt-2 text-red-500 text-sm">{{ amountError }}</p>
-          </div>
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="bg-dark-800 rounded-lg shadow-xl overflow-hidden border border-dark-700">
+      <!-- Header -->
+      <div class="p-6 border-b border-dark-700">
+        <h2 class="text-2xl font-bold text-white">Complete Purchase</h2>
+        <p class="text-gray-400 mt-2">Secure payment powered by Stripe</p>
+      </div>
 
-          <!-- Credits Preview -->
-          <div class="credits-preview bg-dark-800 p-4 rounded-md border border-dark-700">
-            <div class="flex items-center justify-between">
+      <!-- Main Content -->
+      <div class="p-6">
+        <!-- Package Summary -->
+        <div v-if="selectedPackage" class="mb-8">
+          <h3 class="text-lg font-medium text-white mb-4">Order Summary</h3>
+          <div class="bg-dark-900 rounded-lg p-4">
+            <div class="flex justify-between items-center mb-4">
               <div>
-                <p class="text-sm text-gray-400">You'll receive</p>
-                <p class="text-xl font-bold text-white">{{ creditsToReceive }} credits</p>
+                <p class="text-white font-medium">{{ selectedPackage.name }}</p>
+                <p class="text-sm text-gray-400">{{ selectedPackage.credits }} credits</p>
               </div>
-              <div class="text-right">
-                <p class="text-sm text-gray-400">Current Balance</p>
-                <p class="text-xl font-bold text-primary-500">${{ currentBalance }}</p>
+              <p class="text-xl font-bold text-white">${{ selectedPackage.amount }}</p>
+            </div>
+            <div class="border-t border-dark-700 pt-4">
+              <div class="flex justify-between items-center">
+                <p class="text-gray-400">Total</p>
+                <p class="text-2xl font-bold text-primary-400">${{ selectedPackage.amount }}</p>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Stripe Payment Element -->
-          <div class="payment-element-container">
-            <div id="payment-element"></div>
+        <!-- Payment Form -->
+        <form id="payment-form" @submit.prevent="handleSubmit">
+          <!-- Stripe Elements Container -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-300 mb-2">
+              Card Details
+            </label>
+            <div 
+              id="payment-element" 
+              class="bg-dark-900 rounded-lg p-4 min-h-[200px] border border-dark-700"
+            ></div>
           </div>
 
-          <div v-if="errorMessage" class="text-red-500 text-sm mt-2">
-            {{ errorMessage }}
+          <!-- Error Message -->
+          <div v-if="error" class="mb-6">
+            <p class="text-red-500 text-sm">{{ error }}</p>
           </div>
 
           <!-- Submit Button -->
           <button
-            @click="handleSubmit"
-            :disabled="isLoading || !isAmountValid"
-            class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            type="submit"
+            :disabled="isLoading || !stripe || !elements"
+            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="isLoading" class="mr-2">
               <i class="fas fa-spinner fa-spin"></i>
             </span>
-            <span>{{ isLoading ? 'Processing...' : 'Complete Purchase' }}</span>
+            {{ isLoading ? 'Processing...' : 'Pay Now' }}
           </button>
+        </form>
+
+        <!-- Security Badge -->
+        <div class="mt-6 flex items-center justify-center text-gray-400 text-sm">
+          <i class="fas fa-lock mr-2"></i>
+          <span>Payments are secure and encrypted</span>
         </div>
-      </base-card>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import BaseCard from '@/shared/components/BaseCard.vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import PaymentService from '../services/payment.service'
-import config from '@/shared/config'
 
 export default {
   name: 'Checkout',
-  components: {
-    BaseCard
-  },
   setup() {
     const router = useRouter()
-    const paymentService = new PaymentService()
-    const amount = ref(20)
-    const amountError = ref('')
-    const errorMessage = ref('')
-    const isLoading = ref(false)
-    const currentBalance = ref(0)
+    const route = useRoute()
     const stripe = ref(null)
     const elements = ref(null)
+    const isLoading = ref(false)
+    const error = ref(null)
+    const selectedPackage = ref(null)
 
-    const creditsToReceive = computed(() => {
-      return Math.floor(amount.value * config.payments.creditsPerDollar)
-    })
-
-    const isAmountValid = computed(() => {
-      return amount.value >= 10 && amount.value <= 100 && !amountError.value
-    })
-
-    const handleAmountChange = () => {
-      amountError.value = ''
-      if (amount.value < 10) {
-        amountError.value = 'Minimum amount is $10.00'
-      } else if (amount.value > 100) {
-        amountError.value = 'Maximum amount is $100.00'
-      }
-      // Reinitialize payment element with new amount
-      if (isAmountValid.value) {
-        initializePaymentElement()
-      }
-    }
-
-    const initializePaymentElement = async () => {
+    // Initialize Stripe and load package details
+    async function initialize() {
       try {
         isLoading.value = true
-        errorMessage.value = ''
+        error.value = null
 
-        // Create payment intent
-        const { clientSecret } = await paymentService.createPaymentIntent(amount.value)
+        // Get package details
+        const packages = await PaymentService.getCreditPackages()
+        const packageId = route.query.package
+        selectedPackage.value = packages.find(p => p.id === packageId)
 
-        if (!elements.value) {
-          elements.value = stripe.value.elements({
-            clientSecret,
-            appearance: {
-              theme: 'night',
-              variables: {
-                colorPrimary: '#00ffc6',
-                colorBackground: '#1a1b23',
-                colorText: '#ffffff',
-                colorDanger: '#ff4d4d',
-                fontFamily: 'system-ui, sans-serif',
-              }
-            }
-          })
-
-          const paymentElement = elements.value.create('payment')
-          paymentElement.mount('#payment-element')
-        } else {
-          await elements.value.fetchUpdates()
+        if (!selectedPackage.value) {
+          throw new Error('Invalid package selected')
         }
-      } catch (error) {
-        errorMessage.value = error.message || 'Failed to initialize payment'
+
+        // Initialize Stripe
+        if (!window.Stripe) {
+          throw new Error('Stripe.js not loaded')
+        }
+
+        stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
+        // Get client secret from URL
+        const clientSecret = route.query.client_secret
+        if (!clientSecret) {
+          throw new Error('Payment session expired')
+        }
+
+        // Create Elements instance
+        elements.value = stripe.value.elements({
+          clientSecret,
+          appearance: {
+            theme: 'night',
+            variables: {
+              colorPrimary: '#00ffc6',
+              colorBackground: '#1a1b23',
+              colorText: '#ffffff',
+              colorDanger: '#ff4d4d',
+              fontFamily: 'system-ui, sans-serif',
+            }
+          }
+        })
+
+        // Create and mount the Payment Element
+        const paymentElement = elements.value.create('payment')
+        paymentElement.mount('#payment-element')
+      } catch (err) {
+        error.value = err.message
+        console.error('Initialization error:', err)
       } finally {
         isLoading.value = false
       }
     }
 
-    const handleSubmit = async () => {
+    // Handle form submission
+    async function handleSubmit() {
       if (!stripe.value || !elements.value) {
         return
       }
 
       try {
         isLoading.value = true
-        errorMessage.value = ''
+        error.value = null
 
-        const { error } = await stripe.value.confirmPayment({
+        const { error: submitError } = await stripe.value.confirmPayment({
           elements: elements.value,
           confirmParams: {
-            return_url: `${window.location.origin}/payments/success/`,
-            payment_method_data: {
-              billing_details: {
-                amount: amount.value
-              }
-            }
+            return_url: `${window.location.origin}/payments/success`
           }
         })
 
-        if (error) {
-          errorMessage.value = error.message
+        if (submitError) {
+          throw submitError
         }
-      } catch (error) {
-        errorMessage.value = 'Payment failed. Please try again.'
+      } catch (err) {
+        error.value = err.message
+        console.error('Payment error:', err)
       } finally {
         isLoading.value = false
       }
     }
 
-    const fetchBalance = async () => {
-      try {
-        const { balance } = await paymentService.getBalance()
-        currentBalance.value = balance
-      } catch (error) {
-        console.error('Failed to fetch balance:', error)
+    // Clean up on component unmount
+    onUnmounted(() => {
+      if (elements.value) {
+        elements.value.unmount()
       }
-    }
+    })
 
-    onMounted(async () => {
-      // Initialize Stripe
-      if (!window.Stripe) {
-        errorMessage.value = 'Failed to load Stripe. Please refresh the page.'
-        return
-      }
-
-      stripe.value = window.Stripe(config.payments.stripePublishableKey)
-      if (!stripe.value) {
-        errorMessage.value = 'Invalid Stripe configuration. Please contact support.'
-        return
-      }
-
-      await Promise.all([
-        initializePaymentElement(),
-        fetchBalance()
-      ])
+    onMounted(() => {
+      initialize()
     })
 
     return {
-      amount,
-      amountError,
-      errorMessage,
+      stripe,
+      elements,
       isLoading,
-      currentBalance,
-      creditsToReceive,
-      isAmountValid,
-      handleAmountChange,
+      error,
+      selectedPackage,
       handleSubmit
     }
   }
@@ -222,10 +192,11 @@ export default {
 </script>
 
 <style scoped>
-.payment-element-container {
-  min-height: 300px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 20px;
+#payment-element {
+  min-height: 200px;
+}
+
+#payment-element iframe {
+  background: transparent;
 }
 </style> 

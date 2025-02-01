@@ -12,7 +12,7 @@ const routes = [
   ...homeRoutes,
   authRoutes,
   ...builderRoutes,
-  paymentsRoutes,
+  ...paymentsRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',

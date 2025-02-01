@@ -34,18 +34,60 @@ class PaymentService {
   }
 
   async getCreditPackages() {
-    try {
-      const response = await axios.get(`${this.apiUrl}/packages/`)
-      return response.data
-    } catch (error) {
-      throw this.handleError(error)
-    }
+    return [
+      {
+        id: 'starter',
+        name: 'Starter Package',
+        amount: 10,
+        credits: 100,
+        features: [
+          'Build simple web applications',
+          'Basic AI assistance',
+          '30-day validity'
+        ]
+      },
+      {
+        id: 'pro',
+        name: 'Pro Package',
+        amount: 25,
+        credits: 300,
+        popular: true,
+        features: [
+          'Build complex applications',
+          'Advanced AI features',
+          '60-day validity',
+          'Priority support'
+        ]
+      },
+      {
+        id: 'enterprise',
+        name: 'Enterprise Package',
+        amount: 50,
+        credits: 1000,
+        features: [
+          'Unlimited application complexity',
+          'Premium AI features',
+          '90-day validity',
+          '24/7 priority support',
+          'Custom solutions'
+        ]
+      }
+    ]
   }
 
   async purchaseCredits(packageId) {
+    const packages = await this.getCreditPackages()
+    const selectedPackage = packages.find(p => p.id === packageId)
+    if (!selectedPackage) {
+      throw new Error('Invalid package selected')
+    }
+
     try {
-      const response = await axios.post(`${this.apiUrl}/purchase/`, { package_id: packageId })
-      return response.data
+      const { clientSecret } = await this.createPaymentIntent(selectedPackage.amount)
+      return {
+        clientSecret,
+        package: selectedPackage
+      }
     } catch (error) {
       throw this.handleError(error)
     }
