@@ -2,7 +2,7 @@
 <template>
   <BaseLayout>
     <!-- Header -->
-    <BaseNavbar />
+    <BaseNavbar :isHomeNav="isHomeNav" />
 
     <!-- Main Content with Transition -->
     <main class="flex-grow">
@@ -38,6 +38,12 @@ export default {
     BaseLayout,
     BaseNavbar,
     BaseFooter
+  },
+  props: {
+    isHomeNav: {
+      type: Boolean,
+      default: false
+    }
   },
   computed: {
     currentYear() {

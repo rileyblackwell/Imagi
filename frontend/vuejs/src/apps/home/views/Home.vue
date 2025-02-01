@@ -1,6 +1,6 @@
 <!-- Home page -->
 <template>
-  <DefaultLayout>
+  <DefaultLayout :isHomeNav="true">
     <div class="space-y-24 py-12">
       <!-- Hero Section -->
       <hero-section
