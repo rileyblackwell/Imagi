@@ -1,25 +1,133 @@
 <!-- Default layout for public pages -->
 <template>
   <BaseLayout>
-    <BaseNavbar />
-    <div class="min-h-screen">
-      <slot></slot>
-    </div>
-    <BaseFooter />
+    <!-- Header -->
+    <header class="bg-dark-900/80 backdrop-blur-sm border-b border-dark-800 sticky top-0 z-50">
+      <nav class="container mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+          <!-- Logo -->
+          <router-link to="/" class="flex items-center gap-3">
+            <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
+            <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
+              Imagi
+            </span>
+          </router-link>
+
+          <!-- Auth Button -->
+          <router-link 
+            to="/auth/login" 
+            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          >
+            Login
+          </router-link>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Content with Transition -->
+    <main class="flex-grow">
+      <transition
+        name="page"
+        mode="out-in"
+        @before-enter="beforeEnter"
+        @enter="enter"
+        @after-enter="afterEnter"
+        @enter-cancelled="enterCancelled"
+        @before-leave="beforeLeave"
+        @leave="leave"
+        @after-leave="afterLeave"
+        @leave-cancelled="leaveCancelled"
+      >
+        <slot></slot>
+      </transition>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark-900 border-t border-dark-700">
+      <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <!-- Navigation Links -->
+        <div class="flex justify-center space-x-8">
+          <router-link to="/about" class="text-gray-400 hover:text-primary-400">About</router-link>
+          <router-link to="/privacy" class="text-gray-400 hover:text-primary-400">Privacy Policy</router-link>
+          <router-link to="/terms" class="text-gray-400 hover:text-primary-400">Terms of Service</router-link>
+          <router-link to="/contact" class="text-gray-400 hover:text-primary-400">Contact</router-link>
+        </div>
+
+        <!-- Copyright -->
+        <div class="mt-8 pt-8 border-t border-dark-700">
+          <p class="text-center text-gray-400">&copy; {{ currentYear }} Imagi. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
   </BaseLayout>
 </template>
 
 <script>
-import BaseLayout from './BaseLayout.vue'
-import BaseNavbar from '@/shared/components/BaseNavbar.vue'
-import BaseFooter from '@/shared/components/BaseFooter.vue'
+import { BaseLayout } from './index'
+import gsap from 'gsap'
 
 export default {
   name: 'DefaultLayout',
   components: {
-    BaseLayout,
-    BaseNavbar,
-    BaseFooter
+    BaseLayout
+  },
+  computed: {
+    currentYear() {
+      return new Date().getFullYear()
+    }
+  },
+  methods: {
+    beforeEnter(el) {
+      el.style.opacity = 0
+      el.style.transform = 'translateY(10px)'
+    },
+    enter(el, done) {
+      gsap.to(el, {
+        duration: 0.3,
+        opacity: 1,
+        y: 0,
+        onComplete: done,
+        ease: 'power2.out'
+      })
+    },
+    afterEnter(el) {
+      // Cleanup if needed
+    },
+    enterCancelled(el) {
+      // Handle cancellation if needed
+    },
+    beforeLeave(el) {
+      el.style.opacity = 1
+    },
+    leave(el, done) {
+      gsap.to(el, {
+        duration: 0.2,
+        opacity: 0,
+        y: -10,
+        onComplete: done,
+        ease: 'power2.in'
+      })
+    },
+    afterLeave(el) {
+      // Cleanup if needed
+    },
+    leaveCancelled(el) {
+      // Handle cancellation if needed
+    }
   }
 }
-</script> 
+</script>
+
+<style>
+/* Transition classes */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style> 
