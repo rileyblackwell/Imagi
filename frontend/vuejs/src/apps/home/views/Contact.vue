@@ -1,7 +1,6 @@
 <!-- Contact page -->
 <template>
-  <DefaultLayout>
-    <HomeNavbar />
+  <DefaultLayout :isHomeNav="true">
     <div>
       <!-- Hero Section -->
       <hero-section
@@ -130,14 +129,12 @@
 import { DefaultLayout } from '../../../shared/layouts'
 import { HeroSection } from '../components'
 import { ref } from 'vue'
-import HomeNavbar from '../components/HomeNavbar.vue'
 
 export default {
   name: 'Contact',
   components: {
     DefaultLayout,
-    HeroSection,
-    HomeNavbar
+    HeroSection
   },
   setup() {
     const form = ref({

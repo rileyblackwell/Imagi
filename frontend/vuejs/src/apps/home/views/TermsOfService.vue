@@ -1,7 +1,6 @@
 <!-- Terms of Service page -->
 <template>
-  <DefaultLayout>
-    <HomeNavbar />
+  <DefaultLayout :isHomeNav="true">
     <div>
       <!-- Hero Section -->
       <hero-section
@@ -125,14 +124,12 @@
 <script>
 import { DefaultLayout } from '../../../shared/layouts'
 import { HeroSection } from '../components'
-import HomeNavbar from '../components/HomeNavbar.vue'
 
 export default {
   name: 'Terms',
   components: {
     DefaultLayout,
-    HeroSection,
-    HomeNavbar
+    HeroSection
   }
 }
 </script> 
