@@ -10,7 +10,7 @@
       >
         <template #cta>
           <router-link
-            to="/auth/register"
+            :to="isAuthenticated ? '/builder' : '/auth/login'"
             class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-all transform hover:-translate-y-0.5"
           >
             <span>Start Building</span>
@@ -101,6 +101,7 @@
 <script>
 import { DefaultLayout } from '@/shared/layouts'
 import { HeroSection, FeaturesGrid, FeatureCard } from '../components'
+import { useAuth } from '@/apps/auth/composables/useAuth'
 
 export default {
   name: 'Home',
@@ -109,6 +110,10 @@ export default {
     HeroSection,
     FeaturesGrid,
     FeatureCard
+  },
+  setup() {
+    const { isAuthenticated } = useAuth()
+    return { isAuthenticated }
   }
 }
 </script> 
