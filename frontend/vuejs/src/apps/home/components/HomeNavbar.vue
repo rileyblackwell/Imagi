@@ -18,7 +18,7 @@
         class="absolute left-0 mt-2 w-56 rounded-lg bg-dark-800 border border-dark-700 shadow-lg z-50"
       >
         <router-link
-          to="/builder"
+          :to="{ name: 'builder-landing' }"
           class="block px-4 py-3 text-sm text-white hover:bg-dark-700 transition-colors rounded-lg"
           @click="isProductsMenuOpen = false"
         >

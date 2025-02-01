@@ -33,6 +33,7 @@ const routes = [
 ]
 
 export { routes }
+export default routes
 
 // Export any additional router configuration, guards, or utilities here
 export const beforeEnter = (to, from, next) => {

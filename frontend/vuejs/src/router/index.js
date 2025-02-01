@@ -2,15 +2,17 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store'
 
 // Routes
-import { routes as homeRoutes } from '@/apps/home/router/index.js'
-import { routes as authRoutes } from '@/apps/auth/router'
-import { routes as builderRoutes } from '@/apps/builder/router'
+import homeRoutes from '@/apps/home/router'
+import authRoutes from '@/apps/auth/router'
+import builderRoutes from '@/apps/builder/router'
+import paymentsRoutes from '@/apps/payments/router'
 import NotFound from '@/shared/views/NotFound.vue'
 
 const routes = [
   ...homeRoutes,
   authRoutes,
-  builderRoutes,
+  ...builderRoutes,
+  paymentsRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
@@ -20,7 +22,14 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
+    }
+  }
 })
 
 // Navigation guards
@@ -39,6 +48,9 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'home' })
     return
   }
+  
+  // Update document title
+  document.title = to.meta.title ? `${to.meta.title} - Imagi` : 'Imagi'
   
   next()
 })
