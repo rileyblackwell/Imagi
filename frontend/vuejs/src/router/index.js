@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store'
 
 // Routes
-import homeRoutes from '@/apps/home/router/routes.js'
+import { routes as homeRoutes } from '@/apps/home/router/index.js'
 import authRoutes from '@/apps/auth/routes.js'
 import NotFound from '@/shared/views/NotFound.vue'
 

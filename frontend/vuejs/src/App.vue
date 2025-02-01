@@ -1,26 +1,19 @@
 <template>
   <div id="app" class="min-h-screen bg-dark-950 text-white flex flex-col">
-    <BaseNavbar />
     <router-view v-slot="{ Component }" class="flex-grow">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
-    <BaseFooter />
   </div>
 </template>
 
 <script>
 import { useAuthStore } from '@/apps/auth/store'
 import { onMounted } from 'vue'
-import { BaseFooter, BaseNavbar } from '@/shared/components'
 
 export default {
   name: 'App',
-  components: {
-    BaseFooter,
-    BaseNavbar
-  },
   setup() {
     const authStore = useAuthStore()
 
