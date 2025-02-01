@@ -4,11 +4,13 @@ import { useAuthStore } from '@/apps/auth/store'
 // Routes
 import { routes as homeRoutes } from '@/apps/home/router/index.js'
 import { routes as authRoutes } from '@/apps/auth/router'
+import { routes as builderRoutes } from '@/apps/builder/router'
 import NotFound from '@/shared/views/NotFound.vue'
 
 const routes = [
   ...homeRoutes,
   authRoutes,
+  builderRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
