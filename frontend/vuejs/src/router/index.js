@@ -3,7 +3,7 @@ import { useAuthStore } from '@/apps/auth/store'
 
 // Routes
 import { routes as homeRoutes } from '@/apps/home/router/index.js'
-import authRoutes from '@/apps/auth/routes.js'
+import { routes as authRoutes } from '@/apps/auth/router'
 import NotFound from '@/shared/views/NotFound.vue'
 
 const routes = [

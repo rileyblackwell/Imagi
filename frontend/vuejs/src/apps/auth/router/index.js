@@ -1,9 +1,9 @@
-import AuthLayout from './layouts/AuthLayout.vue'
-import Login from './views/Login.vue'
-import Register from './views/Register.vue'
-import ForgotPassword from './views/ForgotPassword.vue'
+import AuthLayout from '../layouts/AuthLayout.vue'
+import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
+import ForgotPassword from '../views/ForgotPassword.vue'
 
-const authRoutes = {
+export const routes = {
   path: '/auth',
   component: AuthLayout,
   children: [
@@ -37,4 +37,4 @@ const authRoutes = {
   ]
 }
 
-export default authRoutes 
+export default routes 

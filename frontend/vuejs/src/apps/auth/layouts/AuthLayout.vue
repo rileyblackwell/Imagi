@@ -1,27 +1,78 @@
+<!-- Auth Layout -->
 <template>
-  <div class="min-h-screen flex flex-col bg-dark-950">
-    <!-- Main Content -->
-    <main class="flex-grow flex items-center justify-center px-4 bg-gradient-to-b from-dark-950 to-dark-900">
+  <DefaultLayout>
+    <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-dark-950 to-dark-900">
       <div class="w-full max-w-md">
         <div class="auth-form-container">
-          <router-view v-slot="{ Component }">
-            <transition 
-              name="page" 
-              mode="out-in"
-              appear
-            >
+          <!-- Header -->
+          <AuthHeader 
+            :title="layoutConfig.title"
+            :subtitle="layoutConfig.subtitle"
+          />
+
+          <!-- Main Content -->
+          <div class="mt-8">
+            <router-view v-slot="{ Component }">
               <component :is="Component" />
-            </transition>
-          </router-view>
+            </router-view>
+          </div>
+
+          <!-- Links -->
+          <AuthLinks
+            :main-text="layoutConfig.mainText"
+            :main-link="layoutConfig.mainLink"
+          >
+            <template #additional-links>
+              <template v-if="layoutConfig.additionalLinks">
+                <component
+                  v-for="(link, index) in layoutConfig.additionalLinks"
+                  :key="index"
+                  :is="link.type || 'router-link'"
+                  :to="link.to"
+                  :class="link.class || 'text-gray-400 hover:text-gray-300'"
+                >
+                  {{ link.text }}
+                </component>
+              </template>
+            </template>
+          </AuthLinks>
         </div>
       </div>
-    </main>
-  </div>
+    </div>
+  </DefaultLayout>
 </template>
 
 <script>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { DefaultLayout } from '@/shared/layouts'
+import AuthHeader from '../components/AuthHeader.vue'
+import AuthLinks from '../components/AuthLinks.vue'
+
 export default {
-  name: 'AuthLayout'
+  name: 'AuthLayout',
+  components: {
+    DefaultLayout,
+    AuthHeader,
+    AuthLinks
+  },
+  setup() {
+    const route = useRoute()
+    
+    const layoutConfig = computed(() => {
+      return route.matched[route.matched.length - 1].components.default.layoutConfig || {
+        title: '',
+        subtitle: '',
+        mainText: '',
+        mainLink: { to: '', text: '' },
+        additionalLinks: []
+      }
+    })
+
+    return {
+      layoutConfig
+    }
+  }
 }
 </script>
 
