@@ -3,7 +3,7 @@
   <DefaultLayout>
     <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-dark-950 to-dark-900">
       <div class="w-full max-w-md">
-        <div class="auth-form-container">
+        <div class="w-full p-8 bg-dark-900/50 backdrop-blur-sm border border-dark-700 rounded-2xl shadow-xl">
           <!-- Header -->
           <AuthHeader 
             :title="layoutConfig.title"
@@ -13,29 +13,21 @@
           <!-- Main Content -->
           <div class="mt-8">
             <router-view v-slot="{ Component }">
-              <component :is="Component" />
+              <transition
+                name="page"
+                mode="out-in"
+              >
+                <component :is="Component" />
+              </transition>
             </router-view>
           </div>
 
           <!-- Links -->
-          <AuthLinks
-            :main-text="layoutConfig.mainText"
+          <AuthLinks 
+            v-if="layoutConfig.mainLink"
             :main-link="layoutConfig.mainLink"
-          >
-            <template #additional-links>
-              <template v-if="layoutConfig.additionalLinks">
-                <component
-                  v-for="(link, index) in layoutConfig.additionalLinks"
-                  :key="index"
-                  :is="link.type || 'router-link'"
-                  :to="link.to"
-                  :class="link.class || 'text-gray-400 hover:text-gray-300'"
-                >
-                  {{ link.text }}
-                </component>
-              </template>
-            </template>
-          </AuthLinks>
+            :additional-links="layoutConfig.additionalLinks"
+          />
         </div>
       </div>
     </div>
@@ -76,24 +68,17 @@ export default {
 }
 </script>
 
-<style scoped>
-.auth-form-container {
-  @apply w-full p-8 bg-dark-900 bg-opacity-50 backdrop-blur-sm border border-dark-700 rounded-2xl shadow-xl;
-}
-
-/* Page transition animations */
+<style>
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  @apply transition-all duration-200 ease-out;
 }
 
 .page-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
+  @apply opacity-0 translate-y-2;
 }
 
 .page-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
+  @apply opacity-0 -translate-y-2;
 }
 </style> 

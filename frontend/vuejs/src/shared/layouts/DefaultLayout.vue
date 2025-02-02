@@ -93,15 +93,13 @@ export default {
 </script>
 
 <style>
-/* Transition classes */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  @apply transition-all duration-300 ease-out;
 }
 
 .page-enter-from,
 .page-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
+  @apply opacity-0 translate-y-2;
 }
 </style> 

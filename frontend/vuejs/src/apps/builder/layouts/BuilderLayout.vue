@@ -1,30 +1,31 @@
 <template>
-  <div class="builder-layout">
+  <div class="h-screen flex flex-col bg-dark-900">
     <!-- Builder header -->
-    <header class="builder-header">
-      <div class="header-left">
-        <router-link to="/projects" class="btn btn-icon" title="Back to Projects">
+    <header class="h-[60px] px-4 bg-dark-950 border-b border-dark-700 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <router-link to="/projects" class="p-2 text-gray-400 hover:text-white rounded-lg transition-colors" title="Back to Projects">
           <i class="fas fa-arrow-left"></i>
         </router-link>
-        <h1 class="project-title">{{ currentProject?.name || 'Untitled Project' }}</h1>
-        <span class="project-status" :class="currentProject?.status">
+        <h1 class="text-lg font-semibold text-white">{{ currentProject?.name || 'Untitled Project' }}</h1>
+        <span class="px-2 py-1 text-sm rounded-full capitalize" 
+              :class="[currentProject?.status === 'published' ? 'bg-green-500/10 text-green-400' : 'bg-dark-800 text-gray-400']">
           {{ currentProject?.status }}
         </span>
       </div>
 
-      <div class="header-center">
-        <div class="mode-switcher">
+      <div class="flex items-center">
+        <div class="flex gap-2 p-1 bg-dark-800 rounded-lg">
           <button
-            class="mode-button"
-            :class="{ active: mode === 'chat' }"
+            class="flex items-center gap-2 px-4 py-2 rounded-md transition-colors"
+            :class="[mode === 'chat' ? 'bg-dark-900 text-primary-400 shadow-sm' : 'text-gray-400 hover:text-white']"
             @click="switchMode('chat')"
           >
             <i class="fas fa-comments"></i>
             Chat Mode
           </button>
           <button
-            class="mode-button"
-            :class="{ active: mode === 'build' }"
+            class="flex items-center gap-2 px-4 py-2 rounded-md transition-colors"
+            :class="[mode === 'build' ? 'bg-dark-900 text-primary-400 shadow-sm' : 'text-gray-400 hover:text-white']"
             @click="switchMode('build')"
           >
             <i class="fas fa-magic"></i>
@@ -32,82 +33,68 @@
           </button>
         </div>
       </div>
-
-      <div class="header-right">
-        <button
-          class="btn btn-outline btn-sm"
-          @click="generatePreview"
-          :disabled="isGenerating"
-        >
-          <i class="fas fa-eye"></i>
-          Preview
-        </button>
-        <button
-          class="btn btn-primary btn-sm"
-          @click="deployProject"
-          :disabled="isGenerating"
-        >
-          <i class="fas fa-rocket"></i>
-          Deploy
-        </button>
-      </div>
     </header>
 
     <!-- Builder content -->
-    <div class="builder-content">
-      <!-- Component tree sidebar -->
-      <aside class="component-sidebar" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
-        <div class="sidebar-header">
-          <h2 class="sidebar-title">Components</h2>
-          <button class="btn btn-icon" @click="toggleSidebar">
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Component sidebar -->
+      <aside class="w-[280px] bg-dark-950 border-r border-dark-700 flex flex-col transition-all duration-200"
+             :class="{ 'w-[60px]': isSidebarCollapsed }">
+        <div class="p-4 border-b border-dark-700 flex items-center justify-between">
+          <h2 class="text-base font-semibold text-white" v-if="!isSidebarCollapsed">Components</h2>
+          <button class="p-2 text-gray-400 hover:text-white rounded-lg transition-colors"
+                  @click="toggleSidebar">
             <i class="fas" :class="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
           </button>
         </div>
 
-        <div class="component-tree">
+        <div class="flex-1 p-4 overflow-y-auto">
           <template v-if="componentTree.length">
             <div
               v-for="component in componentTree"
               :key="component.id"
-              class="component-item"
-              :class="{ active: selectedComponent?.id === component.id }"
+              class="flex items-center gap-3 p-2 rounded-md text-gray-400 cursor-pointer transition-colors"
+              :class="{ 'bg-primary-500/10 text-primary-400': selectedComponent?.id === component.id,
+                       'hover:bg-dark-800 hover:text-white': selectedComponent?.id !== component.id }"
               @click="selectComponent(component)"
             >
-              <i class="component-icon" :class="getComponentIcon(component.type)"></i>
-              <span class="component-name">{{ component.name }}</span>
+              <i class="text-lg" :class="getComponentIcon(component.type)"></i>
+              <span v-if="!isSidebarCollapsed">{{ component.name }}</span>
             </div>
           </template>
-          <div v-else class="empty-state">
-            <i class="fas fa-cube"></i>
-            <p>No components yet</p>
-            <button class="btn btn-primary btn-sm" @click="addComponent">
-              Add Component
+          <div v-else class="text-center py-8 text-gray-400">
+            <i class="fas fa-cube text-3xl mb-4"></i>
+            <p v-if="!isSidebarCollapsed">No components yet</p>
+            <button class="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm hover:bg-primary-600 transition-colors"
+                    @click="addComponent">
+              <i class="fas fa-plus" v-if="isSidebarCollapsed"></i>
+              <span v-else>Add Component</span>
             </button>
           </div>
         </div>
 
-        <div class="sidebar-footer">
+        <div class="p-4 border-t border-dark-700 flex gap-2">
           <button
-            class="btn btn-outline btn-sm undo-button"
+            class="flex-1 px-3 py-2 border border-dark-600 rounded-lg text-gray-400 hover:text-white hover:border-dark-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             @click="undo"
             :disabled="!canUndo"
           >
             <i class="fas fa-undo"></i>
-            Undo
+            <span v-if="!isSidebarCollapsed" class="ml-2">Undo</span>
           </button>
           <button
-            class="btn btn-outline btn-sm redo-button"
+            class="flex-1 px-3 py-2 border border-dark-600 rounded-lg text-gray-400 hover:text-white hover:border-dark-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             @click="redo"
             :disabled="!canRedo"
           >
             <i class="fas fa-redo"></i>
-            Redo
+            <span v-if="!isSidebarCollapsed" class="ml-2">Redo</span>
           </button>
         </div>
       </aside>
 
       <!-- Main workspace -->
-      <main class="workspace">
+      <main class="flex-1 overflow-auto p-6">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
@@ -116,105 +103,31 @@
       </main>
 
       <!-- Properties panel -->
-      <aside class="properties-panel" v-if="selectedComponent && mode === 'build'">
-        <div class="panel-header">
-          <h2 class="panel-title">Properties</h2>
-          <button class="btn btn-icon" @click="closeProperties">
+      <aside v-if="selectedComponent && mode === 'build'"
+             class="w-[320px] bg-dark-950 border-l border-dark-700 flex flex-col">
+        <div class="p-4 border-b border-dark-700 flex items-center justify-between">
+          <h2 class="text-base font-semibold text-white">Properties</h2>
+          <button class="p-2 text-gray-400 hover:text-white rounded-lg transition-colors"
+                  @click="closeProperties">
             <i class="fas fa-times"></i>
           </button>
         </div>
 
-        <div class="panel-content">
-          <div class="property-group">
-            <label class="property-label">Name</label>
-            <input
-              type="text"
-              class="form-input"
-              v-model="selectedComponent.name"
-              @change="updateComponent"
-            />
+        <div class="flex-1 p-4 overflow-y-auto">
+          <div class="space-y-4">
+            <div class="space-y-2">
+              <label class="block text-sm text-gray-400">Name</label>
+              <input type="text"
+                     v-model="selectedComponent.name"
+                     class="w-full px-3 py-2 bg-dark-800 border border-dark-600 rounded-lg text-white focus:border-primary-500 transition-colors" />
+            </div>
+            <!-- Add more property fields as needed -->
           </div>
-
-          <div class="property-group">
-            <label class="property-label">Type</label>
-            <select
-              class="form-input"
-              v-model="selectedComponent.type"
-              @change="updateComponent"
-            >
-              <option value="container">Container</option>
-              <option value="text">Text</option>
-              <option value="image">Image</option>
-              <option value="button">Button</option>
-              <option value="form">Form</option>
-            </select>
-          </div>
-
-          <!-- Dynamic properties based on component type -->
-          <template v-if="selectedComponent.type === 'text'">
-            <div class="property-group">
-              <label class="property-label">Content</label>
-              <textarea
-                class="form-input"
-                v-model="selectedComponent.content"
-                @change="updateComponent"
-              ></textarea>
-            </div>
-          </template>
-
-          <template v-if="selectedComponent.type === 'image'">
-            <div class="property-group">
-              <label class="property-label">Source URL</label>
-              <input
-                type="text"
-                class="form-input"
-                v-model="selectedComponent.src"
-                @change="updateComponent"
-              />
-            </div>
-            <div class="property-group">
-              <label class="property-label">Alt Text</label>
-              <input
-                type="text"
-                class="form-input"
-                v-model="selectedComponent.alt"
-                @change="updateComponent"
-              />
-            </div>
-          </template>
-
-          <template v-if="selectedComponent.type === 'button'">
-            <div class="property-group">
-              <label class="property-label">Text</label>
-              <input
-                type="text"
-                class="form-input"
-                v-model="selectedComponent.text"
-                @change="updateComponent"
-              />
-            </div>
-            <div class="property-group">
-              <label class="property-label">Variant</label>
-              <select
-                class="form-input"
-                v-model="selectedComponent.variant"
-                @change="updateComponent"
-              >
-                <option value="primary">Primary</option>
-                <option value="secondary">Secondary</option>
-                <option value="outline">Outline</option>
-              </select>
-            </div>
-          </template>
         </div>
 
-        <div class="panel-footer">
-          <button
-            class="btn btn-error btn-sm"
-            @click="removeComponent(selectedComponent.id)"
-          >
-            <i class="fas fa-trash"></i>
-            Delete Component
+        <div class="p-4 border-t border-dark-700">
+          <button class="w-full px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">
+            Apply Changes
           </button>
         </div>
       </aside>
@@ -300,269 +213,14 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-.builder-layout {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-secondary);
-}
-
-/* Builder header */
-.builder-header {
-  height: 60px;
-  padding: 0 var(--spacing-4);
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-4);
-}
-
-.project-title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.project-status {
-  font-size: var(--font-size-sm);
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--border-radius-full);
-  text-transform: capitalize;
-}
-
-.project-status.draft {
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
-.project-status.published {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: var(--success-color);
-}
-
-.header-center {
-  display: flex;
-  align-items: center;
-}
-
-.mode-switcher {
-  display: flex;
-  gap: var(--spacing-2);
-  padding: var(--spacing-1);
-  background-color: var(--bg-secondary);
-  border-radius: var(--border-radius-lg);
-}
-
-.mode-button {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-4);
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  border-radius: var(--border-radius-md);
-  cursor: pointer;
-  transition: var(--transition-base);
-}
-
-.mode-button:hover {
-  color: var(--text-primary);
-}
-
-.mode-button.active {
-  background-color: var(--bg-primary);
-  color: var(--primary-color);
-  box-shadow: var(--shadow-sm);
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
-/* Builder content */
-.builder-content {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-/* Component sidebar */
-.component-sidebar {
-  width: 280px;
-  background-color: var(--bg-primary);
-  border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  transition: width var(--transition-base);
-}
-
-.sidebar-collapsed {
-  width: 60px;
-}
-
-.sidebar-header {
-  padding: var(--spacing-4);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sidebar-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.component-tree {
-  flex: 1;
-  padding: var(--spacing-4);
-  overflow-y: auto;
-}
-
-.component-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--border-radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition-base);
-}
-
-.component-item:hover {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-.component-item.active {
-  background-color: rgba(99, 102, 241, 0.1);
-  color: var(--primary-color);
-}
-
-.component-icon {
-  font-size: var(--font-size-lg);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-8) var(--spacing-4);
-  color: var(--text-secondary);
-}
-
-.empty-state i {
-  font-size: var(--font-size-3xl);
-  margin-bottom: var(--spacing-4);
-}
-
-.sidebar-footer {
-  padding: var(--spacing-4);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  gap: var(--spacing-2);
-}
-
-/* Workspace */
-.workspace {
-  flex: 1;
-  overflow: auto;
-  padding: var(--spacing-6);
-}
-
-/* Properties panel */
-.properties-panel {
-  width: 320px;
-  background-color: var(--bg-primary);
-  border-left: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-header {
-  padding: var(--spacing-4);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.panel-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.panel-content {
-  flex: 1;
-  padding: var(--spacing-4);
-  overflow-y: auto;
-}
-
-.property-group {
-  margin-bottom: var(--spacing-4);
-}
-
-.property-label {
-  display: block;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-2);
-}
-
-.panel-footer {
-  padding: var(--spacing-4);
-  border-top: 1px solid var(--border-color);
-}
-
-/* Transitions */
+<style>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  @apply transition-opacity duration-200;
 }
 
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0;
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .component-sidebar {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    top: 60px;
-    z-index: var(--z-drawer);
-    transform: translateX(-100%);
-  }
-
-  .component-sidebar.sidebar-collapsed {
-    transform: translateX(0);
-  }
-
-  .properties-panel {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    top: 60px;
-    z-index: var(--z-drawer);
-    transform: translateX(100%);
-  }
-
-  .properties-panel.show {
-    transform: translateX(0);
-  }
+  @apply opacity-0;
 }
 </style> 

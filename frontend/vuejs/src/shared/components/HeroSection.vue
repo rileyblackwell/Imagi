@@ -31,8 +31,7 @@
 
 <style scoped>
 .hero-section {
-  @apply relative min-h-[90vh] flex items-center justify-center overflow-hidden;
-  background: linear-gradient(180deg, rgba(18,18,18,0.95) 0%, rgba(26,26,26,0.95) 100%);
+  @apply relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-b from-dark-950/95 to-dark-900/95;
 }
 
 .hero-container {
@@ -48,11 +47,7 @@
 }
 
 .hero-title {
-  @apply text-6xl font-bold mb-4;
-  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  @apply text-6xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent;
 }
 
 .hero-subtitle {

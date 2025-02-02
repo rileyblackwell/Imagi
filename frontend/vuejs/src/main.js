@@ -3,8 +3,8 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-// Import global styles
-import '@/shared/assets/styles/base.css'
+// Import Tailwind styles
+import 'tailwindcss/tailwind.css'
 
 // Import Font Awesome
 import { library } from '@fortawesome/fontawesome-svg-core'
