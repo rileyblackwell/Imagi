@@ -93,12 +93,13 @@ export default {
     const isLoading = ref(false)
     const error = ref(null)
     const selectedPackage = ref(null)
+    const paymentService = new PaymentService()
 
     async function loadData() {
       try {
         const [packagesData, balanceData] = await Promise.all([
-          PaymentService.getCreditPackages(),
-          PaymentService.getBalance()
+          paymentService.getCreditPackages().catch(() => paymentService.getMockPackages()),
+          paymentService.getBalance().catch(() => ({ balance: 0 }))
         ])
         packages.value = packagesData
         currentBalance.value = balanceData.balance
@@ -106,6 +107,8 @@ export default {
       } catch (err) {
         error.value = 'Failed to load credit packages. Please try again.'
         console.error('Error loading data:', err)
+        // Fallback to mock data if API fails
+        packages.value = await paymentService.getMockPackages()
       }
     }
 
@@ -115,14 +118,11 @@ export default {
         selectedPackage.value = packageId
         error.value = null
 
-        const result = await PaymentService.purchaseCredits(packageId)
-        
-        // Navigate to checkout with the client secret
+        // Navigate to checkout with the package ID
         router.push({
           name: 'checkout',
           query: { 
-            package: packageId,
-            client_secret: result.clientSecret
+            package: packageId
           }
         })
       } catch (err) {

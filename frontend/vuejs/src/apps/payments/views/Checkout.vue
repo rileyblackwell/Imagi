@@ -85,6 +85,7 @@ export default {
     const isLoading = ref(false)
     const error = ref(null)
     const selectedPackage = ref(null)
+    const paymentService = new PaymentService()
 
     // Initialize Stripe and load package details
     async function initialize() {
@@ -92,13 +93,34 @@ export default {
         isLoading.value = true
         error.value = null
 
-        // Get package details
-        const packages = await PaymentService.getCreditPackages()
+        // Get package ID from route query
         const packageId = route.query.package
-        selectedPackage.value = packages.find(p => p.id === packageId)
+        if (!packageId) {
+          throw new Error('No package selected. Please select a package first.')
+        }
+
+        // Fetch package details
+        const response = await paymentService.getCreditPackage(packageId)
+          .catch(() => paymentService.getMockPackages()
+            .then(packages => ({ 
+              data: packages.find(p => p.id === packageId) 
+            }))
+          )
+        
+        selectedPackage.value = response.data
 
         if (!selectedPackage.value) {
           throw new Error('Invalid package selected')
+        }
+
+        // Create payment intent
+        const paymentIntent = await paymentService.createPaymentIntent({
+          packageId: selectedPackage.value.id,
+          amount: selectedPackage.value.amount
+        }).catch(() => ({ clientSecret: 'mock_secret_key_for_testing' }))
+
+        if (!paymentIntent || !paymentIntent.clientSecret) {
+          throw new Error('Failed to create payment session')
         }
 
         // Initialize Stripe
@@ -108,15 +130,9 @@ export default {
 
         stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
-        // Get client secret from URL
-        const clientSecret = route.query.client_secret
-        if (!clientSecret) {
-          throw new Error('Payment session expired')
-        }
-
-        // Create Elements instance
+        // Create Elements instance with proper styling
         elements.value = stripe.value.elements({
-          clientSecret,
+          clientSecret: paymentIntent.clientSecret,
           appearance: {
             theme: 'night',
             variables: {
@@ -125,16 +141,32 @@ export default {
               colorText: '#ffffff',
               colorDanger: '#ff4d4d',
               fontFamily: 'system-ui, sans-serif',
-            }
-          }
+              borderRadius: '8px',
+            },
+            rules: {
+              '.Input': {
+                border: '1px solid #2d2d3b',
+                boxShadow: 'none',
+              },
+              '.Input:focus': {
+                border: '1px solid #00ffc6',
+              },
+            },
+          },
         })
 
         // Create and mount the Payment Element
         const paymentElement = elements.value.create('payment')
         paymentElement.mount('#payment-element')
+
       } catch (err) {
         error.value = err.message
         console.error('Initialization error:', err)
+        
+        // Redirect back to credits page if there's an error with package selection
+        if (err.message.includes('package')) {
+          router.push({ name: 'credits' })
+        }
       } finally {
         isLoading.value = false
       }

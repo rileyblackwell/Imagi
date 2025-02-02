@@ -1,14 +1,13 @@
 import axios from 'axios'
-import config from '@/shared/config'
 
 class PaymentService {
   constructor() {
     this.apiUrl = '/api/payments'
   }
 
-  async createPaymentIntent(amount) {
+  async createPaymentIntent(data) {
     try {
-      const response = await axios.post(`${this.apiUrl}/create-payment-intent/`, { amount })
+      const response = await axios.post(`${this.apiUrl}/create-payment-intent/`, data)
       return response.data
     } catch (error) {
       throw this.handleError(error)
@@ -17,16 +16,7 @@ class PaymentService {
 
   async getBalance() {
     try {
-      const response = await axios.get(`${this.apiUrl}/get-balance/`)
-      return response.data
-    } catch (error) {
-      throw this.handleError(error)
-    }
-  }
-
-  async getTransactions() {
-    try {
-      const response = await axios.get(`${this.apiUrl}/transactions/`)
+      const response = await axios.get(`${this.apiUrl}/balance/`)
       return response.data
     } catch (error) {
       throw this.handleError(error)
@@ -34,6 +24,50 @@ class PaymentService {
   }
 
   async getCreditPackages() {
+    try {
+      const response = await axios.get(`${this.apiUrl}/packages/`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async getCreditPackage(packageId) {
+    try {
+      const response = await axios.get(`${this.apiUrl}/packages/${packageId}/`)
+      return response
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async verifyPayment(paymentIntentId) {
+    try {
+      const response = await axios.post(`${this.apiUrl}/verify/`, { 
+        payment_intent_id: paymentIntentId 
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  handleError(error) {
+    if (error.response) {
+      // Use a more descriptive error message based on the response
+      const message = error.response.data.detail || 
+                     error.response.data.message || 
+                     'An error occurred while processing your request'
+      return new Error(message)
+    }
+    if (error.request) {
+      return new Error('Unable to connect to the payment server')
+    }
+    return new Error('An unexpected error occurred')
+  }
+
+  // For development/testing - returns mock packages if API is not available
+  async getMockPackages() {
     return [
       {
         id: 'starter',
@@ -74,58 +108,6 @@ class PaymentService {
       }
     ]
   }
-
-  async purchaseCredits(packageId) {
-    const packages = await this.getCreditPackages()
-    const selectedPackage = packages.find(p => p.id === packageId)
-    if (!selectedPackage) {
-      throw new Error('Invalid package selected')
-    }
-
-    try {
-      const { clientSecret } = await this.createPaymentIntent(selectedPackage.amount)
-      return {
-        clientSecret,
-        package: selectedPackage
-      }
-    } catch (error) {
-      throw this.handleError(error)
-    }
-  }
-
-  handleError(error) {
-    if (error.response) {
-      const message = error.response.data.detail || error.response.data.message || 'Payment error occurred'
-      return new Error(message)
-    } else if (error.request) {
-      return new Error('No response from payment server')
-    } else {
-      return new Error('Error setting up payment request')
-    }
-  }
-
-  // Helper method to format amount
-  formatAmount(amount) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
-
-  // Validate payment amount
-  validateAmount(amount) {
-    const numAmount = Number(amount)
-    if (isNaN(numAmount)) {
-      throw new Error('Invalid amount')
-    }
-    if (numAmount < 10) {
-      throw new Error('Minimum amount is $10.00')
-    }
-    if (numAmount > 100) {
-      throw new Error('Maximum amount is $100.00')
-    }
-    return true
-  }
 }
 
-export default new PaymentService() 
+export default PaymentService 
