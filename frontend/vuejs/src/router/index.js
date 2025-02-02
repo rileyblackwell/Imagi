@@ -10,7 +10,7 @@ import NotFound from '@/shared/views/NotFound.vue'
 
 const routes = [
   ...homeRoutes,
-  authRoutes,
+  ...authRoutes,
   ...builderRoutes,
   ...paymentsRoutes,
   {

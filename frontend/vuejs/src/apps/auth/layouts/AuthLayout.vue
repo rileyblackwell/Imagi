@@ -12,12 +12,12 @@
 
           <!-- Main Content -->
           <div class="mt-8">
-            <router-view v-slot="{ Component }">
-              <transition
-                name="page"
-                mode="out-in"
-              >
-                <component :is="Component" />
+            <router-view v-slot="{ Component, route }">
+              <transition name="fade" mode="out-in">
+                <component 
+                  :is="Component" 
+                  :key="route.path"
+                />
               </transition>
             </router-view>
           </div>
@@ -25,9 +25,21 @@
           <!-- Links -->
           <AuthLinks 
             v-if="layoutConfig.mainLink"
+            :main-text="layoutConfig.mainText"
             :main-link="layoutConfig.mainLink"
             :additional-links="layoutConfig.additionalLinks"
-          />
+          >
+            <template v-slot:additional-links>
+              <router-link 
+                v-for="link in layoutConfig.additionalLinks"
+                :key="link.to"
+                :to="link.to"
+                class="text-gray-400 hover:text-gray-300"
+              >
+                {{ link.text }}
+              </router-link>
+            </template>
+          </AuthLinks>
         </div>
       </div>
     </div>
@@ -52,12 +64,14 @@ export default {
     const route = useRoute()
     
     const layoutConfig = computed(() => {
-      return route.matched[route.matched.length - 1].components.default.layoutConfig || {
-        title: '',
-        subtitle: '',
-        mainText: '',
-        mainLink: { to: '', text: '' },
-        additionalLinks: []
+      const currentRoute = route.matched[route.matched.length - 1]
+      const component = currentRoute?.components?.default
+      return {
+        title: component?.layoutConfig?.title || '',
+        subtitle: component?.layoutConfig?.subtitle || '',
+        mainText: component?.layoutConfig?.mainText || '',
+        mainLink: component?.layoutConfig?.mainLink || { to: '', text: '' },
+        additionalLinks: component?.layoutConfig?.additionalLinks || []
       }
     })
 
@@ -69,16 +83,13 @@ export default {
 </script>
 
 <style>
-.page-enter-active,
-.page-leave-active {
-  @apply transition-all duration-200 ease-out;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
 }
 
-.page-enter-from {
-  @apply opacity-0 translate-y-2;
-}
-
-.page-leave-to {
-  @apply opacity-0 -translate-y-2;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style> 
