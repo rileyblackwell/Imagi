@@ -77,7 +77,7 @@
 <script>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import PaymentService from '../services/payment.service'
+import PaymentService from '../services/payment_service'
 import { usePaymentStore } from '../store/payments'
 
 export default {

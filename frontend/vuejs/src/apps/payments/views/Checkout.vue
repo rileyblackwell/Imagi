@@ -72,7 +72,7 @@
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import PaymentService from '../services/payment.service'
+import PaymentService from '../services/payment_service'
 
 export default {
   name: 'Checkout',

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import PaymentService from '@/apps/payments/services/payment.service'
+import PaymentService from '@/apps/payments/services/payment_service'
 
 export const usePaymentStore = defineStore('payments', {
   state: () => ({
