@@ -36,6 +36,35 @@ class PaymentService {
     }
   }
 
+  async setupCustomer() {
+    try {
+      const response = await axios.post(`${this.apiUrl}/setup-customer/`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async getPaymentMethods() {
+    try {
+      const response = await axios.get(`${this.apiUrl}/payment-methods/`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async attachPaymentMethod(paymentMethodId) {
+    try {
+      const response = await axios.post(`${this.apiUrl}/attach-payment-method/`, {
+        payment_method_id: paymentMethodId
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
   handleError(error) {
     if (error.response) {
       const message = error.response.data.detail || 

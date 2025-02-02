@@ -1,36 +1,42 @@
 <!-- Payment layout with shared components -->
 <template>
-  <BaseLayout>
+  <div class="payment-layout min-h-screen bg-dark-900">
     <!-- Navigation -->
-    <BaseNavbar />
+    <PaymentNavbar />
 
     <!-- Main Content -->
-    <main class="min-h-screen">
+    <main class="min-h-screen py-16">
       <router-view></router-view>
     </main>
 
     <!-- Footer -->
-    <BaseFooter />
-  </BaseLayout>
+    <PaymentFooter />
+  </div>
 </template>
 
 <script>
-import { BaseLayout } from '@/shared/layouts'
-import { BaseNavbar, BaseFooter } from '@/shared/components'
+import PaymentNavbar from '../components/layout/PaymentNavbar.vue'
+import PaymentFooter from '../components/layout/PaymentFooter.vue'
 
 export default {
   name: 'PaymentLayout',
   components: {
-    BaseLayout,
-    BaseNavbar,
-    BaseFooter
+    PaymentNavbar,
+    PaymentFooter
   },
   mounted() {
-    // Load Stripe.js
-    if (!window.Stripe) {
+    // Load Stripe.js if not already loaded
+    if (!window.Stripe && !document.querySelector('script[src*="stripe.com"]')) {
       const script = document.createElement('script')
       script.src = 'https://js.stripe.com/v3/'
       script.async = true
+      script.defer = true
+      script.addEventListener('load', () => {
+        console.log('Stripe.js loaded successfully')
+      })
+      script.addEventListener('error', (error) => {
+        console.error('Failed to load Stripe.js:', error)
+      })
       document.head.appendChild(script)
     }
   }
@@ -38,8 +44,7 @@ export default {
 </script>
 
 <style scoped>
-.min-h-screen {
-  min-height: 100vh;
+.payment-layout {
   background: radial-gradient(
     circle at top right,
     rgba(0, 255, 204, 0.05),
