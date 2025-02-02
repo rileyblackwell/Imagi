@@ -24,7 +24,8 @@ class AuthService {
       }
       return response.data
     } catch (error) {
-      throw new Error(error.response?.data?.error || 'Login failed')
+      console.error('Login error details:', error.response?.data)
+      throw error.response?.data || error
     }
   }
 
@@ -33,14 +34,26 @@ class AuthService {
       // Get CSRF token first
       await this.getCsrfToken()
       
-      const response = await axios.post(`${API_URL}/register/`, userData)
+      console.log('Sending registration data:', {
+        username: userData.username,
+        password: userData.password,
+        password_confirm: userData.password_confirm
+      })
+      
+      const response = await axios.post(`${API_URL}/register/`, {
+        username: userData.username,
+        password: userData.password,
+        password_confirm: userData.password_confirm
+      })
+      
       if (response.data.token) {
         localStorage.setItem('token', response.data.token)
         axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
       }
       return response.data
     } catch (error) {
-      throw new Error(error.response?.data?.error || 'Registration failed')
+      console.error('Registration error details:', error.response?.data)
+      throw error.response?.data || error
     }
   }
 

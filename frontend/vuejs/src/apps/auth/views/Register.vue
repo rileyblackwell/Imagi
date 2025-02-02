@@ -52,7 +52,7 @@
         </span>
         <input
           type="password"
-          v-model="form.confirmPassword"
+          v-model="form.password_confirm"
           required
           :disabled="authStore.loading"
           placeholder="Confirm Password"
@@ -61,7 +61,7 @@
                  disabled:opacity-50 disabled:cursor-not-allowed"
         >
       </label>
-      <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-500">{{ errors.confirmPassword }}</p>
+      <p v-if="errors.password_confirm" class="mt-1 text-sm text-red-500">{{ errors.password_confirm }}</p>
     </div>
 
     <!-- Terms Agreement -->
@@ -128,26 +128,30 @@ export default {
     const form = ref({
       username: '',
       password: '',
-      confirmPassword: '',
+      password_confirm: '',
       agreeToTerms: false
     })
     
     const errors = ref({
       username: '',
       password: '',
-      confirmPassword: '',
+      password_confirm: '',
       general: ''
     })
 
     const validateForm = () => {
       const newErrors = {}
 
-      if (form.value.password !== form.value.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match'
+      if (!form.value.username) {
+        newErrors.username = 'Username is required'
       }
 
-      if (form.value.password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters long'
+      if (!form.value.password) {
+        newErrors.password = 'Password is required'
+      }
+
+      if (form.value.password !== form.value.password_confirm) {
+        newErrors.password_confirm = 'Passwords do not match'
       }
 
       if (!form.value.agreeToTerms) {
@@ -163,7 +167,7 @@ export default {
       errors.value = {
         username: '',
         password: '',
-        confirmPassword: '',
+        password_confirm: '',
         general: ''
       }
 
@@ -175,27 +179,39 @@ export default {
       try {
         await authStore.register({
           username: form.value.username,
-          password: form.value.password
+          password: form.value.password,
+          password_confirm: form.value.password_confirm
         })
         
         // Redirect to home page after successful registration
         await router.push('/')
       } catch (error) {
         console.error('Registration error:', error)
-        if (typeof error === 'object') {
+        
+        // Handle different error formats
+        if (typeof error === 'string') {
+          errors.value.general = error
+        } else if (error.non_field_errors) {
+          errors.value.general = Array.isArray(error.non_field_errors) 
+            ? error.non_field_errors[0] 
+            : error.non_field_errors
+        } else if (error.detail) {
+          errors.value.general = error.detail
+        } else if (typeof error === 'object') {
           // Handle field-specific errors
-          Object.keys(error).forEach(field => {
+          Object.entries(error).forEach(([field, messages]) => {
+            const message = Array.isArray(messages) ? messages[0] : messages
             if (field in errors.value) {
-              errors.value[field] = Array.isArray(error[field]) 
-                ? error[field][0] 
-                : error[field]
+              errors.value[field] = message
             } else {
-              errors.value.general = error[field]
+              errors.value.general = message
             }
           })
-        } else {
-          // Handle string error
-          errors.value.general = error.toString()
+        }
+        
+        // If no error was set, show a generic error
+        if (!Object.values(errors.value).some(e => e)) {
+          errors.value.general = 'Registration failed. Please try again.'
         }
       }
     }

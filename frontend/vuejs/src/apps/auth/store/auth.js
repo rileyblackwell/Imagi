@@ -131,7 +131,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await axios.post('/api/auth/register/', {
         username: userData.username,
-        password: userData.password
+        password: userData.password,
+        password_confirm: userData.password_confirm
       })
       
       if (response.data.token && response.data.user) {
@@ -142,8 +143,8 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error('Registration failed')
     } catch (err) {
       console.error('Registration error:', err)
-      error.value = err.response?.data?.errors || err.message
-      throw error.value
+      error.value = err.response?.data || err.message
+      throw err.response?.data || err
     } finally {
       loading.value = false
     }
