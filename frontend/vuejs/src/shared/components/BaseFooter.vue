@@ -1,177 +1,85 @@
 <!-- BaseFooter component -->
 <template>
-  <footer class="bg-dark-900 border-t border-dark-700">
-    <div class="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+  <footer class="bg-gradient-to-b from-dark-900 to-dark-950 border-t border-dark-700/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Main Footer Content -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+      <div class="py-8 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
         <!-- Company Info -->
-        <div class="col-span-1 md:col-span-2 space-y-6">
-          <div>
-            <router-link to="/" class="text-2xl font-bold text-white hover:text-primary-400 transition-colors">
-              Imagi
+        <div class="col-span-1 space-y-4">
+          <div class="space-y-3">
+            <router-link 
+              to="/" 
+              class="inline-block"
+            >
+              <span class="text-2xl font-extrabold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent hover:from-primary-300 hover:to-primary-500 transition-all duration-300">
+                Imagi
+              </span>
             </router-link>
-            <p class="mt-4 text-gray-400 leading-relaxed">
-              Transform your ideas into powerful web applications using natural language with Imagi's AI technology. Build faster, smarter, and more efficiently.
+            <p class="text-gray-400/90 leading-relaxed base font-light">
+              Transform your ideas into powerful web applications using natural language with Imagi's AI technology.
             </p>
-          </div>
-          
-          <!-- Social Links -->
-          <div class="space-y-4">
-            <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Connect With Us</h4>
-            <div class="flex space-x-5">
-              <a 
-                href="https://twitter.com/imagiai" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="text-gray-400 hover:text-primary-400 transition-colors transform hover:-translate-y-1 duration-200"
-              >
-                <i class="fab fa-twitter text-xl"></i>
-              </a>
-              <a 
-                href="https://github.com/imagiai" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="text-gray-400 hover:text-primary-400 transition-colors transform hover:-translate-y-1 duration-200"
-              >
-                <i class="fab fa-github text-xl"></i>
-              </a>
-              <a 
-                href="https://linkedin.com/company/imagiai" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="text-gray-400 hover:text-primary-400 transition-colors transform hover:-translate-y-1 duration-200"
-              >
-                <i class="fab fa-linkedin text-xl"></i>
-              </a>
-              <a 
-                href="https://discord.gg/imagiai" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="text-gray-400 hover:text-primary-400 transition-colors transform hover:-translate-y-1 duration-200"
-              >
-                <i class="fab fa-discord text-xl"></i>
-              </a>
-            </div>
           </div>
         </div>
 
         <!-- Quick Links -->
-        <div class="space-y-6">
-          <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Company</h4>
-          <ul class="space-y-4">
-            <li>
-              <router-link 
-                to="/about" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                About Us
-              </router-link>
-            </li>
-            <li>
-              <router-link 
-                to="/contact" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Contact
-              </router-link>
-            </li>
-            <li>
-              <router-link 
-                to="/careers" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Careers
-              </router-link>
-            </li>
-            <li>
-              <router-link 
-                to="/blog" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Blog
-              </router-link>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Legal Links -->
-        <div class="space-y-6">
-          <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Legal</h4>
-          <ul class="space-y-4">
-            <li>
-              <router-link 
-                to="/privacy" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Privacy Policy
-              </router-link>
-            </li>
-            <li>
-              <router-link 
-                to="/terms" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Terms of Service
-              </router-link>
-            </li>
-            <li>
-              <router-link 
-                to="/security" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Security
-              </router-link>
-            </li>
-            <li>
-              <router-link 
-                to="/cookie-policy" 
-                class="text-gray-400 hover:text-primary-400 transition-colors flex items-center group"
-              >
-                <i class="fas fa-chevron-right text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                Cookie Policy
-              </router-link>
-            </li>
-          </ul>
+        <div class="col-span-1 flex justify-end">
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-primary-400/90 uppercase tracking-wider">Quick Links</h4>
+            <ul class="space-y-2.5">
+              <li class="w-full">
+                <router-link 
+                  to="/about" 
+                  class="group flex items-center text-gray-400/90 hover:text-gray-200 transition-colors duration-150 w-full"
+                >
+                  <span class="flex items-center min-w-[20px]">
+                    <i class="fas fa-chevron-right text-[8px] opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all duration-150 ease-out"></i>
+                  </span>
+                  <span class="text-sm">About Us</span>
+                </router-link>
+              </li>
+              <li class="w-full">
+                <router-link 
+                  to="/contact" 
+                  class="group flex items-center text-gray-400/90 hover:text-gray-200 transition-colors duration-150 w-full"
+                >
+                  <span class="flex items-center min-w-[20px]">
+                    <i class="fas fa-chevron-right text-[8px] opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all duration-150 ease-out"></i>
+                  </span>
+                  <span class="text-sm">Contact</span>
+                </router-link>
+              </li>
+              <li class="w-full">
+                <router-link 
+                  to="/privacy" 
+                  class="group flex items-center text-gray-400/90 hover:text-gray-200 transition-colors duration-150 w-full"
+                >
+                  <span class="flex items-center min-w-[20px]">
+                    <i class="fas fa-chevron-right text-[8px] opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all duration-150 ease-out"></i>
+                  </span>
+                  <span class="text-sm">Privacy Policy</span>
+                </router-link>
+              </li>
+              <li class="w-full">
+                <router-link 
+                  to="/terms" 
+                  class="group flex items-center text-gray-400/90 hover:text-gray-200 transition-colors duration-150 w-full"
+                >
+                  <span class="flex items-center min-w-[20px]">
+                    <i class="fas fa-chevron-right text-[8px] opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all duration-150 ease-out"></i>
+                  </span>
+                  <span class="text-sm">Terms of Service</span>
+                </router-link>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
       <!-- Bottom Bar -->
-      <div class="mt-12 pt-8 border-t border-dark-700">
-        <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <!-- Copyright -->
-          <p class="text-gray-400 text-sm">
-            &copy; {{ currentYear }} Imagi. All rights reserved.
-          </p>
-          
-          <!-- Additional Links -->
-          <div class="flex space-x-6">
-            <a 
-              href="#" 
-              class="text-gray-400 hover:text-primary-400 transition-colors text-sm"
-            >
-              Status
-            </a>
-            <a 
-              href="#" 
-              class="text-gray-400 hover:text-primary-400 transition-colors text-sm"
-            >
-              Support
-            </a>
-            <a 
-              href="#" 
-              class="text-gray-400 hover:text-primary-400 transition-colors text-sm"
-            >
-              API
-            </a>
-          </div>
-        </div>
+      <div class="py-4 border-t border-dark-700/30">
+        <p class="text-gray-400/80 text-xs text-center font-light">
+          &copy; {{ currentYear }} Imagi. All rights reserved.
+        </p>
       </div>
     </div>
   </footer>
@@ -189,17 +97,5 @@ export default {
 </script>
 
 <style scoped>
-/* Hover animations */
-.group:hover .fa-chevron-right {
-  transform: translateX(2px);
-}
-
-.fa-chevron-right {
-  transition: transform 0.2s ease-in-out;
-}
-
-/* Social icons hover effect */
-.fab {
-  transition: transform 0.2s ease-in-out;
-}
+/* No additional styles needed - using Tailwind's utility classes */
 </style> 

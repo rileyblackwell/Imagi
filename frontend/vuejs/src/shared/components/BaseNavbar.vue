@@ -2,13 +2,13 @@
 <template>
   <nav class="bg-dark-900 border-b border-dark-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16">
+      <div class="flex justify-between h-20">
         <!-- Left side -->
         <div class="flex items-center">
           <!-- Logo -->
           <router-link 
             to="/" 
-            class="text-2xl font-bold text-white hover:text-primary-400 transition-colors mr-8"
+            class="text-3xl font-bold text-white hover:text-primary-400 transition-colors mr-10"
           >
             Imagi
           </router-link>
