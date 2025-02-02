@@ -13,17 +13,17 @@
         <HomeNavbarDropdownButton
           v-if="isAuthenticated"
           v-model="isProductsMenuOpen"
-          gradient-type="indigo"
+          gradient-type="primary"
         >
           Products
           
           <template #menu>
             <router-link
               :to="{ name: 'builder-landing' }"
-              class="block px-5 py-3 text-sm text-gray-300/90 hover:text-white transition-all duration-200 hover:bg-gradient-to-r hover:from-indigo-500/10 hover:via-blue-500/10 hover:to-indigo-500/10"
+              class="block px-5 py-3 text-sm text-white/80 hover:text-white transition-all duration-200 hover:bg-gradient-to-r hover:from-primary-500/10 hover:via-indigo-500/10 hover:to-violet-500/10"
               @click="isProductsMenuOpen = false"
             >
-              <i class="fas fa-magic mr-2 text-indigo-400/90"></i>
+              <i class="fas fa-magic mr-2 text-primary-400"></i>
               Oasis Web App Builder
             </router-link>
           </template>
@@ -49,7 +49,7 @@
               variant="ghost"
               size="base"
               icon="fas fa-sign-out-alt"
-              gradient-type="ghost"
+              gradient-type="primary"
             >
               Logout
             </HomeNavbarButton>
@@ -60,7 +60,7 @@
               variant="ghost"
               size="base"
               icon="fas fa-sign-in-alt"
-              gradient-type="ghost"
+              gradient-type="primary"
             >
               Sign In
             </HomeNavbarButton>

@@ -8,7 +8,7 @@
     :class="[
       gradientClass,
       'transform hover:scale-[1.02] transition-all duration-200 shadow-sm hover:shadow-md min-w-[100px] h-10 px-4',
-      'inline-flex items-center justify-center text-sm font-medium rounded-lg'
+      'inline-flex items-center justify-center text-sm font-medium rounded-lg !text-white hover:!text-white'
     ]"
     v-bind="$attrs"
     @click="$emit('click', $event)"
@@ -54,11 +54,11 @@ export default defineComponent({
   setup(props) {
     const gradientClass = computed(() => {
       const gradients = {
-        primary: 'bg-gradient-to-r from-primary-600/95 via-indigo-500/95 to-primary-500/95 hover:from-primary-500/95 hover:via-indigo-400/95 hover:to-primary-400/95 hover:shadow-primary-600/10',
-        secondary: 'bg-gradient-to-r from-violet-600/95 via-indigo-500/95 to-blue-500/95 hover:from-violet-500/95 hover:via-indigo-400/95 hover:to-blue-400/95 hover:shadow-violet-600/10',
-        amber: 'bg-gradient-to-r from-amber-500/95 via-orange-400/95 to-yellow-400/95 hover:from-amber-400/95 hover:via-orange-300/95 hover:to-yellow-300/95 hover:shadow-amber-500/10',
-        indigo: 'bg-gradient-to-r from-indigo-600/95 via-blue-500/95 to-indigo-500/95 hover:from-indigo-500/95 hover:via-blue-400/95 hover:to-indigo-400/95 hover:shadow-indigo-600/10',
-        ghost: 'bg-gradient-to-r from-dark-800/80 via-dark-700/80 to-dark-800/80 hover:from-dark-700/80 hover:via-dark-600/80 hover:to-dark-700/80 backdrop-blur-md border border-white/5 hover:border-white/10 shadow-sm hover:shadow-md text-white/90 hover:text-white'
+        primary: 'bg-gradient-to-r from-primary-500 via-indigo-500 to-violet-500 hover:from-primary-400 hover:via-indigo-400 hover:to-violet-400 hover:shadow-primary-500/20 text-white',
+        secondary: 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 hover:from-violet-400 hover:via-fuchsia-400 hover:to-pink-400 hover:shadow-violet-500/20 text-white',
+        amber: 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:via-orange-400 hover:to-yellow-400 hover:shadow-amber-500/20 text-white',
+        indigo: 'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 hover:from-blue-400 hover:via-indigo-400 hover:to-violet-400 hover:shadow-blue-500/20 text-white',
+        ghost: 'bg-gradient-to-r from-primary-500/90 via-indigo-500/90 to-violet-500/90 hover:from-primary-400/90 hover:via-indigo-400/90 hover:to-violet-400/90 backdrop-blur-md border border-white/10 hover:border-white/20 shadow-sm hover:shadow-primary-500/10 text-white'
       }
       return gradients[props.gradientType]
     })
