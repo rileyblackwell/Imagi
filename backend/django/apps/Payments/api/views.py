@@ -27,13 +27,22 @@ logger = logging.getLogger(__name__)
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-class CreditBalanceView(generics.RetrieveAPIView):
+class CreditBalanceView(APIView):
     """Get user's credit balance."""
-    serializer_class = CreditBalanceSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
-        return get_object_or_404(CreditBalance, user=self.request.user)
+    def get(self, request):
+        try:
+            balance = CreditBalance.objects.get_or_create(user=request.user)[0]
+            return Response({
+                'balance': float(balance.balance)
+            })
+        except Exception as e:
+            logger.error(f"Error fetching balance: {str(e)}")
+            return Response(
+                {'error': 'Failed to fetch balance'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class CreditPlanListView(generics.ListAPIView):
     """List all active credit plans."""
@@ -48,40 +57,56 @@ class CreditPlanListView(generics.ListAPIView):
 def create_payment_intent(request):
     """Create a Stripe PaymentIntent for credit purchase."""
     try:
-        plan_id = request.data.get('plan_id')
-        if not plan_id:
+        amount = request.data.get('amount')
+        if not amount:
             return Response({
-                'error': 'Missing plan_id'
+                'error': 'Amount is required'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        credit_plan = get_object_or_404(CreditPlan, id=plan_id, is_active=True)
+        # Validate amount
+        amount = float(amount)
+        if amount < 5 or amount > 1000:
+            return Response({
+                'error': 'Amount must be between $5 and $1,000'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Convert amount to cents for Stripe
+        amount_cents = int(amount * 100)
         
+        # Calculate credits (1:1 ratio - $1 = 1 credit)
+        credits = amount
+
         # Create PaymentIntent
         intent = stripe.PaymentIntent.create(
-            amount=credit_plan.price_cents,
+            amount=amount_cents,
             currency='usd',
             metadata={
-                'user_id': request.user.id,
-                'credits': credit_plan.credits,
-                'plan_id': credit_plan.id
+                'user_id': str(request.user.id),
+                'credits': str(credits)
+            },
+            automatic_payment_methods={
+                'enabled': True,
             }
         )
         
         # Create pending transaction
         Transaction.objects.create(
             user=request.user,
-            amount=credit_plan.credits,
+            amount=credits,  # Store the credit amount
             transaction_type='purchase',
             status='pending',
-            stripe_payment_intent_id=intent.id
+            stripe_payment_intent_id=intent.id,
+            description=f'Purchase of {credits} credits'
         )
         
         return Response({
-            'client_secret': intent.client_secret,
-            'amount': credit_plan.price_cents,
-            'credits': credit_plan.credits
+            'clientSecret': intent.client_secret
         })
         
+    except ValueError:
+        return Response({
+            'error': 'Invalid amount format'
+        }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error creating payment intent: {str(e)}")
         return Response({
@@ -96,7 +121,7 @@ def confirm_payment(request):
         payment_intent_id = request.data.get('payment_intent_id')
         if not payment_intent_id:
             return Response({
-                'error': 'Missing payment_intent_id'
+                'error': 'Payment intent ID is required'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Get the transaction
@@ -108,7 +133,8 @@ def confirm_payment(request):
         
         if transaction.status == 'completed':
             return Response({
-                'message': 'Payment already processed'
+                'message': 'Payment already processed',
+                'balance': float(request.user.credit_balance.balance)
             })
         
         # Verify payment with Stripe
@@ -129,6 +155,7 @@ def confirm_payment(request):
         
         return Response({
             'message': 'Payment processed successfully',
+            'credits_added': float(transaction.amount),
             'new_balance': float(balance.balance)
         })
         
@@ -231,4 +258,50 @@ class TransactionHistoryView(generics.ListAPIView):
     def get_queryset(self):
         return Transaction.objects.filter(
             user=self.request.user
-        ).order_by('-created_at') 
+        ).order_by('-created_at')
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def webhook(request):
+    """Handle Stripe webhooks."""
+    try:
+        event = stripe.Webhook.construct_event(
+            request.body,
+            request.META['HTTP_STRIPE_SIGNATURE'],
+            settings.STRIPE_WEBHOOK_SECRET
+        )
+        
+        if event.type == 'payment_intent.succeeded':
+            payment_intent = event.data.object
+            transaction = Transaction.objects.get(
+                stripe_payment_intent_id=payment_intent.id,
+                status='pending'
+            )
+            
+            with transaction.atomic():
+                # Update transaction status
+                transaction.status = 'completed'
+                transaction.save()
+                
+                # Add credits to user's balance
+                balance = CreditBalance.objects.get_or_create(
+                    user=transaction.user
+                )[0]
+                balance.balance = Decimal(str(float(balance.balance) + transaction.amount))
+                balance.save()
+                
+            logger.info(f"Credits added via webhook: {transaction.amount} for user {transaction.user.id}")
+            
+        return Response({'status': 'success'})
+        
+    except stripe.error.SignatureVerificationError:
+        return Response(
+            {'error': 'Invalid signature'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        ) 

@@ -1,6 +1,5 @@
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 import Checkout from '../views/Checkout.vue'
-import Credits from '../views/Credits.vue'
 import Success from '../views/Success.vue'
 import Cancel from '../views/Cancel.vue'
 import History from '../views/History.vue'
@@ -11,21 +10,12 @@ const routes = [
     component: PaymentLayout,
     children: [
       {
-        path: 'credits',
-        name: 'payments-credits',
-        component: Credits,
-        meta: {
-          requiresAuth: true,
-          title: 'Add Credits'
-        }
-      },
-      {
         path: 'checkout',
         name: 'payments-checkout',
         component: Checkout,
         meta: {
           requiresAuth: true,
-          title: 'Checkout'
+          title: 'Add Funds'
         }
       },
       {
@@ -55,10 +45,10 @@ const routes = [
           title: 'Payment History'
         }
       },
-      // Redirect root to credits page
+      // Redirect root to checkout page
       {
         path: '',
-        redirect: { name: 'payments-credits' }
+        redirect: { name: 'payments-checkout' }
       }
     ]
   }

@@ -9,27 +9,23 @@
 
       <!-- Header -->
       <div class="p-6 border-b border-dark-700">
-        <h2 class="text-2xl font-bold text-white">Complete Purchase</h2>
-        <p class="text-gray-400 mt-2">Secure payment powered by Stripe</p>
+        <h2 class="text-2xl font-bold text-white">Add Funds</h2>
+        <p class="text-gray-400 mt-2">Add credits to your account for AI model usage</p>
       </div>
 
       <!-- Main Content -->
       <div class="p-6">
-        <!-- Order Summary -->
+        <!-- Current Balance -->
         <div class="mb-8">
-          <h3 class="text-lg font-medium text-white mb-4">Order Summary</h3>
+          <h3 class="text-lg font-medium text-white mb-4">Current Balance</h3>
           <div class="bg-dark-900 rounded-lg p-4">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center">
               <div>
-                <p class="text-white font-medium">Add Funds</p>
-                <p class="text-sm text-gray-400">Credits for AI model usage</p>
+                <p class="text-white font-medium">Available Credits</p>
+                <p class="text-sm text-gray-400">Last updated: {{ lastUpdated }}</p>
               </div>
-              <p class="text-xl font-bold text-white">${{ amount }}</p>
-            </div>
-            <div class="border-t border-dark-700 pt-4">
-              <div class="flex justify-between items-center">
-                <p class="text-gray-400">Total</p>
-                <p class="text-2xl font-bold text-primary-400">${{ amount }}</p>
+              <div class="text-2xl font-bold text-primary-400">
+                ${{ currentBalance.toFixed(2) }}
               </div>
             </div>
           </div>
@@ -37,33 +33,77 @@
 
         <!-- Payment Form -->
         <form id="payment-form" @submit.prevent="handleSubmit">
-          <!-- Stripe Elements Container -->
+          <!-- Amount Input -->
+          <div class="mb-6">
+            <label for="amount" class="block text-sm font-medium text-gray-300 mb-2">
+              Amount to Add ($)
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+              <input
+                type="number"
+                id="amount"
+                v-model="amount"
+                min="5"
+                max="1000"
+                step="0.01"
+                class="w-full pl-8 pr-4 py-3 bg-dark-900 border border-dark-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Enter amount"
+                :disabled="isProcessing"
+              >
+            </div>
+            <p class="mt-2 text-sm text-gray-400">Minimum: $5.00, Maximum: $1,000.00</p>
+          </div>
+
+          <!-- Order Summary -->
+          <div v-if="isValidAmount" class="mb-6">
+            <h3 class="text-lg font-medium text-white mb-4">Order Summary</h3>
+            <div class="bg-dark-900 rounded-lg p-4">
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <p class="text-white font-medium">Add Funds</p>
+                  <p class="text-sm text-gray-400">Credits for AI model usage</p>
+                </div>
+                <p class="text-xl font-bold text-primary-400">${{ amount }}</p>
+              </div>
+              <div class="border-t border-dark-700 pt-4">
+                <div class="flex justify-between items-center">
+                  <p class="text-gray-400">Total</p>
+                  <p class="text-2xl font-bold text-primary-400">${{ amount }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Element -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-300 mb-2">
-              Card Details
+              Card Information
             </label>
             <div 
-              id="payment-element" 
-              class="bg-dark-900 rounded-lg p-4 min-h-[200px] border border-dark-700"
+              id="card-element" 
+              class="bg-dark-900 rounded-lg p-4 min-h-[40px] border border-dark-700"
             ></div>
-            <!-- Error Message -->
-            <div v-if="error" class="error-message mt-2">
-              {{ error }}
-            </div>
+            <div id="card-errors" class="mt-2 text-sm text-red-500"></div>
           </div>
 
           <!-- Submit Button -->
           <button
             type="submit"
-            :disabled="isLoading || !stripe || !elements"
+            :disabled="!isValidAmount || isProcessing || !stripe || !elements"
             class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span v-if="isLoading" class="mr-2">
+            <span v-if="isProcessing" class="mr-2">
               <i class="fas fa-spinner fa-spin"></i>
             </span>
-            {{ isLoading ? 'Processing...' : 'Pay Now' }}
+            {{ isProcessing ? 'Processing Payment...' : 'Pay Now' }}
           </button>
         </form>
+
+        <!-- Error Message -->
+        <div v-if="error" class="mt-4 text-red-500 text-sm text-center">
+          {{ error }}
+        </div>
 
         <!-- Security Badge -->
         <div class="mt-6 flex items-center justify-center text-gray-400 text-sm">
@@ -84,8 +124,9 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { loadStripe } from '@stripe/stripe-js'
 import PaymentService from '../services/payment_service'
 import { useToast } from '../composables/useToast'
 import PaymentToast from '../components/ui/Toast.vue'
@@ -97,73 +138,52 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const route = useRoute()
     const stripe = ref(null)
     const elements = ref(null)
-    const paymentElement = ref(null)
+    const cardElement = ref(null)
+    const amount = ref('')
     const isLoading = ref(false)
+    const isProcessing = ref(false)
     const error = ref(null)
-    const amount = ref(0)
+    const currentBalance = ref(0)
+    const lastUpdated = ref(new Date().toLocaleString())
     const paymentService = new PaymentService()
     const toast = useToast()
 
-    // Wait for Stripe.js to load
-    const waitForStripe = () => {
-      return new Promise((resolve) => {
-        if (window.Stripe) {
-          resolve(window.Stripe)
-        } else {
-          const checkStripe = setInterval(() => {
-            if (window.Stripe) {
-              clearInterval(checkStripe)
-              resolve(window.Stripe)
-            }
-          }, 100)
-        }
-      })
-    }
+    const isValidAmount = computed(() => {
+      const value = parseFloat(amount.value)
+      return !isNaN(value) && value >= 5 && value <= 1000
+    })
 
-    // Initialize Stripe and load amount details
-    async function initialize() {
+    async function loadBalance() {
       try {
         isLoading.value = true
-        error.value = null
+        const { balance } = await paymentService.getBalance()
+        currentBalance.value = balance
+        lastUpdated.value = new Date().toLocaleString()
+      } catch (err) {
+        console.error('Failed to load balance:', err)
+        error.value = 'Failed to load current balance. Please refresh the page.'
+        toast.error('Failed to load current balance')
+      } finally {
+        isLoading.value = false
+      }
+    }
 
-        // Get amount from route query or localStorage
-        const customAmount = route.query.amount || localStorage.getItem('payment_amount')
-
-        if (!customAmount) {
-          // Redirect to credits page if no amount specified
-          router.push({ name: 'payments-credits' })
-          return
+    async function initializeStripe() {
+      try {
+        // Initialize Stripe
+        if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
+          throw new Error('Stripe publishable key is not configured')
         }
 
-        // Handle amount
-        const parsedAmount = parseFloat(customAmount)
-        if (isNaN(parsedAmount) || parsedAmount < 5 || parsedAmount > 1000) {
-          throw new Error('Invalid amount specified. Please enter an amount between $5 and $1,000.')
+        stripe.value = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+        if (!stripe.value) {
+          throw new Error('Failed to load Stripe')
         }
-        amount.value = parsedAmount
-        
-        // Store amount in localStorage in case of page refresh
-        localStorage.setItem('payment_amount', parsedAmount.toString())
-
-        // Create payment intent
-        const paymentIntent = await paymentService.createPaymentIntent({
-          amount: amount.value
-        })
-
-        if (!paymentIntent || !paymentIntent.clientSecret) {
-          throw new Error('Failed to create payment session')
-        }
-
-        // Wait for Stripe to be available
-        const Stripe = await waitForStripe()
-        stripe.value = Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
         // Create Elements instance with proper styling
         elements.value = stripe.value.elements({
-          clientSecret: paymentIntent.clientSecret,
           appearance: {
             theme: 'night',
             variables: {
@@ -182,119 +202,145 @@ export default {
               '.Input:focus': {
                 border: '1px solid #00ffc6',
               },
-            },
+              '.Label': {
+                color: '#ffffff',
+              }
+            }
           },
+          loader: 'auto'
         })
 
-        // Wait for the payment element container to be available
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Create and mount the Card Element with specific style options
+        cardElement.value = elements.value.create('card', {
+          style: {
+            base: {
+              color: '#ffffff',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: '16px',
+              '::placeholder': {
+                color: '#6b7280',
+              },
+              backgroundColor: '#1a1b23',
+            },
+          },
+          hidePostalCode: true // Remove postal code field if not needed
+        })
 
-        // Create and mount the Payment Element
-        try {
-          if (paymentElement.value) {
-            paymentElement.value.unmount()
-          }
-          paymentElement.value = elements.value.create('payment')
-          const container = document.getElementById('payment-element')
-          if (!container) {
-            throw new Error('Payment element container not found')
-          }
-          await paymentElement.value.mount('#payment-element')
-        } catch (mountError) {
-          console.error('Error mounting payment element:', mountError)
-          throw new Error('Failed to load payment form. Please refresh the page.')
+        // Mount the card element
+        const container = document.getElementById('card-element')
+        if (!container) {
+          throw new Error('Card element container not found')
         }
+        
+        await cardElement.value.mount('#card-element')
 
-        // Handle automatic redirect after successful payment
-        if (paymentIntent.status === 'succeeded') {
-          // Clear stored amount
-          localStorage.removeItem('payment_amount')
-          router.push({
-            name: 'payments-success',
-            query: { 
-              payment_intent: paymentIntent.id,
-              amount: amount.value
+        // Handle real-time validation errors
+        cardElement.value.on('change', (event) => {
+          const displayError = document.getElementById('card-errors')
+          if (displayError) {
+            if (event.error) {
+              displayError.textContent = event.error.message
+            } else {
+              displayError.textContent = ''
             }
-          })
-        }
+          }
+        })
+
+        // Add focus/blur handlers for better UX
+        cardElement.value.on('focus', () => {
+          const el = document.getElementById('card-element')
+          if (el) {
+            el.classList.add('ring-2', 'ring-primary-500', 'border-primary-500')
+          }
+        })
+
+        cardElement.value.on('blur', () => {
+          const el = document.getElementById('card-element')
+          if (el) {
+            el.classList.remove('ring-2', 'ring-primary-500', 'border-primary-500')
+          }
+        })
 
       } catch (err) {
-        error.value = err.message
-        toast.error(err.message)
-        console.error('Initialization error:', err)
-        
-        // Only redirect if it's an amount error
-        if (err.message.includes('amount')) {
-          setTimeout(() => {
-            router.push({ name: 'payments-credits' })
-          }, 3000)
-        }
-      } finally {
-        isLoading.value = false
+        error.value = 'Failed to initialize payment form: ' + err.message
+        console.error('Stripe initialization error:', err)
       }
     }
 
-    // Handle form submission
     async function handleSubmit() {
-      if (!stripe.value || !elements.value) {
-        toast.error('Payment form not ready. Please wait or refresh the page.')
+      if (!isValidAmount.value) {
+        error.value = 'Please enter a valid amount between $5 and $1,000'
         return
       }
 
       try {
-        isLoading.value = true
+        isProcessing.value = true
         error.value = null
+        const value = parseFloat(amount.value)
 
-        // Create a new customer or get existing customer
-        await paymentService.setupCustomer()
+        // Create payment intent
+        const { clientSecret } = await paymentService.createPaymentIntent({
+          amount: value
+        })
 
-        const { error: submitError } = await stripe.value.confirmPayment({
-          elements: elements.value,
-          confirmParams: {
-            return_url: `${window.location.origin}/payments/success`,
-            payment_method_data: {
-              billing_details: {
-                email: window.userEmail // Assuming you have the user's email available
-              }
+        if (!clientSecret) {
+          throw new Error('Failed to initialize payment')
+        }
+
+        // Confirm the payment
+        const { error: paymentError } = await stripe.value.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement.value,
+            billing_details: {
+              email: window.userEmail // Assuming you have the user's email available
             }
           }
         })
 
-        if (submitError) {
-          throw submitError
+        if (paymentError) {
+          throw paymentError
         }
+
+        // Payment successful
+        toast.success('Payment successful!')
+        await loadBalance() // Refresh the balance after successful payment
+        
+        // Reset form
+        amount.value = ''
+        cardElement.value.clear()
+        
+        // Show success message
+        toast.success('Your credits have been added successfully!')
       } catch (err) {
         error.value = err.message
-        toast.error('Payment failed: ' + err.message)
+        toast.error(err.message)
         console.error('Payment error:', err)
       } finally {
-        isLoading.value = false
+        isProcessing.value = false
       }
     }
 
-    // Clean up on component unmount
-    onUnmounted(() => {
-      if (paymentElement.value) {
-        try {
-          paymentElement.value.unmount()
-        } catch (err) {
-          console.error('Error unmounting payment element:', err)
-        }
-      }
-      // Clear stored amount on unmount
-      localStorage.removeItem('payment_amount')
+    onMounted(() => {
+      loadBalance()
+      initializeStripe()
     })
 
-    onMounted(() => {
-      initialize()
+    onUnmounted(() => {
+      if (cardElement.value) {
+        cardElement.value.unmount()
+      }
     })
 
     return {
+      amount,
+      isLoading,
+      isProcessing,
+      error,
+      currentBalance,
+      lastUpdated,
       stripe,
       elements,
-      isLoading,
-      error,
-      amount,
+      isValidAmount,
       handleSubmit
     }
   }
@@ -302,20 +348,6 @@ export default {
 </script>
 
 <style scoped>
-#payment-element {
-  min-height: 200px;
-}
-
-#payment-element iframe {
-  background: transparent;
-}
-
-.error-message {
-  color: #ff4d4d;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-}
-
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -341,5 +373,15 @@ export default {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 </style> 
