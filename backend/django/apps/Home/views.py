@@ -1,39 +1,22 @@
-from django.shortcuts import render
+from django.shortcuts import redirect
+from django.conf import settings
 
 # Create your views here.
 def landing_page(request):
-    context = {
-        'page_type': 'feature'  # For landing pages with feature sections
-    }
-    return render(request, 'home/home_landing_page.html', context)
+    return redirect(f"{settings.FRONTEND_URL}/")
 
 def about_page(request):
-    context = {
-        'page_type': 'feature'  # About page has feature cards
-    }
-    return render(request, 'home/about.html', context)
+    return redirect(f"{settings.FRONTEND_URL}/about")
 
 def privacy_page(request):
-    context = {
-        'page_type': 'content'  # For text-heavy policy pages
-    }
-    return render(request, 'home/privacy.html', context)
+    return redirect(f"{settings.FRONTEND_URL}/privacy")
 
 def terms_page(request):
-    context = {
-        'page_type': 'content'  # For text-heavy policy pages
-    }
-    return render(request, 'home/terms.html', context)
+    return redirect(f"{settings.FRONTEND_URL}/terms")
 
 def contact_page(request):
-    context = {
-        'page_type': 'feature'  # Contact has special form layout
-    }
-    return render(request, 'home/contact.html', context)
+    return redirect(f"{settings.FRONTEND_URL}/contact")
 
 def cookie_policy(request):
-    context = {
-        'page_type': 'content'  # For text-heavy policy pages
-    }
-    return render(request, 'home/cookie_policy.html', context)
+    return redirect(f"{settings.FRONTEND_URL}/cookie-policy")
 
