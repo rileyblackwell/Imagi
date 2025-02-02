@@ -1,13 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import BaseButton from '@/components/common/BaseButton.vue'
-import FormInput from '@/components/common/FormInput.vue'
 import { useAuthStore } from '@/apps/auth/store'
+import PasswordInput from '../components/PasswordInput.vue'
+import PasswordRequirements from '../components/PasswordRequirements.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const passwordRequirements = ref(null)
 
 const form = ref({
   password: '',
@@ -18,9 +19,14 @@ const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 
+const isFormValid = computed(() => {
+  return passwordRequirements.value?.isValid &&
+         form.value.password === form.value.confirmPassword
+})
+
 async function handleSubmit() {
-  if (form.value.password !== form.value.confirmPassword) {
-    error.value = 'Passwords do not match'
+  if (!isFormValid.value) {
+    error.value = 'Please ensure all password requirements are met and passwords match'
     return
   }
 
@@ -34,10 +40,10 @@ async function handleSubmit() {
     })
     success.value = true
     setTimeout(() => {
-      router.push('/login')
+      router.push('/auth/login')
     }, 3000)
   } catch (err) {
-    error.value = err.message || 'Failed to reset password'
+    error.value = err.message || 'Failed to reset password. Please try again.'
   } finally {
     loading.value = false
   }
@@ -45,51 +51,83 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="reset-password-page">
-    <div class="reset-password-container">
-      <h1>Reset Password</h1>
-      <p class="lead">Enter your new password below</p>
-      
-      <form v-if="!success" @submit.prevent="handleSubmit" class="reset-password-form">
-        <FormInput
-          v-model="form.password"
-          type="password"
-          label="New Password"
-          required
-        />
-        
-        <FormInput
-          v-model="form.confirmPassword"
-          type="password"
-          label="Confirm New Password"
-          required
-        />
-        
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
-        
-        <BaseButton
-          type="submit"
-          variant="primary"
-          block
-          :loading="loading"
-        >
-          Reset Password
-        </BaseButton>
-      </form>
-      
-      <div v-else class="success-message">
-        <i class="fas fa-check-circle"></i>
-        <p>Your password has been successfully reset.</p>
-        <p>Redirecting you to login...</p>
-      </div>
-      
-      <div class="auth-footer">
-        <p>
-          Remember your password?
-          <router-link to="/login">Sign in</router-link>
+  <div class="min-h-screen flex items-center justify-center bg-dark-900 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-dark-800 p-8 rounded-lg shadow-lg">
+      <div class="text-center">
+        <h2 class="text-3xl font-bold text-white">Reset Password</h2>
+        <p class="mt-2 text-sm text-gray-400">
+          Enter your new password below
         </p>
+      </div>
+
+      <form v-if="!success" @submit.prevent="handleSubmit" class="mt-8 space-y-6">
+        <!-- Password Requirements -->
+        <PasswordRequirements
+          ref="passwordRequirements"
+          :password="form.password"
+        />
+
+        <!-- Password Input -->
+        <PasswordInput
+          v-model="form.password"
+          label="New Password"
+          placeholder="New Password"
+          required
+        />
+
+        <!-- Confirm Password Input -->
+        <PasswordInput
+          v-model="form.confirmPassword"
+          label="Confirm New Password"
+          placeholder="Confirm New Password"
+          required
+        />
+
+        <!-- Error Message -->
+        <div v-if="error" class="rounded-md bg-red-900/50 p-4">
+          <div class="flex">
+            <i class="fas fa-exclamation-circle text-red-400 mt-0.5"></i>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-400">
+                {{ error }}
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          :disabled="!isFormValid || loading"
+          class="group relative w-full flex justify-center py-3 px-4 border border-transparent
+                 text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700
+                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+                 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span v-if="loading" class="absolute inset-y-0 left-0 flex items-center pl-3">
+            <i class="fas fa-circle-notch fa-spin"></i>
+          </span>
+          {{ loading ? 'Resetting Password...' : 'Reset Password' }}
+        </button>
+      </form>
+
+      <!-- Success Message -->
+      <div v-else class="text-center space-y-4">
+        <div class="text-green-500 text-5xl mb-4">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-white">Password Reset Successful!</h3>
+        <p class="text-gray-400">
+          Your password has been successfully reset.
+        </p>
+        <router-link
+          to="/auth/login"
+          class="mt-4 inline-block px-4 py-2 border border-transparent text-sm font-medium rounded-lg
+                 text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2
+                 focus:ring-offset-2 focus:ring-primary-500"
+        >
+          Go to Login
+        </router-link>
       </div>
     </div>
   </div>

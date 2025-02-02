@@ -1,109 +1,168 @@
 <template>
-  <!-- Form -->
-  <form v-if="!success" @submit.prevent="handleSubmit" class="space-y-6">
-    <!-- Email -->
-    <div class="form-group">
-      <label class="relative block">
-        <span class="sr-only">Email</span>
-        <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <i class="fas fa-envelope text-gray-400"></i>
-        </span>
-        <input
-          type="email"
-          v-model="email"
-          required
-          :disabled="loading"
-          placeholder="Email Address"
-          class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
-                 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
-                 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-      </label>
-      <p v-if="error" class="mt-1 text-sm text-red-500">{{ error }}</p>
+  <div class="min-h-screen flex flex-col items-center justify-center bg-dark-900 px-4 sm:px-6 lg:px-8">
+    <!-- Logo/Brand Section -->
+    <div class="mb-8">
+      <i class="fas fa-key text-primary-500 text-4xl"></i>
     </div>
 
-    <!-- Submit Button -->
-    <button
-      type="submit"
-      :disabled="loading"
-      class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
-             focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
-             disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <span v-if="loading">
-        <i class="fas fa-circle-notch fa-spin mr-2"></i>
-        Sending...
-      </span>
-      <span v-else>Send Reset Link</span>
-    </button>
-  </form>
+    <div class="w-full max-w-md">
+      <!-- Main Card -->
+      <div class="bg-dark-800 shadow-xl rounded-lg px-8 pt-8 pb-10">
+        <!-- Header -->
+        <div class="text-center mb-8">
+          <h2 class="text-2xl font-bold text-white mb-2">Forgot Your Password?</h2>
+          <p class="text-gray-400 text-sm">
+            No worries! Enter your email below and we'll send you instructions to reset your password.
+          </p>
+        </div>
 
-  <!-- Success Message -->
-  <div v-else class="text-center space-y-4">
-    <div class="text-success mb-4">
-      <i class="fas fa-check-circle text-4xl"></i>
+        <form v-if="!success" @submit.prevent="handleSubmit" class="space-y-6">
+          <!-- Email Input -->
+          <div class="space-y-1">
+            <label for="email" class="block text-sm font-medium text-gray-300">Email Address</label>
+            <EmailInput
+              v-model="email"
+              id="email"
+              placeholder="you@example.com"
+              :disabled="loading"
+              required
+            />
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="error" 
+               class="p-4 rounded-md bg-red-900/30 border border-red-800"
+          >
+            <div class="flex">
+              <i class="fas fa-exclamation-circle text-red-400 mt-1"></i>
+              <div class="ml-3">
+                <p class="text-sm text-red-400">{{ error }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            :disabled="!isValidEmail || loading"
+            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg
+                   text-sm font-medium text-white bg-primary-600 hover:bg-primary-700
+                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors
+                   relative"
+          >
+            <span v-if="loading" class="absolute left-4 top-1/2 transform -translate-y-1/2">
+              <i class="fas fa-circle-notch fa-spin"></i>
+            </span>
+            <span :class="{ 'ml-6': loading }">
+              {{ loading ? 'Sending Reset Link...' : 'Send Reset Link' }}
+            </span>
+          </button>
+        </form>
+
+        <!-- Success State -->
+        <div v-else class="text-center space-y-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-900/30 mb-4">
+            <i class="fas fa-envelope-open-text text-green-500 text-3xl"></i>
+          </div>
+          <div class="space-y-3">
+            <h3 class="text-xl font-semibold text-white">Check Your Email</h3>
+            <div class="space-y-2">
+              <p class="text-gray-400 text-sm">
+                If an account exists with the email you provided, you will receive password reset instructions shortly.
+              </p>
+              <p class="text-gray-400 text-sm">
+                Please check your spam folder if you don't see the email in your inbox.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Links -->
+      <div class="mt-6 text-center space-y-4">
+        <div class="flex items-center justify-center space-x-2 text-sm">
+          <router-link
+            to="/auth/login"
+            class="text-primary-500 hover:text-primary-400 flex items-center transition-colors"
+          >
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Login
+          </router-link>
+        </div>
+        <p class="text-gray-500 text-xs">
+          Need help? <a href="#" class="text-primary-500 hover:text-primary-400">Contact Support</a>
+        </p>
+      </div>
     </div>
-    <h3 class="text-xl font-semibold text-white">Check Your Email</h3>
-    <p class="text-gray-400">
-      If an account exists with the email you provided, you will receive password reset instructions shortly.
-    </p>
-    <p class="text-gray-400">
-      Please check your spam folder if you don't see the email in your inbox.
-    </p>
   </div>
 </template>
 
-<script>
-import { ref } from 'vue'
+<script setup>
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
+import EmailInput from '../components/EmailInput.vue'
 
-export default {
-  name: 'ForgotPassword',
-  layoutConfig: {
-    title: 'Reset Password',
-    subtitle: 'Enter your email to receive password reset instructions',
-    mainText: 'Remember your password?',
-    mainLink: { to: '/auth/login', text: 'Sign in' }
-  },
-  setup() {
-    const authStore = useAuthStore()
-    const email = ref('')
-    const loading = ref(false)
-    const error = ref('')
-    const success = ref(false)
+const authStore = useAuthStore()
+const email = ref('')
+const loading = ref(false)
+const error = ref('')
+const success = ref(false)
 
-    const handleSubmit = async () => {
-      if (!email.value) {
-        error.value = 'Email is required'
-        return
-      }
+const isValidEmail = computed(() => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email.value)
+})
 
-      loading.value = true
-      error.value = ''
-      
-      try {
-        await authStore.requestPasswordReset(email.value)
-        success.value = true
-      } catch (err) {
-        error.value = err.message || 'Failed to send reset email'
-      } finally {
-        loading.value = false
-      }
-    }
+async function handleSubmit() {
+  if (!isValidEmail.value) {
+    error.value = 'Please enter a valid email address'
+    return
+  }
 
-    return {
-      email,
-      loading,
-      error,
-      success,
-      handleSubmit
-    }
+  loading.value = true
+  error.value = ''
+  
+  try {
+    await authStore.requestPasswordReset(email.value)
+    success.value = true
+  } catch (err) {
+    error.value = err.message || 'Failed to send reset email. Please try again.'
+  } finally {
+    loading.value = false
   }
 }
 </script>
 
 <style scoped>
-.text-success {
-  @apply text-green-500;
+/* Transitions */
+.transition-colors {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+/* Custom focus styles */
+input:focus {
+  @apply ring-2 ring-primary-500 border-transparent;
+}
+
+/* Button hover effect */
+button:not(:disabled):hover {
+  @apply transform scale-[1.02] transition-transform duration-200;
+}
+
+/* Success icon animation */
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.success-icon {
+  animation: fadeInScale 0.3s ease-out forwards;
 }
 </style> 

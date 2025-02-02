@@ -86,12 +86,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
-import { useNotifications } from '../composables/useNotifications'
+import { useNotificationsStore } from '../store/notifications'
 import FormInput from '@/components/common/FormInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 
 const authStore = useAuthStore()
-const { showNotification } = useNotifications()
+const notificationsStore = useNotificationsStore()
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -148,7 +148,7 @@ const handleSubmit = async () => {
       new_password: newPassword.value
     })
     
-    showNotification({
+    notificationsStore.showNotification({
       type: 'success',
       message: 'Your password has been successfully updated'
     })
@@ -162,7 +162,7 @@ const handleSubmit = async () => {
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
     } else {
-      showNotification({
+      notificationsStore.showNotification({
         type: 'error',
         message: 'Failed to update password. Please try again.'
       })
