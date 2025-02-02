@@ -2,7 +2,8 @@
 <template>
   <BaseLayout>
     <!-- Header -->
-    <BaseNavbar :isHomeNav="isHomeNav" />
+    <HomeNavbar v-if="isHomeNav" />
+    <BaseNavbar v-else />
 
     <!-- Main Content with Transition -->
     <main class="flex-grow">
@@ -30,6 +31,7 @@
 <script>
 import { BaseLayout } from './index'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
+import { HomeNavbar } from '@/apps/home/components'
 import gsap from 'gsap'
 
 export default {
@@ -37,7 +39,8 @@ export default {
   components: {
     BaseLayout,
     BaseNavbar,
-    BaseFooter
+    BaseFooter,
+    HomeNavbar
   },
   props: {
     isHomeNav: {
