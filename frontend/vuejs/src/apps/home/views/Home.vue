@@ -101,7 +101,7 @@
 <script>
 import { DefaultLayout } from '@/shared/layouts'
 import { HeroSection, FeaturesGrid, FeatureCard } from '../components'
-import { useAuth } from '@/apps/auth/composables/useAuth'
+import { useAuthStore } from '@/apps/auth/store'
 
 export default {
   name: 'Home',
@@ -112,8 +112,8 @@ export default {
     FeatureCard
   },
   setup() {
-    const { isAuthenticated } = useAuth()
-    return { isAuthenticated }
+    const authStore = useAuthStore()
+    return { isAuthenticated: authStore.isAuthenticated }
   }
 }
 </script> 

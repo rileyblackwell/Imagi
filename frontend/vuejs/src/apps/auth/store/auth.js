@@ -183,6 +183,44 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function resetPassword({ token, password }) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await axios.post('/api/auth/reset-password/confirm/', {
+        token,
+        new_password: password
+      })
+      return response.data
+    } catch (err) {
+      console.error('Password reset error:', err)
+      error.value = err.response?.data?.detail || 'Failed to reset password'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function changePassword({ old_password, new_password }) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await axios.post('/api/auth/change-password/', {
+        old_password,
+        new_password
+      })
+      return response.data
+    } catch (err) {
+      console.error('Password change error:', err)
+      error.value = err.response?.data?.detail || 'Failed to change password'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user,
     token,
@@ -196,5 +234,7 @@ export const useAuthStore = defineStore('auth', () => {
     setUser,
     setToken,
     initAuth,
+    resetPassword,
+    changePassword,
   }
 }) 

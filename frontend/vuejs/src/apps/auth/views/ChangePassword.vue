@@ -85,12 +85,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/apps/auth/store'
 import { useNotifications } from '@/composables/useNotifications'
 import FormInput from '@/components/common/FormInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 
-const { changePassword } = useAuth()
+const authStore = useAuthStore()
 const { showNotification } = useNotifications()
 
 const currentPassword = ref('')
@@ -143,7 +143,7 @@ const handleSubmit = async () => {
       return
     }
 
-    await changePassword({
+    await authStore.changePassword({
       old_password: currentPassword.value,
       new_password: newPassword.value
     })

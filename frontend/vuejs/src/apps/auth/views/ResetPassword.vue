@@ -3,11 +3,11 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/common/BaseButton.vue'
 import FormInput from '@/components/common/FormInput.vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/apps/auth/store'
 
 const route = useRoute()
 const router = useRouter()
-const { resetPassword } = useAuth()
+const authStore = useAuthStore()
 
 const form = ref({
   password: '',
@@ -28,7 +28,7 @@ async function handleSubmit() {
   error.value = ''
   
   try {
-    await resetPassword({
+    await authStore.resetPassword({
       token: route.query.token,
       password: form.value.password
     })
