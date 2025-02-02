@@ -1,12 +1,11 @@
+"""
+URL configuration for Imagi project.
+"""
+
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
-from django.contrib.auth import views as auth_views
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 
 @require_GET
 def favicon_view(request):
@@ -17,28 +16,23 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # API endpoints
-    path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('', include('apps.Auth.urls')),  # Include Auth URLs at root to handle both /api/auth/ and /auth/
-    path('api/', include('api.urls')),
+    path('api/auth/', include('apps.Auth.api.urls')),  # Auth API endpoints
+    path('api/builder/', include('apps.Builder.api.urls')),  # Builder API endpoints
+    path('api/payments/', include('apps.Payments.api.urls')),  # Payments API endpoints
+    path('api/agents/', include('apps.Agents.api.urls')),  # Agents API endpoints
     
-    # App URLs
-    path('builder/', include('apps.Builder.urls')),  # Builder app URLs
-    path('', include('apps.Home.urls')),  # Home app URLs
-    path('payments/', include('apps.Payments.urls')),  # Payments app URLs
-    path('agents/', include('apps.Agents.urls')),  # Agents app URLs
-    
-    # Authentication views
-    path('password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
-    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
-    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    # App URLs (for server-rendered pages if needed)
+    path('auth/', include('apps.Auth.urls')),  # Auth app URLs (including password reset)
+    path('builder/', include('apps.Builder.urls')),
+    path('', include('apps.Home.urls')),
+    path('payments/', include('apps.Payments.urls')),
+    path('agents/', include('apps.Agents.urls')),
     
     # Favicon
     path('favicon.ico', favicon_view),
 ]
 
-# Add CORS headers to all responses
+# Debug toolbar in development
 from django.conf import settings
 if settings.DEBUG:
     urlpatterns += [
