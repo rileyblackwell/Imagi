@@ -13,8 +13,8 @@
         <div v-if="isAuthenticated" class="relative">
           <button
             @click="toggleProductsMenu"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
-            :class="{ 'text-white': isProductsMenuOpen }"
+            class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-all duration-300 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 hover:shadow-lg hover:shadow-indigo-600/20"
+            :class="{ 'shadow-lg shadow-indigo-600/20': isProductsMenuOpen }"
           >
             Products
             <i class="fas fa-chevron-down ml-2 text-xs" :class="{ 'transform rotate-180': isProductsMenuOpen }"></i>
@@ -23,14 +23,14 @@
           <!-- Dropdown Menu -->
           <div
             v-show="isProductsMenuOpen"
-            class="absolute right-0 mt-2 w-56 rounded-lg bg-dark-800 border border-dark-700 shadow-lg z-50"
+            class="absolute right-0 mt-3 w-56 rounded-lg bg-gradient-to-b from-dark-800 to-dark-900 border border-dark-700/50 shadow-xl backdrop-blur-sm z-50"
           >
             <router-link
               :to="{ name: 'builder-landing' }"
-              class="block px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-dark-700 transition-colors rounded-lg"
+              class="block px-5 py-3.5 text-sm text-gray-300 hover:text-white transition-all duration-300 rounded-lg hover:bg-gradient-to-r hover:from-indigo-600/20 hover:to-indigo-500/20"
               @click="isProductsMenuOpen = false"
             >
-              <i class="fas fa-magic mr-2"></i>
+              <i class="fas fa-magic mr-2 text-indigo-400"></i>
               Oasis Web App Builder
             </router-link>
           </div>
@@ -40,21 +40,23 @@
         <IconButton
           v-if="isAuthenticated"
           to="/payments/checkout"
-          variant="outline"
-          size="sm"
+          variant="primary"
+          size="base"
           icon="fas fa-coins"
+          class="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-amber-500/20 px-5 py-2.5"
         >
           Buy Credits
         </IconButton>
 
         <!-- Auth Buttons -->
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-3">
           <template v-if="isAuthenticated">
             <IconButton
               @click="handleLogout"
               variant="ghost"
-              size="sm"
+              size="base"
               icon="fas fa-sign-out-alt"
+              class="bg-gradient-to-r from-dark-800/50 to-dark-700/50 hover:from-dark-700/50 hover:to-dark-600/50 rounded-lg px-5 py-2.5 backdrop-blur-sm transition-all duration-300 border border-dark-700/30 hover:border-dark-600/50 shadow-lg hover:shadow-dark-600/10"
             >
               Logout
             </IconButton>
@@ -62,9 +64,10 @@
           <template v-else>
             <IconButton
               to="/auth/login"
-              variant="ghost"
-              size="sm"
+              variant="primary"
+              size="base"
               icon="fas fa-sign-in-alt"
+              class="bg-gradient-to-r from-primary-600 via-indigo-500 to-primary-500 hover:from-primary-500 hover:via-indigo-400 hover:to-primary-400 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-primary-600/20 px-5 py-2.5"
             >
               Sign In
             </IconButton>
