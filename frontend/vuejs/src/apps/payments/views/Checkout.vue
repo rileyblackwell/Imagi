@@ -9,21 +9,20 @@
 
       <!-- Main Content -->
       <div class="p-6">
-        <!-- Package Summary -->
-        <div v-if="selectedPackage" class="mb-8">
+        <!-- Order Summary -->
+        <div class="mb-8">
           <h3 class="text-lg font-medium text-white mb-4">Order Summary</h3>
           <div class="bg-dark-900 rounded-lg p-4">
             <div class="flex justify-between items-center mb-4">
               <div>
-                <p class="text-white font-medium">{{ selectedPackage.name }}</p>
-                <p class="text-sm text-gray-400">{{ selectedPackage.credits }} credits</p>
+                <p class="text-white font-medium">Add Funds</p>
               </div>
-              <p class="text-xl font-bold text-white">${{ selectedPackage.amount }}</p>
+              <p class="text-xl font-bold text-white">${{ amount }}</p>
             </div>
             <div class="border-t border-dark-700 pt-4">
               <div class="flex justify-between items-center">
                 <p class="text-gray-400">Total</p>
-                <p class="text-2xl font-bold text-primary-400">${{ selectedPackage.amount }}</p>
+                <p class="text-2xl font-bold text-primary-400">${{ amount }}</p>
               </div>
             </div>
           </div>
@@ -84,40 +83,33 @@ export default {
     const elements = ref(null)
     const isLoading = ref(false)
     const error = ref(null)
-    const selectedPackage = ref(null)
+    const amount = ref(0)
     const paymentService = new PaymentService()
 
-    // Initialize Stripe and load package details
+    // Initialize Stripe and load amount details
     async function initialize() {
       try {
         isLoading.value = true
         error.value = null
 
-        // Get package ID from route query
-        const packageId = route.query.package
-        if (!packageId) {
-          throw new Error('No package selected. Please select a package first.')
+        // Get amount from route query
+        const customAmount = route.query.amount
+
+        if (!customAmount) {
+          throw new Error('No amount specified')
         }
 
-        // Fetch package details
-        const response = await paymentService.getCreditPackage(packageId)
-          .catch(() => paymentService.getMockPackages()
-            .then(packages => ({ 
-              data: packages.find(p => p.id === packageId) 
-            }))
-          )
-        
-        selectedPackage.value = response.data
-
-        if (!selectedPackage.value) {
-          throw new Error('Invalid package selected')
+        // Handle amount
+        const parsedAmount = parseFloat(customAmount)
+        if (isNaN(parsedAmount) || parsedAmount < 5 || parsedAmount > 1000) {
+          throw new Error('Invalid amount specified')
         }
+        amount.value = parsedAmount
 
         // Create payment intent
         const paymentIntent = await paymentService.createPaymentIntent({
-          packageId: selectedPackage.value.id,
-          amount: selectedPackage.value.amount
-        }).catch(() => ({ clientSecret: 'mock_secret_key_for_testing' }))
+          amount: amount.value
+        })
 
         if (!paymentIntent || !paymentIntent.clientSecret) {
           throw new Error('Failed to create payment session')
@@ -163,10 +155,8 @@ export default {
         error.value = err.message
         console.error('Initialization error:', err)
         
-        // Redirect back to credits page if there's an error with package selection
-        if (err.message.includes('package')) {
-          router.push({ name: 'credits' })
-        }
+        // Redirect back to add funds page if there's an error
+        router.push({ name: 'add-funds' })
       } finally {
         isLoading.value = false
       }
@@ -216,7 +206,7 @@ export default {
       elements,
       isLoading,
       error,
-      selectedPackage,
+      amount,
       handleSubmit
     }
   }

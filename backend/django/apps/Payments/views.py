@@ -96,7 +96,7 @@ def create_payment_intent(request):
                 return JsonResponse({
                     'error': 'Custom amount must be between $5.00 and $1,000.00'
                 }, status=400)
-            credits = amount  # 1:1 ratio for custom amounts
+            credits = amount * 10  # $1 = 10 credits
         else:
             return JsonResponse({
                 'error': 'Either packageId or amount is required'
@@ -274,10 +274,23 @@ def payment_success(request):
         
     try:
         payment = get_object_or_404(Payment, stripe_payment_id=payment_intent_id)
+        
+        # Verify the payment if not already verified
+        if payment.status != 'completed':
+            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            if intent.status == 'succeeded':
+                payment.status = 'completed'
+                payment.save()
+                
+                # Update user credits
+                profile = request.user.profile
+                profile.credits += payment.credits
+                profile.save()
+
         return render(request, 'payments/success.html', {
-            'amount': float(payment.amount),
-            'credits': payment.credits,
-            'package_name': payment.package.name
+            'amount_added': float(payment.amount),
+            'credits_added': float(payment.credits),
+            'new_balance': float(request.user.profile.credits)
         })
     except Exception as e:
         logger.error(f"Payment success page error: {str(e)}")
@@ -336,9 +349,17 @@ class PaymentIntentView(APIView):
                 package = get_object_or_404(CreditPackage, id=package_id, is_active=True)
                 amount = float(package.amount)
                 credits = float(package.credits)
-            else:
+            elif custom_amount:
                 amount = float(custom_amount)
-                credits = amount  # 1:1 ratio for custom amounts
+                if amount < 5 or amount > 1000:
+                    return Response({
+                        'error': 'Custom amount must be between $5.00 and $1,000.00'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                credits = amount * 10  # $1 = 10 credits
+            else:
+                return Response({
+                    'error': 'Either packageId or amount is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             # Convert amount to cents for Stripe
             amount_cents = int(amount * 100)
