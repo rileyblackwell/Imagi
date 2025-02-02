@@ -3,28 +3,91 @@
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-900">
       <!-- Hero Section -->
-      <section class="relative overflow-hidden pt-32 pb-24 px-4 sm:px-6 lg:px-8">
-        <!-- Background gradient effect -->
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/20 via-indigo-500/10 to-violet-500/20 pointer-events-none"></div>
-        
-        <div class="relative max-w-7xl mx-auto text-center">
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-8">
-            <GradientText variant="primary">Transform Your Ideas</GradientText>
-            <br />
-            <span class="text-white">Into Web Applications</span>
-          </h1>
-          <p class="text-xl text-gray-300 max-w-3xl mx-auto mb-12">
-            Create powerful, professional web applications using natural language with Imagi's AI technology
-          </p>
-          <HomeNavbarButton
-            :to="isAuthenticated ? '/builder' : '/auth/login'"
-            gradient-type="primary"
-            size="lg"
-            class="text-lg px-8 py-4 !h-14"
-          >
-            Start Building
-            <i class="fas fa-arrow-right ml-2"></i>
-          </HomeNavbarButton>
+      <section class="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+        <!-- Background Effects -->
+        <div class="absolute inset-0 bg-dark-900">
+          <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
+          <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex flex-col lg:flex-row items-center gap-16">
+            <!-- Left side - Main content -->
+            <div class="flex-1 text-center lg:text-left">
+              <div class="inline-block px-4 py-1 bg-dark-800/50 backdrop-blur-sm rounded-full border border-dark-700 mb-6">
+                <span class="text-sm font-medium text-gray-300">
+                  <i class="fas fa-sparkles text-primary-500 mr-2"></i>
+                  AI-Powered Web Development
+                </span>
+              </div>
+
+              <h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight mb-6">
+                <span class="text-white block mb-1">Transform Your</span>
+                <span class="text-white block mb-1">Ideas Into</span>
+                <GradientText variant="primary" class="font-bold block text-4xl sm:text-5xl lg:text-7xl">
+                  Web Applications
+                </GradientText>
+              </h1>
+
+              <p class="text-lg sm:text-xl text-gray-300 mb-8 max-w-xl">
+                Create professional web applications using natural language. 
+                Describe your vision, and watch as AI brings it to life.
+              </p>
+
+              <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                <HomeNavbarButton
+                  :to="isAuthenticated ? '/builder' : '/auth/login'"
+                  gradient-type="primary"
+                  size="lg"
+                  class="!h-12 px-8"
+                >
+                  Start Building
+                  <i class="fas fa-arrow-right ml-2"></i>
+                </HomeNavbarButton>
+
+                <a href="#how-it-works" class="flex items-center gap-2 text-gray-300 hover:text-white transition-colors px-4 py-2">
+                  <i class="fas fa-play text-xs bg-dark-800 p-2 rounded-full"></i>
+                  <span>How It Works</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Right side - Feature highlights -->
+            <div class="flex-1 grid grid-cols-2 gap-4 max-w-lg">
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-4">
+                  <i class="fas fa-wand-magic-sparkles text-white"></i>
+                </div>
+                <h3 class="text-white font-semibold mb-2">AI Generation</h3>
+                <p class="text-gray-300 text-sm">Instant code generation powered by advanced AI</p>
+              </div>
+
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-4">
+                  <i class="fas fa-bolt text-white"></i>
+                </div>
+                <h3 class="text-white font-semibold mb-2">Rapid Build</h3>
+                <p class="text-gray-300 text-sm">Build in minutes, not months</p>
+              </div>
+
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
+                <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-4">
+                  <i class="fas fa-code text-white"></i>
+                </div>
+                <h3 class="text-white font-semibold mb-2">Clean Code</h3>
+                <p class="text-gray-300 text-sm">Professional, maintainable code</p>
+              </div>
+
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4">
+                  <i class="fas fa-rocket text-white"></i>
+                </div>
+                <h3 class="text-white font-semibold mb-2">Easy Deploy</h3>
+                <p class="text-gray-300 text-sm">One-click deployment</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
