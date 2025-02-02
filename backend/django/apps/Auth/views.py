@@ -1,364 +1,79 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordResetForm
-from django.contrib import messages
+"""
+Core business logic for the Auth app.
+All API endpoints are handled in the api/ directory.
+This file contains shared business logic that might be needed across different parts of the app.
+"""
+
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.models import User
-from django.conf import settings
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
 from django.contrib.auth import get_user_model
-from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth.password_validation import validate_password, ValidationError
-from django.contrib.auth import update_session_auth_hash
-from rest_framework.authtoken.models import Token
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
-from .serializers import UserSerializer
-from django.middleware.csrf import get_token
-from django.http import JsonResponse
-import logging
-from django.views.decorators.http import require_http_methods
+from django.conf import settings
 
-# Set up logger
+import logging
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
-@api_view(['GET'])
-@ensure_csrf_cookie
-def get_csrf_token(request):
+def send_password_reset_email(user, domain, protocol):
     """
-    This view sets the CSRF cookie and returns a 200 response
-    """
-    token = get_token(request)
-    return JsonResponse({'csrfToken': token})
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_protect
-@require_http_methods(["POST", "OPTIONS"])
-def register_user(request):
-    """
-    API endpoint for user registration
-    """
-    # Get the origin from the request
-    origin = request.headers.get('Origin', '')
-    allowed_origins = ['http://localhost:5173', 'http://localhost:5174']
+    Sends password reset email to user.
+    This is a utility function that can be used by both API and other parts of the system.
     
-    if request.method == "OPTIONS":
-        response = Response()
-        if origin in allowed_origins:
-            response["Access-Control-Allow-Origin"] = origin
-            response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-            response["Access-Control-Allow-Headers"] = "Content-Type, X-CSRFToken"
-            response["Access-Control-Allow-Credentials"] = "true"
-        return response
-
-    logger.info("Registration attempt for username: %s", request.data.get('username'))
-    
-    serializer = UserSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        try:
-            logger.info("Serializer is valid, attempting to save user")
-            user = serializer.save()
-            logger.info("User created successfully: %s", user.username)
-            
-            # Log the user in
-            login(request, user)
-            
-            # Create or get auth token
-            token, _ = Token.objects.get_or_create(user=user)
-            
-            response = Response({
-                'token': token.key,
-                'user': UserSerializer(user).data
-            }, status=status.HTTP_201_CREATED)
-            
-            # Add CORS headers
-            if origin in allowed_origins:
-                response["Access-Control-Allow-Origin"] = origin
-                response["Access-Control-Allow-Credentials"] = "true"
-            
-            return response
-            
-        except Exception as e:
-            logger.error("Error during user creation: %s", str(e), exc_info=True)
-            return Response({
-                'error': 'An unexpected error occurred during registration',
-                'errors': {'detail': str(e)}
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    else:
-        logger.error("Serializer validation failed: %s", serializer.errors)
-        return Response({
-            'error': 'Invalid registration data',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_protect
-def login_user(request):
-    """
-    API endpoint for user login
-    """
-    # Get the origin from the request
-    origin = request.headers.get('Origin', '')
-    allowed_origins = ['http://localhost:5173', 'http://localhost:5174']
-    
-    username = request.data.get('username')
-    password = request.data.get('password')
-    
-    if not username or not password:
-        return Response({
-            'error': 'Please provide both username and password'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-    user = authenticate(username=username, password=password)
-    
-    if user:
-        login(request, user)
-        # Create or get auth token
-        token, _ = Token.objects.get_or_create(user=user)
+    Args:
+        user: The user requesting password reset
+        domain: The domain name for reset link
+        protocol: The protocol (http/https) for reset link
         
-        response = Response({
-            'token': token.key,
-            'user': UserSerializer(user).data
-        })
-        
-        # Add CORS headers
-        if origin in allowed_origins:
-            response["Access-Control-Allow-Origin"] = origin
-            response["Access-Control-Allow-Credentials"] = "true"
-        
-        return response
-        
-    return Response({
-        'error': 'Invalid credentials'
-    }, status=status.HTTP_401_UNAUTHORIZED)
-
-@api_view(['POST'])
-@csrf_protect
-def logout_user(request):
-    """
-    API endpoint for user logout
-    """
-    logout(request)
-    return Response({'message': 'Successfully logged out'})
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_user(request):
-    """
-    API endpoint for getting the current user's profile
-    """
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data)
-
-def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                messages.success(request, f"Welcome back, {username}!")
-                return redirect('landing_page')
-            else:
-                messages.error(request, "Invalid username or password.")
-        else:
-            messages.error(request, "Invalid username or password.")
-    else:
-        form = AuthenticationForm()
-    return render(request, 'auth/login.html', {'form': form})
-
-def signup_view(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, f"Welcome to Imagi, {user.username}!")
-            return redirect('landing_page')
-    else:
-        form = UserCreationForm()
-    return render(request, 'auth/signup.html', {'form': form})
-
-def logout_view(request):
-    logout(request)
-    messages.info(request, "You have been logged out.")
-    return redirect('landing_page')
-
-def password_reset_request(request):
-    if request.method == "POST":
-        form = PasswordResetForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data["email"]
-            associated_users = User.objects.filter(email=email)
-            if associated_users.exists():
-                for user in associated_users:
-                    subject = "Password Reset Requested"
-                    email_template_name = "auth/password_reset_email.html"
-                    context = {
-                        "email": user.email,
-                        'domain': request.META['HTTP_HOST'],
-                        'site_name': 'Imagi',
-                        "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                        "user": user,
-                        'token': default_token_generator.make_token(user),
-                        'protocol': 'https' if request.is_secure() else 'http',
-                    }
-                    email = render_to_string(email_template_name, context)
-                    try:
-                        send_mail(subject, email, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)  # Use settings.DEFAULT_FROM_EMAIL
-                    except Exception as e:
-                        messages.error(request, f"There was an error sending email: {e}")
-                        return render(request, "auth/password_reset.html", {'form': form})
-                    
-                    return redirect("password_reset_done")
-            
-            # Even if user doesn't exist, redirect to done page for security
-            return redirect("password_reset_done")
-    
-    form = PasswordResetForm()
-    return render(request, "auth/password_reset.html", {"form": form})
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def password_reset_confirm(request):
-    """
-    API endpoint for confirming password reset and setting new password
+    Returns:
+        bool: True if email was sent successfully, False otherwise
     """
     try:
-        uid = urlsafe_base64_decode(request.data.get('uid')).decode()
-        token = request.data.get('token')
-        new_password1 = request.data.get('new_password1')
-        new_password2 = request.data.get('new_password2')
-        
-        if not all([uid, token, new_password1, new_password2]):
-            return Response(
-                {'errors': {'detail': 'Missing required fields'}},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        if new_password1 != new_password2:
-            return Response(
-                {'errors': {'new_password2': 'Passwords do not match'}},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        user = User.objects.get(pk=uid)
-        
-        if not default_token_generator.check_token(user, token):
-            return Response(
-                {'errors': {'detail': 'Invalid or expired reset token'}},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        user.set_password(new_password1)
-        user.save()
-        
-        return Response({'detail': 'Password has been reset successfully'})
-        
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return Response(
-            {'errors': {'detail': 'Invalid reset link'}},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def request_password_reset(request):
-    """
-    API endpoint for requesting a password reset
-    """
-    email = request.data.get('email')
-    if not email:
-        return Response(
-            {'errors': {'email': 'Email is required'}},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Always return success to prevent email enumeration
-    try:
-        user = User.objects.get(email=email)
-        subject = "Password Reset Requested"
-        email_template_name = "auth/password_reset_email.html"
         context = {
-            "email": user.email,
-            'domain': request.META['HTTP_HOST'],
-            'site_name': 'Imagi',
-            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
             "user": user,
-            'token': default_token_generator.make_token(user),
-            'protocol': 'https' if request.is_secure() else 'http',
+            "domain": domain,
+            "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+            "token": default_token_generator.make_token(user),
+            "protocol": protocol,
+            "site_name": "Imagi"
         }
-        email_content = render_to_string(email_template_name, context)
         
-        try:
-            send_mail(
-                subject,
-                email_content,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False
-            )
-        except Exception as e:
-            # Log the error but don't expose it to the user
-            print(f"Error sending password reset email: {e}")
-    except User.DoesNotExist:
-        # User not found, but we don't want to reveal this
-        pass
-
-    return Response({
-        'detail': 'If an account exists with this email, you will receive password reset instructions.'
-    })
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def change_password(request):
-    """
-    API endpoint for changing user password
-    """
-    user = request.user
-    old_password = request.data.get('old_password')
-    new_password = request.data.get('new_password')
-
-    if not all([old_password, new_password]):
-        return Response(
-            {'errors': {'detail': 'Both old and new passwords are required'}},
-            status=status.HTTP_400_BAD_REQUEST
+        subject = "Password Reset Requested"
+        email_body = render_to_string('auth/password_reset_email.html', context)
+        
+        send_mail(
+            subject=subject,
+            message=email_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False
         )
+        
+        logger.info(f"Password reset email sent to {user.email}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error sending password reset email to {user.email}: {str(e)}")
+        return False
 
-    # Verify old password
-    if not user.check_password(old_password):
-        return Response(
-            {'errors': {'old_password': 'Current password is incorrect'}},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Validate new password
+def validate_reset_token(user, token):
+    """
+    Validates a password reset token for a user.
+    
+    Args:
+        user: The user attempting to reset password
+        token: The reset token to validate
+        
+    Returns:
+        bool: True if token is valid, False otherwise
+    """
     try:
-        validate_password(new_password, user)
-    except ValidationError as e:
-        return Response(
-            {'errors': {'new_password': e.messages}},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Set new password
-    user.set_password(new_password)
-    user.save()
-
-    # Update session auth hash to prevent logout
-    update_session_auth_hash(request, user)
-
-    return Response({'detail': 'Password successfully updated'})
+        is_valid = default_token_generator.check_token(user, token)
+        if not is_valid:
+            logger.warning(f"Invalid reset token attempt for user {user.email}")
+        return is_valid
+    except Exception as e:
+        logger.error(f"Error validating reset token for {user.email}: {str(e)}")
+        return False
