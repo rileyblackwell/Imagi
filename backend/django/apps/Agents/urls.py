@@ -1,12 +1,13 @@
-from django.urls import path
-from . import views
+"""
+URL configuration for the Agents app.
+All routes are handled by the API.
+"""
+
+from django.urls import path, include
 
 app_name = 'agents'
 
 urlpatterns = [
-    # Conversation management
-    path('conversations/', views.list_conversations, name='list_conversations'),
-    path('conversations/create/', views.create_conversation, name='create_conversation'),
-    path('conversations/<int:conversation_id>/', views.conversation_detail, name='conversation_detail'),
-    path('conversations/<int:conversation_id>/send/', views.send_message, name='send_message'),
+    # All routes are API routes
+    path('api/', include('apps.Agents.api.urls')),
 ]

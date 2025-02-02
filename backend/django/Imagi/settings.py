@@ -121,12 +121,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Global static files first
+    os.path.join(BASE_DIR, 'static'),  # Global static files
     os.path.join(BASE_DIR, 'apps', 'Builder', 'static'),
     os.path.join(BASE_DIR, 'apps', 'Home', 'static'),
-    os.path.join(BASE_DIR, 'apps', 'Auth', 'static'),
-    os.path.join(BASE_DIR, 'apps', 'Payments', 'static'),
 ]
+
+# Create static directories if they don't exist
+for static_dir in STATICFILES_DIRS:
+    os.makedirs(static_dir, exist_ok=True)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
