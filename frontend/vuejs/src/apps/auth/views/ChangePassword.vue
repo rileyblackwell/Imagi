@@ -86,7 +86,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
-import { useNotifications } from '@/composables/useNotifications'
+import { useNotifications } from '../composables/useNotifications'
 import FormInput from '@/components/common/FormInput.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 
