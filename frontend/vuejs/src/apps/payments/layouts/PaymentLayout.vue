@@ -1,41 +1,30 @@
+<!-- Payment layout with shared components -->
 <template>
-  <div class="min-h-screen bg-dark-900">
+  <BaseLayout>
     <!-- Navigation -->
-    <nav class="bg-dark-900/80 backdrop-blur-lg border-b border-dark-700">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <!-- Logo -->
-            <router-link to="/" class="flex-shrink-0 flex items-center">
-              <img class="h-8 w-auto" src="@/shared/assets/images/logo.webp" alt="Imagi" />
-              <span class="text-xl font-bold text-white ml-2">Imagi</span>
-            </router-link>
-          </div>
-          
-          <!-- Navigation Links -->
-          <div class="flex items-center space-x-4">
-            <router-link 
-              to="/dashboard" 
-              class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-            >
-              <i class="fas fa-arrow-left mr-2"></i>
-              Back to Dashboard
-            </router-link>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <BaseNavbar />
 
     <!-- Main Content -->
     <main class="min-h-screen">
       <router-view></router-view>
     </main>
-  </div>
+
+    <!-- Footer -->
+    <BaseFooter />
+  </BaseLayout>
 </template>
 
 <script>
+import { BaseLayout } from '@/shared/layouts'
+import { BaseNavbar, BaseFooter } from '@/shared/components'
+
 export default {
   name: 'PaymentLayout',
+  components: {
+    BaseLayout,
+    BaseNavbar,
+    BaseFooter
+  },
   mounted() {
     // Load Stripe.js
     if (!window.Stripe) {
