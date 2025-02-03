@@ -97,7 +97,12 @@
                     </div>
                     <div class="flex items-center space-x-3">
                       <router-link
-                        :to="{ name: 'builder-workspace', params: { projectId: project.id }}"
+                        :to="{ 
+                          name: 'builder-workspace', 
+                          params: { 
+                            projectId: project.id.toString() 
+                          }
+                        }"
                         class="p-2 text-primary-400 hover:text-primary-300 transition-colors"
                         title="Open project"
                       >
@@ -170,15 +175,27 @@ export default {
           name: newProjectName.value.trim()
         })
         
-        // Clear the input and navigate to the workspace
+        // Clear the input
         newProjectName.value = ''
-        router.push({
-          name: 'builder-workspace',
-          params: { projectId: project.id }
-        })
+        
+        // Make sure we have a valid project ID before navigating
+        if (project && project.id) {
+          // Ensure we're passing the project ID as a string
+          const projectId = project.id.toString()
+          
+          // Navigate to the workspace
+          await router.push({
+            name: 'builder-workspace',
+            params: { projectId }
+          })
+        } else {
+          throw new Error('Invalid project response from server')
+        }
       } catch (err) {
-        // Error is already handled in the store
         console.error('Error in component:', err)
+        if (err.message.includes('Missing required param')) {
+          console.error('Project ID validation failed:', project)
+        }
       } finally {
         isCreating.value = false
       }

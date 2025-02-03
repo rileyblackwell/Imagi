@@ -64,13 +64,24 @@ export const useProjectStore = defineStore('projects', {
           }
         })
 
+        // Validate the response
         const newProject = response.data
+        if (!newProject || typeof newProject.id === 'undefined') {
+          throw new Error('Invalid project data received from server')
+        }
+
+        // Ensure ID is a string
+        newProject.id = newProject.id.toString()
+
+        // Add to projects list and return
         this.projects.push(newProject)
         return newProject
       } catch (err) {
         console.error('Failed to create project:', err)
         if (err.response?.status === 401) {
           this.error = 'Please log in to create a project.'
+        } else if (err.response?.status === 400) {
+          this.error = err.response.data?.error || 'Invalid project data. Please try again.'
         } else {
           this.error = err.response?.data?.error || err.message || 'Failed to create project'
         }

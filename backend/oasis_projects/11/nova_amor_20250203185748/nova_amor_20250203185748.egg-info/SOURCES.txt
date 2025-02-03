@@ -1,0 +1,14 @@
+setup.py
+nova_amor_20250203185748/__init__.py
+nova_amor_20250203185748/asgi.py
+nova_amor_20250203185748/models.py
+nova_amor_20250203185748/serializers.py
+nova_amor_20250203185748/settings.py
+nova_amor_20250203185748/urls.py
+nova_amor_20250203185748/views.py
+nova_amor_20250203185748/wsgi.py
+nova_amor_20250203185748.egg-info/PKG-INFO
+nova_amor_20250203185748.egg-info/SOURCES.txt
+nova_amor_20250203185748.egg-info/dependency_links.txt
+nova_amor_20250203185748.egg-info/requires.txt
+nova_amor_20250203185748.egg-info/top_level.txt

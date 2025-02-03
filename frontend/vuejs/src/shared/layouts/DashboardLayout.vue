@@ -49,7 +49,7 @@
         <!-- Navbar -->
         <BaseNavbar class="bg-dark-900/80 backdrop-blur-sm border-b border-dark-800">
           <template #left>
-            <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
+            <!-- Navbar left section without title -->
           </template>
         </BaseNavbar>
 
@@ -72,7 +72,7 @@
 <script>
 import BaseLayout from './BaseLayout.vue'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store'
 
@@ -94,10 +94,6 @@ export default {
       { name: 'Projects', to: '/dashboard/projects', icon: 'FolderIcon' },
       { name: 'Settings', to: '/dashboard/settings', icon: 'CogIcon' }
     ]
-
-    const pageTitle = computed(() => {
-      return route.meta.title || ''
-    })
 
     const toggleSidebar = () => {
       isSidebarCollapsed.value = !isSidebarCollapsed.value
@@ -122,7 +118,6 @@ export default {
 
     return {
       navigationItems,
-      pageTitle,
       isSidebarCollapsed,
       toggleSidebar
     }
