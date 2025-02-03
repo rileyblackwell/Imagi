@@ -32,6 +32,8 @@ FROM python:3.11-slim-bullseye
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONHASHSEED=random
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install system dependencies with retry logic and cleanup in same layer
 RUN apt-get update && \
@@ -55,13 +57,17 @@ RUN for i in 1 2 3; \
 # Set working directory
 WORKDIR /app
 
-# Install pip and pipenv with retry logic
-RUN pip install --upgrade pip
-RUN for i in 1 2 3; do pip install --no-cache-dir pipenv && break || sleep 15; done
+# Install pip and pipenv with retry logic and memory optimization
+RUN pip install --no-cache-dir --upgrade pip && \
+    for i in 1 2 3; do \
+        pip install --no-cache-dir pipenv && break || sleep 15; \
+    done
 
-# Copy Pipfile and install Python dependencies
+# Copy Pipfile and install Python dependencies with memory optimization
 COPY Pipfile Pipfile.lock ./
-RUN for i in 1 2 3; do pipenv install --system --deploy && break || sleep 15; done
+RUN for i in 1 2 3; do \
+        PIPENV_NOSPIN=1 PIPENV_HIDE_EMOJIS=1 pipenv install --system --deploy --verbose && break || sleep 15; \
+    done
 
 # Copy the Django backend
 COPY backend/django/ ./backend/
