@@ -1,5 +1,5 @@
 # Build stage for Vue.js frontend
-FROM node:20.11.1-slim as frontend-builder
+FROM node:20-slim as frontend-builder
 
 WORKDIR /app/frontend
 COPY frontend/vuejs/package*.json ./
@@ -11,8 +11,7 @@ COPY frontend/vuejs/ .
 RUN npm run build
 
 # Final stage for Django and serving frontend
-ARG PYTHON_VERSION=3.13.0a4-slim-bullseye
-FROM python:${PYTHON_VERSION}
+FROM python:3.11-slim-bullseye
 
 # Create and activate virtual environment
 RUN python -m venv /opt/venv
