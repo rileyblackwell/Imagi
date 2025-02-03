@@ -2,19 +2,28 @@
 FROM node:20-slim as frontend-builder
 
 # Set Node.js memory limits and optimization flags
-ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV VITE_BUILD_LEGACY=false
 
 WORKDIR /app/frontend
 COPY frontend/vuejs/package*.json ./
 
+# Install build essentials for node-gyp
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install ALL dependencies including devDependencies needed for build
-RUN for i in 1 2 3; do npm ci && break || sleep 15; done
+RUN npm ci --legacy-peer-deps
 
 COPY frontend/vuejs/ .
 
 # Build with production mode (but we installed dev dependencies above)
 ENV NODE_ENV=production
-RUN npm run build || (echo "Build failed. Check the logs above for errors." && exit 1)
+RUN npm run build || (cat /app/frontend/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js && exit 1)
 
 # Final stage for Django and serving frontend
 FROM python:3.11-slim-bullseye
