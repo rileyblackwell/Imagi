@@ -3,16 +3,17 @@ FROM node:20-slim as frontend-builder
 
 # Set Node.js memory limits and optimization flags
 ENV NODE_OPTIONS="--max-old-space-size=2048"
-ENV NODE_ENV=production
 
 WORKDIR /app/frontend
 COPY frontend/vuejs/package*.json ./
 
-# Add retry logic for npm install with reduced parallel installation
-RUN for i in 1 2 3; do npm install --no-audit --no-optional --maxsockets=1 && break || sleep 15; done
+# Install ALL dependencies including devDependencies needed for build
+RUN for i in 1 2 3; do npm ci && break || sleep 15; done
 
 COPY frontend/vuejs/ .
-# Build with specific memory allocation and production optimization
+
+# Build with production mode (but we installed dev dependencies above)
+ENV NODE_ENV=production
 RUN npm run build || (echo "Build failed. Check the logs above for errors." && exit 1)
 
 # Final stage for Django and serving frontend
