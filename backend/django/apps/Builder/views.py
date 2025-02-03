@@ -7,10 +7,24 @@ import os
 import shutil
 import logging
 from django.conf import settings
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
+from django.http import HttpResponse
 from .models import Project, Conversation, Message, Page
 from apps.ProjectManager.services import ProjectGenerationService
 
 logger = logging.getLogger(__name__)
+
+@method_decorator(never_cache, name='dispatch')
+class BuilderView:
+    """Base view for Builder app with cache control."""
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        # Prevent bfcache
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
 def create_project_with_conversation(user, project_name):
     """

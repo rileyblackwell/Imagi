@@ -1,11 +1,43 @@
 import axios from 'axios'
 
-const BASE_URL = '/api/builder'
+// Ignore extension disconnection errors in console
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  const errorMessage = args.join(' ');
+  if (
+    errorMessage.includes('runtime.lastError') ||
+    errorMessage.includes('extension port') ||
+    errorMessage.includes('message port closed') ||
+    errorMessage.includes('receiving end does not exist')
+  ) {
+    return; // Ignore these errors
+  }
+  originalConsoleError.apply(console, args);
+};
+
+const BASE_URL = '/api'
+
+// Add axios interceptor to handle extension errors
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    // Ignore extension-related errors
+    if (
+      error.message?.includes('runtime.lastError') ||
+      error.message?.includes('extension port') ||
+      error.message?.includes('message port closed') ||
+      error.message?.includes('receiving end does not exist')
+    ) {
+      return Promise.resolve({ data: null }); // Return empty response
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const BuilderAPI = {
   // Project endpoints
   async getProjects() {
-    const response = await axios.get(`${BASE_URL}/projects/`, {
+    const response = await axios.get(`${BASE_URL}/builder/projects/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -16,7 +48,7 @@ export const BuilderAPI = {
   },
 
   async createProject(projectData) {
-    const response = await axios.post(`${BASE_URL}/projects/`, projectData, {
+    const response = await axios.post(`${BASE_URL}/builder/projects/`, projectData, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -27,7 +59,7 @@ export const BuilderAPI = {
   },
 
   async getProject(id) {
-    const response = await axios.get(`${BASE_URL}/projects/${id}/`, {
+    const response = await axios.get(`${BASE_URL}/builder/projects/${id}/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -38,7 +70,7 @@ export const BuilderAPI = {
   },
 
   async updateProject(id, projectData) {
-    const response = await axios.patch(`${BASE_URL}/projects/${id}/`, projectData, {
+    const response = await axios.patch(`${BASE_URL}/builder/projects/${id}/`, projectData, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -49,7 +81,7 @@ export const BuilderAPI = {
   },
 
   async deleteProject(id) {
-    const response = await axios.delete(`${BASE_URL}/projects/${id}/`, {
+    const response = await axios.delete(`${BASE_URL}/builder/projects/${id}/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json'
@@ -60,7 +92,7 @@ export const BuilderAPI = {
 
   // File management endpoints
   async getProjectFiles(projectId) {
-    const response = await axios.get(`${BASE_URL}/projects/${projectId}/files/`, {
+    const response = await axios.get(`${BASE_URL}/builder/projects/${projectId}/files/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json'
@@ -70,7 +102,7 @@ export const BuilderAPI = {
   },
 
   async createFile(projectId, fileData) {
-    const response = await axios.post(`${BASE_URL}/projects/${projectId}/files/`, fileData, {
+    const response = await axios.post(`${BASE_URL}/builder/projects/${projectId}/files/`, fileData, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -81,7 +113,7 @@ export const BuilderAPI = {
   },
 
   async getFileContent(projectId, filePath) {
-    const response = await axios.get(`${BASE_URL}/projects/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
+    const response = await axios.get(`${BASE_URL}/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json'
@@ -91,7 +123,7 @@ export const BuilderAPI = {
   },
 
   async updateFileContent(projectId, filePath, content) {
-    const response = await axios.put(`${BASE_URL}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`, {
+    const response = await axios.put(`${BASE_URL}/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/`, {
       content
     }, {
       withCredentials: true,
@@ -105,7 +137,7 @@ export const BuilderAPI = {
 
   // Component tree endpoints
   async getComponentTree(projectId) {
-    const response = await axios.get(`${BASE_URL}/projects/${projectId}/components/`, {
+    const response = await axios.get(`${BASE_URL}/builder/projects/${projectId}/components/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json'
@@ -116,17 +148,22 @@ export const BuilderAPI = {
 
   // AI model endpoints
   async getAvailableModels() {
-    const response = await axios.get(`${BASE_URL}/models/`, {
+    const response = await axios.get(`${BASE_URL}/builder/models/`, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json'
       }
     })
-    return response.data
+    return { models: response.data }
   },
 
-  async generateCode(projectId, options) {
-    const response = await axios.post(`${BASE_URL}/projects/${projectId}/generate/`, options, {
+  async generateCode(projectId, data) {
+    const response = await axios.post(`${BASE_URL}/builder/projects/${projectId}/generate/`, {
+      prompt: data.prompt,
+      model: data.model,
+      file_path: data.file,
+      mode: data.mode
+    }, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -137,7 +174,7 @@ export const BuilderAPI = {
   },
 
   async undoAction(projectId, actionId) {
-    const response = await axios.post(`${BASE_URL}/projects/${projectId}/undo/`, {
+    const response = await axios.post(`${BASE_URL}/builder/projects/${projectId}/undo/`, {
       action_id: actionId
     }, {
       withCredentials: true,

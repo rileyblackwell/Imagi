@@ -10,6 +10,8 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.conf import settings
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 
 from ..models import Project, Conversation, Page, Message
 from .serializers import (
@@ -28,11 +30,13 @@ from apps.ProjectManager.services import ProjectGenerationService
 from ..services.project_service import ProjectService
 from ..services.ai_service import AIService
 from ..services.file_service import FileService
+from ..views import BuilderView
 
 import logging
 logger = logging.getLogger(__name__)
 
-class ProjectListCreateView(generics.ListCreateAPIView):
+@method_decorator(never_cache, name='dispatch')
+class ProjectListCreateView(generics.ListCreateAPIView, BuilderView):
     """List all projects or create a new project."""
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -49,7 +53,8 @@ class ProjectListCreateView(generics.ListCreateAPIView):
             logger.error(f"Error creating project: {str(e)}")
             raise
 
-class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
+@method_decorator(never_cache, name='dispatch')
+class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView, BuilderView):
     """Retrieve, update or delete a project."""
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -62,7 +67,8 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
         project_service = ProjectService(self.request.user)
         project_service.delete_project(instance)
 
-class ProjectFilesView(APIView):
+@method_decorator(never_cache, name='dispatch')
+class ProjectFilesView(APIView, BuilderView):
     """List all files in a project."""
     permission_classes = [IsAuthenticated]
 
@@ -72,7 +78,8 @@ class ProjectFilesView(APIView):
         files = file_service.list_files()
         return Response(files)
 
-class GenerateCodeView(APIView):
+@method_decorator(never_cache, name='dispatch')
+class GenerateCodeView(APIView, BuilderView):
     """Generate code using AI models."""
     permission_classes = [IsAuthenticated]
 
@@ -83,10 +90,17 @@ class GenerateCodeView(APIView):
         prompt = request.data.get('prompt')
         model = request.data.get('model', 'claude-3-5-sonnet-20241022')
         file_path = request.data.get('file_path')
+        mode = request.data.get('mode', 'build')
         
         if not prompt:
             return Response(
                 {'error': 'Prompt is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if not file_path:
+            return Response(
+                {'error': 'File path is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -98,6 +112,16 @@ class GenerateCodeView(APIView):
                 model=model,
                 file_path=file_path
             )
+            
+            if mode == 'build':
+                # Update the file content
+                file_service = FileService(project)
+                file_service.update_file(
+                    file_path=file_path,
+                    content=result['content'],
+                    commit_message=f'Update {file_path} via AI generation'
+                )
+            
             return Response(result)
         except Exception as e:
             logger.error(f"Error generating code: {str(e)}")
@@ -106,7 +130,8 @@ class GenerateCodeView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class UndoActionView(APIView):
+@method_decorator(never_cache, name='dispatch')
+class UndoActionView(APIView, BuilderView):
     """Undo last action in a project."""
     permission_classes = [IsAuthenticated]
 
@@ -124,7 +149,8 @@ class UndoActionView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class AIModelsView(APIView):
+@method_decorator(never_cache, name='dispatch')
+class AIModelsView(APIView, BuilderView):
     """Get available AI models."""
     permission_classes = [IsAuthenticated]
 
@@ -133,22 +159,26 @@ class AIModelsView(APIView):
             {
                 'id': 'claude-3-5-sonnet-20241022',
                 'name': 'Claude 3.5 Sonnet',
-                'description': 'Anthropic\'s Claude 3.5 Sonnet model'
+                'description': 'Anthropic\'s Claude 3.5 Sonnet model',
+                'type': 'anthropic'
             },
             {
                 'id': 'gpt-4o',
                 'name': 'GPT-4o',
-                'description': 'OpenAI\'s GPT-4 model'
+                'description': 'OpenAI\'s GPT-4 model',
+                'type': 'openai'
             },
             {
                 'id': 'gpt-4o-mini',
                 'name': 'GPT-4o Mini',
-                'description': 'OpenAI\'s GPT-4 Mini model'
+                'description': 'OpenAI\'s GPT-4 Mini model',
+                'type': 'openai'
             }
         ]
         return Response(models)
 
-class FileDetailView(APIView):
+@method_decorator(never_cache, name='dispatch')
+class FileDetailView(APIView, BuilderView):
     """Get or update file details."""
     permission_classes = [IsAuthenticated]
 
@@ -176,7 +206,8 @@ class FileDetailView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class FileContentView(APIView):
+@method_decorator(never_cache, name='dispatch')
+class FileContentView(APIView, BuilderView):
     """Get file content."""
     permission_classes = [IsAuthenticated]
 

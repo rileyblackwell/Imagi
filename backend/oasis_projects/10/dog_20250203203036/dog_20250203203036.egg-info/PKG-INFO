@@ -1,8 +1,0 @@
-Metadata-Version: 2.2
-Name: dog_20250203203036
-Version: 0.1
-Requires-Dist: django
-Requires-Dist: djangorestframework
-Requires-Dist: djangorestframework-simplejwt
-Requires-Dist: django-cors-headers
-Dynamic: requires-dist

@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     # CSRF Token
-    path('csrf/', views.get_csrf_token, name='api-csrf-token'),
+    path('csrf/', views.CSRFTokenView.as_view(), name='api-csrf-token'),
     
     # Authentication
     path('register/', views.RegisterView.as_view(), name='api-register'),

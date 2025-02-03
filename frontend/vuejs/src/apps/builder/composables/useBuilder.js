@@ -229,31 +229,42 @@ export function useBuilder() {
   async function loadAvailableModels() {
     try {
       const response = await BuilderAPI.getAvailableModels();
-      // Filter the response to only include our supported models
-      const supportedModels = (response.data.models || []).filter(model => 
-        ['gpt-4o', 'gpt-4o-mini', 'claude-sonnet-3.5'].includes(model.id)
-      );
+      // The response is already wrapped in { models: [...] } by the API service
+      const supportedModels = response.models || [];
       
       // Use the filtered models if available, otherwise use defaults
       availableModels.value = supportedModels.length > 0 ? supportedModels : DEFAULT_MODELS;
     } catch (err) {
       console.error('Failed to load available models:', err);
-      error.value = err.response?.data?.message || 'Failed to load available models';
-      // Set default models if API fails
+      // Don't throw the error, just use defaults
       availableModels.value = DEFAULT_MODELS;
     }
   }
 
   // Methods
   const loadProject = async (id) => {
+    if (!id) {
+      console.error('Project ID is required');
+      error.value = 'Invalid project ID';
+      return;
+    }
+
     try {
       isLoading.value = true;
       error.value = null;
-      currentProject.value = await BuilderAPI.getProject(id);
+      
+      const project = await BuilderAPI.getProject(id);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+      
+      currentProject.value = project;
       await loadFiles();
+      await loadAvailableModels();
     } catch (err) {
-      error.value = 'Failed to load project';
       console.error('Error loading project:', err);
+      error.value = err.response?.data?.message || 'Failed to load project';
+      throw err;
     } finally {
       isLoading.value = false;
     }

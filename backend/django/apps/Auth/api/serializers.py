@@ -49,11 +49,31 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
-        user = authenticate(username=attrs['username'], password=attrs['password'])
-        if not user:
-            raise serializers.ValidationError('Invalid credentials')
-        attrs['user'] = user
-        return attrs
+        try:
+            # Attempt to authenticate
+            user = authenticate(
+                username=attrs.get('username'),
+                password=attrs.get('password')
+            )
+
+            if not user:
+                raise serializers.ValidationError({
+                    'error': 'Invalid username or password'
+                })
+
+            if not user.is_active:
+                raise serializers.ValidationError({
+                    'error': 'This account has been disabled'
+                })
+
+            # Add user to validated data
+            attrs['user'] = user
+            return attrs
+
+        except Exception as e:
+            raise serializers.ValidationError({
+                'error': str(e)
+            })
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)

@@ -8,6 +8,21 @@ import builderRoutes from '@/apps/builder/router'
 import paymentsRoutes from '@/apps/payments/router'
 import NotFound from '@/shared/views/NotFound.vue'
 
+// Ignore extension disconnection errors
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  const errorMessage = args.join(' ');
+  if (
+    errorMessage.includes('runtime.lastError') ||
+    errorMessage.includes('extension port') ||
+    errorMessage.includes('message port closed') ||
+    errorMessage.includes('receiving end does not exist')
+  ) {
+    return; // Ignore these errors
+  }
+  originalConsoleError.apply(console, args);
+};
+
 const routes = [
   ...homeRoutes,
   ...authRoutes,
@@ -54,5 +69,21 @@ router.beforeEach(async (to, from, next) => {
   
   next()
 })
+
+// Handle navigation errors
+router.onError((error) => {
+  // Ignore extension-related errors
+  if (
+    error.message?.includes('runtime.lastError') ||
+    error.message?.includes('extension port') ||
+    error.message?.includes('message port closed') ||
+    error.message?.includes('receiving end does not exist')
+  ) {
+    return;
+  }
+  
+  // Log other errors
+  console.error('Router error:', error);
+});
 
 export default router 
