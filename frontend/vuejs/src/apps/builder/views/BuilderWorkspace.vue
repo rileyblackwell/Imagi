@@ -1,72 +1,88 @@
 <template>
-  <DashboardLayout>
-    <div class="min-h-screen flex">
-      <!-- Sidebar -->
-      <aside class="w-64 bg-dark-800 border-r border-dark-700 flex flex-col">
-        <!-- Project Info -->
-        <div class="p-4 border-b border-dark-700">
+  <DashboardLayout 
+    :navigation-items="navigationItems" 
+    storage-key="builderWorkspaceSidebarCollapsed"
+  >
+    <template #sidebar-content>
+      <!-- Project Header -->
+      <div class="p-4 border-b border-dark-700">
+        <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-white truncate">{{ currentProject?.name }}</h2>
-        </div>
-
-        <!-- Model Selection -->
-        <div class="p-4 border-b border-dark-700">
-          <label class="block text-sm font-medium text-gray-400 mb-2">AI Model</label>
-          <select
-            v-model="selectedModel"
-            class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2"
+          <router-link
+            :to="{ name: 'builder-dashboard' }"
+            class="text-gray-400 hover:text-white"
+            title="Back to projects"
           >
-            <option
-              v-for="model in availableModels"
-              :key="model.id"
-              :value="model.id"
-            >
-              {{ model.name }}
-            </option>
-          </select>
+            <i class="fas fa-times"></i>
+          </router-link>
         </div>
+      </div>
 
-        <!-- File Explorer -->
-        <div class="flex-1 overflow-y-auto p-4">
-          <h3 class="text-sm font-medium text-gray-400 mb-2">Project Files</h3>
-          <div class="space-y-1">
-            <button
-              v-for="file in files"
-              :key="file.path"
-              @click="selectFile(file)"
-              class="w-full text-left px-3 py-2 rounded-lg text-sm"
-              :class="[
-                selectedFile?.path === file.path
-                  ? 'bg-primary-500/20 text-white'
-                  : 'text-gray-400 hover:bg-dark-700 hover:text-white'
-              ]"
-            >
-              <i :class="getFileIcon(file.type)" class="mr-2"></i>
-              {{ file.path }}
-            </button>
-          </div>
-        </div>
+      <!-- Model Selection -->
+      <div class="p-4 border-b border-dark-700">
+        <label class="block text-sm font-medium text-gray-400 mb-2">AI Model</label>
+        <select
+          v-model="selectedModel"
+          class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2"
+        >
+          <option
+            v-for="model in availableModels"
+            :key="model.id"
+            :value="model.id"
+          >
+            {{ model.name }}
+          </option>
+        </select>
+      </div>
 
-        <!-- Action Buttons -->
-        <div class="p-4 border-t border-dark-700 space-y-2">
+      <!-- File Explorer -->
+      <div class="flex-1 overflow-y-auto p-4">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">Project Files</h3>
+        <div class="space-y-1">
           <button
-            @click="undoLastAction"
-            class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="isLoading"
+            v-for="file in files"
+            :key="file.path"
+            @click="selectFile(file)"
+            class="w-full text-left px-3 py-2 rounded-lg text-sm"
+            :class="[
+              selectedFile?.path === file.path
+                ? 'bg-primary-500/20 text-white'
+                : 'text-gray-400 hover:bg-dark-700 hover:text-white'
+            ]"
           >
-            <i class="fas fa-undo mr-2"></i>
-            Undo
+            <i :class="getFileIcon(file.type)" class="mr-2"></i>
+            {{ file.path }}
           </button>
         </div>
-      </aside>
+      </div>
 
+      <!-- Action Buttons -->
+      <div class="p-4 border-t border-dark-700 space-y-2">
+        <button
+          @click="undoLastAction"
+          class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isLoading"
+        >
+          <i class="fas fa-undo mr-2"></i>
+          Undo
+        </button>
+      </div>
+    </template>
+
+    <div class="min-h-screen flex">
       <!-- Main Content -->
       <main class="flex-1 flex flex-col">
         <!-- File Content -->
         <div v-if="selectedFile" class="flex-1 p-4">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-white">
-              {{ selectedFile.path }}
-            </h2>
+            <div class="flex items-center space-x-4">
+              <h2 class="text-lg font-semibold text-white">
+                {{ selectedFile.path }}
+              </h2>
+              <span class="text-sm text-gray-400">
+                Project: {{ currentProject?.name }}
+              </span>
+            </div>
             <div class="flex items-center space-x-2">
               <span v-if="hasUnsavedChanges" class="text-yellow-500 text-sm">
                 Unsaved changes
@@ -145,6 +161,9 @@ export default {
     const route = useRoute()
     const prompt = ref('')
     const editorContent = ref('')
+
+    // Define workspace navigation items
+    const navigationItems = [] // Empty array since we don't want any navigation items
 
     const {
       currentProject,
@@ -227,6 +246,7 @@ export default {
     }
 
     return {
+      navigationItems,
       currentProject,
       files,
       selectedFile,

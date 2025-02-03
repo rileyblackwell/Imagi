@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout>
+  <DashboardLayout :navigation-items="navigationItems" storage-key="builderSidebarCollapsed">
     <div class="min-h-full bg-dark-950 py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header Section -->
@@ -151,6 +151,21 @@ export default {
     const newProjectName = ref('')
     const isCreating = ref(false)
 
+    // Define builder navigation items
+    const navigationItems = [
+      { 
+        name: 'Projects', 
+        to: '/builder/dashboard', 
+        icon: 'fas fa-folder',
+        exact: true
+      },
+      { 
+        name: 'Settings', 
+        to: '/builder/settings', 
+        icon: 'fas fa-cog'
+      }
+    ]
+
     // Computed properties from store
     const projects = computed(() => projectStore.activeProjects)
     const isLoading = computed(() => projectStore.loading)
@@ -249,7 +264,8 @@ export default {
       createProject,
       confirmDelete,
       formatDate,
-      retryFetch
+      retryFetch,
+      navigationItems
     }
   }
 }

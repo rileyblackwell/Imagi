@@ -8,30 +8,34 @@
         :class="[isSidebarCollapsed ? 'w-16' : 'w-64']"
       >
         <!-- Navigation -->
-        <nav class="flex-1 py-6 overflow-y-auto">
+        <nav class="flex-shrink-0 py-6">
           <div class="px-3 space-y-1">
             <router-link
               v-for="item in navigationItems"
               :key="item.name"
               :to="item.to"
               :class="[
-                $route.path === item.to
-                  ? 'bg-dark-800 text-white'
-                  : 'text-gray-400 hover:bg-dark-800 hover:text-white',
+                isActivePath(item) ? 'bg-dark-800 text-white' : 'text-gray-400 hover:bg-dark-800 hover:text-white',
                 'group flex items-center px-3 py-2 text-sm font-medium rounded-md'
               ]"
             >
-              <component
-                :is="item.icon"
+              <i 
+                v-if="item.icon"
                 :class="[
-                  $route.path === item.to ? 'text-primary-400' : 'text-gray-400 group-hover:text-white',
-                  'mr-3 h-5 w-5'
+                  item.icon,
+                  isActivePath(item) ? 'text-primary-400' : 'text-gray-400 group-hover:text-white',
+                  'mr-3 text-lg'
                 ]"
-              />
+              ></i>
               <span v-if="!isSidebarCollapsed">{{ item.name }}</span>
             </router-link>
           </div>
         </nav>
+
+        <!-- Additional Sidebar Content -->
+        <div v-if="!isSidebarCollapsed" class="flex-1 overflow-hidden flex flex-col">
+          <slot name="sidebar-content"></slot>
+        </div>
         
         <!-- Collapse button -->
         <div class="flex-shrink-0 p-4 border-t border-dark-800">
@@ -83,21 +87,33 @@ export default {
     BaseNavbar,
     BaseFooter
   },
-  setup() {
+  props: {
+    navigationItems: {
+      type: Array,
+      default: () => [],
+      validator: (items) => items.every(item => item.name && item.to)
+    },
+    storageKey: {
+      type: String,
+      default: 'dashboardSidebarCollapsed'
+    }
+  },
+  setup(props) {
     const route = useRoute()
     const router = useRouter()
     const authStore = useAuthStore()
     const isSidebarCollapsed = ref(false)
 
-    const navigationItems = [
-      { name: 'Dashboard', to: '/dashboard', icon: 'HomeIcon' },
-      { name: 'Projects', to: '/dashboard/projects', icon: 'FolderIcon' },
-      { name: 'Settings', to: '/dashboard/settings', icon: 'CogIcon' }
-    ]
+    const isActivePath = (item) => {
+      if (item.exact) {
+        return route.path === item.to
+      }
+      return route.path.startsWith(item.to)
+    }
 
     const toggleSidebar = () => {
       isSidebarCollapsed.value = !isSidebarCollapsed.value
-      localStorage.setItem('dashboardSidebarCollapsed', isSidebarCollapsed.value)
+      localStorage.setItem(props.storageKey, isSidebarCollapsed.value)
     }
 
     // Check authentication on mount
@@ -110,16 +126,16 @@ export default {
       }
 
       // Initialize sidebar state from localStorage
-      const savedCollapsed = localStorage.getItem('dashboardSidebarCollapsed')
+      const savedCollapsed = localStorage.getItem(props.storageKey)
       if (savedCollapsed !== null) {
         isSidebarCollapsed.value = savedCollapsed === 'true'
       }
     })
 
     return {
-      navigationItems,
       isSidebarCollapsed,
-      toggleSidebar
+      toggleSidebar,
+      isActivePath
     }
   }
 }
