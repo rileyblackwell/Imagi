@@ -1,43 +1,49 @@
 <template>
   <DashboardLayout>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="text-center mb-12">
-        <h1 class="text-4xl font-bold text-white mb-4">
-          Welcome to Imagi Builder
-        </h1>
-        <p class="text-xl text-gray-400">
-          Create and manage your web projects using AI-powered tools
-        </p>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <!-- Header Section -->
+      <div class="mb-16">
+        <div class="flex flex-col items-center text-center space-y-4">
+          <div class="p-3 bg-primary-500/10 rounded-2xl">
+            <i class="fas fa-wand-magic-sparkles text-2xl text-primary-400"></i>
+          </div>
+          <h1 class="text-4xl font-bold text-white">
+            Welcome to Imagi Builder
+          </h1>
+          <p class="text-xl text-gray-400 max-w-2xl">
+            Create and manage your web projects using AI-powered tools. Transform your ideas into reality with natural language.
+          </p>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <!-- Create New Project Card -->
-        <div class="bg-dark-800 rounded-xl p-8 border border-dark-700 hover:border-primary-500 transition-all duration-300">
+        <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
           <div class="flex flex-col h-full">
-            <div class="w-14 h-14 bg-primary-500 bg-opacity-10 rounded-xl flex items-center justify-center mb-6">
-              <i class="fas fa-plus-circle text-2xl text-primary-500"></i>
+            <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-xl flex items-center justify-center mb-6">
+              <i class="fas fa-plus-circle text-2xl text-white"></i>
             </div>
             
             <h2 class="text-2xl font-bold text-white mb-4">Create New Project</h2>
-            <p class="text-gray-400 mb-6">Start fresh with a new website project. Use natural language to describe your vision.</p>
+            <p class="text-gray-400 mb-8">Start fresh with a new website project. Use natural language to describe your vision and let AI bring it to life.</p>
             
             <form @submit.prevent="createProject" class="mt-auto">
-              <div class="space-y-4">
-                <div>
+              <div class="space-y-6">
+                <div class="relative">
                   <input 
                     v-model="newProjectName"
                     type="text"
                     placeholder="Enter project name"
-                    class="w-full px-4 py-3 bg-dark-900 border border-dark-700 rounded-lg text-white placeholder-gray-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                    class="w-full px-4 py-3 bg-dark-900/50 border border-dark-600 focus:border-primary-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
                     required
                   >
                 </div>
                 <button 
                   type="submit"
                   :disabled="isCreating || !newProjectName.trim()"
-                  class="w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  class="w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-indigo-500 hover:from-primary-400 hover:to-indigo-400 text-white font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 focus:ring-offset-dark-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 group"
                 >
-                  <i class="fas fa-magic mr-2"></i>
+                  <i class="fas fa-magic mr-2 group-hover:rotate-12 transition-transform duration-200"></i>
                   <span v-if="isCreating">Creating Project...</span>
                   <span v-else>Create Project</span>
                 </button>
@@ -47,26 +53,30 @@
         </div>
 
         <!-- Existing Projects Card -->
-        <div class="bg-dark-800 rounded-xl p-8 border border-dark-700">
-          <div class="w-14 h-14 bg-primary-500 bg-opacity-10 rounded-xl flex items-center justify-center mb-6">
-            <i class="fas fa-folder-open text-2xl text-primary-500"></i>
+        <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
+          <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center mb-6">
+            <i class="fas fa-folder-open text-2xl text-white"></i>
           </div>
           
           <h2 class="text-2xl font-bold text-white mb-4">Your Projects</h2>
-          <p class="text-gray-400 mb-6">Continue working on your existing web projects</p>
+          <p class="text-gray-400 mb-8">Continue working on your existing web projects and bring your ideas to life.</p>
 
-          <div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
-            <div v-if="isLoading" class="text-center py-8">
-              <i class="fas fa-spinner fa-spin text-2xl text-primary-500"></i>
-              <p class="mt-2 text-gray-400">Loading projects...</p>
+          <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
+              <div class="w-14 h-14 bg-primary-500/10 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-spinner fa-spin text-2xl text-primary-400"></i>
+              </div>
+              <p class="text-gray-400">Loading your projects...</p>
             </div>
 
-            <div v-else-if="error" class="text-center py-8">
-              <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
-              <p class="text-gray-400">{{ error }}</p>
+            <div v-else-if="error" class="flex flex-col items-center justify-center py-12">
+              <div class="w-14 h-14 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
+              </div>
+              <p class="text-gray-400 mb-4">{{ error }}</p>
               <button 
                 @click="fetchProjects" 
-                class="mt-4 text-primary-500 hover:text-primary-400 font-medium"
+                class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors"
               >
                 Try Again
               </button>
@@ -76,24 +86,24 @@
               <div 
                 v-for="project in projects" 
                 :key="project.id"
-                class="group bg-dark-900 rounded-lg p-4 hover:bg-dark-700 transition-all duration-200"
+                class="group bg-dark-900/50 backdrop-blur-sm rounded-xl p-4 border border-dark-700 hover:border-primary-500/50 transition-all duration-200"
               >
                 <div class="flex items-center justify-between">
                   <div>
-                    <h3 class="text-white font-medium">{{ project.name }}</h3>
+                    <h3 class="text-white font-medium mb-1">{{ project.name }}</h3>
                     <p class="text-sm text-gray-400">Last modified: {{ formatDate(project.updated_at) }}</p>
                   </div>
                   <div class="flex items-center space-x-3">
                     <router-link
                       :to="{ name: 'builder-workspace', params: { projectId: project.id }}"
-                      class="text-primary-500 hover:text-primary-400 transition-colors"
+                      class="p-2 text-primary-400 hover:text-primary-300 transition-colors"
                       title="Open project"
                     >
                       <i class="fas fa-arrow-right"></i>
                     </router-link>
                     <button
                       @click="confirmDelete(project)"
-                      class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      class="p-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-all duration-200"
                       title="Delete project"
                     >
                       <i class="fas fa-trash"></i>
@@ -103,9 +113,11 @@
               </div>
             </template>
 
-            <div v-else class="text-center py-8">
-              <i class="fas fa-folder-open text-4xl text-gray-600 mb-4"></i>
-              <p class="text-gray-400">No projects yet. Create your first project to get started!</p>
+            <div v-else class="flex flex-col items-center justify-center py-12">
+              <div class="w-14 h-14 bg-dark-700 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-folder-open text-2xl text-gray-400"></i>
+              </div>
+              <p class="text-gray-400 text-center">No projects yet. Create your first project to get started!</p>
             </div>
           </div>
         </div>
@@ -158,7 +170,6 @@ export default {
         })
         
         if (response.data.success) {
-          // Navigate to the new project's workspace
           router.push({
             name: 'builder-workspace',
             params: { projectId: response.data.project_id }
@@ -182,7 +193,7 @@ export default {
       try {
         const response = await axios.delete(`/api/builder/projects/${project.id}/`)
         if (response.data.success) {
-          await fetchProjects() // Refresh the list
+          await fetchProjects()
         } else {
           throw new Error(response.data.error || 'Failed to delete project')
         }
