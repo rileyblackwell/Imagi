@@ -41,38 +41,39 @@
       <!-- Main content -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Top navigation -->
-        <header class="bg-dark-900 border-b border-dark-800">
-          <div class="px-4 sm:px-6 lg:px-8">
-            <div class="h-16 flex items-center justify-between">
-              <!-- Left section -->
-              <div class="flex-1 flex">
-                <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
-              </div>
-              
-              <!-- Right section -->
-              <div class="flex items-center space-x-4">
-                <!-- User dropdown -->
-                <div class="relative">
-                  <button
-                    class="flex items-center space-x-3 text-gray-400 hover:text-white focus:outline-none"
-                  >
-                    <img
-                      class="h-8 w-8 rounded-full"
-                      :src="userAvatar"
-                      alt=""
-                    />
-                    <span class="text-sm font-medium">{{ userName }}</span>
-                  </button>
-                </div>
+        <BaseNavbar>
+          <!-- Left section -->
+          <template #left>
+            <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
+          </template>
+          
+          <!-- Right section -->
+          <template #right>
+            <div class="flex items-center space-x-4">
+              <!-- User dropdown -->
+              <div class="relative">
+                <button
+                  class="flex items-center space-x-3 text-gray-400 hover:text-white focus:outline-none"
+                >
+                  <img
+                    class="h-8 w-8 rounded-full"
+                    :src="userAvatar"
+                    alt=""
+                  />
+                  <span class="text-sm font-medium">{{ userName }}</span>
+                </button>
               </div>
             </div>
-          </div>
-        </header>
+          </template>
+        </BaseNavbar>
 
         <!-- Page content -->
         <main class="flex-1 overflow-y-auto bg-dark-950 p-6">
           <slot></slot>
         </main>
+
+        <!-- Footer -->
+        <BaseFooter />
       </div>
     </div>
   </BaseLayout>
@@ -80,6 +81,7 @@
 
 <script>
 import BaseLayout from './BaseLayout.vue'
+import { BaseNavbar, BaseFooter } from '@/shared/components'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store/auth'
@@ -87,7 +89,9 @@ import { useAuthStore } from '@/apps/auth/store/auth'
 export default {
   name: 'DashboardLayout',
   components: {
-    BaseLayout
+    BaseLayout,
+    BaseNavbar,
+    BaseFooter
   },
   setup() {
     const route = useRoute()

@@ -19,7 +19,7 @@
           
           <template #menu>
             <router-link
-              :to="{ name: 'builder-landing' }"
+              :to="{ name: 'builder-dashboard' }"
               class="block px-5 py-3 text-sm text-white/80 hover:text-white transition-all duration-200 hover:bg-gradient-to-r hover:from-primary-500/10 hover:via-indigo-500/10 hover:to-violet-500/10"
               @click="isProductsMenuOpen = false"
             >

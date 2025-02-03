@@ -105,7 +105,10 @@
         <div class="mt-12">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
           <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <router-link to="/builder/new" class="group relative rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 p-6 hover:border-primary-500 transition-all duration-300">
+            <router-link 
+              :to="{ name: 'builder-dashboard' }" 
+              class="group relative rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 p-6 hover:border-primary-500 transition-all duration-300"
+            >
               <div class="flex items-center space-x-4">
                 <div class="w-12 h-12 bg-primary-500 bg-opacity-10 rounded-xl flex items-center justify-center group-hover:bg-opacity-20 transition-all duration-300">
                   <svg class="h-6 w-6 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

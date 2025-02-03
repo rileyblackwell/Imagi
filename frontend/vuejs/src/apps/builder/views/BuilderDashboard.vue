@@ -1,6 +1,6 @@
 <template>
   <DashboardLayout>
-    <div class="builder-landing-container">
+    <div class="builder-dashboard-container">
       <div class="landing-header text-center mb-12">
         <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
           Welcome to Imagi Builder
@@ -61,7 +61,18 @@
               <p class="mt-2 text-gray-600 dark:text-gray-400">Loading projects...</p>
             </div>
 
-            <template v-else-if="projects.length">
+            <div v-else-if="error" class="text-center py-8">
+              <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
+              <p class="text-gray-600 dark:text-gray-400">{{ error }}</p>
+              <button 
+                @click="fetchProjects" 
+                class="mt-4 text-primary-500 hover:text-primary-400 font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+
+            <template v-else-if="projects && projects.length > 0">
               <div 
                 v-for="project in projects" 
                 :key="project.id"
@@ -106,11 +117,11 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import DashboardLayout from '@/shared/layouts/DashboardLayout.vue'
+import { DashboardLayout } from '@/shared/layouts'
 import axios from 'axios'
 
 export default {
-  name: 'BuilderLanding',
+  name: 'BuilderDashboard',
   components: {
     DashboardLayout
   },
@@ -118,16 +129,19 @@ export default {
     const router = useRouter()
     const projects = ref([])
     const isLoading = ref(true)
+    const error = ref(null)
     const newProjectName = ref('')
     const isCreating = ref(false)
 
     const fetchProjects = async () => {
       isLoading.value = true
+      error.value = null
       try {
         const response = await axios.get('/api/builder/projects/')
-        projects.value = response.data.projects
-      } catch (error) {
-        console.error('Failed to fetch projects:', error)
+        projects.value = response.data.projects || []
+      } catch (err) {
+        console.error('Failed to fetch projects:', err)
+        error.value = 'Failed to load projects. Please try again.'
       } finally {
         isLoading.value = false
       }
@@ -137,6 +151,7 @@ export default {
       if (!newProjectName.value.trim() || isCreating.value) return
 
       isCreating.value = true
+      error.value = null
       try {
         const response = await axios.post('/api/builder/create-project/', {
           project_name: newProjectName.value
@@ -151,9 +166,9 @@ export default {
         } else {
           throw new Error(response.data.error || 'Failed to create project')
         }
-      } catch (error) {
-        console.error('Failed to create project:', error)
-        // TODO: Add error notification
+      } catch (err) {
+        console.error('Failed to create project:', err)
+        error.value = err.message || 'Failed to create project. Please try again.'
       } finally {
         isCreating.value = false
       }
@@ -171,9 +186,9 @@ export default {
         } else {
           throw new Error(response.data.error || 'Failed to delete project')
         }
-      } catch (error) {
-        console.error('Failed to delete project:', error)
-        // TODO: Add error notification
+      } catch (err) {
+        console.error('Failed to delete project:', err)
+        error.value = err.message || 'Failed to delete project. Please try again.'
       }
     }
 
@@ -194,18 +209,20 @@ export default {
     return {
       projects,
       isLoading,
+      error,
       newProjectName,
       isCreating,
       createProject,
       confirmDelete,
-      formatDate
+      formatDate,
+      fetchProjects
     }
   }
 }
 </script>
 
 <style scoped>
-.builder-landing-container {
+.builder-dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;

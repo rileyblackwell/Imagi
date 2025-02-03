@@ -131,7 +131,7 @@
         <!-- Sidebar Footer -->
         <div class="sidebar-footer">
           <router-link 
-            to="/builder"
+            :to="{ name: 'builder-dashboard' }"
             class="sidebar-link"
           >
             <i class="fas fa-th-large"></i>

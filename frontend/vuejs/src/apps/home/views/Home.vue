@@ -38,7 +38,7 @@
 
                 <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
                   <HomeNavbarButton
-                    :to="isAuthenticated ? '/builder' : '/auth/login'"
+                    :to="{ name: isAuthenticated ? 'builder-dashboard' : 'auth-login' }"
                     gradient-type="primary"
                     size="lg"
                     class="!h-12 px-8"

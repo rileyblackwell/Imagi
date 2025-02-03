@@ -1,4 +1,4 @@
-import BuilderLanding from '../views/BuilderLanding.vue'
+import BuilderDashboard from '../views/BuilderDashboard.vue'
 import BuilderWorkspace from '../views/BuilderWorkspace.vue'
 import Dashboard from '../views/Dashboard.vue'
 
@@ -13,9 +13,9 @@ export const routes = [
     }
   },
   {
-    path: '/builder',
-    name: 'builder-landing',
-    component: BuilderLanding,
+    path: '/builder/dashboard',
+    name: 'builder-dashboard',
+    component: BuilderDashboard,
     meta: {
       requiresAuth: true,
       title: 'Imagi Builder'
