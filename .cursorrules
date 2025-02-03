@@ -1,98 +1,79 @@
 # .cursorrules
 
-# Purpose:
-# This file defines coding, design, and generation rules for the Imagi Oasis platform. 
-# It ensures consistency, adherence to best practices, and a streamlined development process.
+## Purpose
+Defines rules for coding, design, and generation in **Imagi Oasis** to ensure consistency and best practices.
 
-# Company Overview:
-# Imagi is a natural language to code platform. Its flagship product, Imagi Oasis, empowers users to build full-stack web applications through natural language prompts. 
-# Imagi Oasis leverages cutting-edge AI agents on the backend to construct dynamic web applications, enabling users to seamlessly translate their vision into functional code.
+## Company Overview
+**Imagi** is a natural language-to-code platform. Its product, **Imagi Oasis**, allows users to build full-stack web apps with AI-generated code.
 
-# Core Directives:
-# 1. Always generate complete, self-contained files, including all necessary imports, dependencies, and boilerplate code.
-# 2. Write clean, maintainable, and secure code following best practices for both Python/Django and Vue.js.
-# 3. Include tests for both the Django backend and Vue.js frontend to ensure functionality and reliability.
-# 4. Use clear, descriptive naming conventions and comments to enhance code readability.
+---
 
-# Project Structure:
-# - The Imagi platform is structured into two main components:
-#   * `Imagi/frontend/VueJS`: Vue.js frontend for building responsive and dynamic UIs.
-#   * `Imagi/backend/django`: Django backend for managing business logic, APIs, and user data.
-# - User-specific projects: `~/startups/oasis_projects/<user_id>/<project_name>/`
-#   * Standalone Django projects.
-#   * Each project contains templates (HTML) and static files (CSS, JS) in appropriate directories.
-#   * Minimal Django views and URL configurations are included to render generated pages.
+## Core Directives
+1. **Complete Files** – Generate self-contained files with necessary imports and dependencies.
+2. **Best Practices** – Write clean, maintainable, and secure code for Python/Django and Vue.js.
+3. **Testing** – Include tests for Django and Vue.js.
+4. **Clear Naming & Comments** – Ensure code readability.
 
-# Apps Overview:
-# - **Auth App**: 
-#   * Handles user authentication (login, signup).
-#   * Uses Django's authentication system to authenticate users.
-#   * Future integration with OAuth is planned.
-# - **Builder App**: 
-#   * Core functionality of Imagi Oasis, enabling natural language to code generation.
-#   * Modes: 
-#     - Chat Mode: Discuss design decisions.
-#     - Build Mode: Generate web pages.
-#   * Manages HTML, CSS, and minimal Django files for user projects.
-# - **Home App**: 
-#   * Hosts landing and static marketing content.
-#   * Links to other platform features.
-# - **Payments App**: 
-#   * Integrates Stripe for purchasing AI/API credits.
-#   * Associates credits with user accounts securely.
-# - **Agents App**: 
-#   * Manages backend AI agent workflows.
-#   * Tracks conversation history and system prompts sent to AI models.
-#   * Integrates with GPT-4 and other AI models for web app generation.
-# - **ProjectManager App**: 
-#   * Handles the lifecycle of user projects.
-#   * Manages project organization, directory creation, and file handling.
+---
 
-# Frontend Details:
-# - **Framework**: Vue.js
-# - **API Calls**: Use Axios for handling API requests.
-# - **State Management**: Pinia stores are used to manage application state.
-# - **Styling**: 
-#   * Use **Tailwind CSS** for styling and layout, adhering to its utility-first design philosophy.
-#   * Include a global Tailwind configuration file (`tailwind.config.js`) for custom theme extensions and consistent design tokens.
-#   * Avoid inline styles; utilize Tailwind's utility classes instead for concise and scalable CSS.
-# - **Design Principles**:
-#   * Follow component-based architecture for reusability and modularity.
-#   * Ensure responsiveness and accessibility across devices and browsers.
+## Project Structure
+- **Frontend**: `Imagi/frontend/VueJS/` (Vue.js)
+- **Backend**: `Imagi/backend/django/` (Django)
+- **User Projects**: `~/startups/oasis_projects/<user_id>/<project_name>/`
+  - Standalone Django projects with templates, static files, views, and URL configurations.
 
-# Backend Details:
-# - **Framework**: Django
-# - **API Design**:
-#   * Handle API calls from the Vue.js frontend using **Django REST Framework (DRF)**.
-#   * Follow RESTful API design principles with proper versioning (e.g., `/api/v1/`).
-# - **Authentication**:
-#   * Use Django's built-in authentication system to authenticate users.
-#   * Protect API endpoints requiring authentication using DRF's authentication classes.
+---
 
-# Overall Design:
-# - Draw inspiration from Stripe, Airbnb, Apple, Twilio, Meta, Google, and Discord.
-# - Prioritize minimalism, elegance, and responsiveness.
-# - Incorporate modern typography, consistent spacing, and subtle animations for a polished look.
+## Apps Overview
+- **Auth** – Manages user authentication.
+- **Builder** – Core AI-powered app for web generation (Chat & Build Modes).
+- **Home** – Landing pages and marketing content.
+- **Payments** – Stripe integration for AI/API credit purchases.
+- **Agents** – Handles AI workflows and GPT-4 integration.
+- **ProjectManager** – Manages project lifecycle and file handling.
 
-# Development Environment:
-# - Operating System: macOS with zsh terminal.
-# - Dependency Management: 
-#   * Use pipenv for managing Python virtual environments and dependencies.
-#   * Use Node.js and npm for managing frontend dependencies.
-# - Local Development: 
-#   * Development occurs locally, with future plans for Docker and Kubernetes for production deployments.
+---
 
-# Testing:
-# - **Backend (Django)**:
-#   * Write unit tests for models, views, and API endpoints using `pytest` or Django’s built-in testing tools.
-# - **Frontend (Vue.js)**:
-#   * Use tools like Jest or Cypress for component and end-to-end testing.
-#   * Ensure comprehensive test coverage for user interface interactions.
+## Frontend (Vue.js)
+- **API**: Use **Axios**.
+- **State Management**: Use **Pinia**.
+- **Styling**:
+  - **Tailwind CSS** with `tailwind.config.js`.
+  - No inline styles; use utility classes.
+- **Design**:
+  - Component-based, responsive, and accessible.
 
-# Tags for Cursor:
-# - `task:` Use this tag to denote specific tasks for Cursor to perform (e.g., "task: Generate a Vue.js component").
-# - `study:` Use this tag to provide background information, references, or examples for a task or prompt.
+---
 
-# Example Tags:
-# task: Generate a Django model for managing user projects.
-# study: Reference Stripe’s design patterns for creating a modern and intuitive user interface.
+## Backend (Django)
+- **API**: Use **Django REST Framework (DRF)** with `/api/v1/` versioning.
+- **Authentication**: Use Django’s built-in system and DRF authentication.
+
+---
+
+## Design Principles
+- Inspired by Stripe, Airbnb, Apple, Twilio, Meta, Google, Discord.
+- Focus on minimalism, elegance, and responsiveness.
+- Use modern typography, spacing, and animations.
+
+---
+
+## Development Environment
+- **OS**: macOS (zsh).
+- **Dependencies**:
+  - **pipenv** for Python.
+  - **Node.js/npm** for frontend.
+- **Local Development**: Future **Docker & Kubernetes** deployment.
+
+---
+
+## Testing
+- **Django**: Use `pytest` or built-in testing.
+- **Vue.js**: Use **Jest** or **Cypress** for UI and component testing.
+
+---
+
+## Cursor Tags
+- `task:` Assigns a specific task (e.g., `"task: Generate a Vue.js component"`).
+- `study:` Provides references or background info.
+
