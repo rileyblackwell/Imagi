@@ -8,36 +8,48 @@ import builderRoutes from '@/apps/builder/router'
 import paymentsRoutes from '@/apps/payments/router'
 import NotFound from '@/shared/views/NotFound.vue'
 
-// Ignore extension disconnection errors
-const originalConsoleError = console.error;
-console.error = (...args) => {
-  const errorMessage = args.join(' ');
-  if (
-    errorMessage.includes('runtime.lastError') ||
-    errorMessage.includes('extension port') ||
-    errorMessage.includes('message port closed') ||
-    errorMessage.includes('receiving end does not exist')
-  ) {
-    return; // Ignore these errors
-  }
-  originalConsoleError.apply(console, args);
-};
+// Completely disable bfcache
+if ('navigationPreload' in navigator.serviceWorker) {
+  navigator.serviceWorker.ready.then(registration => {
+    registration.navigationPreload.disable();
+  });
+}
 
-const routes = [
-  ...homeRoutes,
-  ...authRoutes,
-  ...builderRoutes,
-  ...paymentsRoutes,
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: NotFound
-  }
-]
+// Force disable bfcache
+window.addEventListener('load', () => {
+  // Add no-store header
+  const meta = document.createElement('meta');
+  meta.httpEquiv = 'Cache-Control';
+  meta.content = 'no-store';
+  document.head.appendChild(meta);
 
+  // Add no-cache header
+  const pragmaMeta = document.createElement('meta');
+  pragmaMeta.httpEquiv = 'Pragma';
+  pragmaMeta.content = 'no-cache';
+  document.head.appendChild(pragmaMeta);
+
+  // Add expires header
+  const expiresMeta = document.createElement('meta');
+  expiresMeta.httpEquiv = 'Expires';
+  expiresMeta.content = '0';
+  document.head.appendChild(expiresMeta);
+});
+
+// Create router instance
 const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes: [
+    ...homeRoutes,
+    ...authRoutes,
+    ...builderRoutes,
+    ...paymentsRoutes,
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFound
+    }
+  ],
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
@@ -46,6 +58,18 @@ const router = createRouter({
     }
   }
 })
+
+// Force page reload on back/forward
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+    window.location.reload(true);
+  }
+});
+
+// Force page reload on popstate
+window.addEventListener('popstate', () => {
+  window.location.reload(true);
+});
 
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
@@ -72,18 +96,8 @@ router.beforeEach(async (to, from, next) => {
 
 // Handle navigation errors
 router.onError((error) => {
-  // Ignore extension-related errors
-  if (
-    error.message?.includes('runtime.lastError') ||
-    error.message?.includes('extension port') ||
-    error.message?.includes('message port closed') ||
-    error.message?.includes('receiving end does not exist')
-  ) {
-    return;
-  }
-  
-  // Log other errors
-  console.error('Router error:', error);
-});
+  // Just log the error and continue
+  console.error('Router error:', error)
+})
 
 export default router 

@@ -11,7 +11,7 @@ from rest_framework import status
 
 class CacheControlMiddleware:
     """
-    Middleware to handle caching and security headers.
+    Middleware to handle caching, security headers, and bfcache prevention.
     """
     def __init__(self, get_response):
         self.get_response = get_response
@@ -20,12 +20,43 @@ class CacheControlMiddleware:
         response = self.get_response(request)
         
         if isinstance(response, (HttpResponse, Response)):
-            # Allow caching for static files
+            # Set cache-control based on path
             if request.path.startswith('/static/'):
+                # Allow caching for static files
                 response['Cache-Control'] = 'public, max-age=31536000'  # 1 year
-            # For everything else, use standard cache control
             else:
-                response['Cache-Control'] = 'private, no-cache'
+                # Prevent bfcache while preserving auth state
+                response['Cache-Control'] = 'private, no-store, no-cache, must-revalidate, proxy-revalidate'
+                response['Pragma'] = 'no-cache'
+                # Explicitly prevent bfcache
+                response['Cache-Control'] = f"{response.get('Cache-Control', '')}, max-age=0, s-maxage=0"
+            
+            # Add security headers for non-static paths
+            if not request.path.startswith('/static/'):
+                # Headers to prevent bfcache and extension issues
+                response['Service-Worker-Allowed'] = '/'
+                # Allow extension communication
+                response['Content-Security-Policy'] = (
+                    "frame-ancestors 'self'; "
+                    "connect-src * 'self' blob: data:; "
+                    "default-src * 'self' blob: data:; "
+                    "script-src * 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; "
+                    "style-src * 'self' 'unsafe-inline' blob: data:; "
+                    "img-src * 'self' blob: data:; "
+                    "font-src * 'self' blob: data:;"
+                )
+                # Additional bfcache prevention
+                response['Vary'] = '*'
+                response['Expires'] = '0'
+                
+                # Prevent FLoC cohorts
+                response['Permissions-Policy'] = (
+                    'interest-cohort=(), '
+                    'sync-xhr=(self), '
+                    'document-domain=()'
+                )
+                
+                response['X-Frame-Options'] = 'SAMEORIGIN'
             
             # Basic security headers
             response['X-Content-Type-Options'] = 'nosniff'
@@ -35,13 +66,16 @@ class CacheControlMiddleware:
                 origin = request.headers.get('Origin')
                 if origin and settings.DEBUG:
                     response['Access-Control-Allow-Origin'] = origin
-                response['Access-Control-Allow-Credentials'] = 'true'
-                
-                # Handle preflight requests
-                if request.method == 'OPTIONS':
-                    response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-                    response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-CSRFToken'
-                    response['Access-Control-Max-Age'] = '86400'  # 24 hours
+                    response['Access-Control-Allow-Credentials'] = 'true'
+                    
+                    # Handle preflight requests
+                    if request.method == 'OPTIONS':
+                        response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                        response['Access-Control-Allow-Headers'] = (
+                            'Content-Type, Authorization, X-CSRFToken, '
+                            'X-Requested-With, Accept, Origin, Cache-Control'
+                        )
+                        response['Access-Control-Max-Age'] = '86400'  # 24 hours
         
         return response
 
@@ -68,6 +102,7 @@ class LoginRequiredMiddleware:
             '/api/auth/login/',
             '/api/auth/register/',
             '/api/auth/csrf/',
+            '/api/auth/user/',  # Allow checking user auth status
             '/api/auth/password/reset/',
             '/api/auth/password/reset/confirm/',
             '/favicon.ico',
@@ -95,7 +130,11 @@ class LoginRequiredMiddleware:
             if request.path.startswith('/api/'):
                 return Response(
                     {'error': 'Authentication required'}, 
-                    status=status.HTTP_401_UNAUTHORIZED
+                    status=status.HTTP_401_UNAUTHORIZED,
+                    headers={
+                        'Access-Control-Allow-Origin': request.headers.get('Origin'),
+                        'Access-Control-Allow-Credentials': 'true'
+                    }
                 )
             
             # For web pages, redirect to login
