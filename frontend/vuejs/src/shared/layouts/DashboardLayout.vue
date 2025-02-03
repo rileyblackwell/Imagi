@@ -54,7 +54,7 @@
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 relative overflow-y-auto bg-dark-950">
+        <main class="flex-1 relative overflow-y-auto bg-dark-950 pt-20">
           <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <slot></slot>
