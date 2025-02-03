@@ -1,11 +1,14 @@
 <!-- Dashboard layout for authenticated users -->
 <template>
   <BaseLayout>
-    <div class="flex h-screen bg-dark-950">
+    <div class="min-h-screen flex">
       <!-- Sidebar -->
-      <aside class="transition-all duration-300 flex flex-col" :class="[isSidebarCollapsed ? 'w-16' : 'w-64', 'bg-dark-900 border-r border-dark-800']">
+      <aside 
+        class="fixed inset-y-0 left-0 z-20 flex flex-col transition-all duration-300 border-r border-dark-800 bg-dark-950" 
+        :class="[isSidebarCollapsed ? 'w-16' : 'w-64']"
+      >
         <!-- Navigation -->
-        <nav class="flex-1 mt-6">
+        <nav class="flex-1 py-6 overflow-y-auto">
           <div class="px-3 space-y-1">
             <router-link
               v-for="item in navigationItems"
@@ -30,8 +33,8 @@
           </div>
         </nav>
         
-        <!-- Collapse button at bottom of sidebar -->
-        <div class="p-4 border-t border-dark-800">
+        <!-- Collapse button -->
+        <div class="flex-shrink-0 p-4 border-t border-dark-800">
           <button 
             @click="toggleSidebar"
             class="w-full flex items-center justify-center p-2 bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
@@ -42,28 +45,25 @@
       </aside>
 
       <!-- Main content -->
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- Top navigation -->
-        <div class="flex-shrink-0">
-          <BaseNavbar>
-            <!-- Left section -->
-            <template #left>
-              <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
-            </template>
-          </BaseNavbar>
-        </div>
+      <div class="flex-1 flex flex-col" :class="[isSidebarCollapsed ? 'ml-16' : 'ml-64']">
+        <!-- Navbar -->
+        <BaseNavbar class="bg-dark-900/80 backdrop-blur-sm border-b border-dark-800">
+          <template #left>
+            <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
+          </template>
+        </BaseNavbar>
 
-        <!-- Page content -->
-        <main class="flex-1 overflow-y-auto bg-dark-950">
-          <div class="h-full">
-            <slot></slot>
+        <!-- Main content area -->
+        <main class="flex-1 relative overflow-y-auto bg-dark-950">
+          <div class="py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <slot></slot>
+            </div>
           </div>
         </main>
 
         <!-- Footer -->
-        <div class="flex-shrink-0">
-          <BaseFooter />
-        </div>
+        <BaseFooter class="border-t border-dark-800" />
       </div>
     </div>
   </BaseLayout>
