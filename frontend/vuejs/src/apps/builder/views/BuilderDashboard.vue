@@ -189,12 +189,18 @@ export default {
             params: { projectId }
           })
         } else {
-          throw new Error('Invalid project response from server')
+          console.error('Invalid project data received:', project)
+          error.value = 'Failed to create project: Invalid project data'
         }
       } catch (err) {
         console.error('Error in component:', err)
-        if (err.message.includes('Missing required param')) {
-          console.error('Project ID validation failed:', project)
+        // Use the error from the store if available, otherwise use a generic message
+        error.value = projectStore.error || 'Failed to create project. Please try again.'
+        
+        // If the error indicates the project might have been created
+        if (err.message?.includes('Server error while creating project')) {
+          // Refresh the projects list to check if the project was actually created
+          await fetchProjects()
         }
       } finally {
         isCreating.value = false

@@ -24,10 +24,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
             # Then generate the actual project files
             service = ProjectGenerationService(self.request.user)
             service.create_project(project.name)
+            
+            # Return the created project data
+            return project
         except Exception as e:
             # If project generation fails, delete the project record and raise the error
             project.delete()
             raise e
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = self.perform_create(serializer)
+        
+        # Serialize the created project
+        response_serializer = ProjectSerializer(project)
+        headers = self.get_success_headers(serializer.data)
+        
+        return Response(
+            response_serializer.data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
     @action(detail=False, methods=['get'])
     def active_projects(self, request):

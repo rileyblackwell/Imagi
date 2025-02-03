@@ -1,0 +1,8 @@
+Metadata-Version: 2.2
+Name: doji_art_20250203190631
+Version: 0.1
+Requires-Dist: django
+Requires-Dist: djangorestframework
+Requires-Dist: djangorestframework-simplejwt
+Requires-Dist: django-cors-headers
+Dynamic: requires-dist
