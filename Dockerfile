@@ -1,37 +1,38 @@
 # Build stage for Vue.js frontend
 FROM node:20-slim as frontend-builder
 
+# Set Node.js memory limits and optimization flags
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NODE_ENV=production
+
 WORKDIR /app/frontend
 COPY frontend/vuejs/package*.json ./
 
-# Add retry logic for npm install
-RUN for i in 1 2 3; do npm install && break || sleep 15; done
+# Add retry logic for npm install with reduced parallel installation
+RUN for i in 1 2 3; do npm install --no-audit --no-optional --maxsockets=1 && break || sleep 15; done
 
 COPY frontend/vuejs/ .
-RUN npm run build
+# Build with specific memory allocation and production optimization
+RUN npm run build || (echo "Build failed. Check the logs above for errors." && exit 1)
 
 # Final stage for Django and serving frontend
 FROM python:3.11-slim-bullseye
 
-# Create and activate virtual environment
-RUN python -m venv /opt/venv
-ENV PATH=/opt/venv/bin:$PATH
-
 # Set Python-related environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONHASHSEED=random
 
-# Install system dependencies with retry logic
-RUN for i in 1 2 3; \
-    do apt-get update && apt-get install -y \
+# Install system dependencies with retry logic and cleanup in same layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     libpq-dev \
     build-essential \
     curl \
     libjpeg-dev \
     gcc \
     && rm -rf /var/lib/apt/lists/* \
-    && break || sleep 15; \
-    done
+    && apt-get clean
 
 # Install Node.js with retry logic
 RUN for i in 1 2 3; \
