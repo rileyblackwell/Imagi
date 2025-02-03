@@ -1,213 +1,126 @@
 <template>
   <DashboardLayout>
-    <div class="builder-workspace">
+    <div class="min-h-screen flex">
       <!-- Sidebar -->
-      <aside class="builder-sidebar" :class="{ 'collapsed': isSidebarCollapsed }">
-        <button 
-          class="collapse-btn" 
-          @click="toggleSidebar"
-          :title="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        >
-          <i class="fas" :class="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
-        </button>
+      <aside class="w-64 bg-dark-800 border-r border-dark-700 flex flex-col">
+        <!-- Project Info -->
+        <div class="p-4 border-b border-dark-700">
+          <h2 class="text-lg font-semibold text-white truncate">{{ currentProject?.name }}</h2>
+        </div>
 
-        <div class="sidebar-controls">
-          <!-- Model Selection -->
-          <div class="select-wrapper">
-            <label for="model-select">Model</label>
-            <select 
-              id="model-select" 
-              v-model="selectedModel"
-              class="styled-select"
+        <!-- Model Selection -->
+        <div class="p-4 border-b border-dark-700">
+          <label class="block text-sm font-medium text-gray-400 mb-2">AI Model</label>
+          <select
+            v-model="selectedModel"
+            class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2"
+          >
+            <option
+              v-for="model in availableModels"
+              :key="model.id"
+              :value="model.id"
             >
-              <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4o-mini">GPT-4o Mini</option>
-            </select>
-          </div>
+              {{ model.name }}
+            </option>
+          </select>
+        </div>
 
-          <!-- Mode Selection -->
-          <div class="select-wrapper">
-            <label for="mode-select">Mode</label>
-            <select 
-              id="mode-select" 
-              v-model="mode"
-              class="styled-select"
+        <!-- File Explorer -->
+        <div class="flex-1 overflow-y-auto p-4">
+          <h3 class="text-sm font-medium text-gray-400 mb-2">Project Files</h3>
+          <div class="space-y-1">
+            <button
+              v-for="file in files"
+              :key="file.path"
+              @click="selectFile(file)"
+              class="w-full text-left px-3 py-2 rounded-lg text-sm"
+              :class="[
+                selectedFile?.path === file.path
+                  ? 'bg-primary-500/20 text-white'
+                  : 'text-gray-400 hover:bg-dark-700 hover:text-white'
+              ]"
             >
-              <option value="chat">Chat Mode</option>
-              <option value="build">Build Mode</option>
-            </select>
-          </div>
-
-          <!-- File Selection -->
-          <div class="select-wrapper">
-            <label for="file-select">File</label>
-            <select 
-              id="file-select" 
-              v-model="selectedFile"
-              class="styled-select"
-            >
-              <option value="base.html">base.html</option>
-              <option value="index.html">index.html</option>
-              <option value="about.html">about.html</option>
-              <option value="contact.html">contact.html</option>
-              <option value="styles.css">styles.css</option>
-              <option value="custom">+ Add New File</option>
-            </select>
-
-            <!-- Custom File Input -->
-            <div v-if="selectedFile === 'custom'" class="custom-page-input">
-              <div class="input-group">
-                <input 
-                  type="text" 
-                  v-model="newFileName"
-                  placeholder="Enter file name (e.g., gallery.html)"
-                  class="styled-input"
-                >
-                <button 
-                  @click="addNewFile"
-                  class="sidebar-btn"
-                  :disabled="!newFileName"
-                >
-                  <i class="fas fa-plus"></i>
-                  <span>Add</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="sidebar-buttons">
-            <button 
-              class="sidebar-btn"
-              @click="undoLastAction"
-              :disabled="!canUndo"
-            >
-              <i class="fas fa-undo"></i>
-              <span>Undo</span>
+              <i :class="getFileIcon(file.type)" class="mr-2"></i>
+              {{ file.path }}
             </button>
-
-            <button 
-              class="sidebar-btn"
-              @click="previewProject"
-              :disabled="isGenerating"
-            >
-              <i class="fas fa-eye"></i>
-              <span>Preview</span>
-            </button>
-
-            <!-- File Upload -->
-            <div class="file-upload-wrapper">
-              <label for="file-upload" class="file-upload-label">
-                <i class="fas fa-upload"></i>
-                <span>Upload File</span>
-              </label>
-              <input 
-                type="file" 
-                id="file-upload"
-                @change="handleFileUpload"
-                accept=".html,.css,.js"
-                class="file-upload-input"
-              >
-              <div class="file-name-display">{{ uploadedFileName }}</div>
-            </div>
           </div>
         </div>
 
-        <!-- Chat History -->
-        <div class="chat-history">
-          <div 
-            v-for="conversation in conversations"
-            :key="conversation.id"
-            class="chat-history-item"
-            :class="{ active: currentConversation?.id === conversation.id }"
-            @click="loadConversation(conversation)"
+        <!-- Action Buttons -->
+        <div class="p-4 border-t border-dark-700 space-y-2">
+          <button
+            @click="undoLastAction"
+            class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="isLoading"
           >
-            <i class="fas fa-comment"></i>
-            <span class="chat-title">{{ conversation.title }}</span>
-          </div>
-        </div>
-
-        <!-- Sidebar Footer -->
-        <div class="sidebar-footer">
-          <router-link 
-            :to="{ name: 'builder-dashboard' }"
-            class="sidebar-link"
-          >
-            <i class="fas fa-th-large"></i>
-            <span>Projects Dashboard</span>
-          </router-link>
+            <i class="fas fa-undo mr-2"></i>
+            Undo
+          </button>
         </div>
       </aside>
 
       <!-- Main Content -->
-      <main class="main-content" :class="{ 'expanded': isSidebarCollapsed }">
-        <div class="chat-container">
-          <!-- Response Window -->
-          <div id="response-window" class="response-window" ref="responseWindow">
-            <!-- Welcome Screen -->
-            <div v-if="showWelcome" class="welcome-screen">
-              <div class="welcome-icon">
-                <i class="fas fa-magic"></i>
-              </div>
-              <h1>Welcome to Imagi Oasis</h1>
-              <p>Transform your ideas into stunning web apps using natural language. Just describe what you want to build, and I'll help you create it.</p>
-              
-              <div class="welcome-examples">
-                <h2>Example prompts to get started:</h2>
-                <div class="example-prompts">
-                  <button 
-                    v-for="(prompt, index) in examplePrompts"
-                    :key="index"
-                    class="example-prompt"
-                    @click="useExamplePrompt(prompt)"
-                  >
-                    {{ prompt }}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Chat Messages -->
-            <template v-else>
-              <div 
-                v-for="(message, index) in messages"
-                :key="index"
-                class="chat-message"
-                :class="message.role"
+      <main class="flex-1 flex flex-col">
+        <!-- File Content -->
+        <div v-if="selectedFile" class="flex-1 p-4">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">
+              {{ selectedFile.path }}
+            </h2>
+            <div class="flex items-center space-x-2">
+              <span v-if="hasUnsavedChanges" class="text-yellow-500 text-sm">
+                Unsaved changes
+              </span>
+              <button
+                @click="saveChanges"
+                class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg"
+                :disabled="!hasUnsavedChanges || isLoading"
               >
-                <div class="role">{{ message.role === 'user' ? 'You' : 'Assistant' }}</div>
-                <div class="content" v-html="formatMessage(message.content)"></div>
-              </div>
-            </template>
+                Save Changes
+              </button>
+            </div>
           </div>
+          
+          <!-- Code Editor -->
+          <div class="h-[calc(100vh-12rem)] rounded-lg border border-dark-700 bg-dark-900">
+            <MonacoEditor
+              v-model="editorContent"
+              :language="getFileLanguage(selectedFile.type)"
+              theme="vs-dark"
+              @change="onEditorChange"
+            />
+          </div>
+        </div>
 
-          <!-- Chat Input -->
-          <div class="chat-input">
-            <form @submit.prevent="sendMessage" class="input-container">
-              <div class="input-wrapper">
-                <textarea
-                  id="user-input"
-                  v-model="userInput"
-                  :placeholder="inputPlaceholder"
-                  rows="1"
-                  @input="autoResizeInput"
-                  @keydown.enter.prevent="handleEnterKey"
-                  ref="inputField"
-                ></textarea>
-                <button 
-                  type="submit"
-                  id="submit-btn"
-                  :disabled="isGenerating || !userInput.trim()"
-                  title="Send message"
-                >
-                  <i class="fas" :class="isGenerating ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
-                </button>
-              </div>
-              <div class="bottom-text">
-                Imagi can make mistakes. Consider checking important information.
-              </div>
-            </form>
+        <!-- Welcome Screen -->
+        <div v-else class="flex-1 flex items-center justify-center">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-code text-2xl text-primary-400"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-white mb-2">Select a File</h2>
+            <p class="text-gray-400">Choose a file from the sidebar to start editing</p>
+          </div>
+        </div>
+
+        <!-- AI Chat Input -->
+        <div class="p-4 border-t border-dark-700">
+          <div class="flex items-center space-x-4">
+            <input
+              v-model="prompt"
+              type="text"
+              placeholder="Describe what you want to build..."
+              class="flex-1 bg-dark-900 border border-dark-600 rounded-lg text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+              @keyup.enter="handlePrompt"
+            >
+            <button
+              @click="handlePrompt"
+              class="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="isLoading || !prompt.trim()"
+            >
+              <i class="fas fa-magic mr-2"></i>
+              Generate
+            </button>
           </div>
         </div>
       </main>
@@ -216,387 +129,121 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import DashboardLayout from '@/shared/layouts/DashboardLayout.vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
-import axios from 'axios'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { DashboardLayout } from '@/shared/layouts'
+import { MonacoEditor } from '@/shared/components'
+import { useBuilder } from '../composables/useBuilder'
 
 export default {
   name: 'BuilderWorkspace',
   components: {
-    DashboardLayout
+    DashboardLayout,
+    MonacoEditor
   },
   setup() {
     const route = useRoute()
-    const router = useRouter()
-    const projectId = route.params.projectId
+    const prompt = ref('')
+    const editorContent = ref('')
 
-    // State
-    const isSidebarCollapsed = ref(false)
-    const selectedModel = ref('claude-3-5-sonnet-20241022')
-    const mode = ref('chat')
-    const selectedFile = ref('index.html')
-    const newFileName = ref('')
-    const userInput = ref('')
-    const messages = ref([])
-    const isGenerating = ref(false)
-    const showWelcome = ref(true)
-    const uploadedFileName = ref('')
-    const conversations = ref([])
-    const currentConversation = ref(null)
-    const responseWindow = ref(null)
-    const inputField = ref(null)
-    const projectFiles = ref([])
-    const hasInsufficientCredits = ref(false)
-    const requiredCredits = ref(0)
+    const {
+      currentProject,
+      files,
+      selectedFile,
+      fileContent,
+      availableModels,
+      selectedModel,
+      isLoading,
+      error,
+      hasUnsavedChanges,
+      loadProject,
+      loadFiles,
+      selectFile,
+      updateFile,
+      generateCode,
+      undoLastAction,
+      loadAvailableModels
+    } = useBuilder()
 
-    const examplePrompts = [
-      'Create a modern landing page with a hero section and features grid',
-      'Add a contact form with name, email, and message fields',
-      'Style the navigation bar to be sticky and transparent'
-    ]
-
-    const inputPlaceholder = computed(() => {
-      return mode.value === 'chat' 
-        ? 'Chat about your website ideas...'
-        : 'Describe what you want to build or modify in this file...'
-    })
-
-    const canUndo = computed(() => {
-      return messages.value.filter(m => m.role === 'assistant').length > 1
-    })
-
-    // Methods
-    const toggleSidebar = () => {
-      isSidebarCollapsed.value = !isSidebarCollapsed.value
-      localStorage.setItem('builderSidebarCollapsed', isSidebarCollapsed.value)
-    }
-
-    const autoResizeInput = () => {
-      const el = inputField.value
-      el.style.height = 'auto'
-      el.style.height = el.scrollHeight + 'px'
-    }
-
-    const handleEnterKey = (e) => {
-      if (!e.shiftKey) {
-        sendMessage()
-      }
-    }
-
-    const formatMessage = (content) => {
-      // Sanitize and convert markdown to HTML
-      return DOMPurify.sanitize(marked(content))
-    }
-
-    const scrollToBottom = async () => {
-      await nextTick()
-      if (responseWindow.value) {
-        responseWindow.value.scrollTop = responseWindow.value.scrollHeight
-      }
-    }
-
-    const loadProjectFiles = async () => {
-      try {
-        const response = await axios.get(`/api/builder/project-files/${projectId}/`)
-        projectFiles.value = response.data.files
-        
-        // Update file selector options
-        if (projectFiles.value.length > 0) {
-          selectedFile.value = projectFiles.value[0]
-        }
-      } catch (error) {
-        console.error('Error loading project files:', error)
-      }
-    }
-
-    const loadConversationHistory = async () => {
-      try {
-        const response = await axios.get(`/api/builder/conversation-history/${projectId}/`)
-        conversations.value = response.data.conversations
-        
-        // Set current conversation if exists
-        if (conversations.value.length > 0) {
-          currentConversation.value = conversations.value[0]
-          messages.value = currentConversation.value.messages
-          showWelcome.value = false
-        }
-      } catch (error) {
-        console.error('Error loading conversation history:', error)
-      }
-    }
-
-    const handleInsufficientCredits = (required) => {
-      hasInsufficientCredits.value = true
-      requiredCredits.value = required
-      router.push({
-        name: 'payments',
-        query: { 
-          redirect: route.fullPath,
-          required: required
-        }
-      })
-    }
-
-    const sendMessage = async () => {
-      if (!userInput.value.trim() || isGenerating.value) return
-
-      const message = userInput.value
-      userInput.value = ''
-      showWelcome.value = false
-      isGenerating.value = true
-
-      // Add user message
-      messages.value.push({
-        role: 'user',
-        content: message
-      })
-
-      await scrollToBottom()
-
-      try {
-        const endpoint = mode.value === 'chat' ? '/api/builder/chat/' : '/api/builder/process-input/'
-        const payload = {
-          user_input: message,
-          model: selectedModel.value,
-          file: selectedFile.value,
-          mode: mode.value,
-          project_id: projectId
-        }
-
-        const response = await axios.post(endpoint, payload)
-
-        if (response.data.error === 'insufficient_credits') {
-          handleInsufficientCredits(response.data.required_credits)
-          return
-        }
-
-        // Handle successful response
-        if (response.data.success) {
-          messages.value.push({
-            role: 'assistant',
-            content: response.data.response
-          })
-
-          // If there's a warning, show it
-          if (response.data.warning) {
-            messages.value.push({
-              role: 'assistant',
-              content: `⚠️ Warning: ${response.data.warning}`
-            })
-          }
-
-          // Refresh file list if in build mode
-          if (mode.value === 'build') {
-            await loadProjectFiles()
-          }
-        } else {
-          throw new Error(response.data.error || 'Unknown error occurred')
-        }
-
-        await scrollToBottom()
-      } catch (error) {
-        console.error('Error sending message:', error)
-        messages.value.push({
-          role: 'assistant',
-          content: `Error: ${error.response?.data?.error || error.message || 'An unknown error occurred'}`
-        })
-      } finally {
-        isGenerating.value = false
-        await scrollToBottom()
-      }
-    }
-
-    const addNewFile = async () => {
-      if (!newFileName.value) return
-
-      try {
-        const response = await axios.post('/api/builder/create-file/', {
-          project_id: projectId,
-          filename: newFileName.value
-        })
-
-        if (response.data.success) {
-          selectedFile.value = newFileName.value
-          await loadProjectFiles()
-          newFileName.value = ''
-        } else {
-          throw new Error(response.data.error)
-        }
-      } catch (error) {
-        console.error('Error creating file:', error)
-        messages.value.push({
-          role: 'assistant',
-          content: `Error creating file: ${error.response?.data?.error || error.message}`
-        })
-      }
-    }
-
-    const handleFileUpload = async (event) => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      uploadedFileName.value = `Uploading ${file.name}...`
-
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('project_id', projectId)
-
-        const response = await axios.post('/api/builder/upload-file/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
-
-        if (response.data.success) {
-          uploadedFileName.value = `${file.name} - Uploaded successfully`
-          await loadProjectFiles()
-          selectedFile.value = file.name
-        } else {
-          throw new Error(response.data.error)
-        }
-      } catch (error) {
-        console.error('Error uploading file:', error)
-        uploadedFileName.value = 'Error uploading file'
-      }
-    }
-
-    const undoLastAction = async () => {
-      if (!canUndo.value) return
-
-      try {
-        const response = await axios.post('/api/builder/undo-last-action/', {
-          project_id: projectId,
-          page: selectedFile.value
-        })
-
-        if (response.data.success) {
-          // Remove the last assistant message
-          const lastAssistantIndex = [...messages.value].reverse()
-            .findIndex(m => m.role === 'assistant')
-          if (lastAssistantIndex !== -1) {
-            messages.value.splice(messages.value.length - lastAssistantIndex - 1, 1)
-          }
-
-          // Add undo confirmation message
-          messages.value.push({
-            role: 'assistant',
-            content: 'Previous version restored successfully.'
-          })
-
-          // Refresh file list
-          await loadProjectFiles()
-        } else {
-          throw new Error(response.data.error)
-        }
-      } catch (error) {
-        console.error('Error undoing action:', error)
-        messages.value.push({
-          role: 'assistant',
-          content: `Error undoing action: ${error.response?.data?.error || error.message}`
-        })
-      }
-    }
-
-    const previewProject = async () => {
-      try {
-        const response = await axios.post('/api/builder/preview-project/', {
-          project_id: projectId
-        })
-
-        if (response.data.url) {
-          window.open(response.data.url, '_blank')
-        } else {
-          throw new Error('Preview URL not found')
-        }
-      } catch (error) {
-        console.error('Error starting preview:', error)
-        messages.value.push({
-          role: 'assistant',
-          content: `Error previewing project: ${error.response?.data?.error || error.message}`
-        })
-      }
-    }
-
-    const useExamplePrompt = (prompt) => {
-      userInput.value = prompt
-      showWelcome.value = false
-      sendMessage()
-    }
-
-    const loadConversation = (conversation) => {
-      currentConversation.value = conversation
-      // TODO: Load conversation messages
-    }
-
-    // Watchers
-    watch(selectedFile, async (newFile) => {
-      if (newFile === 'custom') return
-      
-      try {
-        const response = await axios.get(`/api/builder/file-history/${projectId}/${newFile}/`)
-        messages.value = response.data.messages
-        showWelcome.value = false
-      } catch (error) {
-        console.error('Error loading file history:', error)
-      }
-    })
-
-    // Lifecycle
+    // Load project and models on mount
     onMounted(async () => {
-      // Restore sidebar state
-      const savedCollapsed = localStorage.getItem('builderSidebarCollapsed')
-      if (savedCollapsed !== null) {
-        isSidebarCollapsed.value = savedCollapsed === 'true'
-      }
-
-      // Load initial data
-      await Promise.all([
-        loadProjectFiles(),
-        loadConversationHistory()
-      ])
+      await loadProject(route.params.projectId)
+      await loadAvailableModels()
     })
+
+    // Watch for file content changes
+    watch(fileContent, (newContent) => {
+      editorContent.value = newContent
+    })
+
+    // Handle editor content changes
+    const onEditorChange = (content) => {
+      hasUnsavedChanges.value = content !== fileContent.value
+    }
+
+    // Save changes
+    const saveChanges = async () => {
+      await updateFile(editorContent.value)
+    }
+
+    // Handle AI prompt
+    const handlePrompt = async () => {
+      if (!prompt.value.trim() || isLoading.value) return
+
+      try {
+        const generatedCode = await generateCode(prompt.value)
+        editorContent.value = generatedCode
+        prompt.value = ''
+      } catch (err) {
+        console.error('Error handling prompt:', err)
+      }
+    }
+
+    // Get file icon based on type
+    const getFileIcon = (type) => {
+      const icons = {
+        html: 'fas fa-code',
+        css: 'fab fa-css3',
+        javascript: 'fab fa-js',
+        python: 'fab fa-python',
+        markdown: 'fas fa-file-alt',
+        text: 'fas fa-file-alt',
+        unknown: 'fas fa-file'
+      }
+      return icons[type] || icons.unknown
+    }
+
+    // Get Monaco editor language
+    const getFileLanguage = (type) => {
+      const languages = {
+        html: 'html',
+        css: 'css',
+        javascript: 'javascript',
+        python: 'python',
+        markdown: 'markdown',
+        text: 'plaintext'
+      }
+      return languages[type] || 'plaintext'
+    }
 
     return {
-      // State
-      isSidebarCollapsed,
-      selectedModel,
-      mode,
+      currentProject,
+      files,
       selectedFile,
-      newFileName,
-      userInput,
-      messages,
-      isGenerating,
-      showWelcome,
-      uploadedFileName,
-      conversations,
-      currentConversation,
-      examplePrompts,
-      responseWindow,
-      inputField,
-      projectFiles,
-      hasInsufficientCredits,
-      requiredCredits,
-
-      // Computed
-      inputPlaceholder,
-      canUndo,
-
-      // Methods
-      toggleSidebar,
-      autoResizeInput,
-      handleEnterKey,
-      formatMessage,
-      sendMessage,
-      addNewFile,
-      handleFileUpload,
+      availableModels,
+      selectedModel,
+      isLoading,
+      error,
+      hasUnsavedChanges,
+      prompt,
+      editorContent,
+      selectFile,
       undoLastAction,
-      previewProject,
-      useExamplePrompt,
-      loadConversation
+      saveChanges,
+      handlePrompt,
+      onEditorChange,
+      getFileIcon,
+      getFileLanguage
     }
   }
 }

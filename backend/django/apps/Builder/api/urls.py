@@ -8,16 +8,17 @@ from . import views
 urlpatterns = [
     # Project endpoints
     path('projects/', views.ProjectListCreateView.as_view(), name='api-project-list'),
-    path('projects/<str:project_name>/', views.ProjectDetailView.as_view(), name='api-project-detail'),
+    path('projects/<int:pk>/', views.ProjectDetailView.as_view(), name='api-project-detail'),
     
-    # Conversation endpoints
-    path('projects/<str:project_name>/conversations/', views.ConversationListView.as_view(), name='api-conversation-list'),
+    # Builder workspace endpoints
+    path('projects/<int:project_id>/files/', views.ProjectFilesView.as_view(), name='api-project-files'),
+    path('projects/<int:project_id>/generate/', views.GenerateCodeView.as_view(), name='api-generate-code'),
+    path('projects/<int:project_id>/undo/', views.UndoActionView.as_view(), name='api-undo-action'),
     
-    # Page endpoints
-    path('conversations/<int:conversation_id>/pages/<str:filename>/', views.PageView.as_view(), name='api-page-detail'),
+    # Model selection endpoint
+    path('models/', views.AIModelsView.as_view(), name='api-ai-models'),
     
-    # Builder functionality endpoints
-    path('process-input/', views.process_input, name='api-process-input'),
-    path('undo/', views.undo_last_action, name='api-undo-action'),
-    path('clear-conversation/', views.clear_conversation, name='api-clear-conversation'),
+    # File management endpoints
+    path('projects/<int:project_id>/files/<path:file_path>/', views.FileDetailView.as_view(), name='api-file-detail'),
+    path('projects/<int:project_id>/files/<path:file_path>/content/', views.FileContentView.as_view(), name='api-file-content'),
 ] 

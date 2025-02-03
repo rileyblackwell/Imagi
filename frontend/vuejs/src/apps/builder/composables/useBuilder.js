@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import axios from 'axios';
 import { useProjects } from './useProjects';
 import { useAI } from './useAI';
+import { BuilderAPI } from '../services/api';
 
 const currentMode = ref('chat'); // 'chat' or 'build'
 const selectedComponent = ref(null);
@@ -15,6 +16,18 @@ const currentHistoryIndex = ref(-1);
 export function useBuilder() {
   const { currentProject } = useProjects();
   const { sendPrompt } = useAI();
+
+  // State
+  const files = ref([]);
+  const selectedFile = ref(null);
+  const fileContent = ref('');
+  const availableModels = ref([]);
+  const selectedModel = ref('claude-3-5-sonnet-20241022');
+  const isLoading = ref(false);
+  const hasUnsavedChanges = ref(false);
+
+  // Computed
+  const projectId = computed(() => currentProject.value?.id);
 
   /**
    * Switch between chat and build modes
@@ -392,11 +405,125 @@ export function useBuilder() {
     return find(componentTree.value);
   }
 
+  // Methods
+  const loadProject = async (id) => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      currentProject.value = await BuilderAPI.getProject(id);
+      await loadFiles();
+    } catch (err) {
+      error.value = 'Failed to load project';
+      console.error('Error loading project:', err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const loadFiles = async () => {
+    if (!projectId.value) return;
+    
+    try {
+      files.value = await BuilderAPI.listFiles(projectId.value);
+    } catch (err) {
+      error.value = 'Failed to load project files';
+      console.error('Error loading files:', err);
+    }
+  };
+
+  const selectFile = async (file) => {
+    try {
+      if (hasUnsavedChanges.value) {
+        // TODO: Handle unsaved changes
+        const confirmed = confirm('You have unsaved changes. Do you want to continue?');
+        if (!confirmed) return;
+      }
+
+      selectedFile.value = file;
+      fileContent.value = await BuilderAPI.getFileContent(projectId.value, file.path);
+      hasUnsavedChanges.value = false;
+    } catch (err) {
+      error.value = 'Failed to load file content';
+      console.error('Error loading file content:', err);
+    }
+  };
+
+  const updateFile = async (content, commitMessage) => {
+    if (!selectedFile.value) return;
+
+    try {
+      await BuilderAPI.updateFile(
+        projectId.value,
+        selectedFile.value.path,
+        content,
+        commitMessage
+      );
+      fileContent.value = content;
+      hasUnsavedChanges.value = false;
+    } catch (err) {
+      error.value = 'Failed to update file';
+      console.error('Error updating file:', err);
+      throw err;
+    }
+  };
+
+  const generateCode = async (prompt) => {
+    if (!selectedFile.value) {
+      error.value = 'Please select a file first';
+      return;
+    }
+
+    try {
+      const result = await BuilderAPI.generateCode(
+        projectId.value,
+        prompt,
+        selectedModel.value,
+        selectedFile.value.path
+      );
+      
+      if (result.success) {
+        await updateFile(result.content, 'Generated code using AI');
+        return result.content;
+      } else {
+        throw new Error(result.error || 'Failed to generate code');
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to generate code';
+      console.error('Error generating code:', err);
+      throw err;
+    }
+  };
+
+  const undoLastAction = async () => {
+    try {
+      const result = await BuilderAPI.undoLastAction(projectId.value);
+      if (result.success) {
+        await loadFiles();
+        if (selectedFile.value) {
+          await selectFile(selectedFile.value);
+        }
+      }
+      return result;
+    } catch (err) {
+      error.value = 'Failed to undo last action';
+      console.error('Error undoing action:', err);
+      throw err;
+    }
+  };
+
+  const loadAvailableModels = async () => {
+    try {
+      availableModels.value = await BuilderAPI.getAvailableModels();
+    } catch (err) {
+      error.value = 'Failed to load AI models';
+      console.error('Error loading models:', err);
+    }
+  };
+
   // Computed properties
   const mode = computed(() => currentMode.value);
   const selectedComponentData = computed(() => selectedComponent.value);
   const tree = computed(() => componentTree.value);
-  const isLoading = computed(() => loading.value);
   const builderError = computed(() => error.value);
   const canUndo = computed(() => currentHistoryIndex.value >= 0);
   const canRedo = computed(() => currentHistoryIndex.value < editHistory.value.length - 1);
@@ -411,6 +538,13 @@ export function useBuilder() {
     previewUrl,
     canUndo,
     canRedo,
+    currentProject,
+    files,
+    selectedFile,
+    fileContent,
+    availableModels,
+    selectedModel,
+    hasUnsavedChanges,
 
     // Methods
     switchMode,
@@ -422,6 +556,13 @@ export function useBuilder() {
     moveComponent,
     generatePreview,
     undo,
-    redo
+    redo,
+    loadProject,
+    loadFiles,
+    selectFile,
+    updateFile,
+    generateCode,
+    undoLastAction,
+    loadAvailableModels
   };
 } 

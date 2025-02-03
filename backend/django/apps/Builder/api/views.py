@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.conf import settings
 
 from ..models import Project, Conversation, Page, Message
 from .serializers import (
@@ -24,6 +25,9 @@ from ..services.oasis_service import (
     process_chat_mode_input_service
 )
 from apps.ProjectManager.services import ProjectGenerationService
+from ..services.project_service import ProjectService
+from ..services.ai_service import AIService
+from ..services.file_service import FileService
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,49 +38,153 @@ class ProjectListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user).order_by('-updated_at')
+        return Project.objects.filter(user=self.request.user, is_active=True).order_by('-updated_at')
 
     def perform_create(self, serializer):
         try:
-            # Create Django project using ProjectManager service
-            service = ProjectGenerationService(self.request.user)
-            user_project = service.create_project(serializer.validated_data['name'])
-            
-            # Create the Project instance
-            project = serializer.save(
-                user=self.request.user,
-                user_project=user_project
-            )
-            
-            # Create initial conversation
-            Conversation.objects.create(
-                user=self.request.user,
-                project=project
-            )
-            
+            project_service = ProjectService(self.request.user)
+            project = project_service.create_project(serializer.validated_data['name'])
+            serializer.save(user=self.request.user, project=project)
         except Exception as e:
             logger.error(f"Error creating project: {str(e)}")
             raise
 
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a project."""
-    serializer_class = ProjectDetailSerializer
+    serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'name'
-    lookup_url_kwarg = 'project_name'
+    lookup_field = 'pk'
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user)
-    
-    def get_object(self):
-        queryset = self.get_queryset()
-        project_name = self.kwargs[self.lookup_url_kwarg]
+        return Project.objects.filter(user=self.request.user, is_active=True)
+
+    def perform_destroy(self, instance):
+        project_service = ProjectService(self.request.user)
+        project_service.delete_project(instance)
+
+class ProjectFilesView(APIView):
+    """List all files in a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+        file_service = FileService(project)
+        files = file_service.list_files()
+        return Response(files)
+
+class GenerateCodeView(APIView):
+    """Generate code using AI models."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
         
-        # Find project by URL-safe name
-        for project in queryset:
-            if project.get_url_safe_name() == project_name:
-                return project
-        return None
+        # Get request data
+        prompt = request.data.get('prompt')
+        model = request.data.get('model', 'claude-3-5-sonnet-20241022')
+        file_path = request.data.get('file_path')
+        
+        if not prompt:
+            return Response(
+                {'error': 'Prompt is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            ai_service = AIService()
+            result = ai_service.generate_code(
+                project=project,
+                prompt=prompt,
+                model=model,
+                file_path=file_path
+            )
+            return Response(result)
+        except Exception as e:
+            logger.error(f"Error generating code: {str(e)}")
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class UndoActionView(APIView):
+    """Undo last action in a project."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+        
+        try:
+            project_service = ProjectService(request.user)
+            result = project_service.undo_last_action(project)
+            return Response(result)
+        except Exception as e:
+            logger.error(f"Error undoing action: {str(e)}")
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class AIModelsView(APIView):
+    """Get available AI models."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        models = [
+            {
+                'id': 'claude-3-5-sonnet-20241022',
+                'name': 'Claude 3.5 Sonnet',
+                'description': 'Anthropic\'s Claude 3.5 Sonnet model'
+            },
+            {
+                'id': 'gpt-4o',
+                'name': 'GPT-4o',
+                'description': 'OpenAI\'s GPT-4 model'
+            },
+            {
+                'id': 'gpt-4o-mini',
+                'name': 'GPT-4o Mini',
+                'description': 'OpenAI\'s GPT-4 Mini model'
+            }
+        ]
+        return Response(models)
+
+class FileDetailView(APIView):
+    """Get or update file details."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_id, file_path):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+        file_service = FileService(project)
+        file_details = file_service.get_file_details(file_path)
+        return Response(file_details)
+
+    def put(self, request, project_id, file_path):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+        file_service = FileService(project)
+        
+        try:
+            result = file_service.update_file(
+                file_path=file_path,
+                content=request.data.get('content'),
+                commit_message=request.data.get('commit_message', 'Update file')
+            )
+            return Response(result)
+        except Exception as e:
+            logger.error(f"Error updating file: {str(e)}")
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class FileContentView(APIView):
+    """Get file content."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_id, file_path):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+        file_service = FileService(project)
+        content = file_service.get_file_content(file_path)
+        return Response({'content': content})
 
 class ConversationListView(generics.ListAPIView):
     """List conversations for a project."""
