@@ -138,7 +138,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
-import { useProjectStore } from '../stores/projectStore'
+import { useProjectStore } from '../store/projectStore'
 
 export default {
   name: 'BuilderDashboard',
