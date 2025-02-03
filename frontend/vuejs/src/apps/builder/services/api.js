@@ -4,62 +4,148 @@ const BASE_URL = '/api/builder'
 
 export const BuilderAPI = {
   // Project endpoints
-  async listProjects() {
-    const response = await axios.get(`${BASE_URL}/projects/`)
+  async getProjects() {
+    const response = await axios.get(`${BASE_URL}/projects/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     return response.data
   },
 
-  async createProject(name) {
-    const response = await axios.post(`${BASE_URL}/projects/`, { name })
+  async createProject(projectData) {
+    const response = await axios.post(`${BASE_URL}/projects/`, projectData, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     return response.data
   },
 
   async getProject(id) {
-    const response = await axios.get(`${BASE_URL}/projects/${id}/`)
+    const response = await axios.get(`${BASE_URL}/projects/${id}/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    return response.data
+  },
+
+  async updateProject(id, projectData) {
+    const response = await axios.patch(`${BASE_URL}/projects/${id}/`, projectData, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     return response.data
   },
 
   async deleteProject(id) {
-    const response = await axios.delete(`${BASE_URL}/projects/${id}/`)
+    const response = await axios.delete(`${BASE_URL}/projects/${id}/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
     return response.data
   },
 
   // File management endpoints
-  async listFiles(projectId) {
-    const response = await axios.get(`${BASE_URL}/projects/${projectId}/files/`)
+  async getProjectFiles(projectId) {
+    const response = await axios.get(`${BASE_URL}/projects/${projectId}/files/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    return response.data
+  },
+
+  async createFile(projectId, fileData) {
+    const response = await axios.post(`${BASE_URL}/projects/${projectId}/files/`, fileData, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     return response.data
   },
 
   async getFileContent(projectId, filePath) {
-    const response = await axios.get(`${BASE_URL}/projects/${projectId}/files/${filePath}/content/`)
-    return response.data.content
+    const response = await axios.get(`${BASE_URL}/projects/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    return response.data
   },
 
-  async updateFile(projectId, filePath, content, commitMessage = 'Update file') {
-    const response = await axios.put(`${BASE_URL}/projects/${projectId}/files/${filePath}/`, {
-      content,
-      commit_message: commitMessage
+  async updateFileContent(projectId, filePath, content) {
+    const response = await axios.put(`${BASE_URL}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`, {
+      content
+    }, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    return response.data
+  },
+
+  // Component tree endpoints
+  async getComponentTree(projectId) {
+    const response = await axios.get(`${BASE_URL}/projects/${projectId}/components/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json'
+      }
     })
     return response.data
   },
 
   // AI model endpoints
-  async generateCode(projectId, prompt, model = 'claude-3-5-sonnet-20241022', filePath = null) {
-    const response = await axios.post(`${BASE_URL}/projects/${projectId}/generate/`, {
-      prompt,
-      model,
-      file_path: filePath
+  async getAvailableModels() {
+    const response = await axios.get(`${BASE_URL}/models/`, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json'
+      }
     })
     return response.data
   },
 
-  async getAvailableModels() {
-    const response = await axios.get(`${BASE_URL}/models/`)
+  async generateCode(projectId, options) {
+    const response = await axios.post(`${BASE_URL}/projects/${projectId}/generate/`, options, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     return response.data
   },
 
-  async undoLastAction(projectId) {
-    const response = await axios.post(`${BASE_URL}/projects/${projectId}/undo/`)
+  async undoAction(projectId, actionId) {
+    const response = await axios.post(`${BASE_URL}/projects/${projectId}/undo/`, {
+      action_id: actionId
+    }, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
     return response.data
   }
 } 

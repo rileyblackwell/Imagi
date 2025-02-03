@@ -1,10 +1,25 @@
 import { ref, computed } from 'vue';
-import axios from 'axios';
 import { useProjects } from './useProjects';
 import { useAI } from './useAI';
 import { BuilderAPI } from '../services/api';
 
-const currentMode = ref('chat'); // 'chat' or 'build'
+// Define modes as constants
+export const BUILDER_MODES = {
+  CHAT: 'chat',
+  BUILD: 'build'
+};
+
+// Define supported file types
+export const FILE_TYPES = {
+  HTML: 'html',
+  CSS: 'css',
+  JAVASCRIPT: 'javascript',
+  PYTHON: 'python',
+  MARKDOWN: 'markdown',
+  TEXT: 'text'
+};
+
+const currentMode = ref(BUILDER_MODES.CHAT);
 const selectedComponent = ref(null);
 const componentTree = ref([]);
 const loading = ref(false);
@@ -12,6 +27,13 @@ const error = ref(null);
 const previewUrl = ref(null);
 const editHistory = ref([]);
 const currentHistoryIndex = ref(-1);
+
+// Define available AI models
+const DEFAULT_MODELS = [
+  { id: 'gpt-4o', name: 'GPT-4o' },
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+  { id: 'claude-sonnet-3.5', name: 'Claude Sonnet 3.5' }
+];
 
 export function useBuilder() {
   const { currentProject } = useProjects();
@@ -21,8 +43,8 @@ export function useBuilder() {
   const files = ref([]);
   const selectedFile = ref(null);
   const fileContent = ref('');
-  const availableModels = ref([]);
-  const selectedModel = ref('claude-3-5-sonnet-20241022');
+  const availableModels = ref(DEFAULT_MODELS);
+  const selectedModel = ref('gpt-4o');
   const isLoading = ref(false);
   const hasUnsavedChanges = ref(false);
 
@@ -34,8 +56,8 @@ export function useBuilder() {
    * @param {string} mode - The mode to switch to ('chat' or 'build')
    */
   function switchMode(mode) {
-    if (mode !== 'chat' && mode !== 'build') {
-      throw new Error('Invalid mode. Must be either "chat" or "build".');
+    if (!Object.values(BUILDER_MODES).includes(mode)) {
+      throw new Error(`Invalid mode. Must be one of: ${Object.values(BUILDER_MODES).join(', ')}`);
     }
     currentMode.value = mode;
   }
@@ -48,51 +70,11 @@ export function useBuilder() {
     error.value = null;
 
     try {
-      const response = await axios.get(`/api/builder/components/${currentProject.value?.id}/`);
+      const response = await BuilderAPI.getComponentTree(projectId.value);
       componentTree.value = response.data;
     } catch (err) {
       console.error('Failed to load component tree:', err);
-      error.value = err.response?.data?.message || 'Failed to load component tree. Please try again.';
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  /**
-   * Select a component for editing
-   * @param {Object} component - The component to select
-   */
-  function selectComponent(component) {
-    selectedComponent.value = component;
-  }
-
-  /**
-   * Update a component's properties
-   * @param {string} componentId - The ID of the component to update
-   * @param {Object} properties - The updated properties
-   */
-  async function updateComponent(componentId, properties) {
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const response = await axios.patch(`/api/builder/components/${componentId}/`, properties);
-      
-      // Update component in tree
-      updateComponentInTree(componentId, response.data);
-      
-      // Add to edit history
-      addToHistory({
-        type: 'update',
-        componentId,
-        properties,
-        timestamp: new Date().toISOString()
-      });
-
-      return response.data;
-    } catch (err) {
-      console.error('Failed to update component:', err);
-      error.value = err.response?.data?.message || 'Failed to update component. Please try again.';
+      error.value = err.response?.data?.message || 'Failed to load component tree';
       throw err;
     } finally {
       loading.value = false;
@@ -100,36 +82,20 @@ export function useBuilder() {
   }
 
   /**
-   * Add a new component to the tree
-   * @param {Object} componentData - The component data
-   * @param {string} parentId - The ID of the parent component
+   * Load project files
    */
-  async function addComponent(componentData, parentId) {
+  async function loadFiles() {
+    if (!projectId.value) return;
+
     loading.value = true;
     error.value = null;
 
     try {
-      const response = await axios.post('/api/builder/components/', {
-        ...componentData,
-        parent_id: parentId,
-        project_id: currentProject.value?.id
-      });
-
-      // Add component to tree
-      addComponentToTree(response.data, parentId);
-
-      // Add to edit history
-      addToHistory({
-        type: 'add',
-        component: response.data,
-        parentId,
-        timestamp: new Date().toISOString()
-      });
-
-      return response.data;
+      const response = await BuilderAPI.getProjectFiles(projectId.value);
+      files.value = response.data;
     } catch (err) {
-      console.error('Failed to add component:', err);
-      error.value = err.response?.data?.message || 'Failed to add component. Please try again.';
+      console.error('Failed to load project files:', err);
+      error.value = err.response?.data?.message || 'Failed to load project files';
       throw err;
     } finally {
       loading.value = false;
@@ -137,35 +103,21 @@ export function useBuilder() {
   }
 
   /**
-   * Remove a component from the tree
-   * @param {string} componentId - The ID of the component to remove
+   * Select a file to edit
    */
-  async function removeComponent(componentId) {
+  async function selectFile(file) {
+    if (!file) return;
+
     loading.value = true;
     error.value = null;
 
     try {
-      await axios.delete(`/api/builder/components/${componentId}/`);
-      
-      // Store component data before removal for history
-      const removedComponent = findComponentInTree(componentId);
-      
-      // Remove from tree
-      removeComponentFromTree(componentId);
-
-      // Add to edit history
-      addToHistory({
-        type: 'remove',
-        component: removedComponent,
-        timestamp: new Date().toISOString()
-      });
-
-      if (selectedComponent.value?.id === componentId) {
-        selectedComponent.value = null;
-      }
+      const response = await BuilderAPI.getFileContent(projectId.value, file.path);
+      selectedFile.value = file;
+      fileContent.value = response.data.content;
     } catch (err) {
-      console.error('Failed to remove component:', err);
-      error.value = err.response?.data?.message || 'Failed to remove component. Please try again.';
+      console.error('Failed to load file content:', err);
+      error.value = err.response?.data?.message || 'Failed to load file content';
       throw err;
     } finally {
       loading.value = false;
@@ -173,37 +125,21 @@ export function useBuilder() {
   }
 
   /**
-   * Move a component in the tree
-   * @param {string} componentId - The ID of the component to move
-   * @param {string} newParentId - The ID of the new parent component
-   * @param {number} position - The position in the new parent's children
+   * Update file content
    */
-  async function moveComponent(componentId, newParentId, position) {
+  async function updateFile(content) {
+    if (!selectedFile.value) return;
+
     loading.value = true;
     error.value = null;
 
     try {
-      const response = await axios.post(`/api/builder/components/${componentId}/move/`, {
-        new_parent_id: newParentId,
-        position
-      });
-
-      // Update tree structure
-      moveComponentInTree(componentId, newParentId, position);
-
-      // Add to edit history
-      addToHistory({
-        type: 'move',
-        componentId,
-        newParentId,
-        position,
-        timestamp: new Date().toISOString()
-      });
-
-      return response.data;
+      await BuilderAPI.updateFileContent(projectId.value, selectedFile.value.path, content);
+      fileContent.value = content;
+      hasUnsavedChanges.value = false;
     } catch (err) {
-      console.error('Failed to move component:', err);
-      error.value = err.response?.data?.message || 'Failed to move component. Please try again.';
+      console.error('Failed to update file:', err);
+      error.value = err.response?.data?.message || 'Failed to update file';
       throw err;
     } finally {
       loading.value = false;
@@ -211,19 +147,23 @@ export function useBuilder() {
   }
 
   /**
-   * Generate preview URL for the current state
+   * Generate code using AI
    */
-  async function generatePreview() {
+  async function generateCode(prompt) {
     loading.value = true;
     error.value = null;
 
     try {
-      const response = await axios.post(`/api/builder/preview/${currentProject.value?.id}/`);
-      previewUrl.value = response.data.url;
-      return response.data.url;
+      const response = await BuilderAPI.generateCode(projectId.value, {
+        prompt,
+        mode: currentMode.value,
+        model: selectedModel.value,
+        file: selectedFile.value?.path
+      });
+      return response.data.code;
     } catch (err) {
-      console.error('Failed to generate preview:', err);
-      error.value = err.response?.data?.message || 'Failed to generate preview. Please try again.';
+      console.error('Failed to generate code:', err);
+      error.value = err.response?.data?.message || 'Failed to generate code';
       throw err;
     } finally {
       loading.value = false;
@@ -231,178 +171,77 @@ export function useBuilder() {
   }
 
   /**
-   * Add an action to the edit history
-   * @param {Object} action - The action to add to history
+   * Undo last action
    */
-  function addToHistory(action) {
-    // Remove any future history if we're not at the latest point
-    if (currentHistoryIndex.value < editHistory.value.length - 1) {
-      editHistory.value = editHistory.value.slice(0, currentHistoryIndex.value + 1);
-    }
-
-    editHistory.value.push(action);
-    currentHistoryIndex.value = editHistory.value.length - 1;
-  }
-
-  /**
-   * Undo the last action
-   */
-  async function undo() {
+  async function undoLastAction() {
     if (currentHistoryIndex.value < 0) return;
 
-    const action = editHistory.value[currentHistoryIndex.value];
     try {
-      switch (action.type) {
-        case 'update':
-          await updateComponent(action.componentId, action.previousProperties);
-          break;
-        case 'add':
-          await removeComponent(action.component.id);
-          break;
-        case 'remove':
-          await addComponent(action.component, action.component.parent_id);
-          break;
-        case 'move':
-          await moveComponent(action.componentId, action.previousParentId, action.previousPosition);
-          break;
-      }
+      const lastAction = editHistory.value[currentHistoryIndex.value];
+      await BuilderAPI.undoAction(projectId.value, lastAction.id);
       currentHistoryIndex.value--;
+      await loadFiles();
     } catch (err) {
       console.error('Failed to undo action:', err);
-      error.value = 'Failed to undo action. Please try again.';
+      error.value = err.response?.data?.message || 'Failed to undo action';
+      throw err;
     }
   }
 
   /**
-   * Redo the last undone action
+   * Create a new file
    */
-  async function redo() {
-    if (currentHistoryIndex.value >= editHistory.value.length - 1) return;
+  async function createFile(fileName, fileType, initialContent = '') {
+    if (!projectId.value || !fileName || !fileType) return;
 
-    const action = editHistory.value[currentHistoryIndex.value + 1];
+    loading.value = true;
+    error.value = null;
+
     try {
-      switch (action.type) {
-        case 'update':
-          await updateComponent(action.componentId, action.properties);
-          break;
-        case 'add':
-          await addComponent(action.component, action.parentId);
-          break;
-        case 'remove':
-          await removeComponent(action.component.id);
-          break;
-        case 'move':
-          await moveComponent(action.componentId, action.newParentId, action.position);
-          break;
+      const response = await BuilderAPI.createFile(projectId.value, {
+        name: fileName,
+        type: fileType,
+        content: initialContent
+      });
+      
+      // Refresh the file list
+      await loadFiles();
+      
+      // Select the newly created file
+      const newFile = files.value.find(f => f.path === response.data.path);
+      if (newFile) {
+        await selectFile(newFile);
       }
-      currentHistoryIndex.value++;
+      
+      return response.data;
     } catch (err) {
-      console.error('Failed to redo action:', err);
-      error.value = 'Failed to redo action. Please try again.';
+      console.error('Failed to create file:', err);
+      error.value = err.response?.data?.message || 'Failed to create file';
+      throw err;
+    } finally {
+      loading.value = false;
     }
   }
 
-  // Helper functions for tree manipulation
-  function updateComponentInTree(componentId, updatedData) {
-    function update(components) {
-      return components.map(component => {
-        if (component.id === componentId) {
-          return { ...component, ...updatedData };
-        }
-        if (component.children) {
-          return {
-            ...component,
-            children: update(component.children)
-          };
-        }
-        return component;
-      });
+  /**
+   * Load available AI models
+   */
+  async function loadAvailableModels() {
+    try {
+      const response = await BuilderAPI.getAvailableModels();
+      // Filter the response to only include our supported models
+      const supportedModels = (response.data.models || []).filter(model => 
+        ['gpt-4o', 'gpt-4o-mini', 'claude-sonnet-3.5'].includes(model.id)
+      );
+      
+      // Use the filtered models if available, otherwise use defaults
+      availableModels.value = supportedModels.length > 0 ? supportedModels : DEFAULT_MODELS;
+    } catch (err) {
+      console.error('Failed to load available models:', err);
+      error.value = err.response?.data?.message || 'Failed to load available models';
+      // Set default models if API fails
+      availableModels.value = DEFAULT_MODELS;
     }
-    componentTree.value = update(componentTree.value);
-  }
-
-  function addComponentToTree(component, parentId) {
-    function add(components) {
-      return components.map(c => {
-        if (c.id === parentId) {
-          return {
-            ...c,
-            children: [...(c.children || []), component]
-          };
-        }
-        if (c.children) {
-          return {
-            ...c,
-            children: add(c.children)
-          };
-        }
-        return c;
-      });
-    }
-    componentTree.value = add(componentTree.value);
-  }
-
-  function removeComponentFromTree(componentId) {
-    function remove(components) {
-      return components.filter(c => {
-        if (c.id === componentId) return false;
-        if (c.children) {
-          c.children = remove(c.children);
-        }
-        return true;
-      });
-    }
-    componentTree.value = remove(componentTree.value);
-  }
-
-  function moveComponentInTree(componentId, newParentId, position) {
-    let componentToMove;
-
-    // First, find and remove the component
-    function findAndRemove(components) {
-      return components.filter(c => {
-        if (c.id === componentId) {
-          componentToMove = c;
-          return false;
-        }
-        if (c.children) {
-          c.children = findAndRemove(c.children);
-        }
-        return true;
-      });
-    }
-
-    // Then, add it to its new position
-    function addToNewPosition(components) {
-      return components.map(c => {
-        if (c.id === newParentId) {
-          const newChildren = [...(c.children || [])];
-          newChildren.splice(position, 0, componentToMove);
-          return { ...c, children: newChildren };
-        }
-        if (c.children) {
-          return { ...c, children: addToNewPosition(c.children) };
-        }
-        return c;
-      });
-    }
-
-    componentTree.value = findAndRemove(componentTree.value);
-    componentTree.value = addToNewPosition(componentTree.value);
-  }
-
-  function findComponentInTree(componentId) {
-    function find(components) {
-      for (const component of components) {
-        if (component.id === componentId) return component;
-        if (component.children) {
-          const found = find(component.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    }
-    return find(componentTree.value);
   }
 
   // Methods
@@ -420,149 +259,31 @@ export function useBuilder() {
     }
   };
 
-  const loadFiles = async () => {
-    if (!projectId.value) return;
-    
-    try {
-      files.value = await BuilderAPI.listFiles(projectId.value);
-    } catch (err) {
-      error.value = 'Failed to load project files';
-      console.error('Error loading files:', err);
-    }
-  };
-
-  const selectFile = async (file) => {
-    try {
-      if (hasUnsavedChanges.value) {
-        // TODO: Handle unsaved changes
-        const confirmed = confirm('You have unsaved changes. Do you want to continue?');
-        if (!confirmed) return;
-      }
-
-      selectedFile.value = file;
-      fileContent.value = await BuilderAPI.getFileContent(projectId.value, file.path);
-      hasUnsavedChanges.value = false;
-    } catch (err) {
-      error.value = 'Failed to load file content';
-      console.error('Error loading file content:', err);
-    }
-  };
-
-  const updateFile = async (content, commitMessage) => {
-    if (!selectedFile.value) return;
-
-    try {
-      await BuilderAPI.updateFile(
-        projectId.value,
-        selectedFile.value.path,
-        content,
-        commitMessage
-      );
-      fileContent.value = content;
-      hasUnsavedChanges.value = false;
-    } catch (err) {
-      error.value = 'Failed to update file';
-      console.error('Error updating file:', err);
-      throw err;
-    }
-  };
-
-  const generateCode = async (prompt) => {
-    if (!selectedFile.value) {
-      error.value = 'Please select a file first';
-      return;
-    }
-
-    try {
-      const result = await BuilderAPI.generateCode(
-        projectId.value,
-        prompt,
-        selectedModel.value,
-        selectedFile.value.path
-      );
-      
-      if (result.success) {
-        await updateFile(result.content, 'Generated code using AI');
-        return result.content;
-      } else {
-        throw new Error(result.error || 'Failed to generate code');
-      }
-    } catch (err) {
-      error.value = err.message || 'Failed to generate code';
-      console.error('Error generating code:', err);
-      throw err;
-    }
-  };
-
-  const undoLastAction = async () => {
-    try {
-      const result = await BuilderAPI.undoLastAction(projectId.value);
-      if (result.success) {
-        await loadFiles();
-        if (selectedFile.value) {
-          await selectFile(selectedFile.value);
-        }
-      }
-      return result;
-    } catch (err) {
-      error.value = 'Failed to undo last action';
-      console.error('Error undoing action:', err);
-      throw err;
-    }
-  };
-
-  const loadAvailableModels = async () => {
-    try {
-      availableModels.value = await BuilderAPI.getAvailableModels();
-    } catch (err) {
-      error.value = 'Failed to load AI models';
-      console.error('Error loading models:', err);
-    }
-  };
-
-  // Computed properties
-  const mode = computed(() => currentMode.value);
-  const selectedComponentData = computed(() => selectedComponent.value);
-  const tree = computed(() => componentTree.value);
-  const builderError = computed(() => error.value);
-  const canUndo = computed(() => currentHistoryIndex.value >= 0);
-  const canRedo = computed(() => currentHistoryIndex.value < editHistory.value.length - 1);
-
   return {
     // State
-    mode,
-    selectedComponent: selectedComponentData,
-    componentTree: tree,
-    isLoading,
-    error: builderError,
-    previewUrl,
-    canUndo,
-    canRedo,
-    currentProject,
     files,
     selectedFile,
     fileContent,
     availableModels,
     selectedModel,
+    isLoading,
+    error,
     hasUnsavedChanges,
+    currentMode,
+    componentTree,
+    selectedComponent,
+    FILE_TYPES,
 
     // Methods
-    switchMode,
-    loadComponentTree,
-    selectComponent,
-    updateComponent,
-    addComponent,
-    removeComponent,
-    moveComponent,
-    generatePreview,
-    undo,
-    redo,
-    loadProject,
     loadFiles,
     selectFile,
     updateFile,
+    createFile,
     generateCode,
     undoLastAction,
-    loadAvailableModels
+    loadAvailableModels,
+    loadComponentTree,
+    switchMode,
+    loadProject
   };
 } 

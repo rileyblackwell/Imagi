@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { useProjectStore } from '../store/projectStore';
+import { useProjectStore } from '../stores/projectStore';
 
 export function useProjects() {
   const projectStore = useProjectStore();

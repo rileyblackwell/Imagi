@@ -35,24 +35,112 @@
         </select>
       </div>
 
-      <!-- File Explorer -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <h3 class="text-sm font-medium text-gray-400 mb-2">Project Files</h3>
-        <div class="space-y-1">
+      <!-- Mode Toggle -->
+      <div class="p-4 border-b border-dark-700">
+        <label class="block text-sm font-medium text-gray-400 mb-2">Mode</label>
+        <div class="flex bg-dark-900 rounded-lg p-1">
           <button
-            v-for="file in files"
-            :key="file.path"
-            @click="selectFile(file)"
-            class="w-full text-left px-3 py-2 rounded-lg text-sm"
+            @click="switchMode('chat')"
+            class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             :class="[
-              selectedFile?.path === file.path
-                ? 'bg-primary-500/20 text-white'
-                : 'text-gray-400 hover:bg-dark-700 hover:text-white'
+              currentMode === 'chat'
+                ? 'bg-primary-500 text-white'
+                : 'text-gray-400 hover:text-white'
             ]"
           >
-            <i :class="getFileIcon(file.type)" class="mr-2"></i>
-            {{ file.path }}
+            <i class="fas fa-comments mr-2"></i>
+            Chat
           </button>
+          <button
+            @click="switchMode('build')"
+            class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            :class="[
+              currentMode === 'build'
+                ? 'bg-primary-500 text-white'
+                : 'text-gray-400 hover:text-white'
+            ]"
+          >
+            <i class="fas fa-code mr-2"></i>
+            Build
+          </button>
+        </div>
+      </div>
+
+      <!-- File Explorer -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="p-4 border-b border-dark-700">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-medium text-gray-400">Project Files</h3>
+            <div class="flex items-center space-x-2">
+              <button
+                @click="showNewFileForm = !showNewFileForm"
+                class="text-gray-400 hover:text-white transition-colors"
+                :title="showNewFileForm ? 'Cancel' : 'New File'"
+              >
+                <i :class="['fas', showNewFileForm ? 'fa-times' : 'fa-plus']"></i>
+              </button>
+              <button
+                @click="isFileExplorerExpanded = !isFileExplorerExpanded"
+                class="text-gray-400 hover:text-white transition-colors"
+              >
+                <i :class="[
+                  'fas',
+                  isFileExplorerExpanded ? 'fa-chevron-down' : 'fa-chevron-right'
+                ]"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- New File Form -->
+          <div v-if="showNewFileForm" class="mb-4 space-y-3">
+            <input
+              v-model="newFileName"
+              type="text"
+              placeholder="File name"
+              class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+            />
+            <select
+              v-model="newFileType"
+              class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
+            >
+              <option value="" disabled>Select file type</option>
+              <option v-for="(type, key) in FILE_TYPES" :key="key" :value="type">
+                {{ key.toLowerCase() }}
+              </option>
+            </select>
+            <div class="flex justify-end space-x-2">
+              <button
+                @click="showNewFileForm = false"
+                class="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                @click="handleCreateFile"
+                :disabled="!canCreateFile"
+                class="px-3 py-1 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+          
+          <div v-show="isFileExplorerExpanded" class="space-y-1">
+            <button
+              v-for="file in files"
+              :key="file.path"
+              @click="selectFile(file)"
+              class="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center group transition-colors"
+              :class="[
+                selectedFile?.path === file.path
+                  ? 'bg-primary-500/20 text-white'
+                  : 'text-gray-400 hover:bg-dark-700 hover:text-white'
+              ]"
+            >
+              <i :class="[getFileIcon(file.type), 'mr-2']"></i>
+              <span class="truncate">{{ file.path }}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -145,7 +233,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { MonacoEditor } from '@/shared/components'
@@ -161,6 +249,10 @@ export default {
     const route = useRoute()
     const prompt = ref('')
     const editorContent = ref('')
+    const isFileExplorerExpanded = ref(true)
+    const showNewFileForm = ref(false)
+    const newFileName = ref('')
+    const newFileType = ref('')
 
     // Define workspace navigation items
     const navigationItems = [] // Empty array since we don't want any navigation items
@@ -175,14 +267,23 @@ export default {
       isLoading,
       error,
       hasUnsavedChanges,
+      currentMode,
       loadProject,
       loadFiles,
       selectFile,
       updateFile,
       generateCode,
       undoLastAction,
-      loadAvailableModels
+      loadAvailableModels,
+      switchMode,
+      createFile,
+      FILE_TYPES
     } = useBuilder()
+
+    // Computed
+    const canCreateFile = computed(() => {
+      return newFileName.value.trim() && newFileType.value;
+    })
 
     // Load project and models on mount
     onMounted(async () => {
@@ -245,6 +346,21 @@ export default {
       return languages[type] || 'plaintext'
     }
 
+    // Methods
+    const handleCreateFile = async () => {
+      if (!canCreateFile.value) return;
+
+      try {
+        await createFile(newFileName.value.trim(), newFileType.value);
+        // Reset form
+        newFileName.value = '';
+        newFileType.value = '';
+        showNewFileForm.value = false;
+      } catch (err) {
+        console.error('Error creating file:', err);
+      }
+    }
+
     return {
       navigationItems,
       currentProject,
@@ -257,13 +373,22 @@ export default {
       hasUnsavedChanges,
       prompt,
       editorContent,
+      currentMode,
+      isFileExplorerExpanded,
+      showNewFileForm,
+      newFileName,
+      newFileType,
+      canCreateFile,
+      FILE_TYPES,
       selectFile,
       undoLastAction,
       saveChanges,
       handlePrompt,
       onEditorChange,
       getFileIcon,
-      getFileLanguage
+      getFileLanguage,
+      switchMode,
+      handleCreateFile
     }
   }
 }
