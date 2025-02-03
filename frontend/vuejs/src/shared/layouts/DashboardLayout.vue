@@ -50,25 +50,6 @@
             <template #left>
               <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
             </template>
-            
-            <!-- Right section -->
-            <template #right>
-              <div class="flex items-center space-x-4">
-                <!-- User dropdown -->
-                <div class="relative">
-                  <button
-                    class="flex items-center space-x-3 text-gray-400 hover:text-white focus:outline-none"
-                  >
-                    <img
-                      class="h-8 w-8 rounded-full"
-                      :src="userAvatar"
-                      alt=""
-                    />
-                    <span class="text-sm font-medium">{{ userName }}</span>
-                  </button>
-                </div>
-              </div>
-            </template>
           </BaseNavbar>
         </div>
 
@@ -115,15 +96,7 @@ export default {
     ]
 
     const pageTitle = computed(() => {
-      return route.meta.title || 'Dashboard'
-    })
-
-    const userName = computed(() => {
-      return authStore.user?.name || 'User'
-    })
-
-    const userAvatar = computed(() => {
-      return authStore.user?.avatar || 'https://via.placeholder.com/40'
+      return route.meta.title || ''
     })
 
     const toggleSidebar = () => {
@@ -150,8 +123,6 @@ export default {
     return {
       navigationItems,
       pageTitle,
-      userName,
-      userAvatar,
       isSidebarCollapsed,
       toggleSidebar
     }

@@ -18,7 +18,7 @@ export const routes = [
     component: BuilderDashboard,
     meta: {
       requiresAuth: true,
-      title: 'Imagi Builder'
+      title: ''
     }
   },
   {
