@@ -3,16 +3,9 @@
   <BaseLayout>
     <div class="flex h-screen bg-dark-950">
       <!-- Sidebar -->
-      <aside class="w-64 bg-dark-900 border-r border-dark-800">
-        <div class="h-16 flex items-center px-6 border-b border-dark-800">
-          <router-link to="/dashboard" class="flex items-center gap-3">
-            <img src="@/shared/assets/images/logo.webp" alt="Imagi Logo" class="h-8 w-auto" />
-            <span class="text-xl font-bold bg-gradient-to-r from-primary-300 to-primary-500 text-transparent bg-clip-text">
-              Imagi
-            </span>
-          </router-link>
-        </div>
-        <nav class="mt-6">
+      <aside class="transition-all duration-300 flex flex-col" :class="[isSidebarCollapsed ? 'w-16' : 'w-64', 'bg-dark-900 border-r border-dark-800']">
+        <!-- Navigation -->
+        <nav class="flex-1 mt-6">
           <div class="px-3 space-y-1">
             <router-link
               v-for="item in navigationItems"
@@ -32,48 +25,64 @@
                   'mr-3 h-5 w-5'
                 ]"
               />
-              {{ item.name }}
+              <span v-if="!isSidebarCollapsed">{{ item.name }}</span>
             </router-link>
           </div>
         </nav>
+        
+        <!-- Collapse button at bottom of sidebar -->
+        <div class="p-4 border-t border-dark-800">
+          <button 
+            @click="toggleSidebar"
+            class="w-full flex items-center justify-center p-2 bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
+          >
+            <i class="fas" :class="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+          </button>
+        </div>
       </aside>
 
       <!-- Main content -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Top navigation -->
-        <BaseNavbar>
-          <!-- Left section -->
-          <template #left>
-            <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
-          </template>
-          
-          <!-- Right section -->
-          <template #right>
-            <div class="flex items-center space-x-4">
-              <!-- User dropdown -->
-              <div class="relative">
-                <button
-                  class="flex items-center space-x-3 text-gray-400 hover:text-white focus:outline-none"
-                >
-                  <img
-                    class="h-8 w-8 rounded-full"
-                    :src="userAvatar"
-                    alt=""
-                  />
-                  <span class="text-sm font-medium">{{ userName }}</span>
-                </button>
+        <div class="flex-shrink-0">
+          <BaseNavbar>
+            <!-- Left section -->
+            <template #left>
+              <h1 class="text-xl font-semibold text-white">{{ pageTitle }}</h1>
+            </template>
+            
+            <!-- Right section -->
+            <template #right>
+              <div class="flex items-center space-x-4">
+                <!-- User dropdown -->
+                <div class="relative">
+                  <button
+                    class="flex items-center space-x-3 text-gray-400 hover:text-white focus:outline-none"
+                  >
+                    <img
+                      class="h-8 w-8 rounded-full"
+                      :src="userAvatar"
+                      alt=""
+                    />
+                    <span class="text-sm font-medium">{{ userName }}</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </template>
-        </BaseNavbar>
+            </template>
+          </BaseNavbar>
+        </div>
 
         <!-- Page content -->
-        <main class="flex-1 overflow-y-auto bg-dark-950 p-6">
-          <slot></slot>
+        <main class="flex-1 overflow-y-auto bg-dark-950">
+          <div class="h-full">
+            <slot></slot>
+          </div>
         </main>
 
         <!-- Footer -->
-        <BaseFooter />
+        <div class="flex-shrink-0">
+          <BaseFooter />
+        </div>
       </div>
     </div>
   </BaseLayout>
@@ -82,9 +91,9 @@
 <script>
 import BaseLayout from './BaseLayout.vue'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { useAuthStore } from '@/apps/auth/store/auth'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/apps/auth/store'
 
 export default {
   name: 'DashboardLayout',
@@ -95,7 +104,9 @@ export default {
   },
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const authStore = useAuthStore()
+    const isSidebarCollapsed = ref(false)
 
     const navigationItems = [
       { name: 'Dashboard', to: '/dashboard', icon: 'HomeIcon' },
@@ -115,11 +126,34 @@ export default {
       return authStore.user?.avatar || 'https://via.placeholder.com/40'
     })
 
+    const toggleSidebar = () => {
+      isSidebarCollapsed.value = !isSidebarCollapsed.value
+      localStorage.setItem('dashboardSidebarCollapsed', isSidebarCollapsed.value)
+    }
+
+    // Check authentication on mount
+    onMounted(async () => {
+      if (!authStore.isAuthenticated) {
+        router.push({ 
+          name: 'login',
+          query: { redirect: route.fullPath }
+        })
+      }
+
+      // Initialize sidebar state from localStorage
+      const savedCollapsed = localStorage.getItem('dashboardSidebarCollapsed')
+      if (savedCollapsed !== null) {
+        isSidebarCollapsed.value = savedCollapsed === 'true'
+      }
+    })
+
     return {
       navigationItems,
       pageTitle,
       userName,
-      userAvatar
+      userAvatar,
+      isSidebarCollapsed,
+      toggleSidebar
     }
   }
 }
