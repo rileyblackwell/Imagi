@@ -2,40 +2,47 @@
 FROM node:20-slim as frontend-builder
 
 # Set Node.js memory limits and optimization flags
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV VITE_BUILD_LEGACY=false
+ENV NODE_ENV=production
 
 WORKDIR /app/frontend
 COPY frontend/vuejs/package*.json ./
 
-# Install build essentials for node-gyp
+# Install build essentials for node-gyp with better cleanup
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ALL dependencies including devDependencies needed for build
-RUN npm ci --legacy-peer-deps
+# Install dependencies with specific npm settings for optimization
+RUN npm config set fetch-retries 3 && \
+    npm config set fetch-retry-mintimeout 5000 && \
+    npm config set fetch-retry-maxtimeout 60000 && \
+    npm ci --legacy-peer-deps --prefer-offline --no-audit
 
 COPY frontend/vuejs/ .
 
-# Build with production mode (but we installed dev dependencies above)
-ENV NODE_ENV=production
-RUN npm run build || (cat /app/frontend/node_modules/vite/dist/node/chunks/dep-CHZK6zbr.js && exit 1)
+# Build with production mode and better error handling
+RUN npm run build || (echo "Build failed. Check the error above." && exit 1)
 
 # Final stage for Django and serving frontend
 FROM python:3.11-slim-bullseye
 
 # Set Python-related environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONHASHSEED=random
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # Python memory optimization
+    PYTHONMALLOC=malloc \
+    MALLOC_TRIM_THRESHOLD_=65536
 
-# Install system dependencies with retry logic and cleanup in same layer
+# Install system dependencies with better cleanup
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     libpq-dev \
@@ -43,30 +50,33 @@ RUN apt-get update && \
     curl \
     libjpeg-dev \
     gcc \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js with retry logic
-RUN for i in 1 2 3; \
-    do curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/* \
-    && break || sleep 15; \
+# Install Node.js with better error handling and retries
+RUN for i in 1 2 3; do \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    break || { echo "Retry $i..."; sleep 15; }; \
     done
 
-# Set working directory
 WORKDIR /app
 
-# Install pip and pipenv with retry logic and memory optimization
+# Install pip and pipenv with memory optimization and better error handling
 RUN pip install --no-cache-dir --upgrade pip && \
     for i in 1 2 3; do \
-        pip install --no-cache-dir pipenv && break || sleep 15; \
+        pip install --no-cache-dir pipenv && break || \
+        { echo "Retry pip install $i..."; sleep 15; }; \
     done
 
 # Copy Pipfile and install Python dependencies with memory optimization
 COPY Pipfile Pipfile.lock ./
 RUN for i in 1 2 3; do \
-        PIPENV_NOSPIN=1 PIPENV_HIDE_EMOJIS=1 pipenv install --system --deploy --verbose && break || sleep 15; \
+        PIPENV_NOSPIN=1 PIPENV_HIDE_EMOJIS=1 \
+        pipenv install --system --deploy --verbose && break || \
+        { echo "Retry pipenv install $i..."; sleep 15; }; \
     done
 
 # Copy the Django backend
@@ -93,12 +103,6 @@ ARG DJANGO_SECRET_KEY
 ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
 ARG DJANGO_DEBUG=0
 ENV DJANGO_DEBUG=${DJANGO_DEBUG}
-
-# Clean up
-RUN apt-get remove --purge -y \
-    && apt-get autoremove -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
 
 # Expose the port
 EXPOSE 8000
