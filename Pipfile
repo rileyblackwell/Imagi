@@ -17,6 +17,8 @@ cssutils = "*"
 django-cors-headers = "*"
 redis = "*"
 django-redis = "*"
+gunicorn = "*"
+whitenoise = "*"
 
 [dev-packages]
 
