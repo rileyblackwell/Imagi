@@ -77,7 +77,7 @@
                 </div>
                 <p class="text-gray-400 mb-4">{{ error }}</p>
                 <button 
-                  @click="fetchProjects" 
+                  @click="retryFetch" 
                   class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors"
                 >
                   Try Again
@@ -130,10 +130,10 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
-import axios from 'axios'
+import { useProjectStore } from '../stores/projectStore'
 
 export default {
   name: 'BuilderDashboard',
@@ -142,23 +142,22 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const projects = ref([])
-    const isLoading = ref(true)
-    const error = ref(null)
+    const projectStore = useProjectStore()
     const newProjectName = ref('')
     const isCreating = ref(false)
 
+    // Computed properties from store
+    const projects = computed(() => projectStore.activeProjects)
+    const isLoading = computed(() => projectStore.loading)
+    const error = computed(() => projectStore.error)
+    const hasProjects = computed(() => projectStore.hasProjects)
+
     const fetchProjects = async () => {
-      isLoading.value = true
-      error.value = null
       try {
-        const response = await axios.get('/api/builder/projects/')
-        projects.value = response.data.projects || []
+        await projectStore.fetchProjects()
       } catch (err) {
-        console.error('Failed to fetch projects:', err)
-        error.value = 'Failed to load projects. Please try again.'
-      } finally {
-        isLoading.value = false
+        // Error is already handled in the store
+        console.error('Error in component:', err)
       }
     }
 
@@ -166,23 +165,20 @@ export default {
       if (!newProjectName.value.trim() || isCreating.value) return
 
       isCreating.value = true
-      error.value = null
       try {
-        const response = await axios.post('/api/builder/create-project/', {
-          project_name: newProjectName.value
+        const project = await projectStore.createProject({
+          name: newProjectName.value.trim()
         })
         
-        if (response.data.success) {
-          router.push({
-            name: 'builder-workspace',
-            params: { projectId: response.data.project_id }
-          })
-        } else {
-          throw new Error(response.data.error || 'Failed to create project')
-        }
+        // Clear the input and navigate to the workspace
+        newProjectName.value = ''
+        router.push({
+          name: 'builder-workspace',
+          params: { projectId: project.id }
+        })
       } catch (err) {
-        console.error('Failed to create project:', err)
-        error.value = err.message || 'Failed to create project. Please try again.'
+        // Error is already handled in the store
+        console.error('Error in component:', err)
       } finally {
         isCreating.value = false
       }
@@ -194,15 +190,10 @@ export default {
       }
 
       try {
-        const response = await axios.delete(`/api/builder/projects/${project.id}/`)
-        if (response.data.success) {
-          await fetchProjects()
-        } else {
-          throw new Error(response.data.error || 'Failed to delete project')
-        }
+        await projectStore.deleteProject(project.id)
       } catch (err) {
-        console.error('Failed to delete project:', err)
-        error.value = err.message || 'Failed to delete project. Please try again.'
+        // Error is already handled in the store
+        console.error('Error in component:', err)
       }
     }
 
@@ -216,6 +207,11 @@ export default {
       })
     }
 
+    const retryFetch = () => {
+      projectStore.clearError()
+      fetchProjects()
+    }
+
     onMounted(async () => {
       await fetchProjects()
     })
@@ -224,12 +220,13 @@ export default {
       projects,
       isLoading,
       error,
+      hasProjects,
       newProjectName,
       isCreating,
       createProject,
       confirmDelete,
       formatDate,
-      fetchProjects
+      retryFetch
     }
   }
 }

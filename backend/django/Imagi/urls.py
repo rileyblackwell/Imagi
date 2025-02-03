@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/builder/', include('apps.Builder.api.urls')),  # Builder API endpoints
     path('api/payments/', include('apps.Payments.api.urls')),  # Payments API endpoints
     path('api/agents/', include('apps.Agents.api.urls')),  # Agents API endpoints
+    path('api/projectmanager/', include('apps.ProjectManager.urls')),  # ProjectManager API endpoints
     
     # App URLs (for server-rendered pages if needed)
     path('auth/', include('apps.Auth.urls')),  # Auth app URLs (including password reset)

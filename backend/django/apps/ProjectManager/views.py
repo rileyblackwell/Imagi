@@ -1,15 +1,22 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
+from rest_framework.response import Response
+from rest_framework.decorators import action
 from .services import ProjectGenerationService
-from .models import UserProject
-from .serializers import UserProjectSerializer
+from .models import UserProject, Project
+from .serializers import UserProjectSerializer, ProjectSerializer
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    serializer_class = UserProjectSerializer
+    serializer_class = ProjectSerializer
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        return UserProject.objects.filter(user=self.request.user)
+        return Project.objects.filter(user=self.request.user, is_active=True)
     
     def perform_create(self, serializer):
-        service = ProjectGenerationService(self.request.user)
-        project = service.create_project(serializer.validated_data['name'])
-        serializer.instance = project
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def active_projects(self, request):
+        projects = self.get_queryset()
+        serializer = self.get_serializer(projects, many=True)
+        return Response(serializer.data)
