@@ -20,6 +20,15 @@ class ProjectGenerationService:
         return sanitized
 
     def create_project(self, project_name):
+        # First, deactivate any existing active projects with the same name
+        existing_projects = Project.objects.filter(
+            user=self.user,
+            name=project_name,
+            is_active=True
+        )
+        if existing_projects.exists():
+            existing_projects.update(is_active=False)
+
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         sanitized_name = self._sanitize_project_name(project_name)
         unique_name = f"{sanitized_name}_{timestamp}"
@@ -393,4 +402,35 @@ setup(
             raise Exception(f"Failed to initialize pipenv: {str(e)}")
         except Exception as e:
             print(f"Error in _initialize_pipenv: {str(e)}")
+            raise
+
+    def delete_project(self, project_name):
+        """Delete a project's files from the filesystem"""
+        try:
+            # Find all active projects with this name for this user
+            projects = Project.objects.filter(
+                user=self.user,
+                name=project_name,
+                is_active=True
+            ).order_by('-updated_at')  # Get most recently updated first
+
+            if not projects.exists():
+                print(f"Project not found: {project_name}")
+                return False
+
+            # Get the most recently updated project
+            project = projects.first()
+            project_path = project.project_path
+
+            # Delete project directory if it exists
+            if os.path.exists(project_path):
+                shutil.rmtree(project_path)
+                print(f"Project files deleted successfully at: {project_path}")
+
+            # Mark all duplicate projects as inactive
+            projects.update(is_active=False)
+
+            return True
+        except Exception as e:
+            print(f"Error deleting project: {str(e)}")
             raise

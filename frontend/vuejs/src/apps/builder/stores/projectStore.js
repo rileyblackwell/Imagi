@@ -14,11 +14,16 @@ export const useProjectStore = defineStore('projects', {
   }),
 
   getters: {
-    activeProjects: (state) => state.projects.filter(p => p.is_active),
+    activeProjects: (state) => {
+      // Return only active projects, ensuring no duplicates
+      return state.projects.filter(p => p.is_active)
+    },
     getProjectById: (state) => (id) => state.projects.find(p => p.id === id),
     hasProjects: (state) => state.initialized && state.projects.length > 0,
     hasError: (state) => !!state.error,
-    sortedProjects: (state) => [...state.projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    sortedProjects: (state) => {
+      return [...state.projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    }
   },
 
   actions: {
@@ -33,7 +38,18 @@ export const useProjectStore = defineStore('projects', {
             'Content-Type': 'application/json'
           }
         })
-        this.projects = Array.isArray(response.data) ? response.data : []
+        
+        if (Array.isArray(response.data)) {
+          // Create a Map to deduplicate projects by ID
+          const uniqueProjects = new Map()
+          response.data.forEach(project => {
+            uniqueProjects.set(project.id, project)
+          })
+          this.projects = Array.from(uniqueProjects.values())
+        } else {
+          this.projects = []
+        }
+        
         this.initialized = true
         return this.projects
       } catch (err) {
@@ -95,23 +111,18 @@ export const useProjectStore = defineStore('projects', {
           }
         })
 
-        // Validate the response
         const newProject = response.data
-        if (!newProject) {
-          throw new Error('No project data received from server')
+        if (!newProject || typeof newProject.id === 'undefined') {
+          throw new Error('Invalid project data received from server')
         }
 
-        // Validate required fields
-        if (typeof newProject.id === 'undefined') {
-          console.error('Invalid project data:', newProject)
-          throw new Error('Project data missing required ID field')
-        }
-
-        // Ensure ID is a string
-        newProject.id = newProject.id.toString()
-
-        // Add to projects list and return
+        // Remove any existing projects with the same name before adding the new one
+        this.projects = this.projects.filter(p => !(p.name === newProject.name && p.is_active))
         this.projects.unshift(newProject)
+        
+        // Refresh projects list to ensure consistency
+        await this.fetchProjects()
+        
         return newProject
       } catch (err) {
         console.error('Failed to create project:', err)

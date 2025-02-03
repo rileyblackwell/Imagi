@@ -12,6 +12,13 @@ class Project(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'name'],
+                condition=models.Q(is_active=True),
+                name='unique_active_project_name_per_user'
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} - {self.user.username}"
