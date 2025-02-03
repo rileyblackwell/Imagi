@@ -1,0 +1,14 @@
+setup.py
+dog_20250203203036/__init__.py
+dog_20250203203036/asgi.py
+dog_20250203203036/models.py
+dog_20250203203036/serializers.py
+dog_20250203203036/settings.py
+dog_20250203203036/urls.py
+dog_20250203203036/views.py
+dog_20250203203036/wsgi.py
+dog_20250203203036.egg-info/PKG-INFO
+dog_20250203203036.egg-info/SOURCES.txt
+dog_20250203203036.egg-info/dependency_links.txt
+dog_20250203203036.egg-info/requires.txt
+dog_20250203203036.egg-info/top_level.txt
