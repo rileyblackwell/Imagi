@@ -24,8 +24,8 @@ RUN apt-get update && \
 RUN npm config set fetch-retries 3 && \
     npm config set fetch-retry-mintimeout 5000 && \
     npm config set fetch-retry-maxtimeout 60000 && \
-    npm ci && \
-    npm install -D vite@^5.0.12 @vitejs/plugin-vue@^5.0.3
+    npm install && \
+    npm install vite@^5.0.12 @vitejs/plugin-vue@^5.0.3
 
 # Copy Vue.js source code and configuration files
 COPY frontend/vuejs/ .
