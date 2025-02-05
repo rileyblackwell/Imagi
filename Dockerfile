@@ -24,14 +24,13 @@ RUN apt-get update && \
 RUN npm config set fetch-retries 3 && \
     npm config set fetch-retry-mintimeout 5000 && \
     npm config set fetch-retry-maxtimeout 60000 && \
-    npm install && \
-    npm ci --legacy-peer-deps --prefer-offline --no-audit
+    npm install
 
 # Copy Vue.js source code and configuration files
 COPY frontend/vuejs/ .
 
 # Build frontend with production mode and better error handling
-RUN npm run build || (echo "Build failed. Check the error above." && exit 1)
+RUN npx vite build || (echo "Build failed. Check the error above." && exit 1)
 
 # Final stage for Django backend and serving frontend
 FROM python:3.11-slim-bullseye
