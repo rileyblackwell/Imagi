@@ -25,14 +25,13 @@ RUN npm config set fetch-retries 3 && \
     npm config set fetch-retry-mintimeout 5000 && \
     npm config set fetch-retry-maxtimeout 60000 && \
     npm install && \
-    npm install vite@^5.0.12 @vitejs/plugin-vue@^5.0.3 && \
-    npm ls vite
+    npm install -D vite@^5.0.12 @vitejs/plugin-vue@^5.0.3
 
 # Copy Vue.js source code and configuration files
 COPY frontend/vuejs/ .
 
 # Build frontend with production mode and better error handling
-RUN NODE_ENV=production npx vite build || (echo "Build failed. Check the error above." && exit 1)
+RUN NODE_ENV=production ./node_modules/.bin/vite build || (echo "Build failed. Check the error above." && exit 1)
 
 # Final stage for Django backend and serving frontend
 FROM python:3.11-slim-bullseye
