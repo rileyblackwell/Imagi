@@ -8,7 +8,7 @@ ENV NODE_ENV=production
 
 WORKDIR /app/frontend/vuejs
 
-# Copy package files and install dependencies
+# Copy package files
 COPY frontend/vuejs/package*.json ./
 
 # Install build essentials for node-gyp with better cleanup
@@ -24,14 +24,14 @@ RUN apt-get update && \
 RUN npm config set fetch-retries 3 && \
     npm config set fetch-retry-mintimeout 5000 && \
     npm config set fetch-retry-maxtimeout 60000 && \
-    npm install && \
-    npm install -g vite@^5.0.12
+    npm ci && \
+    npm install -D vite@^5.0.12 @vitejs/plugin-vue@^5.0.3
 
 # Copy Vue.js source code and configuration files
 COPY frontend/vuejs/ .
 
 # Build frontend with production mode and better error handling
-RUN npm run build || (echo "Build failed. Check the error above." && exit 1)
+RUN NODE_ENV=production npm run build || (echo "Build failed. Check the error above." && exit 1)
 
 # Final stage for Django backend and serving frontend
 FROM python:3.11-slim-bullseye
