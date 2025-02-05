@@ -2,7 +2,7 @@
 node_modules
 frontend/vuejs/dist
 __pycache__
-
+.cursorrules
 
 # local env files
 .env.local

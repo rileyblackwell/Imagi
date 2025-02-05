@@ -1,0 +1,26 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+requests = "*"
+python-dotenv = "*"
+openai = "*"
+bs4 = "*"
+stripe = "*"
+anthropic = ">=0.18.0"
+djangorestframework = "*"
+psutil = "*"
+cssutils = "*"
+django-cors-headers = "*"
+redis = "*"
+django-redis = "*"
+gunicorn = "*"
+whitenoise = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"

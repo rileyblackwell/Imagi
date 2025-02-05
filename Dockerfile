@@ -6,7 +6,9 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV VITE_BUILD_LEGACY=false
 ENV NODE_ENV=production
 
-WORKDIR /app/frontend
+WORKDIR /app/frontend/vuejs
+
+# Copy package files and install dependencies
 COPY frontend/vuejs/package*.json ./
 
 # Install build essentials for node-gyp with better cleanup
@@ -24,21 +26,21 @@ RUN npm config set fetch-retries 3 && \
     npm config set fetch-retry-maxtimeout 60000 && \
     npm ci --legacy-peer-deps --prefer-offline --no-audit
 
+# Copy Vue.js source code
 COPY frontend/vuejs/ .
 
-# Build with production mode and better error handling
+# Build frontend with production mode and better error handling
 RUN npm run build || (echo "Build failed. Check the error above." && exit 1)
 
-# Final stage for Django and serving frontend
+# Final stage for Django backend and serving frontend
 FROM python:3.11-slim-bullseye
 
-# Set Python-related environment variables
+# Set Python-related environment variables for optimization
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONHASHSEED=random \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    # Python memory optimization
     PYTHONMALLOC=malloc \
     MALLOC_TRIM_THRESHOLD_=65536
 
@@ -53,15 +55,6 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js with better error handling and retries
-RUN for i in 1 2 3; do \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    break || { echo "Retry $i..."; sleep 15; }; \
-    done
-
 WORKDIR /app
 
 # Install pip and pipenv with memory optimization and better error handling
@@ -71,19 +64,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
         { echo "Retry pip install $i..."; sleep 15; }; \
     done
 
-# Copy Pipfile and install Python dependencies with memory optimization
-COPY Pipfile Pipfile.lock ./
+# Copy Pipfile and install Python dependencies
+COPY backend/django/Pipfile backend/django/Pipfile.lock ./
 RUN for i in 1 2 3; do \
         PIPENV_NOSPIN=1 PIPENV_HIDE_EMOJIS=1 \
         pipenv install --system --deploy --verbose && break || \
         { echo "Retry pipenv install $i..."; sleep 15; }; \
     done
 
-# Copy the Django backend
+# Copy Django backend code
 COPY backend/django/ ./backend/
 
 # Copy the built frontend from the builder stage
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
+COPY --from=frontend-builder /app/frontend/vuejs/dist ./frontend/dist/
 
 # Create directory for static files
 RUN mkdir -p /app/backend/staticfiles
@@ -108,4 +101,4 @@ ENV DJANGO_DEBUG=${DJANGO_DEBUG}
 EXPOSE 8000
 
 # Run the application
-CMD ["/app/runner.sh"] 
+CMD ["/app/runner.sh"]
