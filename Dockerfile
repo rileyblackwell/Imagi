@@ -12,19 +12,21 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install system dependencies
+# Copy only dependency files first
+COPY backend/django/Pipfile backend/django/Pipfile.lock ./
+
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     gcc \
+    && pip install pipenv \
+    && pipenv install --system --deploy \
+    && apt-get remove -y build-essential gcc \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY backend/django/Pipfile backend/django/Pipfile.lock ./
-RUN pip install pipenv && \
-    pipenv install --system --deploy
-
-# Copy backend code
+# Then copy application code
 COPY backend/django/ ./backend/
 # Copy built frontend files
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
