@@ -8,11 +8,11 @@
     "dev:debug": "vite --host --debug",
     "build": "vite build",
     "preview": "vite preview",
+    "start": "vite preview --host --port $PORT",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "clean": "rm -rf node_modules dist .vite"
   },
   "dependencies": {
-    "monaco-editor": "^0.52.2",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5",
     "pinia": "^2.1.7",

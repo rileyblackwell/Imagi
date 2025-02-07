@@ -187,12 +187,14 @@
           
           <!-- Code Editor -->
           <div class="h-[calc(100vh-12rem)] rounded-lg border border-dark-700 bg-dark-900">
-            <MonacoEditor
+            <textarea
               v-model="editorContent"
-              :language="getFileLanguage(selectedFile.type)"
-              theme="vs-dark"
-              @change="onEditorChange"
-            />
+              :placeholder="'Enter code here...'"
+              class="w-full h-full bg-dark-900 text-white p-4 font-mono resize-none focus:outline-none"
+              @input="(e) => onEditorChange(e.target.value)"
+              spellcheck="false"
+              wrap="off"
+            ></textarea>
           </div>
         </div>
 
@@ -236,14 +238,12 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
-import { MonacoEditor } from '@/shared/components'
 import { useBuilder } from '../composables/useBuilder'
 
 export default {
   name: 'BuilderWorkspace',
   components: {
-    DashboardLayout,
-    MonacoEditor
+    DashboardLayout
   },
   setup() {
     const route = useRoute()
@@ -293,17 +293,24 @@ export default {
 
     // Watch for file content changes
     watch(fileContent, (newContent) => {
-      editorContent.value = newContent
+      if (newContent !== editorContent.value) {
+        editorContent.value = newContent || ''
+      }
     })
 
     // Handle editor content changes
     const onEditorChange = (content) => {
-      hasUnsavedChanges.value = content !== fileContent.value
+      if (content !== fileContent.value) {
+        hasUnsavedChanges.value = true
+      }
     }
 
     // Save changes
     const saveChanges = async () => {
-      await updateFile(editorContent.value)
+      if (hasUnsavedChanges.value) {
+        await updateFile(editorContent.value)
+        hasUnsavedChanges.value = false
+      }
     }
 
     // Handle AI prompt
@@ -331,19 +338,6 @@ export default {
         unknown: 'fas fa-file'
       }
       return icons[type] || icons.unknown
-    }
-
-    // Get Monaco editor language
-    const getFileLanguage = (type) => {
-      const languages = {
-        html: 'html',
-        css: 'css',
-        javascript: 'javascript',
-        python: 'python',
-        markdown: 'markdown',
-        text: 'plaintext'
-      }
-      return languages[type] || 'plaintext'
     }
 
     // Methods
@@ -386,14 +380,19 @@ export default {
       handlePrompt,
       onEditorChange,
       getFileIcon,
-      getFileLanguage,
-      switchMode,
-      handleCreateFile
+      handleCreateFile,
+      switchMode
     }
   }
 }
 </script>
 
-<style>
-@import '../assets/styles/builder_styles.css';
+<style scoped>
+textarea {
+  tab-size: 2;
+  -moz-tab-size: 2;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
 </style> 
