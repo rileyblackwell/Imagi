@@ -12,20 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-import logging
 from dotenv import load_dotenv
 from datetime import timedelta
-import redis
-
-# Configure logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler()
-    ]
-)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -337,25 +325,9 @@ os.makedirs(PROJECTS_ROOT, exist_ok=True)
 TOKEN_EXPIRED_AFTER_SECONDS = 86400  # 24 hours
 
 # Cache Settings
-try:
-    redis_client = redis.Redis(host='127.0.0.1', port=6379, db=1)
-    redis_client.ping()
-    
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': 'redis://127.0.0.1:6379/1',
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            }
-        }
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake'
     }
-    logger.info("Using Redis cache backend")
-except Exception as e:
-    logger.warning(f"Redis not available, using local memory cache: {str(e)}")
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake'
-        }
-    }
+}

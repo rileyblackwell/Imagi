@@ -3,6 +3,7 @@ Serializers for the Payments app API.
 """
 
 from rest_framework import serializers
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from ..models import CreditBalance, Transaction, CreditPlan, CreditPackage, Payment, AIModel, AIModelUsage
 
@@ -78,7 +79,13 @@ class AIModelUsageSerializer(serializers.ModelSerializer):
 
 class CreatePaymentIntentSerializer(serializers.Serializer):
     packageId = serializers.CharField(required=False, allow_null=True)
-    amount = serializers.DecimalField(required=False, max_digits=10, decimal_places=2, min_value=5, max_value=1000)
+    amount = serializers.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('5.00'),
+        max_value=Decimal('1000.00')
+    )
 
     def validate(self, data):
         if not data.get('packageId') and not data.get('amount'):

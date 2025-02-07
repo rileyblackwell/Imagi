@@ -4,20 +4,18 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
-requests = "*"
-python-dotenv = "*"
-openai = "*"
-bs4 = "*"
-stripe = "*"
 anthropic = ">=0.18.0"
-djangorestframework = "*"
-psutil = "*"
+bs4 = "*"
 cssutils = "*"
+django = "*"
 django-cors-headers = "*"
-redis = "*"
-django-redis = "*"
+djangorestframework = "*"
 gunicorn = "*"
+openai = "*"
+psutil = "*"
+python-dotenv = "*"
+requests = "*"
+stripe = "*"
 whitenoise = "*"
 
 [dev-packages]
