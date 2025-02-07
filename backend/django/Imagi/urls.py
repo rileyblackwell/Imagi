@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
+from django.conf import settings
 
 @require_GET
 def favicon_view(request):
@@ -34,7 +35,6 @@ urlpatterns = [
 ]
 
 # Debug toolbar in development
-from django.conf import settings
 if settings.DEBUG:
     urlpatterns += [
         path('__debug__/', include('debug_toolbar.urls')),

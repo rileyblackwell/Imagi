@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Update BASE_DIR to point to the django directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'debug_toolbar',  # Add this line
     # custom apps
     'apps.Auth',
     'apps.Builder',
@@ -51,8 +53,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',  # Add this as first middleware
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -126,15 +130,22 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+
+# Define STATIC_ROOT as an absolute path
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Update STATICFILES_DIRS with absolute paths
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Global static files
-    os.path.join(BASE_DIR, 'apps', 'Builder', 'static'),
-    os.path.join(BASE_DIR, 'apps', 'Home', 'static'),
+    BASE_DIR / 'static',
 ]
 
-# Create static directories if they don't exist
+# Create required directories
+os.makedirs(str(STATIC_ROOT), exist_ok=True)
 for static_dir in STATICFILES_DIRS:
-    os.makedirs(static_dir, exist_ok=True)
+    os.makedirs(str(static_dir), exist_ok=True)
+
+# Use whitenoise for static file serving
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -270,6 +281,11 @@ if DEBUG:
         'http://127.0.0.1:5173',
         'http://127.0.0.1:5174',
         'http://127.0.0.1:8000',
+    ]
+    
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
     ]
 else:
     # Production settings
