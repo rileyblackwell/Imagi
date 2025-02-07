@@ -98,3 +98,6 @@ db.sqlite3-journal
 *.tmp
 *.temp
 .sass-cache/
+
+# Custom
+oasis_projects/

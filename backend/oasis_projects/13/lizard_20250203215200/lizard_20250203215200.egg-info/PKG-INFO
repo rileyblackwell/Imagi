@@ -1,8 +1,0 @@
-Metadata-Version: 2.2
-Name: lizard_20250203215200
-Version: 0.1
-Requires-Dist: django
-Requires-Dist: djangorestframework
-Requires-Dist: djangorestframework-simplejwt
-Requires-Dist: django-cors-headers
-Dynamic: requires-dist
