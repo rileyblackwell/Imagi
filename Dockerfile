@@ -39,41 +39,39 @@ ENV PORT=8000
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=0
 
-WORKDIR /app
-
-# Copy only dependency files first
-COPY backend/django/Pipfile backend/django/Pipfile.lock ./
-
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+# Install production-only system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
-    gcc \
-    && pip install pipenv \
-    && pipenv install --system --deploy \
-    && apt-get remove -y build-essential gcc \
-    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Then copy application code
+# Create non-root user
+RUN useradd -m -s /bin/bash appuser && \
+    mkdir -p /app/backend/staticfiles /app/backend/static && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY backend/django/Pipfile backend/django/Pipfile.lock ./
+RUN pip install --no-cache-dir pipenv && \
+    pipenv install --system --deploy --ignore-pipfile
+
+# Copy application code
 COPY backend/django/ ./backend/
-# Copy built frontend files
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
 
-# Create required directories
-RUN mkdir -p /app/backend/staticfiles /app/backend/static
+# Switch to non-root user
+USER appuser
 
-# Setup runner script
+# Setup runner script (removed npm commands)
 RUN echo '#!/bin/bash\n\
 cd /app/backend\n\
 python manage.py collectstatic --no-input\n\
 python manage.py migrate --no-input\n\
-gunicorn Imagi.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --threads 2 &\n\
-cd /app/frontend\n\
-npm run preview -- --host 0.0.0.0 --port 5173\n\
+exec gunicorn Imagi.wsgi:application --bind "0.0.0.0:$PORT" --workers 3 --threads 2\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
-# Expose ports
-EXPOSE 8000 5173
+# Only expose Django port
+EXPOSE 8000
 
 CMD ["/app/start.sh"]
