@@ -1,74 +1,56 @@
 # Frontend build stage
 FROM node:20-slim as frontend-builder
-
-# Set Node.js memory limits and optimization flags
-ENV NODE_OPTIONS="--max-old-space-size=4096" \
-    NODE_ENV=production
-
 WORKDIR /app/frontend
-
-# Install dependencies first
 COPY frontend/vuejs/package*.json ./
-RUN npm ci && \
-    npm install -g vite@latest
+RUN npm install
 
 # Copy and build frontend
 COPY frontend/vuejs/ .
-RUN vite build
+RUN npm run build
 
-# Python dependencies stage
-FROM python:3.11-slim as python-deps
-
-WORKDIR /app
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    python3-dev && \
-    pip install --no-cache-dir pipenv
-
-COPY backend/django/Pipfile backend/django/Pipfile.lock ./
-RUN pipenv install --system --deploy --ignore-pipfile && \
-    apt-get remove -y gcc python3-dev && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Final stage
+# Backend stage
 FROM python:3.11-slim
-
-# Runtime environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000 \
-    DEBUG=0
-
-# Install runtime dependencies only
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libpq-dev && \
-    rm -rf /var/lib/apt/lists/* && \
-    useradd -m -s /bin/bash appuser && \
-    mkdir -p /app/backend/staticfiles /app/backend/static && \
-    chown -R appuser:appuser /app
-
 WORKDIR /app
 
-# Copy only necessary files from previous stages
-COPY --from=python-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
-COPY backend/django/ ./backend/
+# Copy only dependency files first
+COPY backend/django/Pipfile backend/django/Pipfile.lock ./
 
-USER appuser
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && pip install pipenv \
+    && pipenv install --system --deploy \
+    && apt-get remove -y build-essential gcc \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Then copy application code
+COPY backend/django/ ./backend/
+# Copy built frontend files
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
+
+# Create required directories
+RUN mkdir -p /app/backend/staticfiles /app/backend/static
 
 # Setup runner script
 RUN echo '#!/bin/bash\n\
 cd /app/backend\n\
 python manage.py collectstatic --no-input\n\
 python manage.py migrate --no-input\n\
-exec gunicorn Imagi.wsgi:application --bind "0.0.0.0:$PORT" --workers 3 --threads 2\n\
+gunicorn Imagi.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --threads 2 &\n\
+cd /app/frontend\n\
+npm run preview -- --host 0.0.0.0 --port 5173\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
-EXPOSE 8000
+# Environment variables
+ENV DJANGO_SETTINGS_MODULE=Imagi.settings
+ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
+ENV DEBUG=0
+
+# Expose ports
+EXPOSE 8000 5173
 
 CMD ["/app/start.sh"]
