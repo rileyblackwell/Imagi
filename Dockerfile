@@ -1,105 +1,54 @@
-# Build stage for Vue.js frontend
+# Frontend build stage
 FROM node:20-slim as frontend-builder
-
-# Set Node.js memory limits and optimization flags
-ENV NODE_OPTIONS="--max-old-space-size=2048"
-ENV VITE_BUILD_LEGACY=false
-ENV NODE_ENV=production
-
-WORKDIR /app/frontend/vuejs
-
-# Copy package files
+WORKDIR /app/frontend
 COPY frontend/vuejs/package*.json ./
+RUN npm install
 
-# Install build essentials for node-gyp with better cleanup
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies with specific npm settings for optimization
-RUN npm config set fetch-retries 3 && \
-    npm config set fetch-retry-mintimeout 5000 && \
-    npm config set fetch-retry-maxtimeout 60000 && \
-    npm install && \
-    npm install -D vite@^5.0.12 @vitejs/plugin-vue@^5.0.3
-
-# Copy Vue.js source code and configuration files
+# Copy and build frontend
 COPY frontend/vuejs/ .
+RUN npm run build
 
-# Build frontend with production mode and better error handling
-RUN NODE_ENV=production ./node_modules/.bin/vite build || (echo "Build failed. Check the error above." && exit 1)
-
-# Final stage for Django backend and serving frontend
-FROM python:3.11-slim-bullseye
-
-# Set Python-related environment variables for optimization
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONHASHSEED=random \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONMALLOC=malloc \
-    MALLOC_TRIM_THRESHOLD_=65536
-
-# Install system dependencies with better cleanup
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libpq-dev \
-    build-essential \
-    curl \
-    libjpeg-dev \
-    gcc \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+# Backend stage
+FROM python:3.11-slim
 WORKDIR /app
 
-# Install pip and pipenv with memory optimization and better error handling
-RUN pip install --no-cache-dir --upgrade pip && \
-    for i in 1 2 3; do \
-        pip install --no-cache-dir pipenv && break || \
-        { echo "Retry pip install $i..."; sleep 15; }; \
-    done
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy Pipfile and install Python dependencies
+# Install Python dependencies
 COPY backend/django/Pipfile backend/django/Pipfile.lock ./
-RUN for i in 1 2 3; do \
-        PIPENV_NOSPIN=1 PIPENV_HIDE_EMOJIS=1 \
-        pipenv install --system --deploy --verbose && break || \
-        { echo "Retry pipenv install $i..."; sleep 15; }; \
-    done
+RUN pip install pipenv && \
+    pipenv install --system --deploy
 
-# Copy Django backend code
+# Copy backend code
 COPY backend/django/ ./backend/
+# Copy built frontend files
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
 
-# Copy the built frontend from the builder stage
-COPY --from=frontend-builder /app/frontend/vuejs/dist ./frontend/dist/
+# Create required directories
+RUN mkdir -p /app/backend/staticfiles /app/backend/static
 
-# Create directory for static files
-RUN mkdir -p /app/backend/staticfiles
+# Setup runner script
+RUN echo '#!/bin/bash\n\
+cd /app/backend\n\
+python manage.py collectstatic --no-input\n\
+python manage.py migrate --no-input\n\
+gunicorn Imagi.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --threads 2 &\n\
+cd /app/frontend\n\
+npm run preview -- --host 0.0.0.0 --port 5173\n\
+' > /app/start.sh && chmod +x /app/start.sh
 
-# Create and configure the runner script
-RUN printf "#!/bin/bash\n" > /app/runner.sh && \
-    printf "cd /app/backend\n" >> /app/runner.sh && \
-    printf "RUN_PORT=\"\${PORT:-8000}\"\n" >> /app/runner.sh && \
-    printf "python manage.py migrate --no-input\n" >> /app/runner.sh && \
-    printf "python manage.py collectstatic --no-input\n" >> /app/runner.sh && \
-    printf "exec gunicorn Imagi.wsgi:application --bind \"0.0.0.0:\$RUN_PORT\" --workers 3 --threads 2\n" >> /app/runner.sh && \
-    chmod +x /app/runner.sh
-
-# Set environment variables
+# Environment variables
 ENV DJANGO_SETTINGS_MODULE=Imagi.settings
-ARG DJANGO_SECRET_KEY
-ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-ARG DJANGO_DEBUG=0
-ENV DJANGO_DEBUG=${DJANGO_DEBUG}
+ENV PORT=8000
+ENV PYTHONUNBUFFERED=1
+ENV DEBUG=0
 
-# Expose the port
-EXPOSE 8000
+# Expose ports
+EXPOSE 8000 5173
 
-# Run the application
-CMD ["/app/runner.sh"]
+CMD ["/app/start.sh"]
