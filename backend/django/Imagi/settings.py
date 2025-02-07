@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    # custom apps
     'apps.Auth',
     'apps.Builder',
     'apps.Home',
