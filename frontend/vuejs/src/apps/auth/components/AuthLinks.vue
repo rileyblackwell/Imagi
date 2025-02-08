@@ -16,21 +16,31 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'AuthLinks',
-  props: {
-    mainText: {
-      type: String,
-      required: true
-    },
-    mainLink: {
-      type: Object,
-      required: true,
-      validator: prop => {
-        return prop.to && prop.text
-      }
-    }
+<script setup>
+import { watch } from 'vue'
+
+const props = defineProps({
+  mainText: {
+    type: String,
+    default: ''
+  },
+  mainLink: {
+    type: Object,
+    default: () => ({ to: '', text: '' })
   }
+})
+
+const validateMainLink = (link) => {
+  if (!link) return false
+  if (typeof link !== 'object') return false
+  if (!link.to || !link.text) return false
+  if (typeof link.to !== 'string' || typeof link.text !== 'string') return false
+  return true
 }
-</script> 
+
+watch(() => props.mainLink, (newLink) => {
+  if (!validateMainLink(newLink)) {
+    console.warn('AuthLinks: Invalid mainLink prop')
+  }
+}, { immediate: true })
+</script>

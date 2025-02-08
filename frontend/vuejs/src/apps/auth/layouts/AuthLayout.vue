@@ -5,81 +5,33 @@
       <div class="w-full max-w-md">
         <div class="w-full p-8 bg-dark-900/50 backdrop-blur-sm border border-dark-700 rounded-2xl shadow-xl">
           <!-- Header -->
-          <AuthHeader 
-            :title="layoutConfig.title"
-            :subtitle="layoutConfig.subtitle"
-          />
+          <div class="text-center">
+            <h2 class="text-2xl font-bold text-white">{{ $route.meta.title }}</h2>
+            <p class="mt-2 text-gray-400">{{ $route.meta.subtitle }}</p>
+          </div>
 
           <!-- Main Content -->
           <div class="mt-8">
-            <router-view v-slot="{ Component, route }">
-              <transition name="fade" mode="out-in">
-                <component 
-                  :is="Component" 
-                  :key="route.path"
-                />
-              </transition>
-            </router-view>
+            <router-view />
           </div>
 
           <!-- Links -->
-          <AuthLinks 
-            v-if="layoutConfig.mainLink"
-            :main-text="layoutConfig.mainText"
-            :main-link="layoutConfig.mainLink"
-            :additional-links="layoutConfig.additionalLinks"
-          >
-            <template v-slot:additional-links>
-              <router-link 
-                v-for="link in layoutConfig.additionalLinks"
-                :key="link.to"
-                :to="link.to"
-                class="text-gray-400 hover:text-gray-300"
-              >
-                {{ link.text }}
-              </router-link>
-            </template>
-          </AuthLinks>
+          <AuthLinks
+            :main-text="$route.meta.mainText"
+            :main-link="{
+              to: $route.meta.mainLinkPath,
+              text: $route.meta.mainLinkText
+            }"
+          />
         </div>
       </div>
     </div>
   </DefaultLayout>
 </template>
 
-<script>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+<script setup>
 import { DefaultLayout } from '@/shared/layouts'
-import AuthHeader from '../components/AuthHeader.vue'
 import AuthLinks from '../components/AuthLinks.vue'
-
-export default {
-  name: 'AuthLayout',
-  components: {
-    DefaultLayout,
-    AuthHeader,
-    AuthLinks
-  },
-  setup() {
-    const route = useRoute()
-    
-    const layoutConfig = computed(() => {
-      const currentRoute = route.matched[route.matched.length - 1]
-      const component = currentRoute?.components?.default
-      return {
-        title: component?.layoutConfig?.title || '',
-        subtitle: component?.layoutConfig?.subtitle || '',
-        mainText: component?.layoutConfig?.mainText || '',
-        mainLink: component?.layoutConfig?.mainLink || { to: '', text: '' },
-        additionalLinks: component?.layoutConfig?.additionalLinks || []
-      }
-    })
-
-    return {
-      layoutConfig
-    }
-  }
-}
 </script>
 
 <style>
@@ -92,4 +44,4 @@ export default {
 .fade-leave-to {
   opacity: 0;
 }
-</style> 
+</style>

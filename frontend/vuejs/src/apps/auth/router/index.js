@@ -1,23 +1,17 @@
-import AuthLayout from '../layouts/AuthLayout.vue'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
-import ForgotPassword from '../views/ForgotPassword.vue'
-
-const authRoutes = [{
+export default [{
   path: '/auth',
-  component: AuthLayout,
+  component: () => import('../layouts/AuthLayout.vue'),
   children: [
-    {
-      path: '',
-      redirect: { name: 'login' }
-    },
     {
       path: 'login',
       name: 'login',
       component: () => import('../views/Login.vue'),
       meta: {
-        title: 'Login - Imagi',
-        requiresGuest: true
+        title: 'Welcome Back',
+        subtitle: 'Sign in to continue to Imagi',
+        mainText: 'New to Imagi?',
+        mainLinkPath: '/auth/register',
+        mainLinkText: 'Create an account'
       }
     },
     {
@@ -25,20 +19,12 @@ const authRoutes = [{
       name: 'register',
       component: () => import('../views/Register.vue'),
       meta: {
-        title: 'Register - Imagi',
-        requiresGuest: true
-      }
-    },
-    {
-      path: 'forgot-password',
-      name: 'forgot-password',
-      component: () => import('../views/ForgotPassword.vue'),
-      meta: {
-        title: 'Reset Password - Imagi',
-        requiresGuest: true
+        title: 'Create Account',
+        subtitle: 'Join Imagi and start building',
+        mainText: 'Already have an account?',
+        mainLinkPath: '/auth/login',
+        mainLinkText: 'Sign in'
       }
     }
   ]
 }]
-
-export default authRoutes 

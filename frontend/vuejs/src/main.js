@@ -3,6 +3,9 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
+// Import validation plugin (update path)
+import '@/apps/auth/plugins/validation'
+
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
 
@@ -50,21 +53,25 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 // Create Vue app instance
 const app = createApp(App)
 
+// Add global properties
+app.config.globalProperties.$axios = axios
+
 // Global error handler
 app.config.errorHandler = (error, vm, info) => {
-  if (
-    error?.message?.includes('runtime.lastError') ||
-    error?.message?.includes('extension port') ||
-    error?.message?.includes('message port closed') ||
-    error?.message?.includes('receiving end does not exist') ||
-    error?.message?.includes('back/forward cache')
-  ) {
-    // Ignore extension-related errors
+  // Filter out extension-related errors
+  if (error?.message?.toLowerCase().includes('extension') || 
+      error?.message?.toLowerCase().includes('back/forward cache')) {
     return
   }
-  console.error('Vue Error:', error)
-  console.error('Component:', vm)
-  console.error('Error Info:', info)
+  
+  // Log other errors
+  console.error('Vue Error:', {
+    error: error?.message || error,
+    component: vm?.$options?.name || 'Unknown',
+    info,
+    url: window.location.href,
+    timestamp: new Date().toISOString()
+  })
 }
 
 // Use plugins
@@ -74,13 +81,29 @@ app.use(router)
 // Register global components
 app.component('font-awesome-icon', FontAwesomeIcon)
 
-// Disable bfcache for all pages
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', disableBFCache);
-} else {
-  disableBFCache();
+// Performance monitoring
+if (process.env.NODE_ENV === 'production') {
+  // Add performance marks
+  performance.mark('app-start')
+  
+  router.beforeEach(() => {
+    performance.mark('route-start')
+  })
+  
+  router.afterEach(() => {
+    performance.mark('route-end')
+    performance.measure('route-change', 'route-start', 'route-end')
+  })
+  
+  app.mixin({
+    mounted() {
+      performance.mark('component-mounted')
+      performance.measure('component-render', 'route-start', 'component-mounted')
+    }
+  })
 }
 
+// Cache control
 function disableBFCache() {
   // Add meta tags to prevent caching
   const metaTags = [
@@ -121,5 +144,14 @@ function disableBFCache() {
   });
 }
 
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', disableBFCache)
+} else {
+  disableBFCache()
+}
+
 // Mount app
+performance.mark('app-init')
 app.mount('#app')
+performance.mark('app-mounted')
+performance.measure('app-total-init', 'app-init', 'app-mounted')
