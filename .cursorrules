@@ -13,11 +13,32 @@ Defines rules for coding, design, and generation in **Imagi Oasis** to ensure co
 2. **Best Practices** – Write clean, maintainable, and secure code for Python/Django and Vue.js.
 3. **Testing** – Include tests for Django and Vue.js.
 4. **Clear Naming & Comments** – Ensure code readability.
+5. **Atomic Design** – Follow atomic design principles for Vue.js components.
 
 ---
 
 ## Project Structure
 - **Frontend**: `Imagi/frontend/VueJS/` (Vue.js)
+  - Each app follows atomic design principles:
+    ```
+    app/
+    └── components/
+        ├── atoms/           # Basic building blocks
+        │   ├── buttons/     # Button components
+        │   ├── inputs/      # Form inputs
+        │   ├── text/        # Text elements
+        │   └── icons/       # Icon components
+        ├── molecules/       # Simple combinations
+        │   ├── cards/       # Card components
+        │   ├── forms/       # Form groups
+        │   └── navigation/  # Nav elements
+        ├── organisms/       # Complex combinations
+        │   ├── sections/    # Page sections
+        │   ├── grids/       # Grid layouts
+        │   └── forms/       # Complete forms
+        └── templates/       # Page-level layouts
+            └── layout/      # Layout templates
+    ```
 - **Backend**: `Imagi/backend/django/` (Django)
 - **User Projects**: `~/startups/oasis_projects/<user_id>/<project_name>/`
   - Standalone Django projects with templates, static files, views, and URL configurations.
@@ -51,10 +72,52 @@ Defines rules for coding, design, and generation in **Imagi Oasis** to ensure co
 
 ---
 
+## Component Architecture
+### Atomic Design Principles
+- **Atoms**: Basic building blocks (buttons, inputs, icons, text)
+  - Self-contained
+  - Highly reusable
+  - No dependencies on other components
+- **Molecules**: Simple combinations of atoms
+  - Form fields, cards, menu items
+  - Limited to 2-3 atoms
+  - Clear single responsibility
+- **Organisms**: Complex combinations of molecules
+  - Forms, headers, feature grids
+  - Business logic allowed
+  - Complete functional units
+- **Templates**: Page-level components
+  - Layout components
+  - Accept slots and props
+  - Define page structure
+- **Pages**: View components
+  - Implement templates
+  - Connect to store
+  - Handle routing
+
+### Component Guidelines
+- Clear separation between atomic levels
+- Components should be reusable
+- Higher-level components compose lower-level ones
+- Each category has clear responsibility
+- Follow Vue.js composition API patterns
+
+---
+
 ## Design Principles
-- Inspired by Stripe, Airbnb, Apple, Twilio, Meta, Google, Discord.
-- Focus on minimalism, elegance, and responsiveness.
-- Use modern typography, spacing, and animations.
+- Inspired by Stripe, Airbnb, Apple, Twilio, Meta, Google, Discord
+- Focus on minimalism, elegance, and responsiveness
+- Use modern typography, spacing, and animations
+- **UI/UX Standards**:
+  - Clean, minimalist design
+  - Responsive layouts
+  - Accessible components (WCAG 2.1)
+  - Dark/light mode support
+- **Code Style**:
+  - Python: Black formatter, 88 char line length
+  - JavaScript: Prettier, 80 char line length
+  - Clear comments and documentation
+  - Type hints (Python) and TypeScript
 
 ---
 
