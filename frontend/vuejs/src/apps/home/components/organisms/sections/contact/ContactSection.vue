@@ -38,8 +38,7 @@
 </template>
 
 <script>
-import GradientText from '@/apps/home/components/atoms/text/GradientText.vue'
-import ContactForm from '@/apps/home/components/molecules/forms/ContactForm.vue'
+import { GradientText, ContactForm } from '@/apps/home/components'
 
 export default {
   name: 'ContactSection',

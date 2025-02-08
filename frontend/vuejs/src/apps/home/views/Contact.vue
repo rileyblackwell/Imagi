@@ -144,17 +144,16 @@
 </template>
 
 <script>
-import { DefaultLayout } from '../../../shared/layouts'
-import { HeroSection } from '../components'
-import GradientText from '../components/atoms/text/GradientText.vue'
+import { DefaultLayout } from '@/shared/layouts'
+import { GradientText, HeroSection } from '@/apps/home/components'
 import { ref } from 'vue'
 
 export default {
   name: 'Contact',
   components: {
     DefaultLayout,
-    HeroSection,
-    GradientText
+    GradientText,
+    HeroSection
   },
   setup() {
     const form = ref({

@@ -166,9 +166,8 @@
 </template>
 
 <script>
-import { DefaultLayout } from '../../../shared/layouts'
-import { HeroSection } from '../components'
-import GradientText from '../components/atoms/text/GradientText.vue'
+import { DefaultLayout } from '@/shared/layouts'
+import { GradientText, HeroSection } from '@/apps/home/components'
 import { useAuthStore } from '@/apps/auth/store'
 import { computed } from 'vue'
 
@@ -176,8 +175,8 @@ export default {
   name: 'About',
   components: {
     DefaultLayout,
-    HeroSection,
-    GradientText
+    GradientText,
+    HeroSection
   },
   setup() {
     const authStore = useAuthStore()

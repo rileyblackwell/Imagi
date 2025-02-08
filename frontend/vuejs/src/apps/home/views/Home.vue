@@ -230,15 +230,15 @@
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
 import { DefaultLayout } from '@/shared/layouts'
-import GradientText from '../components/atoms/text/GradientText.vue'
-import HomeNavbarButton from '../components/atoms/buttons/HomeNavbarButton.vue'
+import { GradientText, HomeNavbarButton, HeroSection } from '@/apps/home/components'
 
 export default defineComponent({
   name: 'Home',
   components: {
     DefaultLayout,
     GradientText,
-    HomeNavbarButton
+    HomeNavbarButton,
+    HeroSection
   },
   setup() {
     const authStore = useAuthStore()
