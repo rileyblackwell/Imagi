@@ -130,7 +130,7 @@
 <script>
 import { DefaultLayout } from '../../../shared/layouts'
 import { HeroSection } from '../components'
-import GradientText from '../components/shared/GradientText.vue'
+import GradientText from '../components/atoms/text/GradientText.vue'
 
 export default {
   name: 'Terms',

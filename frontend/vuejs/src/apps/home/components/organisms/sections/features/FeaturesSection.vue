@@ -34,9 +34,9 @@
 </template>
 
 <script>
-import GradientText from '@/apps/home/components/shared/GradientText.vue'
-import FeatureCard from '@/apps/home/components/ui/FeatureCard.vue'
-import FeaturesGrid from '@/apps/home/components/ui/FeaturesGrid.vue'
+import GradientText from '@/apps/home/components/atoms/text/GradientText.vue'
+import FeatureCard from '@/apps/home/components/molecules/cards/FeatureCard.vue'
+import FeaturesGrid from '@/apps/home/components/organisms/grids/FeaturesGrid.vue'
 
 export default {
   name: 'FeaturesSection',
