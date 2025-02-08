@@ -221,6 +221,137 @@
             </div>
           </div>
         </section>
+
+        <!-- Stats Section -->
+        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50">
+          <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+              <div class="text-center">
+                <div class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent mb-2">10K+</div>
+                <p class="text-gray-300">Active Users</p>
+              </div>
+              <div class="text-center">
+                <div class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent mb-2">50K+</div>
+                <p class="text-gray-300">Apps Generated</p>
+              </div>
+              <div class="text-center">
+                <div class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent mb-2">99%</div>
+                <p class="text-gray-300">Success Rate</p>
+              </div>
+              <div class="text-center">
+                <div class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent mb-2">24/7</div>
+                <p class="text-gray-300">AI Support</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
+          <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+              <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">What Developers Say</h2>
+              <p class="text-xl text-gray-300">Join thousands of satisfied developers who trust Imagi</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700">
+                <div class="flex items-center mb-6">
+                  <div class="flex text-primary-400">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                  </div>
+                </div>
+                <p class="text-gray-300 mb-6">"Imagi has revolutionized how I build web applications. What used to take weeks now takes hours. The AI understands exactly what I need."</p>
+                <div class="flex items-center">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center">
+                    <span class="text-white font-semibold">JS</span>
+                  </div>
+                  <div class="ml-3">
+                    <div class="text-white font-semibold">John Smith</div>
+                    <div class="text-gray-400 text-sm">Senior Developer</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700">
+                <div class="flex items-center mb-6">
+                  <div class="flex text-primary-400">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                  </div>
+                </div>
+                <p class="text-gray-300 mb-6">"The code quality is impressive. It's not just about speed - Imagi generates clean, maintainable code that follows best practices."</p>
+                <div class="flex items-center">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center">
+                    <span class="text-white font-semibold">AD</span>
+                  </div>
+                  <div class="ml-3">
+                    <div class="text-white font-semibold">Alice Davis</div>
+                    <div class="text-gray-400 text-sm">Tech Lead</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700">
+                <div class="flex items-center mb-6">
+                  <div class="flex text-primary-400">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                  </div>
+                </div>
+                <p class="text-gray-300 mb-6">"Perfect for startups and MVPs. We've cut our development time by 80% and can iterate much faster with customer feedback."</p>
+                <div class="flex items-center">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center">
+                    <span class="text-white font-semibold">MR</span>
+                  </div>
+                  <div class="ml-3">
+                    <div class="text-white font-semibold">Mike Ross</div>
+                    <div class="text-gray-400 text-sm">Startup Founder</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
+          <div class="max-w-5xl mx-auto bg-gradient-to-r from-primary-600 to-violet-600 rounded-2xl p-8 md:p-12 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Transform Your Development Process?</h2>
+            <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">Join the AI-powered development revolution and build your next project 10x faster.</p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <HomeNavbarButton
+                :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
+                gradient-type="light"
+                size="lg"
+                class="!h-12 px-8 w-full sm:w-auto"
+              >
+                Start Building Free
+                <i class="fas fa-arrow-right ml-2"></i>
+              </HomeNavbarButton>
+              <HomeNavbarButton
+                to="/contact"
+                variant="outline"
+                gradient-type="light"
+                size="lg"
+                class="!h-12 px-8 w-full sm:w-auto"
+              >
+                Contact Sales
+                <i class="fas fa-envelope ml-2"></i>
+              </HomeNavbarButton>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </DefaultLayout>
