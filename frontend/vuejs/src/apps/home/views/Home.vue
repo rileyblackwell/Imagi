@@ -326,29 +326,48 @@
 
         <!-- CTA Section -->
         <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
-          <div class="max-w-5xl mx-auto bg-gradient-to-r from-primary-600 to-violet-600 rounded-2xl p-8 md:p-12 text-center">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Transform Your Development Process?</h2>
-            <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">Join the AI-powered development revolution and build your next project 10x faster.</p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <HomeNavbarButton
-                :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-                gradient-type="light"
-                size="lg"
-                class="!h-12 px-8 w-full sm:w-auto"
-              >
-                Start Building Free
-                <i class="fas fa-arrow-right ml-2"></i>
-              </HomeNavbarButton>
-              <HomeNavbarButton
-                to="/contact"
-                variant="outline"
-                gradient-type="light"
-                size="lg"
-                class="!h-12 px-8 w-full sm:w-auto"
-              >
-                Contact Sales
-                <i class="fas fa-envelope ml-2"></i>
-              </HomeNavbarButton>
+          <div class="max-w-5xl mx-auto bg-gradient-to-br from-primary-600 via-violet-600 to-purple-600 rounded-2xl p-8 md:p-12 text-center relative overflow-hidden">
+            <!-- Background Glow Effects -->
+            <div class="absolute inset-0">
+              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-violet-500/20 animate-pulse"></div>
+              <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-30"></div>
+              <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-30"></div>
+            </div>
+            
+            <!-- Content -->
+            <div class="relative z-10">
+              <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                Ready to Transform Your Development Process?
+              </h2>
+              <p class="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
+                Join the AI-powered development revolution and build your next project 10x faster.
+              </p>
+              
+              <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <!-- Start Building Button -->
+                <HomeNavbarButton
+                  :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
+                  class="group relative w-full sm:w-auto min-w-[200px] !h-14 px-8 rounded-xl border border-white/30 hover:border-white/40 bg-primary-500/20 hover:bg-primary-500/25 backdrop-blur-sm transition-all duration-300"
+                >
+                  <div class="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-violet-500/5 rounded-xl"></div>
+                  <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white/90">
+                    Start Building Free
+                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-0.5 transition-transform"></i>
+                  </span>
+                </HomeNavbarButton>
+
+                <!-- Contact Sales Button -->
+                <HomeNavbarButton
+                  to="/contact"
+                  class="group relative w-full sm:w-auto min-w-[200px] !h-14 px-8 rounded-xl border border-white/20 hover:border-white/30 bg-dark-800/20 hover:bg-dark-800/25 backdrop-blur-sm transition-all duration-300"
+                >
+                  <div class="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-violet-500/5 rounded-xl"></div>
+                  <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white/90">
+                    Contact Sales
+                    <i class="fas fa-envelope ml-2 transform group-hover:scale-105 transition-transform"></i>
+                  </span>
+                </HomeNavbarButton>
+              </div>
             </div>
           </div>
         </section>
