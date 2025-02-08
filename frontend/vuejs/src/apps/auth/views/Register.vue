@@ -1,5 +1,5 @@
 <template>
-  <Form @submit="handleSubmit" v-slot="{ errors: formErrors }" class="space-y-6">
+  <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-6">
     <!-- Username -->
     <div class="form-group">
       <label class="relative block">
@@ -24,7 +24,7 @@
           >
         </Field>
       </label>
-      <ErrorMessage name="username" class="mt-1 text-sm text-red-500" />
+      <ErrorMessage v-if="submitCount > 0" name="username" class="mt-1 text-sm text-red-500" />
     </div>
 
     <!-- Password -->
@@ -37,21 +37,23 @@
         <Field
           name="password"
           type="password"
+          autocomplete="new-password"
           rules="required|password"
           v-slot="{ field, errorMessage }"
         >
           <input
             v-bind="field"
+            :type="'password'"
             :disabled="authStore.isLoading"
             placeholder="Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
                    focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
                    disabled:opacity-50 disabled:cursor-not-allowed"
-            :class="{ 'border-red-500': errorMessage }"
+            :class="{ 'border-red-500': submitCount > 0 && errorMessage }"
           >
         </Field>
       </label>
-      <ErrorMessage name="password" class="mt-1 text-sm text-red-500" />
+      <ErrorMessage v-if="submitCount > 0" name="password" class="mt-1 text-sm text-red-500" />
     </div>
 
     <!-- Confirm Password -->
@@ -69,6 +71,8 @@
         >
           <input
             v-bind="field"
+            :type="'password'"
+            autocomplete="new-password"
             :disabled="authStore.isLoading"
             placeholder="Confirm Password"
             class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
@@ -78,7 +82,7 @@
           >
         </Field>
       </label>
-      <ErrorMessage name="password_confirmation" class="mt-1 text-sm text-red-500" />
+      <ErrorMessage v-if="submitCount > 0" name="password_confirmation" class="mt-1 text-sm text-red-500" />
     </div>
 
     <!-- Terms Agreement -->

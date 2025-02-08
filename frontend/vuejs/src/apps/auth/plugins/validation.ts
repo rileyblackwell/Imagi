@@ -9,10 +9,10 @@ defineRule('max', max)
 defineRule('email', email)
 defineRule('confirmed', confirmed)
 
-// Custom username rule
+// Custom username rule - removed length requirements
 defineRule('username', (value: string) => {
-  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(value)) {
-    return 'Username must be 3-20 characters and can only contain letters, numbers, underscores and hyphens'
+  if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+    return 'Username can only contain letters, numbers, underscores and hyphens'
   }
   return true
 })
@@ -27,18 +27,18 @@ defineRule('password', (value: string) => {
 
 // Configure VeeValidate
 configure({
+  validateOnInput: false, // Only validate on submit
+  validateOnBlur: false, // Don't validate on blur
+  validateOnChange: false, // Don't validate on change
+  validateOnModelUpdate: false, // Don't validate on model update
   generateMessage: localize('en', {
     messages: {
       required: '{field} is required',
-      min: '{field} must be at least {length} characters',
-      max: '{field} must not exceed {length} characters',
-      email: 'Please enter a valid email',
       confirmed: 'Passwords do not match',
       username: 'Username format is invalid',
       password: 'Password format is invalid'
     }
-  }),
-  validateOnInput: true
+  })
 })
 
 export default configure
