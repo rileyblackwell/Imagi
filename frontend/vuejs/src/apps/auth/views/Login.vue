@@ -5,12 +5,13 @@
       <label class="relative block">
         <span class="sr-only">Username</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <font-awesome-icon icon="user" class="text-gray-400" />
+          <i class="fas fa-user text-gray-400"></i>
         </span>
         <Field
           name="username"
           type="text"
           rules="required|username"
+          :validateOnInput="false"
           v-slot="{ field, errorMessage }"
         >
           <input
@@ -32,13 +33,14 @@
       <label class="relative block">
         <span class="sr-only">Password</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <font-awesome-icon icon="lock" class="text-gray-400" />
+          <i class="fas fa-lock text-gray-400"></i>
         </span>
         <Field
           name="password"
           type="password"
           autocomplete="current-password"
-          rules="required"
+          rules="required|password"
+          :validateOnInput="false"
           v-slot="{ field, errorMessage }"
         >
           <input
@@ -70,7 +72,7 @@
              disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span v-if="authStore.isLoading">
-        <font-awesome-icon icon="circle-notch" spin class="mr-2" />
+        <i class="fas fa-circle-notch fa-spin mr-2"></i>
         Signing in...
       </span>
       <span v-else>Sign In</span>

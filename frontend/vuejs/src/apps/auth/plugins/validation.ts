@@ -17,10 +17,10 @@ defineRule('username', (value: string) => {
   return true
 })
 
-// Custom password rule
+// Custom password rule - no requirements
 defineRule('password', (value: string) => {
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value)) {
-    return 'Password must be at least 8 characters and contain uppercase, lowercase, number and special character'
+  if (!value) {
+    return 'Password is required'
   }
   return true
 })
@@ -33,10 +33,13 @@ configure({
   validateOnModelUpdate: false, // Don't validate on model update
   generateMessage: localize('en', {
     messages: {
-      required: '{field} is required',
-      confirmed: 'Passwords do not match',
-      username: 'Username format is invalid',
-      password: 'Password format is invalid'
+      required: 'The {field} field is required',
+      confirmed: 'The password confirmation does not match',
+      username: 'Username must contain only letters, numbers, underscores or hyphens',
+      password: 'Password is required',
+      email: 'Please enter a valid email address',
+      min: '{field} must be at least {length} characters',
+      max: '{field} must not exceed {length} characters'
     }
   })
 })
