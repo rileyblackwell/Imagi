@@ -1,22 +1,42 @@
-from django.shortcuts import redirect
 from django.conf import settings
+from django.http import HttpResponseRedirect, HttpRequest
+import logging
 
-# Create your views here.
-def landing_page(request):
-    return redirect(f"{settings.FRONTEND_URL}/")
+from .constants import FrontendRoutes
 
-def about_page(request):
-    return redirect(f"{settings.FRONTEND_URL}/about")
+logger = logging.getLogger(__name__)
 
-def privacy_page(request):
-    return redirect(f"{settings.FRONTEND_URL}/privacy")
+def get_frontend_url(path: str) -> str:
+    """Constructs frontend URL with proper error handling."""
+    base_url = getattr(settings, 'FRONTEND_URL', '')
+    if not base_url:
+        logger.error("FRONTEND_URL not configured in settings")
+        return path
+    return f"{base_url.rstrip('/')}{path}"
 
-def terms_page(request):
-    return redirect(f"{settings.FRONTEND_URL}/terms")
+def frontend_redirect(request: HttpRequest, path: str) -> HttpResponseRedirect:
+    """Generic frontend redirect handler with logging."""
+    target_url = get_frontend_url(path)
+    logger.debug(f"Redirecting to frontend: {target_url}")
+    return HttpResponseRedirect(target_url)
 
-def contact_page(request):
-    return redirect(f"{settings.FRONTEND_URL}/contact")
+def landing_page(request: HttpRequest) -> HttpResponseRedirect:
+    """Redirect to frontend landing page."""
+    return frontend_redirect(request, FrontendRoutes.LANDING)
 
-def cookie_policy(request):
-    return redirect(f"{settings.FRONTEND_URL}/cookie-policy")
+def about_page(request: HttpRequest) -> HttpResponseRedirect:
+    """Redirect to frontend about page."""
+    return frontend_redirect(request, FrontendRoutes.ABOUT)
+
+def privacy_page(request: HttpRequest) -> HttpResponseRedirect:
+    return frontend_redirect(request, FrontendRoutes.PRIVACY)
+
+def terms_page(request: HttpRequest) -> HttpResponseRedirect:
+    return frontend_redirect(request, FrontendRoutes.TERMS)
+
+def contact_page(request: HttpRequest) -> HttpResponseRedirect:
+    return frontend_redirect(request, FrontendRoutes.CONTACT)
+
+def cookie_policy(request: HttpRequest) -> HttpResponseRedirect:
+    return frontend_redirect(request, FrontendRoutes.COOKIE_POLICY)
 

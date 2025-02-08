@@ -192,11 +192,9 @@ SIMPLE_JWT = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
     "http://localhost:5174",
-    "http://localhost:8000",
-    "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
+    "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
 
@@ -224,11 +222,9 @@ CORS_ALLOW_HEADERS = [
 
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
     'http://localhost:5174',
-    'http://localhost:8000',
-    'http://127.0.0.1:5173',
     'http://127.0.0.1:5174',
+    'http://localhost:8000',
     'http://127.0.0.1:8000',
 ]
 
@@ -275,11 +271,9 @@ if DEBUG:
     
     # Disable CSRF for development API endpoints
     CSRF_TRUSTED_ORIGINS = [
-        'http://localhost:5173',
         'http://localhost:5174',
-        'http://localhost:8000',
-        'http://127.0.0.1:5173',
         'http://127.0.0.1:5174',
+        'http://localhost:8000',
         'http://127.0.0.1:8000',
     ]
     
@@ -347,3 +341,7 @@ CACHES = {
         'LOCATION': 'unique-snowflake'
     }
 }
+
+# Frontend configuration
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5174')
+FRONTEND_REDIRECT_ENABLED = os.getenv('FRONTEND_REDIRECT_ENABLED', 'true').lower() == 'true'
