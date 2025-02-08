@@ -5,7 +5,7 @@
       <label class="relative block">
         <span class="sr-only">Username</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <i class="fas fa-user text-gray-400"></i>
+          <font-awesome-icon icon="user" class="text-gray-400" />
         </span>
         <Field
           name="username"
@@ -32,7 +32,7 @@
       <label class="relative block">
         <span class="sr-only">Password</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <i class="fas fa-lock text-gray-400"></i>
+          <font-awesome-icon icon="lock" class="text-gray-400" />
         </span>
         <Field
           name="password"
@@ -61,7 +61,7 @@
       <label class="relative block">
         <span class="sr-only">Confirm Password</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <i class="fas fa-lock text-gray-400"></i>
+          <font-awesome-icon icon="lock" class="text-gray-400" />
         </span>
         <Field
           name="password_confirmation"
@@ -126,7 +126,7 @@
              disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span v-if="authStore.isLoading">
-        <i class="fas fa-circle-notch fa-spin mr-2"></i>
+        <font-awesome-icon icon="circle-notch" spin class="mr-2" />
         Creating account...
       </span>
       <span v-else>Create Account</span>
@@ -144,30 +144,53 @@ const router = useRouter()
 const authStore = useAuthStore()
 const serverError = ref('')
 
+const getErrorMessage = (error) => {
+  if (error.response?.status === 429) {
+    return 'Too many registration attempts. Please try again in a few minutes.'
+  }
+
+  if (error.response?.status === 400) {
+    const errors = error.response.data;
+    
+    if (errors.username?.includes('already exists')) {
+      return 'This username is already taken. Please choose another.'
+    }
+    
+    if (errors.username) {
+      return `Username error: ${errors.username[0]}`
+    }
+    
+    if (errors.password) {
+      return `Password error: ${errors.password[0]}`
+    }
+    
+    if (errors.password_confirmation) {
+      return 'Passwords do not match. Please check and try again.'
+    }
+    
+    if (errors.agreeToTerms) {
+      return 'You must agree to the Terms of Service to create an account.'
+    }
+
+    return 'Please check your registration information and try again.'
+  }
+
+  if (error.message?.includes('Network Error')) {
+    return 'Unable to connect to server. Please check your internet connection.'
+  }
+
+  return 'Registration failed. Please try again or contact support if the problem persists.'
+}
+
 const handleSubmit = async (values, actions) => {
   serverError.value = ''
   
   try {
-    await authStore.register({
-      username: values.username,
-      password: values.password,
-      password_confirmation: values.password_confirmation
-    })
+    await authStore.register(values)
     await router.push('/')
   } catch (error) {
     console.error('Registration error:', error)
-    
-    if (error.response?.status === 429) {
-      serverError.value = 'Too many registration attempts. Please try again later.'
-      return
-    }
-
-    if (error.response?.data?.username?.includes('already exists')) {
-      serverError.value = 'This username is already taken'
-      return
-    }
-
-    serverError.value = 'Registration failed. Please try again.'
+    serverError.value = getErrorMessage(error)
   }
 }
 </script>

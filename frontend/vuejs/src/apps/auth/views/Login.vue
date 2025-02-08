@@ -5,7 +5,7 @@
       <label class="relative block">
         <span class="sr-only">Username</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <i class="fas fa-user text-gray-400"></i>
+          <font-awesome-icon icon="user" class="text-gray-400" />
         </span>
         <Field
           name="username"
@@ -32,7 +32,7 @@
       <label class="relative block">
         <span class="sr-only">Password</span>
         <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-          <i class="fas fa-lock text-gray-400"></i>
+          <font-awesome-icon icon="lock" class="text-gray-400" />
         </span>
         <Field
           name="password"
@@ -70,7 +70,7 @@
              disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span v-if="authStore.isLoading">
-        <i class="fas fa-circle-notch fa-spin mr-2"></i>
+        <font-awesome-icon icon="circle-notch" spin class="mr-2" />
         Signing in...
       </span>
       <span v-else>Sign In</span>
@@ -89,6 +89,39 @@ const route = useRoute()
 const authStore = useAuthStore()
 const serverError = ref('')
 
+const getErrorMessage = (error) => {
+  if (error.response?.status === 429) {
+    return 'Too many login attempts. Please try again in a few minutes.'
+  }
+  
+  if (error.response?.status === 401) {
+    if (error.response?.data?.detail?.includes('password')) {
+      return 'Password is incorrect. Please try again.'
+    }
+    if (error.response?.data?.detail?.includes('username')) {
+      return 'Username not found. Please check your username.'
+    }
+    return 'Invalid username or password. Please try again.'
+  }
+
+  if (error.response?.status === 403) {
+    return 'Your account has been temporarily locked. Please try again later or contact support.'
+  }
+
+  if (error.response?.status === 400) {
+    const errors = error.response.data;
+    if (errors.username) return `Username error: ${errors.username[0]}`
+    if (errors.password) return `Password error: ${errors.password[0]}`
+    return 'Please check your login information and try again.'
+  }
+
+  if (error.message?.includes('Network Error')) {
+    return 'Unable to connect to server. Please check your internet connection.'
+  }
+
+  return 'An error occurred during login. Please try again.'
+}
+
 const handleSubmit = async (values, actions) => {
   serverError.value = ''
   
@@ -98,18 +131,7 @@ const handleSubmit = async (values, actions) => {
     await router.push(redirectPath)
   } catch (error) {
     console.error('Login error:', error)
-    
-    if (error.response?.status === 429) {
-      serverError.value = 'Too many login attempts. Please try again later.'
-      return
-    }
-
-    if (error.response?.status === 401) {
-      serverError.value = 'Invalid username or password'
-      return
-    }
-
-    serverError.value = 'Login failed. Please try again.'
+    serverError.value = getErrorMessage(error)
   }
 }
 </script>

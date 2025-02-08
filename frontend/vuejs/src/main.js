@@ -9,32 +9,32 @@ import '@/apps/auth/plugins/validation'
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
 
-// Import Font Awesome
+// Import Font Awesome core
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+
+// Import the specific icons we need for auth
 import { 
-  faKeyboard, faBolt, faCode, faPencilAlt, 
-  faMagic, faSlidersH, faRocket, faStore, 
-  faBriefcase, faUsers, faChartLine, faArrowRight,
-  faSignOutAlt, faUser, faCog, faCheck, faEnvelope,
-  faPhone, faClock, faExclamationCircle, faBullseye,
-  faStar, faRobot, faCodeBranch
+  faUser, 
+  faLock, 
+  faCircleNotch,
+  faExclamationCircle,
+  faCheckCircle,
+  faSpinner,
+  faEye,
+  faEyeSlash 
 } from '@fortawesome/free-solid-svg-icons'
-import {
-  faTwitter,
-  faGithub,
-  faLinkedin
-} from '@fortawesome/free-brands-svg-icons'
 
 // Add icons to library
 library.add(
-  faKeyboard, faBolt, faCode, faPencilAlt,
-  faMagic, faSlidersH, faRocket, faStore,
-  faBriefcase, faUsers, faChartLine, faArrowRight,
-  faSignOutAlt, faUser, faCog, faCheck, faEnvelope,
-  faPhone, faClock, faExclamationCircle, faBullseye,
-  faStar, faRobot, faCodeBranch,
-  faTwitter, faGithub, faLinkedin
+  faUser,
+  faLock,
+  faCircleNotch,
+  faExclamationCircle,
+  faCheckCircle,
+  faSpinner,
+  faEye,
+  faEyeSlash
 )
 
 // Configure axios
