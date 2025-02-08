@@ -3,7 +3,7 @@
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-900">
       <!-- Hero Section -->
-      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
+      <section class="relative min-h-[60vh] md:min-h-[50vh] flex items-center justify-center overflow-hidden py-12 md:py-20">
         <!-- Background Effects -->
         <div class="absolute inset-0 bg-dark-900">
           <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
@@ -12,24 +12,24 @@
 
         <!-- Content -->
         <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+          <h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight mb-4 md:mb-6">
             <span class="text-white block">About Imagi</span>
             <GradientText variant="primary" class="font-bold block text-3xl sm:text-4xl lg:text-5xl">
               Revolutionizing Web Development
             </GradientText>
           </h1>
-          <p class="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p class="text-base sm:text-lg lg:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto">
             Transforming the way web applications are built through the power of natural language and AI.
           </p>
         </div>
       </section>
 
-      <div class="max-w-4xl mx-auto px-4 py-16 relative">
-        <div class="space-y-16">
+      <div class="max-w-4xl mx-auto px-4 py-8 md:py-16 relative">
+        <div class="space-y-8 md:space-y-16">
           <!-- Mission Section -->
           <section>
             <h2 class="text-3xl font-bold text-white mb-8 text-center">Our Mission</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group">
                 <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <i class="fas fa-bullseye text-2xl text-primary-400"></i>
@@ -120,7 +120,7 @@
               <div class="prose prose-invert max-w-none prose-p:text-gray-300">
                 <p class="text-lg">At the heart of Imagi lies a sophisticated AI system that understands context, requirements, and user intent. Our technology stack combines:</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mt-6 md:mt-8">
                   <div class="bg-dark-900/30 backdrop-blur-sm rounded-xl p-6 border border-dark-600">
                     <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
                       <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 flex-shrink-0">
@@ -147,9 +147,9 @@
           <!-- Join Us Section -->
           <section>
             <h2 class="text-3xl font-bold text-white mb-8 text-center">Join the Revolution</h2>
-            <div class="bg-gradient-to-r from-primary-600 to-primary-400 rounded-2xl p-8 text-center transform hover:scale-[1.02] transition-all duration-300">
-              <h3 class="text-2xl font-bold text-white mb-4">Ready to Transform Your Ideas into Reality?</h3>
-              <p class="text-white text-lg mb-8">Join thousands of creators who are already building the future with Imagi.</p>
+            <div class="bg-gradient-to-r from-primary-600 to-primary-400 rounded-2xl p-6 md:p-8 text-center">
+              <h3 class="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Ready to Transform Your Ideas into Reality?</h3>
+              <p class="text-white text-base md:text-lg mb-6 md:mb-8">Join thousands of creators who are already building the future with Imagi.</p>
               <router-link
                 :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
                 class="inline-flex items-center px-8 py-3 text-lg font-medium rounded-lg text-primary-600 bg-white hover:bg-gray-100 transition-all duration-300 transform hover:scale-[1.02]"

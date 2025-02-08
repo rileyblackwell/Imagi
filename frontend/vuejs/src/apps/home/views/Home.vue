@@ -4,7 +4,7 @@
     <div class="flex flex-col min-h-screen">
       <div class="min-h-screen bg-dark-900">
         <!-- Hero Section -->
-        <section class="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+        <section class="relative min-h-[90vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden py-24 md:py-20 mt-16 sm:mt-0">
           <!-- Background Effects -->
           <div class="absolute inset-0 bg-dark-900">
             <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
@@ -13,7 +13,7 @@
 
           <!-- Content -->
           <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col lg:flex-row items-center gap-16">
+            <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
               <!-- Left side - Main content -->
               <div class="flex-1 text-center lg:text-left">
                 <div class="inline-block px-4 py-1 bg-dark-800/50 backdrop-blur-sm rounded-full border border-dark-700 mb-6">
@@ -55,7 +55,7 @@
               </div>
 
               <!-- Right side - Feature highlights -->
-              <div class="flex-1 grid grid-cols-2 gap-4 max-w-lg">
+              <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg w-full">
                 <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
                   <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-4">
                     <i class="fas fa-wand-magic-sparkles text-white"></i>
@@ -93,14 +93,14 @@
         </section>
 
         <!-- Features Section -->
-        <section class="py-24 px-4 sm:px-6 lg:px-8">
+        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
           <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16">
               <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Why Choose Imagi</h2>
               <p class="text-xl text-gray-300">Transform your ideas into reality with powerful AI-driven web development</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
                 <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-6">
                   <i class="fas fa-keyboard text-white text-xl"></i>
@@ -129,13 +129,13 @@
         </section>
 
         <!-- How It Works -->
-        <section class="py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50">
+        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50">
           <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16">
               <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">How It Works</h2>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               <div class="relative">
                 <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
                   <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-6">
@@ -180,13 +180,13 @@
         </section>
 
         <!-- Use Cases -->
-        <section class="py-24 px-4 sm:px-6 lg:px-8">
+        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
           <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16">
               <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">What You Can Build</h2>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
                 <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-6">
                   <i class="fas fa-store text-white text-xl"></i>
@@ -248,4 +248,4 @@ export default defineComponent({
     }
   }
 })
-</script> 
+</script>
