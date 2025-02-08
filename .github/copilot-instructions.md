@@ -41,6 +41,34 @@ Imagi/
 - **Editor**: Code editor and file management
 - **Preview**: Live application preview
 
+Each frontend app should follow atomic design principles:
+- **Atoms**: Basic building blocks (buttons, inputs, icons, text)
+- **Molecules**: Simple combinations of atoms (form fields, cards, menu items)
+- **Organisms**: Complex combinations of molecules (forms, headers, feature grids)
+- **Templates**: Page-level components and layouts
+- **Pages**: Specific instances of templates
+
+Component directory structure:
+```
+app/
+└── components/
+    ├── atoms/           # Basic building blocks
+    │   ├── buttons/
+    │   ├── inputs/
+    │   ├── text/
+    │   └── icons/
+    ├── molecules/       # Simple combinations
+    │   ├── cards/
+    │   ├── forms/
+    │   └── navigation/
+    ├── organisms/       # Complex combinations
+    │   ├── sections/
+    │   ├── grids/
+    │   └── forms/
+    └── templates/       # Page-level layouts
+        └── layout/
+```
+
 ### Backend Apps (Django)
 - **auth**: Custom authentication and authorization
 - **builder**: Core AI generation logic and prompts
@@ -76,8 +104,12 @@ Imagi/
   - Type hints (Python) and TypeScript
 - **Architecture**:
   - RESTful API design
-  - Modular components
-  - Atomic design patterns
+  - Atomic design pattern for Vue.js components
+    - Clear separation between atoms, molecules, and organisms
+    - Components should be reusable and maintainable
+    - Higher-level components should compose lower-level ones
+    - Each component category should have a clear responsibility
+  - Modular component structure
   - State management best practices
 
 ## AI Assistant Instructions
