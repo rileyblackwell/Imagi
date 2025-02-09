@@ -4,6 +4,9 @@ from . import views
 app_name = 'auth_api'
 
 urlpatterns = [
+    # Add CSRF endpoint
+    path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
+    
     # Add health check endpoint
     path('health/', views.health_check, name='health-check'),
     

@@ -22,6 +22,9 @@ urlpatterns = [
     path('api/agents/', include('apps.Agents.api.urls')),  # Agents API endpoints
     path('api/projectmanager/', include('apps.ProjectManager.urls')),  # ProjectManager API endpoints
     
+    # Auth API URLs - keep only this one auth URL include
+    path('api/v1/auth/', include('apps.Auth.api.urls', namespace='auth_api')),
+    
     # App URLs (for server-rendered pages if needed)
     path('builder/', include('apps.Builder.urls')),
     path('', include('apps.Home.urls')),
@@ -30,9 +33,6 @@ urlpatterns = [
     
     # Favicon
     path('favicon.ico', favicon_view),
-    
-    # Auth URLs - make sure this is included
-    path('api/v1/auth/', include('apps.Auth.api.urls', namespace='auth_api')),
 ]
 
 # Debug toolbar in development

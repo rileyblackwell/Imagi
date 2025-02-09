@@ -7,7 +7,8 @@ export const useAuthStore = defineStore('auth', {
     token: localStorage.getItem('token'),
     isAuthenticated: false,
     isLoading: false,
-    error: null
+    error: null,
+    isLoggingOut: false  // Add this flag
   }),
 
   getters: {
@@ -70,7 +71,13 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
+      // Prevent duplicate logout requests
+      if (this.isLoggingOut) {
+        return
+      }
+
       try {
+        this.isLoggingOut = true
         if (this.isAuthenticated) {
           await AuthAPI.logout()
         }
@@ -81,6 +88,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = null
         this.isAuthenticated = false
         localStorage.removeItem('token')
+        this.isLoggingOut = false
       }
     },
 
@@ -112,4 +120,4 @@ export const useAuthStore = defineStore('auth', {
       }
     }
   }
-}) 
+})

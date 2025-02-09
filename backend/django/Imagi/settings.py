@@ -157,9 +157,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Authentication settings
-LOGIN_REDIRECT_URL = 'builder:landing_page'  # Redirect to builder landing page after login
-LOGOUT_REDIRECT_URL = 'landing_page'  # Redirect to landing page after logout
-LOGIN_URL = 'login'  # URL name for the login page
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = '/login/'
 
 # REST Framework settings
 REST_FRAMEWORK = {
@@ -380,21 +380,18 @@ SITE_ID = 1
 
 # Add authentication backends
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
-# Allauth settings
-# Removing deprecated setting:
-# ACCOUNT_AUTHENTICATION_METHOD = 'username'
-
 # Add new login methods setting
-ACCOUNT_LOGIN_METHODS = {'username'}  # Use set literal for login methods
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}  # Use set literal for login methods
 
 # Rest of allauth settings remain the same
-ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_USERNAME_MIN_LENGTH = 4
-ACCOUNT_LOGOUT_ON_GET = False
-ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = False
-ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_ADAPTER = 'apps.Auth.adapters.CustomAccountAdapter'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
+ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
+ACCOUNT_EMAIL_CONFIRMATION_HMAC = True

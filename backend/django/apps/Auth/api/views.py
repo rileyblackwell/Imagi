@@ -54,25 +54,12 @@ class CSRFTokenView(APIView):
     """Get CSRF token for the frontend."""
     permission_classes = [AllowAny]
     
+    @method_decorator(ensure_csrf_cookie)
     def get(self, request):
-        try:
-            # Generate CSRF token
-            token = get_token(request)
-            
-            # Create response
-            response = Response({'csrfToken': token})
-            
-            # Add required headers
-            response['Access-Control-Allow-Origin'] = request.headers.get('Origin', 'http://localhost:5174')
-            response['Access-Control-Allow-Credentials'] = 'true'
-            
-            return response
-        except Exception as e:
-            logger.error(f"Error generating CSRF token: {str(e)}")
-            return Response(
-                {'error': 'Failed to generate CSRF token'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return Response({
+            'csrfToken': get_token(request),
+            'details': 'CSRF cookie set'
+        })
 
 class InitView(APIView):
     """Initialize session and CSRF token."""

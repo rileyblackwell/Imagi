@@ -84,6 +84,8 @@ const setupAxiosInterceptors = () => {
 // Initialize interceptors
 setupAxiosInterceptors()
 
+let logoutPromise = null
+
 export const AuthAPI = {
   async getCSRFToken() {
     try {
@@ -156,13 +158,16 @@ export const AuthAPI = {
   },
 
   async logout() {
+    // Return existing promise if logout is in progress
+    if (logoutPromise) {
+      return logoutPromise
+    }
+
     try {
-      // Ensure we have a CSRF token
-      await this.ensureCSRFToken()
-      
-      const response = await axios.post(`${BASE_URL}/logout/`, {}, {
+      logoutPromise = axios.post(`${BASE_URL}/logout/`, {}, {
         withCredentials: true
       })
+      const response = await logoutPromise
       
       // Clear token from localStorage and axios headers
       localStorage.removeItem('token')
@@ -172,6 +177,8 @@ export const AuthAPI = {
     } catch (error) {
       console.error('Logout error:', error)
       throw error
+    } finally {
+      logoutPromise = null  // Reset the promise
     }
   },
 
