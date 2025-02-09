@@ -28,6 +28,34 @@
       <ErrorMessage v-if="submitCount > 0" name="username" class="mt-1 text-sm text-red-500" />
     </div>
 
+    <!-- Email -->
+    <div class="form-group">
+      <label class="relative block">
+        <span class="sr-only">Email</span>
+        <span class="absolute inset-y-0 left-0 flex items-center pl-4">
+          <i class="fas fa-envelope text-gray-400"></i>
+        </span>
+        <Field
+          name="email"
+          type="email"
+          rules="required|email"
+          :validateOnInput="false"
+          v-slot="{ field, errorMessage }"
+        >
+          <input
+            v-bind="field"
+            :disabled="authStore.isLoading"
+            placeholder="Email"
+            class="w-full py-3 pl-11 pr-4 bg-dark-800 border border-dark-700 rounded-lg text-white placeholder-gray-500
+                   focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+            :class="{ 'border-red-500': errorMessage }"
+          >
+        </Field>
+      </label>
+      <ErrorMessage v-if="submitCount > 0" name="email" class="mt-1 text-sm text-red-500" />
+    </div>
+
     <!-- Password -->
     <div class="form-group">
       <label class="relative block">
@@ -190,8 +218,16 @@ const handleSubmit = async (values, actions) => {
   serverError.value = ''
   
   try {
-    await authStore.register(values)
-    await router.push('/')
+    const result = await authStore.register(values)
+    if (result.requiresVerification) {
+      // Show verification required message
+      await router.push({
+        name: 'verify-email',
+        query: { email: values.email }
+      })
+    } else {
+      await router.push('/')
+    }
   } catch (error) {
     console.error('Registration error:', error)
     serverError.value = getErrorMessage(error)

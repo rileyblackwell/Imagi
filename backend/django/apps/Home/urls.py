@@ -1,9 +1,11 @@
 from django.urls import path
 from . import views
 
+app_name = 'home'
+
 urlpatterns = [
     # Frontend redirects
-    path('', views.landing_page, name='landing'),
+    path('', views.landing_page, name='landing_page'),
     path('about/', views.about_page, name='about'),
     path('privacy/', views.privacy_page, name='privacy'),
     path('terms/', views.terms_page, name='terms'),

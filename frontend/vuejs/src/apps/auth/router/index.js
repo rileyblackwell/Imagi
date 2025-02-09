@@ -25,6 +25,18 @@ export default [{
         mainLinkPath: '/auth/login',
         mainLinkText: 'Sign in'
       }
+    },
+    {
+      path: 'verify-email/:key',
+      name: 'verify-email',
+      component: () => import('../views/VerifyEmail.vue'),
+      meta: {
+        title: 'Verify Email',
+        subtitle: 'Confirming your email address',
+        mainText: 'Need help?',
+        mainLinkPath: '/contact',
+        mainLinkText: 'Contact Support'
+      }
     }
   ]
 }]

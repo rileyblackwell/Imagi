@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.http import HttpResponseRedirect, HttpRequest
 import logging
+from django.shortcuts import render
+from django.views.decorators.http import require_GET
 
 from .constants import FrontendRoutes
 
@@ -20,9 +22,9 @@ def frontend_redirect(request: HttpRequest, path: str) -> HttpResponseRedirect:
     logger.debug(f"Redirecting to frontend: {target_url}")
     return HttpResponseRedirect(target_url)
 
-def landing_page(request: HttpRequest) -> HttpResponseRedirect:
-    """Redirect to frontend landing page."""
-    return frontend_redirect(request, FrontendRoutes.LANDING)
+@require_GET
+def landing_page(request):
+    return render(request, 'home/landing.html')
 
 def about_page(request: HttpRequest) -> HttpResponseRedirect:
     """Redirect to frontend about page."""

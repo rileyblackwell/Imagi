@@ -9,7 +9,7 @@ COPY frontend/vuejs/ .
 RUN npm run build
 
 # Backend stage
-FROM python:3.11-slim
+FROM python:3.13-slim
 WORKDIR /app
 
 # Copy only dependency files first

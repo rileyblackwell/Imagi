@@ -1,8 +1,11 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
+from allauth.account.adapter import get_adapter
+from allauth.account.utils import setup_user_email
 
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     balance = serializers.DecimalField(source='profile.balance', max_digits=10, decimal_places=2, read_only=True)
@@ -12,36 +15,38 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'username', 'balance')
         read_only_fields = ('id', 'balance')
 
-class RegisterSerializer(serializers.ModelSerializer):
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True, required=True)
     password_confirm = serializers.CharField(write_only=True, required=True)
 
-    class Meta:
-        model = User
-        fields = ('username', 'password', 'password_confirm')
+    def validate_username(self, username):
+        username = get_adapter().clean_username(username)
+        return username
 
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("This username is already taken.")
-        return value
+    def validate_email(self, email):
+        email = get_adapter().clean_email(email)
+        return email
 
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
+    def validate_password(self, password):
+        return get_adapter().clean_password(password)
+
+    def validate(self, data):
+        if data['password'] != data['password_confirm']:
             raise serializers.ValidationError({
                 "password_confirm": "Password fields didn't match."
             })
-        return attrs
+        return data
 
     def create(self, validated_data):
-        validated_data.pop('password_confirm')  # Remove password_confirm from the data
-        try:
-            user = User.objects.create_user(
-                username=validated_data['username'],
-                password=validated_data['password']
-            )
-            return user
-        except Exception as e:
-            raise serializers.ValidationError(str(e))
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password']
+        )
+        setup_user_email(self.context.get('request'), user, [])
+        return user
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)

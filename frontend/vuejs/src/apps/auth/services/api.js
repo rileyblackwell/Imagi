@@ -1,7 +1,8 @@
 import axios from 'axios'
 import config from '@/shared/config'
 
-const BASE_URL = '/api/auth'
+// Update the base URL to include v1
+const BASE_URL = '/api/v1/auth'
 
 // Helper function to get CSRF token from cookies
 function getCookie(name) {
@@ -251,4 +252,4 @@ export const AuthAPI = {
       throw error
     }
   }
-} 
+}

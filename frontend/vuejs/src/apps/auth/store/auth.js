@@ -62,10 +62,15 @@ const isDevelopment = import.meta.env.DEV
 // Helper function to check server availability and get CSRF token
 async function getCSRFToken() {
   try {
-    const response = await axios.get('/api/auth/csrf/', {
+    const response = await axios.get('/api/v1/auth/init/', {
       withCredentials: true
     })
-    return response.data.csrfToken
+    
+    if (response.data.csrfToken) {
+      axios.defaults.headers['X-CSRFToken'] = response.data.csrfToken
+      return response.data.csrfToken
+    }
+    throw new Error('No CSRF token in response')
   } catch (error) {
     console.error('Failed to get CSRF token:', error.message)
     throw error
@@ -122,6 +127,20 @@ axios.interceptors.response.use(
     throw error
   }
 )
+
+// Add retry delay helper
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Add server health check
+async function checkServerHealth() {
+  try {
+    await axios.get('/api/v1/health/')
+    return true
+  } catch (error) {
+    console.error('Server health check failed:', error)
+    return false
+  }
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
@@ -186,7 +205,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await ensureCSRFToken()
       if (token.value && checkSessionTimeout()) {
-        const response = await axios.get('/api/auth/user/')
+        const response = await axios.get('/api/v1/auth/user/')  // Updated path
         setUser(response.data)
         updateActivity()
       }
@@ -200,45 +219,69 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(credentials) {
-    loading.value = true
-    error.value = null
+  async function login(credentials, maxRetries = 2) {
+    loading.value = true;
+    error.value = null;
+    let retryCount = 0;
 
     try {
-      // Get CSRF token first
-      await getCSRFToken()
-
-      if (isDevelopment) {
-        console.log('Attempting login with credentials:', {
-          username: credentials.username,
-          password: '***'
-        })
+      // Check server health before attempting login
+      const isServerUp = await checkServerHealth();
+      if (!isServerUp) {
+        throw new Error('Unable to connect to server. Please check if the server is running.');
       }
 
-      const response = await axios.post('/api/auth/login/', credentials, {
-        headers: {
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        withCredentials: true
-      })
+      while (retryCount <= maxRetries) {
+        try {
+          await getCSRFToken();
 
-      if (response.data.token && response.data.user) {
-        setToken(response.data.token)
-        setUser(response.data.user)
-        updateActivity()
-        return response.data
+          const response = await axios.post('/api/v1/auth/login/', credentials, {
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken')
+            },
+            withCredentials: true
+          });
+
+          if (response.data.token && response.data.user) {
+            if (response.data.emailVerified === false) {
+              throw new Error('Please verify your email address before logging in.');
+            }
+
+            setToken(response.data.token);
+            setUser(response.data.user);
+            updateActivity();
+            return response.data;
+          }
+
+          throw new Error('Invalid response from server');
+        } catch (err) {
+          if (err.response?.status === 429) {
+            // Rate limit hit - extract wait time from response
+            const retryAfter = err.response.headers['retry-after'] || 30;
+            if (retryCount < maxRetries) {
+              retryCount++;
+              console.log(`Rate limited. Retrying in ${retryAfter} seconds...`);
+              await sleep(retryAfter * 1000);
+              continue;
+            }
+          }
+          
+          console.error('Login error:', err);
+          error.value = err.response?.data?.detail || err.message || 'Login failed';
+          throw error.value;
+        }
       }
-
-      throw new Error('Invalid response from server')
     } catch (err) {
-      console.error('Login error:', err)
-      if (isDevelopment) {
-        console.log('Full error details:', err)
+      if (err.message.includes('Unable to connect')) {
+        error.value = err.message;
+      } else if (err.code === 'ERR_NETWORK') {
+        error.value = 'Network connection error. Please check your internet connection.';
+      } else {
+        error.value = err.response?.data?.detail || err.message || 'Login failed';
       }
-      error.value = err.message || err.response?.data?.error || 'An error occurred during login'
-      throw error.value
+      throw error.value;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
@@ -247,13 +290,22 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await axios.post('/api/auth/register/', {
+      const response = await axios.post('/api/v1/auth/register/', {
         username: userData.username,
+        email: userData.email, // Add email field
         password: userData.password,
-        password_confirm: userData.password_confirm
+        password_confirm: userData.password_confirmation
       })
       
       if (response.data.token && response.data.user) {
+        // Don't automatically log in if email verification is required
+        if (response.data.requiresVerification) {
+          return {
+            success: true,
+            message: 'Please check your email to verify your account.'
+          }
+        }
+        
         setToken(response.data.token)
         setUser(response.data.user)
         return response.data
@@ -339,6 +391,23 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Add new method for email verification
+  async function verifyEmail(key) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await axios.post('/api/v1/auth/verify-email/', { key })
+      return response.data
+    } catch (err) {
+      console.error('Email verification error:', err)
+      error.value = err.response?.data?.detail || 'Email verification failed'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Add automatic activity tracking
   if (typeof window !== 'undefined') {
     ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
@@ -361,5 +430,6 @@ export const useAuthStore = defineStore('auth', () => {
     initAuth,
     resetPassword,
     changePassword,
+    verifyEmail, // Add new method
   }
-}) 
+})

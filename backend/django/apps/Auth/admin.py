@@ -3,19 +3,20 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from .models import Profile
 
-# Define inline admin for Profile
 class ProfileInline(admin.StackedInline):
     model = Profile
     can_delete = False
     verbose_name_plural = 'Profile'
 
-# Extend the existing UserAdmin
 class CustomUserAdmin(UserAdmin):
     inlines = (ProfileInline,)
-    list_display = ('username', 'email', 'first_name', 'last_name', 'get_balance', 'is_staff')
-    
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'date_joined', 'get_balance')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'date_joined')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
+    ordering = ('-date_joined',)
+
     def get_balance(self, obj):
-        return f"${obj.profile.balance:.2f}" if hasattr(obj, 'profile') else "$0.00"
+        return f"${obj.profile.balance:.2f}"
     get_balance.short_description = 'Balance'
 
 # Re-register UserAdmin

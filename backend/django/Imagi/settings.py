@@ -50,6 +50,11 @@ INSTALLED_APPS = [
     'apps.Payments',
     'apps.Agents',
     'apps.ProjectManager',
+    # Add django-allauth required apps
+    'django.contrib.sites',  # Required by allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
 ]
 
 MIDDLEWARE = [
@@ -65,6 +70,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.Auth.middleware.CacheControlMiddleware',
     'apps.Auth.middleware.LoginRequiredMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Add this line
 ]
 
 ROOT_URLCONF = 'Imagi.urls'
@@ -281,6 +287,37 @@ if DEBUG:
         '127.0.0.1',
         'localhost',
     ]
+    
+    # Development settings
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
+    CORS_ALLOW_CREDENTIALS = True
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
+    CORS_ALLOW_METHODS = [
+        'DELETE',
+        'GET',
+        'OPTIONS',
+        'PATCH',
+        'POST',
+        'PUT',
+    ]
+    CORS_ALLOW_HEADERS = [
+        'accept',
+        'accept-encoding',
+        'authorization',
+        'content-type',
+        'dnt',
+        'origin',
+        'user-agent',
+        'x-csrftoken',
+        'x-requested-with',
+    ]
 else:
     # Production settings
     DEBUG = False
@@ -337,3 +374,27 @@ CACHES = {
 # Frontend configuration
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5174')
 FRONTEND_REDIRECT_ENABLED = os.getenv('FRONTEND_REDIRECT_ENABLED', 'true').lower() == 'true'
+
+# Add site framework settings
+SITE_ID = 1
+
+# Add authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Allauth settings
+# Removing deprecated setting:
+# ACCOUNT_AUTHENTICATION_METHOD = 'username'
+
+# Add new login methods setting
+ACCOUNT_LOGIN_METHODS = {'username'}  # Use set literal for login methods
+
+# Rest of allauth settings remain the same
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_USERNAME_MIN_LENGTH = 4
+ACCOUNT_LOGOUT_ON_GET = False
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = False
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
