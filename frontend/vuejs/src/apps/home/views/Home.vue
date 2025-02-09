@@ -51,10 +51,12 @@
 
                   <a 
                     href="#how-it-works" 
-                    class="group flex items-center gap-2 text-gray-300 hover:text-white transition-colors px-4 py-2"
+                    class="group flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 px-6 py-3 rounded-xl border border-dark-700 hover:border-primary-500/30 bg-dark-800/50 hover:bg-dark-800/80 backdrop-blur-sm"
                   >
-                    <i class="fas fa-play text-xs bg-dark-800 p-2 rounded-full group-hover:bg-primary-500/20 transition-colors duration-500"></i>
-                    <span>How It Works</span>
+                    <div class="w-8 h-8 rounded-full bg-dark-700 group-hover:bg-primary-500/20 flex items-center justify-center transition-all duration-300">
+                      <i class="fas fa-play text-xs text-primary-400"></i>
+                    </div>
+                    <span class="font-medium">How It Works</span>
                   </a>
                 </div>
               </div>
@@ -330,47 +332,60 @@
         </section>
 
         <!-- CTA Section -->
-        <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
-          <div class="max-w-5xl mx-auto bg-gradient-to-br from-primary-600 via-violet-600 to-purple-600 rounded-2xl p-8 md:p-12 text-center relative overflow-hidden">
-            <!-- Background Glow Effects -->
-            <div class="absolute inset-0">
-              <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-30"></div>
-              <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-30"></div>
-            </div>
-            
-            <!-- Content -->
-            <div class="relative z-10">
-              <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-                Ready to Transform Your Development Process?
-              </h2>
-              <p class="text-xl text-white/90 mb-12 max-w-2xl mx-auto">
-                Join the AI-powered development revolution and build your next project 10x faster.
-              </p>
+        <section class="py-12 px-4 sm:px-6 lg:px-8">
+          <div class="max-w-4xl mx-auto relative">
+            <!-- Main CTA Card -->
+            <div class="relative rounded-2xl overflow-hidden">
+              <!-- Gradient Background -->
+              <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-violet-600 to-purple-600"></div>
               
-              <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                <!-- Start Building Button -->
-                <HomeNavbarButton
-                  :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-                  class="group relative w-full sm:w-auto min-w-[200px] !h-14 px-8 rounded-xl border border-white/30 hover:border-white/40 bg-primary-500/20 hover:bg-primary-500/25 backdrop-blur-sm transition-all duration-300"
-                >
-                  <div class="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-violet-500/5 rounded-xl"></div>
-                  <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white/90">
-                    Start Building Free
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-0.5 transition-transform"></i>
-                  </span>
-                </HomeNavbarButton>
+              <!-- Decorative Elements -->
+              <div class="absolute inset-0">
+                <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
+                <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full blur-[100px] opacity-30"></div>
+              </div>
 
-                <!-- Contact Sales Button -->
-                <HomeNavbarButton
-                  to="/contact"
-                  class="group relative w-full sm:w-auto min-w-[200px] !h-14 px-8 rounded-xl border border-white/20 hover:border-white/30 bg-dark-800/20 hover:bg-dark-800/25 backdrop-blur-sm transition-all duration-300"
-                >
-                  <div class="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-violet-500/5 rounded-xl"></div>
-                  <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white/90">
-                    Contact Sales
-                    <i class="fas fa-envelope ml-2 transform group-hover:scale-105 transition-transform"></i>
-                  </span>
-                </HomeNavbarButton>
+              <!-- Content Container -->
+              <div class="relative z-10 px-6 py-12 md:px-12">
+                <div class="max-w-2xl mx-auto text-center">
+                  <!-- Main Text -->
+                  <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+                    Ready to Transform Your
+                    <span class="bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent">
+                      Development Process?
+                    </span>
+                  </h2>
+
+                  <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
+                    Join thousands of developers building amazing applications
+                    <span class="font-semibold text-primary-200">10x faster</span> with AI.
+                  </p>
+
+                  <!-- Action Buttons -->
+                  <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <!-- Start Building Button -->
+                    <HomeNavbarButton
+                      :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
+                      class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl border-2 border-primary-300 hover:border-primary-200 bg-transparent hover:bg-white/10 transition-all duration-300 transform hover:-translate-y-0.5"
+                    >
+                      <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
+                        Start Building Free
+                        <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+                      </span>
+                    </HomeNavbarButton>
+
+                    <!-- Contact Sales Button -->
+                    <HomeNavbarButton
+                      to="/contact"
+                      class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl border-2 border-white hover:border-white/90 bg-transparent hover:bg-white/10 transition-all duration-300 transform hover:-translate-y-0.5"
+                    >
+                      <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
+                        Contact Sales
+                        <i class="fas fa-arrow-up-right-from-square ml-2 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
+                      </span>
+                    </HomeNavbarButton>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
