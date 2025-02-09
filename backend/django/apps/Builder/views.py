@@ -6,10 +6,8 @@ All API endpoints are handled in the api/ directory.
 import os
 import shutil
 import logging
-from django.conf import settings
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
-from django.http import HttpResponse
 from .models import Project, Conversation, Message, Page
 from apps.ProjectManager.services import ProjectGenerationService
 

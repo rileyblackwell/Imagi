@@ -2,8 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
-from django.core.exceptions import ValidationError
-from ..models import Profile
+
 
 class UserSerializer(serializers.ModelSerializer):
     balance = serializers.DecimalField(source='profile.balance', max_digits=10, decimal_places=2, read_only=True)

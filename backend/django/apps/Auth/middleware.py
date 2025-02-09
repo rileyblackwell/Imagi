@@ -3,7 +3,6 @@ Authentication and cache control middleware for Imagi.
 """
 
 from django.shortcuts import redirect
-from django.urls import resolve
 from django.conf import settings
 from django.http import HttpResponse
 from rest_framework.response import Response

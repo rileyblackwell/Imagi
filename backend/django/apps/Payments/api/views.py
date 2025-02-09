@@ -16,10 +16,8 @@ from django.db import transaction
 
 from ..models import CreditBalance, Transaction, CreditPlan
 from .serializers import (
-    CreditBalanceSerializer,
     TransactionSerializer,
     CreditPlanSerializer,
-    UserCreditBalanceSerializer
 )
 
 logger = logging.getLogger(__name__)

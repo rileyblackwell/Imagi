@@ -8,18 +8,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from django.conf import settings
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 
 from ..models import Project, Conversation, Page, Message
 from .serializers import (
     ProjectSerializer,
-    ProjectDetailSerializer,
     ConversationSerializer,
     PageSerializer,
-    MessageSerializer
 )
 from ..services.oasis_service import (
     process_builder_mode_input_service,

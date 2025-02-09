@@ -8,17 +8,14 @@ from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework.throttling import AnonRateThrottle
 
 # Django
 from django.contrib.auth import login, logout, get_user_model
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.middleware.csrf import get_token
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django.http import JsonResponse
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.conf import settings
@@ -36,8 +33,6 @@ from ..views import send_password_reset_email
 
 # Logging
 import logging
-import time
-from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
