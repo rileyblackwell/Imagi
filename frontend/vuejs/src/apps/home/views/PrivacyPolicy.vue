@@ -106,59 +106,114 @@ export default defineComponent({
   setup() {
     const privacySections = [
       {
-        title: 'Information We Collect',
+        title: 'Information Collection and Use',
         icon: 'fas fa-database',
-        description: 'We collect the following types of information to provide and improve our services:',
+        description: 'We collect and process personal information necessary to provide our services. This information is handled with utmost care and in compliance with applicable data protection laws:',
         items: [
-          'Account Information: Your name, email address, password, and other details provided during account registration.',
-          'Profile Information: Details you provide to customize your user profile.',
-          'Payment Information: Billing details and transaction data processed securely via third-party payment providers.',
-          'Usage Data: Information about your interactions with our services.'
+          { title: 'Account Information', description: 'Name, email, password (encrypted), profile picture, and registration details' },
+          { title: 'Technical Data', description: 'IP address, browser type, device information, operating system, and cookies' },
+          { title: 'Usage Information', description: 'Interaction with our services, generated applications, API calls, and feature usage patterns' },
+          { title: 'Payment Details', description: 'Billing information, transaction history (stored securely via payment processors)' },
+          { title: 'Generated Content', description: 'Applications, code, and configurations created using our services' },
+          { title: 'Communication Data', description: 'Support tickets, feedback, and correspondence with our team' }
         ]
       },
       {
-        title: 'How We Use Your Information',
+        title: 'Data Processing and Storage',
+        icon: 'fas fa-microchip',
+        description: 'We implement robust security measures to protect your data:',
+        items: [
+          'End-to-end encryption for sensitive data transmission',
+          'Regular security audits and penetration testing',
+          'Data backup and disaster recovery protocols',
+          'Access controls and authentication mechanisms',
+          'Regular updates to security infrastructure',
+          'Compliance with industry security standards'
+        ]
+      },
+      {
+        title: 'Use of Information',
         icon: 'fas fa-cog',
-        description: 'We use the collected information for the following purposes:',
+        description: 'Your information is used for the following purposes:',
         items: [
-          'To provide, maintain, and improve our services',
-          'To process payments securely and efficiently',
-          'To send technical notices and support messages',
-          'To analyze usage trends and enhance user experience',
-          'To detect, prevent, and address technical issues'
+          { title: 'Service Provision', description: 'Delivering and maintaining our AI-powered development platform' },
+          { title: 'Personalization', description: 'Customizing and optimizing your experience' },
+          { title: 'Analytics', description: 'Improving our services and understanding user needs' },
+          { title: 'Security', description: 'Protecting against fraud and unauthorized access' },
+          { title: 'Communication', description: 'Sending service updates, notifications, and support responses' },
+          { title: 'Legal Compliance', description: 'Meeting regulatory requirements and enforcing our terms' }
         ]
       },
       {
-        title: 'Information Sharing',
+        title: 'Data Sharing and Third Parties',
         icon: 'fas fa-share-nodes',
-        description: 'Your personal information is not sold. However, we may share your data in the following situations:',
+        description: 'We may share your information with:',
         items: [
-          { title: 'Service Providers', description: 'Trusted third-party providers that support our operations.' },
-          { title: 'Legal Obligations', description: 'To comply with laws, regulations, or legal requests.' },
-          { title: 'Professional Advisors', description: 'Consultants, auditors, or legal counsel for business purposes.' },
-          { title: 'Business Transfers', description: 'In the event of a merger, sale, or acquisition.' }
+          { title: 'Service Providers', description: 'Cloud hosting, analytics, payment processing, and security services' },
+          { title: 'Legal Requirements', description: 'Court orders, law enforcement requests, or regulatory obligations' },
+          { title: 'Business Transfers', description: 'Mergers, acquisitions, or asset sales (with user notification)' },
+          { title: 'Aggregated Data', description: 'Anonymous, statistical data for research and analysis' }
         ]
       },
       {
-        title: 'Data Security',
-        icon: 'fas fa-shield-halved',
-        description: 'We prioritize the security of your personal information by implementing industry-standard measures, including:',
-        items: [
-          'Encryption of sensitive data during transmission and storage',
-          'Secure server infrastructure with access controls',
-          'Regular security audits and monitoring for vulnerabilities',
-          'Employee training on security best practices'
-        ]
-      },
-      {
-        title: 'Your Rights',
+        title: 'Your Privacy Rights',
         icon: 'fas fa-user-shield',
-        description: 'You have certain rights regarding your personal information:',
+        description: 'You have the following rights regarding your personal data:',
         items: [
-          { title: 'Access', description: 'Request access to your personal data.' },
-          { title: 'Correction', description: 'Update or correct inaccurate data.' },
-          { title: 'Deletion', description: 'Request deletion of your personal data.' },
-          { title: 'Portability', description: 'Receive your data in a structured, commonly used format.' }
+          { title: 'Access', description: 'Request copies of your personal data' },
+          { title: 'Rectification', description: 'Correct inaccurate or incomplete information' },
+          { title: 'Deletion', description: 'Request erasure of your personal data' },
+          { title: 'Portability', description: 'Receive and transfer your data to another controller' },
+          { title: 'Restriction', description: 'Limit how we process your data' },
+          { title: 'Objection', description: 'Object to certain types of processing' }
+        ]
+      },
+      {
+        title: 'Data Retention',
+        icon: 'fas fa-clock',
+        description: 'We retain your information according to these principles:',
+        items: [
+          'Active accounts: Data retained while account is active',
+          'Deleted accounts: Data removed within 30 days of deletion request',
+          'Backup retention: Up to 90 days for disaster recovery',
+          'Legal requirements: As required by applicable laws',
+          'Anonymous data: May be retained indefinitely'
+        ]
+      },
+      {
+        title: 'International Data Transfers',
+        icon: 'fas fa-globe',
+        description: 'For users outside our primary operating region:',
+        items: [
+          'Data may be processed in different jurisdictions',
+          'We ensure appropriate safeguards for international transfers',
+          'EU-US Privacy Shield compliance where applicable',
+          'Standard contractual clauses with service providers',
+          'Regular audits of international data protection measures'
+        ]
+      },
+      {
+        title: 'Children\'s Privacy',
+        icon: 'fas fa-child',
+        description: 'Regarding users under 16 years of age:',
+        items: [
+          'Services not intended for children under 16',
+          'We do not knowingly collect children\'s data',
+          'Immediate deletion upon discovery of minor\'s data',
+          'Parental consent required for legitimate minor users',
+          'Special protections for authorized minor accounts'
+        ]
+      },
+      {
+        title: 'Changes to Privacy Policy',
+        icon: 'fas fa-file-contract',
+        description: 'Our policy update procedures:',
+        items: [
+          'Regular reviews and updates as needed',
+          'Notice of material changes via email',
+          '30-day advance notice for significant changes',
+          'Continued use constitutes acceptance',
+          'Previous versions available upon request'
         ]
       }
     ]

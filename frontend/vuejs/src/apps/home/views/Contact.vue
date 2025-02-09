@@ -145,15 +145,14 @@
 
 <script>
 import { DefaultLayout } from '@/shared/layouts'
-import { GradientText, HeroSection } from '@/apps/home/components'
+import { GradientText } from '@/apps/home/components'
 import { ref } from 'vue'
 
 export default {
   name: 'Contact',
   components: {
     DefaultLayout,
-    GradientText,
-    HeroSection
+    GradientText
   },
   setup() {
     const form = ref({
@@ -175,3 +174,19 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* Remove default list styles */
+.prose ul {
+  padding-left: 0;
+  margin: 0;
+}
+
+.prose li {
+  padding-left: 0;
+}
+
+.prose li::before {
+  display: none;
+}
+</style>
