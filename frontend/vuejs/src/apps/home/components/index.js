@@ -7,10 +7,11 @@ export { default as HomeNavbarDropdownButton } from './atoms/buttons/HomeNavbarD
 // Molecules
 export { default as FeatureCard } from './molecules/cards/FeatureCard.vue'
 export { default as ContactForm } from './molecules/forms/ContactForm.vue'
+export { default as AnimatedTerminal } from './molecules/demo/AnimatedTerminal.vue'
 
 // Organisms
 export { default as FeaturesGrid } from './organisms/grids/FeaturesGrid.vue'
 export { default as HomeNavbar } from './organisms/navigation/HomeNavbar.vue'
 export { default as HeroSection } from './organisms/sections/hero/HeroSection.vue'
 export { default as FeaturesSection } from './organisms/sections/features/FeaturesSection.vue'
-export { default as ContactSection } from './organisms/sections/contact/ContactSection.vue' 
+export { default as ContactSection } from './organisms/sections/contact/ContactSection.vue'

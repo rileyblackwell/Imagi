@@ -61,39 +61,9 @@
                 </div>
               </div>
 
-              <!-- Right side - Feature highlights -->
-              <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg w-full">
-                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                  <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <i class="fas fa-wand-magic-sparkles text-white"></i>
-                  </div>
-                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">AI Generation</h3>
-                  <p class="text-gray-300 text-sm">Instant code generation powered by advanced AI</p>
-                </div>
-
-                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                  <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <i class="fas fa-bolt text-white"></i>
-                  </div>
-                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">Rapid Build</h3>
-                  <p class="text-gray-300 text-sm">Build in minutes, not months</p>
-                </div>
-
-                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                  <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <i class="fas fa-code text-white"></i>
-                  </div>
-                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">Clean Code</h3>
-                  <p class="text-gray-300 text-sm">Professional, maintainable code</p>
-                </div>
-
-                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                  <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <i class="fas fa-rocket text-white"></i>
-                  </div>
-                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">Easy Deploy</h3>
-                  <p class="text-gray-300 text-sm">One-click deployment</p>
-                </div>
+              <!-- Right side - Interactive Demo -->
+              <div class="flex-1">
+                <AnimatedTerminal />
               </div>
             </div>
           </div>
@@ -399,7 +369,12 @@
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
 import { DefaultLayout } from '@/shared/layouts'
-import { GradientText, HomeNavbarButton, HeroSection } from '@/apps/home/components'
+import { 
+  GradientText, 
+  HomeNavbarButton, 
+  HeroSection,
+  AnimatedTerminal 
+} from '@/apps/home/components'
 
 export default defineComponent({
   name: 'Home',
@@ -407,7 +382,8 @@ export default defineComponent({
     DefaultLayout,
     GradientText,
     HomeNavbarButton,
-    HeroSection
+    HeroSection,
+    AnimatedTerminal
   },
   setup() {
     const authStore = useAuthStore()
