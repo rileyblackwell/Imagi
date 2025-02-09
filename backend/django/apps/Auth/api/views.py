@@ -4,7 +4,7 @@ Handles all authentication-related API endpoints.
 """
 
 # Django REST Framework
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
@@ -12,8 +12,13 @@ from rest_framework.authtoken.models import Token
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.decorators import api_view, permission_classes
 
-# Django
+# Django and Allauth
 from django.contrib.auth import login, logout, get_user_model
+from allauth.account.utils import complete_signup
+from allauth.account import app_settings as allauth_settings
+from allauth.account.adapter import get_adapter
+
+# Django
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.middleware.csrf import get_token
@@ -43,7 +48,7 @@ class LoginRateThrottle(AnonRateThrottle):
     rate = '5/minute'  # Limit to 5 login attempts per minute
 
 class RegistrationRateThrottle(AnonRateThrottle):
-    rate = '3/hour'  # Limit to 3 registration attempts per hour
+    rate = '20/hour'  # Increased from 3/hour to 20/hour
 
 class CSRFTokenView(APIView):
     """Get CSRF token for the frontend."""
@@ -83,45 +88,27 @@ class InitView(APIView):
         })
 
 class RegisterView(generics.CreateAPIView):
-    """User registration endpoint."""
     serializer_class = RegisterSerializer
     permission_classes = (AllowAny,)
     throttle_classes = [RegistrationRateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
         try:
-            # Check for suspicious registration patterns
-            ip = request.META.get('REMOTE_ADDR')
-            registrations_key = f'registrations_from_ip_{ip}'
-            registrations = cache.get(registrations_key, 0)
-            if registrations > 10:  # More than 10 registrations from same IP in 24h
-                logger.warning(f"Suspicious registration activity from IP: {ip}")
-                return Response({
-                    'error': 'Too many registration attempts'
-                }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save(request)
             
-            user = serializer.save()
-            login(request, user)
+            # Create auth token
+            token, _ = Token.objects.get_or_create(user=user)
             
-            # Create token with expiration
-            token = Token.objects.create(user=user)
+            # Log the user in directly without using complete_signup
+            login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
             
-            # Update registration count
-            cache.set(registrations_key, registrations + 1, 86400)  # 24h expiry
-            
-            response = Response({
+            return Response({
                 'token': token.key,
                 'user': UserSerializer(user).data,
                 'message': 'Registration successful'
             }, status=status.HTTP_201_CREATED)
-            
-            # Add security headers
-            response['X-Content-Type-Options'] = 'nosniff'
-            response['X-Frame-Options'] = 'DENY'
-            return response
             
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
@@ -129,6 +116,9 @@ class RegisterView(generics.CreateAPIView):
                 'error': 'Registration failed',
                 'detail': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+
+    def perform_create(self, serializer):
+        return serializer.save(self.request)
 
 class LoginView(APIView):
     permission_classes = (AllowAny,)

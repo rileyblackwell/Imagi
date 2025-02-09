@@ -67,8 +67,8 @@
           name="password"
           type="password"
           autocomplete="new-password"
-          rules="required|password"
-          :validateOnInput="false"
+          rules="required"
+          :validateOnInput="true"
           v-slot="{ field, errorMessage }"
         >
           <input
@@ -97,7 +97,7 @@
           name="password_confirmation"
           type="password"
           rules="required|confirmed:@password"
-          :validateOnInput="false"
+          :validateOnInput="true"
           v-slot="{ field, errorMessage }"
         >
           <input
@@ -122,12 +122,16 @@
         <Field
           name="agreeToTerms"
           type="checkbox"
-          rules="required"
-          :validateOnInput="false"
+          :value="true"
           v-slot="{ field }"
         >
           <input
-            v-bind="field"
+            type="checkbox"
+            :id="field.name"
+            :name="field.name"
+            :value="true"
+            v-model="field.checked"
+            @change="field.handleChange"
             :disabled="authStore.isLoading"
             class="w-4 h-4 border border-dark-600 rounded bg-dark-800 text-primary-600 focus:ring-primary-500
                    disabled:opacity-50 disabled:cursor-not-allowed"
@@ -135,12 +139,13 @@
         </Field>
       </div>
       <div class="ml-3">
-        <label class="text-sm text-gray-400">
+        <label for="agreeToTerms" class="text-sm text-gray-400">
           I agree to the 
           <router-link to="/terms" class="text-primary-400 hover:text-primary-300">Terms of Service</router-link>
           and
           <router-link to="/privacy" class="text-primary-400 hover:text-primary-300">Privacy Policy</router-link>
         </label>
+        <ErrorMessage name="agreeToTerms" class="block mt-1 text-sm text-red-500" />
       </div>
     </div>
 
@@ -152,7 +157,7 @@
     <!-- Submit Button -->
     <button
       type="submit"
-      :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
+      :disabled="authStore.isLoading"
       class="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg
              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors
              disabled:opacity-50 disabled:cursor-not-allowed"
@@ -171,56 +176,35 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form, Field, ErrorMessage } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
+import { defineRule } from 'vee-validate'
+
+// Define custom rules
+defineRule('confirmed', (value, [target]) => {
+  if (value === target) {
+    return true;
+  }
+  return 'Passwords must match';
+});
 
 const router = useRouter()
 const authStore = useAuthStore()
 const serverError = ref('')
 
-const getErrorMessage = (error) => {
-  if (error.response?.status === 429) {
-    return 'Too many registration attempts. Please try again in a few minutes.'
-  }
-
-  if (error.response?.status === 400) {
-    const errors = error.response.data;
-    
-    if (errors.username?.includes('already exists')) {
-      return 'This username is already taken. Please choose another.'
-    }
-    
-    if (errors.username) {
-      return `Username error: ${errors.username[0]}`
-    }
-    
-    if (errors.password) {
-      return `Password error: ${errors.password[0]}`
-    }
-    
-    if (errors.password_confirmation) {
-      return 'Passwords do not match. Please check and try again.'
-    }
-    
-    if (errors.agreeToTerms) {
-      return 'You must agree to the Terms of Service to create an account.'
-    }
-
-    return 'Please check your registration information and try again.'
-  }
-
-  if (error.message?.includes('Network Error')) {
-    return 'Unable to connect to server. Please check your internet connection.'
-  }
-
-  return 'Registration failed. Please try again or contact support if the problem persists.'
-}
-
-const handleSubmit = async (values, actions) => {
+const handleSubmit = async (values) => {
   serverError.value = ''
   
   try {
-    const result = await authStore.register(values)
-    if (result.requiresVerification) {
-      // Show verification required message
+    const registrationData = {
+      username: values.username,
+      email: values.email,
+      password: values.password,
+      password_confirmation: values.password_confirmation,
+      agreeToTerms: values.agreeToTerms
+    }
+
+    const result = await authStore.register(registrationData)
+    
+    if (result?.requiresVerification) {
       await router.push({
         name: 'verify-email',
         query: { email: values.email }
@@ -230,7 +214,7 @@ const handleSubmit = async (values, actions) => {
     }
   } catch (error) {
     console.error('Registration error:', error)
-    serverError.value = getErrorMessage(error)
+    serverError.value = error.response?.data?.error || 'Registration failed. Please try again.'
   }
 }
 </script>

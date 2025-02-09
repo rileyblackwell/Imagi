@@ -135,8 +135,9 @@ export const AuthAPI = {
       
       const response = await axios.post(`${BASE_URL}/register/`, {
         username: userData.username,
+        email: userData.email,
         password: userData.password,
-        password_confirm: userData.password_confirm
+        password_confirmation: userData.password_confirmation // This matches the backend serializer
       }, {
         withCredentials: true
       })
