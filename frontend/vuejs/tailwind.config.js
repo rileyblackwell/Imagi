@@ -27,25 +27,10 @@ export default {
       },
       spacing: {
         'header': '64px',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { 
-            transform: 'translateY(0)',
-            filter: 'drop-shadow(0 0 20px rgba(34,211,238,0.35))'
-          },
-          '50%': { 
-            transform: 'translateY(-10px)',
-            filter: 'drop-shadow(0 0 30px rgba(34,211,238,0.45))'
-          },
-        }
-      },
-      animation: {
-        float: 'float 3s ease-in-out infinite',
       }
     },
   },
   plugins: [
     typography,
   ],
-} 
+}

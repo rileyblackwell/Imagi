@@ -5,10 +5,11 @@
       <div class="min-h-screen bg-dark-900">
         <!-- Hero Section -->
         <section class="relative min-h-[90vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden py-24 md:py-20 mt-16 sm:mt-0">
-          <!-- Background Effects -->
+          <!-- Enhanced Background Effects -->
           <div class="absolute inset-0 bg-dark-900">
             <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
             <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
+            <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
           </div>
 
           <!-- Content -->
@@ -16,7 +17,7 @@
             <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
               <!-- Left side - Main content -->
               <div class="flex-1 text-center lg:text-left">
-                <div class="inline-block px-4 py-1 bg-dark-800/50 backdrop-blur-sm rounded-full border border-dark-700 mb-6">
+                <div class="inline-block px-4 py-1 bg-dark-800/50 backdrop-blur-sm rounded-full border border-primary-500/50 mb-6">
                   <span class="text-sm font-medium text-gray-300">
                     <i class="fas fa-sparkles text-primary-500 mr-2"></i>
                     AI-Powered Web Development
@@ -36,19 +37,23 @@
                   Describe your vision, and watch as AI brings it to life.
                 </p>
 
+                <!-- Buttons -->
                 <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
                   <HomeNavbarButton
                     :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-                    gradient-type="primary"
-                    size="lg"
-                    class="!h-12 px-8"
+                    class="group relative w-full sm:w-auto !h-14 px-8 rounded-xl border border-primary-500/30 hover:border-primary-500/50 bg-gradient-to-r from-primary-500/20 to-violet-500/20 hover:from-primary-500/30 hover:to-violet-500/30 backdrop-blur-sm transition-all duration-500"
                   >
-                    Start Building
-                    <i class="fas fa-arrow-right ml-2"></i>
+                    <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white group-hover:text-white/90">
+                      Start Building
+                      <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-500"></i>
+                    </span>
                   </HomeNavbarButton>
 
-                  <a href="#how-it-works" class="flex items-center gap-2 text-gray-300 hover:text-white transition-colors px-4 py-2">
-                    <i class="fas fa-play text-xs bg-dark-800 p-2 rounded-full"></i>
+                  <a 
+                    href="#how-it-works" 
+                    class="group flex items-center gap-2 text-gray-300 hover:text-white transition-colors px-4 py-2"
+                  >
+                    <i class="fas fa-play text-xs bg-dark-800 p-2 rounded-full group-hover:bg-primary-500/20 transition-colors duration-500"></i>
                     <span>How It Works</span>
                   </a>
                 </div>
@@ -56,35 +61,35 @@
 
               <!-- Right side - Feature highlights -->
               <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg w-full">
-                <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
-                  <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-4">
+                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                  <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
                     <i class="fas fa-wand-magic-sparkles text-white"></i>
                   </div>
-                  <h3 class="text-white font-semibold mb-2">AI Generation</h3>
+                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">AI Generation</h3>
                   <p class="text-gray-300 text-sm">Instant code generation powered by advanced AI</p>
                 </div>
 
-                <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
-                  <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-4">
+                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                  <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
                     <i class="fas fa-bolt text-white"></i>
                   </div>
-                  <h3 class="text-white font-semibold mb-2">Rapid Build</h3>
+                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">Rapid Build</h3>
                   <p class="text-gray-300 text-sm">Build in minutes, not months</p>
                 </div>
 
-                <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
-                  <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-4">
+                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                  <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
                     <i class="fas fa-code text-white"></i>
                   </div>
-                  <h3 class="text-white font-semibold mb-2">Clean Code</h3>
+                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">Clean Code</h3>
                   <p class="text-gray-300 text-sm">Professional, maintainable code</p>
                 </div>
 
-                <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700">
-                  <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4">
+                <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-6 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                  <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
                     <i class="fas fa-rocket text-white"></i>
                   </div>
-                  <h3 class="text-white font-semibold mb-2">Easy Deploy</h3>
+                  <h3 class="text-white font-semibold mb-2 group-hover:text-primary-400 transition-colors">Easy Deploy</h3>
                   <p class="text-gray-300 text-sm">One-click deployment</p>
                 </div>
               </div>
@@ -329,7 +334,6 @@
           <div class="max-w-5xl mx-auto bg-gradient-to-br from-primary-600 via-violet-600 to-purple-600 rounded-2xl p-8 md:p-12 text-center relative overflow-hidden">
             <!-- Background Glow Effects -->
             <div class="absolute inset-0">
-              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-violet-500/20 animate-pulse"></div>
               <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-30"></div>
               <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-30"></div>
             </div>
