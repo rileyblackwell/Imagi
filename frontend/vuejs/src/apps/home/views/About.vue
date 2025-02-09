@@ -53,19 +53,23 @@
               <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Mission</GradientText>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <i class="fas fa-bullseye text-2xl text-primary-400"></i>
+              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
+                <div class="flex items-center mb-6">
+                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <i class="fas fa-bullseye text-2xl text-primary-400"></i>
+                  </div>
+                  <h3 class="ml-4 text-xl font-semibold text-white group-hover:text-primary-300 transition-colors">Democratizing Web Development</h3>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-400 transition-colors">Democratizing Web Development</h3>
                 <p class="text-gray-300">We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.</p>
               </div>
               
-              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <i class="fas fa-lightbulb text-2xl text-primary-400"></i>
+              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
+                <div class="flex items-center mb-6">
+                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <i class="fas fa-lightbulb text-2xl text-primary-400"></i>
+                  </div>
+                  <h3 class="ml-4 text-xl font-semibold text-white group-hover:text-primary-300 transition-colors">Innovation Through AI</h3>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-400 transition-colors">Innovation Through AI</h3>
                 <p class="text-gray-300">We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.</p>
               </div>
             </div>
@@ -76,35 +80,47 @@
             <div class="text-center mb-16">
               <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">What We Do</GradientText>
             </div>
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/20 transition-all duration-500">
+            <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
               <div class="prose prose-invert max-w-none prose-p:text-gray-300 prose-li:text-gray-300 prose-strong:text-white">
-                <p class="text-lg">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional web applications, making the development process more intuitive and efficient than ever before.</p>
+                <p class="text-lg mb-12">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional web applications, making the development process more intuitive and efficient than ever before.</p>
                 
-                <h3 class="text-xl font-semibold mt-8 mb-4">Key Features:</h3>
-                <ul class="space-y-4">
-                  <li class="flex items-start">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                <h3 class="text-xl font-semibold mb-8">Key Features:</h3>
+                <ul class="space-y-8">
+                  <li class="flex items-start gap-6">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-wand-magic-sparkles text-sm text-primary-400"></i>
                     </div>
-                    <span><strong class="text-white">Natural Language Generation:</strong> Simply describe your vision in plain English, and watch as our AI transforms it into clean, professional code.</span>
+                    <div class="flex-1">
+                      <strong class="text-white block mb-2">Natural Language Generation</strong>
+                      <span class="text-gray-300">Simply describe your vision in plain English, and watch as our AI transforms it into clean, professional code.</span>
+                    </div>
                   </li>
-                  <li class="flex items-start">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                  <li class="flex items-start gap-6">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-code text-sm text-primary-400"></i>
                     </div>
-                    <span><strong class="text-white">Full-Stack Development:</strong> Generate both frontend and backend code, complete with database structures, API endpoints, and user interfaces.</span>
+                    <div class="flex-1">
+                      <strong class="text-white block mb-2">Full-Stack Development</strong>
+                      <span class="text-gray-300">Generate both frontend and backend code, complete with database structures, API endpoints, and user interfaces.</span>
+                    </div>
                   </li>
-                  <li class="flex items-start">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                  <li class="flex items-start gap-6">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-arrows-rotate text-sm text-primary-400"></i>
                     </div>
-                    <span><strong class="text-white">Iterative Refinement:</strong> Continuously refine and enhance your application through natural conversation with our AI.</span>
+                    <div class="flex-1">
+                      <strong class="text-white block mb-2">Iterative Refinement</strong>
+                      <span class="text-gray-300">Continuously refine and enhance your application through natural conversation with our AI.</span>
+                    </div>
                   </li>
-                  <li class="flex items-start">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                  <li class="flex items-start gap-6">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-shield-halved text-sm text-primary-400"></i>
                     </div>
-                    <span><strong class="text-white">Best Practices Built-in:</strong> Every generated application follows industry standards for security, performance, and maintainability.</span>
+                    <div class="flex-1">
+                      <strong class="text-white block mb-2">Best Practices Built-in</strong>
+                      <span class="text-gray-300">Every generated application follows industry standards for security, performance, and maintainability.</span>
+                    </div>
                   </li>
                 </ul>
               </div>
@@ -119,11 +135,14 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <!-- Vision cards with enhanced styling -->
               <div v-for="(item, index) in visionItems" :key="index"
-                   class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <i :class="['text-2xl text-primary-400', item.icon]"></i>
+                   class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500"
+              >
+                <div class="flex items-center mb-6">
+                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    <i :class="['text-2xl text-primary-400', item.icon]"></i>
+                  </div>
+                  <h3 class="ml-4 text-xl font-semibold text-white group-hover:text-primary-300 transition-colors">{{ item.title }}</h3>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-400 transition-colors">{{ item.title }}</h3>
                 <p class="text-gray-300">{{ item.description }}</p>
               </div>
             </div>
@@ -134,7 +153,7 @@
             <div class="text-center mb-16">
               <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Technology</GradientText>
             </div>
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/20 transition-all duration-500">
+            <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
               <div class="prose prose-invert max-w-none prose-p:text-gray-300">
                 <p class="text-lg">At the heart of Imagi lies a sophisticated AI system that understands context, requirements, and user intent. Our technology stack combines:</p>
                 
@@ -261,4 +280,33 @@ export default defineComponent({
 
 <style scoped>
 /* Remove all animation styles */
+
+/* Reset list styles */
+.prose ul {
+  padding-left: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.prose li {
+  padding-left: 0;
+  margin: 0;
+}
+
+/* Remove default bullet points */
+.prose li::before {
+  display: none !important;
+}
+
+/* Ensure proper spacing for flex items */
+.prose li.flex {
+  padding: 0;
+  margin: 0;
+}
+
+/* Extra spacing for nested content */
+.prose li > div {
+  margin-top: 0;
+  margin-bottom: 0;
+}
 </style>
