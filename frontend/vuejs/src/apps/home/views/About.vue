@@ -1,47 +1,71 @@
-<!-- About page -->
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-900">
-      <!-- Hero Section -->
-      <section class="relative min-h-[60vh] md:min-h-[50vh] flex items-center justify-center overflow-hidden py-12 md:py-20">
+      <!-- Hero Section - Updated spacing -->
+      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
         <!-- Background Effects -->
         <div class="absolute inset-0 bg-dark-900">
           <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
           <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
         </div>
 
-        <!-- Content -->
+        <!-- Content - Added responsive padding -->
         <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight mb-4 md:mb-6">
-            <span class="text-white block">About Imagi</span>
-            <GradientText variant="primary" class="font-bold block text-3xl sm:text-4xl lg:text-5xl">
-              Revolutionizing Web Development
-            </GradientText>
-          </h1>
-          <p class="text-base sm:text-lg lg:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto">
-            Transforming the way web applications are built through the power of natural language and AI.
-          </p>
+          <!-- Title section - Adjusted spacing -->
+          <div class="mb-8 sm:mb-10">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+              <span class="text-white block mb-2 sm:mb-3">About</span>
+              <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
+                Our Story
+              </GradientText>
+            </h1>
+            <p class="text-lg sm:text-xl text-gray-300 mb-12 sm:mb-16 max-w-2xl mx-auto">
+              We're pioneering the future of web development through AI-powered innovation and human-centric design.
+            </p>
+          </div>
+
+          <!-- Stats Grid - Added responsive gaps -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
+            <div v-for="(stat, index) in stats" :key="index"
+                 class="bg-dark-800/50 backdrop-blur-sm rounded-xl p-4 border border-dark-700/50"
+            >
+              <div class="text-2xl sm:text-3xl font-bold text-white mb-1">
+                {{ stat.value }}
+              </div>
+              <div class="text-sm text-gray-400">{{ stat.label }}</div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div class="max-w-4xl mx-auto px-4 py-8 md:py-16 relative">
-        <div class="space-y-8 md:space-y-16">
+      <!-- Main Content -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
+        <!-- Decorative background elements -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+          <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-20 transform rotate-45"></div>
+          <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-20 transform -rotate-45"></div>
+        </div>
+
+        <div class="space-y-24 relative">
           <!-- Mission Section -->
           <section>
-            <h2 class="text-3xl font-bold text-white mb-8 text-center">Our Mission</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+            <div class="text-center mb-16">
+              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Mission</GradientText>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
                   <i class="fas fa-bullseye text-2xl text-primary-400"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Democratizing Web Development</h3>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-400 transition-colors">Democratizing Web Development</h3>
                 <p class="text-gray-300">We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.</p>
               </div>
-              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              
+              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
                   <i class="fas fa-lightbulb text-2xl text-primary-400"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Innovation Through AI</h3>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-400 transition-colors">Innovation Through AI</h3>
                 <p class="text-gray-300">We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.</p>
               </div>
             </div>
@@ -49,8 +73,10 @@
 
           <!-- What We Do Section -->
           <section>
-            <h2 class="text-3xl font-bold text-white mb-8 text-center">What We Do</h2>
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/20 transition-all duration-300">
+            <div class="text-center mb-16">
+              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">What We Do</GradientText>
+            </div>
+            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/20 transition-all duration-500">
               <div class="prose prose-invert max-w-none prose-p:text-gray-300 prose-li:text-gray-300 prose-strong:text-white">
                 <p class="text-lg">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional web applications, making the development process more intuitive and efficient than ever before.</p>
                 
@@ -85,38 +111,30 @@
             </div>
           </section>
 
-          <!-- Our Vision Section -->
+          <!-- Vision Section -->
           <section>
-            <h2 class="text-3xl font-bold text-white mb-8 text-center">Our Vision</h2>
+            <div class="text-center mb-16">
+              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Vision</GradientText>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-rocket text-2xl text-primary-400"></i>
+              <!-- Vision cards with enhanced styling -->
+              <div v-for="(item, index) in visionItems" :key="index"
+                   class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-1">
+                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+                  <i :class="['text-2xl text-primary-400', item.icon]"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Future of Development</h3>
-                <p class="text-gray-300">We envision a world where the barrier between idea and implementation disappears, where creating sophisticated web applications is as natural as having a conversation.</p>
-              </div>
-              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-users text-2xl text-primary-400"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Empowering Creators</h3>
-                <p class="text-gray-300">We're building tools that empower individuals and teams to focus on creativity and innovation, rather than getting bogged down by technical complexities.</p>
-              </div>
-              <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group">
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-globe text-2xl text-primary-400"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Global Impact</h3>
-                <p class="text-gray-300">By making web development accessible to everyone, we're fostering a more inclusive digital future where anyone can contribute to the web's evolution.</p>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-400 transition-colors">{{ item.title }}</h3>
+                <p class="text-gray-300">{{ item.description }}</p>
               </div>
             </div>
           </section>
 
           <!-- Technology Section -->
           <section>
-            <h2 class="text-3xl font-bold text-white mb-8 text-center">Our Technology</h2>
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/20 transition-all duration-300">
+            <div class="text-center mb-16">
+              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Technology</GradientText>
+            </div>
+            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/20 transition-all duration-500">
               <div class="prose prose-invert max-w-none prose-p:text-gray-300">
                 <p class="text-lg">At the heart of Imagi lies a sophisticated AI system that understands context, requirements, and user intent. Our technology stack combines:</p>
                 
@@ -146,17 +164,43 @@
 
           <!-- Join Us Section -->
           <section>
-            <h2 class="text-3xl font-bold text-white mb-8 text-center">Join the Revolution</h2>
-            <div class="bg-gradient-to-r from-primary-600 to-primary-400 rounded-2xl p-6 md:p-8 text-center">
-              <h3 class="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">Ready to Transform Your Ideas into Reality?</h3>
-              <p class="text-white text-base md:text-lg mb-6 md:mb-8">Join thousands of creators who are already building the future with Imagi.</p>
-              <router-link
-                :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-                class="inline-flex items-center px-8 py-3 text-lg font-medium rounded-lg text-primary-600 bg-white hover:bg-gray-100 transition-all duration-300 transform hover:scale-[1.02]"
-              >
-                Start Building Today
-                <i class="fas fa-arrow-right ml-2"></i>
-              </router-link>
+            <div class="relative rounded-2xl overflow-hidden">
+              <!-- Gradient Background -->
+              <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-violet-600 to-purple-600"></div>
+              
+              <!-- Decorative Elements -->
+              <div class="absolute inset-0">
+                <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
+                <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full blur-[100px] opacity-30"></div>
+              </div>
+
+              <!-- Content -->
+              <div class="relative z-10 px-6 py-12 md:px-12 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+                  Ready to Transform Your
+                  <span class="bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent">
+                    Development Process?
+                  </span>
+                </h2>
+
+                <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
+                  Join thousands of developers building amazing applications
+                  <span class="font-semibold text-primary-200">10x faster</span> with AI.
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <HomeNavbarButton
+                    :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
+                    class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl border-2 border-white hover:border-primary-300 bg-white/10 hover:bg-white/20 transition-all duration-300"
+                  >
+                    <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
+                      Start Building Free
+                      <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+                    </span>
+                  </HomeNavbarButton>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -166,57 +210,55 @@
 </template>
 
 <script>
-import { DefaultLayout } from '@/shared/layouts'
-import { GradientText, HeroSection } from '@/apps/home/components'
+import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
-import { computed } from 'vue'
+import { DefaultLayout } from '@/shared/layouts'
+import { GradientText, HomeNavbarButton } from '@/apps/home/components'
 
-export default {
+export default defineComponent({
   name: 'About',
   components: {
     DefaultLayout,
     GradientText,
-    HeroSection
+    HomeNavbarButton
   },
   setup() {
     const authStore = useAuthStore()
     
+    const stats = [
+      { value: '10K+', label: 'Active Users' },
+      { value: '50K+', label: 'Apps Generated' },
+      { value: '99%', label: 'Success Rate' },
+      { value: '24/7', label: 'AI Support' }
+    ]
+    
+    const visionItems = [
+      {
+        title: 'Future of Development',
+        description: 'We envision a world where the barrier between idea and implementation disappears, where creating sophisticated web applications is as natural as having a conversation.',
+        icon: 'fas fa-rocket'
+      },
+      {
+        title: 'Empowering Creators',
+        description: "We're building tools that empower individuals and teams to focus on creativity and innovation, rather than getting bogged down by technical complexities.",
+        icon: 'fas fa-users'
+      },
+      {
+        title: 'Global Impact',
+        description: "By making web development accessible to everyone, we're fostering a more inclusive digital future where anyone can contribute to the web's evolution.",
+        icon: 'fas fa-globe'
+      }
+    ]
+    
     return {
-      isAuthenticated: computed(() => authStore.isAuthenticated)
+      isAuthenticated: computed(() => authStore.isAuthenticated),
+      stats,
+      visionItems
     }
   }
-}
+})
 </script>
 
-<style>
-/* Reset default prose list styles */
-.prose :where(ul):not(:where([class~="not-prose"] *)) {
-  padding-left: 0;
-  list-style-type: none;
-  margin: 0;
-}
-
-.prose :where(ul > li):not(:where([class~="not-prose"] *)) {
-  position: relative;
-  padding-left: 0;
-  margin-top: 1em;
-  margin-bottom: 1em;
-}
-
-/* Custom bullet point styling */
-.prose :where(ul > li):not(:where([class~="not-prose"] *))::before {
-  display: none;
-}
-
-/* Ensure proper spacing for nested content */
-.prose :where(ul > li > *):not(:where([class~="not-prose"] *)) {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-/* Specific spacing for feature list items */
-.prose ul.space-y-4 > li {
-  margin: 0;
-  padding: 0;
-}
+<style scoped>
+/* Remove all animation styles */
 </style>
