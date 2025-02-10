@@ -9,11 +9,11 @@ export default [{
       name: 'login',
       component: () => import('../views/Login.vue'),
       meta: {
-        title: 'Welcome Back',
-        subtitle: 'Sign in to continue to Imagi',
-        mainText: 'New to Imagi?',
+        title: 'Welcome to Imagi',
+        subtitle: 'Transform your ideas into full-stack applications',
+        mainText: 'Looking to create an account?',
         mainLinkPath: '/auth/register',
-        mainLinkText: 'Create an account'
+        mainLinkText: 'Sign up'
       }
     },
     {
@@ -21,8 +21,8 @@ export default [{
       name: 'register',
       component: Register,
       meta: {
-        title: 'Create Account',
-        subtitle: 'Join Imagi and start building',
+        title: 'Join Imagi Today',
+        subtitle: 'Start building your next great idea',
         mainText: 'Already have an account?',
         mainLinkPath: '/auth/login',
         mainLinkText: 'Sign in'

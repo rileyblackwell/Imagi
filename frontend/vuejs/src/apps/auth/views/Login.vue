@@ -1,28 +1,30 @@
 <template>
-  <div class="space-y-5 sm:space-y-6">
-    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-5">
+  <div class="space-y-6">
+    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-6">
       <FormInput
         name="username"
         label="Username"
         icon="fas fa-user"
         rules="required|username"
-        placeholder="Enter username"
+        placeholder="Enter your username"
         :disabled="authStore.isLoading"
         :showError="submitCount > 0"
+        class="auth-input"
       />
 
       <PasswordInput
         name="password"
         v-model="password"
-        placeholder="Enter password"
+        placeholder="Enter your password"
         :disabled="authStore.isLoading"
         required
+        class="auth-input"
       />
 
       <!-- Server Error Message -->
       <div v-if="serverError" 
-           class="p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-        <p class="text-xs sm:text-sm font-medium text-red-400 text-center">
+           class="p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
+        <p class="text-sm font-medium text-red-400 text-center">
           {{ serverError }}
         </p>
       </div>
@@ -32,12 +34,13 @@
         :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
         :loading="authStore.isLoading"
         loading-text="Signing in..."
+        class="w-full py-3 text-sm font-medium"
       >
         Sign In
       </GradientButton>
     </Form>
 
-    <AuthLinks />
+    <AuthLinks class="pt-2" />
   </div>
 </template>
 
