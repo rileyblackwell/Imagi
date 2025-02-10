@@ -2,36 +2,46 @@
   <div>
     <label v-if="label" :for="id" class="sr-only">{{ label }}</label>
     <div class="relative group">
-      <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-4">
         <i class="fas fa-lock text-gray-400 group-hover:text-primary-400 transition-colors"></i>
       </span>
       <input
         :id="id"
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
-        :type="showPassword ? 'text' : 'password'"
+        :type="inputType"
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
-        class="appearance-none rounded-lg relative block w-full pl-10 pr-10 py-3 border border-dark-700
-               bg-dark-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2
-               focus:ring-primary-500 focus:border-transparent disabled:opacity-50
-               disabled:cursor-not-allowed transition-all duration-300 ease-in-out
-               group-hover:bg-dark-700"
+        class="w-full py-3.5 pl-11 pr-10 bg-dark-800 border border-dark-700 rounded-xl 
+               text-white placeholder-gray-500 outline-none focus:ring-0
+               focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed 
+               transition-all duration-500 ease-out hover:border-primary-400/50
+               hover:bg-dark-800/80"
       >
       <button
         type="button"
-        @click="showPassword = !showPassword"
-        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 
-               hover:text-white transition-colors duration-300"
+        @click="togglePassword"
+        class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 
+               hover:text-primary-400 transition-colors duration-300"
       >
-        <i :class="['fas', showPassword ? 'fa-eye-slash' : 'fa-eye']"></i>
+        <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']"></i>
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
+
+const isVisible = ref(false)
+
+const togglePassword = () => {
+  isVisible.value = !isVisible.value
+}
+
+const inputType = computed(() => isVisible.value ? 'text' : 'password')
+
 defineProps({
   modelValue: {
     type: String,

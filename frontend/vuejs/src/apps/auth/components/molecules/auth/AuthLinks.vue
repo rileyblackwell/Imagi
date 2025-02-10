@@ -12,16 +12,27 @@
 
     <!-- Links Section -->
     <div class="text-center space-y-4 sm:space-y-6">
-      <!-- Register Link -->
+      <!-- Alternate Auth Action -->
       <div>
         <p class="text-gray-300 text-sm sm:text-base">
-          New to Imagi?
-          <router-link 
-            to="/auth/register" 
-            class="text-primary-400 hover:text-primary-300 font-medium transition-colors duration-300"
-          >
-            Create an account
-          </router-link>
+          <template v-if="isLoginPage">
+            New to Imagi?
+            <router-link 
+              to="/auth/register" 
+              class="text-primary-400 hover:text-primary-300 font-medium transition-colors duration-300"
+            >
+              Create an account
+            </router-link>
+          </template>
+          <template v-else>
+            Already have an account?
+            <router-link 
+              to="/auth/login" 
+              class="text-primary-400 hover:text-primary-300 font-medium transition-colors duration-300"
+            >
+              Sign in here
+            </router-link>
+          </template>
         </p>
       </div>
 
@@ -40,5 +51,9 @@
 </template>
 
 <script setup>
-// Component is now stateless, no script needed
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isLoginPage = computed(() => route.path === '/auth/login')
 </script>
