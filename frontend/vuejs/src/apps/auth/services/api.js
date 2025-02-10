@@ -176,17 +176,5 @@ export const AuthAPI = {
     } finally {
       logoutPromise = null
     }
-  },
-
-  async getCurrentUser() {
-    try {
-      const response = await axios.get(`${BASE_URL}/me/`, {
-        withCredentials: true
-      })
-      return response
-    } catch (error) {
-      console.error('Get user error:', error)
-      throw error
-    }
   }
 }

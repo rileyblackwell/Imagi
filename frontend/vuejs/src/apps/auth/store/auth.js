@@ -152,6 +152,30 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   actions: {
+    async initAuth() {
+      if (!localStorage.getItem('token')) {
+        return
+      }
+
+      try {
+        this.isLoading = true
+        // Instead of calling /me endpoint, we'll use the init endpoint
+        const response = await axios.get('/api/v1/auth/init/')
+        if (response.data.isAuthenticated) {
+          this.user = response.data.user
+          this.isAuthenticated = true
+        } else {
+          // If not authenticated, clear any stale data
+          this.logout()
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth:', error)
+        this.logout()
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     async register(userData) {
       this.isLoading = true
       try {

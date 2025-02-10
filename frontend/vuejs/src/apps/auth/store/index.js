@@ -25,10 +25,13 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         this.isLoading = true
-        // Use the correct endpoint
-        const response = await AuthAPI.getCurrentUser()
-        this.user = response.data
-        this.isAuthenticated = true
+        const response = await axios.get('/api/v1/auth/init/')
+        if (response.data.isAuthenticated) {
+          this.user = response.data.user
+          this.isAuthenticated = true
+        } else {
+          this.logout()
+        }
       } catch (error) {
         console.error('Failed to initialize auth:', error)
         this.logout()
@@ -103,20 +106,6 @@ export const useAuthStore = defineStore('auth', {
         return response
       } catch (error) {
         console.error('Failed to update user:', error)
-        throw error
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    async refreshUser() {
-      try {
-        this.isLoading = true
-        const response = await AuthAPI.getCurrentUser()
-        this.user = response.data
-        return response
-      } catch (error) {
-        console.error('Failed to refresh user:', error)
         throw error
       } finally {
         this.isLoading = false
