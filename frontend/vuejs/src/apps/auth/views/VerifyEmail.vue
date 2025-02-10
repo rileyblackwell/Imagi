@@ -34,7 +34,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore } from '@/apps/auth/store'
+import { AuthHeader } from '@/apps/auth/components'
 
 const route = useRoute()
 const router = useRouter()

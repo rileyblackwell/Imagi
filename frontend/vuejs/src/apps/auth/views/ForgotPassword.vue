@@ -101,53 +101,27 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
-import EmailInput from '../components/EmailInput.vue'
+import { EmailInput } from '@/apps/auth/components'
 
-const authStore = useAuthStore()
-const email = ref('')
-const loading = ref(false)
-const error = ref('')
-const success = ref(false)
-
-const isValidEmail = computed(() => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email.value)
-})
-
-async function handleSubmit() {
-  if (!isValidEmail.value) {
-    error.value = 'Please enter a valid email address'
-    return
-  }
-
-  loading.value = true
-  error.value = ''
-  
-  try {
-    await authStore.requestPasswordReset(email.value)
-    success.value = true
-  } catch (err) {
-    error.value = err.message || 'Failed to send reset email. Please try again.'
-  } finally {
-    loading.value = false
-  }
-}
+// ...existing code...
 </script>
 
 <style scoped>
 /* Transitions */
 .transition-colors {
-  @apply transition-all duration-200 ease-in-out;
+  transition: all 200ms ease-in-out;
 }
 
 /* Custom focus styles */
 input:focus {
-  @apply ring-2 ring-primary-500 border-transparent;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-primary-500);
 }
 
 /* Button hover effect */
 button:not(:disabled):hover {
-  @apply transform scale-[1.02] transition-transform duration-200;
+  transform: scale(1.02);
+  transition: transform 200ms;
 }
 
 /* Success icon animation */
@@ -165,4 +139,4 @@ button:not(:disabled):hover {
 .success-icon {
   animation: fadeInScale 0.3s ease-out forwards;
 }
-</style> 
+</style>

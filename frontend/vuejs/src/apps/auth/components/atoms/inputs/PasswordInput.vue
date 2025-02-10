@@ -30,8 +30,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-
 defineProps({
   modelValue: {
     type: String,
@@ -60,6 +58,4 @@ defineProps({
 })
 
 defineEmits(['update:modelValue'])
-
-const showPassword = ref(false)
-</script> 
+</script>

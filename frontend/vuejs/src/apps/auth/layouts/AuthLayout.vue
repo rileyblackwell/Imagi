@@ -31,7 +31,7 @@
 
 <script setup>
 import { DefaultLayout } from '@/shared/layouts'
-import AuthLinks from '../components/AuthLinks.vue'
+import { AuthLinks, AuthHeader } from '@/apps/auth/components'
 </script>
 
 <style>

@@ -87,7 +87,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
 import { useNotificationsStore } from '../store/notifications'
-import FormInput from '@/components/common/FormInput.vue'
+import { PasswordInput, PasswordRequirements } from '@/apps/auth/components'
 import BaseButton from '@/components/common/BaseButton.vue'
 
 const authStore = useAuthStore()
@@ -218,7 +218,7 @@ const handleSubmit = async () => {
 .password-requirements h4 {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
+  color: var (--color-text);
   margin-bottom: var(--spacing-md);
 }
 
@@ -256,4 +256,4 @@ const handleSubmit = async () => {
 .form-actions {
   margin-top: var(--spacing-xl);
 }
-</style> 
+</style>

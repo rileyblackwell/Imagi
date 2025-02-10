@@ -39,7 +39,7 @@
           name="password"
           type="password"
           autocomplete="current-password"
-          rules="required|password"
+          :rules="passwordRules"
           :validateOnInput="false"
           v-slot="{ field, errorMessage }"
         >
@@ -85,6 +85,10 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form, Field, ErrorMessage } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
+import { EmailInput, PasswordInput } from '@/apps/auth/components'
+
+// Change the validation rule for password field
+const passwordRules = 'required' // Remove the |password part since we don't need password validation on login
 
 const router = useRouter()
 const route = useRoute()

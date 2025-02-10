@@ -3,8 +3,8 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-// Import validation plugin (update path)
-import '@/apps/auth/plugins/validation'
+// Import validation plugin
+import { validationPlugin } from '@/apps/auth/plugins/validation'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
@@ -52,6 +52,7 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
 // Create Vue app instance
 const app = createApp(App)
+const pinia = createPinia()
 
 // Add global properties
 app.config.globalProperties.$axios = axios
@@ -75,8 +76,9 @@ app.config.errorHandler = (error, vm, info) => {
 }
 
 // Use plugins
-app.use(createPinia())
+app.use(pinia)
 app.use(router)
+app.use(validationPlugin) // Use the plugin with install function
 
 // Register global components
 app.component('font-awesome-icon', FontAwesomeIcon)

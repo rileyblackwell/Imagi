@@ -174,11 +174,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Form, Field, ErrorMessage } from 'vee-validate'
+import { Form, Field, ErrorMessage, defineRule } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
-import { defineRule } from 'vee-validate'
+import { EmailInput, PasswordInput, PasswordRequirements } from '@/apps/auth/components'
 
-// Define custom rules
+// Define custom validation rule
 defineRule('confirmed', (value, [target]) => {
   if (value === target) {
     return true;

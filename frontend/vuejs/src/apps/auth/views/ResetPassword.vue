@@ -2,8 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store'
-import PasswordInput from '../components/PasswordInput.vue'
-import PasswordRequirements from '../components/PasswordRequirements.vue'
+import { PasswordInput, PasswordRequirements } from '@/apps/auth/components'
 
 const route = useRoute()
 const router = useRouter()
@@ -209,4 +208,4 @@ async function handleSubmit() {
 .auth-footer a:hover {
   text-decoration: underline;
 }
-</style> 
+</style>
