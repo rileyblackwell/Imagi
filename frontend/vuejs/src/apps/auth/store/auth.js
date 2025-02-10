@@ -156,8 +156,18 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       try {
         const response = await AuthAPI.register(userData)
-        this.user = response.data.user
-        this.isAuthenticated = true
+        
+        // Handle successful registration
+        if (response.data) {
+          this.isAuthenticated = true
+          this.user = response.data.user || null
+          
+          // Check if token exists before setting it
+          if (response.data.token) {
+            localStorage.setItem('token', response.data.token)
+          }
+        }
+        
         return response.data
       } catch (error) {
         throw error

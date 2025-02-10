@@ -129,23 +129,19 @@ export const AuthAPI = {
     try {
       await this.ensureCSRFToken()
       
-      const response = await axios.post(`${BASE_URL}/register/`, {
-        username: userData.username,
-        email: userData.email,
-        password: userData.password,
-        password_confirmation: userData.password_confirmation
-      }, {
-        withCredentials: true
+      const response = await axios.post(`${BASE_URL}/register/`, userData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token)
-        axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
-      }
-      
+      // Return full response to let store handle the data
       return response
     } catch (error) {
-      console.error('Registration error:', error.response?.data || error)
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
       throw error
     }
   },

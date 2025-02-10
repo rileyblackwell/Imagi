@@ -1,15 +1,15 @@
 <template>
-  <div class="space-y-6">
-    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-6">
+  <div class="space-y-5">
+    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-5">
       <FormInput
         name="username"
         label="Username"
         icon="fas fa-user"
-        rules="required|username"
+        rules="required"
         placeholder="Enter your username"
         :disabled="authStore.isLoading"
         :showError="submitCount > 0"
-        class="auth-input"
+        class="auth-input min-h-[42px]"
       />
 
       <PasswordInput
@@ -18,26 +18,28 @@
         placeholder="Enter your password"
         :disabled="authStore.isLoading"
         required
-        class="auth-input"
+        class="auth-input min-h-[42px]"
       />
 
-      <!-- Server Error Message -->
-      <div v-if="serverError" 
-           class="p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
-        <p class="text-sm font-medium text-red-400 text-center">
-          {{ serverError }}
-        </p>
-      </div>
+      <!-- Error and button container -->
+      <div class="space-y-5 pt-2">
+        <div v-if="serverError" 
+             class="p-3 bg-red-500/5 border border-red-500/10 rounded-xl">
+          <p class="text-sm font-medium text-red-400 text-center">
+            {{ serverError }}
+          </p>
+        </div>
 
-      <GradientButton
-        type="submit"
-        :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
-        :loading="authStore.isLoading"
-        loading-text="Signing in..."
-        class="w-full py-3 text-sm font-medium"
-      >
-        Sign In
-      </GradientButton>
+        <GradientButton
+          type="submit"
+          :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
+          :loading="authStore.isLoading"
+          loading-text="Signing in..."
+          class="w-full py-3 text-sm font-medium"
+        >
+          Sign In
+        </GradientButton>
+      </div>
     </Form>
 
     <AuthLinks class="pt-2" />

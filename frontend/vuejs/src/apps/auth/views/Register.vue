@@ -1,74 +1,93 @@
 <template>
-  <div class="space-y-6">
-    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-6">
-      <FormInput
-        name="username"
-        label="Username"
-        icon="fas fa-user"
-        rules="required|username"
-        placeholder="Create a username"
-        :disabled="authStore.isLoading"
-        :showError="submitCount > 0"
-      />
-
-      <FormInput
-        name="email"
-        label="Email"
-        icon="fas fa-envelope"
-        rules="required|email"
-        placeholder="Enter your email"
-        :disabled="authStore.isLoading"
-        :showError="submitCount > 0"
-        v-model="formData.email"
-      />
-
-      <div class="space-y-4">
-        <PasswordInput
-          name="password"
-          v-model="formData.password"
-          placeholder="Create password"
+  <div class="space-y-5">
+    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-5">
+      <!-- Top row - full width fields -->
+      <div class="space-y-5">
+        <FormInput
+          name="username"
+          label="Username"
+          icon="fas fa-user"
+          rules="required"
+          placeholder="Create a username"
           :disabled="authStore.isLoading"
-          required
+          :showError="submitCount > 0"
+          class="min-h-[42px]"
         />
-        <PasswordRequirements 
-          :password="formData.password"
-          ref="passwordRequirements"
+
+        <FormInput
+          name="email"
+          label="Email"
+          icon="fas fa-envelope"
+          rules="required|email"
+          placeholder="Enter your email"
+          :disabled="authStore.isLoading"
+          :showError="submitCount > 0"
+          v-model="formData.email"
+          class="min-h-[42px]"
         />
       </div>
 
-      <PasswordInput
-        name="password_confirmation"
-        v-model="formData.passwordConfirmation"
-        placeholder="Confirm password"
-        :disabled="authStore.isLoading"
-        required
-      />
+      <!-- Password section with full-width requirements -->
+      <div class="space-y-4">
+        <!-- Password inputs stacked vertically -->
+        <div class="space-y-5">
+          <PasswordInput
+            name="password"
+            v-model="formData.password"
+            placeholder="Create password"
+            :disabled="authStore.isLoading"
+            required
+            class="min-h-[42px]"
+          />
 
-      <FormCheckbox name="agreeToTerms" :disabled="authStore.isLoading">
-        I agree to the 
-        <router-link to="/terms" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
-          Terms of Service
-        </router-link>
-        and
-        <router-link to="/privacy" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
-          Privacy Policy
-        </router-link>
-      </FormCheckbox>
+          <PasswordInput
+            name="password_confirmation"
+            v-model="formData.passwordConfirmation"
+            placeholder="Confirm password"
+            :disabled="authStore.isLoading"
+            required
+            class="min-h-[42px]"
+          />
+        </div>
 
-      <!-- Server Error Message -->
-      <div v-if="serverError" 
-           class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-        <p class="text-sm font-medium text-red-400 text-center">{{ serverError }}</p>
+        <!-- Password requirements with simplified styling -->
+        <div class="px-4 py-3 bg-dark-800/50 rounded-lg border border-dark-700/50">
+          <PasswordRequirements 
+            :password="formData.password || ''"
+            ref="passwordRequirements"
+            class="text-sm"
+          />
+        </div>
       </div>
 
-      <GradientButton
-        type="submit"
-        :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
-        :loading="authStore.isLoading"
-        loading-text="Creating account..."
-      >
-        Create Account
-      </GradientButton>
+      <!-- Bottom section - full width -->
+      <div class="space-y-5 pt-2">
+        <FormCheckbox name="agreeToTerms" :disabled="authStore.isLoading">
+          I agree to the 
+          <router-link to="/terms" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
+            Terms of Service
+          </router-link>
+          and
+          <router-link to="/privacy" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
+            Privacy Policy
+          </router-link>
+        </FormCheckbox>
+
+        <div v-if="serverError" 
+             class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <p class="text-sm font-medium text-red-400 text-center">{{ serverError }}</p>
+        </div>
+
+        <GradientButton
+          type="submit"
+          :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
+          :loading="authStore.isLoading"
+          loading-text="Creating account..."
+          class="w-full"
+        >
+          Create Account
+        </GradientButton>
+      </div>
     </Form>
 
     <AuthLinks />
@@ -101,6 +120,10 @@ const formData = reactive({
   passwordConfirmation: ''
 })
 
+defineOptions({
+  name: 'Register'
+})
+
 const handleSubmit = async (values) => {
   if (!passwordRequirements.value?.isValid) {
     serverError.value = 'Please ensure your password meets all requirements.'
@@ -110,24 +133,33 @@ const handleSubmit = async (values) => {
   serverError.value = ''
   
   try {
-    const result = await authStore.register({
-      ...values,
-      email: formData.email,
+    const registerData = {
+      username: values.username?.trim(),
+      email: (values.email || formData.email)?.trim(),
       password: formData.password,
       password_confirmation: formData.passwordConfirmation
-    })
+    }
+
+    const result = await authStore.register(registerData)
     
-    if (result?.requiresVerification) {
-      await router.push({
-        name: 'verify-email',
-        query: { email: formData.email }
-      })
+    // Check if we have a result before trying to access properties
+    if (result) {
+      if (result.requiresVerification) {
+        await router.push({
+          name: 'verify-email',
+          query: { email: registerData.email }
+        })
+      } else {
+        await router.push('/')
+      }
     } else {
-      await router.push('/')
+      throw new Error('Registration failed')
     }
   } catch (error) {
     console.error('Registration error:', error)
-    serverError.value = error.response?.data?.error || 'Registration failed. Please try again.'
+    serverError.value = error.response?.data?.detail || 
+                       error.message || 
+                       'Registration failed. Please try again.'
   }
 }
 </script>

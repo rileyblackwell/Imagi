@@ -1,5 +1,3 @@
-import Register from '../views/Register.vue'
-
 export default [{
   path: '/auth',
   component: () => import('../layouts/AuthLayout.vue'),
@@ -19,7 +17,7 @@ export default [{
     {
       path: 'register',
       name: 'register',
-      component: Register,
+      component: () => import('../views/Register.vue'),  // Changed to dynamic import
       meta: {
         title: 'Join Imagi Today',
         subtitle: 'Start building your next great idea',
