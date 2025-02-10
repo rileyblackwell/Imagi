@@ -19,25 +19,13 @@ export default [{
     {
       path: 'register',
       name: 'register',
-      component: Register, // Changed to direct import instead of lazy loading
+      component: Register,
       meta: {
         title: 'Create Account',
         subtitle: 'Join Imagi and start building',
         mainText: 'Already have an account?',
         mainLinkPath: '/auth/login',
         mainLinkText: 'Sign in'
-      }
-    },
-    {
-      path: 'verify-email/:key',
-      name: 'verify-email',
-      component: () => import('../views/VerifyEmail.vue'),
-      meta: {
-        title: 'Verify Email',
-        subtitle: 'Confirming your email address',
-        mainText: 'Need help?',
-        mainLinkPath: '/contact',
-        mainLinkText: 'Contact Support'
       }
     }
   ]

@@ -1,7 +1,5 @@
 import axios from 'axios'
-import config from '@/shared/config'
 
-// Update the base URL to include v1
 const BASE_URL = '/api/v1/auth'
 
 // Helper function to get CSRF token from cookies
@@ -92,7 +90,6 @@ export const AuthAPI = {
       const response = await axios.get(`${BASE_URL}/csrf/`, {
         withCredentials: true
       })
-      // The CSRF token is automatically set in cookies by the response
       return response
     } catch (error) {
       console.error('Failed to get CSRF token:', error)
@@ -110,14 +107,12 @@ export const AuthAPI = {
 
   async login(credentials) {
     try {
-      // Ensure we have a CSRF token
       await this.ensureCSRFToken()
       
       const response = await axios.post(`${BASE_URL}/login/`, credentials, {
         withCredentials: true
       })
       
-      // Set token in localStorage and axios headers
       if (response.data.token) {
         localStorage.setItem('token', response.data.token)
         axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
@@ -132,19 +127,17 @@ export const AuthAPI = {
 
   async register(userData) {
     try {
-      // Ensure we have a CSRF token
       await this.ensureCSRFToken()
       
       const response = await axios.post(`${BASE_URL}/register/`, {
         username: userData.username,
         email: userData.email,
         password: userData.password,
-        password_confirmation: userData.password_confirmation // This matches the backend serializer
+        password_confirmation: userData.password_confirmation
       }, {
         withCredentials: true
       })
       
-      // Set token in localStorage and axios headers
       if (response.data.token) {
         localStorage.setItem('token', response.data.token)
         axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
@@ -158,7 +151,6 @@ export const AuthAPI = {
   },
 
   async logout() {
-    // Return existing promise if logout is in progress
     if (logoutPromise) {
       return logoutPromise
     }
@@ -169,7 +161,6 @@ export const AuthAPI = {
       })
       const response = await logoutPromise
       
-      // Clear token from localStorage and axios headers
       localStorage.removeItem('token')
       delete axios.defaults.headers.common['Authorization']
       
@@ -178,7 +169,7 @@ export const AuthAPI = {
       console.error('Logout error:', error)
       throw error
     } finally {
-      logoutPromise = null  // Reset the promise
+      logoutPromise = null
     }
   },
 
@@ -190,73 +181,6 @@ export const AuthAPI = {
       return response
     } catch (error) {
       console.error('Get user error:', error)
-      throw error
-    }
-  },
-
-  async updateUser(userData) {
-    try {
-      // Ensure we have a CSRF token
-      await this.ensureCSRFToken()
-      
-      const response = await axios.patch(`${BASE_URL}/me/`, userData, {
-        withCredentials: true
-      })
-      return response
-    } catch (error) {
-      console.error('Update user error:', error)
-      throw error
-    }
-  },
-
-  async resetPassword(email) {
-    try {
-      // Ensure we have a CSRF token
-      await this.ensureCSRFToken()
-      
-      const response = await axios.post(`${BASE_URL}/password/reset/`, { email }, {
-        withCredentials: true
-      })
-      return response
-    } catch (error) {
-      console.error('Reset password error:', error)
-      throw error
-    }
-  },
-
-  async confirmPasswordReset(data) {
-    try {
-      // Ensure we have a CSRF token
-      await this.ensureCSRFToken()
-      
-      const response = await axios.post(`${BASE_URL}/password/reset/confirm/`, {
-        uid: data.uid,
-        token: data.token,
-        new_password: data.newPassword
-      }, {
-        withCredentials: true
-      })
-      return response
-    } catch (error) {
-      console.error('Confirm password reset error:', error)
-      throw error
-    }
-  },
-
-  async changePassword(data) {
-    try {
-      // Ensure we have a CSRF token
-      await this.ensureCSRFToken()
-      
-      const response = await axios.post(`${BASE_URL}/change-password/`, {
-        old_password: data.oldPassword,
-        new_password: data.newPassword
-      }, {
-        withCredentials: true
-      })
-      return response
-    } catch (error) {
-      console.error('Change password error:', error)
       throw error
     }
   }

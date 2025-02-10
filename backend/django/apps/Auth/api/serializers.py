@@ -1,9 +1,7 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model, authenticate
 from allauth.account.adapter import get_adapter
-from allauth.account.utils import setup_user_email, user_email as email_address_exists
+from allauth.account.utils import setup_user_email
 from allauth.account import app_settings as allauth_settings
 from allauth.account.models import EmailAddress
 
@@ -86,33 +84,3 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'error': str(e)
             })
-
-class PasswordResetRequestSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
-
-    def validate_email(self, value):
-        if not User.objects.filter(email=value).exists():
-            # Don't reveal whether a user exists
-            pass
-        return value
-
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    token = serializers.CharField(required=True)
-    uid = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True, validators=[validate_password])
-    new_password_confirm = serializers.CharField(required=True)
-
-    def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({"new_password_confirm": "Password fields didn't match."})
-        return attrs
-
-class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True, validators=[validate_password])
-    new_password_confirm = serializers.CharField(required=True)
-
-    def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({"new_password_confirm": "Password fields didn't match."})
-        return attrs
