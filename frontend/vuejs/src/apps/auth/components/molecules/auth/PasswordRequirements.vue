@@ -1,14 +1,18 @@
 <template>
-  <div class="rounded-md bg-dark-700 p-4">
-    <h4 class="text-sm font-medium text-white mb-2">Password Requirements:</h4>
-    <ul class="space-y-1">
+  <div class="rounded-xl bg-dark-800/50 backdrop-blur-sm p-4 border border-dark-700">
+    <h4 class="text-sm font-medium text-white mb-3">Password Requirements:</h4>
+    <ul class="space-y-2">
       <li 
         v-for="(requirement, index) in requirements" 
         :key="index"
-        :class="{ 'text-green-500': requirement.met, 'text-gray-400': !requirement.met }" 
-        class="text-sm flex items-center"
+        class="text-sm flex items-center transition-colors duration-300"
+        :class="{ 'text-green-400': requirement.met, 'text-gray-400': !requirement.met }" 
       >
-        <i :class="['fas', requirement.met ? 'fa-check text-green-500' : 'fa-times text-gray-400', 'mr-2']"></i>
+        <i :class="[
+          'fas',
+          requirement.met ? 'fa-check text-green-400' : 'fa-times text-gray-400',
+          'mr-2 w-4 transition-all duration-300'
+        ]"></i>
         {{ requirement.text }}
       </li>
     </ul>
@@ -52,4 +56,4 @@ const requirements = computed(() => [
 defineExpose({
   isValid: computed(() => requirements.value.every(req => req.met))
 })
-</script> 
+</script>

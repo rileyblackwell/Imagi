@@ -1,8 +1,8 @@
 <template>
   <div class="text-center mb-8">
-    <div class="brand-header">
-      <div class="logo-container">
-        <h1 class="text-3xl font-bold text-white">
+    <div class="brand-header mb-6">
+      <div class="logo-container inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-primary-500/10 to-violet-500/10 border border-primary-500/20 mb-6">
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
           Imagi
         </h1>
       </div>
@@ -26,4 +26,4 @@ export default {
     }
   }
 }
-</script> 
+</script>

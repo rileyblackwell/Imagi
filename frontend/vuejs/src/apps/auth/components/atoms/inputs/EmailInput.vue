@@ -3,7 +3,7 @@
     <label v-if="label" :for="id" class="sr-only">{{ label }}</label>
     <div class="relative">
       <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-        <i class="fas fa-envelope text-gray-400"></i>
+        <i class="fas fa-envelope text-gray-400 group-hover:text-primary-400 transition-colors"></i>
       </span>
       <input
         :id="id"
@@ -14,9 +14,10 @@
         :required="required"
         :disabled="disabled"
         class="appearance-none rounded-lg relative block w-full pl-10 py-3 border border-dark-700
-               bg-dark-900 text-white placeholder-gray-400 focus:outline-none focus:ring-2
+               bg-dark-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2
                focus:ring-primary-500 focus:border-transparent disabled:opacity-50
-               disabled:cursor-not-allowed"
+               disabled:cursor-not-allowed transition-all duration-300 ease-in-out
+               group-hover:bg-dark-700"
       >
     </div>
   </div>
@@ -51,4 +52,4 @@ defineProps({
 })
 
 defineEmits(['update:modelValue'])
-</script> 
+</script>
