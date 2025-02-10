@@ -1,15 +1,13 @@
 <!-- Auth Layout -->
 <template>
   <DefaultLayout>
-    <!-- Changed to min-h-screen to ensure content fills viewport -->
-    <div class="min-h-screen flex flex-col">
-      <!-- Main content area with padding for nav and footer -->
-      <main class="flex-1 w-full overflow-x-hidden">
-        <!-- Content wrapper with proper spacing -->
-        <div class="flex min-h-[calc(100vh-theme(spacing.16))] items-center justify-center 
-                    px-4 py-16 pt-28 sm:pt-32 bg-dark-900 relative">
-          <!-- Fixed background -->
-          <div class="fixed inset-0 w-full overflow-hidden">
+    <!-- Changed structure to ensure footer appears at bottom -->
+    <div class="w-full min-h-screen bg-dark-900">
+      <!-- Content wrapper with proper spacing -->
+      <div class="flex min-h-screen w-full">
+        <div class="w-full flex items-center justify-center px-4 py-16 pt-28 sm:pt-32 relative">
+          <!-- Background Elements -->
+          <div class="fixed inset-0">
             <!-- Base gradient -->
             <div class="absolute inset-0 bg-gradient-to-br from-primary-400/30 via-dark-900 to-violet-400/30"></div>
           
@@ -65,7 +63,7 @@
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   </DefaultLayout>
 </template>

@@ -1,7 +1,16 @@
 <!-- Base layout - Root wrapper for all layouts -->
 <template>
-  <div class="min-h-screen bg-dark-950 font-sans antialiased text-white selection:bg-primary-500/20">
-    <slot></slot>
+  <div class="flex flex-col min-h-screen bg-dark-900">
+    <!-- Custom scrollbar and focus styles using arbitrary values -->
+    <div class="overflow-auto
+                [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 
+                [&::-webkit-scrollbar-track]:bg-dark-900
+                [&::-webkit-scrollbar-thumb]:bg-dark-700 [&::-webkit-scrollbar-thumb]:rounded
+                [&::-webkit-scrollbar-thumb:hover]:bg-dark-800
+                [&_*:focus-visible]:outline-2 [&_*:focus-visible]:outline-primary-500 [&_*:focus-visible]:outline-offset-2
+                [scrollbar-width]:thin [scrollbar-color]:dark-700_dark-900">
+      <slot></slot>
+    </div>
   </div>
 </template>
 
@@ -10,27 +19,3 @@ export default {
   name: 'BaseLayout'
 }
 </script>
-
-<style>
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  @apply w-2 h-2;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-dark-900;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-dark-700 rounded;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-dark-800;
-}
-
-/* Focus styles */
-*:focus-visible {
-  @apply outline-2 outline-primary-500 outline-offset-2;
-}
-</style> 

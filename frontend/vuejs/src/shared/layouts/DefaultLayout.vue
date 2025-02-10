@@ -5,7 +5,7 @@
     <BaseNavbar v-else />
 
     <!-- Main Content with Transition -->
-    <main class="flex-grow relative">
+    <main class="flex-1 relative">
       <transition
         name="page"
         mode="out-in"
@@ -23,7 +23,7 @@
     </main>
 
     <!-- Footer -->
-    <BaseFooter />
+    <BaseFooter class="z-10 relative" />
   </BaseLayout>
 </template>
 
