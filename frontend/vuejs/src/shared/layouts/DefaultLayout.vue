@@ -1,4 +1,3 @@
-<!-- Default layout for public pages -->
 <template>
   <BaseLayout>
     <!-- Header -->
@@ -6,7 +5,7 @@
     <BaseNavbar v-else />
 
     <!-- Main Content with Transition -->
-    <main class="flex-grow">
+    <main class="flex-grow relative">
       <transition
         name="page"
         mode="out-in"
@@ -29,6 +28,7 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
 import { BaseLayout } from './index'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
 import { HomeNavbar } from '@/apps/home/components'
@@ -48,15 +48,24 @@ export default {
       default: false
     }
   },
-  computed: {
-    currentYear() {
-      return new Date().getFullYear()
-    }
+  setup() {
+    const isEntered = ref(false)
+
+    onMounted(() => {
+      // Set isEntered to true after mount to trigger initial animation
+      setTimeout(() => {
+        isEntered.value = true
+      }, 100)
+    })
+
+    return { isEntered }
   },
   methods: {
     beforeEnter(el) {
-      el.style.opacity = 0
-      el.style.transform = 'translateY(10px)'
+      gsap.set(el, {
+        opacity: 0,
+        y: 10
+      })
     },
     enter(el, done) {
       gsap.to(el, {
@@ -95,14 +104,15 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .page-enter-active,
 .page-leave-active {
-  @apply transition-all duration-300 ease-out;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .page-enter-from,
 .page-leave-to {
-  @apply opacity-0 translate-y-2;
+  opacity: 0;
+  transform: translateY(10px);
 }
-</style> 
+</style>
