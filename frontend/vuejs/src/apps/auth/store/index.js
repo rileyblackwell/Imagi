@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { AuthAPI } from '../services/api'
+import { useRouter } from 'vue-router'  // Import useRouter
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -89,6 +90,8 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = false
         localStorage.removeItem('token')
         this.isLoggingOut = false
+        // Force navigation to home page
+        window.location.href = '/'
       }
     },
 

@@ -71,7 +71,7 @@ const setupAxiosInterceptors = () => {
       if (error.response?.status === 401) {
         localStorage.removeItem('token')
         delete axios.defaults.headers.common['Authorization']
-        window.location.href = '/login'
+        window.location.href = '/' // Redirect to home
       }
       
       return Promise.reject(error)
