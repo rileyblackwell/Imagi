@@ -26,6 +26,7 @@ from .serializers import (
     RegisterSerializer,
     LoginSerializer,
 )
+from .services import AuthenticationService, SessionService
 
 # Logging
 import logging
@@ -57,9 +58,10 @@ class InitView(APIView):
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         """Initialize session and return authentication status."""
+        session_data = SessionService.get_session_data(request)
         return Response({
-            'isAuthenticated': bool(request.user and request.user.is_authenticated),
-            'user': UserSerializer(request.user).data if request.user.is_authenticated else None,
+            'isAuthenticated': session_data['isAuthenticated'],
+            'user': UserSerializer(session_data['user']).data if session_data['isAuthenticated'] else None,
             'csrfToken': get_token(request)
         })
 
@@ -72,13 +74,7 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            user = serializer.save(request)
-            
-            # Create auth token
-            token, _ = Token.objects.get_or_create(user=user)
-            
-            # Log the user in directly without using complete_signup
-            login(request, user, backend='allauth.account.auth_backends.AuthenticationBackend')
+            user, token = AuthenticationService.register_user(request, serializer)
             
             return Response({
                 'token': token.key,
@@ -93,9 +89,6 @@ class RegisterView(generics.CreateAPIView):
                 'detail': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
-    def perform_create(self, serializer):
-        return serializer.save(self.request)
-
 class LoginView(APIView):
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
@@ -106,12 +99,7 @@ class LoginView(APIView):
             serializer = self.serializer_class(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.validated_data['user']
-
-            # Create or get token
-            token, _ = Token.objects.get_or_create(user=user)
-            
-            # Perform login
-            login(request, user)
+            token = AuthenticationService.login_user(request, user)
             
             return Response({
                 'token': token.key,
@@ -129,13 +117,7 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            # Delete the auth token
-            Token.objects.filter(user=request.user).delete()
-
-            # Clear session
-            request.session.flush()
-            logout(request)
-            
+            AuthenticationService.logout_user(request)
             response = Response({'message': 'Logout successful'})
             response['X-Content-Type-Options'] = 'nosniff'
             response['X-Frame-Options'] = 'DENY'
