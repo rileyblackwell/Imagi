@@ -8,12 +8,11 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.authtoken.models import Token
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.decorators import api_view, permission_classes
 
 # Django and Allauth
-from django.contrib.auth import login, logout, get_user_model
+from django.contrib.auth import get_user_model
 
 # Django
 from django.middleware.csrf import get_token
