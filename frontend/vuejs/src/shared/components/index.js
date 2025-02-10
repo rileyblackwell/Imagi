@@ -1,3 +1,5 @@
-// Base Components
-export { default as BaseFooter } from './BaseFooter.vue'
-export { default as BaseNavbar } from './BaseNavbar.vue' 
+// Export all component categories
+export * from './atoms'
+export * from './molecules'
+export * from './organisms'
+export * from './templates'
