@@ -175,6 +175,25 @@ export const useAuthStore = defineStore('auth', {
         this.isLoading = false
       }
     },
+    async login(credentials) {
+      this.isLoading = true
+      try {
+        const response = await AuthAPI.login(credentials)
+        
+        if (response?.data) {
+          this.isAuthenticated = true
+          this.user = response.data.user || null
+          return response
+        }
+        throw new Error('Invalid response from server')
+      } catch (error) {
+        this.isAuthenticated = false
+        this.user = null
+        throw error
+      } finally {
+        this.isLoading = false
+      }
+    },
     // ...other actions...
   }
 })

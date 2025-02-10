@@ -14,6 +14,14 @@ defineRule('username', (value: string) => {
   return true
 })
 
+// Add terms agreement validation
+defineRule('terms', (value: boolean) => {
+  if (!value) {
+    return 'You must agree to the Terms of Service and Privacy Policy'
+  }
+  return true
+})
+
 export const validationPlugin = {
   install: (app: App) => {
     configure({
@@ -24,7 +32,8 @@ export const validationPlugin = {
       generateMessage: localize('en', {
         messages: {
           required: 'This field is required',
-          email: 'Please enter a valid email address'
+          email: 'Please enter a valid email address',
+          terms: 'You must agree to the Terms of Service and Privacy Policy'
         }
       })
     })

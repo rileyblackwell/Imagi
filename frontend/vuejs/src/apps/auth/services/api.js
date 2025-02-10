@@ -109,18 +109,30 @@ export const AuthAPI = {
     try {
       await this.ensureCSRFToken()
       
-      const response = await axios.post(`${BASE_URL}/login/`, credentials, {
+      if (!credentials?.username || !credentials?.password) {
+        throw new Error('Missing credentials')
+      }
+      
+      const response = await axios.post(`${BASE_URL}/login/`, {
+        username: credentials.username,
+        password: credentials.password
+      }, {
         withCredentials: true
       })
       
-      if (response.data.token) {
+      // Handle successful login
+      if (response?.data?.token) {
         localStorage.setItem('token', response.data.token)
         axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
       }
       
       return response
     } catch (error) {
-      console.error('Login error:', error.response?.data || error)
+      // Only transform error if it's an authentication error
+      if (error.response?.status === 401 || error.response?.status === 400) {
+        const errorData = error.response.data
+        throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Invalid credentials')
+      }
       throw error
     }
   },
@@ -136,12 +148,9 @@ export const AuthAPI = {
         }
       })
       
-      // Return full response to let store handle the data
       return response
     } catch (error) {
-      if (error.response?.data?.detail) {
-        throw new Error(error.response.data.detail)
-      }
+      // Let the error handler format the error
       throw error
     }
   },

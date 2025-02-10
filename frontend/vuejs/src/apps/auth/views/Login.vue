@@ -8,7 +8,8 @@
         rules="required"
         placeholder="Enter your username"
         :disabled="authStore.isLoading"
-        :showError="submitCount > 0"
+        :showError="submitCount > 0 && hasAttemptedSubmit"
+        v-model="username"
         class="auth-input min-h-[42px]"
       />
 
@@ -18,24 +19,25 @@
         placeholder="Enter your password"
         :disabled="authStore.isLoading"
         required
+        :showError="submitCount > 0 && hasAttemptedSubmit"
         class="auth-input min-h-[42px]"
       />
 
-      <!-- Error and button container -->
+      <!-- Error message display -->
       <div class="space-y-5 pt-2">
-        <div v-if="serverError" 
-             class="p-3 bg-red-500/5 border border-red-500/10 rounded-xl">
-          <p class="text-sm font-medium text-red-400 text-center">
+        <div v-if="serverError && hasAttemptedSubmit" 
+             class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p class="text-sm font-medium text-red-400 text-center whitespace-pre-line">
             {{ serverError }}
           </p>
         </div>
 
         <GradientButton
           type="submit"
-          :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
+          :disabled="authStore.isLoading || (Object.keys(formErrors).length > 0 && hasAttemptedSubmit)"
           :loading="authStore.isLoading"
           loading-text="Signing in..."
-          class="w-full py-3 text-sm font-medium"
+          class="w-full"
         >
           Sign In
         </GradientButton>
@@ -47,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
@@ -57,59 +59,62 @@ import {
   GradientButton,
   AuthLinks 
 } from '@/apps/auth/components'
+import { formatAuthError } from '../utils/errorHandling'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const serverError = ref('')
+const hasAttemptedSubmit = ref(false)
 const password = ref('')
-
-const getErrorMessage = (error) => {
-  if (error.response?.status === 429) {
-    return 'Too many login attempts. Please try again in a few minutes.'
-  }
-  
-  if (error.response?.status === 401) {
-    if (error.response?.data?.detail?.includes('password')) {
-      return 'Password is incorrect. Please try again.'
-    }
-    if (error.response?.data?.detail?.includes('username')) {
-      return 'Username not found. Please check your username.'
-    }
-    return 'Invalid username or password. Please try again.'
-  }
-
-  if (error.response?.status === 403) {
-    return 'Your account has been temporarily locked. Please try again later or contact support.'
-  }
-
-  if (error.response?.status === 400) {
-    const errors = error.response.data;
-    if (errors.username) return `Username error: ${errors.username[0]}`
-    if (errors.password) return `Password error: ${errors.password[0]}`
-    return 'Please check your login information and try again.'
-  }
-
-  if (error.message?.includes('Network Error')) {
-    return 'Unable to connect to server. Please check your internet connection.'
-  }
-
-  return 'An error occurred during login. Please try again.'
-}
+const username = ref('')
 
 const handleSubmit = async (values) => {
+  hasAttemptedSubmit.value = true
   serverError.value = ''
   
   try {
-    await authStore.login({
-      ...values,
+    // Ensure we use values from the form submission
+    const loginData = {
+      username: values.username?.trim() || username.value?.trim(),
       password: password.value
-    })
-    const redirectPath = route.query.redirect || '/'
-    await router.push(redirectPath)
+    }
+
+    // Validate required fields
+    if (!loginData.username || !loginData.password) {
+      serverError.value = 'Please enter both username and password.'
+      return
+    }
+
+    const result = await authStore.login(loginData)
+    
+    if (result?.data) {
+      const redirectPath = route.query.redirect || '/'
+      await router.push(redirectPath)
+    }
   } catch (error) {
     console.error('Login error:', error)
-    serverError.value = getErrorMessage(error)
+    serverError.value = formatAuthError(error, 'login')
   }
 }
+
+// Clear error when user starts typing again
+watch([username, password], () => {
+  if (hasAttemptedSubmit.value && serverError.value) {
+    serverError.value = ''
+  }
+})
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

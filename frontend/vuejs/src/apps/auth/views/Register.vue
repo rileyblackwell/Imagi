@@ -62,7 +62,12 @@
 
       <!-- Bottom section - full width -->
       <div class="space-y-5 pt-2">
-        <FormCheckbox name="agreeToTerms" :disabled="authStore.isLoading">
+        <FormCheckbox 
+          name="agreeToTerms" 
+          rules="required|terms"
+          :disabled="authStore.isLoading"
+          :showError="submitCount > 0"
+        >
           I agree to the 
           <router-link to="/terms" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
             Terms of Service
@@ -73,7 +78,7 @@
           </router-link>
         </FormCheckbox>
 
-        <div v-if="serverError" 
+        <div v-if="serverError && hasAttemptedSubmit" 
              class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
           <p class="text-sm font-medium text-red-400 text-center">{{ serverError }}</p>
         </div>
@@ -108,10 +113,12 @@ import {
   GradientButton,
   AuthLinks 
 } from '@/apps/auth/components'
+import { formatAuthError } from '../utils/errorHandling'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const serverError = ref('')
+const hasAttemptedSubmit = ref(false)
 const passwordRequirements = ref(null)
 
 const formData = reactive({
@@ -125,6 +132,13 @@ defineOptions({
 })
 
 const handleSubmit = async (values) => {
+  hasAttemptedSubmit.value = true
+
+  if (!values.agreeToTerms) {
+    serverError.value = 'You must agree to the Terms of Service and Privacy Policy'
+    return
+  }
+
   if (!passwordRequirements.value?.isValid) {
     serverError.value = 'Please ensure your password meets all requirements.'
     return
@@ -142,7 +156,6 @@ const handleSubmit = async (values) => {
 
     const result = await authStore.register(registerData)
     
-    // Check if we have a result before trying to access properties
     if (result) {
       if (result.requiresVerification) {
         await router.push({
@@ -152,14 +165,10 @@ const handleSubmit = async (values) => {
       } else {
         await router.push('/')
       }
-    } else {
-      throw new Error('Registration failed')
     }
   } catch (error) {
     console.error('Registration error:', error)
-    serverError.value = error.response?.data?.detail || 
-                       error.message || 
-                       'Registration failed. Please try again.'
+    serverError.value = formatAuthError(error, 'register')
   }
 }
 </script>
