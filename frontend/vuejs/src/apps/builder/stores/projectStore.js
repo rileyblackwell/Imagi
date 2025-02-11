@@ -4,28 +4,47 @@ import { BuilderAPI } from '../services/api';
 export const useProjectStore = defineStore('builder', {
   state: () => ({
     projects: [],
+    projectsMap: new Map(), // For O(1) lookups
     currentProject: null,
     loading: false,
     error: null,
-    initialized: false
+    initialized: false,
+    lastFetch: null
   }),
 
   getters: {
     hasProjects: (state) => state.initialized && state.projects.length > 0,
-    getProjectById: (state) => (id) => state.projects.find(p => p.id === id),
+    getProjectById: (state) => (id) => state.projectsMap.get(id),
+    
+    // Get projects sorted by last update
+    sortedProjects: (state) => {
+      return [...state.projects].sort(
+        (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+      );
+    }
   },
 
   actions: {
-    async fetchProjects() {
-      if (this.loading) return;
-      
+    async fetchProjects(force = false) {
+      // Cache projects for 5 minutes unless force refresh
+      const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+      if (
+        !force && 
+        this.initialized && 
+        this.lastFetch && 
+        (Date.now() - this.lastFetch) < CACHE_DURATION
+      ) {
+        return this.projects;
+      }
+
       this.loading = true;
       this.error = null;
       
       try {
         const response = await BuilderAPI.getProjects();
-        this.projects = Array.isArray(response) ? response : [];
+        this.updateProjects(response);
         this.initialized = true;
+        this.lastFetch = Date.now();
       } catch (err) {
         console.error('Failed to fetch projects:', err);
         this.error = err.response?.data?.detail || 
@@ -35,6 +54,15 @@ export const useProjectStore = defineStore('builder', {
       } finally {
         this.loading = false;
       }
+    },
+
+    updateProjects(projects) {
+      this.projects = projects;
+      // Update lookup map
+      this.projectsMap.clear();
+      projects.forEach(project => {
+        this.projectsMap.set(project.id, project);
+      });
     },
 
     clearError() {

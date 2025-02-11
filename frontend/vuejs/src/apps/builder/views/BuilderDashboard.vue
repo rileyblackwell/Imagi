@@ -37,7 +37,7 @@
 
             <!-- Existing Projects -->
             <ProjectList
-              :projects="sortedProjects"
+              :projects="projects"
               :is-loading="isLoading"
               :error="error"
               @delete="confirmDelete"
@@ -53,9 +53,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { BuilderLayout } from '../layouts';
-import { useProjectStore } from '../stores/projectStore';
-import { NewProjectCard, ProjectList } from '../components';
+import { BuilderLayout } from '@/apps/builder/layouts';
+import { useProjectStore } from '@/apps/builder/stores/projectStore';
+import { NewProjectCard, ProjectList } from '@/apps/builder/components';
 import { useNotification } from '@/shared/composables/useNotification';
 
 const router = useRouter();
@@ -65,22 +65,11 @@ const { showNotification } = useNotification();
 // State
 const newProjectName = ref('');
 const isCreating = ref(false);
-const sortBy = ref('date');
 
 // Computed
 const projects = computed(() => projectStore.projects);
 const isLoading = computed(() => projectStore.loading);
 const error = computed(() => projectStore.error);
-
-const sortedProjects = computed(() => {
-  if (!projects.value) return [];
-  
-  const sorted = [...projects.value];
-  if (sortBy.value === 'name') {
-    return sorted.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  return sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-});
 
 // Navigation items
 const navigationItems = [
@@ -98,10 +87,6 @@ const navigationItems = [
 ];
 
 // Methods
-const sortProjects = (type) => {
-  sortBy.value = type;
-};
-
 async function createProject() {
   if (!newProjectName.value.trim() || isCreating.value) return;
 
