@@ -1,36 +1,47 @@
 <template>
   <button
+    :type="type"
+    :disabled="disabled || loading"
     :class="[
-      'flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200',
-      variant === 'primary' ? 'bg-gradient-to-r from-primary-500 to-indigo-500 hover:from-primary-400 hover:to-indigo-400 text-white' :
-      variant === 'secondary' ? 'border border-dark-600 text-gray-400 hover:text-white hover:border-dark-500' :
-      'bg-dark-700 hover:bg-dark-600 text-white',
-      disabled ? 'opacity-50 cursor-not-allowed' : '',
-      fullWidth ? 'w-full' : ''
+      'relative group',
+      fullWidth ? 'w-full' : 'w-auto',
+      disabled ? 'opacity-50 cursor-not-allowed' : ''
     ]"
-    :disabled="disabled"
-    @click="$emit('click')"
   >
-    <i v-if="icon" :class="['fas', icon, iconPosition === 'left' ? 'mr-2' : 'ml-2']"></i>
-    <slot></slot>
+    <!-- Gradient background -->
+    <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-violet-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+    
+    <!-- Button content -->
+    <div class="relative flex items-center justify-center px-6 py-3 bg-dark-900 rounded-xl transition-all duration-300">
+      <i v-if="icon" :class="['fas fa-' + icon, 'mr-2 text-primary-400 group-hover:text-primary-300']"></i>
+      <span class="font-medium text-white">
+        <slot>{{ loading ? loadingText : text }}</slot>
+      </span>
+    </div>
   </button>
 </template>
 
 <script setup>
 defineProps({
-  variant: {
+  type: {
     type: String,
-    default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'tertiary'].includes(value)
+    default: 'button'
+  },
+  text: {
+    type: String,
+    default: ''
   },
   icon: {
     type: String,
     default: ''
   },
-  iconPosition: {
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  loadingText: {
     type: String,
-    default: 'left',
-    validator: (value) => ['left', 'right'].includes(value)
+    default: 'Loading...'
   },
   disabled: {
     type: Boolean,

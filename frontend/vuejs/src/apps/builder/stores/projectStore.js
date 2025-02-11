@@ -5,28 +5,17 @@ export const useProjectStore = defineStore('builder', {
   state: () => ({
     projects: [],
     currentProject: null,
-    availableModels: [],
-    selectedModel: null,
     loading: false,
     error: null,
     initialized: false
   }),
 
   getters: {
-    // Project getters
-    activeProjects: (state) => state.projects.filter(p => p.is_active),
-    getProjectById: (state) => (id) => state.projects.find(p => p.id === id),
     hasProjects: (state) => state.initialized && state.projects.length > 0,
-    hasError: (state) => !!state.error,
-    sortedProjects: (state) => [...state.projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)),
-    
-    // Model getters
-    hasModels: (state) => state.availableModels.length > 0,
-    currentModel: (state) => state.selectedModel || state.availableModels[0],
+    getProjectById: (state) => (id) => state.projects.find(p => p.id === id),
   },
 
   actions: {
-    // Project actions
     async fetchProjects() {
       if (this.loading) return;
       
@@ -34,13 +23,8 @@ export const useProjectStore = defineStore('builder', {
       this.error = null;
       
       try {
-        const data = await BuilderAPI.getProjects();
-        if (Array.isArray(data)) {
-          this.projects = data;
-        } else {
-          console.warn('Expected array of projects but got:', data);
-          this.projects = [];
-        }
+        const response = await BuilderAPI.getProjects();
+        this.projects = Array.isArray(response) ? response : [];
         this.initialized = true;
       } catch (err) {
         console.error('Failed to fetch projects:', err);
@@ -51,6 +35,10 @@ export const useProjectStore = defineStore('builder', {
       } finally {
         this.loading = false;
       }
+    },
+
+    clearError() {
+      this.error = null;
     },
 
     async fetchProject(projectId) {
@@ -151,7 +139,6 @@ export const useProjectStore = defineStore('builder', {
       }
     },
 
-    // Model actions
     async fetchAvailableModels() {
       if (this.loading) return;
       
@@ -162,7 +149,6 @@ export const useProjectStore = defineStore('builder', {
         const models = await BuilderAPI.getAvailableModels();
         this.availableModels = models;
         
-        // Set default model if none selected
         if (!this.selectedModel && models.length > 0) {
           this.selectedModel = models[0].id;
         }
@@ -182,13 +168,8 @@ export const useProjectStore = defineStore('builder', {
       }
     },
 
-    // Shared actions
     setCurrentProject(project) {
       this.currentProject = project
-    },
-
-    clearError() {
-      this.error = null
     },
 
     handleError(err, defaultMessage) {

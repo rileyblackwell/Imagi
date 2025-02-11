@@ -1,35 +1,49 @@
 <template>
   <BuilderLayout storage-key="builderDashboardSidebarCollapsed">
-    <div class="min-h-full bg-dark-950 py-8">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header Section -->
-        <div class="mb-12">
-          <div class="flex flex-col items-center text-center space-y-4">
-            <div class="p-3 bg-primary-500/10 rounded-2xl">
-              <i class="fas fa-wand-magic-sparkles text-2xl text-primary-400"></i>
+    <!-- Main Content with Gradient Background -->
+    <div class="min-h-screen bg-dark-900 relative">
+      <!-- Enhanced Background Effects -->
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-dark-900 to-violet-500/5"></div>
+        <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-50"></div>
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
+      </div>
+
+      <!-- Content -->
+      <div class="relative py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+          <!-- Welcome Section -->
+          <div class="text-center mb-12">
+            <div class="inline-block px-4 py-1 bg-dark-800/50 backdrop-blur-sm rounded-full border border-primary-500/50 mb-6">
+              <span class="text-sm font-medium text-gray-300">
+                <i class="fas fa-sparkles text-primary-500 mr-2"></i>
+                AI-Powered Project Builder
+              </span>
             </div>
-            <h1 class="text-4xl font-bold text-white">Welcome to Imagi Builder</h1>
-            <p class="text-xl text-gray-400 max-w-2xl">
-              Create and manage your web projects using AI-powered tools.
+            <h1 class="text-4xl font-bold text-white mb-4">Welcome to Your Dashboard</h1>
+            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+              Create and manage your web projects using AI-powered tools. Start with a new project or continue working on existing ones.
             </p>
           </div>
-        </div>
 
-        <!-- Cards Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <NewProjectCard
-            v-model="newProjectName"
-            :is-loading="isCreating"
-            @submit="createProject"
-          />
-          
-          <ProjectList
-            :projects="projects"
-            :is-loading="isLoading"
-            :error="error"
-            @delete="confirmDelete"
-            @retry="retryFetch"
-          />
+          <!-- Project Cards Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- New Project Card -->
+            <NewProjectCard
+              v-model="newProjectName"
+              :is-loading="isCreating"
+              @submit="createProject"
+            />
+
+            <!-- Existing Projects -->
+            <ProjectList
+              :projects="sortedProjects"
+              :is-loading="isLoading"
+              :error="error"
+              @delete="confirmDelete"
+              @retry="retryFetch"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -51,11 +65,22 @@ const { showNotification } = useNotification();
 // State
 const newProjectName = ref('');
 const isCreating = ref(false);
+const sortBy = ref('date');
 
 // Computed
-const projects = computed(() => projectStore.sortedProjects);
+const projects = computed(() => projectStore.projects);
 const isLoading = computed(() => projectStore.loading);
 const error = computed(() => projectStore.error);
+
+const sortedProjects = computed(() => {
+  if (!projects.value) return [];
+  
+  const sorted = [...projects.value];
+  if (sortBy.value === 'name') {
+    return sorted.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+});
 
 // Navigation items
 const navigationItems = [
@@ -73,6 +98,10 @@ const navigationItems = [
 ];
 
 // Methods
+const sortProjects = (type) => {
+  sortBy.value = type;
+};
+
 async function createProject() {
   if (!newProjectName.value.trim() || isCreating.value) return;
 
@@ -152,10 +181,17 @@ async function fetchProjects() {
 }
 
 // Lifecycle
-onMounted(fetchProjects);
+onMounted(async () => {
+  await fetchProjects();
+});
 </script>
 
 <style scoped>
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-700) transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -165,11 +201,11 @@ onMounted(fetchProjects);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: theme('colors.gray.700');
-  border-radius: 8px;
+  background-color: rgb(var(--color-gray-700));
+  border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: theme('colors.gray.600');
+  background-color: rgb(var(--color-gray-600));
 }
 </style>

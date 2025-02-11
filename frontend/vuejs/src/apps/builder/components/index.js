@@ -1,6 +1,5 @@
 // Atoms
 export { default as ActionButton } from './atoms/buttons/ActionButton.vue';
-export { default as SearchInput } from './atoms/inputs/SearchInput.vue';
 
 // Molecules
 export { default as ProjectCard } from './molecules/cards/ProjectCard.vue';
