@@ -1,9 +1,24 @@
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
+import type { 
+  InternalAxiosRequestConfig,
+  AxiosResponse 
+} from 'axios'
+import type { User } from '../types/auth'
 
 const BASE_URL = '/api/v1/auth'
 
+interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+interface LoginCredentials {
+  username: string;  // Changed from email to username
+  password: string;
+}
+
 // Helper function to get CSRF token from cookies
-function getCookie(name) {
+function getCookie(name: string): string | null {
   let cookieValue = null
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';')
@@ -22,27 +37,27 @@ function getCookie(name) {
 const setupAxiosInterceptors = () => {
   // Add request interceptor
   axios.interceptors.request.use(
-    async config => {
-      // Add default headers
-      config.headers = {
-        ...config.headers,
+    async (config: InternalAxiosRequestConfig) => {
+      // Create proper AxiosHeaders instance
+      const headers = new AxiosHeaders({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
-      }
+      })
       
       // Add CSRF token if not already present
       const csrfToken = getCookie('csrftoken')
-      if (!config.headers['X-CSRFToken'] && csrfToken) {
-        config.headers['X-CSRFToken'] = csrfToken
+      if (csrfToken) {
+        headers.set('X-CSRFToken', csrfToken)
       }
       
       // Add Authorization header if token exists
       const token = localStorage.getItem('token')
       if (token) {
-        config.headers['Authorization'] = `Token ${token}`
+        headers.set('Authorization', `Token ${token}`)
       }
       
+      config.headers = headers
       return config
     },
     error => Promise.reject(error)
@@ -82,7 +97,8 @@ const setupAxiosInterceptors = () => {
 // Initialize interceptors
 setupAxiosInterceptors()
 
-let logoutPromise = null
+let logoutPromise: Promise<any> | null = null
+let loginPromise: Promise<any> | null = null
 
 export const AuthAPI = {
   async getCSRFToken() {
@@ -97,7 +113,7 @@ export const AuthAPI = {
     }
   },
 
-  async ensureCSRFToken() {
+  async ensureCSRFToken(): Promise<string | null> {
     const token = getCookie('csrftoken')
     if (!token) {
       await this.getCSRFToken()
@@ -105,31 +121,39 @@ export const AuthAPI = {
     return getCookie('csrftoken')
   },
 
-  async login(credentials) {
+  async init(): Promise<{ data: { isAuthenticated: boolean; user: User } }> {
+    const response = await axios.get(`${BASE_URL}/init/`)
+    return response
+  },
+
+  async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
     try {
-      await this.ensureCSRFToken()
-      
+      // Simple validation
       if (!credentials?.username || !credentials?.password) {
-        throw new Error('Missing credentials')
+        throw new Error('Username and password are required')
       }
-      
-      const response = await axios.post(`${BASE_URL}/login/`, {
-        username: credentials.username,
-        password: credentials.password
-      }, {
+
+      // Send login request
+      const response = await axios.post(`${BASE_URL}/login/`, credentials, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
         withCredentials: true
       })
-      
-      // Handle successful login
-      if (response?.data?.token) {
-        localStorage.setItem('token', response.data.token)
-        axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
+
+      // Validate response
+      if (!response?.data?.token) {
+        throw new Error('Invalid server response')
       }
-      
+
       return response
-    } catch (error) {
-      // Only transform error if it's an authentication error
-      if (error.response?.status === 401 || error.response?.status === 400) {
+    } catch (error: any) {
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        throw new Error('Invalid username or password')
+      }
+      if (error.response?.status === 400) {
         const errorData = error.response.data
         throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Invalid credentials')
       }
@@ -137,25 +161,19 @@ export const AuthAPI = {
     }
   },
 
-  async register(userData) {
+  async register(userData: { name: string; email: string; password: string }): Promise<{ data: AuthResponse }> {
     try {
       await this.ensureCSRFToken()
-      
       const response = await axios.post(`${BASE_URL}/register/`, userData, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        withCredentials: true
       })
-      
       return response
     } catch (error) {
-      // Let the error handler format the error
       throw error
     }
   },
 
-  async logout() {
+  async logout(): Promise<void> {
     if (logoutPromise) {
       return logoutPromise
     }
@@ -164,17 +182,20 @@ export const AuthAPI = {
       logoutPromise = axios.post(`${BASE_URL}/logout/`, {}, {
         withCredentials: true
       })
-      const response = await logoutPromise
+      await logoutPromise
       
       localStorage.removeItem('token')
       delete axios.defaults.headers.common['Authorization']
-      
-      return response
     } catch (error) {
       console.error('Logout error:', error)
       throw error
     } finally {
       logoutPromise = null
     }
+  },
+
+  async updateUser(userData: Partial<User>): Promise<{ data: User }> {
+    const response = await axios.patch(`${BASE_URL}/user/`, userData)
+    return response
   }
 }

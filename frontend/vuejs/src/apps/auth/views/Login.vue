@@ -19,6 +19,7 @@
         placeholder="Enter your password"
         :disabled="authStore.isLoading"
         required
+        rules="required"
         :showError="submitCount > 0 && hasAttemptedSubmit"
         class="auth-input min-h-[42px]"
       />
@@ -74,27 +75,26 @@ const handleSubmit = async (values) => {
   serverError.value = ''
   
   try {
-    // Ensure we use values from the form submission
-    const loginData = {
-      username: values.username?.trim() || username.value?.trim(),
-      password: password.value
+    // Get values from form submission values instead of refs
+    const credentials = {
+      username: values.username?.trim(),
+      password: values.password?.trim() || password.value?.trim() // Try both sources
     }
 
-    // Validate required fields
-    if (!loginData.username || !loginData.password) {
-      serverError.value = 'Please enter both username and password.'
+    // More detailed validation message
+    if (!credentials.username || !credentials.password) {
+      serverError.value = `Missing ${!credentials.username ? 'username' : 'password'}`
+      console.log('Form values:', values) // Debug log
+      console.log('Credentials:', credentials) // Debug log
       return
     }
 
-    const result = await authStore.login(loginData)
-    
-    if (result?.data) {
-      const redirectPath = route.query.redirect || '/'
-      await router.push(redirectPath)
-    }
+    await authStore.login(credentials)
+    const redirectPath = route.query.redirect || '/'
+    await router.push(redirectPath)
   } catch (error) {
     console.error('Login error:', error)
-    serverError.value = formatAuthError(error, 'login')
+    serverError.value = error.message || 'Login failed'
   }
 }
 

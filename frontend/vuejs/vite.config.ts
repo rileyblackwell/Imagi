@@ -1,48 +1,20 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { fileURLToPath, URL } from 'node:url'
+import path from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
-  },
-  css: {
-    postcss: './postcss.config.js'
-  },
   server: {
     port: 5174,
-    host: true,
-    strictPort: true,
-    cors: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false
-      }
-    }
+    strictPort: true // This will fail if port 5174 is not available
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+    extensions: ['.ts', '.js', '.vue', '.json'] // Prioritize TypeScript files
   },
   build: {
-    chunkSizeWarningLimit: 1000,
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor': [
-            'vue',
-            'vue-router',
-            'pinia',
-            '@fortawesome/vue-fontawesome',
-            'vee-validate'
-          ]
-        }
-      }
-    }
-  },
-  optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia', '@fortawesome/vue-fontawesome', 'vee-validate']
+    sourcemap: true
   }
 })

@@ -1,19 +1,19 @@
 import { createApp } from 'vue'
+import type { App as VueApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-
-// Import validation plugin
+import axios from 'axios'
+import type { AxiosInstance } from 'axios'
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
+import config from '@/shared/config'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
 
-// Import Font Awesome core
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
-// Import the specific icons we need for auth
+// Import Font Awesome icons
 import { 
   faUser, 
   faLock, 
@@ -38,17 +38,18 @@ library.add(
 )
 
 // Configure axios
-import axios from 'axios'
-import config from '@/shared/config'
-
-// Set base URL for API requests
 axios.defaults.baseURL = config.apiUrl
-
-// Configure Axios defaults
 axios.defaults.withCredentials = true
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
+
+// Type augmentation for Vue
+declare module '@vue/runtime-core' {
+  interface ComponentCustomProperties {
+    $axios: AxiosInstance;
+  }
+}
 
 // Create Vue app instance
 const app = createApp(App)
@@ -58,27 +59,38 @@ const pinia = createPinia()
 app.config.globalProperties.$axios = axios
 
 // Global error handler
-app.config.errorHandler = (error, vm, info) => {
+interface ErrorInfo {
+  error: string;
+  component: string;
+  info: string;
+  url: string;
+  timestamp: string;
+}
+
+app.config.errorHandler = (error: unknown, vm: any, info: string): void => {
   // Filter out extension-related errors
-  if (error?.message?.toLowerCase().includes('extension') || 
-      error?.message?.toLowerCase().includes('back/forward cache')) {
+  if (error instanceof Error && 
+     (error.message.toLowerCase().includes('extension') || 
+      error.message.toLowerCase().includes('back/forward cache'))) {
     return
   }
   
   // Log other errors
-  console.error('Vue Error:', {
-    error: error?.message || error,
+  const errorLog: ErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
     component: vm?.$options?.name || 'Unknown',
     info,
     url: window.location.href,
     timestamp: new Date().toISOString()
-  })
+  }
+  
+  console.error('Vue Error:', errorLog)
 }
 
 // Use plugins
 app.use(pinia)
 app.use(router)
-app.use(validationPlugin) // Use the plugin with install function
+app.use(validationPlugin)
 
 // Register global components
 app.component('font-awesome-icon', FontAwesomeIcon)
@@ -106,44 +118,45 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Cache control
-function disableBFCache() {
-  // Add meta tags to prevent caching
-  const metaTags = [
+function disableBFCache(): void {
+  interface MetaTag {
+    httpEquiv: string;
+    content: string;
+  }
+
+  const metaTags: MetaTag[] = [
     { httpEquiv: 'Cache-Control', content: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
     { httpEquiv: 'Pragma', content: 'no-cache' },
     { httpEquiv: 'Expires', content: '0' }
-  ];
+  ]
 
   metaTags.forEach(({ httpEquiv, content }) => {
-    let meta = document.querySelector(`meta[http-equiv="${httpEquiv}"]`);
+    let meta = document.querySelector(`meta[http-equiv="${httpEquiv}"]`) as HTMLMetaElement | null
     if (!meta) {
-      meta = document.createElement('meta');
-      meta.httpEquiv = httpEquiv;
-      meta.content = content;
-      document.head.appendChild(meta);
+      meta = document.createElement('meta')
+      meta.setAttribute('http-equiv', httpEquiv)
+      meta.setAttribute('content', content)
+      document.head.appendChild(meta)
     }
-  });
+  })
 
-  // Disable service worker navigation preload
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then(registration => {
       if ('navigationPreload' in registration) {
-        registration.navigationPreload.disable();
+        registration.navigationPreload.disable()
       }
-    });
+    })
   }
 
-  // Force reload on back/forward navigation
   window.addEventListener('pageshow', (event) => {
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-      window.location.reload(true);
+      window.location.reload()
     }
-  });
+  })
 
-  // Force reload on popstate
   window.addEventListener('popstate', () => {
-    window.location.reload(true);
-  });
+    window.location.reload()
+  })
 }
 
 if (document.readyState === 'loading') {

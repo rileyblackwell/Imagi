@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { NotificationToast } from '@/shared/components';
+import { NotificationToast } from '@/shared/components/atoms';
 import { useAuthStore } from '@/apps/auth/store'
 import { onMounted } from 'vue'
 
