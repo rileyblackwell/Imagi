@@ -33,7 +33,7 @@
               :value="searchQuery"
               @input="onSearchInput"
               type="text"
-              placeholder="Search projects..."
+              placeholder="Search all projects..."
               class="relative z-10 w-full px-4 py-2 bg-dark-900/50 border border-dark-600 focus:border-primary-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
             >
           </div>
@@ -41,9 +41,10 @@
 
         <!-- Search Results -->
         <div 
+          v-if="searchQuery"
           class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar"
         >
-          <template v-if="searchQuery && filteredProjects.length">
+          <template v-if="filteredProjects.length">
             <ProjectCard
               v-for="project in filteredProjects"
               :key="project.id"
@@ -52,16 +53,7 @@
             />
           </template>
           
-          <template v-else-if="!searchQuery && remainingProjects.length">
-            <ProjectCard
-              v-for="project in remainingProjects"
-              :key="project.id"
-              :project="project"
-              @delete="$emit('delete', project)"
-            />
-          </template>
-          
-          <div v-else-if="searchQuery" class="text-center py-8">
+          <div v-else class="text-center py-8">
             <p class="text-gray-400">No projects match your search</p>
           </div>
         </div>
@@ -120,9 +112,8 @@ defineEmits(['delete', 'retry']);
 
 // Local state
 const searchQuery = ref('');
-const showSearchResults = ref(false);
 
-// Get 3 most recently updated projects
+// Get 3 most recently updated projects for display
 const recentProjects = computed(() => {
   if (!props.projects?.length) return [];
   
@@ -131,29 +122,17 @@ const recentProjects = computed(() => {
     .slice(0, 3);
 });
 
-// Get remaining projects (excluding recent ones)
-const remainingProjects = computed(() => {
-  if (!props.projects?.length) return [];
-  
-  const recentIds = new Set(recentProjects.value.map(p => p.id));
-  return props.projects
-    .filter(project => !recentIds.has(project.id))
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-});
-
-// Filter projects based on search query
+// Filter all projects based on search query (including recent ones)
 const filteredProjects = computed(() => {
   if (!props.projects?.length || !searchQuery.value.trim()) return [];
 
   const query = searchQuery.value.toLowerCase().trim();
-  const recentIds = new Set(recentProjects.value.map(p => p.id));
   
-  return props.projects
-    .filter(project => {
-      if (recentIds.has(project.id)) return false;
-      return project.name.toLowerCase().includes(query) ||
-             project.description?.toLowerCase().includes(query);
-    })
+  return [...props.projects]
+    .filter(project => 
+      project.name.toLowerCase().includes(query) ||
+      project.description?.toLowerCase().includes(query)
+    )
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 });
 
