@@ -16,7 +16,8 @@ export const useAuthStore = defineStore('auth', {
     loading: false,
     error: null,
     isLoggingOut: false,
-    isLoginPending: false // Add this to prevent multiple requests
+    isLoginPending: false, // Add this to prevent multiple requests
+    initialized: false  // Initialize the new field
   }),
 
   getters: {
@@ -26,7 +27,10 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async initAuth() {
-      if (!this.token) return
+      if (!this.token) {
+        this.initialized = true
+        return
+      }
 
       try {
         this.loading = true
@@ -42,6 +46,7 @@ export const useAuthStore = defineStore('auth', {
         await this.logout()
       } finally {
         this.loading = false
+        this.initialized = true
       }
     },
 
@@ -147,5 +152,4 @@ export const useAuthStore = defineStore('auth', {
   }
 })
 
-// Remove default export
 export type { AuthState, User }

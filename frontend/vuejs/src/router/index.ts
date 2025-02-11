@@ -42,10 +42,17 @@ router.beforeEach(async (to, from, next) => {
   // Check auth requirements
   if (to.meta.requiresAuth) {
     const auth = useAuthStore()
+    
+    // Wait for auth initialization
+    if (!auth.initialized) {
+      await auth.initAuth()
+    }
+    
     if (!auth.isAuthenticated) {
       next({
         name: 'login',
-        query: { redirect: to.fullPath }
+        query: { redirect: to.fullPath },
+        replace: true
       })
       return
     }
