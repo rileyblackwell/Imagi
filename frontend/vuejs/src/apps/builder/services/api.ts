@@ -75,15 +75,28 @@ export const BuilderAPI = {
 
   async createProject(projectData: ProjectData): Promise<Project> {
     try {
-      const response = await api.post<{ data: Project }>('/project-manager/projects/create/', projectData)
+      const response = await api.post('/project-manager/projects/create/', projectData)
+      console.debug('Create project response:', response)
       
-      if (!response.data?.data) {
-        throw new Error('Invalid response from server')
+      // Handle different response formats
+      const project = response.data?.data || response.data
+      
+      if (!project || !project.id) {
+        console.error('Invalid project response:', response)
+        throw new Error('Invalid project data received from server')
       }
       
-      return response.data.data
+      return project
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Failed to create project'
+      console.error('Project creation error:', {
+        error,
+        response: error.response,
+        data: error.response?.data
+      })
+      const errorMessage = error.response?.data?.error 
+        || error.response?.data?.message 
+        || error.message 
+        || 'Failed to create project'
       throw new Error(errorMessage)
     }
   },

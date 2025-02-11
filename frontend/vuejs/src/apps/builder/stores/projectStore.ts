@@ -114,11 +114,33 @@ export const useProjectStore = defineStore('builder', {
       this.error = null
       
       try {
+        console.debug('Creating project:', projectData)
         const newProject = await BuilderAPI.createProject(projectData)
+        
+        console.debug('Project created:', newProject)
+        
+        if (!newProject || typeof newProject !== 'object') {
+          throw new Error('Invalid project data received')
+        }
+
+        // Ensure we have the required fields
+        if (!('id' in newProject)) {
+          console.error('Missing project ID:', newProject)
+          throw new Error('Project created but missing ID')
+        }
+
+        // Update local state
         this.projects = [...this.projects, newProject]
         this.projectsMap.set(String(newProject.id), newProject)
+        
+        console.debug('Store updated with new project:', {
+          projectId: newProject.id,
+          totalProjects: this.projects.length
+        })
+        
         return newProject
       } catch (err: any) {
+        console.error('Project creation error in store:', err)
         this.handleError(err, 'Failed to create project')
         throw err
       } finally {

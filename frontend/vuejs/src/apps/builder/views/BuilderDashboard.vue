@@ -96,10 +96,13 @@ const createProject = async () => {
 
   isCreating.value = true;
   try {
+    console.debug('Creating new project:', newProjectName.value)
     const project = await projectStore.createProject({
       name: newProjectName.value.trim(),
       description: ''
     });
+    
+    console.debug('Project creation response:', project)
     
     if (!project?.id && project?.id !== 0) {
       throw new Error('Failed to create project - no ID returned');
@@ -112,12 +115,15 @@ const createProject = async () => {
 
     newProjectName.value = '';
     
+    // Add delay before navigation to ensure store is updated
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     await router.push({
       name: 'builder-workspace',
       params: { projectId: String(project.id) }
     });
   } catch (err) {
-    console.error('Project creation error:', err);
+    console.error('Project creation error in dashboard:', err);
     showNotification({
       type: 'error',
       message: err.message || 'Failed to create project'
