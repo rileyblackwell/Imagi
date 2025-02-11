@@ -130,8 +130,8 @@ const filteredProjects = computed(() => {
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().includes(query) ||
-      project.description?.toLowerCase().includes(query)
+      project.name.toLowerCase().startsWith(query) ||
+      project.description?.toLowerCase().startsWith(query)
     )
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 });
