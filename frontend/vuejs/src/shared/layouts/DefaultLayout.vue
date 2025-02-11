@@ -29,7 +29,7 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import { BaseLayout } from './index'
+import { BaseLayout } from '@/shared/layouts'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
 import { HomeNavbar } from '@/apps/home/components'
 import gsap from 'gsap'
