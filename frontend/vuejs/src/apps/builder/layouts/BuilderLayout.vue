@@ -213,14 +213,15 @@ onMounted(async () => {
 });
 </script>
 
-<style>
+<style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  @apply transition-opacity duration-200;
+  transition-property: opacity;
+  transition-duration: 200ms;
 }
 
 .fade-enter-from,
 .fade-leave-to {
-  @apply opacity-0;
+  opacity: 0;
 }
-</style> 
+</style>

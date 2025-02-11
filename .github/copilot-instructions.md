@@ -32,14 +32,38 @@ Imagi/
 └── scripts/           # Deployment/utility scripts
 ```
 
-### Frontend Apps (Vue.js)
-- **Authentication**: User login, registration, password management
+### Frontend Structure
+```
+frontend/vuejs/
+├── src/
+│   ├── apps/           # Feature-specific applications
+│   │   ├── home/       # Landing pages and public content
+│   │   ├── auth/       # Authentication and user management
+│   │   ├── payments/   # Subscription and billing management
+│   │   └── builder/    # AI application builder
+│   └── shared/         # Shared resources
+│       ├── components/ # Reusable components
+│       ├── layouts/    # Layout templates
+│       ├── stores/     # Shared state management
+│       ├── utils/      # Utility functions
+│       └── composables/# Vue composables
+```
+
+Each app module should be self-contained with its own:
+- Components
+- Routes
+- Store
+- Services
+- Types
+- Tests
+
+### Frontend Apps
+- **Home**: Landing pages, documentation, and public content
+- **Auth**: User authentication, registration, profile management
+- **Payments**: Subscription plans, billing, usage tracking
 - **Builder**: AI-powered application generator
   - Chat Mode: Conversational interface
   - Build Mode: Visual interface
-- **Dashboard**: Project management and settings
-- **Editor**: Code editor and file management
-- **Preview**: Live application preview
 
 Each frontend app should follow atomic design principles:
 - **Atoms**: Basic building blocks (buttons, inputs, icons, text)
@@ -68,6 +92,31 @@ app/
     └── templates/       # Page-level layouts
         └── layout/
 ```
+
+### Shared Directory Structure
+```
+shared/              # Global shared resources
+├── components/      # Reusable UI components (follows atomic design)
+│   ├── atoms/      # Base components (buttons, inputs, icons)
+│   ├── molecules/  # Combined atoms (form fields, cards)
+│   ├── organisms/  # Complex components (forms, headers)
+│   └── templates/  # Layout templates
+├── layouts/        # Base page layouts (Base, Auth, Dashboard)
+├── stores/         # Global state management
+├── utils/         # Helper functions and constants
+├── composables/   # Reusable Vue.js logic
+└── types/        # TypeScript definitions
+```
+
+### Shared Component Guidelines
+- **Atoms**: Pure, prop-driven components
+- **Molecules**: Composable combinations of atoms
+- **Organisms**: Self-contained complex components
+- **Templates**: Flexible, configurable layouts
+- **Stores**: Global state (auth, theme, notifications)
+- **Utils**: Pure functions, well-documented and tested
+- **Composables**: Reusable composition API patterns
+- **Types**: Strict TypeScript definitions
 
 ### Backend Apps (Django)
 - **auth**: Custom authentication and authorization

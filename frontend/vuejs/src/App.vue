@@ -5,28 +5,25 @@
         <component :is="Component" />
       </transition>
     </router-view>
+    <NotificationToast />
   </div>
 </template>
 
-<script>
+<script setup>
+import { NotificationToast } from '@/shared/components';
 import { useAuthStore } from '@/apps/auth/store'
 import { onMounted } from 'vue'
 
-export default {
-  name: 'App',
-  setup() {
-    const authStore = useAuthStore()
+const authStore = useAuthStore()
 
-    onMounted(async () => {
-      try {
-        // Initialize auth state on app mount
-        await authStore.initAuth()
-      } catch (error) {
-        console.error('Failed to initialize auth:', error)
-        // Continue loading the app even if auth fails
-      }
-    })
+onMounted(async () => {
+  try {
+    // Initialize auth state on app mount
+    await authStore.initAuth()
+  } catch (error) {
+    console.error('Failed to initialize auth:', error)
+    // Continue loading the app even if auth fails
   }
-}
+})
 </script>
 

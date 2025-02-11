@@ -1,8 +1,5 @@
-import { defineStore } from 'pinia'
-import axios from 'axios'
-
-// Update API base URL to match Django's URL configuration
-const API_BASE_URL = '/api/projectmanager/api'
+import { defineStore } from 'pinia';
+import { BuilderAPI } from '../services/api';
 
 export const useProjectStore = defineStore('projects', {
   state: () => ({
@@ -28,43 +25,24 @@ export const useProjectStore = defineStore('projects', {
 
   actions: {
     async fetchProjects() {
-      this.loading = true
-      this.error = null
+      this.loading = true;
+      this.error = null;
       try {
-        const response = await axios.get(`${API_BASE_URL}/projects/`, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        })
-        
-        if (Array.isArray(response.data)) {
-          // Create a Map to deduplicate projects by ID
-          const uniqueProjects = new Map()
-          response.data.forEach(project => {
-            uniqueProjects.set(project.id, project)
-          })
-          this.projects = Array.from(uniqueProjects.values())
-        } else {
-          this.projects = []
+        const data = await BuilderAPI.getProjects();
+        if (Array.isArray(data)) {
+          const uniqueProjects = new Map();
+          data.forEach(project => {
+            uniqueProjects.set(project.id, project);
+          });
+          this.projects = Array.from(uniqueProjects.values());
         }
-        
-        this.initialized = true
-        return this.projects
+        this.initialized = true;
+        return this.projects;
       } catch (err) {
-        console.error('Failed to fetch projects:', err)
-        if (err.response?.status === 404) {
-          this.error = 'Unable to connect to project service. Please try again later.'
-        } else if (err.response?.status === 401) {
-          this.error = 'Please log in to view your projects.'
-        } else {
-          this.error = err.response?.data?.error || err.message || 'Failed to fetch projects'
-        }
-        this.projects = []
-        throw err
+        this.handleError(err, 'Failed to fetch projects');
+        throw err;
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
@@ -97,47 +75,20 @@ export const useProjectStore = defineStore('projects', {
     },
 
     async createProject(projectData) {
-      this.loading = true
-      this.error = null
+      this.loading = true;
+      this.error = null;
       try {
-        const response = await axios.post(`${API_BASE_URL}/projects/`, {
-          name: projectData.name,
-          description: projectData.description || `Web application project: ${projectData.name}`
-        }, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        })
-
-        const newProject = response.data
-        if (!newProject || typeof newProject.id === 'undefined') {
-          throw new Error('Invalid project data received from server')
+        const newProject = await BuilderAPI.createProject(projectData);
+        if (!newProject?.id) {
+          throw new Error('Invalid project data received from server');
         }
-
-        // Remove any existing projects with the same name before adding the new one
-        this.projects = this.projects.filter(p => !(p.name === newProject.name && p.is_active))
-        this.projects.unshift(newProject)
-        
-        // Refresh projects list to ensure consistency
-        await this.fetchProjects()
-        
-        return newProject
+        this.projects.unshift(newProject);
+        return newProject;
       } catch (err) {
-        console.error('Failed to create project:', err)
-        if (err.response?.status === 401) {
-          this.error = 'Please log in to create a project.'
-        } else if (err.response?.status === 400) {
-          this.error = err.response.data?.error || 'Invalid project data. Please try again.'
-        } else if (err.response?.status === 500) {
-          this.error = 'Server error while creating project. The project might have been created but had issues. Please check your projects list.'
-        } else {
-          this.error = err.message || 'Failed to create project'
-        }
-        throw err
+        this.handleError(err, 'Failed to create project');
+        throw err;
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
@@ -212,6 +163,17 @@ export const useProjectStore = defineStore('projects', {
 
     clearError() {
       this.error = null
+    },
+
+    handleError(err, defaultMessage) {
+      console.error(defaultMessage + ':', err);
+      if (err.response?.status === 401) {
+        this.error = 'Please log in to continue';
+      } else if (err.response?.data?.error) {
+        this.error = err.response.data.error;
+      } else {
+        this.error = defaultMessage;
+      }
     }
   }
-}) 
+});
