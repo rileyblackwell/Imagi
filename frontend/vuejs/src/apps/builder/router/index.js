@@ -1,5 +1,6 @@
 import BuilderDashboard from '../views/BuilderDashboard.vue'
 import BuilderWorkspace from '../views/BuilderWorkspace.vue'
+import Projects from '../views/Projects.vue'
 
 export const routes = [
   {
@@ -29,6 +30,15 @@ export const routes = [
       } else {
         next();
       }
+    }
+  },
+  {
+    path: '/builder/projects',
+    name: 'builder-projects',
+    component: Projects,
+    meta: {
+      requiresAuth: true,
+      title: 'Projects'
     }
   }
 ]

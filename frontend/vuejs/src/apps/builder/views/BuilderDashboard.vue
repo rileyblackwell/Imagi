@@ -81,6 +81,12 @@ const navigationItems = [
     to: '/dashboard',
     icon: 'fas fa-th-large',
     exact: true
+  },
+  {
+    name: 'Projects',
+    to: '/builder/projects',
+    icon: 'fas fa-folder',
+    exact: true
   }
 ];
 

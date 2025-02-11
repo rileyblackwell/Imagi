@@ -34,7 +34,7 @@
             </div>
             <div class="bg-gray-50 dark:bg-dark-900 px-6 py-3">
               <div class="text-sm">
-                <router-link to="/projects" class="font-medium text-primary-500 hover:text-primary-600 flex items-center">
+                <router-link to="/builder/projects" class="font-medium text-primary-500 hover:text-primary-600 flex items-center">
                   View all projects
                   <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -104,7 +104,7 @@
         <!-- Quick Actions -->
         <div class="mt-12">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <router-link 
               :to="{ name: 'builder-dashboard' }" 
               class="group relative rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 p-6 hover:border-primary-500 transition-all duration-300"
@@ -118,6 +118,21 @@
                 <div class="flex-1">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">New Project</h3>
                   <p class="text-sm text-gray-600 dark:text-gray-400">Start building a new web application</p>
+                </div>
+              </div>
+            </router-link>
+
+            <router-link 
+              :to="{ name: 'builder-projects' }" 
+              class="group relative rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 p-6 hover:border-primary-500 transition-all duration-300"
+            >
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-primary-500 bg-opacity-10 rounded-xl flex items-center justify-center group-hover:bg-opacity-20 transition-all duration-300">
+                  <i class="fas fa-folder text-primary-500"></i>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">All Projects</h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">View and manage your projects</p>
                 </div>
               </div>
             </router-link>
@@ -143,17 +158,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
+import { useProjectStore } from '@/apps/builder/stores/projectStore'
+import { useNotification } from '@/shared/composables/useNotification'
 
-const projectCount = ref(0)
+const authStore = useAuthStore()
+const projectStore = useProjectStore()
+const { showNotification } = useNotification()
+
 const credits = ref(0)
 const recentActivities = ref([])
 
+// Use computed property instead of ref for projectCount
+const projectCount = computed(() => projectStore.projects.length)
+
+async function fetchData() {
+  try {
+    await projectStore.fetchProjects()
+    // TODO: Fetch credits and activities from their respective stores
+    credits.value = 0
+    recentActivities.value = []
+  } catch (err) {
+    showNotification({
+      type: 'error',
+      message: 'Failed to fetch dashboard data'
+    })
+  }
+}
+
 onMounted(async () => {
-  // TODO: Fetch actual data from your API
-  projectCount.value = 0
-  credits.value = 0
-  recentActivities.value = []
+  await fetchData()
 })
-</script> 
+</script>
