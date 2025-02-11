@@ -53,26 +53,27 @@
   </BuilderLayout>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { BuilderLayout } from '@/apps/builder/layouts';
-import { useProjectStore } from '@/apps/builder/stores/projectStore';
-import { NewProjectCard, ProjectList } from '@/apps/builder/components';
-import { useNotification } from '@/shared/composables/useNotification';
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { BuilderLayout } from '@/apps/builder/layouts'
+import { useProjectStore } from '@/apps/builder/stores/projectStore'
+import { useNotification } from '@/shared/composables/useNotification'
+import type { Project } from '@/shared/types/project'
+import { NewProjectCard, ProjectList } from '../components/organisms'
 
-const router = useRouter();
-const projectStore = useProjectStore();
-const { showNotification } = useNotification();
+const router = useRouter()
+const projectStore = useProjectStore()
+const { showNotification } = useNotification()
 
-// State
-const newProjectName = ref('');
-const isCreating = ref(false);
+// State with types
+const newProjectName = ref('')
+const isCreating = ref(false)
 
-// Computed
-const projects = computed(() => projectStore.projects);
-const isLoading = computed(() => projectStore.loading);
-const error = computed(() => projectStore.error);
+// Computed with types
+const projects = computed(() => projectStore.projects)
+const isLoading = computed(() => projectStore.loading)
+const error = computed(() => projectStore.error || '') // Provide empty string default
 
 // Navigation items
 const navigationItems = [
@@ -92,78 +93,76 @@ const navigationItems = [
 
 // Methods
 const createProject = async () => {
-  if (!newProjectName.value.trim() || isCreating.value) return;
+  if (!newProjectName.value.trim() || isCreating.value) return
 
-  isCreating.value = true;
+  isCreating.value = true
   try {
-    console.debug('Creating new project:', newProjectName.value)
     const project = await projectStore.createProject({
       name: newProjectName.value.trim(),
       description: ''
-    });
+    })
     
-    console.debug('Project creation response:', project)
-    
-    if (!project?.id && project?.id !== 0) {
-      throw new Error('Failed to create project - no ID returned');
+    if (project?.id === undefined) { // Fix type comparison
+      throw new Error('Failed to create project - no ID returned')
     }
 
     showNotification({
       type: 'success',
       message: 'Project created successfully!'
-    });
+    })
 
-    newProjectName.value = '';
+    newProjectName.value = ''
     
-    // Add delay before navigation to ensure store is updated
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 100))
     
     await router.push({
       name: 'builder-workspace',
       params: { projectId: String(project.id) }
-    });
-  } catch (err) {
-    console.error('Project creation error in dashboard:', err);
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create project'
+    console.error('Project creation error in dashboard:', errorMessage)
     showNotification({
       type: 'error',
-      message: err.message || 'Failed to create project'
-    });
+      message: errorMessage
+    })
   } finally {
-    isCreating.value = false;
+    isCreating.value = false
   }
-};
+}
 
-async function confirmDelete(project) {
+const confirmDelete = async (project: Project) => {
   if (!project?.id) {
     showNotification({
       type: 'error',
       message: 'Invalid project data'
-    });
-    return;
+    })
+    return
   }
 
   if (!confirm(`Are you sure you want to delete "${project.name}"?`)) {
-    return;
+    return
   }
 
   try {
-    await projectStore.deleteProject(String(project.id));
+    await projectStore.deleteProject(String(project.id))
     showNotification({
       type: 'success',
       message: 'Project deleted successfully'
-    });
-  } catch (err) {
-    console.error('Project deletion error:', err);
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete project'
+    console.error('Project deletion error:', errorMessage)
     showNotification({
       type: 'error',
-      message: err.message || 'Failed to delete project'
-    });
+      message: errorMessage
+    })
   }
 }
 
 async function retryFetch() {
-  projectStore.clearError();
-  await fetchProjects();
+  projectStore.clearError()
+  await fetchProjects()
 }
 
 const fetchProjects = async () => {
@@ -171,11 +170,12 @@ const fetchProjects = async () => {
     console.debug('Dashboard: Initiating project fetch')
     await projectStore.fetchProjects(true) // Force refresh
     console.debug('Dashboard: Projects loaded:', projectStore.projects.length)
-  } catch (err) {
-    console.error('Dashboard: Project fetch error:', err)
+  } catch (error: unknown) { // Add type annotation
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch projects'
+    console.error('Dashboard: Project fetch error:', errorMessage)
     showNotification({
       type: 'error',
-      message: err.message || 'Failed to fetch projects'
+      message: errorMessage
     })
   }
 }

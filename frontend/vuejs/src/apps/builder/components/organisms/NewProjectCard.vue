@@ -16,30 +16,30 @@
         
         <!-- Project Form -->
         <ProjectForm
-          :value="modelValue"
-          @update:value="$emit('update:modelValue', $event)"
-          :is-loading="isLoading"
-          @submit="$emit('submit')"
+          :name="modelValue"
+          :description="''"
+          :loading="isLoading"
           class="mt-auto"
+          @update:name="$emit('update:modelValue', $event)"
+          @submit="$emit('submit')"
         />
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ProjectForm } from '@/apps/builder/components';
+<script setup lang="ts">
+import { ProjectForm } from '../molecules/forms'
 
-defineProps({
-  modelValue: {
-    type: String,
-    required: true
-  },
-  isLoading: {
-    type: Boolean,
-    default: false
-  }
-});
+interface Props {
+  modelValue: string
+  isLoading?: boolean
+}
 
-defineEmits(['update:modelValue', 'submit']);
+defineProps<Props>()
+
+defineEmits<{
+  (e: 'update:modelValue', value: string): void
+  (e: 'submit'): void
+}>()
 </script>

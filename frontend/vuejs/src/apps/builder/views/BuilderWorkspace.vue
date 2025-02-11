@@ -164,40 +164,21 @@
       <main class="flex-1 flex flex-col">
         <!-- File Content -->
         <div v-if="selectedFile" class="flex-1 p-4">
-          <div class="mb-4 flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-              <h2 class="text-lg font-semibold text-white">
-                {{ selectedFile.path }}
-              </h2>
-              <span class="text-sm text-gray-400">
-                Project: {{ currentProject?.name }}
-              </span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <span v-if="hasUnsavedChanges" class="text-yellow-500 text-sm">
-                Unsaved changes
-              </span>
-              <button
-                @click="saveChanges"
-                class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg"
-                :disabled="!hasUnsavedChanges || isLoading"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
+          <WorkspaceToolbar
+            :title="selectedFile.path"
+            :subtitle="`Project: ${currentProject?.name}`"
+            :unsaved-changes="hasUnsavedChanges"
+            :loading="isLoading"
+            :show-save="true"
+            @save="saveChanges"
+          />
           
-          <!-- Code Editor -->
-          <div class="h-[calc(100vh-12rem)] rounded-lg border border-dark-700 bg-dark-900">
-            <textarea
-              v-model="editorContent"
-              :placeholder="'Enter code here...'"
-              class="w-full h-full bg-dark-900 text-white p-4 font-mono resize-none focus:outline-none"
-              @input="(e) => onEditorChange(e.target.value)"
-              spellcheck="false"
-              wrap="off"
-            ></textarea>
-          </div>
+          <WorkspaceEditor
+            v-model="editorContent"
+            placeholder="Enter code here..."
+            wrap="off"
+            class="mt-4"
+          />
         </div>
 
         <!-- Welcome Screen -->
@@ -236,16 +217,52 @@
   </BuilderLayout>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { BuilderLayout } from '../layouts';
-import { useBuilder } from '../composables/useBuilder';
-import { BUILDER_MODES, FILE_TYPES } from '../utils/constants';
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import type { Ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { BuilderLayout } from '../layouts'
+import { WorkspaceEditor, WorkspaceToolbar } from '../components/organisms/workspace'
+import { useBuilder } from '../composables/useBuilder'
+import type { EditorLanguage } from '@/shared/types/editor'
+import type { Project } from '@/shared/types/project'
 
-// Component setup
-const route = useRoute();
-const { 
+// Setup route
+const route = useRoute()
+
+interface ProjectFile {
+  path: string
+  type: EditorLanguage
+  content: string
+}
+
+// Update FILE_TYPES to include all EditorLanguage values
+const FILE_TYPES = {
+  HTML: 'html' as const,
+  CSS: 'css' as const,
+  JAVASCRIPT: 'javascript' as const,
+  TYPESCRIPT: 'typescript' as const,
+  PYTHON: 'python' as const,
+  MARKDOWN: 'markdown' as const,
+  TEXT: 'text' as const
+} as const
+
+// Add return type for file icon mapping
+const getFileIcon = (type: EditorLanguage): string => {
+  const icons: Record<EditorLanguage, string> = {
+    html: 'fas fa-code',
+    css: 'fab fa-css3',
+    javascript: 'fab fa-js',
+    typescript: 'fab fa-ts',
+    python: 'fab fa-python',
+    markdown: 'fas fa-file-alt',
+    text: 'fas fa-file-alt'
+  }
+  return icons[type] || 'fas fa-file'
+}
+
+// Type the builder composable return values
+const {
   currentProject,
   availableModels,
   selectedModel,
@@ -269,98 +286,107 @@ const {
   loadAvailableModels,
   loadComponentTree,
   switchMode
-} = useBuilder();
+} = useBuilder() as {
+  currentProject: Ref<Project | null>
+  availableModels: Ref<Array<{ id: string; name: string }>>
+  selectedModel: Ref<string | null>
+  isLoading: Ref<boolean>
+  error: Ref<string | null>
+  files: Ref<ProjectFile[]>
+  selectedFile: Ref<ProjectFile | null>
+  fileContent: Ref<string>
+  hasUnsavedChanges: Ref<boolean>
+  currentMode: Ref<'chat' | 'build'>
+  aiGenerating: Ref<boolean>
+  componentTree: Ref<any> // Replace with proper type
+  selectedComponent: Ref<any> // Replace with proper type
+  loadProject: (id: string) => Promise<void>
+  loadFiles: () => Promise<void>
+  selectFile: (file: ProjectFile) => void
+  updateFile: (content: string) => Promise<void>
+  createFile: (name: string, type: EditorLanguage) => Promise<void>
+  generateCode: (prompt: string) => Promise<string>
+  undoLastAction: () => Promise<void>
+  loadAvailableModels: () => Promise<void>
+  loadComponentTree: () => Promise<void>
+  switchMode: (mode: 'chat' | 'build') => void
+}
 
-// Local state
-const prompt = ref('');
-const showNewFileForm = ref(false);
-const newFileName = ref('');
-const newFileType = ref('');
-const isFileExplorerExpanded = ref(true);
-const editorContent = ref('');
+// Add type annotations to local state
+const prompt = ref('')
+const showNewFileForm = ref(false)
+const newFileName = ref('')
+const newFileType = ref<EditorLanguage | undefined>()
+const isFileExplorerExpanded = ref(true)
+const editorContent = ref('')
 
-// Navigation items
-const navigationItems = [];
-
-// Computed
 const canCreateFile = computed(() => {
-  return newFileName.value.trim() && newFileType.value;
-});
+  return newFileName.value.trim() && newFileType.value
+})
 
-// Watch for file content changes
-watch(fileContent, (newContent) => {
+watch(fileContent, (newContent: string) => {
   if (newContent !== editorContent.value) {
-    editorContent.value = newContent || '';
+    editorContent.value = newContent
   }
-});
+})
 
-// Methods
-const onEditorChange = (content) => {
+const onEditorChange = (content: string) => {
   if (content !== fileContent.value) {
-    hasUnsavedChanges.value = true;
+    hasUnsavedChanges.value = true
   }
-};
+}
 
 const saveChanges = async () => {
   if (hasUnsavedChanges.value) {
-    await updateFile(editorContent.value);
-    hasUnsavedChanges.value = false;
+    await updateFile(editorContent.value)
+    hasUnsavedChanges.value = false
   }
-};
+}
 
 const handlePrompt = async () => {
-  if (!prompt.value.trim() || isLoading.value) return;
+  if (!prompt.value.trim() || isLoading.value) return
 
   try {
-    const generatedCode = await generateCode(prompt.value);
-    editorContent.value = generatedCode;
-    prompt.value = '';
+    const generatedCode = await generateCode(prompt.value)
+    editorContent.value = generatedCode
+    prompt.value = ''
   } catch (err) {
-    console.error('Error handling prompt:', err);
+    console.error('Error handling prompt:', err)
   }
-};
-
-const getFileIcon = (type) => {
-  const icons = {
-    html: 'fas fa-code',
-    css: 'fab fa-css3',
-    javascript: 'fab fa-js',
-    python: 'fab fa-python',
-    markdown: 'fas fa-file-alt',
-    text: 'fas fa-file-alt',
-    unknown: 'fas fa-file'
-  };
-  return icons[type] || icons.unknown;
-};
+}
 
 const handleCreateFile = async () => {
-  if (!canCreateFile.value) return;
+  if (!canCreateFile.value || !newFileType.value) return
 
   try {
-    await createFile(newFileName.value.trim(), newFileType.value);
+    await createFile(newFileName.value.trim(), newFileType.value)
     // Reset form
-    newFileName.value = '';
-    newFileType.value = '';
-    showNewFileForm.value = false;
+    newFileName.value = ''
+    newFileType.value = undefined
+    showNewFileForm.value = false
   } catch (err) {
-    console.error('Error creating file:', err);
+    console.error('Error creating file:', err)
   }
-};
+}
 
 // Load project data when component mounts or route changes
 watch(() => route.params.projectId, async (newId) => {
-  if (newId) {
-    await loadProject(newId);
-    await loadComponentTree();
+  const projectId = Array.isArray(newId) ? newId[0] : newId
+  if (projectId) {
+    await loadProject(projectId)
+    await loadComponentTree()
   }
-}, { immediate: true });
+}, { immediate: true })
 
 onMounted(async () => {
-  if (route.params.projectId) {
-    await loadProject(route.params.projectId);
-    await loadComponentTree();
+  const projectId = Array.isArray(route.params.projectId) 
+    ? route.params.projectId[0] 
+    : route.params.projectId
+  if (projectId) {
+    await loadProject(projectId)
+    await loadComponentTree()
   }
-});
+})
 </script>
 
 <style scoped>

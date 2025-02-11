@@ -1,51 +1,80 @@
 <template>
-  <form @submit.prevent="$emit('submit')" class="space-y-6">
-    <div class="relative">
-      <!-- Label -->
-      <label class="block text-sm font-medium text-gray-400 mb-2">Project Name</label>
-      
-      <!-- Input group -->
-      <div class="relative group">
-        <div class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-300"></div>
+  <div class="bg-dark-800 rounded-lg p-6">
+    <form @submit.prevent="$emit('submit')" class="space-y-6">
+      <!-- Project Name -->
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-200">
+          Project Name
+        </label>
         <input
-          :value="value"
-          @input="$emit('update:value', $event.target.value)"
+          id="name"
+          v-model="localName"
           type="text"
-          placeholder="Enter your project name"
-          class="relative w-full px-4 py-3 bg-dark-900/50 border border-dark-600 focus:border-primary-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
           required
-        >
+          placeholder="My Awesome Project"
+          class="mt-1 block w-full rounded-md bg-dark-700 border-dark-600 text-white placeholder-gray-400 focus:border-primary-500 focus:ring-primary-500"
+        />
       </div>
-    </div>
 
-    <!-- Submit button -->
-    <button
-      type="submit"
-      :disabled="isLoading || !value.trim()"
-      class="relative w-full group"
-    >
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-violet-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
-      <div class="relative flex items-center justify-center px-6 py-3 bg-dark-900 rounded-xl transition-all duration-300">
-        <i class="fas fa-magic mr-2 text-primary-400 group-hover:text-primary-300"></i>
-        <span class="font-medium text-white">
-          {{ isLoading ? 'Creating Project...' : 'Create Project' }}
-        </span>
+      <!-- Project Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-200">
+          Description
+        </label>
+        <textarea
+          id="description"
+          v-model="localDescription"
+          rows="3"
+          placeholder="Describe your project..."
+          class="mt-1 block w-full rounded-md bg-dark-700 border-dark-600 text-white placeholder-gray-400 focus:border-primary-500 focus:ring-primary-500"
+        ></textarea>
       </div>
-    </button>
-  </form>
+
+      <!-- Submit Button -->
+      <div class="flex justify-end space-x-4">
+        <IconButton
+          type="button"
+          variant="secondary"
+          @click="$emit('cancel')"
+        >
+          Cancel
+        </IconButton>
+        <IconButton
+          type="submit"
+          variant="primary"
+          :loading="loading"
+        >
+          Create Project
+        </IconButton>
+      </div>
+    </form>
+  </div>
 </template>
 
-<script setup>
-defineProps({
-  value: {
-    type: String,
-    required: true
-  },
-  isLoading: {
-    type: Boolean,
-    default: false
-  }
-});
+<script setup lang="ts">
+import { computed } from 'vue'
+import { IconButton } from '@/shared/components/atoms'
 
-defineEmits(['update:value', 'submit']);
+const props = defineProps<{
+  name: string
+  description: string
+  loading?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:name', value: string): void
+  (e: 'update:description', value: string): void
+  (e: 'submit'): void
+  (e: 'cancel'): void
+}>()
+
+const localName = computed({
+  get: () => props.name,
+  set: (value) => emit('update:name', value)
+})
+
+const localDescription = computed({
+  get: () => props.description,
+  set: (value) => emit('update:description', value)
+})
 </script>

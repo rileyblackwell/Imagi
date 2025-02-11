@@ -1,8 +1,7 @@
 import { createApp } from 'vue'
-import type { App as VueApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-import router from './router'
+import router from '@/router/index'  // Update import path
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { library } from '@fortawesome/fontawesome-svg-core'

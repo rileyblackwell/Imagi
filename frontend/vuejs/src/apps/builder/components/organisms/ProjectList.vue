@@ -89,55 +89,64 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue';
-import { ProjectCard, ActionButton } from '@/apps/builder/components';
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { ProjectCard } from '@/apps/builder/components'
+import { IconButton } from '@/shared/components/atoms'
+import { ProjectListItem } from '../molecules'
+import { EmptyState } from '@/shared/components/molecules'
+import type { Project } from '@/shared/types/project'
 
-const props = defineProps({
-  projects: {
-    type: Array,
-    default: () => []
-  },
-  isLoading: {
-    type: Boolean,
-    default: false
-  },
-  error: {
-    type: String,
-    default: ''
-  }
-});
+interface Props {
+  projects: Project[]
+  isLoading: boolean
+  error: string
+}
 
-defineEmits(['delete', 'retry']);
+const props = defineProps<Props>()
+
+const emit = defineEmits<{
+  (e: 'delete', project: Project): void
+  (e: 'retry'): void
+}>()
 
 // Local state
-const searchQuery = ref('');
+const searchQuery = ref('')
 
 // Get 3 most recently updated projects for display
 const recentProjects = computed(() => {
-  if (!props.projects?.length) return [];
+  if (!props.projects?.length) return []
   
   return [...props.projects]
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-    .slice(0, 3);
-});
+    .sort((a, b) => {
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    })
+    .slice(0, 3)
+})
 
-// Filter all projects based on search query (including recent ones)
+// Filter all projects based on search query
 const filteredProjects = computed(() => {
-  if (!props.projects?.length || !searchQuery.value.trim()) return [];
+  if (!props.projects?.length || !searchQuery.value.trim()) return []
 
-  const query = searchQuery.value.toLowerCase().trim();
+  const query = searchQuery.value.toLowerCase().trim()
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().startsWith(query) ||
-      project.description?.toLowerCase().startsWith(query)
+      project.name.toLowerCase().includes(query) ||
+      project.description?.toLowerCase().includes(query)
     )
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-});
+    .sort((a, b) => {
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    })
+})
 
-function onSearchInput(e) {
-  searchQuery.value = e.target.value;
+function onSearchInput(e: Event): void {
+  const target = e.target as HTMLInputElement
+  searchQuery.value = target.value
 }
 </script>
 
