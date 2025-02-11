@@ -56,8 +56,17 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 export const BuilderAPI = {
   async getProjects(): Promise<Project[]> {
     try {
-      const response = await api.get<APIResponse<Project[]>>('/project-manager/projects/')
-      return response.data.data
+      const response = await api.get('/project-manager/projects/')
+      console.debug('Projects API response:', response.data)
+      
+      // Handle both { data: Project[] } and direct Project[] responses
+      const projects = response.data?.data || response.data || []
+      if (!Array.isArray(projects)) {
+        console.error('Invalid projects response format:', response.data)
+        return []
+      }
+      
+      return projects
     } catch (error) {
       console.error('Error fetching projects:', error)
       throw error
@@ -66,16 +75,16 @@ export const BuilderAPI = {
 
   async createProject(projectData: ProjectData): Promise<Project> {
     try {
-      const response = await api.post<APIResponse<Project>>('/project-manager/projects/create/', projectData)
+      const response = await api.post<{ data: Project }>('/project-manager/projects/create/', projectData)
       
-      if (!response.data || !response.data.data) {
+      if (!response.data?.data) {
         throw new Error('Invalid response from server')
       }
       
       return response.data.data
     } catch (error: any) {
-      console.error('Error creating project:', error.response?.data || error)
-      throw error.response?.data?.error ? new Error(error.response.data.error) : error
+      const errorMessage = error.response?.data?.error || 'Failed to create project'
+      throw new Error(errorMessage)
     }
   },
 
@@ -117,8 +126,6 @@ export const BuilderAPI = {
     const response = await api.get<APIResponse<DashboardStats>>('/dashboard/stats/')
     return response.data.data
   },
-
-  // ...rest of methods from api.js with type annotations...
 }
 
 export type BuilderAPIType = typeof BuilderAPI

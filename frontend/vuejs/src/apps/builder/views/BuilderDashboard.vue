@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { BuilderLayout } from '@/apps/builder/layouts';
 import { useProjectStore } from '@/apps/builder/stores/projectStore';
@@ -91,7 +91,7 @@ const navigationItems = [
 ];
 
 // Methods
-async function createProject() {
+const createProject = async () => {
   if (!newProjectName.value.trim() || isCreating.value) return;
 
   isCreating.value = true;
@@ -111,15 +111,10 @@ async function createProject() {
     });
 
     newProjectName.value = '';
-    const projectId = String(project.id);
     
-    if (!projectId) {
-      throw new Error('Invalid project ID for navigation');
-    }
-
     await router.push({
       name: 'builder-workspace',
-      params: { projectId }
+      params: { projectId: String(project.id) }
     });
   } catch (err) {
     console.error('Project creation error:', err);
@@ -130,7 +125,7 @@ async function createProject() {
   } finally {
     isCreating.value = false;
   }
-}
+};
 
 async function confirmDelete(project) {
   if (!confirm(`Are you sure you want to delete "${project.name}"?`)) {
@@ -156,21 +151,35 @@ async function retryFetch() {
   await fetchProjects();
 }
 
-async function fetchProjects() {
+const fetchProjects = async () => {
   try {
-    await projectStore.fetchProjects();
+    console.debug('Dashboard: Initiating project fetch')
+    await projectStore.fetchProjects(true) // Force refresh
+    console.debug('Dashboard: Projects loaded:', projectStore.projects.length)
   } catch (err) {
+    console.error('Dashboard: Project fetch error:', err)
     showNotification({
       type: 'error',
-      message: 'Failed to fetch projects'
-    });
+      message: err.message || 'Failed to fetch projects'
+    })
   }
 }
 
 // Lifecycle
 onMounted(async () => {
-  await fetchProjects();
-});
+  console.debug('Dashboard: Component mounted')
+  await fetchProjects()
+})
+
+// Add watcher for project loading state
+watch(() => projectStore.loading, (isLoading) => {
+  console.debug('Project loading state changed:', isLoading)
+})
+
+// Add watcher for projects array
+watch(() => projectStore.projects, (projects) => {
+  console.debug('Projects updated:', projects.length)
+}, { deep: true })
 </script>
 
 <style scoped>

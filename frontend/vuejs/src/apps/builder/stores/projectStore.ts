@@ -32,7 +32,15 @@ export const useProjectStore = defineStore('builder', {
   }),
 
   getters: {
-    hasProjects: (state) => state.initialized && state.projects.length > 0,
+    hasProjects: (state) => {
+      const hasValidProjects = state.projects.length > 0
+      console.debug('Store hasProjects:', { 
+        initialized: state.initialized,
+        projectCount: state.projects.length,
+        result: hasValidProjects
+      })
+      return hasValidProjects
+    },
     getProjectById: (state) => (id: string) => state.projectsMap.get(id),
     
     sortedProjects: (state) => {
@@ -44,21 +52,42 @@ export const useProjectStore = defineStore('builder', {
 
   actions: {
     updateProjects(projects: Project[]) {
-      this.projects = projects
-      // Update lookup map
+      console.debug('Updating projects:', projects)
+      if (!Array.isArray(projects)) {
+        console.error('Invalid projects data:', projects)
+        return
+      }
+      
+      this.projects = projects.filter(p => p && typeof p === 'object')
       this.projectsMap.clear()
-      projects.forEach(project => {
-        this.projectsMap.set(project.id, project)
+      this.projects.forEach(project => {
+        if (project.id) {
+          this.projectsMap.set(String(project.id), project)
+        }
+      })
+      
+      console.debug('Updated store state:', {
+        projectCount: this.projects.length,
+        mapSize: this.projectsMap.size
       })
     },
 
     async fetchProjects(force = false) {
       const CACHE_DURATION = 5 * 60 * 1000
+      
+      console.debug('Fetching projects:', {
+        force,
+        initialized: this.initialized,
+        lastFetch: this.lastFetch,
+        projectCount: this.projects.length
+      })
+
       if (
         !force && 
         this.initialized && 
         this.lastFetch && 
-        (Date.now() - this.lastFetch.getTime()) < CACHE_DURATION
+        (Date.now() - this.lastFetch.getTime()) < CACHE_DURATION &&
+        this.projects.length > 0
       ) {
         return this.projects
       }
@@ -67,13 +96,30 @@ export const useProjectStore = defineStore('builder', {
       this.error = null
       
       try {
-        const response = await BuilderAPI.getProjects()
-        this.updateProjects(response)
+        const projects = await BuilderAPI.getProjects()
+        this.updateProjects(projects)
         this.initialized = true
         this.lastFetch = new Date()
         return this.projects
       } catch (err: any) {
         this.handleError(err, 'Failed to fetch projects')
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createProject(projectData: { name: string; description: string }) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const newProject = await BuilderAPI.createProject(projectData)
+        this.projects = [...this.projects, newProject]
+        this.projectsMap.set(String(newProject.id), newProject)
+        return newProject
+      } catch (err: any) {
+        this.handleError(err, 'Failed to create project')
         throw err
       } finally {
         this.loading = false
@@ -111,6 +157,10 @@ export const useProjectStore = defineStore('builder', {
       } else {
         this.error = defaultMessage
       }
+    },
+
+    clearError() {
+      this.error = null
     }
   }
 })
