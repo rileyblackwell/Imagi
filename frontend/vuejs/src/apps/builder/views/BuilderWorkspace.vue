@@ -1,8 +1,5 @@
 <template>
-  <DashboardLayout 
-    :navigation-items="navigationItems" 
-    storage-key="builderWorkspaceSidebarCollapsed"
-  >
+  <BuilderLayout storage-key="builderWorkspaceSidebarCollapsed">
     <template #sidebar-content>
       <!-- Project Header -->
       <div class="p-4 border-b border-dark-700">
@@ -231,14 +228,15 @@
         </div>
       </main>
     </div>
-  </DashboardLayout>
+  </BuilderLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { DashboardLayout } from '@/shared/layouts';
-import { useBuilder } from '../composables/useBuilder';import { BUILDER_MODES, FILE_TYPES } from '../utils/constants';
+import { BuilderLayout } from '../layouts';
+import { useBuilder } from '../composables/useBuilder';
+import { BUILDER_MODES, FILE_TYPES } from '../utils/constants';
 
 // Component setup
 const route = useRoute();

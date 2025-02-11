@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout :navigation-items="navigationItems" storage-key="builderSidebarCollapsed">
+  <BuilderLayout storage-key="builderDashboardSidebarCollapsed">
     <div class="min-h-full bg-dark-950 py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header Section -->
@@ -33,13 +33,13 @@
         </div>
       </div>
     </div>
-  </DashboardLayout>
+  </BuilderLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { DashboardLayout } from '@/shared/layouts';
+import { BuilderLayout } from '../layouts';
 import { useProjectStore } from '../stores/projectStore';
 import { NewProjectCard, ProjectList } from '../components';
 import { useNotification } from '@/shared/composables/useNotification';
