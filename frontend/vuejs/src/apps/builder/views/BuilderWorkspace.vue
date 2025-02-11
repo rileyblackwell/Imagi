@@ -68,24 +68,13 @@
         <div class="p-4 border-b border-dark-700">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-medium text-gray-400">Project Files</h3>
-            <div class="flex items-center space-x-2">
-              <button
-                @click="showNewFileForm = !showNewFileForm"
-                class="text-gray-400 hover:text-white transition-colors"
-                :title="showNewFileForm ? 'Cancel' : 'New File'"
-              >
-                <i :class="['fas', showNewFileForm ? 'fa-times' : 'fa-plus']"></i>
-              </button>
-              <button
-                @click="isFileExplorerExpanded = !isFileExplorerExpanded"
-                class="text-gray-400 hover:text-white transition-colors"
-              >
-                <i :class="[
-                  'fas',
-                  isFileExplorerExpanded ? 'fa-chevron-down' : 'fa-chevron-right'
-                ]"></i>
-              </button>
-            </div>
+            <button
+              @click="showNewFileForm = !showNewFileForm"
+              class="text-gray-400 hover:text-white transition-colors"
+              :title="showNewFileForm ? 'Cancel' : 'New File'"
+            >
+              <i :class="['fas', showNewFileForm ? 'fa-times' : 'fa-plus']"></i>
+            </button>
           </div>
 
           <!-- New File Form -->
@@ -142,7 +131,7 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="p-4 border-t border-dark-700 space-y-2">
+      <div class="p-4 border-t border-dark-700">
         <button
           @click="undoLastAction"
           class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -150,6 +139,22 @@
         >
           <i class="fas fa-undo mr-2"></i>
           Undo
+        </button>
+      </div>
+    </template>
+
+    <!-- File Explorer Toggle Button -->
+    <template #sidebar-bottom>
+      <div class="p-4">
+        <button
+          @click="isFileExplorerExpanded = !isFileExplorerExpanded"
+          class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg"
+        >
+          <i :class="[
+            'fas',
+            isFileExplorerExpanded ? 'fa-chevron-down' : 'fa-chevron-right'
+          ]"></i>
+          <span class="ml-2">{{ isFileExplorerExpanded ? 'Collapse' : 'Expand' }} Files</span>
         </button>
       </div>
     </template>

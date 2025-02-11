@@ -79,7 +79,7 @@ const navigationItems = [
   { 
     name: 'Main Dashboard',
     to: '/dashboard',
-    icon: 'fas fa-home',
+    icon: 'fas fa-th-large',
     exact: true
   }
 ];

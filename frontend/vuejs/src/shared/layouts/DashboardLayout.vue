@@ -33,18 +33,25 @@
         </nav>
 
         <!-- Additional Sidebar Content -->
-        <div v-if="!isSidebarCollapsed" class="flex-1 overflow-hidden flex flex-col">
+        <div class="flex-1 overflow-y-auto">
           <slot name="sidebar-content"></slot>
         </div>
-        
-        <!-- Collapse button -->
-        <div class="flex-shrink-0 p-4 border-t border-dark-800">
-          <button 
-            @click="toggleSidebar"
-            class="w-full flex items-center justify-center p-2 bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
-          >
-            <i class="fas" :class="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
-          </button>
+
+        <!-- Bottom Actions -->
+        <div class="flex-shrink-0 border-t border-dark-800">
+          <!-- Additional bottom actions from slot -->
+          <slot name="sidebar-bottom"></slot>
+          
+          <!-- Collapse/Expand Button -->
+          <div class="p-4">
+            <button 
+              @click="toggleSidebar"
+              class="w-full flex items-center justify-center p-2 bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
+              :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
+            >
+              <i class="fas" :class="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -139,4 +146,4 @@ export default {
     }
   }
 }
-</script> 
+</script>
