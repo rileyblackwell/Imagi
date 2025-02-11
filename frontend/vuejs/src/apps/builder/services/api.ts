@@ -123,10 +123,25 @@ export const BuilderAPI = {
 
   async deleteProject(projectId: string): Promise<void> {
     try {
-      await api.delete(`/project-manager/projects/${projectId}/delete/`)
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      throw error
+      const response = await api.delete(`/project-manager/projects/${projectId}/delete/`);
+      
+      if (response.status !== 204 && response.status !== 200) {
+        throw new Error('Unexpected response status: ' + response.status);
+      }
+    } catch (error: any) {
+      console.error('Error deleting project:', {
+        projectId,
+        error,
+        response: error.response,
+        data: error.response?.data
+      });
+      
+      const errorMessage = error.response?.data?.error 
+        || error.response?.data?.message 
+        || error.message 
+        || 'Failed to delete project';
+      
+      throw new Error(errorMessage);
     }
   },
 

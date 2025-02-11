@@ -134,20 +134,29 @@ const createProject = async () => {
 };
 
 async function confirmDelete(project) {
+  if (!project?.id) {
+    showNotification({
+      type: 'error',
+      message: 'Invalid project data'
+    });
+    return;
+  }
+
   if (!confirm(`Are you sure you want to delete "${project.name}"?`)) {
     return;
   }
 
   try {
-    await projectStore.deleteProject(project.id);
+    await projectStore.deleteProject(String(project.id));
     showNotification({
       type: 'success',
       message: 'Project deleted successfully'
     });
   } catch (err) {
+    console.error('Project deletion error:', err);
     showNotification({
       type: 'error',
-      message: err.response?.data?.error || 'Failed to delete project'
+      message: err.message || 'Failed to delete project'
     });
   }
 }

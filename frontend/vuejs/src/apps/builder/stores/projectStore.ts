@@ -148,6 +148,29 @@ export const useProjectStore = defineStore('builder', {
       }
     },
 
+    async deleteProject(projectId: string) {
+      this.loading = true;
+      this.error = null;
+      
+      try {
+        console.debug('Deleting project:', projectId);
+        await BuilderAPI.deleteProject(projectId);
+        
+        // Remove from projects array
+        this.projects = this.projects.filter(p => String(p.id) !== String(projectId));
+        // Remove from map
+        this.projectsMap.delete(String(projectId));
+        
+        console.debug('Project deleted, remaining projects:', this.projects.length);
+        
+      } catch (err: any) {
+        this.handleError(err, 'Failed to delete project');
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async fetchActivities() {
       try {
         const activities = await BuilderAPI.getActivities()
