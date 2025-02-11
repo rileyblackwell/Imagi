@@ -4,18 +4,9 @@ import type {
   AxiosResponse 
 } from 'axios'
 import type { User } from '../types/auth'
+import type { LoginCredentials, AuthResponse, UserRegistrationData } from './types'
 
 const BASE_URL = '/api/v1/auth'
-
-interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-interface LoginCredentials {
-  username: string;  // Changed from email to username
-  password: string;
-}
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string): string | null {
@@ -161,14 +152,57 @@ export const AuthAPI = {
     }
   },
 
-  async register(userData: { name: string; email: string; password: string }): Promise<{ data: AuthResponse }> {
+  async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
     try {
       await this.ensureCSRFToken()
+      
+      // Validate required fields
+      if (!userData.username || !userData.email || !userData.password || !userData.password_confirmation) {
+        throw new Error('All fields are required')
+      }
+
+      // Validate email format only (remove uniqueness check)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(userData.email)) {
+        throw new Error('Please enter a valid email address')
+      }
+
+      // Validate passwords match
+      if (userData.password !== userData.password_confirmation) {
+        throw new Error('Passwords do not match')
+      }
+
+      // Validate terms acceptance
+      if (!userData.terms_accepted) {
+        throw new Error('You must accept the terms and privacy policy')
+      }
+
       const response = await axios.post(`${BASE_URL}/register/`, userData, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
         withCredentials: true
       })
+
+      if (!response?.data?.token) {
+        throw new Error('Invalid server response')
+      }
+
       return response
-    } catch (error) {
+    } catch (error: any) {
+      if (error.response?.status === 400) {
+        const errorData = error.response.data
+        // Only check for username uniqueness, ignore email uniqueness errors
+        if (errorData.username) {
+          throw new Error('Username is already taken')
+        }
+        // Ignore email uniqueness errors
+        if (errorData.email && !errorData.email[0].includes('already registered')) {
+          throw new Error(errorData.email[0])
+        }
+        throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Registration failed')
+      }
       throw error
     }
   },

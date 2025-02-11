@@ -81,19 +81,30 @@ export const useAuthStore = defineStore('auth', {
     async register(userData: UserRegistrationData): Promise<AuthResponse> {
       try {
         this.loading = true
+        this.error = null
         const response = await AuthAPI.register(userData)
-        const token = response.data.token
         
-        if (token) {
-          this.token = token
+        // Handle successful registration same as login
+        if (response?.data?.token) {
+          this.token = response.data.token
           this.user = response.data.user
           this.isAuthenticated = true
-          localStorage.setItem('token', token)
+          localStorage.setItem('token', response.data.token)
+          
+          // Set axios default header for subsequent requests
+          axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`
+          
+          return response.data
         }
+        throw new Error('Invalid response from server')
+      } catch (error: any) {
+        this.isAuthenticated = false
+        this.user = null
+        this.token = null
+        localStorage.removeItem('token')
+        delete axios.defaults.headers.common['Authorization']
         
-        return response.data
-      } catch (error) {
-        console.error('Registration failed:', error)
+        this.error = error.message || 'Registration failed'
         throw error
       } finally {
         this.loading = false

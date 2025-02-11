@@ -11,7 +11,9 @@ export interface LoginCredentials {
 }
 
 export interface UserRegistrationData {
-  name: string;
+  username: string;
   email: string;
   password: string;
+  password_confirmation: string; // Add password confirmation
+  terms_accepted: boolean; // Add terms acceptance
 }

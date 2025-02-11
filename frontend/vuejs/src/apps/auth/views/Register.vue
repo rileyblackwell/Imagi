@@ -101,7 +101,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router' // Add useRoute import
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
 import { 
@@ -116,6 +116,7 @@ import {
 import { formatAuthError } from '../utils/errorHandling'
 
 const router = useRouter()
+const route = useRoute() // Add route reference
 const authStore = useAuthStore()
 const serverError = ref('')
 const hasAttemptedSubmit = ref(false)
@@ -133,38 +134,45 @@ defineOptions({
 
 const handleSubmit = async (values) => {
   hasAttemptedSubmit.value = true
-
-  if (!values.agreeToTerms) {
-    serverError.value = 'You must agree to the Terms of Service and Privacy Policy'
-    return
-  }
-
-  if (!passwordRequirements.value?.isValid) {
-    serverError.value = 'Please ensure your password meets all requirements.'
-    return
-  }
-
   serverError.value = ''
-  
+
   try {
+    if (formData.password !== formData.passwordConfirmation) {
+      serverError.value = 'Passwords do not match'
+      return
+    }
+
+    if (!values.agreeToTerms) {
+      serverError.value = 'You must agree to the Terms of Service and Privacy Policy'
+      return
+    }
+
+    if (!passwordRequirements.value?.isValid) {
+      serverError.value = 'Password does not meet requirements'
+      return
+    }
+
     const registerData = {
       username: values.username?.trim(),
-      email: (values.email || formData.email)?.trim(),
+      email: values.email?.trim(),
       password: formData.password,
-      password_confirmation: formData.passwordConfirmation
+      password_confirmation: formData.passwordConfirmation,
+      terms_accepted: values.agreeToTerms
+    }
+
+    // Validate all required fields
+    if (!registerData.username || !registerData.email || !registerData.password || !registerData.password_confirmation) {
+      serverError.value = 'All fields are required'
+      return
     }
 
     const result = await authStore.register(registerData)
     
-    if (result) {
-      if (result.requiresVerification) {
-        await router.push({
-          name: 'verify-email',
-          query: { email: registerData.email }
-        })
-      } else {
-        await router.push('/')
-      }
+    // After successful registration and auto-login
+    if (result?.token) {
+      // Get redirect path or default to home
+      const redirectPath = route.query.redirect || '/'
+      await router.push(redirectPath)
     }
   } catch (error) {
     console.error('Registration error:', error)
