@@ -58,6 +58,7 @@
                     v-for="project in recentProjects"
                     :key="project.id"
                     :project="project"
+                    @click="goToProject(project.id)"
                   />
                   <EmptyState
                     v-if="!recentProjects.length"
@@ -130,6 +131,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
 import { useProjectStore } from '@/apps/builder/stores/projectStore'
@@ -144,20 +146,58 @@ import {
 } from '@/shared/components/molecules'
 import { ActivityFeed, StatsCard } from '@/shared/components/organisms'
 
+// Store initialization
+const authStore = useAuthStore()
+const projectStore = useProjectStore()
+const { showNotification } = useNotification()
+
+// Reactive state
+const credits = ref(1000)
+const creditsUsed = ref(250)
+const creditsPlan = ref(1000)
+const activeBuildCount = ref(0)
+const apiCallCount = ref(0)
+const recentProjects = ref([])
+const recentActivities = ref([])
+
+// Stats data with computed values
+const statsData = computed(() => [
+  { 
+    title: 'Total Projects', 
+    value: projectStore.projects?.length || 0, 
+    icon: 'fas fa-folder', 
+    trend: '+12%', 
+    color: 'primary' 
+  },
+  { 
+    title: 'Active Builds', 
+    value: activeBuildCount.value, 
+    icon: 'fas fa-hammer', 
+    trend: '+5%', 
+    color: 'success' 
+  },
+  { 
+    title: 'Credits Used', 
+    value: creditsUsed.value, 
+    icon: 'fas fa-coins', 
+    trend: '-8%', 
+    color: 'warning' 
+  },
+  { 
+    title: 'API Calls', 
+    value: apiCallCount.value, 
+    icon: 'fas fa-bolt', 
+    trend: '+25%', 
+    color: 'info' 
+  }
+])
+
 // Navigation configuration
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
   { name: 'Projects', to: '/builder/projects', icon: 'fas fa-folder' },
   { name: 'Templates', to: '/builder/templates', icon: 'fas fa-box' },
   { name: 'Credits', to: '/payments', icon: 'fas fa-coins' }
-]
-
-// Stats data
-const statsData = [
-  { title: 'Total Projects', value: projectCount, icon: 'fas fa-folder', trend: '+12%', color: 'primary' },
-  { title: 'Active Builds', value: activeBuildCount, icon: 'fas fa-hammer', trend: '+5%', color: 'success' },
-  { title: 'Credits Used', value: creditsUsed, icon: 'fas fa-coins', trend: '-8%', color: 'warning' },
-  { title: 'API Calls', value: apiCallCount, icon: 'fas fa-bolt', trend: '+25%', color: 'info' }
 ]
 
 // Quick actions configuration
@@ -175,30 +215,55 @@ const resources = [
   { title: 'Community', icon: 'fas fa-users', url: '/community', description: 'Join our Discord' }
 ]
 
-// Store and state setup
-const authStore = useAuthStore()
-const projectStore = useProjectStore()
-const { showNotification } = useNotification()
-
-const credits = ref(0)
-const recentActivities = ref([])
-
-// Use computed property instead of ref for projectCount
-const projectCount = computed(() => projectStore.projects.length)
+// Add navigation method
+const router = useRouter()
+const goToProject = (id) => {
+  router.push({
+    name: 'builder-project-detail',
+    params: { id: String(id) }
+  }).catch(err => {
+    console.error('Navigation error:', err)
+    showNotification({
+      type: 'error',
+      message: 'Unable to load project details'
+    })
+  })
+}
 
 // Enhanced data fetching
 async function fetchDashboardData() {
   try {
-    await Promise.all([
-      projectStore.fetchProjects(),
-      projectStore.fetchActivities(),
-      projectStore.fetchStats()
-    ])
+    if (projectStore.fetchProjects) {
+      await projectStore.fetchProjects()
+      recentProjects.value = projectStore.projects?.slice(0, 5) || []
+    }
+    
+    // Fetch other data if methods exist, but don't fail if they error
+    try {
+      if (projectStore.fetchActivities) {
+        recentActivities.value = await projectStore.fetchActivities()
+      }
+    } catch (err) {
+      console.warn('Activities fetch failed:', err)
+      recentActivities.value = []
+    }
+    
+    try {
+      if (projectStore.fetchStats) {
+        const stats = await projectStore.fetchStats()
+        activeBuildCount.value = stats?.activeBuildCount || 0
+        apiCallCount.value = stats?.apiCallCount || 0
+        creditsUsed.value = stats?.creditsUsed || 0
+      }
+    } catch (err) {
+      console.warn('Stats fetch failed:', err)
+    }
   } catch (err) {
     showNotification({
       type: 'error',
       message: 'Failed to load dashboard data'
     })
+    console.error('Dashboard data fetch error:', err)
   }
 }
 

@@ -16,8 +16,15 @@
 </template>
 
 <script setup lang="ts">
+import { defineProps, defineEmits } from 'vue'
 import { formatDateWithStyle } from '@/shared/utils/date'
-import type { Project } from '@/shared/types/project'
+
+interface Project {
+  id: string | number;
+  name: string;
+  description?: string;
+  created_at: string;
+}
 
 defineProps<{
   project: Project

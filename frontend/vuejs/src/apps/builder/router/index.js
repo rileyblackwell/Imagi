@@ -1,19 +1,44 @@
-import BuilderDashboard from '../views/BuilderDashboard.vue'
 import BuilderWorkspace from '../views/BuilderWorkspace.vue'
-import Projects from '../views/Projects.vue'
+import ProjectList from '../views/ProjectList.vue'
+import ProjectDetail from '../views/ProjectDetail.vue'
+import NewProject from '../views/NewProject.vue'
 
 export const routes = [
   {
-    path: '/builder/dashboard',
-    name: 'builder-dashboard',
-    component: BuilderDashboard,
+    path: '/builder',
+    name: 'builder',
+    redirect: { name: 'builder-projects' }
+  },
+  {
+    path: '/builder/projects',
+    name: 'builder-projects',
+    component: ProjectList,
     meta: {
       requiresAuth: true,
-      title: 'Builder Dashboard'
+      title: 'Projects'
     }
   },
   {
-    path: '/builder/project/:projectId',
+    path: '/builder/projects/:id',
+    name: 'builder-project-detail',
+    component: ProjectDetail,
+    props: true,
+    meta: {
+      requiresAuth: true,
+      title: 'Project Details'
+    }
+  },
+  {
+    path: '/builder/new',
+    name: 'builder-new-project',
+    component: NewProject,
+    meta: {
+      requiresAuth: true,
+      title: 'New Project'
+    }
+  },
+  {
+    path: '/builder/workspace/:projectId',
     name: 'builder-workspace',
     component: BuilderWorkspace,
     props: route => ({ 
@@ -22,23 +47,6 @@ export const routes = [
     meta: {
       requiresAuth: true,
       title: 'Project Workspace'
-    },
-    beforeEnter: (to, from, next) => {
-      const projectId = to.params.projectId;
-      if (!projectId || isNaN(projectId)) {
-        next({ name: 'builder-dashboard' });
-      } else {
-        next();
-      }
-    }
-  },
-  {
-    path: '/builder/projects',
-    name: 'builder-projects',
-    component: Projects,
-    meta: {
-      requiresAuth: true,
-      title: 'Projects'
     }
   }
 ]

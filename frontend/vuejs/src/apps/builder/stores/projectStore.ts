@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { BuilderAPI } from '../services/api'
-import type { Project, Activity, DashboardStats } from '@/apps/home/types/dashboard'
+import { type Project, normalizeProject } from '@/shared/types/project'
+import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 
 interface ProjectState {
   projects: Project[];
@@ -14,6 +15,7 @@ interface ProjectState {
   stats: DashboardStats | null;
   availableModels: Array<{ id: string; name: string }>;
   selectedModel: string | null;
+  isLoading: boolean; // Adding explicit isLoading property for JS compatibility
 }
 
 export const useProjectStore = defineStore('builder', {
@@ -28,7 +30,8 @@ export const useProjectStore = defineStore('builder', {
     activities: [],
     stats: null,
     availableModels: [],
-    selectedModel: null
+    selectedModel: null,
+    isLoading: false // Add for JS compatibility
   }),
 
   getters: {
@@ -45,20 +48,23 @@ export const useProjectStore = defineStore('builder', {
     
     sortedProjects: (state) => {
       return [...state.projects].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
     }
   },
 
   actions: {
-    updateProjects(projects: Project[]) {
+    updateProjects(projects: unknown[]) {
       console.debug('Updating projects:', projects)
       if (!Array.isArray(projects)) {
         console.error('Invalid projects data:', projects)
         return
       }
       
-      this.projects = projects.filter(p => p && typeof p === 'object')
+      this.projects = projects
+        .filter(p => p && typeof p === 'object')
+        .map(p => normalizeProject(p))
+
       this.projectsMap.clear()
       this.projects.forEach(project => {
         if (project.id) {
@@ -92,7 +98,7 @@ export const useProjectStore = defineStore('builder', {
         return this.projects
       }
 
-      this.loading = true
+      this.setLoading(true)
       this.error = null
       
       try {
@@ -105,7 +111,7 @@ export const useProjectStore = defineStore('builder', {
         this.handleError(err, 'Failed to fetch projects')
         throw err
       } finally {
-        this.loading = false
+        this.setLoading(false)
       }
     },
 
@@ -123,22 +129,18 @@ export const useProjectStore = defineStore('builder', {
           throw new Error('Invalid project data received')
         }
 
-        // Ensure we have the required fields
-        if (!('id' in newProject)) {
-          console.error('Missing project ID:', newProject)
-          throw new Error('Project created but missing ID')
-        }
-
+        const normalizedProject = normalizeProject(newProject)
+        
         // Update local state
-        this.projects = [...this.projects, newProject]
-        this.projectsMap.set(String(newProject.id), newProject)
+        this.projects = [...this.projects, normalizedProject]
+        this.projectsMap.set(String(normalizedProject.id), normalizedProject)
         
         console.debug('Store updated with new project:', {
-          projectId: newProject.id,
+          projectId: normalizedProject.id,
           totalProjects: this.projects.length
         })
         
-        return newProject
+        return normalizedProject
       } catch (err: any) {
         console.error('Project creation error in store:', err)
         this.handleError(err, 'Failed to create project')
@@ -175,9 +177,10 @@ export const useProjectStore = defineStore('builder', {
       try {
         const activities = await BuilderAPI.getActivities()
         this.activities = activities
+        return activities
       } catch (error) {
-        console.error('Failed to fetch activities:', error)
-        throw error
+        console.warn('Failed to fetch activities:', error)
+        return [] // Return empty array as fallback
       }
     },
 
@@ -185,9 +188,14 @@ export const useProjectStore = defineStore('builder', {
       try {
         const stats = await BuilderAPI.getStats()
         this.stats = stats
+        return stats
       } catch (error) {
-        console.error('Failed to fetch stats:', error)
-        throw error
+        console.warn('Failed to fetch stats:', error)
+        return {
+          activeBuildCount: 0,
+          apiCallCount: 0,
+          creditsUsed: 0
+        }
       }
     },
 
@@ -206,6 +214,12 @@ export const useProjectStore = defineStore('builder', {
 
     clearError() {
       this.error = null
+    },
+
+    // Add simplified loading state setters for JS compatibility
+    setLoading(loading: boolean) {
+      this.loading = loading;
+      this.isLoading = loading; // Update both for compatibility
     }
   }
 })
