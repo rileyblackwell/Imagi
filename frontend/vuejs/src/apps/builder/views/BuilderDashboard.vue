@@ -1,5 +1,8 @@
 <template>
-  <BuilderLayout storage-key="builderDashboardSidebarCollapsed">
+  <BuilderLayout 
+    storage-key="builderDashboardSidebarCollapsed"
+    :navigation-items="navigationItems"
+  >
     <!-- Main Content with Gradient Background -->
     <div class="min-h-screen bg-dark-900 relative">
       <!-- Enhanced Background Effects -->
@@ -74,15 +77,10 @@ const error = computed(() => projectStore.error);
 // Navigation items
 const navigationItems = [
   { 
-    name: 'Projects', 
-    to: '/builder/dashboard', 
-    icon: 'fas fa-folder',
+    name: 'Main Dashboard',
+    to: '/dashboard',
+    icon: 'fas fa-home',
     exact: true
-  },
-  { 
-    name: 'Settings', 
-    to: '/builder/settings', 
-    icon: 'fas fa-cog'
   }
 ];
 
@@ -106,11 +104,9 @@ async function createProject() {
       message: 'Project created successfully!'
     });
 
-    // Clear input and navigate to the new project
     newProjectName.value = '';
-    
-    // Ensure we have a valid project ID before navigation
     const projectId = String(project.id);
+    
     if (!projectId) {
       throw new Error('Invalid project ID for navigation');
     }

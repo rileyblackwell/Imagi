@@ -3,6 +3,7 @@ import About from '../views/About.vue'
 import Contact from '../views/Contact.vue'
 import Privacy from '../views/PrivacyPolicy.vue'
 import Terms from '../views/TermsOfService.vue'
+import Dashboard from '../views/Dashboard.vue'
 
 const routes = [
   {
@@ -29,6 +30,15 @@ const routes = [
     path: '/terms',
     name: 'terms',
     component: Terms
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: Dashboard,
+    meta: {
+      requiresAuth: true,
+      title: 'Dashboard'
+    }
   }
 ]
 
@@ -39,4 +49,4 @@ export default routes
 export const beforeEnter = (to, from, next) => {
   // Add any route guards specific to the home app
   next()
-} 
+}
