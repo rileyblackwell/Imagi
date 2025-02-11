@@ -79,9 +79,14 @@ async function createProject() {
   isCreating.value = true;
   try {
     const project = await projectStore.createProject({
-      name: newProjectName.value.trim()
+      name: newProjectName.value.trim(),
+      description: ''
     });
     
+    if (!project?.id && project?.id !== 0) {
+      throw new Error('Failed to create project - no ID returned');
+    }
+
     showNotification({
       type: 'success',
       message: 'Project created successfully!'
@@ -89,14 +94,22 @@ async function createProject() {
 
     // Clear input and navigate to the new project
     newProjectName.value = '';
+    
+    // Ensure we have a valid project ID before navigation
+    const projectId = String(project.id);
+    if (!projectId) {
+      throw new Error('Invalid project ID for navigation');
+    }
+
     await router.push({
       name: 'builder-workspace',
-      params: { projectId: project.id.toString() }
+      params: { projectId }
     });
   } catch (err) {
+    console.error('Project creation error:', err);
     showNotification({
       type: 'error',
-      message: err.response?.data?.error || 'Failed to create project'
+      message: err.message || 'Failed to create project'
     });
   } finally {
     isCreating.value = false;

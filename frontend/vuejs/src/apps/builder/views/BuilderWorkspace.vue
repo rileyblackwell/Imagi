@@ -234,157 +234,130 @@
   </DashboardLayout>
 </template>
 
-<script>
-import { ref, onMounted, watch, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { DashboardLayout } from '@/shared/layouts'
-import { useBuilder } from '../composables/useBuilder'
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { DashboardLayout } from '@/shared/layouts';
+import { useBuilder } from '../composables/useBuilder';import { BUILDER_MODES, FILE_TYPES } from '../utils/constants';
 
-export default {
-  name: 'BuilderWorkspace',
-  components: {
-    DashboardLayout
-  },
-  setup() {
-    const route = useRoute()
-    const prompt = ref('')
-    const editorContent = ref('')
-    const isFileExplorerExpanded = ref(true)
-    const showNewFileForm = ref(false)
-    const newFileName = ref('')
-    const newFileType = ref('')
+// Component setup
+const route = useRoute();
+const { 
+  currentProject,
+  availableModels,
+  selectedModel,
+  isLoading,
+  error,
+  files,
+  selectedFile,
+  fileContent,
+  hasUnsavedChanges,
+  currentMode,
+  aiGenerating,
+  componentTree,
+  selectedComponent,
+  loadProject,
+  loadFiles,
+  selectFile,
+  updateFile,
+  createFile,
+  generateCode,
+  undoLastAction,
+  loadAvailableModels,
+  loadComponentTree,
+  switchMode
+} = useBuilder();
 
-    // Define workspace navigation items
-    const navigationItems = [] // Empty array since we don't want any navigation items
+// Local state
+const prompt = ref('');
+const showNewFileForm = ref(false);
+const newFileName = ref('');
+const newFileType = ref('');
+const isFileExplorerExpanded = ref(true);
+const editorContent = ref('');
 
-    const {
-      currentProject,
-      files,
-      selectedFile,
-      fileContent,
-      availableModels,
-      selectedModel,
-      isLoading,
-      error,
-      hasUnsavedChanges,
-      currentMode,
-      loadProject,
-      loadFiles,
-      selectFile,
-      updateFile,
-      generateCode,
-      undoLastAction,
-      loadAvailableModels,
-      switchMode,
-      createFile,
-      FILE_TYPES
-    } = useBuilder()
+// Navigation items
+const navigationItems = [];
 
-    // Computed
-    const canCreateFile = computed(() => {
-      return newFileName.value.trim() && newFileType.value;
-    })
+// Computed
+const canCreateFile = computed(() => {
+  return newFileName.value.trim() && newFileType.value;
+});
 
-    // Load project and models on mount
-    onMounted(async () => {
-      await loadProject(route.params.projectId)
-      await loadAvailableModels()
-    })
-
-    // Watch for file content changes
-    watch(fileContent, (newContent) => {
-      if (newContent !== editorContent.value) {
-        editorContent.value = newContent || ''
-      }
-    })
-
-    // Handle editor content changes
-    const onEditorChange = (content) => {
-      if (content !== fileContent.value) {
-        hasUnsavedChanges.value = true
-      }
-    }
-
-    // Save changes
-    const saveChanges = async () => {
-      if (hasUnsavedChanges.value) {
-        await updateFile(editorContent.value)
-        hasUnsavedChanges.value = false
-      }
-    }
-
-    // Handle AI prompt
-    const handlePrompt = async () => {
-      if (!prompt.value.trim() || isLoading.value) return
-
-      try {
-        const generatedCode = await generateCode(prompt.value)
-        editorContent.value = generatedCode
-        prompt.value = ''
-      } catch (err) {
-        console.error('Error handling prompt:', err)
-      }
-    }
-
-    // Get file icon based on type
-    const getFileIcon = (type) => {
-      const icons = {
-        html: 'fas fa-code',
-        css: 'fab fa-css3',
-        javascript: 'fab fa-js',
-        python: 'fab fa-python',
-        markdown: 'fas fa-file-alt',
-        text: 'fas fa-file-alt',
-        unknown: 'fas fa-file'
-      }
-      return icons[type] || icons.unknown
-    }
-
-    // Methods
-    const handleCreateFile = async () => {
-      if (!canCreateFile.value) return;
-
-      try {
-        await createFile(newFileName.value.trim(), newFileType.value);
-        // Reset form
-        newFileName.value = '';
-        newFileType.value = '';
-        showNewFileForm.value = false;
-      } catch (err) {
-        console.error('Error creating file:', err);
-      }
-    }
-
-    return {
-      navigationItems,
-      currentProject,
-      files,
-      selectedFile,
-      availableModels,
-      selectedModel,
-      isLoading,
-      error,
-      hasUnsavedChanges,
-      prompt,
-      editorContent,
-      currentMode,
-      isFileExplorerExpanded,
-      showNewFileForm,
-      newFileName,
-      newFileType,
-      canCreateFile,
-      FILE_TYPES,
-      selectFile,
-      undoLastAction,
-      saveChanges,
-      handlePrompt,
-      onEditorChange,
-      getFileIcon,
-      handleCreateFile,
-      switchMode
-    }
+// Watch for file content changes
+watch(fileContent, (newContent) => {
+  if (newContent !== editorContent.value) {
+    editorContent.value = newContent || '';
   }
-}
+});
+
+// Methods
+const onEditorChange = (content) => {
+  if (content !== fileContent.value) {
+    hasUnsavedChanges.value = true;
+  }
+};
+
+const saveChanges = async () => {
+  if (hasUnsavedChanges.value) {
+    await updateFile(editorContent.value);
+    hasUnsavedChanges.value = false;
+  }
+};
+
+const handlePrompt = async () => {
+  if (!prompt.value.trim() || isLoading.value) return;
+
+  try {
+    const generatedCode = await generateCode(prompt.value);
+    editorContent.value = generatedCode;
+    prompt.value = '';
+  } catch (err) {
+    console.error('Error handling prompt:', err);
+  }
+};
+
+const getFileIcon = (type) => {
+  const icons = {
+    html: 'fas fa-code',
+    css: 'fab fa-css3',
+    javascript: 'fab fa-js',
+    python: 'fab fa-python',
+    markdown: 'fas fa-file-alt',
+    text: 'fas fa-file-alt',
+    unknown: 'fas fa-file'
+  };
+  return icons[type] || icons.unknown;
+};
+
+const handleCreateFile = async () => {
+  if (!canCreateFile.value) return;
+
+  try {
+    await createFile(newFileName.value.trim(), newFileType.value);
+    // Reset form
+    newFileName.value = '';
+    newFileType.value = '';
+    showNewFileForm.value = false;
+  } catch (err) {
+    console.error('Error creating file:', err);
+  }
+};
+
+// Load project data when component mounts or route changes
+watch(() => route.params.projectId, async (newId) => {
+  if (newId) {
+    await loadProject(newId);
+    await loadComponentTree();
+  }
+}, { immediate: true });
+
+onMounted(async () => {
+  if (route.params.projectId) {
+    await loadProject(route.params.projectId);
+    await loadComponentTree();
+  }
+});
 </script>
 
 <style scoped>
@@ -395,4 +368,4 @@ textarea {
   line-height: 1.5;
   font-size: 0.875rem;
 }
-</style> 
+</style>

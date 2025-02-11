@@ -1,51 +1,25 @@
 import { ref, computed } from 'vue';
-import { useProjects } from './useProjects';
+import { useProjectStore } from '../stores/projectStore';
 import { useAI } from './useAI';
+import { BUILDER_MODES, FILE_TYPES } from '../utils/constants';
 import { BuilderAPI } from '../services/api';
 
-// Define modes as constants
-export const BUILDER_MODES = {
-  CHAT: 'chat',
-  BUILD: 'build'
-};
-
-// Define supported file types
-export const FILE_TYPES = {
-  HTML: 'html',
-  CSS: 'css',
-  JAVASCRIPT: 'javascript',
-  PYTHON: 'python',
-  MARKDOWN: 'markdown',
-  TEXT: 'text'
-};
-
-const currentMode = ref(BUILDER_MODES.CHAT);
-const selectedComponent = ref(null);
-const componentTree = ref([]);
-const loading = ref(false);
-const error = ref(null);
-const previewUrl = ref(null);
-const editHistory = ref([]);
-const currentHistoryIndex = ref(-1);
-
-// Define available AI models
-const DEFAULT_MODELS = [
-  { id: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-  { id: 'claude-sonnet-3.5', name: 'Claude Sonnet 3.5' }
-];
-
 export function useBuilder() {
-  const { currentProject } = useProjects();
-  const { sendPrompt } = useAI();
+  const store = useProjectStore();
+  const { sendPrompt, generating: aiGenerating } = useAI();
+  
+  // Local state
+  const currentProject = ref(null);
+  const isLoading = ref(false);
+  const currentMode = ref(BUILDER_MODES.CHAT);
+  const error = ref(null);
+  const componentTree = ref([]);
+  const selectedComponent = ref(null);
 
   // State
   const files = ref([]);
   const selectedFile = ref(null);
   const fileContent = ref('');
-  const availableModels = ref(DEFAULT_MODELS);
-  const selectedModel = ref('gpt-4o');
-  const isLoading = ref(false);
   const hasUnsavedChanges = ref(false);
 
   // Computed
@@ -66,7 +40,7 @@ export function useBuilder() {
    * Load the component tree for the current project
    */
   async function loadComponentTree() {
-    loading.value = true;
+    isLoading.value = true;
     error.value = null;
 
     try {
@@ -77,7 +51,7 @@ export function useBuilder() {
       error.value = err.response?.data?.message || 'Failed to load component tree';
       throw err;
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -87,7 +61,7 @@ export function useBuilder() {
   async function loadFiles() {
     if (!projectId.value) return;
 
-    loading.value = true;
+    isLoading.value = true;
     error.value = null;
 
     try {
@@ -98,7 +72,7 @@ export function useBuilder() {
       error.value = err.response?.data?.message || 'Failed to load project files';
       throw err;
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -108,7 +82,7 @@ export function useBuilder() {
   async function selectFile(file) {
     if (!file) return;
 
-    loading.value = true;
+    isLoading.value = true;
     error.value = null;
 
     try {
@@ -120,7 +94,7 @@ export function useBuilder() {
       error.value = err.response?.data?.message || 'Failed to load file content';
       throw err;
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -130,7 +104,7 @@ export function useBuilder() {
   async function updateFile(content) {
     if (!selectedFile.value) return;
 
-    loading.value = true;
+    isLoading.value = true;
     error.value = null;
 
     try {
@@ -142,7 +116,7 @@ export function useBuilder() {
       error.value = err.response?.data?.message || 'Failed to update file';
       throw err;
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -150,7 +124,7 @@ export function useBuilder() {
    * Generate code using AI
    */
   async function generateCode(prompt) {
-    loading.value = true;
+    isLoading.value = true;
     error.value = null;
 
     try {
@@ -166,7 +140,7 @@ export function useBuilder() {
       error.value = err.response?.data?.message || 'Failed to generate code';
       throw err;
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -194,7 +168,7 @@ export function useBuilder() {
   async function createFile(fileName, fileType, initialContent = '') {
     if (!projectId.value || !fileName || !fileType) return;
 
-    loading.value = true;
+    isLoading.value = true;
     error.value = null;
 
     try {
@@ -219,7 +193,7 @@ export function useBuilder() {
       error.value = err.response?.data?.message || 'Failed to create file';
       throw err;
     } finally {
-      loading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -228,16 +202,10 @@ export function useBuilder() {
    */
   async function loadAvailableModels() {
     try {
-      const response = await BuilderAPI.getAvailableModels();
-      // The response is already wrapped in { models: [...] } by the API service
-      const supportedModels = response.models || [];
-      
-      // Use the filtered models if available, otherwise use defaults
-      availableModels.value = supportedModels.length > 0 ? supportedModels : DEFAULT_MODELS;
+      await store.fetchAvailableModels();
     } catch (err) {
       console.error('Failed to load available models:', err);
-      // Don't throw the error, just use defaults
-      availableModels.value = DEFAULT_MODELS;
+      error.value = 'Failed to load AI models';
     }
   }
 
@@ -253,7 +221,7 @@ export function useBuilder() {
       isLoading.value = true;
       error.value = null;
       
-      const project = await BuilderAPI.getProject(id);
+      const project = await store.fetchProject(id);
       if (!project) {
         throw new Error('Project not found');
       }
@@ -263,7 +231,7 @@ export function useBuilder() {
       await loadAvailableModels();
     } catch (err) {
       console.error('Error loading project:', err);
-      error.value = err.response?.data?.message || 'Failed to load project';
+      error.value = err.message || 'Failed to load project';
       throw err;
     } finally {
       isLoading.value = false;
@@ -272,15 +240,20 @@ export function useBuilder() {
 
   return {
     // State
+    currentProject,
+    availableModels: computed(() => store.availableModels),
+    selectedModel: computed({
+      get: () => store.selectedModel,
+      set: (value) => store.setSelectedModel(value)
+    }),
+    isLoading: computed(() => isLoading.value || store.loading),
+    error: computed(() => error.value || store.error),
     files,
     selectedFile,
     fileContent,
-    availableModels,
-    selectedModel,
-    isLoading,
-    error,
     hasUnsavedChanges,
     currentMode,
+    aiGenerating,
     componentTree,
     selectedComponent,
     FILE_TYPES,
@@ -297,4 +270,4 @@ export function useBuilder() {
     switchMode,
     loadProject
   };
-} 
+}

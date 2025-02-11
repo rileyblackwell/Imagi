@@ -158,4 +158,4 @@ export function useAI() {
     applyCodeChanges,
     getCodeSuggestions
   };
-} 
+}

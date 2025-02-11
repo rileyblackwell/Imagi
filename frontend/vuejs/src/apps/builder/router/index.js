@@ -26,21 +26,21 @@ export const routes = [
     name: 'builder-workspace',
     component: BuilderWorkspace,
     props: route => ({ 
-      projectId: route.params.projectId ? route.params.projectId.toString() : null 
+      projectId: String(route.params.projectId)
     }),
     meta: {
       requiresAuth: true,
       title: 'Project Workspace'
     },
     beforeEnter: (to, from, next) => {
-      // Ensure projectId is present
-      if (!to.params.projectId) {
-        next({ name: 'builder-dashboard' })
+      const projectId = to.params.projectId;
+      if (!projectId || isNaN(projectId)) {
+        next({ name: 'builder-dashboard' });
       } else {
-        next()
+        next();
       }
     }
   }
 ]
 
-export default routes 
+export default routes

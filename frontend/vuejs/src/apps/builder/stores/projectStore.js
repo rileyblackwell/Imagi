@@ -1,29 +1,32 @@
 import { defineStore } from 'pinia';
 import { BuilderAPI } from '../services/api';
 
-export const useProjectStore = defineStore('projects', {
+export const useProjectStore = defineStore('builder', {
   state: () => ({
     projects: [],
+    currentProject: null,
+    availableModels: [],
+    selectedModel: null,
     loading: false,
     error: null,
-    currentProject: null,
     initialized: false
   }),
 
   getters: {
-    activeProjects: (state) => {
-      // Return only active projects, ensuring no duplicates
-      return state.projects.filter(p => p.is_active)
-    },
+    // Project getters
+    activeProjects: (state) => state.projects.filter(p => p.is_active),
     getProjectById: (state) => (id) => state.projects.find(p => p.id === id),
     hasProjects: (state) => state.initialized && state.projects.length > 0,
     hasError: (state) => !!state.error,
-    sortedProjects: (state) => {
-      return [...state.projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-    }
+    sortedProjects: (state) => [...state.projects].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)),
+    
+    // Model getters
+    hasModels: (state) => state.availableModels.length > 0,
+    currentModel: (state) => state.selectedModel || state.availableModels[0],
   },
 
   actions: {
+    // Project actions
     async fetchProjects() {
       if (this.loading) return;
       
@@ -51,30 +54,25 @@ export const useProjectStore = defineStore('projects', {
     },
 
     async fetchProject(projectId) {
-      this.loading = true
-      this.error = null
+      this.loading = true;
+      this.error = null;
+      
       try {
-        const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/`, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        })
-        this.currentProject = response.data
-        return response.data
+        const data = await BuilderAPI.getProject(projectId);
+        this.currentProject = data;
+        return data;
       } catch (err) {
-        console.error('Failed to fetch project:', err)
+        console.error('Failed to fetch project:', err);
         if (err.response?.status === 404) {
-          this.error = 'Project not found.'
+          this.error = 'Project not found.';
         } else if (err.response?.status === 401) {
-          this.error = 'Please log in to view this project.'
+          this.error = 'Please log in to view this project.';
         } else {
-          this.error = err.response?.data?.error || err.message || 'Failed to fetch project'
+          this.error = err.response?.data?.error || err.message || 'Failed to fetch project';
         }
-        throw err
+        throw err;
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
@@ -85,9 +83,24 @@ export const useProjectStore = defineStore('projects', {
       this.error = null;
       
       try {
-        const newProject = await BuilderAPI.createProject(projectData);
-        this.projects.unshift(newProject);
-        return newProject;
+        const response = await BuilderAPI.createProject(projectData);
+        console.log('Project creation response:', response);
+        
+        if (!response || (!response.id && response.id !== 0)) {
+          throw new Error('Server returned invalid project data');
+        }
+
+        const project = {
+          id: Number(response.id),
+          name: response.name || projectData.name,
+          created_at: response.created_at || new Date().toISOString(),
+          updated_at: response.updated_at || new Date().toISOString(),
+          is_active: response.is_active !== undefined ? response.is_active : true,
+          description: response.description || projectData.description || ''
+        };
+        
+        this.projects.unshift(project);
+        return project;
       } catch (err) {
         this.handleError(err, 'Failed to create project');
         throw err;
@@ -97,38 +110,24 @@ export const useProjectStore = defineStore('projects', {
     },
 
     async updateProject({ projectId, projectData }) {
-      this.loading = true
-      this.error = null
+      this.loading = true;
+      this.error = null;
+      
       try {
-        const response = await axios.patch(`${API_BASE_URL}/projects/${projectId}/`, projectData, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        })
-
-        const updatedProject = response.data
-        const index = this.projects.findIndex(p => p.id === projectId)
+        const updatedProject = await BuilderAPI.updateProject(projectId, projectData);
+        const index = this.projects.findIndex(p => p.id === projectId);
         if (index !== -1) {
-          this.projects.splice(index, 1, updatedProject)
+          this.projects.splice(index, 1, updatedProject);
         }
         if (this.currentProject?.id === projectId) {
-          this.currentProject = updatedProject
+          this.currentProject = updatedProject;
         }
-        return updatedProject
+        return updatedProject;
       } catch (err) {
-        console.error('Failed to update project:', err)
-        if (err.response?.status === 401) {
-          this.error = 'Please log in to update this project.'
-        } else if (err.response?.status === 404) {
-          this.error = 'Project not found.'
-        } else {
-          this.error = err.response?.data?.error || err.message || 'Failed to update project'
-        }
-        throw err
+        this.handleError(err, 'Failed to update project');
+        throw err;
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
@@ -152,6 +151,38 @@ export const useProjectStore = defineStore('projects', {
       }
     },
 
+    // Model actions
+    async fetchAvailableModels() {
+      if (this.loading) return;
+      
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const models = await BuilderAPI.getAvailableModels();
+        this.availableModels = models;
+        
+        // Set default model if none selected
+        if (!this.selectedModel && models.length > 0) {
+          this.selectedModel = models[0].id;
+        }
+      } catch (err) {
+        this.handleError(err, 'Failed to fetch AI models');
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    setSelectedModel(modelId) {
+      if (this.availableModels.some(m => m.id === modelId)) {
+        this.selectedModel = modelId;
+      } else {
+        console.warn('Invalid model ID:', modelId);
+      }
+    },
+
+    // Shared actions
     setCurrentProject(project) {
       this.currentProject = project
     },

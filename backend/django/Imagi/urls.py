@@ -17,8 +17,8 @@ urlpatterns = [
     
     # API endpoints - version 1
     path('api/v1/', include([
-        path('', include('apps.ProjectManager.api.urls')),
-        path('auth/', include('apps.Auth.api.urls', namespace='auth_api')),
+        path('project-manager/', include('apps.ProjectManager.api.urls')),  # Remove namespace, already defined in app
+        path('auth/', include('apps.Auth.api.urls')),  # Remove namespace, already defined in app
         path('builder/', include('apps.Builder.api.urls')),
         path('payments/', include('apps.Payments.api.urls')),
         path('agents/', include('apps.Agents.api.urls')),

@@ -2,17 +2,25 @@
 API URL Configuration for the ProjectManager app.
 """
 
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import ProjectViewSet
+from django.urls import path
+from . import views
 
-app_name = 'projectmanager_api'
+app_name = 'project_manager'
 
-# Create a router and register our viewsets with it
-router = DefaultRouter()
-router.register('projects', ProjectViewSet, basename='project')
-
-# The API URLs are now determined automatically by the router
 urlpatterns = [
-    path('', include(router.urls)),
+    # Project Management
+    path('projects/', views.ProjectListView.as_view(), name='project-list'),
+    path('projects/create/', views.ProjectCreateView.as_view(), name='project-create'),
+    path('projects/<int:pk>/', views.ProjectDetailView.as_view(), name='project-detail'),
+    path('projects/<int:pk>/delete/', views.ProjectDeleteView.as_view(), name='project-delete'),
+    
+    # File Management
+    path('projects/<int:project_id>/files/', views.ProjectFilesView.as_view(), name='project-files'),
+    path('projects/<int:project_id>/files/<path:file_path>/', views.ProjectFileDetailView.as_view(), name='project-file-detail'),
+    
+    # Component Management
+    path('projects/<int:project_id>/components/', views.ComponentTreeView.as_view(), name='component-tree'),
+    
+    # Project History
+    path('projects/<int:project_id>/undo/<int:action_id>/', views.UndoActionView.as_view(), name='undo-action'),
 ]
