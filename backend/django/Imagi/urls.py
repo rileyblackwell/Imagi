@@ -13,17 +13,16 @@ def favicon_view(request):
     return HttpResponse(status=204)
 
 urlpatterns = [
-    # Admin interface
     path('admin/', admin.site.urls),
     
-    # API endpoints
-    path('api/builder/', include('apps.Builder.api.urls')),  # Builder API endpoints
-    path('api/payments/', include('apps.Payments.api.urls')),  # Payments API endpoints
-    path('api/agents/', include('apps.Agents.api.urls')),  # Agents API endpoints
-    path('api/projectmanager/', include('apps.ProjectManager.urls')),  # ProjectManager API endpoints
-    
-    # Auth API URLs - keep only this one auth URL include
-    path('api/v1/auth/', include('apps.Auth.api.urls', namespace='auth_api')),
+    # API endpoints - version 1
+    path('api/v1/', include([
+        path('', include('apps.ProjectManager.api.urls')),
+        path('auth/', include('apps.Auth.api.urls', namespace='auth_api')),
+        path('builder/', include('apps.Builder.api.urls')),
+        path('payments/', include('apps.Payments.api.urls')),
+        path('agents/', include('apps.Agents.api.urls')),
+    ])),
     
     # App URLs (for server-rendered pages if needed)
     path('builder/', include('apps.Builder.urls')),

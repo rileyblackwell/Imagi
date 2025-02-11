@@ -18,9 +18,8 @@
         <!-- Cards Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <NewProjectCard
-            :value="newProjectName"
+            v-model="newProjectName"
             :is-loading="isCreating"
-            @update:value="newProjectName = $event"
             @submit="createProject"
           />
           

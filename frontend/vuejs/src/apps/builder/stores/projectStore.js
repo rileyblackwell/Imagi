@@ -25,21 +25,25 @@ export const useProjectStore = defineStore('projects', {
 
   actions: {
     async fetchProjects() {
+      if (this.loading) return;
+      
       this.loading = true;
       this.error = null;
+      
       try {
         const data = await BuilderAPI.getProjects();
         if (Array.isArray(data)) {
-          const uniqueProjects = new Map();
-          data.forEach(project => {
-            uniqueProjects.set(project.id, project);
-          });
-          this.projects = Array.from(uniqueProjects.values());
+          this.projects = data;
+        } else {
+          console.warn('Expected array of projects but got:', data);
+          this.projects = [];
         }
         this.initialized = true;
-        return this.projects;
       } catch (err) {
-        this.handleError(err, 'Failed to fetch projects');
+        console.error('Failed to fetch projects:', err);
+        this.error = err.response?.data?.detail || 
+                    err.response?.data?.error ||
+                    'Failed to fetch projects';
         throw err;
       } finally {
         this.loading = false;
@@ -75,13 +79,13 @@ export const useProjectStore = defineStore('projects', {
     },
 
     async createProject(projectData) {
+      if (this.loading) return;
+      
       this.loading = true;
       this.error = null;
+      
       try {
         const newProject = await BuilderAPI.createProject(projectData);
-        if (!newProject?.id) {
-          throw new Error('Invalid project data received from server');
-        }
         this.projects.unshift(newProject);
         return newProject;
       } catch (err) {
@@ -129,31 +133,22 @@ export const useProjectStore = defineStore('projects', {
     },
 
     async deleteProject(projectId) {
-      this.loading = true
-      this.error = null
+      if (this.loading) return;
+      
+      this.loading = true;
+      this.error = null;
+      
       try {
-        await axios.delete(`${API_BASE_URL}/projects/${projectId}/`, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json'
-          }
-        })
-        this.projects = this.projects.filter(p => p.id !== projectId)
+        await BuilderAPI.deleteProject(projectId);
+        this.projects = this.projects.filter(p => p.id !== projectId);
         if (this.currentProject?.id === projectId) {
-          this.currentProject = null
+          this.currentProject = null;
         }
       } catch (err) {
-        console.error('Failed to delete project:', err)
-        if (err.response?.status === 401) {
-          this.error = 'Please log in to delete projects.'
-        } else if (err.response?.status === 404) {
-          this.error = 'Project not found.'
-        } else {
-          this.error = err.response?.data?.error || err.message || 'Failed to delete project'
-        }
-        throw err
+        this.handleError(err, 'Failed to delete project');
+        throw err;
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 

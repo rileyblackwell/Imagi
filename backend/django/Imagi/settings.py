@@ -79,13 +79,13 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'templates'),  # Make sure this is first
-            os.path.join(BASE_DIR, 'templates', 'admin'),  # Add this line
-            os.path.join(BASE_DIR, 'apps', 'Builder', 'templates'),
-            os.path.join(BASE_DIR, 'apps', 'Home', 'templates'),
-            os.path.join(BASE_DIR, 'apps', 'Auth', 'templates'),
-            os.path.join(BASE_DIR, 'apps', 'Payments', 'templates'),
-            os.path.join(BASE_DIR, 'apps', 'ProjectManager', 'templates'),
+            BASE_DIR / 'templates',
+            BASE_DIR / 'templates' / 'admin',
+            BASE_DIR / 'apps' / 'Builder' / 'templates',
+            BASE_DIR / 'apps' / 'Home' / 'templates',
+            BASE_DIR / 'apps' / 'Auth' / 'templates',
+            BASE_DIR / 'apps' / 'Payments' / 'templates',
+            BASE_DIR / 'apps' / 'ProjectManager' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -357,7 +357,7 @@ if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
 PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
 # Projects settings
-PROJECTS_ROOT = os.path.join(BASE_DIR.parent, 'oasis_projects')
+PROJECTS_ROOT = BASE_DIR.parent / 'oasis_projects'
 os.makedirs(PROJECTS_ROOT, exist_ok=True)
 
 # Token Settings
