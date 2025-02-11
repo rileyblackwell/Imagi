@@ -9,27 +9,47 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    component: Home
+    component: Home,
+    meta: {
+      requiresAuth: false,
+      title: 'Home'
+    }
   },
   {
     path: '/about',
     name: 'about',
-    component: About
+    component: About,
+    meta: {
+      requiresAuth: false,
+      title: 'About'
+    }
   },
   {
     path: '/contact',
     name: 'contact',
-    component: Contact
+    component: Contact,
+    meta: {
+      requiresAuth: false,
+      title: 'Contact'
+    }
   },
   {
     path: '/privacy',
     name: 'privacy',
-    component: Privacy
+    component: Privacy,
+    meta: {
+      requiresAuth: false,
+      title: 'Privacy Policy'
+    }
   },
   {
     path: '/terms',
     name: 'terms',
-    component: Terms
+    component: Terms,
+    meta: {
+      requiresAuth: false,
+      title: 'Terms of Service'
+    }
   },
   {
     path: '/dashboard',
