@@ -15,6 +15,7 @@ export default defineConfig({
     extensions: ['.ts', '.js', '.vue', '.json'] // Prioritize TypeScript files
   },
   build: {
+    target: 'esnext',
     sourcemap: true
   }
 })
