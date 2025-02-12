@@ -105,7 +105,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form } from 'vee-validate'
-import { useAuthStore } from '@/apps/auth/store/auth.js'
+import { useAuthStore } from '@/apps/auth/store/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 
 import { 
@@ -151,9 +151,13 @@ const handleSubmit = async (values: RegisterFormValues) => {
   serverError.value = ''
 
   try {
+    if (!values.username || !values.email || values.agreeToTerms === undefined) {
+      throw new Error('All fields are required')
+    }
+
     const registerData = {
-      username: values.username?.trim(),
-      email: values.email?.trim(),
+      username: values.username.trim(),
+      email: values.email.trim(),
       password: formData.password,
       password_confirmation: formData.passwordConfirmation,
       terms_accepted: values.agreeToTerms

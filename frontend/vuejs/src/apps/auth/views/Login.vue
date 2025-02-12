@@ -52,7 +52,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form } from 'vee-validate'
-import { useAuthStore } from '@/apps/auth/store/auth.js'
+import { useAuthStore } from '@/apps/auth/store/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 
 import { 

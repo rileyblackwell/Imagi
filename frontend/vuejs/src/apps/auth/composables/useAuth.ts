@@ -1,4 +1,4 @@
-import { useAuthStore } from '../store'
+import { useAuthStore } from '../store/index'
 import type { User } from '../types/auth'
 
 export function useAuth() {

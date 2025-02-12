@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import { NotificationToast } from '@/shared/components/atoms';
-import { useAuthStore } from '@/apps/auth/store'
+import { useAuthStore } from '@/apps/auth/store/index'
 import { onMounted } from 'vue'
 
 const authStore = useAuthStore()
