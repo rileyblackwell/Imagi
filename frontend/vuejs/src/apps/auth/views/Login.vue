@@ -60,7 +60,7 @@ import {
   GradientButton,
   AuthLinks 
 } from '@/apps/auth/components'
-import { formatAuthError } from '../utils/errorHandling'
+
 
 interface LoginFormValues {
   username?: string;

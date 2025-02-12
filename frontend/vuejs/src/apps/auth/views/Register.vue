@@ -113,7 +113,6 @@ import {
   GradientButton,
   AuthLinks 
 } from '@/apps/auth/components'
-import { formatAuthError } from '../utils/errorHandling'
 
 interface RegisterFormValues {
   username?: string;
@@ -188,7 +187,11 @@ const handleSubmit = async (values: RegisterFormValues) => {
     }
   } catch (error: unknown) {
     console.error('Registration error:', error)
-    serverError.value = formatAuthError(error, 'register')
+    if (error instanceof Error) {
+      serverError.value = error.message
+    } else {
+      serverError.value = 'An unexpected error occurred during registration'
+    }
   }
 }
 </script>
