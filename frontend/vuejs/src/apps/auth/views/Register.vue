@@ -110,7 +110,6 @@ import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
 
 import { 
-  EmailInput, 
   PasswordInput, 
   PasswordRequirements,
   FormInput,

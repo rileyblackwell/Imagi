@@ -1,5 +1,4 @@
 // Input Components
-export { default as EmailInput } from './inputs/EmailInput.vue'
 export { default as PasswordInput } from './inputs/PasswordInput.vue'
 
 // Button Components
