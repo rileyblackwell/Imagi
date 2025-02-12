@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { AuthAPI } from '../services/api'
-import type { AuthState, ApiResponse, AuthResponse, User, UserRegistrationData } from '../types/auth'
+import type { AuthState, UserRegistrationData } from '../types/auth'
 
 // Helper Functions
 const getCookie = (name: string): string | null => {

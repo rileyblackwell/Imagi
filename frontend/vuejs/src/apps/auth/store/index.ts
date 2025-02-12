@@ -1,8 +1,14 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { AuthAPI } from '../services/api'
-import type { AuthState, User } from '../types/auth'
-import type { LoginCredentials, AuthResponse, UserRegistrationData } from '../services/types'
+import type { 
+  AuthState, 
+  User, 
+  LoginCredentials, 
+  AuthResponse, 
+  UserRegistrationData 
+} from '../types/auth'
+
 
 // Helper to safely get token
 const getStoredToken = (): string | null => localStorage.getItem('token')
