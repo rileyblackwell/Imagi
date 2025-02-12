@@ -107,6 +107,7 @@ import { useRouter } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
+import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
 
 import { 
   EmailInput, 
@@ -117,18 +118,6 @@ import {
   GradientButton,
   AuthLinks 
 } from '@/apps/auth/components'
-
-interface RegisterFormValues {
-  username?: string;
-  email?: string;
-  password?: string;
-  agreeToTerms?: boolean;
-  [key: string]: unknown;
-}
-
-interface PasswordRequirementsRef {
-  isValid: boolean;
-}
 
 const router = useRouter()
 const authStore = useAuthStore()

@@ -54,6 +54,7 @@ import { useRouter } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
+import type { LoginFormValues } from '@/apps/auth/types/form'
 
 import { 
   PasswordInput,
@@ -62,11 +63,6 @@ import {
   AuthLinks 
 } from '@/apps/auth/components'
 
-interface LoginFormValues {
-  username?: string;
-  password?: string;
-  [key: string]: unknown;
-}
 
 const router = useRouter()
 const authStore = useAuthStore()
