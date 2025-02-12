@@ -92,9 +92,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ProjectCard } from '@/apps/builder/components'
-import { IconButton } from '@/shared/components/atoms'
-import { ProjectListItem } from '../molecules'
-import { EmptyState } from '@/shared/components/molecules'
+import { ActionButton } from '@/shared/components/atoms/buttons'
 import type { Project } from '@/shared/types/project'
 
 interface Props {
@@ -134,8 +132,7 @@ const filteredProjects = computed(() => {
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().includes(query) ||
-      project.description?.toLowerCase().includes(query)
+      project.name.toLowerCase().startsWith(query)  // Changed from includes() to startsWith()
     )
     .sort((a, b) => {
       const dateA = new Date(a.updated_at).getTime()

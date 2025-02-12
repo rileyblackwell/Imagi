@@ -31,6 +31,8 @@
 
           <!-- Project Cards Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Remove the search input since it's now in ProjectList -->
+            
             <!-- New Project Card -->
             <NewProjectCard
               v-model="newProjectName"
@@ -38,7 +40,7 @@
               @submit="createProject"
             />
 
-            <!-- Existing Projects -->
+            <!-- Existing Projects - Pass unfiltered projects -->
             <ProjectList
               :projects="projects"
               :is-loading="isLoading"
@@ -59,6 +61,7 @@ import { useRouter } from 'vue-router'
 import { BuilderLayout } from '@/apps/builder/layouts'
 import { useProjectStore } from '@/apps/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
+import { ActionButton } from '@/shared/components/atoms/buttons'
 import type { Project } from '@/shared/types/project'
 import { NewProjectCard, ProjectList } from '../components/organisms'
 
@@ -66,11 +69,11 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const { showNotification } = useNotification()
 
-// State with types
+// State with types - remove searchQuery since it's handled in ProjectList
 const newProjectName = ref('')
 const isCreating = ref(false)
 
-// Computed with types
+// Computed with types - remove filteredProjects
 const projects = computed(() => projectStore.projects)
 const isLoading = computed(() => projectStore.loading)
 const error = computed(() => projectStore.error || '') // Provide empty string default
