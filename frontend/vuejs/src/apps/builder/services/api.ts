@@ -5,6 +5,7 @@ import type {
   InternalAxiosRequestConfig 
 } from 'axios'
 import type { Project, Activity, DashboardStats } from '@/apps/home/types/dashboard'
+import type { ProjectFile, CodeGenerationResponse, AIModel } from '../types/builder'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -24,6 +25,11 @@ interface FileData {
   path: string;
   content: string;
   type?: string;
+}
+
+interface UndoResponse {
+  type: 'file' | 'component' | 'other'
+  message: string
 }
 
 const api: AxiosInstance = axios.create({
@@ -154,6 +160,52 @@ export const BuilderAPI = {
     const response = await api.get<APIResponse<DashboardStats>>('/dashboard/stats/')
     return response.data.data
   },
+
+  // New methods for file management
+  async getProjectFiles(projectId: string): Promise<ProjectFile[]> {
+    const response = await api.get<APIResponse<ProjectFile[]>>(`/project-manager/projects/${projectId}/files/`)
+    return response.data.data
+  },
+
+  async getFileContent(projectId: string, filePath: string): Promise<{ content: string }> {
+    const response = await api.get<APIResponse<{ content: string }>>(`/project-manager/projects/${projectId}/files/${filePath}/content/`)
+    return response.data.data
+  },
+
+  async updateFileContent(projectId: string, filePath: string, content: string): Promise<void> {
+    await api.put(`/project-manager/projects/${projectId}/files/${filePath}/content/`, { content })
+  },
+
+  async createFile(projectId: string, fileData: { name: string, type: string, content: string }): Promise<ProjectFile> {
+    const response = await api.post<APIResponse<ProjectFile>>(`/project-manager/projects/${projectId}/files/`, fileData)
+    return response.data.data
+  },
+
+  // Component tree and code generation
+  async getComponentTree(projectId: string): Promise<any[]> {
+    const response = await api.get<APIResponse<any[]>>(`/project-manager/projects/${projectId}/components/`)
+    return response.data.data
+  },
+
+  async generateCode(projectId: string, data: {
+    prompt: string
+    mode: string
+    model: string | null
+    file?: string
+  }): Promise<CodeGenerationResponse> {
+    const response = await api.post<APIResponse<CodeGenerationResponse>>(`/project-manager/projects/${projectId}/generate/`, data)
+    return response.data.data
+  },
+
+  async getAvailableModels(): Promise<AIModel[]> {
+    const response = await api.get<APIResponse<AIModel[]>>('/ai/models/')
+    return response.data.data
+  },
+
+  async undoAction(projectId: string): Promise<UndoResponse> {
+    const response = await api.post<APIResponse<UndoResponse>>(`/project-manager/projects/${projectId}/undo/`)
+    return response.data.data
+  }
 }
 
 export type BuilderAPIType = typeof BuilderAPI

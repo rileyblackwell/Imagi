@@ -23,7 +23,7 @@
           class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2"
         >
           <option
-            v-for="model in availableModels"
+            v-for="model in typedModels"
             :key="model.id"
             :value="model.id"
           >
@@ -40,7 +40,7 @@
             @click="switchMode('chat')"
             class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             :class="[
-              currentMode === 'chat'
+              builderMode === 'chat'
                 ? 'bg-primary-500 text-white'
                 : 'text-gray-400 hover:text-white'
             ]"
@@ -52,7 +52,7 @@
             @click="switchMode('build')"
             class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             :class="[
-              currentMode === 'build'
+              builderMode === 'build'
                 ? 'bg-primary-500 text-white'
                 : 'text-gray-400 hover:text-white'
             ]"
@@ -113,12 +113,12 @@
           
           <div v-show="isFileExplorerExpanded" class="space-y-1">
             <button
-              v-for="file in files"
+              v-for="file in typedFiles"
               :key="file.path"
               @click="selectFile(file)"
               class="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center group transition-colors"
               :class="[
-                selectedFile?.path === file.path
+                typedSelectedFile?.path === file.path
                   ? 'bg-primary-500/20 text-white'
                   : 'text-gray-400 hover:bg-dark-700 hover:text-white'
               ]"
@@ -162,33 +162,72 @@
     <div class="min-h-screen flex">
       <!-- Main Content -->
       <main class="flex-1 flex flex-col">
-        <!-- File Content -->
-        <div v-if="selectedFile" class="flex-1 p-4">
-          <WorkspaceToolbar
-            :title="selectedFile.path"
-            :subtitle="`Project: ${currentProject?.name}`"
-            :unsaved-changes="hasUnsavedChanges"
-            :loading="isLoading"
-            :show-save="true"
-            @save="saveChanges"
-          />
-          
-          <WorkspaceEditor
-            v-model="editorContent"
-            placeholder="Enter code here..."
-            wrap="off"
-            class="mt-4"
-          />
+        <!-- Split View -->
+        <div v-if="typedSelectedFile" class="flex-1 flex">
+          <!-- Editor Section -->
+          <div :class="{
+            'w-1/2': currentEditorMode === 'split',
+            'w-full': currentEditorMode === 'editor',
+            'hidden': currentEditorMode === 'preview'
+          }">
+            <WorkspaceToolbar
+              :title="typedSelectedFile.path"
+              :subtitle="`Project: ${currentProject?.name}`"
+              :has-unsaved-changes="hasUnsavedChanges"
+              :loading="isLoading"
+              :show-save="true"
+              :current-mode="currentEditorMode"
+              @save="saveChanges"
+              @mode-change="setMode"
+            />
+            
+            <WorkspaceEditor
+              v-model="editorContent"
+              placeholder="Enter code here..."
+              wrap="off"
+              class="mt-4 px-4"
+            />
+          </div>
+
+          <!-- Preview Section -->
+          <div :class="{
+            'w-1/2': currentEditorMode === 'split',
+            'w-full': currentEditorMode === 'preview',
+            'hidden': currentEditorMode === 'editor'
+          }">
+            <WorkspacePreview
+              v-if="previewUrl && projectId"
+              :project-id="projectId"
+              :preview-url="previewUrl"
+              @load="handlePreviewLoad"
+            />
+          </div>
         </div>
 
         <!-- Welcome Screen -->
         <div v-else class="flex-1 flex items-center justify-center">
-          <div class="text-center">
+          <div class="text-center max-w-lg">
             <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <i class="fas fa-code text-2xl text-primary-400"></i>
             </div>
-            <h2 class="text-xl font-semibold text-white mb-2">Select a File</h2>
-            <p class="text-gray-400">Choose a file from the sidebar to start editing</p>
+            <h2 class="text-xl font-semibold text-white mb-2">Welcome to Imagi Builder</h2>
+            <p class="text-gray-400 mb-6">Choose a file from the sidebar to start editing, or describe what you want to build using natural language.</p>
+            <div class="grid grid-cols-2 gap-4">
+              <button
+                @click="showNewFileForm = true"
+                class="flex items-center justify-center px-4 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors"
+              >
+                <i class="fas fa-plus mr-2"></i>
+                Create New File
+              </button>
+              <button
+                @click="focusPrompt"
+                class="flex items-center justify-center px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
+              >
+                <i class="fas fa-magic mr-2"></i>
+                Start Building
+              </button>
+            </div>
           </div>
         </div>
 
@@ -222,30 +261,81 @@ import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { BuilderLayout } from '../layouts'
-import { WorkspaceEditor, WorkspaceToolbar } from '../components/organisms/workspace'
+import { WorkspaceEditor, WorkspaceToolbar, WorkspacePreview } from '../components/organisms/workspace'
 import { useBuilder } from '../composables/useBuilder'
-import type { EditorLanguage } from '@/shared/types/editor'
+import { useAI } from '../composables/useAI'
 import type { Project } from '@/shared/types/project'
+import type { EditorLanguage } from '@/shared/types/editor'
+import type { AIModel, ProjectFile, BuilderMode, EditorMode } from '../types/builder'
 
-// Setup route
+// Setup route and state
 const route = useRoute()
+const currentEditorMode = ref<EditorMode>('split')
+const builderMode = ref<BuilderMode>('chat')
+const previewUrl = ref<string>('')
 
-interface ProjectFile {
-  path: string
-  type: EditorLanguage
-  content: string
+// Initialize composables
+const {
+  currentProject,
+  availableModels,
+  selectedModel,
+  isLoading,
+  error,
+  files,
+  selectedFile,
+  fileContent,
+  hasUnsavedChanges,
+  componentTree,
+  loadProject,
+  loadFiles,
+  selectFile,
+  updateFile,
+  createFile,
+  generateCode,
+  loadAvailableModels,
+  loadComponentTree,
+  undoLastAction,
+  FILE_TYPES
+} = useBuilder()
+
+const { sendPrompt, fetchConversationHistory } = useAI()
+
+// Local state
+const prompt = ref('')
+const showNewFileForm = ref(false)
+const newFileName = ref('')
+const newFileType = ref<EditorLanguage | undefined>()
+const isFileExplorerExpanded = ref(true)
+const editorContent = ref('')
+
+// Type assertions for reactive refs
+const typedFiles = files as Ref<ProjectFile[]>
+const typedSelectedFile = selectedFile as Ref<ProjectFile | null>
+const typedModels = availableModels as Ref<AIModel[]>
+
+// Computed properties
+const projectId = computed(() => currentProject.value?.id?.toString() || '')
+const canCreateFile = computed(() => newFileName.value.trim() && newFileType.value)
+
+// Methods
+const handlePrompt = async () => {
+  if (!prompt.value.trim() || isLoading.value) return
+
+  try {
+    const response = await sendPrompt({
+      prompt: prompt.value,
+      mode: builderMode.value,
+      context: selectedFile.value?.path || ''
+    })
+
+    if (response.code) {
+      editorContent.value = response.code
+    }
+    prompt.value = ''
+  } catch (err) {
+    console.error('Error handling prompt:', err)
+  }
 }
-
-// Update FILE_TYPES to include all EditorLanguage values
-const FILE_TYPES = {
-  HTML: 'html' as const,
-  CSS: 'css' as const,
-  JAVASCRIPT: 'javascript' as const,
-  TYPESCRIPT: 'typescript' as const,
-  PYTHON: 'python' as const,
-  MARKDOWN: 'markdown' as const,
-  TEXT: 'text' as const
-} as const
 
 // Add return type for file icon mapping
 const getFileIcon = (type: EditorLanguage): string => {
@@ -261,74 +351,25 @@ const getFileIcon = (type: EditorLanguage): string => {
   return icons[type] || 'fas fa-file'
 }
 
-// Type the builder composable return values
-const {
-  currentProject,
-  availableModels,
-  selectedModel,
-  isLoading,
-  error,
-  files,
-  selectedFile,
-  fileContent,
-  hasUnsavedChanges,
-  currentMode,
-  aiGenerating,
-  componentTree,
-  selectedComponent,
-  loadProject,
-  loadFiles,
-  selectFile,
-  updateFile,
-  createFile,
-  generateCode,
-  undoLastAction,
-  loadAvailableModels,
-  loadComponentTree,
-  switchMode
-} = useBuilder() as {
-  currentProject: Ref<Project | null>
-  availableModels: Ref<Array<{ id: string; name: string }>>
-  selectedModel: Ref<string | null>
-  isLoading: Ref<boolean>
-  error: Ref<string | null>
-  files: Ref<ProjectFile[]>
-  selectedFile: Ref<ProjectFile | null>
-  fileContent: Ref<string>
-  hasUnsavedChanges: Ref<boolean>
-  currentMode: Ref<'chat' | 'build'>
-  aiGenerating: Ref<boolean>
-  componentTree: Ref<any> // Replace with proper type
-  selectedComponent: Ref<any> // Replace with proper type
-  loadProject: (id: string) => Promise<void>
-  loadFiles: () => Promise<void>
-  selectFile: (file: ProjectFile) => void
-  updateFile: (content: string) => Promise<void>
-  createFile: (name: string, type: EditorLanguage) => Promise<void>
-  generateCode: (prompt: string) => Promise<string>
-  undoLastAction: () => Promise<void>
-  loadAvailableModels: () => Promise<void>
-  loadComponentTree: () => Promise<void>
-  switchMode: (mode: 'chat' | 'build') => void
-}
-
-// Add type annotations to local state
-const prompt = ref('')
-const showNewFileForm = ref(false)
-const newFileName = ref('')
-const newFileType = ref<EditorLanguage | undefined>()
-const isFileExplorerExpanded = ref(true)
-const editorContent = ref('')
-
-const canCreateFile = computed(() => {
-  return newFileName.value.trim() && newFileType.value
-})
-
+// Watch for file content changes
 watch(fileContent, (newContent: string) => {
   if (newContent !== editorContent.value) {
     editorContent.value = newContent
   }
 })
+
+// Load initial data
+watch(() => route.params.projectId, async (newId) => {
+  const projectId = Array.isArray(newId) ? newId[0] : newId
+  if (projectId) {
+    await loadProject(projectId)
+    await Promise.all([
+      loadComponentTree(),
+      loadAvailableModels(),
+      fetchConversationHistory(projectId)
+    ])
+  }
+}, { immediate: true })
 
 const onEditorChange = (content: string) => {
   if (content !== fileContent.value) {
@@ -340,18 +381,6 @@ const saveChanges = async () => {
   if (hasUnsavedChanges.value) {
     await updateFile(editorContent.value)
     hasUnsavedChanges.value = false
-  }
-}
-
-const handlePrompt = async () => {
-  if (!prompt.value.trim() || isLoading.value) return
-
-  try {
-    const generatedCode = await generateCode(prompt.value)
-    editorContent.value = generatedCode
-    prompt.value = ''
-  } catch (err) {
-    console.error('Error handling prompt:', err)
   }
 }
 
@@ -369,14 +398,25 @@ const handleCreateFile = async () => {
   }
 }
 
-// Load project data when component mounts or route changes
-watch(() => route.params.projectId, async (newId) => {
-  const projectId = Array.isArray(newId) ? newId[0] : newId
-  if (projectId) {
-    await loadProject(projectId)
-    await loadComponentTree()
+// Mode management methods
+const setMode = (mode: EditorMode) => {
+  currentEditorMode.value = mode
+}
+
+const switchMode = (mode: BuilderMode) => {
+  builderMode.value = mode
+}
+
+const handlePreviewLoad = () => {
+  console.log('Preview loaded')
+}
+
+const focusPrompt = () => {
+  const promptInput = document.querySelector('#user-input')
+  if (promptInput instanceof HTMLElement) {
+    promptInput.focus()
   }
-}, { immediate: true })
+}
 
 onMounted(async () => {
   const projectId = Array.isArray(route.params.projectId) 

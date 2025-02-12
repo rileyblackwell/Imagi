@@ -1,21 +1,24 @@
 import { defineStore } from 'pinia'
+import axios from 'axios'
 import { BuilderAPI } from '../services/api'
-import { type Project, normalizeProject } from '@/shared/types/project'
+import type { Project, ProjectData } from '../types/project'
+import { normalizeProject } from '../types/project'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
+import type { AIModel } from '../types/builder'
 
 interface ProjectState {
-  projects: Project[];
-  projectsMap: Map<string, Project>;
-  currentProject: Project | null;
-  loading: boolean;
-  error: string | null;
-  initialized: boolean;
-  lastFetch: Date | null;
-  activities: Activity[];
-  stats: DashboardStats | null;
-  availableModels: Array<{ id: string; name: string }>;
-  selectedModel: string | null;
-  isLoading: boolean; // Adding explicit isLoading property for JS compatibility
+  projects: Project[]
+  projectsMap: Map<string, Project>
+  currentProject: Project | null
+  loading: boolean
+  error: string | null
+  initialized: boolean
+  lastFetch: Date | null
+  activities: Activity[]
+  stats: DashboardStats | null
+  availableModels: AIModel[]
+  selectedModel: string | null
+  isLoading: boolean
 }
 
 export const useProjectStore = defineStore('builder', {
@@ -220,6 +223,39 @@ export const useProjectStore = defineStore('builder', {
     setLoading(loading: boolean) {
       this.loading = loading;
       this.isLoading = loading; // Update both for compatibility
+    },
+
+    // New actions
+    async fetchProject(id: string): Promise<Project> {
+      this.loading = true
+      try {
+        const data = await BuilderAPI.getProject(id)
+        const project = normalizeProject(data)
+        this.currentProject = project
+        return project
+      } catch (err) {
+        this.error = err instanceof Error ? err.message : 'Failed to fetch project'
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+
+    setSelectedModel(model: string | null) {
+      this.selectedModel = model
+    },
+
+    async fetchAvailableModels() {
+      this.loading = true
+      try {
+        const models = await BuilderAPI.getAvailableModels()
+        this.availableModels = models
+      } catch (err) {
+        this.error = err instanceof Error ? err.message : 'Failed to fetch models'
+        throw err
+      } finally {
+        this.loading = false
+      }
     }
   }
 })
