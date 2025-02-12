@@ -1,3 +1,4 @@
+// User and Auth State Types
 export interface User {
   id: number;
   email: string;
@@ -16,21 +17,19 @@ export interface AuthState {
   error: string | null;
   isLoggingOut: boolean;
   isLoginPending: boolean;
-  initialized: boolean;  // Add this field
+  initialized: boolean;
 }
 
+// API Types
 export interface ApiResponse<T> {
   data: T;
   message?: string;
 }
 
-export interface AuthResponse {
-  token: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-  };
+// Service Types
+export interface LoginCredentials {
+  username: string;
+  password: string;
 }
 
 export interface UserRegistrationData {
@@ -39,6 +38,12 @@ export interface UserRegistrationData {
   password: string;
   password_confirmation: string;
   terms_accepted: boolean;
+}
+
+// Response Types
+export interface AuthResponse {
+  token: string;
+  user: User;
 }
 
 export type LoginResponse = ApiResponse<AuthResponse>;
