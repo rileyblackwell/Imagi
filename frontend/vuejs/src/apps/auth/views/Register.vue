@@ -9,7 +9,7 @@
           icon="fas fa-user"
           rules="required|username"
           placeholder="Create a username"
-          :disabled="authStore.isLoading"
+          :disabled="authStore.loading"
           :showError="submitCount > 0"
           class="min-h-[42px]"
         />
@@ -20,7 +20,7 @@
           icon="fas fa-envelope"
           rules="required|email"
           placeholder="Enter your email"
-          :disabled="authStore.isLoading"
+          :disabled="authStore.loading"
           :showError="submitCount > 0"
           v-model="formData.email"
           class="min-h-[42px]"
@@ -36,7 +36,7 @@
             v-model="formData.password"
             rules="required|registration_password"
             placeholder="Create password"
-            :disabled="authStore.isLoading"
+            :disabled="authStore.loading"
             :showError="submitCount > 0"
             class="min-h-[42px]"
           />
@@ -46,7 +46,7 @@
             v-model="formData.passwordConfirmation"
             :rules="{ required: true, password_confirmation: formData.password }"
             placeholder="Confirm password"
-            :disabled="authStore.isLoading"
+            :disabled="authStore.loading"
             :showError="submitCount > 0"
             class="min-h-[42px]"
           />
@@ -67,7 +67,7 @@
         <FormCheckbox 
           name="agreeToTerms" 
           rules="required|terms"
-          :disabled="authStore.isLoading"
+          :disabled="authStore.loading"
           :showError="submitCount > 0"
         >
           I agree to the 
@@ -87,8 +87,8 @@
 
         <GradientButton
           type="submit"
-          :disabled="authStore.isLoading || Object.keys(formErrors).length > 0"
-          :loading="authStore.isLoading"
+          :disabled="authStore.loading || Object.keys(formErrors).length > 0"
+          :loading="authStore.loading"
           loading-text="Creating account..."
           class="w-full"
         >
@@ -106,7 +106,8 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
-import { formatRegistrationError } from '@/apps/auth/plugins/validation'
+import { formatAuthError } from '@/apps/auth/plugins/validation'
+
 import { 
   EmailInput, 
   PasswordInput, 
@@ -159,17 +160,12 @@ const handleSubmit = async (values: RegisterFormValues) => {
       terms_accepted: values.agreeToTerms
     }
 
-    const result = await authStore.register(registerData)
-    
-    // After successful registration and auto-login
-    if (result?.token) {
-      // Get redirect path or default to home
-      const redirectPath = (route.query.redirect as string) || '/'
-      await router.push(redirectPath)
-    }
+    await authStore.register(registerData)
+    // After successful registration, redirect to home
+    await router.push('/')
   } catch (error: unknown) {
     console.error('Registration error:', error)
-    serverError.value = formatRegistrationError(error)
+    serverError.value = formatAuthError(error, 'register')
   }
 }
 </script>

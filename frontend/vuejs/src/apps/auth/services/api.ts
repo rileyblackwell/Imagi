@@ -119,12 +119,10 @@ export const AuthAPI = {
 
   async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
     try {
-      // Simple validation
       if (!credentials?.username || !credentials?.password) {
         throw new Error('Username and password are required')
       }
 
-      // Send login request
       const response = await axios.post(`${BASE_URL}/login/`, credentials, {
         headers: {
           'Accept': 'application/json',
@@ -133,16 +131,15 @@ export const AuthAPI = {
         withCredentials: true
       })
 
-      // Validate response
-      if (!response?.data?.token) {
-        throw new Error('Invalid server response')
+      return { 
+        data: {
+          token: response.data.token || response.data.key,
+          user: response.data.user || {}
+        }
       }
-
-      return response
     } catch (error: any) {
-      // Handle specific error cases
       if (error.response?.status === 401) {
-        throw new Error('Invalid username or password')
+        throw new Error('Invalid credentials')
       }
       if (error.response?.status === 400) {
         const errorData = error.response.data

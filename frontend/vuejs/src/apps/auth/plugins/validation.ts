@@ -39,17 +39,41 @@ defineRule('password_confirmation', (value: string, [target]: string[]) => {
   return true
 })
 
-// Add error message mapping
+// Add login-specific validation rules
+defineRule('login_username', (value: string) => {
+  if (!value?.trim()) return 'Username is required'
+  return true
+})
+
+defineRule('login_password', (value: string) => {
+  if (!value?.trim()) return 'Password is required'
+  return true
+})
+
+// Expand error messages to include login-specific messages
 const errorMessages = {
+  // Registration errors
   'UNIQUE constraint failed: auth_user.username': 'This username is already taken. Please try another one.',
-  'default': 'An unexpected error occurred during registration'
+  // Login errors
+  'Unable to log in with provided credentials.': 'Invalid username or password. Please try again.',
+  'Not found.': 'Account not found. Please check your username.',
+  'Authentication credentials were not provided.': 'Please enter your login credentials.',
+  'Invalid credentials': 'Username or password is incorrect',
+  'Login failed: No token received': 'Unable to log in. Please try again.',
+  'Network Error': 'Unable to connect to server. Please check your internet connection.',
+  'Login failed: Please try again': 'Login failed. Please try again later.',
+  'Login failed: Invalid response format': 'Unable to complete login. Please try again.',
+  'Invalid server response: Missing token': 'Unable to complete login. Please try again.',
+  'default': 'An unexpected error occurred. Please try again.'
 } as const
 
-export const formatRegistrationError = (error: unknown): string => {
+export const formatAuthError = (error: unknown, context: 'login' | 'register' = 'login'): string => {
   if (error instanceof Error) {
     const message = error.message
-    return errorMessages[message as keyof typeof errorMessages] || message
+    const formattedMessage = errorMessages[message as keyof typeof errorMessages]
+    return formattedMessage || message
   }
+  
   return errorMessages.default
 }
 
@@ -67,7 +91,9 @@ export const validationPlugin = {
           terms: 'You must agree to the Terms of Service and Privacy Policy',
           registration_password: 'Password does not meet requirements',
           password_confirmation: 'Passwords must match',
-          username: 'Please enter a valid username'
+          username: 'Please enter a valid username',
+          login_username: 'Username is required',
+          login_password: 'Password is required'
         }
       })
     })
