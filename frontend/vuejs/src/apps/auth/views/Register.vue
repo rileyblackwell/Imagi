@@ -106,6 +106,7 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
+import { formatRegistrationError } from '@/apps/auth/plugins/validation'
 import { 
   EmailInput, 
   PasswordInput, 
@@ -168,11 +169,7 @@ const handleSubmit = async (values: RegisterFormValues) => {
     }
   } catch (error: unknown) {
     console.error('Registration error:', error)
-    if (error instanceof Error) {
-      serverError.value = error.message
-    } else {
-      serverError.value = 'An unexpected error occurred during registration'
-    }
+    serverError.value = formatRegistrationError(error)
   }
 }
 </script>

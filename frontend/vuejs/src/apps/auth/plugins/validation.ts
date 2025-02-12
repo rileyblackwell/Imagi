@@ -39,6 +39,20 @@ defineRule('password_confirmation', (value: string, [target]: string[]) => {
   return true
 })
 
+// Add error message mapping
+const errorMessages = {
+  'UNIQUE constraint failed: auth_user.username': 'This username is already taken. Please try another one.',
+  'default': 'An unexpected error occurred during registration'
+} as const
+
+export const formatRegistrationError = (error: unknown): string => {
+  if (error instanceof Error) {
+    const message = error.message
+    return errorMessages[message as keyof typeof errorMessages] || message
+  }
+  return errorMessages.default
+}
+
 export const validationPlugin = {
   install: (app: App) => {
     configure({
@@ -60,4 +74,4 @@ export const validationPlugin = {
   }
 }
 
-export { defineRule }
+export { defineRule, errorMessages }
