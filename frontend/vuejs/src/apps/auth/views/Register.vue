@@ -99,9 +99,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter, useRoute } from 'vue-router' // Add useRoute import
+import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
 import { 
@@ -115,12 +115,24 @@ import {
 } from '@/apps/auth/components'
 import { formatAuthError } from '../utils/errorHandling'
 
+interface RegisterFormValues {
+  username?: string;
+  email?: string;
+  password?: string;
+  agreeToTerms?: boolean;
+  [key: string]: unknown;
+}
+
+interface PasswordRequirementsRef {
+  isValid: boolean;
+}
+
 const router = useRouter()
-const route = useRoute() // Add route reference
+const route = useRoute()
 const authStore = useAuthStore()
 const serverError = ref('')
 const hasAttemptedSubmit = ref(false)
-const passwordRequirements = ref(null)
+const passwordRequirements = ref<PasswordRequirementsRef | null>(null)
 
 const formData = reactive({
   email: '',
@@ -132,7 +144,7 @@ defineOptions({
   name: 'Register'
 })
 
-const handleSubmit = async (values) => {
+const handleSubmit = async (values: RegisterFormValues) => {
   hasAttemptedSubmit.value = true
   serverError.value = ''
 
@@ -171,10 +183,10 @@ const handleSubmit = async (values) => {
     // After successful registration and auto-login
     if (result?.token) {
       // Get redirect path or default to home
-      const redirectPath = route.query.redirect || '/'
+      const redirectPath = (route.query.redirect as string) || '/'
       await router.push(redirectPath)
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Registration error:', error)
     serverError.value = formatAuthError(error, 'register')
   }

@@ -49,7 +49,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
@@ -62,6 +62,12 @@ import {
 } from '@/apps/auth/components'
 import { formatAuthError } from '../utils/errorHandling'
 
+interface LoginFormValues {
+  username?: string;
+  password?: string;
+  [key: string]: unknown;
+}
+
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
@@ -70,31 +76,31 @@ const hasAttemptedSubmit = ref(false)
 const password = ref('')
 const username = ref('')
 
-const handleSubmit = async (values) => {
+const handleSubmit = async (values: LoginFormValues) => {
   hasAttemptedSubmit.value = true
   serverError.value = ''
   
   try {
-    // Get values from form submission values instead of refs
     const credentials = {
       username: values.username?.trim(),
-      password: values.password?.trim() || password.value?.trim() // Try both sources
+      password: values.password?.trim() || password.value?.trim()
     }
 
-    // More detailed validation message
     if (!credentials.username || !credentials.password) {
       serverError.value = `Missing ${!credentials.username ? 'username' : 'password'}`
-      console.log('Form values:', values) // Debug log
-      console.log('Credentials:', credentials) // Debug log
       return
     }
 
     await authStore.login(credentials)
-    const redirectPath = route.query.redirect || '/'
+    const redirectPath = (route.query.redirect as string) || '/'
     await router.push(redirectPath)
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Login error:', error)
-    serverError.value = error.message || 'Login failed'
+    if (error instanceof Error) {
+      serverError.value = error.message
+    } else {
+      serverError.value = 'Login failed'
+    }
   }
 }
 
