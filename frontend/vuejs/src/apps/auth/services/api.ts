@@ -1,10 +1,13 @@
 import axios, { AxiosHeaders } from 'axios'
 import type { 
   InternalAxiosRequestConfig,
-  AxiosResponse 
 } from 'axios'
-import type { User } from '../types/auth'
-import type { LoginCredentials, AuthResponse, UserRegistrationData } from './types'
+import type { 
+  User, 
+  LoginCredentials, 
+  AuthResponse, 
+  UserRegistrationData 
+} from '@/apps/auth/types/auth'
 
 const BASE_URL = '/api/v1/auth'
 
@@ -89,7 +92,6 @@ const setupAxiosInterceptors = () => {
 setupAxiosInterceptors()
 
 let logoutPromise: Promise<any> | null = null
-let loginPromise: Promise<any> | null = null
 
 export const AuthAPI = {
   async getCSRFToken() {

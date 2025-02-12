@@ -35,7 +35,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import RequirementItem from '../../atoms/auth/RequirementItem.vue'
+import { RequirementItem } from '@/apps/auth/components'
 
 const props = defineProps({
   password: {

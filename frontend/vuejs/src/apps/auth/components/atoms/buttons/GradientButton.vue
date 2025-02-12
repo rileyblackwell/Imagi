@@ -1,4 +1,4 @@
-s<template>
+<template>
   <button
     :type="type"
     :disabled="disabled || loading"
