@@ -7,7 +7,7 @@
           name="username"
           label="Username"
           icon="fas fa-user"
-          rules="required"
+          rules="required|username"
           placeholder="Create a username"
           :disabled="authStore.isLoading"
           :showError="submitCount > 0"
@@ -34,18 +34,20 @@
           <PasswordInput
             name="password"
             v-model="formData.password"
+            rules="required|registration_password"
             placeholder="Create password"
             :disabled="authStore.isLoading"
-            required
+            :showError="submitCount > 0"
             class="min-h-[42px]"
           />
 
           <PasswordInput
             name="password_confirmation"
             v-model="formData.passwordConfirmation"
+            :rules="{ required: true, password_confirmation: formData.password }"
             placeholder="Confirm password"
             :disabled="authStore.isLoading"
-            required
+            :showError="submitCount > 0"
             class="min-h-[42px]"
           />
         </div>
@@ -148,33 +150,12 @@ const handleSubmit = async (values: RegisterFormValues) => {
   serverError.value = ''
 
   try {
-    if (formData.password !== formData.passwordConfirmation) {
-      serverError.value = 'Passwords do not match'
-      return
-    }
-
-    if (!values.agreeToTerms) {
-      serverError.value = 'You must agree to the Terms of Service and Privacy Policy'
-      return
-    }
-
-    if (!passwordRequirements.value?.isValid) {
-      serverError.value = 'Password does not meet requirements'
-      return
-    }
-
     const registerData = {
       username: values.username?.trim(),
       email: values.email?.trim(),
       password: formData.password,
       password_confirmation: formData.passwordConfirmation,
       terms_accepted: values.agreeToTerms
-    }
-
-    // Validate all required fields
-    if (!registerData.username || !registerData.email || !registerData.password || !registerData.password_confirmation) {
-      serverError.value = 'All fields are required'
-      return
     }
 
     const result = await authStore.register(registerData)
