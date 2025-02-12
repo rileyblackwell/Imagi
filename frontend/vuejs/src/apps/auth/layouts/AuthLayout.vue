@@ -70,7 +70,6 @@
 
 <script setup lang="ts">
 import { DefaultLayout } from '@/shared/layouts'
-import { AuthLinks, AuthHeader } from '@/apps/auth/components/index'
 </script>
 
 <style>

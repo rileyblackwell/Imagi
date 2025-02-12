@@ -103,7 +103,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/auth.js'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
@@ -131,7 +131,6 @@ interface PasswordRequirementsRef {
 }
 
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 const serverError = ref('')
 const hasAttemptedSubmit = ref(false)
