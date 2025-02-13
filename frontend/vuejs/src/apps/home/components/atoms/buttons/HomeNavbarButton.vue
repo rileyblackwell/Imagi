@@ -19,7 +19,7 @@
 
 <script>
 import { defineComponent, computed } from 'vue'
-import IconButton from './IconButton.vue'
+import { IconButton } from '@/apps/home/components'
 
 export default defineComponent({
   name: 'HomeNavbarButton',

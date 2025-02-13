@@ -83,7 +83,12 @@ import { computed, ref, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store'
 import { BaseNavbar } from '@/shared/components'
-import { IconButton, HomeNavbarButton, GradientText, HomeNavbarDropdownButton } from '@/apps/home/components'
+import {
+  IconButton,
+  HomeNavbarButton,
+  GradientText,
+  HomeNavbarDropdownButton
+} from '@/apps/home/components'
 
 export default defineComponent({
   name: 'HomeNavbar',
