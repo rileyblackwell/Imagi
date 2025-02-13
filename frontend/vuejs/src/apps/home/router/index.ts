@@ -1,10 +1,10 @@
 import type { RouteRecordRaw, NavigationGuardWithThis } from 'vue-router'
-import Home from '../views/Home.vue'
-import About from '../views/About.vue'
-import Contact from '../views/Contact.vue'
-import Privacy from '../views/PrivacyPolicy.vue'
-import Terms from '../views/TermsOfService.vue'
-import Dashboard from '../views/Dashboard.vue'
+import Home from '@/apps/home/views/Home.vue'
+import About from '@/apps/home/views/About.vue'
+import Contact from '@/apps/home/views/Contact.vue'
+import Privacy from '@/apps/home/views/PrivacyPolicy.vue'
+import Terms from '@/apps/home/views/TermsOfService.vue'
+import Dashboard from '@/apps/home/views/Dashboard.vue'
 
 const routes: RouteRecordRaw[] = [
   {
