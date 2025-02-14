@@ -1,9 +1,7 @@
 export interface Editor {
-  id: string
-  content: string
-  language: string
-  theme?: string
-  readOnly?: boolean
+  getValue(): string
+  setValue(value: string): void
+  dispose(): void
 }
 
 export type EditorLanguage = 
@@ -18,8 +16,8 @@ export type EditorLanguage =
 export type EditorTheme = 'dark' | 'light'
 
 export interface EditorOptions {
-  language?: EditorLanguage
-  theme?: EditorTheme
+  language?: string
+  theme?: 'light' | 'dark'
   readOnly?: boolean
   lineNumbers?: boolean
   minimap?: boolean

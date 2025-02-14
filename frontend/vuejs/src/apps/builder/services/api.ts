@@ -6,6 +6,7 @@ import type {
 } from 'axios'
 import type { Project, Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { ProjectFile, CodeGenerationResponse, AIModel } from '../types/builder'
+import { DEFAULT_AI_MODELS } from '../types/builder'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -198,8 +199,13 @@ export const BuilderAPI = {
   },
 
   async getAvailableModels(): Promise<AIModel[]> {
-    const response = await api.get<APIResponse<AIModel[]>>('/ai/models/')
-    return response.data.data
+    try {
+      const response = await api.get<APIResponse<AIModel[]>>('/ai/models/')
+      return response.data.data
+    } catch (error) {
+      console.warn('Failed to fetch AI models from API, using defaults:', error)
+      return DEFAULT_AI_MODELS
+    }
   },
 
   async undoAction(projectId: string): Promise<UndoResponse> {

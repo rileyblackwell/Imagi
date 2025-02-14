@@ -5,8 +5,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import type { Editor, EditorOptions } from '@/shared/types'
+import { ref } from 'vue'
+import type { EditorOptions } from '@/shared/types/editor'
 
 const props = withDefaults(defineProps<{
   modelValue: string
