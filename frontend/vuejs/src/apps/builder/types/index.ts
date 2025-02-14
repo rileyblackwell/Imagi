@@ -1,3 +1,5 @@
+export * from './builder'  // Export everything from builder.ts
+
 export interface Project {
   id: string;
   name: string;
@@ -8,6 +10,8 @@ export interface Project {
 
 export type ProjectStatus = 'active' | 'draft' | 'archived';
 
+// Remove duplicate ProjectType interface since it's now in builder.ts
+
 export interface ProjectListItemProps {
   project: Project;
 }
@@ -17,4 +21,12 @@ export interface StatusClasses {
   active: string;
   draft: string;
   archived: string;
+}
+
+export type BuilderMode = 'chat' | 'build';
+
+export interface ProjectFile {
+  path: string;
+  type: string;
+  content?: string;
 }

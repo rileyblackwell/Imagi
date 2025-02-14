@@ -1,162 +1,20 @@
 <template>
   <BuilderLayout storage-key="builderWorkspaceSidebarCollapsed">
     <template #sidebar-content>
-      <!-- Project Header -->
-      <div class="p-4 border-b border-dark-700">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-white truncate">{{ currentProject?.name }}</h2>
-          <router-link
-            :to="{ name: 'builder-dashboard' }"
-            class="text-gray-400 hover:text-white"
-            title="Back to projects"
-          >
-            <i class="fas fa-times"></i>
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Model Selection -->
-      <div class="p-4 border-b border-dark-700">
-        <label class="block text-sm font-medium text-gray-400 mb-2">AI Model</label>
-        <select
-          v-model="selectedModel"
-          class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2"
-        >
-          <option
-            v-for="model in typedModels"
-            :key="model.id"
-            :value="model.id"
-          >
-            {{ model.name }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Mode Toggle -->
-      <div class="p-4 border-b border-dark-700">
-        <label class="block text-sm font-medium text-gray-400 mb-2">Mode</label>
-        <div class="flex bg-dark-900 rounded-lg p-1">
-          <button
-            @click="switchMode('chat')"
-            class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="[
-              builderMode === 'chat'
-                ? 'bg-primary-500 text-white'
-                : 'text-gray-400 hover:text-white'
-            ]"
-          >
-            <i class="fas fa-comments mr-2"></i>
-            Chat
-          </button>
-          <button
-            @click="switchMode('build')"
-            class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="[
-              builderMode === 'build'
-                ? 'bg-primary-500 text-white'
-                : 'text-gray-400 hover:text-white'
-            ]"
-          >
-            <i class="fas fa-code mr-2"></i>
-            Build
-          </button>
-        </div>
-      </div>
-
-      <!-- File Explorer -->
-      <div class="flex-1 overflow-y-auto">
-        <div class="p-4 border-b border-dark-700">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-medium text-gray-400">Project Files</h3>
-            <button
-              @click="showNewFileForm = !showNewFileForm"
-              class="text-gray-400 hover:text-white transition-colors"
-              :title="showNewFileForm ? 'Cancel' : 'New File'"
-            >
-              <i :class="['fas', showNewFileForm ? 'fa-times' : 'fa-plus']"></i>
-            </button>
-          </div>
-
-          <!-- New File Form -->
-          <div v-if="showNewFileForm" class="mb-4 space-y-3">
-            <input
-              v-model="newFileName"
-              type="text"
-              placeholder="File name"
-              class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
-            />
-            <select
-              v-model="newFileType"
-              class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
-            >
-              <option value="" disabled>Select file type</option>
-              <option v-for="(type, key) in FILE_TYPES" :key="key" :value="type">
-                {{ key.toLowerCase() }}
-              </option>
-            </select>
-            <div class="flex justify-end space-x-2">
-              <button
-                @click="showNewFileForm = false"
-                class="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                @click="handleCreateFile"
-                :disabled="!canCreateFile"
-                class="px-3 py-1 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Create
-              </button>
-            </div>
-          </div>
-          
-          <div v-show="isFileExplorerExpanded" class="space-y-1">
-            <button
-              v-for="file in typedFiles"
-              :key="file.path"
-              @click="selectFile(file)"
-              class="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center group transition-colors"
-              :class="[
-                typedSelectedFile?.path === file.path
-                  ? 'bg-primary-500/20 text-white'
-                  : 'text-gray-400 hover:bg-dark-700 hover:text-white'
-              ]"
-            >
-              <i :class="[getFileIcon(file.type), 'mr-2']"></i>
-              <span class="truncate">{{ file.path }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="p-4 border-t border-dark-700">
-        <button
-          @click="undoLastAction"
-          class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="isLoading"
-        >
-          <i class="fas fa-undo mr-2"></i>
-          Undo
-        </button>
-      </div>
-    </template>
-
-    <!-- File Explorer Toggle Button -->
-    <template #sidebar-bottom>
-      <div class="p-4">
-        <button
-          @click="isFileExplorerExpanded = !isFileExplorerExpanded"
-          class="w-full flex items-center justify-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-lg"
-        >
-          <i :class="[
-            'fas',
-            isFileExplorerExpanded ? 'fa-chevron-down' : 'fa-chevron-right'
-          ]"></i>
-          <span class="ml-2">{{ isFileExplorerExpanded ? 'Collapse' : 'Expand' }} Files</span>
-        </button>
-      </div>
+      <BuilderSidebar
+        :current-project="currentProject"
+        :models="typedModels"
+        :model-id="selectedModel"
+        :files="typedFiles"
+        :selected-file="typedSelectedFile"
+        :file-types="FILE_TYPES"
+        :is-loading="isLoading"
+        @update:model-id="selectedModel = $event"
+        @update:mode="switchMode"
+        @select-file="selectFile"
+        @create-file="handleCreateFile"
+        @undo="undoLastAction"
+      />
     </template>
 
     <div class="min-h-screen flex">
@@ -232,25 +90,11 @@
         </div>
 
         <!-- AI Chat Input -->
-        <div class="p-4 border-t border-dark-700">
-          <div class="flex items-center space-x-4">
-            <input
-              v-model="prompt"
-              type="text"
-              placeholder="Describe what you want to build..."
-              class="flex-1 bg-dark-900 border border-dark-600 rounded-lg text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
-              @keyup.enter="handlePrompt"
-            >
-            <button
-              @click="handlePrompt"
-              class="px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="isLoading || !prompt.trim()"
-            >
-              <i class="fas fa-magic mr-2"></i>
-              Generate
-            </button>
-          </div>
-        </div>
+        <AIPromptInput
+          v-model="prompt"
+          :loading="isLoading"
+          @submit="handlePrompt"
+        />
       </main>
     </div>
   </BuilderLayout>
@@ -261,10 +105,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import type { Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { BuilderLayout } from '../layouts'
-import { WorkspaceEditor, WorkspaceToolbar, WorkspacePreview } from '../components/organisms/workspace'
+import { WorkspaceEditor, WorkspaceToolbar, WorkspacePreview, BuilderSidebar } from '../components/organisms'
+import { AIPromptInput } from '../components/molecules'
 import { useBuilder } from '../composables/useBuilder'
 import { useAI } from '../composables/useAI'
-import type { Project } from '@/shared/types/project'
 import type { EditorLanguage } from '@/shared/types/editor'
 import type { AIModel, ProjectFile, BuilderMode, EditorMode } from '../types/builder'
 
