@@ -1,7 +1,5 @@
 <template>
   <div class="flex flex-col h-full bg-dark-800">
-    <ProjectHeader :project-name="currentProject?.name" />
-    
     <ModelSelector
       :models="models"
       :model-id="modelId"
@@ -38,7 +36,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ProjectHeader } from '@/apps/builder/components/molecules/sidebar';
 import { ModelSelector } from '@/apps/builder/components/molecules/sidebar';
 import { ModeSelector } from '@/apps/builder/components/molecules/sidebar';
 import { FileExplorer } from '@/apps/builder/components/molecules/sidebar';
