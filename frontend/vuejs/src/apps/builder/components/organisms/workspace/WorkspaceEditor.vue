@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { EditorView } from '@/shared/components/molecules'
+import { ref } from 'vue'
 import type { EditorOptions, EditorLanguage } from '@/shared/types/editor'
 
 const props = defineProps<{

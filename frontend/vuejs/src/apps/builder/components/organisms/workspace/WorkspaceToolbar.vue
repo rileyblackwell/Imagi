@@ -64,11 +64,6 @@ const props = defineProps<{
   currentMode: ViewMode
 }>()
 
-const emit = defineEmits<{
-  (e: 'save'): void
-  (e: 'modeChange', mode: ViewMode): void
-}>()
-
 const getModeIcon = (mode: ViewMode): string => {
   const icons: Record<ViewMode, string> = {
     split: 'fas fa-columns',
