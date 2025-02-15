@@ -92,7 +92,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ProjectCard } from '@/apps/builder/components'
-import { ActionButton } from '@/shared/components/atoms/buttons'
+import { ActionButton } from '@/shared/components/atoms'
 import type { Project } from '@/shared/types/project'
 
 interface Props {
@@ -102,11 +102,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const emit = defineEmits<{
-  (e: 'delete', project: Project): void
-  (e: 'retry'): void
-}>()
 
 // Local state
 const searchQuery = ref('')

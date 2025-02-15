@@ -5,6 +5,7 @@
 
 // Button Components
 export { default as IconButton } from './buttons/IconButton.vue'
+export { default as ActionButton } from './buttons/ActionButton.vue'
 
 // Text Components
 export { default as GradientText } from './text/GradientText.vue'

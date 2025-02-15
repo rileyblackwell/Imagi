@@ -136,14 +136,13 @@ import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
 import { useProjectStore } from '@/apps/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
-import { IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
-import { 
-  ActionButton, 
+import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
+import {  
   CardContainer, 
   EmptyState,
-  ProjectListItem,
   ResourceLink
 } from '@/shared/components/molecules'
+import { ProjectListItem } from '@/apps/home/components'
 import { ActivityFeed, StatsCard } from '@/shared/components/organisms'
 
 // Store initialization
@@ -202,10 +201,26 @@ const navigationItems = [
 
 // Quick actions configuration
 const quickActions = [
-  { title: 'New Project', icon: 'fas fa-plus', route: { name: 'builder-new-project' } },
-  { title: 'Browse Templates', icon: 'fas fa-box', route: '/builder/templates' },
-  { title: 'API Documentation', icon: 'fas fa-book', route: '/docs/api' },
-  { title: 'Invite Team', icon: 'fas fa-user-plus', route: '/settings/team' }
+  { 
+    title: 'New Project', 
+    icon: 'fas fa-plus', 
+    route: { name: 'builder-new-project' } 
+  },
+  { 
+    title: 'Browse Templates', 
+    icon: 'fas fa-box', 
+    route: { name: 'builder-templates' } 
+  },
+  { 
+    title: 'API Documentation', 
+    icon: 'fas fa-book', 
+    route: { name: 'docs-api' } 
+  },
+  { 
+    title: 'Invite Team', 
+    icon: 'fas fa-user-plus', 
+    route: { name: 'settings-team' } 
+  }
 ]
 
 // Resources links

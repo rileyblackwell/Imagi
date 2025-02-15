@@ -61,7 +61,6 @@ import { useRouter } from 'vue-router'
 import { BuilderLayout } from '@/apps/builder/layouts'
 import { useProjectStore } from '@/apps/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
-import { ActionButton } from '@/shared/components/atoms/buttons'
 import type { Project } from '@/shared/types/project'
 import { NewProjectCard, ProjectList } from '../components/organisms'
 
