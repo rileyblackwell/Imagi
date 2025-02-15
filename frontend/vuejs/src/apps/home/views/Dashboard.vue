@@ -135,15 +135,14 @@ import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
 import { useProjectStore } from '@/apps/builder/stores/projectStore'
+import { ProjectListItem, CardContainer, StatsCard } from '@/apps/home/components'
 import { useNotification } from '@/shared/composables/useNotification'
 import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
-import {  
-  CardContainer, 
+import {   
   EmptyState,
   ResourceLink
 } from '@/shared/components/molecules'
-import { ProjectListItem } from '@/apps/home/components'
-import { ActivityFeed, StatsCard } from '@/shared/components/organisms'
+import { ActivityFeed } from '@/shared/components/organisms'
 
 // Store initialization
 const authStore = useAuthStore()
