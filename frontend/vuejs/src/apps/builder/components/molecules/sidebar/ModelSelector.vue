@@ -1,24 +1,26 @@
 <template>
   <div class="p-4 border-b border-dark-700">
     <label class="block text-sm font-medium text-gray-400 mb-2">AI Model</label>
-    <select
-      v-model="selectedModelId"
-      class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2"
-      @change="handleModelChange"
-    >
-      <option value="" disabled>Select an AI model</option>
-      <option
-        v-for="model in models"
-        :key="model.id"
-        :value="model.id"
-        :disabled="model.disabled"
+    <div class="relative">
+      <select
+        v-model="selectedModelId"
+        class="w-full appearance-none bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2.5 pr-10"
+        @change="handleModelChange"
       >
-        {{ model.name }} 
-        <span v-if="model.costPerRequest" class="text-gray-400">
-          (${model.costPerRequest}/request)
-        </span>
-      </option>
-    </select>
+        <option value="" disabled>Select an AI model</option>
+        <option
+          v-for="model in models"
+          :key="model.id"
+          :value="model.id"
+          :disabled="model.disabled"
+        >
+          {{ model.name }} {{ model.costPerRequest ? `($${model.costPerRequest}/req)` : '' }}
+        </option>
+      </select>
+      <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+        <i class="fas fa-chevron-down text-gray-400"></i>
+      </div>
+    </div>
     <p v-if="selectedModel?.description" class="mt-2 text-sm text-gray-400">
       {{ selectedModel.description }}
     </p>

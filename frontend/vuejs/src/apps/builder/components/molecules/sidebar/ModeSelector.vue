@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BuilderMode } from '@/apps/builder/types/builder'
 
 const props = defineProps<{
@@ -33,7 +34,9 @@ const emit = defineEmits<{
 }>()
 
 const handleModeChange = (newMode: BuilderMode) => {
-  emit('update:mode', newMode)
+  if (newMode !== props.mode) {
+    emit('update:mode', newMode)
+  }
 }
 
 const getModeIcon = (mode: BuilderMode): string => {

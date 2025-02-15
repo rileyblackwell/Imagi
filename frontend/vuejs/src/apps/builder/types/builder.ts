@@ -12,11 +12,8 @@ export interface AIModel {
   id: string;
   name: string;
   description?: string;
-  costPerRequest: number;
-  maxTokens?: number;
-  type?: 'chat' | 'completion';
-  capabilities?: string[];
-  disabled?: boolean;  // Add disabled property
+  costPerRequest?: number;
+  disabled?: boolean;
 }
 
 export interface ProjectFile {
@@ -39,27 +36,18 @@ export const DEFAULT_AI_MODELS: AIModel[] = [
     id: 'claude-3-sonnet',
     name: 'Claude 3.5 Sonnet',
     description: 'Balanced model for most tasks',
-    costPerRequest: 0.03,
-    maxTokens: 200000,
-    type: 'chat',
-    capabilities: ['code', 'analysis', 'chat']
+    costPerRequest: 0.03
   },
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    description: 'Advanced reasoning and code generation',
-    costPerRequest: 0.05,
-    maxTokens: 128000,
-    type: 'completion',
-    capabilities: ['code', 'analysis']
+    id: 'gpt-4',
+    name: 'GPT-4',
+    description: 'Most capable model for complex tasks',
+    costPerRequest: 0.04
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o-mini',
-    description: 'Faster, cost-effective option',
-    costPerRequest: 0.01,
-    maxTokens: 64000,
-    type: 'completion',
-    capabilities: ['code']
+    id: 'gpt-4-mini',
+    name: 'GPT-4 Mini',
+    description: 'Faster, more cost-effective option',
+    costPerRequest: 0.01
   }
 ];

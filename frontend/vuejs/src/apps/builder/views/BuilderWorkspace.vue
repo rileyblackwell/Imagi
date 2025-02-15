@@ -9,11 +9,13 @@
         :selected-file="typedSelectedFile"
         :file-types="FILE_TYPES"
         :is-loading="isLoading"
+        :mode="builderMode"
         @update:model-id="selectedModel = $event"
         @update:mode="switchMode"
         @select-file="selectFile"
         @create-file="handleCreateFile"
         @undo="undoLastAction"
+        @preview="handlePreview"
       />
     </template>
 
@@ -259,6 +261,14 @@ const focusPrompt = () => {
   const promptInput = document.querySelector('#user-input')
   if (promptInput instanceof HTMLElement) {
     promptInput.focus()
+  }
+}
+
+const handlePreview = () => {
+  if (currentEditorMode.value === 'preview') {
+    currentEditorMode.value = 'split'
+  } else {
+    currentEditorMode.value = 'preview'
   }
 }
 
