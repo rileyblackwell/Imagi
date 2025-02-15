@@ -26,11 +26,11 @@
 
     <template #default="{ collapsed }">
       <!-- Main Content -->
-      <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="h-[calc(100vh-4rem)] flex flex-col"> <!-- Adjust height to account for navbar -->
         <!-- Split View -->
-        <div v-if="typedSelectedFile" class="flex-1 flex">
+        <div v-if="typedSelectedFile" class="flex-1 flex overflow-hidden"> <!-- Add overflow-hidden -->
           <!-- Editor Section -->
-          <div :class="{
+          <div class="flex flex-col overflow-hidden h-full" :class="{
             'w-1/2': currentEditorMode === 'split',
             'w-full': currentEditorMode === 'editor',
             'hidden': currentEditorMode === 'preview'
@@ -42,20 +42,23 @@
               :loading="isLoading"
               :show-save="true"
               :current-mode="currentEditorMode"
+              class="flex-shrink-0"
               @save="saveChanges"
               @mode-change="setMode"
             />
             
-            <WorkspaceEditor
-              v-model="editorContent"
-              placeholder="Enter code here..."
-              wrap="off"
-              class="mt-4 px-4"
-            />
+            <div class="flex-1 overflow-hidden p-4">
+              <WorkspaceEditor
+                v-model="editorContent"
+                placeholder="Enter code here..."
+                wrap="off"
+                class="h-full overflow-auto rounded-lg bg-dark-900/50"
+              />
+            </div>
           </div>
 
           <!-- Preview Section -->
-          <div :class="{
+          <div class="flex flex-col overflow-hidden h-full" :class="{
             'w-1/2': currentEditorMode === 'split',
             'w-full': currentEditorMode === 'preview',
             'hidden': currentEditorMode === 'editor'
@@ -64,44 +67,53 @@
               v-if="previewUrl && projectId"
               :project-id="projectId"
               :preview-url="previewUrl"
+              class="flex-1 overflow-auto"
               @load="handlePreviewLoad"
             />
           </div>
         </div>
 
         <!-- Welcome Screen -->
-        <div v-else class="flex-1 flex items-center justify-center">
-          <div class="text-center max-w-lg">
-            <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i class="fas fa-code text-2xl text-primary-400"></i>
-            </div>
-            <h2 class="text-xl font-semibold text-white mb-2">Welcome to Imagi Builder</h2>
-            <p class="text-gray-400 mb-6">Choose a file from the sidebar to start editing, or describe what you want to build using natural language.</p>
-            <div class="grid grid-cols-2 gap-4">
-              <button
-                @click="showNewFileForm = true"
-                class="flex items-center justify-center px-4 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors"
-              >
-                <i class="fas fa-plus mr-2"></i>
-                Create New File
-              </button>
-              <button
-                @click="focusPrompt"
-                class="flex items-center justify-center px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors"
-              >
-                <i class="fas fa-magic mr-2"></i>
-                Start Building
-              </button>
+        <div v-else class="flex-1 flex items-center justify-center p-8 overflow-auto">
+          <div class="max-w-lg w-full">
+            <div class="text-center space-y-6">
+              <div class="w-20 h-20 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto">
+                <i class="fas fa-code text-3xl text-primary-400"></i>
+              </div>
+              <div>
+                <h2 class="text-2xl font-semibold text-white mb-3">Welcome to Imagi Builder</h2>
+                <p class="text-gray-400 text-lg leading-relaxed mb-8">
+                  Choose a file from the sidebar to start editing, or describe what you want to build using natural language.
+                </p>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <button
+                  @click="showNewFileForm = true"
+                  class="flex items-center justify-center px-6 py-4 bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-colors group"
+                >
+                  <i class="fas fa-plus mr-3 text-primary-400 group-hover:text-primary-300"></i>
+                  Create New File
+                </button>
+                <button
+                  @click="focusPrompt"
+                  class="flex items-center justify-center px-6 py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors group"
+                >
+                  <i class="fas fa-magic mr-3 group-hover:text-white/90"></i>
+                  Start Building
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- AI Chat Input -->
-        <AIPromptInput
-          v-model="prompt"
-          :loading="isLoading"
-          @submit="handlePrompt"
-        />
+        <div class="shrink-0 p-4 border-t border-dark-800 bg-dark-900/50 backdrop-blur-sm">
+          <AIPromptInput
+            v-model="prompt"
+            :loading="isLoading"
+            @submit="handlePrompt"
+          />
+        </div>
       </div>
     </template>
   </BuilderLayout>

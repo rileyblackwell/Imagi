@@ -1,86 +1,84 @@
 <template>
-  <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
-    <!-- Fixed Sections -->
-    <div class="flex-shrink-0">
-      <!-- Current File Section -->
-      <div class="p-4 border-b border-dark-700">
-        <label class="block text-sm font-medium text-gray-400 mb-2">Current File</label>
-        <div class="relative">
-          <select
-            :value="selectedFile?.path"
-            @change="selectFileByPath($event)"
-            class="w-full appearance-none bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm truncate"
-          >
-            <option value="index.html" selected>index.html</option>
-            <option v-for="file in files" :key="file.path" :value="file.path" class="truncate">
-              {{ file.path }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-            <i class="fas fa-chevron-down text-gray-400 text-sm"></i>
-          </div>
-        </div>
+  <div class="p-4">
+    <div class="flex items-center justify-between mb-2">
+      <label class="text-sm font-medium text-gray-400">Files</label>
+      <button
+        @click="showNewForm = true"
+        class="text-xs text-primary-400 hover:text-primary-300"
+      >
+        <i class="fas fa-plus mr-1"></i>
+        New
+      </button>
+    </div>
+
+    <!-- File Select Dropdown -->
+    <div class="relative mb-4">
+      <select
+        v-model="selectedFilePath"
+        class="w-full appearance-none bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 pr-10"
+        @change="handleFileSelect"
+      >
+        <option value="" disabled>Select File</option>
+        <option
+          v-for="file in files"
+          :key="file.path"
+          :value="file.path"
+          class="py-2"
+        >
+          {{ file.path }}
+        </option>
+      </select>
+      <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
       </div>
+    </div>
 
-      <!-- New File Section -->
-      <div class="p-4 border-b border-dark-700">
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-sm font-medium text-gray-400">New File</label>
-          <IconButton
-            icon-class="fa-plus"
-            size="sm"
-            :variant="showNewForm ? 'primary' : 'default'"
-            :title="showNewForm ? 'Cancel' : 'New File'"
-            @click="toggleNewFileForm"
-          />
-        </div>
-
-        <div v-if="showNewForm" class="space-y-2">
+    <!-- New File Form -->
+    <div v-if="showNewForm" class="mt-4 p-4 bg-dark-800/50 rounded-lg">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">File Name</label>
           <input
             v-model="newFileName"
             type="text"
             placeholder="Enter file name"
-            class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
-          />
-          <select
-            v-model="newFileType"
-            class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
-          >
-            <option value="" disabled>Select type</option>
-            <option v-for="(type, key) in fileTypes" :key="key" :value="type">
-              {{ key.toLowerCase() }}
-            </option>
-          </select>
-          <ActionButton
-            text="Create"
-            icon="plus"
-            :disabled="!canCreateFile"
-            :full-width="true"
-            variant="primary"
-            @click="handleCreateFile"
+            class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20"
           />
         </div>
-      </div>
-    </div>
-
-    <!-- Scrollable File List -->
-    <div class="flex-1 overflow-y-auto min-h-0">
-      <div class="p-4">
-        <label class="block text-sm font-medium text-gray-400 mb-2">Project Files</label>
-        <div class="space-y-1">
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">File Type</label>
+          <select
+            v-model="newFileType"
+            class="w-full appearance-none bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20"
+          >
+            <option value="" disabled>Select Type</option>
+            <option
+              v-for="(label, type) in fileTypes"
+              :key="type"
+              :value="type"
+            >
+              {{ label }}
+            </option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-2">
           <button
-            v-for="file in files"
-            :key="file.path"
-            @click="selectFile(file)"
-            class="w-full text-left px-3 py-2 rounded-lg text-sm flex items-center group transition-colors"
+            @click="showNewForm = false"
+            class="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleCreateFile"
+            :disabled="!canCreateFile"
             :class="[
-              selectedFile?.path === file.path
-                ? 'bg-primary-500/20 text-white'
-                : 'text-gray-400 hover:bg-dark-700 hover:text-white'
+              'px-3 py-1.5 text-sm rounded-md transition-colors',
+              canCreateFile
+                ? 'bg-primary-500 text-white hover:bg-primary-600'
+                : 'bg-dark-700 text-gray-400 cursor-not-allowed'
             ]"
           >
-            <i :class="[getFileIcon(file.type), 'mr-2 text-sm flex-shrink-0']"></i>
-            <span class="truncate">{{ file.path }}</span>
+            Create
           </button>
         </div>
       </div>
@@ -90,7 +88,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { IconButton, ActionButton } from '@/apps/builder/components/atoms'
 import type { ProjectFile } from '@/apps/builder/types/builder'
 
 const props = defineProps<{
@@ -101,68 +98,36 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'select-file', file: ProjectFile): void
-  (e: 'create-file', data: { name: string; type: string }): void
+  (e: 'selectFile', file: ProjectFile): void
+  (e: 'createFile', data: { name: string; type: string }): void
 }>()
 
+const selectedFilePath = ref(props.selectedFile?.path || '')
+const showNewForm = ref(props.showNewForm || false)
 const newFileName = ref('')
 const newFileType = ref('')
-const showNewForm = ref(props.showNewForm || false)
 
-const canCreateFile = computed(() => newFileName.value.trim() && newFileType.value)
+const canCreateFile = computed(() => 
+  newFileName.value.trim() && newFileType.value
+)
 
-const getFileIcon = (type: string): string => {
-  const icons: Record<string, string> = {
-    html: 'fas fa-code',
-    css: 'fab fa-css3',
-    javascript: 'fab fa-js',
-    typescript: 'fab fa-ts',
-    python: 'fab fa-python',
-    markdown: 'fas fa-file-alt',
-    text: 'fas fa-file-alt'
-  }
-  return icons[type] || 'fas fa-file'
-}
-
-const selectFile = (file: ProjectFile) => {
-  emit('select-file', file)
-}
-
-const selectFileByPath = (event: Event) => {
-  const target = event.target as HTMLSelectElement
-  const path = target.value
-  const existingFile = props.files.find(f => f.path === path)
-  
-  if (existingFile) {
-    emit('select-file', existingFile)
-  } else {
-    emit('select-file', {
-      path: 'index.html',
-      type: 'html',
-      content: '' // Adding required content property
-    })
+const handleFileSelect = () => {
+  const file = props.files.find(f => f.path === selectedFilePath.value)
+  if (file) {
+    emit('selectFile', file)
   }
 }
 
 const handleCreateFile = () => {
-  if (!canCreateFile.value) return
-  
-  emit('create-file', {
-    name: newFileName.value.trim(),
-    type: newFileType.value
-  })
-  
-  // Reset form
-  newFileName.value = ''
-  newFileType.value = ''
-  showNewForm.value = false
-}
-
-const toggleNewFileForm = () => {
-  showNewForm.value = !showNewForm.value
-  if (!showNewForm.value) {
+  if (canCreateFile.value) {
+    emit('createFile', {
+      name: newFileName.value.trim(),
+      type: newFileType.value
+    })
+    // Reset form
     newFileName.value = ''
     newFileType.value = ''
+    showNewForm.value = false
   }
 }
 </script>

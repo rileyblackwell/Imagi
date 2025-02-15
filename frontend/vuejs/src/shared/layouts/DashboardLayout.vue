@@ -1,7 +1,7 @@
 <!-- Dashboard layout for authenticated users -->
 <template>
   <BaseLayout>
-    <div class="min-h-screen flex overflow-hidden">
+    <div class="min-h-screen flex">
       <!-- Sidebar -->
       <aside 
         class="fixed inset-y-0 left-0 z-20 flex flex-col transition-all duration-300 ease-in-out border-r border-dark-800 bg-dark-950" 
@@ -65,23 +65,19 @@
 
       <!-- Main content -->
       <div 
-        class="flex-1 flex flex-col transition-all duration-300 ease-in-out" 
+        class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" 
         :class="[isSidebarCollapsed ? 'ml-16' : 'ml-64']"
       >
         <!-- Navbar -->
-        <BaseNavbar class="bg-dark-900/80 backdrop-blur-sm border-b border-dark-800">
+        <BaseNavbar class="fixed top-0 right-0 left-0 z-10 bg-dark-900/80 backdrop-blur-sm border-b border-dark-800" :class="[isSidebarCollapsed ? 'ml-16' : 'ml-64']">
           <template #left>
             <!-- Navbar left section -->
           </template>
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 relative overflow-y-auto bg-dark-950">
-          <div class="py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
-            </div>
-          </div>
+        <main class="flex-1 relative mt-16 bg-dark-950">
+          <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 
         <!-- Footer -->
