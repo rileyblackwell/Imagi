@@ -5,7 +5,6 @@ Service for managing Oasis web app projects.
 import os
 import shutil
 import logging
-from django.conf import settings
 from apps.ProjectManager.services import ProjectGenerationService
 
 logger = logging.getLogger(__name__)

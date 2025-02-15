@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import anthropic
 from ..models import AgentMessage, AgentConversation, SystemPrompt
-from apps.Builder.models import Message
 
 # Load environment variables from .env
 load_dotenv()

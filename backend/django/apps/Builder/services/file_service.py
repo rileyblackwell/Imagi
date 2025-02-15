@@ -4,8 +4,6 @@ Service for managing project files.
 
 import os
 import logging
-from pathlib import Path
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
