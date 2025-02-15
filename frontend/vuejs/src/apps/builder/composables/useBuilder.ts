@@ -4,7 +4,14 @@ import { useProjectStore } from '../stores/projectStore'
 import { useAI } from './useAI'
 import { BuilderAPI } from '../services/api'
 import type { Project } from '@/shared/types/project'
-import type { AIModel, ProjectFile, BuilderMode, EditorMode, CodeGenerationResponse } from '../types/builder'
+import type { 
+  ProjectFile, 
+  BuilderMode, 
+  EditorMode, 
+  CodeGenerationResponse,
+  AIModel 
+} from '../types/builder'
+import { AI_MODELS } from '../types/builder'
 
 // Constants
 export const FILE_TYPES = {
@@ -39,11 +46,8 @@ export function useBuilder() {
 
   // Computed properties
   const projectId = computed(() => currentProject.value?.id)
-  const availableModels = computed(() => store.availableModels)
-  const selectedModel = computed({
-    get: () => store.selectedModel,
-    set: (value: string | null) => store.setSelectedModel(value)
-  })
+  const availableModels = ref<AIModel[]>(AI_MODELS)
+  const selectedModel = ref<string>('claude-3.5-sonnet') // Set default model
 
   /**
    * Load project details and related data
@@ -177,12 +181,8 @@ export function useBuilder() {
    * Model management methods
    */
   const loadAvailableModels = async () => {
-    try {
-      await store.fetchAvailableModels()
-    } catch (err) {
-      console.error('Failed to load models:', err)
-      error.value = err instanceof Error ? err.message : 'Failed to load AI models'
-    }
+    // In the future, this could fetch from an API
+    availableModels.value = AI_MODELS
   }
 
   /**

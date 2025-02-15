@@ -9,11 +9,11 @@ export interface ProjectType {
 }
 
 export interface AIModel {
-  id: string;
-  name: string;
-  description?: string;
-  costPerRequest?: number;
-  disabled?: boolean;
+  id: string
+  name: string
+  description: string
+  costPerRequest: number
+  disabled?: boolean
 }
 
 export interface ProjectFile {
@@ -31,23 +31,23 @@ export interface CodeGenerationResponse {
 export type BuilderMode = 'chat' | 'build'
 export type EditorMode = 'split' | 'editor' | 'preview'
 
-export const DEFAULT_AI_MODELS: AIModel[] = [
+export const AI_MODELS: AIModel[] = [
   {
-    id: 'claude-3-sonnet',
+    id: 'claude-3.5-sonnet',
     name: 'Claude 3.5 Sonnet',
-    description: 'Balanced model for most tasks',
+    description: 'Anthropic\'s most capable model, best for complex tasks and creative work.',
     costPerRequest: 0.03
   },
   {
     id: 'gpt-4',
     name: 'GPT-4',
-    description: 'Most capable model for complex tasks',
+    description: 'OpenAI\'s most capable model, excellent for complex reasoning and creative tasks.',
     costPerRequest: 0.04
   },
   {
     id: 'gpt-4-mini',
     name: 'GPT-4 Mini',
-    description: 'Faster, more cost-effective option',
+    description: 'A more cost-effective version of GPT-4, good for simpler tasks.',
     costPerRequest: 0.01
   }
-];
+]

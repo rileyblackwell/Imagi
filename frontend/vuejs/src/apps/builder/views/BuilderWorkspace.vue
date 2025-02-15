@@ -1,7 +1,6 @@
 <template>
   <BuilderLayout 
     storage-key="builderWorkspaceSidebarCollapsed"
-    :navigation-items="navigationItems"
   >
     <!-- Sidebar Content -->
     <template #sidebar-content="{ collapsed }">
@@ -128,26 +127,6 @@ const previewUrl = ref<string>('')
 
 // Add sidebarCollapsed state
 const sidebarCollapsed = ref(false)
-
-// Add navigation items
-const navigationItems = [
-  {
-    name: 'Projects',
-    to: '/projects',
-    icon: 'fas fa-folder'
-  },
-  {
-    name: 'Builder',
-    to: '/builder',
-    icon: 'fas fa-code',
-    exact: true
-  },
-  {
-    name: 'Settings',
-    to: '/settings',
-    icon: 'fas fa-cog'
-  }
-]
 
 // Initialize composables
 const {

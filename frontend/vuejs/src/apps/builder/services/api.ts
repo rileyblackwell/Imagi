@@ -1,12 +1,11 @@
 import axios from 'axios'
 import type { 
   AxiosInstance, 
-  AxiosRequestConfig, 
   InternalAxiosRequestConfig 
 } from 'axios'
 import type { Project, Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { ProjectFile, CodeGenerationResponse, AIModel } from '../types/builder'
-import { DEFAULT_AI_MODELS } from '../types/builder'
+import { AI_MODELS } from '../types/builder'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -20,12 +19,6 @@ interface ProjectData {
   name: string;
   description?: string;
   // Add other project creation fields
-}
-
-interface FileData {
-  path: string;
-  content: string;
-  type?: string;
 }
 
 interface UndoResponse {
@@ -204,7 +197,7 @@ export const BuilderAPI = {
       return response.data.data
     } catch (error) {
       console.warn('Failed to fetch AI models from API, using defaults:', error)
-      return DEFAULT_AI_MODELS
+      return AI_MODELS
     }
   },
 
