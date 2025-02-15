@@ -1,19 +1,19 @@
 <template>
-  <div class="p-4 border-b border-dark-700">
+  <div class="p-4">
     <label class="block text-sm font-medium text-gray-400 mb-2">Mode</label>
-    <div class="flex bg-dark-900 rounded-lg p-1">
+    <div class="flex rounded-lg bg-dark-900 p-1">
       <button
         v-for="modeOption in modes"
         :key="modeOption"
         @click="handleModeChange(modeOption)"
-        class="flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+        class="flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors"
         :class="[
           mode === modeOption
             ? 'bg-primary-500 text-white'
-            : 'text-gray-400 hover:text-white'
+            : 'text-gray-400 hover:text-white hover:bg-dark-700'
         ]"
       >
-        <i :class="getModeIcon(modeOption)" class="mr-2"></i>
+        <i :class="[getModeIcon(modeOption), 'mr-2']"></i>
         {{ formatMode(modeOption) }}
       </button>
     </div>

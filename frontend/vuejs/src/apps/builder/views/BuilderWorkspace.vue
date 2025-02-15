@@ -1,6 +1,10 @@
 <template>
-  <BuilderLayout storage-key="builderWorkspaceSidebarCollapsed">
-    <template #sidebar-content>
+  <BuilderLayout 
+    storage-key="builderWorkspaceSidebarCollapsed"
+    :navigation-items="navigationItems"
+  >
+    <!-- Sidebar Content -->
+    <template #sidebar-content="{ collapsed }">
       <BuilderSidebar
         :current-project="currentProject"
         :models="typedModels"
@@ -10,6 +14,8 @@
         :file-types="FILE_TYPES"
         :is-loading="isLoading"
         :mode="builderMode"
+        :current-editor-mode="currentEditorMode"
+        :is-collapsed="collapsed"
         @update:model-id="selectedModel = $event"
         @update:mode="switchMode"
         @select-file="selectFile"
@@ -19,9 +25,9 @@
       />
     </template>
 
-    <div class="min-h-screen flex">
+    <template #default="{ collapsed }">
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col">
+      <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Split View -->
         <div v-if="typedSelectedFile" class="flex-1 flex">
           <!-- Editor Section -->
@@ -97,8 +103,8 @@
           :loading="isLoading"
           @submit="handlePrompt"
         />
-      </main>
-    </div>
+      </div>
+    </template>
   </BuilderLayout>
 </template>
 
@@ -119,6 +125,29 @@ const route = useRoute()
 const currentEditorMode = ref<EditorMode>('split')
 const builderMode = ref<BuilderMode>('chat')
 const previewUrl = ref<string>('')
+
+// Add sidebarCollapsed state
+const sidebarCollapsed = ref(false)
+
+// Add navigation items
+const navigationItems = [
+  {
+    name: 'Projects',
+    to: '/projects',
+    icon: 'fas fa-folder'
+  },
+  {
+    name: 'Builder',
+    to: '/builder',
+    icon: 'fas fa-code',
+    exact: true
+  },
+  {
+    name: 'Settings',
+    to: '/settings',
+    icon: 'fas fa-cog'
+  }
+]
 
 // Initialize composables
 const {

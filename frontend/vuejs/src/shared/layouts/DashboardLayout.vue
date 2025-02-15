@@ -1,10 +1,10 @@
 <!-- Dashboard layout for authenticated users -->
 <template>
   <BaseLayout>
-    <div class="min-h-screen flex">
+    <div class="min-h-screen flex overflow-hidden">
       <!-- Sidebar -->
       <aside 
-        class="fixed inset-y-0 left-0 z-20 flex flex-col transition-all duration-300 border-r border-dark-800 bg-dark-950" 
+        class="fixed inset-y-0 left-0 z-20 flex flex-col transition-all duration-300 ease-in-out border-r border-dark-800 bg-dark-950" 
         :class="[isSidebarCollapsed ? 'w-16' : 'w-64']"
       >
         <!-- Navigation -->
@@ -15,26 +15,31 @@
               :key="item.name"
               :to="item.to"
               :class="[
-                isActivePath(item) ? 'bg-dark-800 text-white' : 'text-gray-400 hover:bg-dark-800 hover:text-white',
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-md'
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200',
+                isActivePath(item) ? 'bg-dark-800 text-white' : 'text-gray-400 hover:bg-dark-800 hover:text-white'
               ]"
             >
               <i 
-                v-if="item.icon"
                 :class="[
                   item.icon,
+                  'text-lg transition-colors duration-200',
                   isActivePath(item) ? 'text-primary-400' : 'text-gray-400 group-hover:text-white',
-                  'mr-3 text-lg'
+                  isSidebarCollapsed ? '' : 'mr-3'
                 ]"
               ></i>
-              <span v-if="!isSidebarCollapsed">{{ item.name }}</span>
+              <span 
+                v-if="!isSidebarCollapsed" 
+                class="truncate transition-opacity duration-200"
+              >
+                {{ item.name }}
+              </span>
             </router-link>
           </div>
         </nav>
 
-        <!-- Additional Sidebar Content -->
-        <div class="flex-1 overflow-y-auto">
-          <slot name="sidebar-content"></slot>
+        <!-- Custom Sidebar Content -->
+        <div class="flex-1 overflow-hidden">
+          <slot name="sidebar-content" :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </div>
 
         <!-- Bottom Actions -->
@@ -49,26 +54,32 @@
               class="w-full flex items-center justify-center p-2 bg-dark-800 rounded-lg text-gray-400 hover:text-white transition-colors"
               :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
             >
-              <i class="fas" :class="isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+              <i 
+                class="fas transition-transform duration-300" 
+                :class="[isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left']"
+              ></i>
             </button>
           </div>
         </div>
       </aside>
 
       <!-- Main content -->
-      <div class="flex-1 flex flex-col" :class="[isSidebarCollapsed ? 'ml-16' : 'ml-64']">
+      <div 
+        class="flex-1 flex flex-col transition-all duration-300 ease-in-out" 
+        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-64']"
+      >
         <!-- Navbar -->
         <BaseNavbar class="bg-dark-900/80 backdrop-blur-sm border-b border-dark-800">
           <template #left>
-            <!-- Navbar left section without title -->
+            <!-- Navbar left section -->
           </template>
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 relative overflow-y-auto bg-dark-950 pt-20">
+        <main class="flex-1 relative overflow-y-auto bg-dark-950">
           <div class="py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <slot></slot>
+              <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
             </div>
           </div>
         </main>
@@ -80,70 +91,86 @@
   </BaseLayout>
 </template>
 
-<script>
-import BaseLayout from './BaseLayout.vue'
-import { BaseNavbar, BaseFooter } from '@/shared/components'
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/apps/auth/store'
+import BaseLayout from './BaseLayout.vue'
+import { BaseNavbar, BaseFooter } from '@/shared/components'
 
-export default {
-  name: 'DashboardLayout',
-  components: {
-    BaseLayout,
-    BaseNavbar,
-    BaseFooter
-  },
-  props: {
-    navigationItems: {
-      type: Array,
-      default: () => [],
-      validator: (items) => items.every(item => item.name && item.to)
-    },
-    storageKey: {
-      type: String,
-      default: 'dashboardSidebarCollapsed'
-    }
-  },
-  setup(props) {
-    const route = useRoute()
-    const router = useRouter()
-    const authStore = useAuthStore()
-    const isSidebarCollapsed = ref(false)
-
-    const isActivePath = (item) => {
-      if (item.exact) {
-        return route.path === item.to
-      }
-      return route.path.startsWith(item.to)
-    }
-
-    const toggleSidebar = () => {
-      isSidebarCollapsed.value = !isSidebarCollapsed.value
-      localStorage.setItem(props.storageKey, isSidebarCollapsed.value)
-    }
-
-    // Check authentication on mount
-    onMounted(async () => {
-      if (!authStore.isAuthenticated) {
-        router.push({ 
-          name: 'login',
-          query: { redirect: route.fullPath }
-        })
-      }
-
-      // Initialize sidebar state from localStorage
-      const savedCollapsed = localStorage.getItem(props.storageKey)
-      if (savedCollapsed !== null) {
-        isSidebarCollapsed.value = savedCollapsed === 'true'
-      }
-    })
-
-    return {
-      isSidebarCollapsed,
-      toggleSidebar,
-      isActivePath
-    }
-  }
+interface NavigationItem {
+  name: string
+  to: string
+  icon?: string
+  exact?: boolean
 }
+
+const props = defineProps<{
+  navigationItems: NavigationItem[]
+  storageKey?: string
+}>()
+
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const isSidebarCollapsed = ref(false)
+
+const isActivePath = (item: NavigationItem) => {
+  if (item.exact) {
+    return route.path === item.to
+  }
+  return route.path.startsWith(item.to)
+}
+
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+  localStorage.setItem(props.storageKey || 'dashboardSidebarCollapsed', String(isSidebarCollapsed.value))
+}
+
+onMounted(() => {
+  // Initialize sidebar state from localStorage
+  const savedCollapsed = localStorage.getItem(props.storageKey || 'dashboardSidebarCollapsed')
+  if (savedCollapsed !== null) {
+    isSidebarCollapsed.value = savedCollapsed === 'true'
+  }
+
+  // Check authentication
+  if (!authStore.isAuthenticated) {
+    router.push({ 
+      name: 'login',
+      query: { redirect: route.fullPath }
+    })
+  }
+})
 </script>
+
+<style scoped>
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Ensure content fades smoothly */
+.overflow-hidden {
+  overflow: hidden;
+}
+
+/* Smooth width transitions */
+.w-64 {
+  width: 16rem;
+}
+
+.w-16 {
+  width: 4rem;
+}
+
+/* Smooth margin transitions */
+.ml-64 {
+  margin-left: 16rem;
+}
+
+.ml-16 {
+  margin-left: 4rem;
+}
+</style>

@@ -1,24 +1,42 @@
 <template>
-  <DashboardLayout :navigation-items="navigationItems" :storage-key="storageKey">
-    <!-- Pass through all slots -->
-    <template v-for="(_, name) in $slots" v-slot:[name]="slotData">
-      <slot :name="name" v-bind="slotData"></slot>
+  <DashboardLayout :storage-key="storageKey" :navigation-items="navigationItems">
+    <template #sidebar-content="{ isSidebarCollapsed }">
+      <slot name="sidebar-content" :collapsed="isSidebarCollapsed"></slot>
+    </template>
+
+    <template #default="{ isSidebarCollapsed }">
+      <slot :collapsed="isSidebarCollapsed"></slot>
     </template>
   </DashboardLayout>
 </template>
 
-<script setup>
-import { DashboardLayout } from '@/shared/layouts';
+<script setup lang="ts">
+import { DashboardLayout } from '@/shared/layouts'
 
-// Props
-defineProps({
-  storageKey: {
-    type: String,
-    default: 'builderSidebarCollapsed'
+const navigationItems = [
+  {
+    name: 'Projects',
+    to: '/builder/projects',
+    icon: 'fas fa-folder',
   },
-  navigationItems: {
-    type: Array,
-    default: () => []
+  {
+    name: 'Chat',
+    to: '/builder/chat',
+    icon: 'fas fa-comments',
+  },
+  {
+    name: 'Build',
+    to: '/builder/build',
+    icon: 'fas fa-hammer',
+  },
+  {
+    name: 'Settings',
+    to: '/builder/settings',
+    icon: 'fas fa-cog',
   }
-});
+]
+
+defineProps<{
+  storageKey?: string
+}>()
 </script>
