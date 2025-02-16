@@ -22,7 +22,7 @@ from ..services.oasis_service import (
     undo_last_action_service,
     process_chat_mode_input_service
 )
-from apps.ProjectManager.services import ProjectGenerationService
+from apps.Products.Oasis.ProjectManager.services import ProjectGenerationService
 from ..services.project_service import ProjectService
 from ..services.ai_service import AIService
 from ..services.file_service import FileService
@@ -325,4 +325,4 @@ class PageView(generics.RetrieveAPIView):
             conversation__id=conversation_id,
             conversation__user=self.request.user,
             filename=filename
-        ) 
+        )

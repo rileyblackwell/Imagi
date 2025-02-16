@@ -42,16 +42,16 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'debug_toolbar',  # Add this line
+    'debug_toolbar',
     # custom apps
     'apps.Auth',
-    'apps.Builder',
+    'apps.Products.Oasis.Builder',
     'apps.Home',
     'apps.Payments',
-    'apps.Agents',
-    'apps.ProjectManager',
+    'apps.Products.Oasis.Agents',
+    'apps.Products.Oasis.ProjectManager',
     # Add django-allauth required apps
-    'django.contrib.sites',  # Required by allauth
+    'django.contrib.sites',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -81,11 +81,12 @@ TEMPLATES = [
         'DIRS': [
             BASE_DIR / 'templates',
             BASE_DIR / 'templates' / 'admin',
-            BASE_DIR / 'apps' / 'Builder' / 'templates',
+            BASE_DIR / 'apps' / 'Products' / 'Oasis' / 'Builder' / 'templates',
             BASE_DIR / 'apps' / 'Home' / 'templates',
             BASE_DIR / 'apps' / 'Auth' / 'templates',
             BASE_DIR / 'apps' / 'Payments' / 'templates',
-            BASE_DIR / 'apps' / 'ProjectManager' / 'templates',
+            BASE_DIR / 'apps' / 'Products' / 'Oasis' / 'ProjectManager' / 'templates',
+            BASE_DIR / 'apps' / 'Products' / 'Oasis' / 'Agents' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {

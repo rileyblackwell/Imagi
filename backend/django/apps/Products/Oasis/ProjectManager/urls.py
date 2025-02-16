@@ -10,7 +10,7 @@ app_name = 'projectmanager'
 
 urlpatterns = [
     # Include API URLs from the api directory
-    path('api/', include('apps.ProjectManager.api.urls', namespace='api')),
+    path('api/', include('apps.Products.Oasis.ProjectManager.api.urls', namespace='api')),
     
     # Add any non-API URLs here if needed in the future
 ]

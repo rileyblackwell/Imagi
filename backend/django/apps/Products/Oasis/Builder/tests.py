@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from .models import Project, Conversation, Page, Message
-from apps.ProjectManager.models import UserProject
+from apps.Products.Oasis.ProjectManager.models import UserProject
 import os
 import shutil
 from django.conf import settings

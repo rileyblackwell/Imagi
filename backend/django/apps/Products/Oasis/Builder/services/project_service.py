@@ -5,7 +5,7 @@ Service for managing Oasis web app projects.
 import os
 import shutil
 import logging
-from apps.ProjectManager.services import ProjectGenerationService
+from apps.Products.Oasis.ProjectManager.services import ProjectGenerationService
 
 logger = logging.getLogger(__name__)
 
@@ -128,4 +128,4 @@ document.addEventListener('DOMContentLoaded', function() {
         for file_path, content in default_files.items():
             full_path = os.path.join(project_path, file_path)
             with open(full_path, 'w') as f:
-                f.write(content.strip()) 
+                f.write(content.strip())

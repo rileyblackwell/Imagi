@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from django.urls import reverse
 from django.db.models import F
 from ..models import Message, Conversation, Page
-from apps.Agents.services.template_agent_service import TemplateAgentService
-from apps.Agents.services.stylesheet_agent_service import StylesheetAgentService
-from apps.Agents.services.chat_agent_service import ChatAgentService
-from apps.Agents.models import AgentConversation
+from apps.Products.Oasis.Agents.services.template_agent_service import TemplateAgentService
+from apps.Products.Oasis.Agents.services.stylesheet_agent_service import StylesheetAgentService
+from apps.Products.Oasis.Agents.services.chat_agent_service import ChatAgentService
+from apps.Products.Oasis.Agents.models import AgentConversation
 
 # Load environment variables from .env
 load_dotenv()

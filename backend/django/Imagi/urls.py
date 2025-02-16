@@ -17,18 +17,18 @@ urlpatterns = [
     
     # API endpoints - version 1
     path('api/v1/', include([
-        path('project-manager/', include('apps.ProjectManager.api.urls')),  # Remove namespace, already defined in app
-        path('auth/', include('apps.Auth.api.urls')),  # Remove namespace, already defined in app
-        path('builder/', include('apps.Builder.api.urls')),
+        path('project-manager/', include('apps.Products.Oasis.ProjectManager.api.urls')),
+        path('auth/', include('apps.Auth.api.urls')),
+        path('builder/', include('apps.Products.Oasis.Builder.api.urls')),
         path('payments/', include('apps.Payments.api.urls')),
-        path('agents/', include('apps.Agents.api.urls')),
+        path('agents/', include('apps.Products.Oasis.Agents.api.urls')),
     ])),
     
     # App URLs (for server-rendered pages if needed)
-    path('builder/', include('apps.Builder.urls')),
+    path('builder/', include('apps.Products.Oasis.Builder.urls')),
     path('', include('apps.Home.urls')),
     path('payments/', include('apps.Payments.urls')),
-    path('agents/', include('apps.Agents.urls')),
+    path('agents/', include('apps.Products.Oasis.Agents.urls')),
     
     # Favicon
     path('favicon.ico', favicon_view),
