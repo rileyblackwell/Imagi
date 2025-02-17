@@ -74,7 +74,12 @@
           <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
         </div>
         <p class="text-gray-400 mb-4">{{ error }}</p>
-        <ActionButton variant="secondary" @click="$emit('retry')">
+        <ActionButton 
+          title="Try Again"
+          icon="fa-redo"
+          variant="secondary" 
+          @click="$emit('retry')"
+        >
           Try Again
         </ActionButton>
       </div>
@@ -91,9 +96,9 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ProjectCard } from '@/apps/builder/components'
+import ProjectCard from '@/apps/products/builder/components/molecules/cards/ProjectCard.vue'
 import { ActionButton } from '@/shared/components/atoms'
-import type { Project } from '@/shared/types/project'
+import type { Project } from '@/shared/types'
 
 interface Props {
   projects: Project[]

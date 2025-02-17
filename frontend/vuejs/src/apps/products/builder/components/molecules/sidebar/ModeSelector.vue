@@ -21,8 +21,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { BuilderMode } from '@/apps/builder/types/builder'
+import { ref, computed } from 'vue'
+import type { BuilderMode } from '@/apps/products/builder/types/builder'
 
 const props = defineProps<{
   mode: BuilderMode

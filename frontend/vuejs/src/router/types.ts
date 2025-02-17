@@ -13,6 +13,8 @@ export type RouteModule = {
 export interface AppRoutes {
   home: RouteRecordRaw[]
   auth: RouteRecordRaw[]
-  builder: RouteRecordRaw[]
   payments: RouteRecordRaw[]
+  products: {
+    builder: RouteRecordRaw[]
+  }
 }

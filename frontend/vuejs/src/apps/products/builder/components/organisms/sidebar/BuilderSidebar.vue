@@ -81,6 +81,7 @@
     <!-- Action Buttons (only shown when expanded) -->
     <div v-if="!isCollapsed" class="shrink-0 border-t border-dark-700 p-4 space-y-3">
       <ActionButton
+        title="Preview Application"
         icon="eye"
         text="Preview App"
         :variant="currentEditorMode === 'preview' ? 'primary' : 'default'"
@@ -88,6 +89,7 @@
         @click="$emit('preview')"
       />
       <ActionButton
+        title="Undo Last Change"
         icon="undo"
         text="Undo Last Change"
         variant="default"
@@ -101,17 +103,17 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import ModelSelector from '@/apps/builder/components/molecules/sidebar/ModelSelector.vue'
-import ModeSelector from '@/apps/builder/components/molecules/sidebar/ModeSelector.vue'
-import FileExplorer from '@/apps/builder/components/molecules/sidebar/FileExplorer.vue'
-import { ActionButton, IconButton } from '@/apps/builder/components/atoms'
+import ModelSelector from '@/apps/products/builder/components/molecules/sidebar/ModelSelector.vue'
+import ModeSelector from '@/apps/products/builder/components/molecules/sidebar/ModeSelector.vue'
+import FileExplorer from '@/apps/products/builder/components/molecules/sidebar/FileExplorer.vue'
+import { ActionButton, IconButton } from '@/apps/products/builder/components'
 import type { 
   AIModel, 
   ProjectFile,
   BuilderMode,
   ProjectType,
   EditorMode 
-} from '@/apps/builder/types/builder'
+} from '@/apps/products/builder/types/builder'
 
 // Local state
 const showNewFileFormValue = ref(false)

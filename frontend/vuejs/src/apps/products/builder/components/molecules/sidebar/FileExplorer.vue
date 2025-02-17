@@ -88,7 +88,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ProjectFile } from '@/apps/builder/types/builder'
+import type { ProjectFile } from '@/apps/products/builder/types/builder'
 
 const props = defineProps<{
   files: ProjectFile[]

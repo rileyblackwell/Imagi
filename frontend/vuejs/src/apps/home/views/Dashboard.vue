@@ -134,7 +134,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
-import { useProjectStore } from '@/apps/builder/stores/projectStore'
+import { useProjectStore } from '@/apps/products/builder/stores/projectStore'
 import { ProjectListItem, CardContainer, StatsCard } from '@/apps/home/components'
 import { useNotification } from '@/shared/composables/useNotification'
 import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
@@ -193,8 +193,8 @@ const statsData = computed(() => [
 // Navigation configuration
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
-  { name: 'Projects', to: '/builder/projects', icon: 'fas fa-folder' },
-  { name: 'Templates', to: '/builder/templates', icon: 'fas fa-box' },
+  { name: 'Projects', to: '/products/builder/projects', icon: 'fas fa-folder' },
+  { name: 'Templates', to: '/products/builder/templates', icon: 'fas fa-box' },
   { name: 'Credits', to: '/payments', icon: 'fas fa-coins' }
 ]
 
@@ -203,12 +203,12 @@ const quickActions = [
   { 
     title: 'New Project', 
     icon: 'fas fa-plus', 
-    route: { name: 'builder-new-project' } 
+    route: { name: 'products-builder-new-project' } 
   },
   { 
     title: 'Browse Templates', 
     icon: 'fas fa-box', 
-    route: { name: 'builder-templates' } 
+    route: { name: 'products-builder-templates' } 
   },
   { 
     title: 'API Documentation', 
@@ -233,7 +233,7 @@ const resources = [
 const router = useRouter()
 const goToProject = (id) => {
   router.push({
-    name: 'builder-project-detail',
+    name: 'products-builder-project-detail',
     params: { id: String(id) }
   }).catch(err => {
     console.error('Navigation error:', err)

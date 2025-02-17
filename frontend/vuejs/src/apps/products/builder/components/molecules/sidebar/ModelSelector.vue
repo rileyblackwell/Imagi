@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { AIModel } from '@/apps/builder/types/builder'
+import type { AIModel } from '@/apps/products/builder/types/builder'
 
 const props = defineProps<{
   models: AIModel[]

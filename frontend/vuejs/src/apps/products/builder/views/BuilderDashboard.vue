@@ -58,11 +58,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { BuilderLayout } from '@/apps/builder/layouts'
-import { useProjectStore } from '@/apps/builder/stores/projectStore'
+import { BuilderLayout } from '@/apps/products/builder/layouts'
+import { useProjectStore } from '@/apps/products/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
-import type { Project } from '@/shared/types/project'
-import { NewProjectCard, ProjectList } from '../components/organisms'
+import type { Project } from '@/shared/types'
+import { NewProjectCard, ProjectList } from '@/apps/products/builder/components/organisms'
 
 const router = useRouter()
 const projectStore = useProjectStore()

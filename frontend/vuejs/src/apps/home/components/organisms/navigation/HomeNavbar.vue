@@ -138,4 +138,4 @@ export default defineComponent({
 .fa-chevron-down {
   transition: transform 0.2s ease-in-out;
 }
-</style> 
+</style>
