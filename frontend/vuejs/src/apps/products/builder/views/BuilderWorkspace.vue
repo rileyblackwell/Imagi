@@ -146,18 +146,14 @@ const {
   availableModels,
   selectedModel,
   isLoading,
-  error,
   files,
   selectedFile,
   fileContent,
   hasUnsavedChanges,
-  componentTree,
   loadProject,
-  loadFiles,
   selectFile,
   updateFile,
   createFile,
-  generateCode,
   loadAvailableModels,
   loadComponentTree,
   undoLastAction,
@@ -171,7 +167,6 @@ const prompt = ref('')
 const showNewFileForm = ref(false)
 const newFileName = ref('')
 const newFileType = ref<EditorLanguage | undefined>()
-const isFileExplorerExpanded = ref(true)
 const editorContent = ref('')
 
 // Type assertions for reactive refs
@@ -203,20 +198,6 @@ const handlePrompt = async () => {
   }
 }
 
-// Add return type for file icon mapping
-const getFileIcon = (type: EditorLanguage): string => {
-  const icons: Record<EditorLanguage, string> = {
-    html: 'fas fa-code',
-    css: 'fab fa-css3',
-    javascript: 'fab fa-js',
-    typescript: 'fab fa-ts',
-    python: 'fab fa-python',
-    markdown: 'fas fa-file-alt',
-    text: 'fas fa-file-alt'
-  }
-  return icons[type] || 'fas fa-file'
-}
-
 // Watch for file content changes
 watch(fileContent, (newContent: string) => {
   if (newContent !== editorContent.value) {
@@ -236,12 +217,6 @@ watch(() => route.params.projectId, async (newId) => {
     ])
   }
 }, { immediate: true })
-
-const onEditorChange = (content: string) => {
-  if (content !== fileContent.value) {
-    hasUnsavedChanges.value = true
-  }
-}
 
 const saveChanges = async () => {
   if (hasUnsavedChanges.value) {

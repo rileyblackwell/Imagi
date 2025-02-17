@@ -3,51 +3,73 @@
     storage-key="builderDashboardSidebarCollapsed"
     :navigation-items="navigationItems"
   >
-    <!-- Main Content with Gradient Background -->
-    <div class="min-h-screen bg-dark-900 relative">
+    <!-- Main Content with Refined Background -->
+    <div class="min-h-screen bg-dark-900 relative overflow-hidden">
       <!-- Enhanced Background Effects -->
-      <div class="absolute inset-0">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-dark-900 to-violet-500/5"></div>
-        <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-50"></div>
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Subtle gradient background -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-violet-500/5"></div>
+        
+        <!-- Centered glow effect -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[80px] opacity-30"></div>
+        
+        <!-- Grid pattern with reduced opacity -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.015] mix-blend-overlay"></div>
       </div>
 
-      <!-- Content -->
-      <div class="relative py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-          <!-- Welcome Section -->
-          <div class="text-center mb-12">
-            <div class="inline-block px-4 py-1 bg-dark-800/50 backdrop-blur-sm rounded-full border border-primary-500/50 mb-6">
-              <span class="text-sm font-medium text-gray-300">
-                <i class="fas fa-sparkles text-primary-500 mr-2"></i>
-                AI-Powered Project Builder
-              </span>
+      <!-- Content Container -->
+      <div class="relative">
+        <!-- Welcome Section with Refined Styling -->
+        <div class="pt-12 pb-8 px-4 sm:px-6 lg:px-8">
+          <div class="max-w-7xl mx-auto">
+            <div class="text-center space-y-6">
+              <!-- Enhanced Badge -->
+              <div class="inline-flex items-center px-4 py-1.5 bg-dark-800/70 backdrop-blur-sm rounded-full border border-primary-500/20 shadow-lg shadow-primary-500/5">
+                <i class="fas fa-sparkles text-primary-400 mr-2"></i>
+                <span class="text-sm font-medium bg-gradient-to-r from-gray-200 to-gray-100 bg-clip-text text-transparent">
+                  AI-Powered Project Builder
+                </span>
+              </div>
+              
+              <!-- Enhanced Title -->
+              <h1 class="text-4xl font-bold text-white">
+                Welcome to Your Dashboard
+              </h1>
+              
+              <!-- Enhanced Description -->
+              <p class="text-lg text-gray-300/90 max-w-2xl mx-auto leading-relaxed">
+                Create and manage your web projects using AI-powered tools. Start with a new project or continue working on existing ones.
+              </p>
             </div>
-            <h1 class="text-4xl font-bold text-white mb-4">Welcome to Your Dashboard</h1>
-            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
-              Create and manage your web projects using AI-powered tools. Start with a new project or continue working on existing ones.
-            </p>
           </div>
+        </div>
 
-          <!-- Project Cards Grid -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Remove the search input since it's now in ProjectList -->
-            
-            <!-- New Project Card -->
-            <NewProjectCard
-              v-model="newProjectName"
-              :is-loading="isCreating"
-              @submit="createProject"
-            />
+        <!-- Project Section with Enhanced Layout -->
+        <div class="px-4 sm:px-6 lg:px-8 pb-12">
+          <div class="max-w-7xl mx-auto">
+            <!-- Project Cards with Refined Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <!-- New Project Card -->
+              <div class="lg:sticky lg:top-8">
+                <ProjectCard
+                  v-model="newProjectName"
+                  :is-loading="isCreating"
+                  :is-new="true"
+                  @submit="createProject"
+                />
+              </div>
 
-            <!-- Existing Projects - Pass unfiltered projects -->
-            <ProjectList
-              :projects="projects"
-              :is-loading="isLoading"
-              :error="error"
-              @delete="confirmDelete"
-              @retry="retryFetch"
-            />
+              <!-- Existing Projects List -->
+              <div class="space-y-6">
+                <ProjectList
+                  :projects="projects"
+                  :is-loading="isLoading"
+                  :error="error"
+                  @delete="confirmDelete"
+                  @retry="retryFetch"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -62,7 +84,8 @@ import { BuilderLayout } from '@/apps/products/builder/layouts'
 import { useProjectStore } from '@/apps/products/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
 import type { Project } from '@/shared/types'
-import { NewProjectCard, ProjectList } from '@/apps/products/builder/components/organisms'
+import { ProjectList } from '@/apps/products/builder/components/organisms'
+import { ProjectCard } from '@/apps/products/builder/components/molecules'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -200,13 +223,14 @@ watch(() => projectStore.projects, (projects) => {
 </script>
 
 <style scoped>
+/* Enhanced scrollbar styling */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-700) transparent;
+  scrollbar-color: theme('colors.gray.700') transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -214,11 +238,11 @@ watch(() => projectStore.projects, (projects) => {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgb(var(--color-gray-700));
+  background-color: theme('colors.gray.700');
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(var(--color-gray-600));
+  background-color: theme('colors.gray.600');
 }
 </style>
