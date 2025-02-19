@@ -22,7 +22,6 @@ from ..services.oasis_service import (
     undo_last_action_service,
     process_chat_mode_input_service
 )
-from apps.Products.Oasis.ProjectManager.services import ProjectGenerationService
 from ..services.project_service import ProjectService
 from ..services.ai_service import AIService
 from ..services.file_service import FileService

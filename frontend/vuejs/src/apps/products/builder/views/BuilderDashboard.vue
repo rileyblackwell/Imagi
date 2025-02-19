@@ -44,8 +44,26 @@
           </div>
         </div>
 
+        <!-- Authentication Error Message -->
+        <div v-if="showAuthError" class="px-4 sm:px-6 lg:px-8 pb-12">
+          <div class="max-w-7xl mx-auto">
+            <div class="bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-500/20 p-8 text-center">
+              <i class="fas fa-lock text-4xl text-primary-400 mb-4"></i>
+              <h2 class="text-xl font-semibold text-white mb-2">Authentication Required</h2>
+              <p class="text-gray-300 mb-4">Please log in to view and manage your projects.</p>
+              <router-link 
+                to="/login" 
+                class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors"
+              >
+                <i class="fas fa-sign-in-alt mr-2"></i>
+                Log In
+              </router-link>
+            </div>
+          </div>
+        </div>
+
         <!-- Project Section with Enhanced Layout -->
-        <div class="px-4 sm:px-6 lg:px-8 pb-12">
+        <div v-else class="px-4 sm:px-6 lg:px-8 pb-12">
           <div class="max-w-7xl mx-auto">
             <!-- Project Cards with Refined Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -86,9 +104,11 @@ import { useNotification } from '@/shared/composables/useNotification'
 import type { Project } from '@/shared/types'
 import { ProjectList } from '@/apps/products/builder/components/organisms'
 import { ProjectCard } from '@/apps/products/builder/components/molecules'
+import { useAuthStore } from '@/apps/auth/store'
 
 const router = useRouter()
 const projectStore = useProjectStore()
+const authStore = useAuthStore()
 const { showNotification } = useNotification()
 
 // State with types - remove searchQuery since it's handled in ProjectList
@@ -98,7 +118,8 @@ const isCreating = ref(false)
 // Computed with types - remove filteredProjects
 const projects = computed(() => projectStore.projects)
 const isLoading = computed(() => projectStore.loading)
-const error = computed(() => projectStore.error || '') // Provide empty string default
+const error = computed(() => projectStore.error || '')
+const showAuthError = computed(() => !authStore.isAuthenticated && !isLoading.value)
 
 // Navigation items
 const navigationItems = [
@@ -207,7 +228,11 @@ const fetchProjects = async () => {
 
 // Lifecycle
 onMounted(async () => {
-  console.debug('Dashboard: Component mounted')
+  console.debug('Dashboard: Component mounted', {
+    isAuthenticated: authStore.isAuthenticated
+  })
+  
+  projectStore.setAuthenticated(authStore.isAuthenticated)
   await fetchProjects()
 })
 
@@ -220,6 +245,15 @@ watch(() => projectStore.loading, (isLoading) => {
 watch(() => projectStore.projects, (projects) => {
   console.debug('Projects updated:', projects.length)
 }, { deep: true })
+
+// Add watcher for authentication state
+watch(() => authStore.isAuthenticated, async (newValue) => {
+  console.debug('Authentication state changed:', newValue)
+  projectStore.setAuthenticated(newValue)
+  if (newValue) {
+    await fetchProjects()
+  }
+})
 </script>
 
 <style scoped>

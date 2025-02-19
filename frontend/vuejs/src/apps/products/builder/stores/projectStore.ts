@@ -18,6 +18,7 @@ interface ProjectState {
   availableModels: AIModel[]
   selectedModel: string | null
   isLoading: boolean
+  isAuthenticated: boolean
 }
 
 export const useProjectStore = defineStore('builder', {
@@ -33,7 +34,8 @@ export const useProjectStore = defineStore('builder', {
     stats: null,
     availableModels: [],
     selectedModel: null,
-    isLoading: false // Add for JS compatibility
+    isLoading: false,
+    isAuthenticated: false
   }),
 
   getters: {
@@ -57,7 +59,11 @@ export const useProjectStore = defineStore('builder', {
 
   actions: {
     updateProjects(projects: unknown[]) {
-      console.debug('Updating projects:', projects)
+      console.debug('Updating projects:', {
+        rawProjects: projects,
+        isArray: Array.isArray(projects)
+      })
+      
       if (!Array.isArray(projects)) {
         console.error('Invalid projects data:', projects)
         return
@@ -76,8 +82,25 @@ export const useProjectStore = defineStore('builder', {
       
       console.debug('Updated store state:', {
         projectCount: this.projects.length,
-        mapSize: this.projectsMap.size
+        mapSize: this.projectsMap.size,
+        projects: this.projects
       })
+    },
+
+    setAuthenticated(status: boolean) {
+      console.debug('Setting authenticated state:', {
+        oldState: this.isAuthenticated,
+        newState: status
+      })
+      
+      this.isAuthenticated = status
+      if (!status) {
+        // Clear projects when user is not authenticated
+        this.projects = []
+        this.projectsMap.clear()
+        this.initialized = false
+        this.lastFetch = null
+      }
     },
 
     async fetchProjects(force = false) {
@@ -87,8 +110,17 @@ export const useProjectStore = defineStore('builder', {
         force,
         initialized: this.initialized,
         lastFetch: this.lastFetch,
-        projectCount: this.projects.length
+        projectCount: this.projects.length,
+        isAuthenticated: this.isAuthenticated,
+        cacheValid: this.lastFetch && (Date.now() - this.lastFetch.getTime()) < CACHE_DURATION
       })
+
+      if (!this.isAuthenticated) {
+        console.debug('User not authenticated, skipping project fetch')
+        this.projects = []
+        this.projectsMap.clear()
+        return []
+      }
 
       if (
         !force && 
@@ -97,6 +129,7 @@ export const useProjectStore = defineStore('builder', {
         (Date.now() - this.lastFetch.getTime()) < CACHE_DURATION &&
         this.projects.length > 0
       ) {
+        console.debug('Using cached projects')
         return this.projects
       }
 
@@ -104,13 +137,30 @@ export const useProjectStore = defineStore('builder', {
       this.error = null
       
       try {
+        console.debug('Making API call to fetch projects')
         const projects = await BuilderAPI.getProjects()
+        console.debug('Received projects from API:', {
+          count: projects.length,
+          projects
+        })
+        
         this.updateProjects(projects)
         this.initialized = true
         this.lastFetch = new Date()
         return this.projects
       } catch (err: any) {
-        this.handleError(err, 'Failed to fetch projects')
+        console.error('Error in fetchProjects:', {
+          error: err,
+          status: err.response?.status,
+          data: err.response?.data
+        })
+        
+        if (err.response?.status === 401) {
+          this.setAuthenticated(false)
+          this.error = 'Please log in to view your projects'
+        } else {
+          this.handleError(err, 'Failed to fetch projects')
+        }
         throw err
       } finally {
         this.setLoading(false)
@@ -118,6 +168,10 @@ export const useProjectStore = defineStore('builder', {
     },
 
     async createProject(projectData: { name: string; description: string }) {
+      if (!this.isAuthenticated) {
+        throw new Error('You must be logged in to create projects')
+      }
+
       this.loading = true
       this.error = null
       
@@ -139,12 +193,18 @@ export const useProjectStore = defineStore('builder', {
         
         console.debug('Store updated with new project:', {
           projectId: normalizedProject.id,
-          totalProjects: this.projects.length
+          totalProjects: this.projects.length,
+          project: normalizedProject
         })
         
         return normalizedProject
       } catch (err: any) {
-        console.error('Project creation error in store:', err)
+        console.error('Project creation error in store:', {
+          error: err,
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data
+        })
         this.handleError(err, 'Failed to create project')
         throw err
       } finally {
@@ -153,25 +213,47 @@ export const useProjectStore = defineStore('builder', {
     },
 
     async deleteProject(projectId: string) {
-      this.loading = true;
-      this.error = null;
+      if (!this.isAuthenticated) {
+        throw new Error('You must be logged in to delete projects')
+      }
+
+      if (!projectId) {
+        throw new Error('Project ID is required')
+      }
+
+      this.loading = true
+      this.error = null
       
       try {
-        console.debug('Deleting project:', projectId);
-        await BuilderAPI.deleteProject(projectId);
+        console.debug('Deleting project:', {
+          projectId,
+          existingProject: this.projectsMap.get(String(projectId))
+        })
+
+        await BuilderAPI.deleteProject(projectId)
         
         // Remove from projects array
-        this.projects = this.projects.filter(p => String(p.id) !== String(projectId));
+        this.projects = this.projects.filter(p => String(p.id) !== String(projectId))
         // Remove from map
-        this.projectsMap.delete(String(projectId));
+        this.projectsMap.delete(String(projectId))
         
-        console.debug('Project deleted, remaining projects:', this.projects.length);
+        console.debug('Project deleted, store updated:', {
+          remainingProjects: this.projects.length,
+          deletedId: projectId
+        })
         
       } catch (err: any) {
-        this.handleError(err, 'Failed to delete project');
-        throw err;
+        console.error('Project deletion error in store:', {
+          error: err,
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+          projectId
+        })
+        this.handleError(err, 'Failed to delete project')
+        throw err
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 

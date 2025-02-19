@@ -27,7 +27,7 @@
           <!-- Enhanced Auth Container -->
           <div class="w-full max-w-[440px] mx-auto relative z-10">
             <div class="bg-dark-900/80 backdrop-blur-2xl rounded-2xl p-8 sm:p-10 
-                        border border-dark-700/50 shadow-xl
+                        border border-dark-700/50
                         hover:border-primary-300/30 transition-all duration-500 
                         shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]">
               <!-- Refined Logo and Title Section -->
@@ -47,10 +47,10 @@
                   </div>
                 </div>
                 <h2 class="text-2xl sm:text-3xl font-semibold text-white mb-3 tracking-tight">
-                  {{ $route.meta.title }}
+                  {{ route.meta.title }}
                 </h2>
                 <p class="text-base text-gray-300/90 font-medium">
-                  {{ $route.meta.subtitle }}
+                  {{ route.meta.subtitle }}
                 </p>
               </div>
 
@@ -70,12 +70,15 @@
 
 <script setup lang="ts">
 import { DefaultLayout } from '@/shared/layouts'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 </script>
 
 <style>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,

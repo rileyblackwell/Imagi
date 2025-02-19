@@ -8,7 +8,8 @@
           <ModelSelector
             :models="models"
             :model-id="modelId"
-            @update:model-id="$emit('update:modelId', $event)"
+            :mode="mode"
+            @update:model-id="handleModelChange"
           />
         </div>
         
@@ -17,7 +18,7 @@
           <ModeSelector
             :mode="mode"
             :modes="modes"
-            @update:mode="$emit('update:mode', $event)"
+            @update:mode="handleModeChange"
           />
         </div>
 
@@ -52,7 +53,7 @@
               :variant="mode === modeOption ? 'primary' : 'default'"
               :title="formatMode(modeOption)"
               size="sm"
-              @click="$emit('update:mode', modeOption)"
+              @click="handleModeChange(modeOption)"
             />
           </div>
 
@@ -157,6 +158,27 @@ const formatMode = (mode: BuilderMode): string => {
 const selectedModel = computed(() => 
   props.models.find(m => m.id === props.modelId)
 )
+
+// Add validation before emitting model changes
+const handleModelChange = (modelId: string) => {
+  const model = props.models.find(m => m.id === modelId)
+  if (model) {
+    emit('update:modelId', modelId)
+  }
+}
+
+// Add validation before emitting mode changes
+const handleModeChange = (mode: BuilderMode) => {
+  if (['chat', 'build'].includes(mode)) {
+    emit('update:mode', mode)
+  }
+}
+
+// Computed property for mode options with icons
+const modeOptions = computed(() => ([
+  { id: 'chat', icon: 'fa-comments', label: 'Chat Mode' },
+  { id: 'build', icon: 'fa-code', label: 'Build Mode' }
+]))
 </script>
 
 <style scoped>

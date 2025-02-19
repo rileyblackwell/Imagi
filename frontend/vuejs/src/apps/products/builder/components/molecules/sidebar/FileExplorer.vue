@@ -1,86 +1,79 @@
 <template>
-  <div class="p-4">
-    <div class="flex items-center justify-between mb-2">
-      <label class="text-sm font-medium text-gray-400">Files</label>
-      <button
-        @click="showNewForm = true"
-        class="text-xs text-primary-400 hover:text-primary-300"
-      >
-        <i class="fas fa-plus mr-1"></i>
-        New
-      </button>
-    </div>
-
-    <!-- File Select Dropdown -->
-    <div class="relative mb-4">
-      <select
-        v-model="selectedFilePath"
-        class="w-full appearance-none bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2.5 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 pr-10"
-        @change="handleFileSelect"
-      >
-        <option value="" disabled>Select File</option>
-        <option
-          v-for="file in files"
-          :key="file.path"
-          :value="file.path"
-          class="py-2"
+  <div class="flex-1 overflow-y-auto">
+    <!-- File Tree -->
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-medium text-gray-200">Project Files</h3>
+        <button
+          class="p-1 text-gray-400 hover:text-white transition-colors"
+          @click="showNewForm = true"
+          title="New File"
         >
-          {{ file.path }}
-        </option>
-      </select>
-      <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+          <i class="fas fa-plus" />
+        </button>
       </div>
-    </div>
 
-    <!-- New File Form -->
-    <div v-if="showNewForm" class="mt-4 p-4 bg-dark-800/50 rounded-lg">
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">File Name</label>
-          <input
-            v-model="newFileName"
-            type="text"
-            placeholder="Enter file name"
-            class="w-full bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">File Type</label>
-          <select
-            v-model="newFileType"
-            class="w-full appearance-none bg-dark-900 border border-dark-600 rounded-lg text-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20"
-          >
-            <option value="" disabled>Select Type</option>
-            <option
-              v-for="(label, type) in fileTypes"
-              :key="type"
-              :value="type"
+      <!-- New File Form -->
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-300 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <div v-if="showNewForm" class="mb-4">
+          <form @submit.prevent="handleCreateFile" class="space-y-3">
+            <input
+              v-model="newFileName"
+              type="text"
+              class="w-full bg-dark-900 border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
+              placeholder="File name"
+              required
+            />
+            <select
+              v-model="newFileType"
+              class="w-full bg-dark-900 border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
+              required
             >
-              {{ label }}
-            </option>
-          </select>
+              <option value="">Select type</option>
+              <option 
+                v-for="(label, type) in fileTypes"
+                :key="type"
+                :value="type"
+              >
+                {{ label }}
+              </option>
+            </select>
+            <div class="flex justify-end space-x-2">
+              <button
+                type="button"
+                class="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+                @click="cancelNewFile"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="px-3 py-1 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                :disabled="!isValidFileName"
+              >
+                Create
+              </button>
+            </div>
+          </form>
         </div>
-        <div class="flex justify-end space-x-2">
-          <button
-            @click="showNewForm = false"
-            class="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleCreateFile"
-            :disabled="!canCreateFile"
-            :class="[
-              'px-3 py-1.5 text-sm rounded-md transition-colors',
-              canCreateFile
-                ? 'bg-primary-500 text-white hover:bg-primary-600'
-                : 'bg-dark-700 text-gray-400 cursor-not-allowed'
-            ]"
-          >
-            Create
-          </button>
-        </div>
+      </Transition>
+
+      <!-- File List -->
+      <div class="space-y-1">
+        <FileTreeItem
+          v-for="file in sortedFiles"
+          :key="file.path"
+          :file="file"
+          :is-selected="selectedFile?.path === file.path"
+          @select="handleFileSelect"
+        />
       </div>
     </div>
   </div>
@@ -88,12 +81,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ProjectFile } from '@/apps/products/builder/types/builder'
+import type { ProjectFile } from '../../../types/builder'
+import FileTreeItem from '../../atoms/FileTreeItem.vue'
 
 const props = defineProps<{
   files: ProjectFile[]
   selectedFile: ProjectFile | null
-  showNewForm?: boolean
   fileTypes: Record<string, string>
 }>()
 
@@ -102,32 +95,66 @@ const emit = defineEmits<{
   (e: 'createFile', data: { name: string; type: string }): void
 }>()
 
-const selectedFilePath = ref(props.selectedFile?.path || '')
-const showNewForm = ref(props.showNewForm || false)
+// Local state
+const showNewForm = ref(false)
 const newFileName = ref('')
 const newFileType = ref('')
 
-const canCreateFile = computed(() => 
-  newFileName.value.trim() && newFileType.value
-)
+// Computed
+const sortedFiles = computed(() => {
+  return [...props.files].sort((a, b) => {
+    // Sort by directory first, then by name
+    const aIsDir = a.path.endsWith('/')
+    const bIsDir = b.path.endsWith('/')
+    if (aIsDir && !bIsDir) return -1
+    if (!aIsDir && bIsDir) return 1
+    return a.path.localeCompare(b.path)
+  })
+})
 
-const handleFileSelect = () => {
-  const file = props.files.find(f => f.path === selectedFilePath.value)
-  if (file) {
-    emit('selectFile', file)
-  }
+const isValidFileName = computed(() => {
+  return /^[\w-]+([./][\w-]+)*$/.test(newFileName.value) && newFileType.value
+})
+
+// Methods
+const handleFileSelect = (file: ProjectFile) => {
+  emit('selectFile', file)
 }
 
 const handleCreateFile = () => {
-  if (canCreateFile.value) {
-    emit('createFile', {
-      name: newFileName.value.trim(),
-      type: newFileType.value
-    })
-    // Reset form
-    newFileName.value = ''
-    newFileType.value = ''
-    showNewForm.value = false
-  }
+  if (!isValidFileName.value) return
+  
+  emit('createFile', {
+    name: newFileName.value,
+    type: newFileType.value
+  })
+  
+  cancelNewFile()
+}
+
+const cancelNewFile = () => {
+  showNewForm.value = false
+  newFileName.value = ''
+  newFileType.value = ''
 }
 </script>
+
+<style scoped>
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.dark.600') transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: theme('colors.dark.600');
+  border-radius: 3px;
+}
+</style>
