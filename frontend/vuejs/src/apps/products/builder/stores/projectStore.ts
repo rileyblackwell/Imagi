@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
 import { BuilderAPI } from '../services/api'
-import type { Project, ProjectData } from '../types/project'
+import type { Project } from '../types/project'
 import { normalizeProject } from '../types/project'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { AIModel } from '../types/builder'
@@ -201,8 +200,6 @@ export const useProjectStore = defineStore('builder', {
         }
       }
     },
-
-    // ... rest of existing actions from projectStore.js ...
 
     handleError(err: any, defaultMessage: string) {
       console.error(defaultMessage + ':', err)
