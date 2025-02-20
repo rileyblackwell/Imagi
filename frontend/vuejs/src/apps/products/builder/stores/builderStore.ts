@@ -9,6 +9,7 @@ interface BuilderState {
   availableModels: AIModel[]
   conversation: AIMessage[]
   selectedFile: ProjectFile | null
+  files: ProjectFile[]
   unsavedChanges: boolean
   isProcessing: boolean
   error: string | null
@@ -22,6 +23,7 @@ export const useBuilderStore = defineStore('builder', {
     availableModels: [],
     conversation: [],
     selectedFile: null,
+    files: [],
     unsavedChanges: false,
     isProcessing: false,
     error: null

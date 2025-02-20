@@ -7,11 +7,13 @@
       <template #sidebar-content="{ collapsed }">
         <BuilderSidebar
           :current-project="currentProject"
-          :models="store.availableModels"
-          :model-id="store.selectedModelId"
-          :selected-file="store.selectedFile"
-          :is-loading="store.isProcessing"
-          :mode="store.mode"
+          :models="store.availableModels || []"
+          :model-id="store.selectedModelId || null"
+          :selected-file="store.selectedFile || null"
+          :files="store.files || []"
+          :file-types="fileTypes"
+          :is-loading="store.isProcessing || false"
+          :mode="store.mode || 'build'"
           :current-editor-mode="currentEditorMode"
           :is-collapsed="collapsed"
           @update:model-id="handleModelSelect"
@@ -45,12 +47,12 @@
               leave-to-class="opacity-0"
             >
               <div v-if="store.mode === 'chat'" class="flex-1 overflow-auto">
-                <ChatConversation :messages="store.conversation" />
+                <ChatConversation :messages="store.conversation || []" />
               </div>
               <div v-else class="flex-1 flex overflow-hidden">
                 <BuilderEditor
                   v-model="editorContent"
-                  :file="store.selectedFile"
+                  :file="store.selectedFile || null"
                   :editor-mode="currentEditorMode"
                   @change="handleEditorChange"
                   @save="handleSave"
@@ -66,7 +68,7 @@
               <AIPromptInput
                 v-model="prompt"
                 :loading="store.isProcessing"
-                :mode="store.mode"
+                :mode="store.mode || 'build'"
                 :placeholder="promptPlaceholder"
                 @submit="handlePrompt"
               />
@@ -119,21 +121,42 @@ import { useChat } from '../composables/useChat'
 import { useAI } from '../composables/useAI'
 import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
+
+// Shared Components
 import ErrorBoundary from '@/shared/components/atoms/ErrorBoundary.vue'
 import AppShortcuts from '@/shared/components/atoms/AppShortcuts.vue'
 import SessionTimeoutWarning from '@/shared/components/molecules/SessionTimeoutWarning.vue'
+
+// Builder Components
+import { BuilderLayout } from '@/apps/products/builder/layouts'
 import LoadingOverlay from '../components/atoms/LoadingOverlay.vue'
+import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
+import BuilderEditor from '../components/organisms/editor/BuilderEditor.vue'
+import AIPromptInput from '../components/molecules/inputs/AIPromptInput.vue'
+import ChatConversation from '../components/organisms/chat/ChatConversation.vue'
+
+// Utils
 import { notify } from '@/shared/utils'
-import type { Project } from '../types'
-import type { EditorMode } from '../types/builder'
+import type { ProjectFile, EditorMode } from '../types/builder'
 
 const route = useRoute()
 const store = useBuilderStore()
 const projectStore = useProjectStore()
-const { generateCodeFromPrompt, updateFile, createFile } = useBuilder()
+const { generateCodeFromPrompt, createFile } = useBuilder()
 const { sendMessage } = useChat()
 const { loadModels } = useAI()
 const { autosaveContent, saveFile, checkUnsavedChanges } = useFileManager()
+
+// Constants
+const fileTypes = {
+  'vue': 'Vue Component',
+  'ts': 'TypeScript',
+  'js': 'JavaScript',
+  'css': 'CSS',
+  'html': 'HTML',
+  'json': 'JSON',
+  'md': 'Markdown'
+}
 
 // Local state
 const currentEditorMode = ref<EditorMode>('split')
@@ -169,19 +192,23 @@ const handleModelSelect = (modelId: string) => {
 }
 
 const handleModeSwitch = (mode: 'chat' | 'build') => {
-  store.setMode(mode)
+  if (store.mode !== mode) {
+    store.$patch({ mode })
+  }
 }
 
-const handleFileSelect = (file: any) => {
+const handleFileSelect = (file: ProjectFile) => {
   store.selectFile(file)
 }
 
-const handleFileCreate = async (name: string, type: string) => {
+const handleFileCreate = async (data: { name: string; type: string }) => {
   try {
-    await createFile(name, type)
+    const newFile = await createFile(data.name, data.type)
     notify({ type: 'success', message: 'File created successfully' })
+    return newFile
   } catch (err: any) {
     notify({ type: 'error', message: err.message || 'Failed to create file' })
+    throw err
   }
 }
 
@@ -252,10 +279,15 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 const checkSession = async () => {
   try {
     const response = await fetch('/api/v1/auth/session-status/')
+    if (!response.ok) {
+      throw new Error('Session check failed')
+    }
     const data = await response.json()
     sessionTimeoutWarning.value = data.expiresIn < 300 // Show warning when less than 5 minutes remain
   } catch (err) {
     console.error('Failed to check session status:', err)
+    // Don't show warning on error to avoid false positives
+    sessionTimeoutWarning.value = false
   }
 }
 
@@ -274,6 +306,10 @@ onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
   try {
     await loadModels()
+    // Initialize models and mode
+    if (!store.mode) {
+      store.setMode('build')
+    }
   } catch (err: any) {
     notify({ 
       type: 'error', 
