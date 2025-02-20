@@ -1,7 +1,20 @@
 import { defineStore } from 'pinia'
 
+interface ThemeState {
+  currentTheme: 'light' | 'dark' | 'system'
+  userPreferences: {
+    fontSize: 'sm' | 'base' | 'lg' | 'xl'
+    contrast: 'default' | 'high' | 'low'
+    reducedMotion: boolean
+    customColors: Record<string, string> | null
+  }
+  availableThemes: string[]
+  fontSizes: string[]
+  contrastModes: string[]
+}
+
 export const useThemeStore = defineStore('theme', {
-  state: () => ({
+  state: (): ThemeState => ({
     currentTheme: 'dark',
     userPreferences: {
       fontSize: 'base',
@@ -15,15 +28,15 @@ export const useThemeStore = defineStore('theme', {
   }),
 
   getters: {
-    isDarkMode: (state) => state.currentTheme === 'dark',
-    isLightMode: (state) => state.currentTheme === 'light',
-    isSystemTheme: (state) => state.currentTheme === 'system',
-    currentFontSize: (state) => state.userPreferences.fontSize,
-    currentContrast: (state) => state.userPreferences.contrast
+    isDarkMode: (state): boolean => state.currentTheme === 'dark',
+    isLightMode: (state): boolean => state.currentTheme === 'light',
+    isSystemTheme: (state): boolean => state.currentTheme === 'system',
+    currentFontSize: (state): string => state.userPreferences.fontSize,
+    currentContrast: (state): string => state.userPreferences.contrast
   },
 
   actions: {
-    setTheme(theme) {
+    setTheme(theme: 'light' | 'dark' | 'system') {
       if (this.availableThemes.includes(theme)) {
         this.currentTheme = theme
         localStorage.setItem('theme', theme)
@@ -34,15 +47,14 @@ export const useThemeStore = defineStore('theme', {
     initializeTheme() {
       const savedTheme = localStorage.getItem('theme')
       if (savedTheme && this.availableThemes.includes(savedTheme)) {
-        this.currentTheme = savedTheme
+        this.currentTheme = savedTheme as 'light' | 'dark' | 'system'
       } else {
-        // Default to system preference
         this.currentTheme = 'system'
       }
       this.applyTheme()
     },
 
-    setFontSize(size) {
+    setFontSize(size: 'sm' | 'base' | 'lg' | 'xl') {
       if (this.fontSizes.includes(size)) {
         this.userPreferences.fontSize = size
         localStorage.setItem('fontSize', size)
@@ -50,7 +62,7 @@ export const useThemeStore = defineStore('theme', {
       }
     },
 
-    setContrast(contrast) {
+    setContrast(contrast: 'default' | 'high' | 'low') {
       if (this.contrastModes.includes(contrast)) {
         this.userPreferences.contrast = contrast
         localStorage.setItem('contrast', contrast)
@@ -58,13 +70,13 @@ export const useThemeStore = defineStore('theme', {
       }
     },
 
-    setReducedMotion(enabled) {
+    setReducedMotion(enabled: boolean) {
       this.userPreferences.reducedMotion = enabled
       localStorage.setItem('reducedMotion', String(enabled))
       document.documentElement.setAttribute('data-reduced-motion', String(enabled))
     },
 
-    setCustomColors(colors) {
+    setCustomColors(colors: Record<string, string> | null) {
       this.userPreferences.customColors = colors
       if (colors) {
         localStorage.setItem('customColors', JSON.stringify(colors))
@@ -78,7 +90,6 @@ export const useThemeStore = defineStore('theme', {
     applyTheme() {
       document.documentElement.setAttribute('data-theme', this.currentTheme)
       if (this.currentTheme === 'system') {
-        // Remove explicit theme to follow system
         document.documentElement.removeAttribute('data-theme')
       }
     },
@@ -101,4 +112,4 @@ export const useThemeStore = defineStore('theme', {
       }
     }
   }
-}) 
+})

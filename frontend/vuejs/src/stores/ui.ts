@@ -1,7 +1,16 @@
 import { defineStore } from 'pinia'
 
+interface UIState {
+  isSidebarOpen: boolean
+  isMobileMenuOpen: boolean
+  activeModals: string[]
+  screenSize: 'mobile' | 'tablet' | 'desktop'
+  scrollPosition: number
+  isScrollLocked: boolean
+}
+
 export const useUIStore = defineStore('ui', {
-  state: () => ({
+  state: (): UIState => ({
     isSidebarOpen: true,
     isMobileMenuOpen: false,
     activeModals: [],
@@ -11,10 +20,10 @@ export const useUIStore = defineStore('ui', {
   }),
 
   getters: {
-    isMobile: (state) => state.screenSize === 'mobile',
-    isTablet: (state) => state.screenSize === 'tablet',
-    isDesktop: (state) => state.screenSize === 'desktop',
-    hasActiveModals: (state) => state.activeModals.length > 0
+    isMobile: (state): boolean => state.screenSize === 'mobile',
+    isTablet: (state): boolean => state.screenSize === 'tablet',
+    isDesktop: (state): boolean => state.screenSize === 'desktop',
+    hasActiveModals: (state): boolean => state.activeModals.length > 0
   },
 
   actions: {
@@ -26,22 +35,22 @@ export const useUIStore = defineStore('ui', {
       this.isMobileMenuOpen = !this.isMobileMenuOpen
     },
 
-    setScreenSize(size) {
+    setScreenSize(size: 'mobile' | 'tablet' | 'desktop') {
       this.screenSize = size
     },
 
-    updateScrollPosition(position) {
+    updateScrollPosition(position: number) {
       this.scrollPosition = position
     },
 
-    openModal(modalId) {
+    openModal(modalId: string) {
       if (!this.activeModals.includes(modalId)) {
         this.activeModals.push(modalId)
         this.isScrollLocked = true
       }
     },
 
-    closeModal(modalId) {
+    closeModal(modalId: string) {
       this.activeModals = this.activeModals.filter(id => id !== modalId)
       if (this.activeModals.length === 0) {
         this.isScrollLocked = false
@@ -53,4 +62,4 @@ export const useUIStore = defineStore('ui', {
       this.isScrollLocked = false
     }
   }
-}) 
+})
