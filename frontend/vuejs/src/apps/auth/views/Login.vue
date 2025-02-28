@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
@@ -63,8 +63,8 @@ import {
   AuthLinks 
 } from '@/apps/auth/components'
 
-
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const serverError = ref('')
 const hasAttemptedSubmit = ref(false)
@@ -86,8 +86,14 @@ const handleSubmit = async (values: LoginFormValues) => {
 
     await authStore.login(loginData)
     
-    // Once login is successful, redirect to home
-    await router.push({ path: '/' })
+    // Check if there's a redirect parameter to navigate to
+    const redirectPath = route.query.redirect as string
+    if (redirectPath) {
+      await router.push(redirectPath)
+    } else {
+      // Default redirect to home
+      await router.push({ path: '/' })
+    }
   } catch (error: unknown) {
     console.error('Login error:', error)
     serverError.value = formatAuthError(error, 'login')

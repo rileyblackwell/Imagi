@@ -81,7 +81,7 @@
 <script>
 import { computed, ref, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/apps/auth/store'
+import { useAuthStore } from '@/stores/auth'
 import { BaseNavbar } from '@/shared/components'
 import {
   IconButton,
@@ -106,7 +106,7 @@ export default defineComponent({
 
     const handleLogout = async () => {
       try {
-        await authStore.logout()
+        await authStore.clearAuth()
         router.push('/auth/login')
       } catch (error) {
         console.error('Logout failed:', error)
