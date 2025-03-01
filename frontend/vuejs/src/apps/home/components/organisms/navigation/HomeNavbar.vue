@@ -81,7 +81,7 @@
 <script>
 import { computed, ref, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/shared/stores/auth'
 import { BaseNavbar } from '@/shared/components'
 import {
   IconButton,

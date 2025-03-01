@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { AuthAPI } from '../services/api'
-import { useAuthStore as useGlobalAuthStore } from '@/stores/auth'
+import { useAuthStore as useGlobalAuthStore } from '@/shared/stores/auth'
 import type { LoginCredentials, AuthResponse, UserRegistrationData, User } from '../types/auth'
 
 /**

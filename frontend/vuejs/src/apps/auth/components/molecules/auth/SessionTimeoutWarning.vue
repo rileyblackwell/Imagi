@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/shared/stores/auth'
 
 const authStore = useAuthStore()
 const showWarning = ref(false)

@@ -80,4 +80,4 @@ export const useAppStore = defineStore('app', {
       this.breadcrumbs = breadcrumbs
     }
   }
-})
+}) 

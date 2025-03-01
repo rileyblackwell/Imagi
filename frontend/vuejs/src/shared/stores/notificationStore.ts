@@ -1,5 +1,12 @@
 import { defineStore } from 'pinia';
 
+interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+  duration: number;
+}
+
 let notificationCounter = 0;
 const generateId = () => {
   return `notification_${Date.now()}_${notificationCounter++}`;
@@ -7,11 +14,11 @@ const generateId = () => {
 
 export const useNotificationStore = defineStore('notifications', {
   state: () => ({
-    notifications: []
+    notifications: [] as Notification[]
   }),
 
   actions: {
-    add(notification) {
+    add(notification: Partial<Notification> & { message: string }) {
       const id = generateId();
       this.notifications.push({
         id,
@@ -28,7 +35,7 @@ export const useNotificationStore = defineStore('notifications', {
       return id;
     },
 
-    remove(id) {
+    remove(id: string) {
       const index = this.notifications.findIndex(n => n.id === id);
       if (index > -1) {
         this.notifications.splice(index, 1);
@@ -39,4 +46,4 @@ export const useNotificationStore = defineStore('notifications', {
       this.notifications = [];
     }
   }
-});
+}); 

@@ -365,7 +365,7 @@
 
 <script>
 import { defineComponent, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/shared/stores/auth'
 import { DefaultLayout } from '@/shared/layouts'
 import { 
   GradientText, 

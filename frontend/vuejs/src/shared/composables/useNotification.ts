@@ -1,4 +1,4 @@
-import { useNotificationStore } from '../stores/notificationStore'
+import { useNotificationStore } from '@/shared/stores/notificationStore'
 
 interface NotificationOptions {
   type: 'success' | 'error' | 'warning' | 'info';

@@ -62,4 +62,4 @@ export const useUIStore = defineStore('ui', {
       this.isScrollLocked = false
     }
   }
-})
+}) 

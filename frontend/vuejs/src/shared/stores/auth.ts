@@ -249,15 +249,19 @@ export const useAuthStore = defineStore('global-auth', () => {
 
   const refreshToken = async () => {
     try {
-      const response = await axios.post('/api/v1/auth/refresh/')
-      setAuthState(user.value, response.data.token)
-      return response.data
+      const response = await axios.post('/api/v1/auth/refresh-token/')
+      if (response.data.token) {
+        setAuthState(response.data.user, response.data.token)
+        return true
+      }
+      return false
     } catch (error) {
       console.error('Token refresh failed:', error)
-      throw error
+      return false
     }
   }
 
+  // Return store properties and methods
   return {
     // State
     token,
@@ -274,10 +278,10 @@ export const useAuthStore = defineStore('global-auth', () => {
     // Actions
     setAuthState,
     restoreAuthState,
-    clearAuth,
     initAuth,
-    validateAuth,
     checkAuth,
+    validateAuth,
+    clearAuth,
     refreshToken
   }
-})
+}) 
