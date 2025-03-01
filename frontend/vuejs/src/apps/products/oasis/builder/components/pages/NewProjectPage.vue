@@ -24,10 +24,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useProjectStore } from '@/apps/products/builder/stores/projectStore'
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
-import { BuilderPageTemplate } from '@/apps/products/builder/components/templates'
-import { ProjectForm } from '@/apps/products/builder/components/molecules'
+import { BuilderPageTemplate } from '@/apps/products/oasis/builder/components/templates'
+import { ProjectForm } from '@/apps/products/oasis/builder/components/molecules'
 import type { ProjectCreateData } from '@/shared/types/project'
 
 const router = useRouter()

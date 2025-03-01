@@ -104,17 +104,15 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import ModelSelector from '@/apps/products/builder/components/molecules/sidebar/ModelSelector.vue'
-import ModeSelector from '@/apps/products/builder/components/molecules/sidebar/ModeSelector.vue'
-import FileExplorer from '@/apps/products/builder/components/molecules/sidebar/FileExplorer.vue'
-import { ActionButton, IconButton } from '@/apps/products/builder/components'
+import ModelSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModelSelector.vue'
+import ModeSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModeSelector.vue'
+import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
+import { ActionButton, IconButton } from '@/apps/products/oasis/builder/components'
 import type { 
   AIModel, 
-  ProjectFile,
   BuilderMode,
-  ProjectType,
-  EditorMode 
-} from '@/apps/products/builder/types/builder'
+  ProjectFile
+} from '@/apps/products/oasis/builder/types/builder'
 
 // Local state
 const showNewFileFormValue = ref(false)

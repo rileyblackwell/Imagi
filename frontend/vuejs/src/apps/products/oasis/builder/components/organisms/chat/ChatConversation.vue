@@ -73,7 +73,7 @@
 <script setup lang="ts">
 import { marked } from 'marked'
 import DOMPurify from 'isomorphic-dompurify'
-import type { AIMessage } from '@/apps/products/builder/types'
+import type { AIMessage } from '@/apps/products/oasis/builder/types'
 
 const props = defineProps<{
   messages: AIMessage[]

@@ -52,7 +52,7 @@
             <!-- Projects & Activity Column -->
             <div class="lg:col-span-2 space-y-8">
               <!-- Recent Projects -->
-              <CardContainer title="Recent Projects" :showViewAll="true" viewAllLink="/builder/projects">
+              <CardContainer title="Recent Projects" :showViewAll="true" viewAllLink="/products/oasis/builder/projects">
                 <div class="space-y-4">
                   <ProjectListItem
                     v-for="project in recentProjects"
@@ -134,7 +134,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
-import { useProjectStore } from '@/apps/products/builder/stores/projectStore'
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import { ProjectListItem, CardContainer, StatsCard } from '@/apps/home/components'
 import { useNotification } from '@/shared/composables/useNotification'
 import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
@@ -193,8 +193,8 @@ const statsData = computed(() => [
 // Navigation configuration
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
-  { name: 'Projects', to: '/products/builder/projects', icon: 'fas fa-folder' },
-  { name: 'Templates', to: '/products/builder/templates', icon: 'fas fa-box' },
+  { name: 'Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder' },
+  { name: 'Templates', to: '/products/oasis/builder/templates', icon: 'fas fa-box' },
   { name: 'Credits', to: '/payments', icon: 'fas fa-coins' }
 ]
 

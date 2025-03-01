@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { ref, onErrorCaptured } from 'vue'
-import { useBuilderStore } from '@/apps/products/builder/stores/builderStore'
+import { useBuilderStore } from '@/apps/products/oasis/builder/stores/builderStore'
 
 const error = ref<Error | null>(null)
 const store = useBuilderStore()

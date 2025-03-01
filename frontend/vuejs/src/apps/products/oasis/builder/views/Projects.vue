@@ -108,8 +108,8 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { BuilderLayout } from '@/apps/products/builder/layouts';
-import { useProjectStore } from '@/apps/products/builder/stores/projectStore';
+import { BuilderLayout } from '@/apps/products/oasis/builder/layouts';
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore';
 import { useNotification } from '@/shared/composables/useNotification';
 
 const router = useRouter();
@@ -130,7 +130,7 @@ const navigationItems = [
   },
   {
     name: 'Projects',
-    to: '/builder/projects',
+    to: '/products/oasis/builder/projects',
     icon: 'fas fa-folder',
     exact: true
   }

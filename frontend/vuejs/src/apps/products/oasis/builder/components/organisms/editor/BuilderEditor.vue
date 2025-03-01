@@ -81,8 +81,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import PreviewPanel from '../preview/PreviewPanel.vue'
-import type { ProjectFile } from '@/apps/products/builder/types/builder'
-import type { EditorMode } from '@/apps/products/builder/types/builder'
+import type { ProjectFile } from '@/apps/products/oasis/builder/types/builder'
+import type { EditorMode } from '@/apps/products/oasis/builder/types/builder'
 
 const props = defineProps<{
   modelValue: string

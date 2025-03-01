@@ -98,12 +98,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { BuilderLayout } from '@/apps/products/builder/layouts'
-import { useProjectStore } from '@/apps/products/builder/stores/projectStore'
+import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
 import type { Project } from '@/shared/types'
-import { ProjectList } from '@/apps/products/builder/components/organisms'
-import { ProjectCard } from '@/apps/products/builder/components/molecules'
+import { ProjectList } from '@/apps/products/oasis/builder/components/organisms'
+import { ProjectCard } from '@/apps/products/oasis/builder/components/molecules'
 import { useAuthStore } from '@/apps/auth/store'
 
 const router = useRouter()
@@ -131,7 +131,7 @@ const navigationItems = [
   },
   {
     name: 'Projects',
-    to: '/builder/projects',
+    to: '/products/oasis/builder/projects',
     icon: 'fas fa-folder',
     exact: true
   }

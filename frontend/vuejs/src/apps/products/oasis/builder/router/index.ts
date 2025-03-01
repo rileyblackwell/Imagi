@@ -8,12 +8,12 @@ import {
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/builder',
+    path: '/products/oasis/builder',
     name: 'builder',
     redirect: { name: 'builder-dashboard' }
   },
   {
-    path: '/builder/dashboard',
+    path: '/products/oasis/builder/dashboard',
     name: 'builder-dashboard',
     component: BuilderDashboard,
     meta: {
@@ -22,7 +22,7 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/builder/projects',
+    path: '/products/oasis/builder/projects',
     name: 'builder-projects',
     component: Projects,
     meta: {
@@ -31,7 +31,7 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/builder/new',
+    path: '/products/oasis/builder/new',
     name: 'builder-new-project',
     component: NewProjectPage,
     meta: {
@@ -40,7 +40,7 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/builder/workspace/:projectId',
+    path: '/products/oasis/builder/workspace/:projectId',
     name: 'builder-workspace',
     component: BuilderWorkspace,
     props: route => ({ 

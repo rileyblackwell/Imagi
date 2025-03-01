@@ -96,7 +96,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import ProjectCard from '@/apps/products/builder/components/molecules/cards/ProjectCard.vue'
+import ProjectCard from '@/apps/products/oasis/builder/components/molecules/cards/ProjectCard.vue'
 import { ActionButton } from '@/shared/components/atoms'
 import type { Project } from '@/shared/types'
 

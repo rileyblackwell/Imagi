@@ -128,7 +128,7 @@ import AppShortcuts from '@/shared/components/atoms/AppShortcuts.vue'
 import SessionTimeoutWarning from '@/shared/components/molecules/SessionTimeoutWarning.vue'
 
 // Builder Components
-import { BuilderLayout } from '@/apps/products/builder/layouts'
+import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import LoadingOverlay from '../components/atoms/LoadingOverlay.vue'
 import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
 import BuilderEditor from '../components/organisms/editor/BuilderEditor.vue'

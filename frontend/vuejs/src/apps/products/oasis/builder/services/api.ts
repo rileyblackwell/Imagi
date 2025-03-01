@@ -263,7 +263,7 @@ export const BuilderAPI = {
   // File management methods
   async getProjectFiles(projectId: string): Promise<ProjectFile[]> {
     try {
-      const response = await api.get(`/builder/projects/${projectId}/files/`)
+      const response = await api.get(`/products/oasis/builder/projects/${projectId}/files/`)
       return response.data.data || response.data || []
     } catch (error) {
       throw handleAPIError(error)
@@ -272,7 +272,7 @@ export const BuilderAPI = {
 
   async getFileContent(projectId: string, filePath: string): Promise<{ content: string }> {
     try {
-      const response = await api.get(`/builder/projects/${projectId}/files/${filePath}/content/`)
+      const response = await api.get(`/products/oasis/builder/projects/${projectId}/files/${filePath}/content/`)
       return response.data.data || response.data || { content: '' }
     } catch (error) {
       console.error('Error fetching file content:', error)
@@ -282,7 +282,7 @@ export const BuilderAPI = {
 
   async updateFileContent(projectId: string, filePath: string, content: string): Promise<void> {
     try {
-      await api.put(`/builder/projects/${projectId}/files/${filePath}/content/`, { content })
+      await api.put(`/products/oasis/builder/projects/${projectId}/files/${filePath}/content/`, { content })
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -290,7 +290,7 @@ export const BuilderAPI = {
 
   async createFile(projectId: string, fileData: { name: string, type: string, content: string }): Promise<ProjectFile> {
     try {
-      const response = await api.post(`/builder/projects/${projectId}/files/`, fileData)
+      const response = await api.post(`/products/oasis/builder/projects/${projectId}/files/`, fileData)
       return response.data.data || response.data
     } catch (error) {
       console.error('Error creating file:', error)
@@ -331,7 +331,7 @@ export const BuilderAPI = {
     }
 
     try {
-      const response = await api.post(`/builder/projects/${projectId}/generate/`, {
+      const response = await api.post(`/products/oasis/builder/projects/${projectId}/generate/`, {
         ...data,
         model_id: data.model
       })
@@ -376,7 +376,7 @@ export const BuilderAPI = {
 
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      const response = await api.get('/builder/models/')
+      const response = await api.get('/products/oasis/builder/models/')
       return response.data.models || response.data || AI_MODELS
     } catch (error) {
       console.warn('Failed to fetch AI models from API, using defaults:', error)
