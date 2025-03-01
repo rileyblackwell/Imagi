@@ -10,6 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.authentication import TokenAuthentication
 
 # Django and Allauth
 from django.contrib.auth import get_user_model
@@ -52,6 +53,7 @@ class CSRFTokenView(APIView):
 
 class InitView(APIView):
     """Initialize session and CSRF token."""
+    authentication_classes = [TokenAuthentication]
     permission_classes = [AllowAny]
     
     @method_decorator(ensure_csrf_cookie)
@@ -112,6 +114,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     """User logout endpoint."""
+    authentication_classes = [TokenAuthentication]
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
@@ -130,6 +133,7 @@ class LogoutView(APIView):
 
 class UserDetailView(generics.RetrieveUpdateAPIView):
     """Get or update user details."""
+    authentication_classes = [TokenAuthentication]
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated,)
 

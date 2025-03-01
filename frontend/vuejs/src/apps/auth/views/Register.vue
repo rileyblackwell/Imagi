@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/index'
@@ -134,14 +134,23 @@ defineOptions({
   name: 'Register'
 })
 
+// Clear any auth errors when component is unmounted
+onBeforeUnmount(() => {
+  authStore.clearError()
+})
+
 const handleSubmit = async (values: RegisterFormValues) => {
   hasAttemptedSubmit.value = true
   serverError.value = ''
 
   try {
     if (!values.username || !values.email || values.agreeToTerms === undefined) {
-      throw new Error('All fields are required')
+      serverError.value = 'All fields are required'
+      return
     }
+
+    // We'll rely on the form validation for password requirements
+    // instead of checking passwordRequirements.value.isValid()
 
     const registerData = {
       username: values.username.trim(),

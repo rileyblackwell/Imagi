@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/index'
@@ -74,6 +74,11 @@ const formData = reactive({
   password: ''
 })
 
+// Clear any auth errors when component is unmounted
+onBeforeUnmount(() => {
+  authStore.clearError()
+})
+
 const handleSubmit = async (values: LoginFormValues) => {
   hasAttemptedSubmit.value = true
   serverError.value = ''
@@ -82,6 +87,12 @@ const handleSubmit = async (values: LoginFormValues) => {
     const loginData = {
       username: values.username?.trim() || formData.username.trim(),
       password: values.password?.trim() || formData.password.trim()
+    }
+
+    // Validate input
+    if (!loginData.username || !loginData.password) {
+      serverError.value = 'Username and password are required'
+      return
     }
 
     await authStore.login(loginData)

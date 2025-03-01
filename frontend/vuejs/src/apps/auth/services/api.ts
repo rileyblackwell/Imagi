@@ -46,9 +46,20 @@ const setupAxiosInterceptors = () => {
       }
       
       // Add Authorization header if token exists
-      const token = localStorage.getItem('token')
-      if (token) {
-        headers.set('Authorization', `Token ${token}`)
+      const tokenData = localStorage.getItem('token')
+      if (tokenData) {
+        try {
+          const parsedToken = JSON.parse(tokenData)
+          if (parsedToken?.value && Date.now() < parsedToken.expires) {
+            headers.set('Authorization', `Token ${parsedToken.value}`)
+          } else {
+            // Token expired, remove it
+            localStorage.removeItem('token')
+          }
+        } catch (e) {
+          console.error('Failed to parse token data:', e)
+          localStorage.removeItem('token')
+        }
       }
       
       config.headers = headers
