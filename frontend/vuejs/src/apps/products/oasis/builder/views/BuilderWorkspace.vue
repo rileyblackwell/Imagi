@@ -125,7 +125,7 @@ import { useProjectStore } from '../stores/projectStore'
 // Shared Components
 import ErrorBoundary from '../components/atoms/ErrorBoundary.vue'
 import AppShortcuts from '@/shared/components/molecules/feedback/AppShortcuts.vue'
-import SessionTimeoutWarning from '@/shared/components/molecules/SessionTimeoutWarning.vue'
+import { SessionTimeoutWarning } from '@/apps/auth/components/molecules'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'

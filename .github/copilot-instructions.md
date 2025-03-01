@@ -24,30 +24,8 @@
 
 ## Project Structure
 ### Root Directory
-```
-Imagi/
-├── frontend/vuejs/     # Vue.js application
-├── backend/django/     # Django application
-├── docs/              # Documentation
-└── scripts/           # Deployment/utility scripts
-```
+frontend/vuejs/ ├── src/ │ ├── apps/ # Feature-specific applications │ │ ├── home/ # Landing pages and public content │ │ ├── auth/ # Authentication and user management │ │ ├── payments/ # Subscription and billing management │ │ └── builder/ # AI application builder │ └── shared/ # Shared resources │ ├── components/ # Reusable components │ ├── layouts/ # Layout templates │ ├── stores/ # Shared state management │ ├── utils/ # Utility functions │ └── composables/# Vue composables
 
-### Frontend Structure
-```
-frontend/vuejs/
-├── src/
-│   ├── apps/           # Feature-specific applications
-│   │   ├── home/       # Landing pages and public content
-│   │   ├── auth/       # Authentication and user management
-│   │   ├── payments/   # Subscription and billing management
-│   │   └── builder/    # AI application builder
-│   └── shared/         # Shared resources
-│       ├── components/ # Reusable components
-│       ├── layouts/    # Layout templates
-│       ├── stores/     # Shared state management
-│       ├── utils/      # Utility functions
-│       └── composables/# Vue composables
-```
 
 Each app module should be self-contained with its own:
 - Components
@@ -72,51 +50,22 @@ Each frontend app should follow atomic design principles:
 - **Templates**: Page-level components and layouts
 - **Pages**: Specific instances of templates
 
-Component directory structure:
-```
-app/
-└── components/
-    ├── atoms/           # Basic building blocks
-    │   ├── buttons/
-    │   ├── inputs/
-    │   ├── text/
-    │   └── icons/
-    ├── molecules/       # Simple combinations
-    │   ├── cards/
-    │   ├── forms/
-    │   └── navigation/
-    ├── organisms/       # Complex combinations
-    │   ├── sections/
-    │   ├── grids/
-    │   └── forms/
-    └── templates/       # Page-level layouts
-        └── layout/
-```
+**Guidelines:**
+- Keep each component in its designated category (`atoms/`, `molecules/`, etc.).
+- Maintain a clear separation of concerns—higher-level components compose lower-level components.
+- Prefer the **Composition API** over the Options API for reusable logic.
+- Use **TypeScript** where applicable for better type safety.
+- **All Vue.js imports should use the `@` symbol to alias the `src` directory**.
+
+### Component directory structure:
+
+app/ └── components/ ├── atoms/ # Basic building blocks │ ├── buttons/ │ ├── inputs/ │ ├── text/ │ └── icons/ ├── molecules/ # Simple combinations │ ├── cards/ │ ├── forms/ │ └── navigation/ ├── organisms/ # Complex combinations │ ├── sections/ │ ├── grids/ │ └── forms/ └── templates/ # Page-level layouts └── layout/
+
 
 ### Shared Directory Structure
-```
-shared/              # Global shared resources
-├── components/      # Reusable UI components (follows atomic design)
-│   ├── atoms/      # Base components (buttons, inputs, icons)
-│   ├── molecules/  # Combined atoms (form fields, cards)
-│   ├── organisms/  # Complex components (forms, headers)
-│   └── templates/  # Layout templates
-├── layouts/        # Base page layouts (Base, Auth, Dashboard)
-├── stores/         # Global state management
-├── utils/         # Helper functions and constants
-├── composables/   # Reusable Vue.js logic
-└── types/        # TypeScript definitions
-```
 
-### Shared Component Guidelines
-- **Atoms**: Pure, prop-driven components
-- **Molecules**: Composable combinations of atoms
-- **Organisms**: Self-contained complex components
-- **Templates**: Flexible, configurable layouts
-- **Stores**: Global state (auth, theme, notifications)
-- **Utils**: Pure functions, well-documented and tested
-- **Composables**: Reusable composition API patterns
-- **Types**: Strict TypeScript definitions
+shared/ # Global shared resources ├── components/ # Reusable UI components (follows atomic design) │ ├── atoms/ # Base components (buttons, inputs, icons) │ ├── molecules/ # Combined atoms (form fields, cards) │ ├── organisms/ # Complex components (forms, headers) │ └── templates/ # Layout templates ├── layouts/ # Base page layouts (Base, Auth, Dashboard) ├── stores/ # Global state management ├── utils/ # Helper functions and constants ├── composables/ # Reusable Vue.js logic └── types/ # TypeScript definitions
+
 
 ### Backend Apps (Django)
 - **auth**: Custom authentication and authorization

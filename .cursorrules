@@ -78,6 +78,7 @@ Each app module should be self-contained with:
 - Maintain a clear separation of concerns—higher-level components compose lower-level components.
 - Prefer the **Composition API** over the Options API for reusable logic.
 - Use **TypeScript** where applicable for better type safety.
+- **All Vue.js imports should use the `@` symbol to alias the `src` directory**.
 
 ### Django API Design
 - Use **Django REST Framework (DRF)** for API endpoints.
@@ -138,5 +139,3 @@ Each app module should be self-contained with:
 
 ## Final Notes
 This **`.cursorrules`** file ensures **Imagi Oasis** follows a structured, maintainable, and scalable approach for AI-powered web app generation. Follow these rules to ensure consistency across frontend and backend development.
-
-
