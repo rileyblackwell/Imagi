@@ -123,8 +123,8 @@ import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
 
 // Shared Components
-import ErrorBoundary from '@/shared/components/atoms/ErrorBoundary.vue'
-import AppShortcuts from '@/shared/components/atoms/AppShortcuts.vue'
+import ErrorBoundary from '../components/atoms/ErrorBoundary.vue'
+import AppShortcuts from '@/shared/components/molecules/feedback/AppShortcuts.vue'
 import SessionTimeoutWarning from '@/shared/components/molecules/SessionTimeoutWarning.vue'
 
 // Builder Components
