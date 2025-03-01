@@ -51,14 +51,6 @@ export interface CodeGenerationResponse {
 export type EditorMode = 'split' | 'editor' | 'preview';
 export type EditorLanguage = 'javascript' | 'typescript' | 'python' | 'vue' | 'html' | 'css';
 
-export interface AIModel {
-  id: string;
-  name: string;
-  provider: 'openai' | 'anthropic';
-  capabilities: string[];
-  maxTokens: number;
-}
-
 export interface ProjectFile {
   id: string;
   name: string;

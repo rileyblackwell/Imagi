@@ -1,10 +1,28 @@
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col bg-dark-900 border-r border-dark-700">
     <!-- Content that adapts to collapsed state -->
     <div class="flex-1 overflow-y-auto overflow-x-hidden relative">
       <template v-if="!isCollapsed">
+        <!-- Project Info -->
+        <div class="p-4 border-b border-dark-700">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400">
+              <i class="fas fa-project-diagram"></i>
+            </div>
+            <div class="truncate">
+              <h3 class="font-medium text-gray-200 truncate">
+                {{ currentProject?.name || 'Untitled Project' }}
+              </h3>
+              <p class="text-xs text-gray-500">
+                {{ currentProject?.description || 'No description' }}
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <!-- AI Model Selection -->
-        <div class="border-b border-dark-700">
+        <div class="p-4 border-b border-dark-700">
+          <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">AI Model</h4>
           <ModelSelector
             :models="models"
             :model-id="modelId"
@@ -14,7 +32,8 @@
         </div>
         
         <!-- Mode Toggle -->
-        <div class="border-b border-dark-700">
+        <div class="p-4 border-b border-dark-700">
+          <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Mode</h4>
           <ModeSelector
             :mode="mode"
             :modes="modes"
@@ -23,19 +42,27 @@
         </div>
 
         <!-- File Explorer -->
-        <FileExplorer
-          :files="files"
-          :selected-file="selectedFile"
-          :show-new-form="showNewFileFormValue"
-          :file-types="fileTypes"
-          @select-file="$emit('selectFile', $event)"
-          @create-file="$emit('createFile', $event)"
-        />
+        <div class="p-4">
+          <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Project Files</h4>
+          <FileExplorer
+            :files="files"
+            :selected-file="selectedFile"
+            :show-new-form="showNewFileFormValue"
+            :file-types="fileTypes"
+            @select-file="$emit('selectFile', $event)"
+            @create-file="$emit('createFile', $event)"
+          />
+        </div>
       </template>
 
       <!-- Collapsed State Icons -->
       <template v-else>
-        <div class="py-4 flex flex-col items-center space-y-4">
+        <div class="py-4 flex flex-col items-center space-y-6">
+          <!-- Project Icon -->
+          <div class="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400">
+            <i class="fas fa-project-diagram"></i>
+          </div>
+          
           <!-- Model Icon -->
           <IconButton
             icon-class="fa-robot"
@@ -56,6 +83,14 @@
               @click="handleModeChange(modeOption)"
             />
           </div>
+
+          <!-- File Icon -->
+          <IconButton
+            icon-class="fa-folder"
+            :variant="selectedFile ? 'primary' : 'default'"
+            title="Project Files"
+            size="sm"
+          />
 
           <!-- Action Icons -->
           <div class="space-y-2">
@@ -111,7 +146,9 @@ import { ActionButton, IconButton } from '@/apps/products/oasis/builder/componen
 import type { 
   AIModel, 
   BuilderMode,
-  ProjectFile
+  ProjectFile,
+  EditorMode,
+  ProjectType
 } from '@/apps/products/oasis/builder/types/builder'
 
 // Local state
@@ -180,21 +217,6 @@ const modeOptions = computed(() => ([
 </script>
 
 <style scoped>
-.w-80 {
-  width: 20rem;
-}
-
-.w-14 {
-  width: 3.5rem;
-}
-
-/* Smooth width transition */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
-}
-
 /* Hide scrollbar but allow scrolling */
 .overflow-y-auto {
   scrollbar-width: none; /* Firefox */
@@ -203,5 +225,12 @@ const modeOptions = computed(() => ([
 
 .overflow-y-auto::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
 </style>

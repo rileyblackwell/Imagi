@@ -376,7 +376,7 @@ export const BuilderAPI = {
 
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      const response = await api.get('/products/oasis/builder/models/')
+      const response = await api.get('/builder/models/')
       return response.data.models || response.data || AI_MODELS
     } catch (error) {
       console.warn('Failed to fetch AI models from API, using defaults:', error)

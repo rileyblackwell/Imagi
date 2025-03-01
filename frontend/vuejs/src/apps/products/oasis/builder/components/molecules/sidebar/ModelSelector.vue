@@ -1,9 +1,6 @@
 <template>
-  <div class="p-4">
-    <label class="block text-sm font-medium text-gray-200 mb-2">
-      AI Model
-    </label>
-    
+  <div>
+    <!-- Model Selection Cards -->
     <div class="grid gap-3">
       <button
         v-for="model in availableModels"
@@ -17,19 +14,31 @@
         @click="handleModelSelect(model.id)"
       >
         <div class="flex items-center space-x-3">
-          <div class="flex flex-col">
-            <span class="font-medium">{{ model.name }}</span>
-            <span class="text-sm text-gray-400">
-              {{ modelConfig(model).capabilities.join(' • ') }}
+          <!-- Model Icon -->
+          <div 
+            class="w-8 h-8 rounded-full flex items-center justify-center"
+            :class="[
+              getModelTypeClass(model)
+            ]"
+          >
+            <i class="fas" :class="getModelTypeIcon(model)"></i>
+          </div>
+          
+          <!-- Model Info -->
+          <div class="flex flex-col text-left">
+            <span class="font-medium text-gray-200">{{ model.name }}</span>
+            <span class="text-xs text-gray-400">
+              {{ model.description }}
             </span>
           </div>
         </div>
         
+        <!-- Selected Indicator -->
         <div v-if="modelId === model.id" class="h-2 w-2 rounded-full bg-primary-500" />
       </button>
     </div>
 
-    <!-- Model Info -->
+    <!-- Model Details -->
     <TransitionGroup 
       enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="opacity-0 -translate-y-2"
@@ -42,13 +51,13 @@
         v-if="selectedModelConfig" 
         class="mt-3 p-3 bg-dark-800 rounded-lg text-sm"
       >
-        <div class="flex justify-between text-gray-400">
-          <span>Max tokens:</span>
-          <span>{{ selectedModelConfig.maxTokens.toLocaleString() }}</span>
+        <div class="flex justify-between text-gray-400 mb-1">
+          <span>Context window:</span>
+          <span>{{ formatNumber(selectedModelConfig.contextWindow) }} tokens</span>
         </div>
         <div class="flex justify-between text-gray-400">
-          <span>Requests/min:</span>
-          <span>{{ selectedModelConfig.rateLimits.requestsPerMinute }}</span>
+          <span>Capabilities:</span>
+          <span class="text-right">{{ formatCapabilities(selectedModelConfig.capabilities) }}</span>
         </div>
       </div>
 
@@ -56,7 +65,8 @@
         v-if="rateLimitWarning"
         class="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-400 text-xs"
       >
-        Rate limit warning: {{ rateLimitWarning }}
+        <i class="fas fa-exclamation-triangle mr-1"></i>
+        {{ rateLimitWarning }}
       </div>
     </TransitionGroup>
   </div>
@@ -106,4 +116,54 @@ const handleModelSelect = async (modelId: string) => {
     rateLimitWarning.value = err instanceof Error ? err.message : 'Rate limit exceeded'
   }
 }
+
+// Utility functions
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(0) + 'K'
+  }
+  return num.toString()
+}
+
+const formatCapabilities = (capabilities: string[]): string => {
+  return capabilities
+    .map(cap => cap.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
+    .join(', ')
+}
+
+const getModelTypeClass = (model: AIModel): string => {
+  // Use type assertion to avoid type errors
+  const modelType = (model as any).type || (model as any).provider || 'unknown';
+  
+  if (modelType === 'anthropic') {
+    return 'bg-blue-500/20 text-blue-400';
+  } else if (modelType === 'openai') {
+    return 'bg-green-500/20 text-green-400';
+  }
+  
+  return 'bg-gray-500/20 text-gray-400';
+}
+
+const getModelTypeIcon = (model: AIModel): string => {
+  // Use type assertion to avoid type errors
+  const modelType = (model as any).type || (model as any).provider || 'unknown';
+  
+  if (modelType === 'anthropic') {
+    return 'fa-robot';
+  } else if (modelType === 'openai') {
+    return 'fa-brain';
+  }
+  
+  return 'fa-question';
+}
 </script>
+
+<style scoped>
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+</style>

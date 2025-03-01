@@ -12,7 +12,8 @@ export interface ProjectType {
 export interface AIModel {
   id: string
   name: string
-  provider: 'openai' | 'anthropic'
+  provider?: 'openai' | 'anthropic'
+  type?: 'openai' | 'anthropic'
   description: string
   capabilities: string[]
   maxTokens: number
@@ -42,30 +43,33 @@ export type EditorMode = 'split' | 'editor' | 'preview'
 
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'claude-3.5-sonnet',
+    id: 'claude-3-5-sonnet-20241022',
     name: 'Claude 3.5 Sonnet',
     provider: 'anthropic',
+    type: 'anthropic',
     description: 'Anthropic\'s most capable model, best for complex tasks and creative work.',
     capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 100000,
+    maxTokens: 200000,
     costPerRequest: 0.03
   },
   {
-    id: 'gpt-4',
-    name: 'GPT-4',
+    id: 'gpt-4o',
+    name: 'GPT-4o',
     provider: 'openai',
+    type: 'openai',
     description: 'OpenAI\'s most capable model, excellent for complex reasoning and creative tasks.',
     capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 8192,
+    maxTokens: 128000,
     costPerRequest: 0.04
   },
   {
-    id: 'gpt-4-mini',
-    name: 'GPT-4 Mini',
+    id: 'gpt-4o-mini',
+    name: 'GPT-4o Mini',
     provider: 'openai',
-    description: 'A more cost-effective version of GPT-4, good for simpler tasks.',
-    capabilities: ['chat', 'analysis'],
-    maxTokens: 4096,
+    type: 'openai',
+    description: 'A more cost-effective version of GPT-4o, good for simpler tasks.',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 128000,
     costPerRequest: 0.01
   }
 ]

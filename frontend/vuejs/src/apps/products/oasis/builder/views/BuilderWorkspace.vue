@@ -13,7 +13,7 @@
           :files="store.files || []"
           :file-types="fileTypes"
           :is-loading="store.isProcessing || false"
-          :mode="store.mode || 'build'"
+          :mode="store.mode || 'chat'"
           :current-editor-mode="currentEditorMode"
           :is-collapsed="collapsed"
           @update:model-id="handleModelSelect"
@@ -27,7 +27,7 @@
 
       <template #default="{ collapsed }">
         <!-- Main Content -->
-        <div class="relative h-full">
+        <div class="relative h-full bg-dark-950">
           <!-- Loading Overlay -->
           <LoadingOverlay 
             v-if="store.isProcessing"
@@ -47,16 +47,30 @@
               leave-to-class="opacity-0"
             >
               <div v-if="store.mode === 'chat'" class="flex-1 overflow-auto">
-                <ChatConversation :messages="store.conversation || []" />
-              </div>
-              <div v-else class="flex-1 flex overflow-hidden">
-                <BuilderEditor
-                  v-model="editorContent"
-                  :file="store.selectedFile || null"
-                  :editor-mode="currentEditorMode"
-                  @change="handleEditorChange"
-                  @save="handleSave"
+                <ChatConversation 
+                  :messages="store.conversation || []" 
+                  @use-example="handleExamplePrompt"
                 />
+              </div>
+              <div v-else class="flex-1 flex flex-col overflow-hidden">
+                <!-- Show chat feed at the top in build mode -->
+                <div class="flex-1 overflow-auto">
+                  <ChatConversation 
+                    :messages="store.conversation || []" 
+                    @use-example="handleExamplePrompt"
+                  />
+                </div>
+                
+                <!-- Show editor below chat feed when a file is selected -->
+                <div v-if="store.selectedFile" class="h-1/2 border-t border-dark-800">
+                  <BuilderEditor
+                    v-model="editorContent"
+                    :file="store.selectedFile"
+                    :editor-mode="currentEditorMode"
+                    @change="handleEditorChange"
+                    @save="handleSave"
+                  />
+                </div>
               </div>
             </Transition>
 
@@ -68,7 +82,7 @@
               <AIPromptInput
                 v-model="prompt"
                 :loading="store.isProcessing"
-                :mode="store.mode || 'build'"
+                :mode="store.mode || 'chat'"
                 :placeholder="promptPlaceholder"
                 @submit="handlePrompt"
               />
@@ -165,9 +179,15 @@ const editorContent = ref('')
 const sidebarCollapsed = ref(false)
 const sessionTimeoutWarning = ref(false)
 const sessionCheckInterval = ref<number>()
+const sessionCheckEnabled = ref(true)
+const sessionCheckFailCount = ref(0)
+const MAX_SESSION_CHECK_FAILS = 3
 
 // Computed properties
-const currentProject = computed(() => projectStore.currentProject)
+const currentProject = computed(() => {
+  // Ensure we always return a valid value (object or null, never undefined)
+  return projectStore.currentProject || null
+})
 
 const loadingMessage = computed(() => {
   if (store.mode === 'chat') {
@@ -245,6 +265,18 @@ const handlePrompt = async () => {
   }
 }
 
+// Handle example prompt selection
+const handleExamplePrompt = (example: string) => {
+  prompt.value = example
+  // Focus the input field
+  setTimeout(() => {
+    const inputElement = document.getElementById('user-input')
+    if (inputElement) {
+      inputElement.focus()
+    }
+  }, 100)
+}
+
 // Watch for editor content changes
 const handleEditorChange = (content: string) => {
   if (store.selectedFile) {
@@ -277,27 +309,95 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 
 // Session management
 const checkSession = async () => {
+  if (!sessionCheckEnabled.value) return;
+  
   try {
     const response = await fetch('/api/v1/auth/session-status/')
     if (!response.ok) {
       throw new Error('Session check failed')
     }
+    
+    // Check if the response is JSON
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn('Session status endpoint returned non-JSON response')
+      sessionCheckFailCount.value++;
+      
+      // Disable session checks after multiple failures
+      if (sessionCheckFailCount.value >= MAX_SESSION_CHECK_FAILS) {
+        console.warn('Disabling session checks due to multiple failures')
+        sessionCheckEnabled.value = false;
+        if (sessionCheckInterval.value) {
+          clearInterval(sessionCheckInterval.value);
+          sessionCheckInterval.value = undefined;
+        }
+      }
+      return;
+    }
+    
+    // Reset fail count on success
+    sessionCheckFailCount.value = 0;
+    
     const data = await response.json()
     sessionTimeoutWarning.value = data.expiresIn < 300 // Show warning when less than 5 minutes remain
   } catch (err) {
     console.error('Failed to check session status:', err)
     // Don't show warning on error to avoid false positives
     sessionTimeoutWarning.value = false
+    
+    // Increment fail count
+    sessionCheckFailCount.value++;
+    
+    // Disable session checks after multiple failures
+    if (sessionCheckFailCount.value >= MAX_SESSION_CHECK_FAILS) {
+      console.warn('Disabling session checks due to multiple failures')
+      sessionCheckEnabled.value = false;
+      if (sessionCheckInterval.value) {
+        clearInterval(sessionCheckInterval.value);
+        sessionCheckInterval.value = undefined;
+      }
+    }
   }
 }
 
 const refreshSession = async () => {
   try {
-    await fetch('/api/v1/auth/refresh-session/', { method: 'POST' })
+    const response = await fetch('/api/v1/auth/refresh-session/', { method: 'POST' })
+    if (!response.ok) {
+      throw new Error('Failed to refresh session')
+    }
+    
+    // Check if the response is JSON
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn('Session refresh endpoint returned non-JSON response')
+      notify({ type: 'warning', message: 'Session refresh may not have worked properly' })
+      return;
+    }
+    
     sessionTimeoutWarning.value = false
+    sessionCheckFailCount.value = 0
+    sessionCheckEnabled.value = true
+    
+    // Restart session check interval if it was disabled
+    if (!sessionCheckInterval.value) {
+      sessionCheckInterval.value = window.setInterval(checkSession, 60000)
+    }
+    
     notify({ type: 'success', message: 'Session refreshed successfully' })
   } catch (err) {
-    notify({ type: 'error', message: 'Failed to refresh session' })
+    // If the session refresh fails, disable session checks to prevent further warnings
+    sessionCheckEnabled.value = false
+    if (sessionCheckInterval.value) {
+      clearInterval(sessionCheckInterval.value)
+      sessionCheckInterval.value = undefined
+    }
+    
+    // Only show error notification if session checks were previously enabled
+    if (sessionTimeoutWarning.value) {
+      notify({ type: 'error', message: 'Failed to refresh session' })
+      sessionTimeoutWarning.value = false
+    }
   }
 }
 
@@ -305,10 +405,48 @@ const refreshSession = async () => {
 onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
   try {
+    // Load models
     await loadModels()
-    // Initialize models and mode
-    if (!store.mode) {
-      store.setMode('build')
+    
+    // Initialize mode if needed
+    if (store && typeof store.setMode === 'function' && !store.mode) {
+      store.setMode('chat')
+    }
+    
+    // Load project data if we have a project ID
+    const projectId = route.params.id as string
+    if (projectId) {
+      try {
+        await projectStore.fetchProject(projectId)
+      } catch (err: any) {
+        notify({ 
+          type: 'error', 
+          message: err.message || 'Failed to load project data' 
+        })
+      }
+    }
+    
+    // Check if session management is available
+    try {
+      const response = await fetch('/api/v1/auth/session-status/')
+      
+      // Only proceed if the response is OK
+      if (!response.ok) {
+        throw new Error('Session status endpoint returned error')
+      }
+      
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Session status endpoint returned non-JSON response')
+      }
+      
+      // Session management is available, start the interval
+      sessionCheckEnabled.value = true
+      sessionCheckInterval.value = window.setInterval(checkSession, 60000) // Check every minute
+    } catch (err) {
+      // Silently disable session checks without console warnings
+      sessionCheckEnabled.value = false
     }
   } catch (err: any) {
     notify({ 
@@ -316,9 +454,6 @@ onMounted(async () => {
       message: err.message || 'Failed to load AI models' 
     })
   }
-
-  // Start session check interval
-  sessionCheckInterval.value = window.setInterval(checkSession, 60000) // Check every minute
 })
 
 onBeforeUnmount(() => {

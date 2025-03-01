@@ -28,6 +28,33 @@ const MODEL_CONFIGS: Record<string, ModelConfig> = {
     },
     contextWindow: 100000,
     capabilities: ['code_generation', 'chat', 'analysis']
+  },
+  'claude-3-5-sonnet-20241022': {
+    maxTokens: 200000,
+    rateLimits: {
+      tokensPerMinute: 100000,
+      requestsPerMinute: 300
+    },
+    contextWindow: 200000,
+    capabilities: ['code_generation', 'chat', 'analysis']
+  },
+  'gpt-4o': {
+    maxTokens: 128000,
+    rateLimits: {
+      tokensPerMinute: 60000,
+      requestsPerMinute: 250
+    },
+    contextWindow: 128000,
+    capabilities: ['code_generation', 'chat', 'analysis']
+  },
+  'gpt-4o-mini': {
+    maxTokens: 128000,
+    rateLimits: {
+      tokensPerMinute: 80000,
+      requestsPerMinute: 350
+    },
+    contextWindow: 128000,
+    capabilities: ['code_generation', 'chat', 'analysis']
   }
 }
 
