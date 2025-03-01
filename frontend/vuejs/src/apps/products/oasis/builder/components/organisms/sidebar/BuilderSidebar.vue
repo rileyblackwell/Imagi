@@ -24,11 +24,15 @@
         <div class="p-4 border-b border-dark-700">
           <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">AI Model</h4>
           <ModelSelector
-            :models="models"
+            :models="models || []"
             :model-id="modelId"
             :mode="mode"
             @update:model-id="handleModelChange"
           />
+          <!-- Debug info (hidden in production) -->
+          <div v-if="false" class="mt-2 p-2 bg-dark-800 rounded text-xs text-gray-400">
+            Models count: {{ models?.length || 0 }}
+          </div>
         </div>
         
         <!-- Mode Toggle -->
@@ -190,15 +194,21 @@ const formatMode = (mode: BuilderMode): string => {
 }
 
 // Compute selected model for collapsed state tooltip
-const selectedModel = computed(() => 
-  props.models.find(m => m.id === props.modelId)
-)
+const selectedModel = computed(() => {
+  console.log('Models in sidebar:', props.models)
+  console.log('Selected model ID:', props.modelId)
+  return props.models.find(m => m.id === props.modelId)
+})
 
 // Add validation before emitting model changes
 const handleModelChange = (modelId: string) => {
+  console.log('Model change requested:', modelId)
   const model = props.models.find(m => m.id === modelId)
   if (model) {
+    console.log('Emitting model change:', model)
     emit('update:modelId', modelId)
+  } else {
+    console.warn('Model not found:', modelId)
   }
 }
 

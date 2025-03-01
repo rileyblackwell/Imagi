@@ -3,6 +3,7 @@ import type { AIModel } from '../types/builder'
 import { BuilderAPI } from '../services/api'
 import axios from 'axios'
 import { useProjects } from './useProjects'
+import { useBuilderStore } from '../stores/builderStore'
 
 interface PromptData {
   prompt: string
@@ -37,6 +38,7 @@ export function useAI() {
   const conversation = ref<ConversationMessage[]>([])
   const credits = ref<number | null>(null)
   const { currentProject } = useProjects()
+  const builderStore = useBuilderStore()
 
   const validateModelSelection = () => {
     if (!selectedModel.value) {
@@ -83,15 +85,36 @@ export function useAI() {
 
   const loadModels = async () => {
     try {
+      console.log('Fetching AI models from API...')
       const models = await BuilderAPI.getAvailableModels()
-      availableModels.value = models
+      console.log('API returned models:', models)
       
-      if (!selectedModel.value && models.length > 0) {
-        selectedModel.value = models[0].id
+      if (!models || !Array.isArray(models)) {
+        console.warn('Invalid models returned from API, using defaults')
+        return { success: false, error: 'Invalid models format' }
       }
+      
+      const filteredModels = models.filter(model => !model.disabled)
+      console.log('Filtered models:', filteredModels)
+      
+      // Update local state
+      availableModels.value = filteredModels
+      
+      // Update store state
+      console.log('Setting models in builder store')
+      const store = useBuilderStore()
+      store.setModels(filteredModels)
+      
+      if (!selectedModel.value && filteredModels.length > 0) {
+        selectedModel.value = filteredModels[0].id
+        console.log('Selected model:', selectedModel.value)
+      }
+      
+      return { success: true }
     } catch (err) {
+      console.error('Error loading AI models:', err)
       error.value = err instanceof Error ? err.message : 'Failed to load AI models'
-      throw err
+      return { success: false, error: error.value }
     }
   }
 

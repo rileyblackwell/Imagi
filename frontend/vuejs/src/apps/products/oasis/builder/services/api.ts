@@ -356,43 +356,40 @@ export const BuilderAPI = {
     const estimatedTokens = ModelService.estimateTokens(data.prompt)
     
     if (estimatedTokens > config.maxTokens) {
-      throw new Error(`Message is too long for selected model. Please reduce length or choose a different model.`)
+      throw new Error(`Message is too long for the selected model. Please reduce length or choose a different model.`)
     }
 
     try {
-      const response = await api.post('/agents/send-message/', {
-        ...data,
-        project_id: projectId,
-        message: data.prompt
+      const response = await api.post(`/products/oasis/builder/projects/${projectId}/chat/`, {
+        prompt: data.prompt,
+        model: data.model
       })
-      return {
-        response: response.data.assistant_message.content,
-        messages: [response.data.user_message, response.data.assistant_message]
-      }
+      return response.data
     } catch (error) {
       throw handleAPIError(error)
     }
   },
 
+  // Get available AI models
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      const response = await api.get('/builder/models/')
-      return response.data.models || response.data || AI_MODELS
+      console.log('Fetching models from API...')
+      const response = await api.get('/products/oasis/builder/models/')
+      
+      // Check if we got a valid response
+      if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data
+      } else if (Array.isArray(response.data)) {
+        return response.data
+      }
+      
+      // If API fails or returns invalid data, return default models
+      console.warn('API returned invalid model data, using defaults')
+      return AI_MODELS
     } catch (error) {
-      console.warn('Failed to fetch AI models from API, using defaults:', error)
+      console.error('Error fetching models:', error)
+      // Return default models on error
       return AI_MODELS
     }
   },
-
-  async undoAction(projectId: string): Promise<UndoResponse> {
-    try {
-      const response = await api.post<APIResponse<UndoResponse>>(`/project-manager/projects/${projectId}/undo/`)
-      return response.data.data
-    } catch (error) {
-      console.error('Error undoing action:', error)
-      throw handleAPIError(error)
-    }
-  }
 }
-
-export type BuilderAPIType = typeof BuilderAPI

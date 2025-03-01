@@ -135,6 +135,8 @@ import { useChat } from '../composables/useChat'
 import { useAI } from '../composables/useAI'
 import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
+import { AI_MODELS } from '../types/builder'
+import { ModelService } from '../services/modelService'
 
 // Shared Components
 import ErrorBoundary from '../components/atoms/ErrorBoundary.vue'
@@ -208,7 +210,14 @@ const promptPlaceholder = computed(() =>
 
 // Event handlers
 const handleModelSelect = (modelId: string) => {
-  store.selectModel(modelId)
+  if (modelId && store.availableModels.some(model => model.id === modelId)) {
+    store.selectModel(modelId)
+    // Optionally notify the user about the model change
+    notify({ 
+      type: 'info', 
+      message: `Switched to ${store.availableModels.find(m => m.id === modelId)?.name || modelId}` 
+    })
+  }
 }
 
 const handleModeSwitch = (mode: 'chat' | 'build') => {
@@ -405,11 +414,33 @@ const refreshSession = async () => {
 onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
   try {
-    // Load models
-    await loadModels()
+    console.log('Loading AI models...')
+    
+    // Set default models directly
+    const defaultModels = ModelService.getDefaultModels()
+    console.log('Default models:', defaultModels)
+    
+    // Ensure we're using the store correctly
+    if (defaultModels && Array.isArray(defaultModels)) {
+      store.setModels(defaultModels)
+      console.log('Default models set in store:', store.availableModels)
+      
+      // If no model is selected, select the first one
+      if (!store.selectedModelId && defaultModels.length > 0) {
+        console.log('Auto-selecting first model:', defaultModels[0].id)
+        store.selectModel(defaultModels[0].id)
+      }
+    }
+    
+    // Try to load models from API as well
+    try {
+      await loadModels()
+    } catch (err) {
+      console.warn('Failed to load models from API, using defaults')
+    }
     
     // Initialize mode if needed
-    if (store && typeof store.setMode === 'function' && !store.mode) {
+    if (!store.mode) {
       store.setMode('chat')
     }
     

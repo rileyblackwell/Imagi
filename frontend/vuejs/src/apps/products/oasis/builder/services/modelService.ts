@@ -1,4 +1,5 @@
 import type { AIModel } from '../types'
+import { AI_MODELS } from '../types/builder'
 
 interface ModelConfig {
   maxTokens: number
@@ -96,11 +97,16 @@ export class ModelService {
   }
 
   static canGenerateCode(model: AIModel): boolean {
-    return this.getConfig(model).capabilities.includes('code_generation')
+    const config = this.getConfig(model)
+    return config.capabilities.includes('code_generation')
   }
 
   static estimateTokens(text: string): number {
     // Rough estimation: ~4 chars per token
     return Math.ceil(text.length / 4)
+  }
+  
+  static getDefaultModels(): AIModel[] {
+    return AI_MODELS
   }
 }

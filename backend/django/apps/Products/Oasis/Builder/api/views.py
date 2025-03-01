@@ -154,20 +154,32 @@ class AIModelsView(APIView, BuilderView):
             {
                 'id': 'claude-3-5-sonnet-20241022',
                 'name': 'Claude 3.5 Sonnet',
-                'description': 'Anthropic\'s Claude 3.5 Sonnet model',
-                'type': 'anthropic'
+                'provider': 'anthropic',
+                'type': 'anthropic',
+                'description': 'Anthropic\'s most capable model, best for complex tasks and creative work.',
+                'capabilities': ['code_generation', 'chat', 'analysis'],
+                'maxTokens': 200000,
+                'costPerRequest': 0.03
             },
             {
                 'id': 'gpt-4o',
                 'name': 'GPT-4o',
-                'description': 'OpenAI\'s GPT-4 model',
-                'type': 'openai'
+                'provider': 'openai',
+                'type': 'openai',
+                'description': 'OpenAI\'s most capable model, excellent for complex reasoning and creative tasks.',
+                'capabilities': ['code_generation', 'chat', 'analysis'],
+                'maxTokens': 128000,
+                'costPerRequest': 0.04
             },
             {
                 'id': 'gpt-4o-mini',
                 'name': 'GPT-4o Mini',
-                'description': 'OpenAI\'s GPT-4 Mini model',
-                'type': 'openai'
+                'provider': 'openai',
+                'type': 'openai',
+                'description': 'A more cost-effective version of GPT-4o, good for simpler tasks.',
+                'capabilities': ['code_generation', 'chat', 'analysis'],
+                'maxTokens': 128000,
+                'costPerRequest': 0.01
             }
         ]
         return Response(models)
