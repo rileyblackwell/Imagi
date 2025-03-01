@@ -160,13 +160,24 @@ const closeDropdown = () => {
 const handleModelSelect = async (modelId: string) => {
   console.log('Model selected:', modelId)
   try {
+    // Validate the model exists in either available models or default models
+    const modelExists = displayModels.value.some(m => m.id === modelId) || 
+                       defaultModels.value.some(m => m.id === modelId)
+    
+    if (!modelExists) {
+      console.warn('Selected model not found:', modelId)
+      throw new Error(`Model ${modelId} not found in available models`)
+    }
+    
     // Check rate limit before allowing selection
     await ModelService.checkRateLimit(modelId)
     rateLimitWarning.value = null
     emit('update:modelId', modelId)
     isDropdownOpen.value = false // Close dropdown after selection
+    console.log('Model selection emitted:', modelId)
   } catch (err) {
-    rateLimitWarning.value = err instanceof Error ? err.message : 'Rate limit exceeded'
+    console.error('Error selecting model:', err)
+    rateLimitWarning.value = err instanceof Error ? err.message : 'Error selecting model'
   }
 }
 
@@ -248,47 +259,44 @@ const availableModels = computed(() => {
   })
   
   console.log('Filtered models:', filtered.length)
-  return filtered
+  // If no models are available, use default models
+  return filtered.length > 0 ? filtered : defaultModels.value
 })
 
-// Use default models if none provided
+// Compute the models to display, falling back to defaults if needed
 const displayModels = computed(() => {
-  if (!props.models || props.models.length === 0 || availableModels.value.length === 0) {
-    console.log('Using default models for display')
-    return defaultModels.value
-  }
+  // This computes models for display, falling back to defaults if needed
   return availableModels.value
 })
 
+// Find the selected model object
 const selectedModel = computed(() => {
-  if (!props.modelId) {
-    console.log('No modelId selected')
-    return null
+  // First try to find in display models
+  const model = displayModels.value.find(m => m.id === props.modelId)
+  if (model) return model
+  
+  // If not found but we have a modelId, try to find in default models
+  if (props.modelId) {
+    const defaultModel = defaultModels.value.find(m => m.id === props.modelId)
+    if (defaultModel) return defaultModel
   }
   
-  // First try to find in provided models
-  let model = props.models.find(m => m.id === props.modelId)
-  
-  // If not found, try default models
-  if (!model) {
-    model = defaultModels.value.find(m => m.id === props.modelId)
-  }
-  
-  console.log('Selected model:', model?.name || 'Not found')
-  return model || null
+  // If still not found, return the first available model
+  return displayModels.value[0] || null
 })
 
+// Get the configuration for the selected model
 const selectedModelConfig = computed(() => {
   if (!selectedModel.value) return null
   return ModelService.getConfig(selectedModel.value)
 })
 
-// Select first model if none selected - now handleModelSelect is defined before this watch
-watch(() => displayModels.value, (newModels) => {
-  console.log('Display models changed:', newModels.length)
-  if (newModels.length > 0 && !props.modelId) {
-    console.log('Auto-selecting first model:', newModels[0].id)
-    handleModelSelect(newModels[0].id)
+// Auto-select first model if none selected
+watch(() => displayModels.value, async (models) => {
+  console.log('Display models changed:', models.length)
+  if (models.length > 0 && !props.modelId) {
+    console.log('Auto-selecting first model:', models[0].id)
+    await handleModelSelect(models[0].id)
   }
 }, { immediate: true })
 </script>

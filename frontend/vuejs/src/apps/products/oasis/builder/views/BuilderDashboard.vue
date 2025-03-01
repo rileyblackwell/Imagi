@@ -80,9 +80,9 @@
               <!-- Existing Projects List -->
               <div class="space-y-6">
                 <ProjectList
-                  :projects="projects"
-                  :is-loading="isLoading"
-                  :error="error"
+                  :projects="projects || []"
+                  :is-loading="isLoading || false"
+                  :error="error || ''"
                   @delete="confirmDelete"
                   @retry="retryFetch"
                 />

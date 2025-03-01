@@ -210,12 +210,35 @@ const promptPlaceholder = computed(() =>
 
 // Event handlers
 const handleModelSelect = (modelId: string) => {
-  if (modelId && store.availableModels.some(model => model.id === modelId)) {
-    store.selectModel(modelId)
-    // Optionally notify the user about the model change
-    notify({ 
-      type: 'info', 
-      message: `Switched to ${store.availableModels.find(m => m.id === modelId)?.name || modelId}` 
+  console.log('Model selection in BuilderWorkspace:', modelId)
+  
+  // Verify the model exists in available models or default models
+  const modelExists = store.availableModels.some(model => model.id === modelId) || 
+                     AI_MODELS.some(model => model.id === modelId)
+  
+  if (modelId && modelExists) {
+    try {
+      // Use the correct method from the store
+      store.selectModel(modelId)
+      // Optionally notify the user about the model change
+      notify({ 
+        type: 'info', 
+        message: `Switched to ${store.availableModels.find(m => m.id === modelId)?.name || 
+                  AI_MODELS.find(m => m.id === modelId)?.name || 
+                  modelId}` 
+      })
+    } catch (error) {
+      console.error('Error selecting model:', error)
+      notify({
+        type: 'error',
+        message: 'Failed to select model. Please try again.'
+      })
+    }
+  } else {
+    console.warn('Model not found in available models:', modelId)
+    notify({
+      type: 'warning',
+      message: 'Selected model is not available'
     })
   }
 }
@@ -422,21 +445,35 @@ onMounted(async () => {
     
     // Ensure we're using the store correctly
     if (defaultModels && Array.isArray(defaultModels)) {
-      store.setModels(defaultModels)
-      console.log('Default models set in store:', store.availableModels)
-      
-      // If no model is selected, select the first one
-      if (!store.selectedModelId && defaultModels.length > 0) {
-        console.log('Auto-selecting first model:', defaultModels[0].id)
-        store.selectModel(defaultModels[0].id)
+      try {
+        // Set default models in the store
+        store.setModels(defaultModels)
+        console.log('Default models set in store:', store.availableModels)
+        
+        // If no model is selected, select the first one
+        if (!store.selectedModelId && defaultModels.length > 0) {
+          console.log('Auto-selecting first model:', defaultModels[0].id)
+          store.selectModel(defaultModels[0].id)
+        }
+      } catch (err) {
+        console.error('Error setting models in store:', err)
+        notify({ 
+          type: 'warning', 
+          message: 'Failed to initialize AI models. Some features may be limited.' 
+        })
       }
     }
     
     // Try to load models from API as well
     try {
-      await loadModels()
+      const result = await loadModels()
+      if (result.success) {
+        console.log('Successfully loaded models from API')
+      } else {
+        console.warn('Failed to load models from API:', result.error)
+      }
     } catch (err) {
-      console.warn('Failed to load models from API, using defaults')
+      console.warn('Failed to load models from API, using defaults:', err)
     }
     
     // Initialize mode if needed
@@ -482,7 +519,7 @@ onMounted(async () => {
   } catch (err: any) {
     notify({ 
       type: 'error', 
-      message: err.message || 'Failed to load AI models' 
+      message: err.message || 'Failed to initialize workspace' 
     })
   }
 })

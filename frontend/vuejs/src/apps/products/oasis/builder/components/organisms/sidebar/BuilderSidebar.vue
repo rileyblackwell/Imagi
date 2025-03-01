@@ -147,6 +147,7 @@ import ModelSelector from '@/apps/products/oasis/builder/components/molecules/si
 import ModeSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModeSelector.vue'
 import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
 import { ActionButton, IconButton } from '@/apps/products/oasis/builder/components'
+import { AI_MODELS } from '@/apps/products/oasis/builder/types/builder'
 import type { 
   AIModel, 
   BuilderMode,
@@ -197,18 +198,28 @@ const formatMode = (mode: BuilderMode): string => {
 const selectedModel = computed(() => {
   console.log('Models in sidebar:', props.models)
   console.log('Selected model ID:', props.modelId)
-  return props.models.find(m => m.id === props.modelId)
+  // First try to find the model in the provided models
+  const model = props.models.find(m => m.id === props.modelId)
+  if (model) return model
+  
+  // If not found, check in the default models
+  const defaultModel = AI_MODELS.find(m => m.id === props.modelId)
+  return defaultModel || null
 })
 
 // Add validation before emitting model changes
 const handleModelChange = (modelId: string) => {
-  console.log('Model change requested:', modelId)
-  const model = props.models.find(m => m.id === modelId)
-  if (model) {
-    console.log('Emitting model change:', model)
+  console.log('Model change requested in BuilderSidebar:', modelId)
+  
+  // Check if the model exists in props.models or default models
+  const modelInProps = props.models.find(m => m.id === modelId)
+  const modelInDefaults = AI_MODELS.find(m => m.id === modelId)
+  
+  if (modelInProps || modelInDefaults) {
+    console.log('Emitting model change from BuilderSidebar:', modelId)
     emit('update:modelId', modelId)
   } else {
-    console.warn('Model not found:', modelId)
+    console.warn('Model not found in BuilderSidebar:', modelId)
   }
 }
 
