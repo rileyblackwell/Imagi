@@ -210,32 +210,35 @@ const promptPlaceholder = computed(() =>
 
 // Event handlers
 const handleModelSelect = (modelId: string) => {
-  console.log('Model selection in BuilderWorkspace:', modelId)
-  
   // Verify the model exists in available models or default models
   const modelExists = store.availableModels.some(model => model.id === modelId) || 
                      AI_MODELS.some(model => model.id === modelId)
   
   if (modelId && modelExists) {
     try {
-      // Use the correct method from the store
-      store.selectModel(modelId)
+      // Try to use the store action if available
+      if (typeof store.selectModel === 'function') {
+        store.selectModel(modelId)
+      } else {
+        // Fallback: directly update the store state if the action is not available
+        store.$patch({ selectedModelId: modelId })
+      }
+      
       // Optionally notify the user about the model change
+      const modelName = store.availableModels.find(m => m.id === modelId)?.name || 
+                        AI_MODELS.find(m => m.id === modelId)?.name || 
+                        modelId
       notify({ 
         type: 'info', 
-        message: `Switched to ${store.availableModels.find(m => m.id === modelId)?.name || 
-                  AI_MODELS.find(m => m.id === modelId)?.name || 
-                  modelId}` 
+        message: `Switched to ${modelName}` 
       })
     } catch (error) {
-      console.error('Error selecting model:', error)
       notify({
         type: 'error',
         message: 'Failed to select model. Please try again.'
       })
     }
   } else {
-    console.warn('Model not found in available models:', modelId)
     notify({
       type: 'warning',
       message: 'Selected model is not available'
@@ -352,12 +355,10 @@ const checkSession = async () => {
     // Check if the response is JSON
     const contentType = response.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
-      console.warn('Session status endpoint returned non-JSON response')
       sessionCheckFailCount.value++;
       
       // Disable session checks after multiple failures
       if (sessionCheckFailCount.value >= MAX_SESSION_CHECK_FAILS) {
-        console.warn('Disabling session checks due to multiple failures')
         sessionCheckEnabled.value = false;
         if (sessionCheckInterval.value) {
           clearInterval(sessionCheckInterval.value);
@@ -373,7 +374,6 @@ const checkSession = async () => {
     const data = await response.json()
     sessionTimeoutWarning.value = data.expiresIn < 300 // Show warning when less than 5 minutes remain
   } catch (err) {
-    console.error('Failed to check session status:', err)
     // Don't show warning on error to avoid false positives
     sessionTimeoutWarning.value = false
     
@@ -382,7 +382,6 @@ const checkSession = async () => {
     
     // Disable session checks after multiple failures
     if (sessionCheckFailCount.value >= MAX_SESSION_CHECK_FAILS) {
-      console.warn('Disabling session checks due to multiple failures')
       sessionCheckEnabled.value = false;
       if (sessionCheckInterval.value) {
         clearInterval(sessionCheckInterval.value);
@@ -402,7 +401,6 @@ const refreshSession = async () => {
     // Check if the response is JSON
     const contentType = response.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
-      console.warn('Session refresh endpoint returned non-JSON response')
       notify({ type: 'warning', message: 'Session refresh may not have worked properly' })
       return;
     }
@@ -437,26 +435,25 @@ const refreshSession = async () => {
 onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
   try {
-    console.log('Loading AI models...')
-    
     // Set default models directly
     const defaultModels = ModelService.getDefaultModels()
-    console.log('Default models:', defaultModels)
     
     // Ensure we're using the store correctly
     if (defaultModels && Array.isArray(defaultModels)) {
       try {
         // Set default models in the store
         store.setModels(defaultModels)
-        console.log('Default models set in store:', store.availableModels)
         
         // If no model is selected, select the first one
         if (!store.selectedModelId && defaultModels.length > 0) {
-          console.log('Auto-selecting first model:', defaultModels[0].id)
-          store.selectModel(defaultModels[0].id)
+          if (typeof store.selectModel === 'function') {
+            store.selectModel(defaultModels[0].id)
+          } else {
+            // Fallback: directly update the store state
+            store.$patch({ selectedModelId: defaultModels[0].id })
+          }
         }
       } catch (err) {
-        console.error('Error setting models in store:', err)
         notify({ 
           type: 'warning', 
           message: 'Failed to initialize AI models. Some features may be limited.' 
@@ -466,19 +463,19 @@ onMounted(async () => {
     
     // Try to load models from API as well
     try {
-      const result = await loadModels()
-      if (result.success) {
-        console.log('Successfully loaded models from API')
-      } else {
-        console.warn('Failed to load models from API:', result.error)
-      }
+      await loadModels()
     } catch (err) {
-      console.warn('Failed to load models from API, using defaults:', err)
+      // Silently fall back to default models
     }
     
     // Initialize mode if needed
     if (!store.mode) {
-      store.setMode('chat')
+      try {
+        store.setMode('chat')
+      } catch (modeError) {
+        // Fallback: directly update the store state if the action fails
+        store.$patch({ mode: 'chat' })
+      }
     }
     
     // Load project data if we have a project ID

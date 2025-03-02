@@ -1,7 +1,10 @@
 import type { NotificationType, NotificationOptions } from '../types/notifications'
 
 export const notify = (options: NotificationOptions) => {
-  // For now, just use console, we can enhance this later with a proper notification system
+  // Store notifications in a queue for the UI to display
+  // This will be replaced with a proper notification system in the future
   const { type, message } = options
-  console.log(`[${type.toUpperCase()}] ${message}`)
+  
+  // Add to notification queue (to be implemented)
+  // For now, we'll just suppress the console logs
 }

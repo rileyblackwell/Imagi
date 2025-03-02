@@ -158,14 +158,12 @@ const closeDropdown = () => {
 }
 
 const handleModelSelect = async (modelId: string) => {
-  console.log('Model selected:', modelId)
   try {
     // Validate the model exists in either available models or default models
     const modelExists = displayModels.value.some(m => m.id === modelId) || 
                        defaultModels.value.some(m => m.id === modelId)
     
     if (!modelExists) {
-      console.warn('Selected model not found:', modelId)
       throw new Error(`Model ${modelId} not found in available models`)
     }
     
@@ -174,9 +172,7 @@ const handleModelSelect = async (modelId: string) => {
     rateLimitWarning.value = null
     emit('update:modelId', modelId)
     isDropdownOpen.value = false // Close dropdown after selection
-    console.log('Model selection emitted:', modelId)
   } catch (err) {
-    console.error('Error selecting model:', err)
     rateLimitWarning.value = err instanceof Error ? err.message : 'Error selecting model'
   }
 }
@@ -227,27 +223,15 @@ const getModelTypeIcon = (model: AIModel): string => {
 
 // Debug on mount
 onMounted(() => {
-  console.log('ModelSelector mounted with props:', {
-    modelId: props.modelId,
-    modelsCount: props.models.length,
-    mode: props.mode
-  })
-  
-  if (props.models.length > 0) {
-    console.log('First model:', props.models[0])
-  } else {
-    console.log('No models provided to ModelSelector, using defaults:', defaultModels.value.length)
-  }
+  // Component mounted
 })
 
 // Watch for changes in models prop
 watch(() => props.models, (newModels) => {
-  console.log('Models changed in ModelSelector:', newModels.length)
+  // Models changed
 }, { immediate: true })
 
 const availableModels = computed(() => {
-  console.log('Computing availableModels with:', props.models.length, 'models')
-  
   // Ensure we're filtering and displaying all available models
   const filtered = props.models.filter(model => {
     // For build mode, only show models that can generate code
@@ -258,7 +242,6 @@ const availableModels = computed(() => {
     return true
   })
   
-  console.log('Filtered models:', filtered.length)
   // If no models are available, use default models
   return filtered.length > 0 ? filtered : defaultModels.value
 })
@@ -293,9 +276,7 @@ const selectedModelConfig = computed(() => {
 
 // Auto-select first model if none selected
 watch(() => displayModels.value, async (models) => {
-  console.log('Display models changed:', models.length)
   if (models.length > 0 && !props.modelId) {
-    console.log('Auto-selecting first model:', models[0].id)
     await handleModelSelect(models[0].id)
   }
 }, { immediate: true })

@@ -196,8 +196,6 @@ const formatMode = (mode: BuilderMode): string => {
 
 // Compute selected model for collapsed state tooltip
 const selectedModel = computed(() => {
-  console.log('Models in sidebar:', props.models)
-  console.log('Selected model ID:', props.modelId)
   // First try to find the model in the provided models
   const model = props.models.find(m => m.id === props.modelId)
   if (model) return model
@@ -209,17 +207,12 @@ const selectedModel = computed(() => {
 
 // Add validation before emitting model changes
 const handleModelChange = (modelId: string) => {
-  console.log('Model change requested in BuilderSidebar:', modelId)
-  
   // Check if the model exists in props.models or default models
   const modelInProps = props.models.find(m => m.id === modelId)
   const modelInDefaults = AI_MODELS.find(m => m.id === modelId)
   
   if (modelInProps || modelInDefaults) {
-    console.log('Emitting model change from BuilderSidebar:', modelId)
     emit('update:modelId', modelId)
-  } else {
-    console.warn('Model not found in BuilderSidebar:', modelId)
   }
 }
 

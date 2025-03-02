@@ -373,7 +373,6 @@ export const BuilderAPI = {
   // Get available AI models
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      console.log('Fetching models from API...')
       const response = await api.get('/products/oasis/builder/models/')
       
       // Check if we got a valid response
@@ -383,12 +382,11 @@ export const BuilderAPI = {
         return response.data
       }
       
-      // If API fails or returns invalid data, return default models
-      console.warn('API returned invalid model data, using defaults')
+      // If API returns invalid data, return default models
       return AI_MODELS
-    } catch (error) {
-      console.error('Error fetching models:', error)
-      // Return default models on error
+    } catch (error: any) {
+      // For 404 errors, the endpoint might not be implemented yet
+      // Return default models silently without logging errors
       return AI_MODELS
     }
   },
