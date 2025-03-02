@@ -82,7 +82,13 @@ api.interceptors.response.use(
   }
 )
 
+// Add a type guard function at the top of the file
+function isString(value: any): value is string {
+  return typeof value === 'string';
+}
+
 export const BuilderAPI = {
+  // Project management methods - using ProjectManager API
   async getProjects(): Promise<Project[]> {
     try {
       const response = await api.get('/project-manager/projects/')
@@ -125,9 +131,6 @@ export const BuilderAPI = {
       const payload = {
         name: projectData.name.trim(),
         description: projectData.description || '',
-        // Add any other required fields with defaults
-        status: 'active',
-        visibility: 'private'
       }
 
       console.debug('Creating project with payload:', payload)
@@ -180,7 +183,7 @@ export const BuilderAPI = {
   async getProject(projectId: string): Promise<Project> {
     try {
       const response = await api.get<APIResponse<Project>>(`/project-manager/projects/${projectId}/`)
-      return response.data.data
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error fetching project:', error)
       throw handleAPIError(error)
@@ -190,7 +193,7 @@ export const BuilderAPI = {
   async updateProject(projectId: string, projectData: Partial<Project>): Promise<Project> {
     try {
       const response = await api.patch<APIResponse<Project>>(`/project-manager/projects/${projectId}/`, projectData)
-      return response.data.data
+      return response.data.data || response.data
     } catch (error) {
       console.error('Error updating project:', error)
       throw handleAPIError(error)
@@ -205,7 +208,7 @@ export const BuilderAPI = {
     try {
       console.debug('Deleting project:', { projectId })
       
-      const response = await api.delete(`/project-manager/projects/${projectId}/`)
+      const response = await api.delete(`/project-manager/projects/${projectId}/delete/`)
       
       console.debug('Delete project response:', {
         status: response.status,
@@ -240,30 +243,10 @@ export const BuilderAPI = {
     }
   },
 
-  async getActivities(): Promise<Activity[]> {
-    try {
-      const response = await api.get<APIResponse<Activity[]>>('/activities/')
-      return response.data.data
-    } catch (error) {
-      console.error('Error fetching activities:', error)
-      throw handleAPIError(error)
-    }
-  },
-
-  async getStats(): Promise<DashboardStats> {
-    try {
-      const response = await api.get<APIResponse<DashboardStats>>('/dashboard/stats/')
-      return response.data.data
-    } catch (error) {
-      console.error('Error fetching stats:', error)
-      throw handleAPIError(error)
-    }
-  },
-
-  // File management methods
+  // File management methods - using ProjectManager API
   async getProjectFiles(projectId: string): Promise<ProjectFile[]> {
     try {
-      const response = await api.get(`/products/oasis/builder/projects/${projectId}/files/`)
+      const response = await api.get(`/project-manager/projects/${projectId}/files/`)
       return response.data.data || response.data || []
     } catch (error) {
       throw handleAPIError(error)
@@ -272,7 +255,7 @@ export const BuilderAPI = {
 
   async getFileContent(projectId: string, filePath: string): Promise<{ content: string }> {
     try {
-      const response = await api.get(`/products/oasis/builder/projects/${projectId}/files/${filePath}/content/`)
+      const response = await api.get(`/project-manager/projects/${projectId}/files/${filePath}/`)
       return response.data.data || response.data || { content: '' }
     } catch (error) {
       console.error('Error fetching file content:', error)
@@ -282,7 +265,7 @@ export const BuilderAPI = {
 
   async updateFileContent(projectId: string, filePath: string, content: string): Promise<void> {
     try {
-      await api.put(`/products/oasis/builder/projects/${projectId}/files/${filePath}/content/`, { content })
+      await api.put(`/project-manager/projects/${projectId}/files/${filePath}/`, { content })
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -290,7 +273,7 @@ export const BuilderAPI = {
 
   async createFile(projectId: string, fileData: { name: string, type: string, content: string }): Promise<ProjectFile> {
     try {
-      const response = await api.post(`/products/oasis/builder/projects/${projectId}/files/`, fileData)
+      const response = await api.post(`/project-manager/projects/${projectId}/files/`, fileData)
       return response.data.data || response.data
     } catch (error) {
       console.error('Error creating file:', error)
@@ -298,17 +281,18 @@ export const BuilderAPI = {
     }
   },
 
-  // Component tree and code generation
+  // Component tree
   async getComponentTree(projectId: string): Promise<any[]> {
     try {
       const response = await api.get<APIResponse<any[]>>(`/project-manager/projects/${projectId}/components/`)
-      return response.data.data
+      return response.data.data || response.data || []
     } catch (error) {
       console.error('Error fetching component tree:', error)
       throw handleAPIError(error)
     }
   },
 
+  // AI interaction methods - using Agents API
   async generateCode(projectId: string, data: {
     prompt: string;
     mode: string;
@@ -319,11 +303,14 @@ export const BuilderAPI = {
       throw new Error('AI model must be selected')
     }
 
+    // Now data.model is guaranteed to be a string (not null)
+    const modelId: string = data.model;
+
     // Check rate limits before making request
-    await ModelService.checkRateLimit(data.model)
+    await ModelService.checkRateLimit(modelId)
 
     // Validate prompt length against model context window
-    const config = ModelService.getConfig({ id: data.model } as AIModel)
+    const config = ModelService.getConfig({ id: modelId } as AIModel)
     const estimatedTokens = ModelService.estimateTokens(data.prompt)
     
     if (estimatedTokens > config.maxTokens) {
@@ -331,11 +318,45 @@ export const BuilderAPI = {
     }
 
     try {
-      const response = await api.post(`/products/oasis/builder/projects/${projectId}/generate/`, {
-        ...data,
-        model_id: data.model
-      })
-      return response.data
+      // Get conversation ID from localStorage
+      const storedConversationId = localStorage.getItem(`builder_conversation_${projectId}`)
+      
+      // Prepare request payload
+      const messagePayload: any = {
+        message: data.prompt,
+        model: modelId,
+        mode: data.mode,
+        file_path: data.file_path
+      }
+      
+      let response;
+      
+      // If we have a conversation ID, use it
+      if (storedConversationId) {
+        messagePayload.conversation_id = storedConversationId
+        response = await api.post('/products/oasis/agents/send-message/', messagePayload)
+      } else {
+        // Create a new conversation first
+        const conversationResponse = await api.post('/products/oasis/agents/conversations/', {
+          model_name: modelId,
+          mode: data.mode
+        })
+        const newConversationId = conversationResponse.data.id
+        localStorage.setItem(`builder_conversation_${projectId}`, newConversationId)
+        
+        // Then send the message with the new conversation ID
+        messagePayload.conversation_id = newConversationId
+        response = await api.post('/products/oasis/agents/send-message/', messagePayload)
+      }
+      
+      return {
+        success: true,
+        code: response.data.assistant_message.content,
+        messages: [
+          response.data.user_message,
+          response.data.assistant_message
+        ]
+      }
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -344,6 +365,7 @@ export const BuilderAPI = {
   async processChat(projectId: string, data: {
     prompt: string;
     model: string;
+    mode?: string;
   }): Promise<{
     response: string;
     messages: any[];
@@ -356,15 +378,69 @@ export const BuilderAPI = {
     const estimatedTokens = ModelService.estimateTokens(data.prompt)
     
     if (estimatedTokens > config.maxTokens) {
-      throw new Error(`Message is too long for the selected model. Please reduce length or choose a different model.`)
+      throw new Error(`Message is too long for selected model. Please reduce length or choose a different model.`)
     }
 
     try {
-      const response = await api.post(`/products/oasis/builder/projects/${projectId}/chat/`, {
-        prompt: data.prompt,
-        model: data.model
-      })
-      return response.data
+      // Get conversation ID from localStorage
+      const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
+      
+      // Prepare request payload
+      const messagePayload: any = {
+        message: data.prompt,
+        model: data.model,
+        mode: data.mode || 'chat'
+      }
+      
+      let response;
+      
+      // If we have a conversation ID, use it
+      if (storedConversationId) {
+        messagePayload.conversation_id = storedConversationId
+        response = await api.post('/products/oasis/agents/send-message/', messagePayload)
+      } else {
+        // Create a new conversation first
+        const conversationResponse = await api.post('/products/oasis/agents/conversations/', {
+          model_name: data.model,
+          mode: data.mode || 'chat'
+        })
+        const newConversationId = conversationResponse.data.id
+        localStorage.setItem(`chat_conversation_${projectId}`, newConversationId)
+        
+        // Then send the message with the new conversation ID
+        messagePayload.conversation_id = newConversationId
+        response = await api.post('/products/oasis/agents/send-message/', messagePayload)
+      }
+      
+      return {
+        response: response.data.assistant_message.content,
+        messages: [
+          response.data.user_message,
+          response.data.assistant_message
+        ]
+      }
+    } catch (error) {
+      throw handleAPIError(error)
+    }
+  },
+
+  async clearConversation(projectId: string): Promise<void> {
+    try {
+      // Get conversation ID for this project
+      const chatConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
+      const builderConversationId = localStorage.getItem(`builder_conversation_${projectId}`)
+      
+      if (chatConversationId) {
+        await api.post('/products/oasis/agents/clear-conversation/', {
+          conversation_id: chatConversationId
+        })
+      }
+      
+      if (builderConversationId) {
+        await api.post('/products/oasis/agents/clear-conversation/', {
+          conversation_id: builderConversationId
+        })
+      }
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -372,22 +448,18 @@ export const BuilderAPI = {
 
   // Get available AI models
   async getAvailableModels(): Promise<AIModel[]> {
+    // Return default models directly from the frontend
+    // No API call needed as models should be handled on the frontend
+    return AI_MODELS;
+  },
+
+  // Undo action
+  async undoAction(projectId: string): Promise<UndoResponse> {
     try {
-      const response = await api.get('/products/oasis/builder/models/')
-      
-      // Check if we got a valid response
-      if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data
-      } else if (Array.isArray(response.data)) {
-        return response.data
-      }
-      
-      // If API returns invalid data, return default models
-      return AI_MODELS
-    } catch (error: any) {
-      // For 404 errors, the endpoint might not be implemented yet
-      // Return default models silently without logging errors
-      return AI_MODELS
+      const response = await api.post(`/project-manager/projects/${projectId}/undo/`)
+      return response.data
+    } catch (error) {
+      throw handleAPIError(error)
     }
   },
 }

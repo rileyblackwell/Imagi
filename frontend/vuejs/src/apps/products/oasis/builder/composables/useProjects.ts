@@ -1,10 +1,10 @@
 import { ref, computed } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
-import { useBuilder } from './useBuilder'
+import { useBuilderMode } from './useBuilderMode'
 
 export const useProjects = () => {
   const store = useProjectStore()
-  const { selectedFile, updateFile, createFile } = useBuilder()
+  const { selectedFile, updateFile, createFile } = useBuilderMode()
 
   // Handle file changes with proper error handling and optimistic updates
   const handleFileUpdate = async (content: string) => {

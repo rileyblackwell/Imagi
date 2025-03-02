@@ -127,12 +127,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useBuilderStore } from '../stores/builderStore'
-import { useBuilder } from '../composables/useBuilder'
-import { useChat } from '../composables/useChat'
-import { useAI } from '../composables/useAI'
+import { useBuilderMode } from '../composables/useBuilderMode'
+import { useChatMode } from '../composables/useChatMode'
 import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
 import { AI_MODELS } from '../types/builder'
@@ -158,9 +157,13 @@ import type { ProjectFile, EditorMode } from '../types/builder'
 const route = useRoute()
 const store = useBuilderStore()
 const projectStore = useProjectStore()
-const { generateCodeFromPrompt, createFile } = useBuilder()
-const { sendMessage } = useChat()
-const { loadModels } = useAI()
+const { 
+  generateCodeFromPrompt, 
+  createFile, 
+  undoLastAction,
+  loadModels
+} = useBuilderMode()
+const { sendMessage } = useChatMode()
 const { autosaveContent, saveFile, checkUnsavedChanges } = useFileManager()
 
 // Constants
@@ -224,6 +227,9 @@ const handleModelSelect = (modelId: string) => {
         store.$patch({ selectedModelId: modelId })
       }
       
+      // Force a store update to ensure reactivity
+      store.$patch({})
+      
       // Optionally notify the user about the model change
       const modelName = store.availableModels.find(m => m.id === modelId)?.name || 
                         AI_MODELS.find(m => m.id === modelId)?.name || 
@@ -232,6 +238,11 @@ const handleModelSelect = (modelId: string) => {
         type: 'info', 
         message: `Switched to ${modelName}` 
       })
+      
+      // Force a UI update by triggering a window resize event
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+      }, 50)
     } catch (error) {
       notify({
         type: 'error',
@@ -248,7 +259,27 @@ const handleModelSelect = (modelId: string) => {
 
 const handleModeSwitch = (mode: 'chat' | 'build') => {
   if (store.mode !== mode) {
-    store.$patch({ mode })
+    // Use the store action if available
+    if (typeof store.setMode === 'function') {
+      store.setMode(mode)
+    } else {
+      // Fallback: directly update the store state
+      store.$patch({ mode })
+    }
+    
+    // Force a store update to ensure reactivity
+    store.$patch({})
+    
+    // Notify the user about the mode change
+    notify({ 
+      type: 'info', 
+      message: `Switched to ${mode} mode` 
+    })
+    
+    // Force a UI update by triggering a window resize event
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'))
+    }, 50)
   }
 }
 
@@ -268,7 +299,18 @@ const handleFileCreate = async (data: { name: string; type: string }) => {
 }
 
 const handleUndo = async () => {
-  // Implement undo functionality
+  try {
+    store.setProcessing(true)
+    await undoLastAction()
+    notify({ type: 'success', message: 'Last action undone successfully' })
+  } catch (err: any) {
+    notify({ 
+      type: 'error', 
+      message: err.message || 'Failed to undo last action' 
+    })
+  } finally {
+    store.setProcessing(false)
+  }
 }
 
 const handlePreview = () => {
@@ -279,13 +321,24 @@ const handlePreview = () => {
 const handlePrompt = async () => {
   if (!prompt.value.trim() || store.isProcessing) return
   
+  // Ensure we have a selected model
+  if (!store.selectedModelId) {
+    notify({
+      type: 'warning',
+      message: 'Please select an AI model first'
+    })
+    return
+  }
+  
   const originalPrompt = prompt.value
   prompt.value = '' // Clear prompt immediately for better UX
   
   try {
     if (store.mode === 'chat') {
+      // For chat mode, use the chat service with the selected model
       await sendMessage(originalPrompt)
     } else {
+      // For build mode, use the code generation service with the selected model and file
       const response = await generateCodeFromPrompt(originalPrompt)
       if (response.success) {
         notify({ type: 'success', message: 'Code generated successfully' })
@@ -433,7 +486,91 @@ const refreshSession = async () => {
 
 // Initialize workspace
 onMounted(async () => {
-  window.addEventListener('beforeunload', handleBeforeUnload)
+  try {
+    // Initialize the workspace
+    await initializeWorkspace()
+    
+    // Add event listeners for model and mode changes
+    document.addEventListener('model-selection-updated', handleModelSelectionUpdated)
+    document.addEventListener('mode-selection-updated', handleModeSelectionUpdated)
+    
+    // Check session status
+    try {
+      const response = await fetch('/api/v1/auth/session-status/')
+      if (!response.ok) {
+        throw new Error('Session status endpoint returned error')
+      }
+      
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Session status endpoint returned non-JSON response')
+      }
+      
+      // Session management is available, start the interval
+      sessionCheckEnabled.value = true
+      sessionCheckInterval.value = window.setInterval(checkSession, 60000) // Check every minute
+    } catch (err) {
+      // Silently disable session checks without console warnings
+      sessionCheckEnabled.value = false
+    }
+    
+    // Add beforeunload event listener
+    window.addEventListener('beforeunload', handleBeforeUnload)
+  } catch (err: any) {
+    notify({ 
+      type: 'error', 
+      message: err.message || 'Failed to initialize workspace' 
+    })
+  }
+})
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  document.removeEventListener('model-selection-updated', handleModelSelectionUpdated)
+  document.removeEventListener('mode-selection-updated', handleModeSelectionUpdated)
+  
+  // Clean up interval
+  if (sessionCheckInterval.value) {
+    clearInterval(sessionCheckInterval.value)
+  }
+  
+  // Remove beforeunload event listener
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
+
+// Handle model selection updates
+const handleModelSelectionUpdated = (event: Event) => {
+  // Force UI update by triggering a window resize event
+  window.dispatchEvent(new Event('resize'))
+  
+  // Notify user of model change
+  const customEvent = event as CustomEvent
+  if (customEvent.detail?.modelId) {
+    notify({
+      type: 'info',
+      message: `Model changed to ${store.selectedModel?.name || 'new model'}`
+    })
+  }
+}
+
+// Handle mode selection updates
+const handleModeSelectionUpdated = (event: Event) => {
+  // Force UI update by triggering a window resize event
+  window.dispatchEvent(new Event('resize'))
+  
+  // Notify user of mode change
+  const customEvent = event as CustomEvent
+  if (customEvent.detail?.mode) {
+    notify({
+      type: 'info',
+      message: `Switched to ${customEvent.detail.mode} mode`
+    })
+  }
+}
+
+// Add this function to initialize the builder
+const initializeWorkspace = async () => {
   try {
     // Set default models directly
     const defaultModels = ModelService.getDefaultModels()
@@ -490,43 +627,13 @@ onMounted(async () => {
         })
       }
     }
-    
-    // Check if session management is available
-    try {
-      const response = await fetch('/api/v1/auth/session-status/')
-      
-      // Only proceed if the response is OK
-      if (!response.ok) {
-        throw new Error('Session status endpoint returned error')
-      }
-      
-      // Check if the response is JSON
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Session status endpoint returned non-JSON response')
-      }
-      
-      // Session management is available, start the interval
-      sessionCheckEnabled.value = true
-      sessionCheckInterval.value = window.setInterval(checkSession, 60000) // Check every minute
-    } catch (err) {
-      // Silently disable session checks without console warnings
-      sessionCheckEnabled.value = false
-    }
   } catch (err: any) {
     notify({ 
       type: 'error', 
       message: err.message || 'Failed to initialize workspace' 
     })
   }
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload)
-  if (sessionCheckInterval.value) {
-    clearInterval(sessionCheckInterval.value)
-  }
-})
+}
 </script>
 
 <style scoped>

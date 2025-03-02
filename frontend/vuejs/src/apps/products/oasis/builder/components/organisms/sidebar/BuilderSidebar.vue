@@ -212,14 +212,26 @@ const handleModelChange = (modelId: string) => {
   const modelInDefaults = AI_MODELS.find(m => m.id === modelId)
   
   if (modelInProps || modelInDefaults) {
+    // Force immediate update
     emit('update:modelId', modelId)
+    // Add a small delay to ensure the UI updates
+    setTimeout(() => {
+      // Trigger a DOM update to ensure the change is reflected
+      document.dispatchEvent(new CustomEvent('model-changed', { detail: modelId }))
+    }, 50)
   }
 }
 
 // Add validation before emitting mode changes
 const handleModeChange = (mode: BuilderMode) => {
   if (['chat', 'build'].includes(mode)) {
+    // Force immediate update
     emit('update:mode', mode)
+    // Add a small delay to ensure the UI updates
+    setTimeout(() => {
+      // Trigger a DOM update to ensure the change is reflected
+      document.dispatchEvent(new CustomEvent('mode-changed', { detail: mode }))
+    }, 50)
   }
 }
 

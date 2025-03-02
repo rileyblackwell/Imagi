@@ -170,7 +170,18 @@ const handleModelSelect = async (modelId: string) => {
     // Check rate limit before allowing selection
     await ModelService.checkRateLimit(modelId)
     rateLimitWarning.value = null
+    
+    // Emit the update event
     emit('update:modelId', modelId)
+    
+    // Force a DOM update to ensure the change is reflected
+    setTimeout(() => {
+      // Trigger a custom event that the parent component can listen for
+      document.dispatchEvent(new CustomEvent('model-selection-updated', { 
+        detail: { modelId }
+      }))
+    }, 50)
+    
     isDropdownOpen.value = false // Close dropdown after selection
   } catch (err) {
     rateLimitWarning.value = err instanceof Error ? err.message : 'Error selecting model'

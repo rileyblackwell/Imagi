@@ -14,7 +14,7 @@
             ? 'bg-primary-500/20 border-primary-500'
             : 'bg-dark-800 border-dark-700 hover:border-dark-600'
         ]"
-        @click="$emit('update:mode', option.id)"
+        @click="handleModeChange(option.id)"
       >
         <div class="flex items-center space-x-2">
           <i :class="['fas', option.icon]" />
@@ -53,6 +53,22 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:mode', value: BuilderMode): void
 }>()
+
+// Add a method to handle mode changes
+const handleModeChange = (newMode: BuilderMode) => {
+  if (props.mode !== newMode) {
+    // Emit the update event
+    emit('update:mode', newMode)
+    
+    // Force a DOM update to ensure the change is reflected
+    setTimeout(() => {
+      // Trigger a custom event that the parent component can listen for
+      document.dispatchEvent(new CustomEvent('mode-selection-updated', { 
+        detail: { mode: newMode }
+      }))
+    }, 50)
+  }
+}
 
 const modeOptions = [
   {
