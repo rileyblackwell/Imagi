@@ -138,17 +138,17 @@ import { AI_MODELS } from '../types/builder'
 import { ModelService } from '../services/modelService'
 
 // Shared Components
-import ErrorBoundary from '../components/atoms/ErrorBoundary.vue'
+import ErrorBoundary from '../components/atoms/utility/ErrorBoundary.vue'
 import AppShortcuts from '@/shared/components/molecules/feedback/AppShortcuts.vue'
 import { SessionTimeoutWarning } from '@/apps/auth/components/molecules'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
-import LoadingOverlay from '../components/atoms/LoadingOverlay.vue'
+import LoadingOverlay from '../components/atoms/feedback/LoadingOverlay.vue'
 import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
 import BuilderEditor from '../components/organisms/editor/BuilderEditor.vue'
 import AIPromptInput from '../components/molecules/inputs/AIPromptInput.vue'
-import ChatConversation from '../components/organisms/chat/ChatConversation.vue'
+import ChatConversation from '../components/molecules/chat/ChatConversation.vue'
 
 // Utils
 import { notify } from '@/shared/utils'

@@ -82,7 +82,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { ProjectFile } from '../../../types/builder'
-import FileTreeItem from '../../atoms/FileTreeItem.vue'
+import FileTreeItem from '../../atoms/navigation/FileTreeItem.vue'
 
 const props = defineProps<{
   files: ProjectFile[]
