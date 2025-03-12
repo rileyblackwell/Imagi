@@ -332,14 +332,6 @@ const handleFileSelect = (file: ProjectFile) => {
 
 const handleFileCreate = async (data: { name: string; type: string; content?: string }) => {
   try {
-    // Add detailed logging
-    console.log('handleFileCreate called with:', data)
-    console.log('Current store state:', { 
-      projectId: store.projectId, 
-      routeParams: route.params,
-      currentProject: currentProject.value
-    })
-    
     // Get project ID from various sources
     let projectId = store.projectId
     
@@ -348,14 +340,12 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       // Try to get project ID from route params
       projectId = route.params.id || route.params.projectId
       if (projectId) {
-        console.log('Setting project ID from route params:', projectId)
         // Set directly on the store state for immediate effect
         store.projectId = projectId
         store.$patch({ projectId })
       } else if (currentProject.value?.id) {
         // Try to get project ID from current project
         projectId = String(currentProject.value.id)
-        console.log('Setting project ID from current project:', projectId)
         // Set directly on the store state for immediate effect
         store.projectId = projectId
         store.$patch({ projectId })
@@ -364,8 +354,6 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       }
     }
     
-    console.log('Using project ID:', store.projectId)
-    
     // Handle directory creation for nested paths
     if (data.name.includes('/')) {
       // Extract directory and ensure it exists
@@ -373,14 +361,10 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       const fileName = pathParts.pop() || ''
       const directory = pathParts.join('/')
       
-      console.log(`Creating file in directory structure: ${directory}/${fileName}`)
-      
       try {
         // Try to create directory structure first, but continue if it fails
         // The enhanced ProjectService.createFile will handle this properly
-        console.log(`Ensuring directory exists: ${directory}`)
       } catch (dirErr) {
-        console.warn('Directory creation warning (continuing anyway):', dirErr)
         // Continue with file creation even if directory creation fails
       }
     }
@@ -397,7 +381,6 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       
       // Create any missing template files
       if (!fileNames.includes('templates/base.html')) {
-        console.log('Creating missing template file: templates/base.html')
         await createFile(
           'templates/base.html', 
           'html',
@@ -438,7 +421,6 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       }
       
       if (!fileNames.includes('templates/index.html')) {
-        console.log('Creating missing template file: templates/index.html')
         await createFile(
           'templates/index.html',
           'html',
@@ -459,7 +441,6 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       }
       
       if (!fileNames.includes('static/css/styles.css')) {
-        console.log('Creating missing template file: static/css/styles.css')
         await createFile(
           'static/css/styles.css',
           'css',
@@ -781,110 +762,55 @@ const isProjectNotFoundError = (error: any): boolean => {
 
 // Initialize workspace
 onMounted(async () => {
-  try {
-    console.log('onMounted - route params:', route.params)
+  // Extract project ID from route parameters
+  const projectId = route.params.id as string || ''
+  const isNewProject = route.query.new === 'true'
+  
+  if (projectId) {
+    // Use direct state mutation for immediate effect
+    store.projectId = projectId
+    store.$patch({ projectId })
     
-    // Force direct initialization of store with default values
-    if (!store.mode) {
-      store.$patch({ mode: 'chat' })
-    }
-    
-    // Make sure AI_MODELS is defined and has elements before accessing
-    if (AI_MODELS && Array.isArray(AI_MODELS) && AI_MODELS.length > 0 && !store.selectedModelId) {
-      store.$patch({ selectedModelId: AI_MODELS[0].id })
-    }
-    
-    // Set project ID from route params if not already set
-    const projectId = route.params.id || route.params.projectId
-    // Check if this is a new project (based on URL or referrer)
-    const isNewProject = Boolean(route.query.new === 'true' || 
-                              document.referrer?.includes('/create') ||
-                              document.referrer?.includes('/dashboard'))
-    
-    if (projectId) {
-      console.log('Setting project ID in onMounted:', projectId, isNewProject ? '(NEW PROJECT)' : '')
-      
-      // Use direct state mutation for immediate effect
-      store.projectId = projectId
-      store.$patch({ projectId })
-      
-      // Double-check that the project ID was set
-      console.log('After setting, store.projectId =', store.projectId)
-      
-      // Pre-emptively try to update API headers in case they weren't set
-      const token = localStorage.getItem('token')
-      if (token) {
-        try {
-          let tokenValue = token;
-          // Try to parse as JSON if it's a JSON string
-          if (token.startsWith('{') && token.endsWith('}')) {
-            const parsedToken = JSON.parse(token)
-            if (parsedToken && parsedToken.value) {
-              tokenValue = parsedToken.value
-            }
+    // Pre-emptively try to update API headers in case they weren't set
+    const token = localStorage.getItem('token')
+    if (token) {
+      try {
+        let tokenValue = token;
+        // Try to parse as JSON if it's a JSON string
+        if (token.startsWith('{') && token.endsWith('}')) {
+          const parsedToken = JSON.parse(token)
+          if (parsedToken && parsedToken.value) {
+            tokenValue = parsedToken.value
           }
-          
-          // Ensure the token is set in both API clients
-          api.defaults.headers.common['Authorization'] = `Token ${tokenValue}`
-          axios.defaults.headers.common['Authorization'] = `Token ${tokenValue}`
-          console.log('API Authorization header set from localStorage')
-        } catch (e) {
-          console.error('Error processing token from localStorage:', e)
         }
+        
+        // Ensure the token is set in both API clients
+        api.defaults.headers.common['Authorization'] = `Token ${tokenValue}`
+        axios.defaults.headers.common['Authorization'] = `Token ${tokenValue}`
+      } catch (e) {
+        // Handle error silently
       }
     }
-    
-    // Initialize the workspace
-    try {
-      await initializeWorkspace(isNewProject)
-      console.log('Workspace initialized successfully')
-    } catch (initError) {
-      console.error('Error during workspace initialization:', initError)
-      // Show error but don't fail completely - some features might still work
-      notify({ 
-        type: 'warning', 
-        message: 'Workspace initialization encountered issues. Some features may be limited.' 
-      })
-    }
-    
-    // Remove any existing event listeners to prevent duplicates
-    window.removeEventListener('model-changed', handleModelSelectionUpdated)
-    window.removeEventListener('mode-changed', handleModeSelectionUpdated)
-    
-    // Add event listeners for model and mode changes
-    window.addEventListener('model-changed', handleModelSelectionUpdated)
-    window.addEventListener('mode-changed', handleModeSelectionUpdated)
-    
-    // Check session status
-    try {
-      const response = await fetch('/api/v1/auth/session-status/')
-      if (!response.ok) {
-        throw new Error('Session status endpoint returned error')
-      }
-      
-      // Check if the response is JSON
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Session status endpoint returned non-JSON response')
-      }
-      
-      // Session management is available, start the interval
-      sessionCheckEnabled.value = true
-      sessionCheckInterval.value = window.setInterval(checkSession, 60000);
-    } catch (err) {
-      // Silently disable session checks without console warnings
-      sessionCheckEnabled.value = false
-    }
-    
-    // Add beforeunload event listener
-    window.addEventListener('beforeunload', handleBeforeUnload)
-  } catch (err: any) {
-    console.error('Error in onMounted', err)
+  }
+  
+  // Initialize the workspace
+  try {
+    await initializeWorkspace(isNewProject)
+  } catch (initError) {
+    // Show error but don't fail completely - some features might still work
     notify({ 
-      type: 'error', 
-      message: err.message || 'Failed to initialize workspace' 
+      type: 'warning', 
+      message: 'Workspace initialization encountered issues. Some features may be limited.' 
     })
   }
+  
+  // Remove any existing event listeners to prevent duplicates
+  window.removeEventListener('model-changed', handleModelSelectionUpdated)
+  window.removeEventListener('mode-changed', handleModeSelectionUpdated)
+  
+  // Add event listeners for model and mode changes
+  window.addEventListener('model-changed', handleModelSelectionUpdated)
+  window.addEventListener('mode-changed', handleModeSelectionUpdated)
 })
 
 onBeforeUnmount(() => {
@@ -960,8 +886,6 @@ const handleModeSelectionUpdated = (event: Event) => {
 // Add this function to initialize the builder
 const initializeWorkspace = async (isNewProject = false) => {
   try {
-    console.log('initializeWorkspace - starting with store.projectId =', store.projectId, isNewProject ? '(NEW PROJECT)' : '')
-    
     // Set default models directly
     const defaultModels = ModelService.getDefaultModels()
     
@@ -979,7 +903,6 @@ const initializeWorkspace = async (isNewProject = false) => {
           store.$patch({ selectedModelId: defaultModelId })
         }
       } catch (err) {
-        console.error('Error initializing models', err)
         notify({ 
           type: 'warning', 
           message: 'Failed to initialize AI models. Some features may be limited.' 
@@ -1004,21 +927,14 @@ const initializeWorkspace = async (isNewProject = false) => {
     
     // Ensure we have a project ID
     let projectId = store.projectId
-    console.log('initializeWorkspace - using projectId from store:', projectId)
     
     if (!projectId) {
-      console.warn('No project ID in store, trying to get from route params')
       const routeProjectId = route.params.id || route.params.projectId
       if (routeProjectId) {
-        console.log('Setting project ID from route params:', routeProjectId)
         // Set directly on the store state for immediate effect
         store.projectId = routeProjectId
         store.$patch({ projectId: routeProjectId })
         projectId = routeProjectId
-        
-        console.log('After setting from route, store.projectId =', store.projectId)
-      } else {
-        console.error('No project ID available in store or route params')
       }
     }
     
@@ -1027,7 +943,6 @@ const initializeWorkspace = async (isNewProject = false) => {
       try {
         // Ensure the store has the project ID
         if (!store.projectId) {
-          console.log('Ensuring store has project ID:', projectId)
           store.projectId = projectId
         }
         
@@ -1038,10 +953,8 @@ const initializeWorkspace = async (isNewProject = false) => {
           await projectStore.fetchProject(projectId, isNewProject)
           projectFetched = true;
         } catch (projectErr) {
-          console.error('Error fetching project data:', projectErr);
           // Handle 404 (Not Found) errors by redirecting to projects page
           if (isProjectNotFoundError(projectErr) || projectErr?.response?.status === 404) {
-            console.log('Project not found, redirecting to projects page')
             redirectToProjectsPage('Project not found or has been deleted')
             return
           } else if (projectErr?.response?.status === 403) {
@@ -1058,7 +971,6 @@ const initializeWorkspace = async (isNewProject = false) => {
         }
         
         // Load project files - this can work even if the project details couldn't be fetched
-        console.log('Loading project files for project ID:', projectId)
         try {
           const filesResponse = await ProjectService.getProjectFiles(projectId, isNewProject)
           if (filesResponse && Array.isArray(filesResponse)) {
@@ -1067,58 +979,43 @@ const initializeWorkspace = async (isNewProject = false) => {
             // Check if project has files, if not ensure project is initialized
             if (filesResponse.length === 0) {
               try {
-                console.log('No files found. Initializing project...')
-                
                 // First, try to initialize the project
                 const initResult = await BuilderService.initializeProject(projectId)
-                console.log('Project initialization result:', initResult)
                 
                 if (initResult && initResult.success) {
                   // Wait a moment for files to be created
                   await new Promise(resolve => setTimeout(resolve, 1000))
                   
                   // Reload project files after backend initialization
-                  console.log('Reloading project files after initialization...')
                   const updatedFiles = await ProjectService.getProjectFiles(projectId, true)
+                  
                   if (updatedFiles && Array.isArray(updatedFiles)) {
                     store.$patch({ files: updatedFiles })
                     
-                    if (updatedFiles.length === 0) {
-                      // If initialization failed, try to create the files manually
-                      console.warn('Project initialization may not have completed successfully. Trying manual file creation...')
-                      
-                      // Same file creation code as above (templates/base.html, templates/index.html, static/css/styles.css)
-                      // ... (same createFile calls as above)
-                    } else {
+                    if (updatedFiles.length > 0) {
                       notify({ 
                         type: 'success', 
                         message: 'Project initialized successfully' 
                       })
+                    } else {
+                      notify({ 
+                        type: 'warning', 
+                        message: 'Project initialization did not create any files' 
+                      })
                     }
                   }
                 }
-              } catch (initErr) {
-                console.error('Error during project initialization:', initErr)
-                
-                // Check if this is a not found error
-                if (isProjectNotFoundError(initErr)) {
-                  redirectToProjectsPage('Project not found or has been deleted')
-                  return
-                }
-                
+              } catch (err) {
                 notify({ 
                   type: 'warning', 
-                  message: 'Project initialization encountered issues. Some features may be limited.' 
+                  message: 'Project initialization failed' 
                 })
               }
             }
           }
         } catch (filesErr) {
-          console.error('Error loading project files:', filesErr)
-          
           // If this is a 404 error, redirect to projects page
           if (isProjectNotFoundError(filesErr)) {
-            console.log('Project not found when loading files, redirecting to projects page')
             redirectToProjectsPage('Project not found or has been deleted')
             return
           }
@@ -1133,8 +1030,6 @@ const initializeWorkspace = async (isNewProject = false) => {
           if (isNewProject) {
             // For new projects, try to initialize directly
             try {
-              console.log('New project detected. Initializing...')
-              
               // Initialize the project and create default files
               const initResult = await BuilderService.initializeProject(projectId)
               if (initResult && initResult.success) {
@@ -1160,8 +1055,6 @@ const initializeWorkspace = async (isNewProject = false) => {
                 }
               }
             } catch (err) {
-              console.error('Error during direct project initialization:', err)
-              
               // Check if this is a not found error
               if (isProjectNotFoundError(err)) {
                 redirectToProjectsPage('Project not found or has been deleted')
@@ -1179,8 +1072,6 @@ const initializeWorkspace = async (isNewProject = false) => {
           })
         }
       } catch (err) {
-        console.error('Error loading project data', err)
-        
         // Check if this is a not found error
         if (isProjectNotFoundError(err)) {
           redirectToProjectsPage('Project not found or has been deleted')
@@ -1193,12 +1084,9 @@ const initializeWorkspace = async (isNewProject = false) => {
         })
       }
     } else {
-      console.error('Cannot initialize workspace: No project ID available')
       redirectToProjectsPage('Failed to initialize workspace: No project ID available')
     }
   } catch (err) {
-    console.error('Error initializing workspace', err)
-    
     // Check if this is a not found error
     if (isProjectNotFoundError(err)) {
       redirectToProjectsPage('Project not found or has been deleted')

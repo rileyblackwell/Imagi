@@ -258,7 +258,6 @@ async function fetchDashboardData() {
         recentActivities.value = await projectStore.fetchActivities()
       }
     } catch (err) {
-      console.warn('Activities fetch failed:', err)
       recentActivities.value = []
     }
     
@@ -270,14 +269,13 @@ async function fetchDashboardData() {
         creditsUsed.value = stats?.creditsUsed || 0
       }
     } catch (err) {
-      console.warn('Stats fetch failed:', err)
+      // Handle error silently
     }
   } catch (err) {
     showNotification({
       type: 'error',
       message: 'Failed to load dashboard data'
     })
-    console.error('Dashboard data fetch error:', err)
   }
 }
 

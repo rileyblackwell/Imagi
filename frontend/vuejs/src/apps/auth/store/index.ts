@@ -48,7 +48,6 @@ export const useAuthStore = defineStore('auth-module', () => {
     } catch (err: any) {
       const errorMessage = err.message || 'Login failed'
       error.value = errorMessage
-      console.error('Login error:', errorMessage)
       throw err
     } finally {
       loading.value = false

@@ -69,12 +69,9 @@ export const ProjectService = {
     // Check auth token before making requests
     const authHeader = api.defaults.headers.common['Authorization']
     if (!authHeader) {
-      console.error('No Authorization header set for project fetch')
-      
       // Try to get projects from local cache as fallback
       const cachedProjects = this._getCachedProjects()
       if (cachedProjects) {
-        console.debug('Using cached projects due to missing auth header:', cachedProjects.length)
         return cachedProjects
       }
       
@@ -84,7 +81,6 @@ export const ProjectService = {
     // Try to get projects from local cache while waiting for API
     const cachedProjects = this._getCachedProjects()
     if (cachedProjects) {
-      console.debug('Using cached projects while fetching from API:', cachedProjects.length)
       // We'll still try the API, but return the cached data immediately
       setTimeout(() => this._refreshProjectsInBackground(authHeader), 100)
       return cachedProjects
@@ -478,7 +474,6 @@ export const ProjectService = {
         lastUpdateTime: new Date().toISOString()
       }
     } catch (error) {
-      console.error('Failed to fetch stats:', error)
       return { 
         activeBuildCount: 0, 
         apiCallCount: 0, 

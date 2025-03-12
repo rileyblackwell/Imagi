@@ -55,7 +55,6 @@ watch(() => router.currentRoute.value.fullPath, () => {
   
   if (tokenData && userData && !authStore.isAuthenticated) {
     try {
-      console.log('Restoring auth state on route change');
       const token = JSON.parse(tokenData)?.value;
       const user = JSON.parse(userData);
       
@@ -63,7 +62,7 @@ watch(() => router.currentRoute.value.fullPath, () => {
         authStore.restoreAuthState(user, token);
       }
     } catch (error) {
-      console.error('Error restoring auth state:', error);
+      // Handle error silently
     }
   }
 });
@@ -84,7 +83,7 @@ onMounted(async () => {
       }
     });
   } catch (error) {
-    console.error('Failed to initialize auth:', error);
+    // Handle error silently
   }
 });
 

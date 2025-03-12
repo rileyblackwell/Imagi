@@ -181,8 +181,6 @@ async function createProject(projectData: { name: string; description: string })
   isCreating.value = true
   
   try {
-    console.log('Creating new project:', projectData)
-    
     const newProject = await projectStore.createProject(projectData)
     
     showNotification({
@@ -197,8 +195,6 @@ async function createProject(projectData: { name: string; description: string })
       params: { id: newProject.id.toString() }
     })
   } catch (error: any) {
-    console.error('Error creating project:', error)
-    
     showNotification({
       title: 'Error',
       message: error?.message || 'Failed to create project',
@@ -214,15 +210,7 @@ async function createProject(projectData: { name: string; description: string })
  * This is the ONLY place that should handle loading the list of all projects
  */
 const fetchProjects = async (force = false) => {
-  console.log('BuilderDashboard: fetchProjects called', {
-    authState: authStore.isAuthenticated,
-    projectStoreAuthState: projectStore.isAuthenticated,
-    force,
-    isInitializing: isInitializing.value
-  })
-  
   if (!authStore.isAuthenticated) {
-    console.log('User not authenticated, skipping project fetch')
     isInitializing.value = false
     return
   }
@@ -230,27 +218,17 @@ const fetchProjects = async (force = false) => {
   try {
     // First, ensure project store auth state is synchronized
     if (projectStore.isAuthenticated !== authStore.isAuthenticated) {
-      console.log('Synchronizing project store auth state with global auth store')
       projectStore.setAuthenticated(authStore.isAuthenticated)
     }
     
     // Ensure we have a valid token set in the API headers
     if (authStore.token && !api.defaults.headers.common['Authorization']) {
-      console.log('Setting authorization header from auth store token')
       api.defaults.headers.common['Authorization'] = `Token ${authStore.token}`
     }
     
-    console.log('Fetching projects list, force =', force)
     await projectStore.fetchProjects(force)
     
-    if (!projectStore.hasProjects && !projectStore.error) {
-      console.log('No projects found')
-    } else {
-      console.log('Projects loaded successfully:', projectStore.projects.length)
-    }
   } catch (error: any) {
-    console.error('Error fetching projects:', error)
-    
     showNotification({
       title: 'Error',
       message: error?.message || 'Failed to load projects',
@@ -265,7 +243,6 @@ const fetchProjects = async (force = false) => {
  * Retry fetching projects if there was an error
  */
 const retryFetch = () => {
-  console.log('Retrying fetch with enhanced diagnostics...')
   projectStore.clearError()
   retryFetchWithDiagnostics()
 }
@@ -294,7 +271,6 @@ const confirmDelete = async (projectId: string, projectName: string) => {
   })
   
   if (!confirmed) {
-    console.log('Project deletion cancelled by user')
     return
   }
   
@@ -302,8 +278,6 @@ const confirmDelete = async (projectId: string, projectName: string) => {
   projectStore.setLoading(true)
   
   try {
-    console.log('Deleting project:', projectId)
-    
     await projectStore.deleteProject(projectId)
     
     showNotification({
@@ -312,8 +286,6 @@ const confirmDelete = async (projectId: string, projectName: string) => {
       type: 'success'
     })
   } catch (error: any) {
-    console.error('Error deleting project:', error)
-    
     showNotification({
       title: 'Error',
       message: error?.message || `Failed to delete project "${projectName}"`,
@@ -330,19 +302,15 @@ const confirmDelete = async (projectId: string, projectName: string) => {
  * This bypasses the stores and directly tests API endpoints
  */
 const testApiConnection = async () => {
-  console.log('Testing API connection directly...')
-  
   try {
     // Get token
     const tokenData = localStorage.getItem('token')
     if (!tokenData) {
-      console.error('No token found in localStorage')
       return
     }
     
     const parsedToken = JSON.parse(tokenData)
     if (!parsedToken || !parsedToken.value) {
-      console.error('Invalid token format')
       return
     }
     
@@ -358,37 +326,28 @@ const testApiConnection = async () => {
     
     for (const endpoint of endpoints) {
       try {
-        console.log(`Testing endpoint: ${endpoint}`)
         const response = await api.get(endpoint, {
           headers: {
             'Authorization': `Token ${token}`
           }
         })
         
-        console.log(`Endpoint ${endpoint} response:`, {
-          status: response.status,
-          data: response.data
-        })
-        
-        // If we get a successful response, use it to update projects
         if (Array.isArray(response.data) || response.data?.results) {
           const projectData = Array.isArray(response.data) ? response.data : response.data.results
           projectStore.updateProjects(projectData)
-          console.log('Projects updated from direct API test:', projectData.length)
           return
         }
       } catch (error) {
-        console.error(`Error testing endpoint ${endpoint}:`, error)
+        // Handle error silently
       }
     }
   } catch (error) {
-    console.error('Error in API connection test:', error)
+    // Handle error silently
   }
 }
 
 // Retry utility
 const retryFetchWithDiagnostics = async () => {
-  console.log('Retrying fetch with diagnostics...')
   projectStore.clearError()
   
   // First try direct API testing
@@ -404,11 +363,8 @@ const retryFetchWithDiagnostics = async () => {
  */
 const synchronizeStores = async () => {
   try {
-    console.log('Synchronizing stores...')
-    
     // Force auth initialization if needed
     if (!authStore.initialized) {
-      console.log('Auth store not initialized, initializing...')
       await authStore.initAuth()
     }
     
@@ -416,7 +372,6 @@ const synchronizeStores = async () => {
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // Sync project store auth state with auth store
-    console.log('Setting project store auth state to match auth store:', authStore.isAuthenticated)
     projectStore.setAuthenticated(authStore.isAuthenticated)
     
     // Check localStorage token directly as final verification
@@ -429,29 +384,22 @@ const synchronizeStores = async () => {
           
           // Ensure API headers are set
           api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
-          console.log('Set API headers from localStorage token')
           
           // If we have a valid token but isAuthenticated is false, validate token with API
           if (!authStore.isAuthenticated) {
-            console.log('Valid token in storage but auth state is false, validating with API...')
             try {
               await authStore.validateAuth()
             } catch (validationError) {
-              console.error('Auth validation failed:', validationError)
+              // Handle error silently
             }
           }
         }
       } catch (e) {
-        console.error('Error parsing token from localStorage:', e)
+        // Handle error silently
       }
     }
-    
-    console.log('Store synchronization complete', {
-      authStoreState: authStore.isAuthenticated,
-      projectStoreState: projectStore.isAuthenticated
-    })
   } catch (error) {
-    console.error('Error synchronizing stores:', error)
+    // Handle error silently
   } finally {
     // If still not authenticated, make sure isInitializing is set to false
     if (!authStore.isAuthenticated) {
@@ -462,8 +410,6 @@ const synchronizeStores = async () => {
 
 // Initialize on component mount
 onMounted(async () => {
-  console.log('BuilderDashboard mounted, auth state:', authStore.isAuthenticated)
-  
   // Set initializing flag
   isInitializing.value = true
   
@@ -471,10 +417,8 @@ onMounted(async () => {
   await synchronizeStores()
   
   if (authStore.isAuthenticated) {
-    console.log('User is authenticated, fetching projects...')
     await fetchProjects(true) // Force refresh on initial load
   } else {
-    console.log('User is not authenticated, skipping project fetch')
     isInitializing.value = false
   }
 })
@@ -485,8 +429,6 @@ watch(
   (newValue, oldValue) => {
     // Only respond to meaningful changes
     if (newValue !== oldValue) {
-      console.log('Auth state changed from', oldValue, 'to', newValue)
-      
       // Sync auth state with project store whenever it changes
       projectStore.setAuthenticated(newValue)
       

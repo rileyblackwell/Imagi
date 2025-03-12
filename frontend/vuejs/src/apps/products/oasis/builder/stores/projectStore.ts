@@ -43,7 +43,6 @@ export const useProjectStore = defineStore('builder', () => {
   watch(
     () => globalAuthStore.isAuthenticated,
     (newValue) => {
-      console.log('Global auth state changed in project store watcher:', newValue)
       setAuthenticated(newValue)
     },
     { immediate: true }
@@ -52,11 +51,6 @@ export const useProjectStore = defineStore('builder', () => {
   // Getters
   const hasProjects = computed(() => {
     const hasValidProjects = projects.value.length > 0
-    console.debug('Store hasProjects:', { 
-      initialized: initialized.value,
-      projectCount: projects.value.length,
-      result: hasValidProjects
-    })
     return hasValidProjects
   })
 
@@ -108,14 +102,7 @@ export const useProjectStore = defineStore('builder', () => {
    * Called when auth state changes
    */
   function setAuthenticated(status: boolean) {
-    console.debug('Setting authenticated state:', {
-      oldState: isAuthenticated.value,
-      newState: status,
-      globalAuthState: globalAuthStore.isAuthenticated
-    })
-    
     if (isAuthenticated.value === status) {
-      console.debug('Auth state unchanged, skipping update')
       return
     }
     
@@ -125,14 +112,10 @@ export const useProjectStore = defineStore('builder', () => {
       // When authenticated, sync the auth token from global store to API
       const token = globalAuthStore.token
       if (token) {
-        console.debug('Setting API token from global auth store')
         api.defaults.headers.common['Authorization'] = `Token ${token}`
-      } else {
-        console.warn('Global auth store has isAuthenticated=true but no token')
       }
     } else {
       // Clear projects when user is not authenticated
-      console.debug('User not authenticated, clearing projects')
       projects.value = []
       projectsMap.value.clear()
       initialized.value = false
@@ -500,7 +483,6 @@ export const useProjectStore = defineStore('builder', () => {
       stats.value = statsData
       return statsData
     } catch (error) {
-      console.warn('Failed to fetch stats:', error)
       return {
         activeBuildCount: 0,
         apiCallCount: 0,
@@ -517,10 +499,7 @@ export const useProjectStore = defineStore('builder', () => {
    * Should not modify the projects list
    */
   async function fetchProject(projectId: string, isNewProject = false): Promise<Project | null> {
-    console.log(`ProjectStore: Fetching project ${projectId}${isNewProject ? ' (NEW PROJECT)' : ''}`)
-    
     if (!projectId) {
-      console.error('ProjectStore: Cannot fetch project, no projectId provided')
       return null
     }
     
