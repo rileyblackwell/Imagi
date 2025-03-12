@@ -26,7 +26,7 @@ class AgentConversationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = AgentConversation
-        fields = ('id', 'user', 'model_name', 'created_at', 'messages', 'system_prompt')
+        fields = ('id', 'user', 'model_name', 'provider', 'created_at', 'messages', 'system_prompt')
         read_only_fields = ('id', 'created_at')
 
 class ConversationHistorySerializer(serializers.ModelSerializer):
@@ -37,7 +37,7 @@ class ConversationHistorySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = AgentConversation
-        fields = ('id', 'user', 'model_name', 'created_at', 'messages', 'system_prompt')
+        fields = ('id', 'user', 'model_name', 'provider', 'created_at', 'messages', 'system_prompt')
         read_only_fields = fields
     
     def get_user(self, obj):

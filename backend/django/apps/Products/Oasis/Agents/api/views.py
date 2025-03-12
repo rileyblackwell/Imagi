@@ -32,7 +32,14 @@ class ConversationListCreateView(generics.ListCreateAPIView):
         ).order_by('-created_at')
 
     def perform_create(self, serializer):
-        conversation = serializer.save(user=self.request.user)
+        # Get provider from request data
+        provider = self.request.data.get('provider', 'anthropic')
+        
+        # Create the conversation with provider
+        conversation = serializer.save(
+            user=self.request.user,
+            provider=provider
+        )
         
         # Create initial system prompt
         template_agent = TemplateAgentService()
@@ -42,6 +49,9 @@ class ConversationListCreateView(generics.ListCreateAPIView):
             conversation=conversation,
             content=system_prompt['content']
         )
+        
+        # Return the conversation with provider information
+        return conversation
 
 class ConversationDetailView(generics.RetrieveDestroyAPIView):
     """Retrieve or delete a conversation."""
@@ -59,6 +69,9 @@ def send_message(request):
         conversation_id = request.data.get('conversation_id')
         user_input = request.data.get('message')
         model = request.data.get('model', 'claude-3-5-sonnet-20241022')
+        provider = request.data.get('provider', 'anthropic')  # Default to anthropic if not specified
+        mode = request.data.get('mode', 'chat')
+        file_path = request.data.get('file_path')
         
         if not all([conversation_id, user_input]):
             return Response({
@@ -84,10 +97,21 @@ def send_message(request):
         
         # Get agent response
         template_agent = TemplateAgentService()
+        
+        # Additional parameters for build mode
+        kwargs = {
+            'conversation_history': history,
+            'provider': provider
+        }
+        
+        # If in build mode and file_path is provided, add it to kwargs
+        if mode == 'build' and file_path:
+            kwargs['file_name'] = file_path
+        
         response = template_agent.process_message(
             user_input=user_input,
             model=model,
-            conversation_history=history
+            **kwargs
         )
         
         # Save agent response

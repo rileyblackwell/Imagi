@@ -135,6 +135,10 @@ export const BuilderService = {
 
     // Now data.model is guaranteed to be a string (not null)
     const modelId: string = data.model;
+    
+    // Get the model provider (openai or anthropic)
+    const modelInfo = AI_MODELS.find(m => m.id === modelId);
+    const provider = modelInfo?.provider || 'openai';
 
     // Check rate limits before making request
     await this.checkRateLimit(modelId)
@@ -155,6 +159,7 @@ export const BuilderService = {
       const messagePayload: any = {
         message: data.prompt,
         model: modelId,
+        provider: provider,
         mode: data.mode,
         file_path: data.file_path
       }
@@ -169,6 +174,7 @@ export const BuilderService = {
         // Create a new conversation first
         const conversationResponse = await api.post('/products/oasis/agents/conversations/', {
           model_name: modelId,
+          provider: provider,
           mode: data.mode
         })
         const newConversationId = conversationResponse.data.id
@@ -202,6 +208,10 @@ export const BuilderService = {
   }> {
     // Check rate limits before making request
     await this.checkRateLimit(data.model)
+    
+    // Get the model provider (openai or anthropic)
+    const modelInfo = AI_MODELS.find(m => m.id === data.model);
+    const provider = modelInfo?.provider || 'openai';
 
     // Validate message length
     const config = this.getConfig({ id: data.model } as AIModel)
@@ -219,6 +229,7 @@ export const BuilderService = {
       const messagePayload: any = {
         message: data.prompt,
         model: data.model,
+        provider: provider,
         mode: data.mode || 'chat'
       }
       
@@ -232,6 +243,7 @@ export const BuilderService = {
         // Create a new conversation first
         const conversationResponse = await api.post('/products/oasis/agents/conversations/', {
           model_name: data.model,
+          provider: provider,
           mode: data.mode || 'chat'
         })
         const newConversationId = conversationResponse.data.id

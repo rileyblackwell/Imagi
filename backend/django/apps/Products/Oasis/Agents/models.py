@@ -6,12 +6,17 @@ class AgentConversation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="agent_conversations")
     created_at = models.DateTimeField(auto_now_add=True)
     model_name = models.CharField(max_length=50, choices=[
-        ('gpt-4', 'GPT-4'),
-        ('claude-sonnet', 'Claude Sonnet'),
+        ('gpt-4o', 'GPT-4o'),
+        ('gpt-4o-mini', 'GPT-4o Mini'),
+        ('claude-3-5-sonnet-20241022', 'Claude 3.5 Sonnet'),
     ])
+    provider = models.CharField(max_length=20, choices=[
+        ('openai', 'OpenAI'),
+        ('anthropic', 'Anthropic'),
+    ], default='anthropic')
     
     def __str__(self):
-        return f"Agent Conversation {self.id} - {self.user.username} using {self.model_name}"
+        return f"Agent Conversation {self.id} - {self.user.username} using {self.model_name} ({self.provider})"
 
 
 class SystemPrompt(models.Model):

@@ -46,27 +46,43 @@ export const useBuilderStore = defineStore('builder', {
     },
 
     setMode(mode: BuilderMode) {
+      console.log('setMode action called', { mode, currentMode: this.mode })
+      
       if (this.canSwitchMode) {
         this.mode = mode
+        console.log('Mode updated in store', this.mode)
+        
         // Clear conversation when switching to build mode
         if (mode === 'build') {
           this.conversation = []
         }
+      } else {
+        console.warn('Cannot switch mode due to unsaved changes or processing')
       }
     },
 
     setModels(models: AIModel[]) {
+      console.log('setModels action called', { models })
+      
       this.availableModels = models
+      console.log('Models updated in store', this.availableModels)
+      
       // Set default model if none selected
       if (!this.selectedModelId && models.length > 0) {
         this.selectedModelId = models[0].id
+        console.log('Default model set', this.selectedModelId)
       }
     },
 
     selectModel(modelId: string) {
+      console.log('selectModel action called', { modelId, currentModelId: this.selectedModelId })
+      
       const model = this.availableModels.find(m => m.id === modelId)
       if (model) {
         this.selectedModelId = modelId
+        console.log('Model selected in store', this.selectedModelId)
+      } else {
+        console.warn('Model not found in available models', { modelId, availableModels: this.availableModels })
       }
     },
 

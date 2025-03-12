@@ -127,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useBuilderStore } from '../stores/builderStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
@@ -135,7 +135,7 @@ import { useChatMode } from '../composables/useChatMode'
 import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
 import { AI_MODELS } from '../types/builder'
-import { ModelService } from '../services'
+import { ModelService, BuilderService, ProjectService } from '../services'
 
 // Shared Components
 import ErrorBoundary from '../components/atoms/utility/ErrorBoundary.vue'
@@ -213,22 +213,26 @@ const promptPlaceholder = computed(() =>
 
 // Event handlers
 const handleModelSelect = (modelId: string) => {
+  console.log('handleModelSelect called in BuilderWorkspace', { modelId, currentModelId: store.selectedModelId })
+  
   // Verify the model exists in available models or default models
   const modelExists = store.availableModels.some(model => model.id === modelId) || 
                      AI_MODELS.some(model => model.id === modelId)
   
   if (modelId && modelExists) {
     try {
-      // Try to use the store action if available
-      if (typeof store.selectModel === 'function') {
-        store.selectModel(modelId)
-      } else {
-        // Fallback: directly update the store state if the action is not available
-        store.$patch({ selectedModelId: modelId })
-      }
+      console.log('Model exists, updating store', { modelId })
+      
+      // Direct update to the store state - use reactive update
+      store.selectedModelId = modelId
+      
+      // Also use patch to ensure reactivity
+      store.$patch({ selectedModelId: modelId })
       
       // Force a store update to ensure reactivity
       store.$patch({})
+      
+      console.log('Store updated', { storeModelId: store.selectedModelId })
       
       // Optionally notify the user about the model change
       const modelName = store.availableModels.find(m => m.id === modelId)?.name || 
@@ -242,14 +246,38 @@ const handleModelSelect = (modelId: string) => {
       // Force a UI update by triggering a window resize event
       setTimeout(() => {
         window.dispatchEvent(new Event('resize'))
+        console.log('Window resize event dispatched')
       }, 50)
+      
+      // Also dispatch a custom event to ensure other components are updated
+      const event = new CustomEvent('model-changed', { 
+        detail: modelId,
+        bubbles: true,
+        cancelable: true
+      })
+      window.dispatchEvent(event)
+      console.log('Custom model-changed event dispatched via window', { 
+        modelId,
+        eventType: event.type,
+        eventDetail: event.detail
+      })
+      
+      console.log('Model selection complete', { 
+        modelId, 
+        storeModelId: store.selectedModelId 
+      })
+      
+      // Log store state after update
+      logStoreState()
     } catch (error) {
+      console.error('Error selecting model', error)
       notify({
         type: 'error',
         message: 'Failed to select model. Please try again.'
       })
     }
   } else {
+    console.warn('Model does not exist', { modelId })
     notify({
       type: 'warning',
       message: 'Selected model is not available'
@@ -258,28 +286,70 @@ const handleModelSelect = (modelId: string) => {
 }
 
 const handleModeSwitch = (mode: 'chat' | 'build') => {
+  console.log('handleModeSwitch called in BuilderWorkspace', { mode, currentMode: store.mode })
+  
   if (store.mode !== mode) {
-    // Use the store action if available
-    if (typeof store.setMode === 'function') {
-      store.setMode(mode)
-    } else {
-      // Fallback: directly update the store state
+    try {
+      console.log('Mode differs, updating store', { mode })
+      
+      // Direct update to the store state - use reactive update
+      store.mode = mode
+      
+      // Also use patch to ensure reactivity
       store.$patch({ mode })
+      
+      // Force a store update to ensure reactivity
+      store.$patch({})
+      
+      console.log('Store updated', { storeMode: store.mode })
+      
+      // Clear conversation when switching to build mode
+      if (mode === 'build') {
+        store.$patch({ conversation: [] })
+        console.log('Conversation cleared for build mode')
+      }
+      
+      // Notify the user about the mode change
+      notify({ 
+        type: 'info', 
+        message: `Switched to ${mode} mode` 
+      })
+      
+      // Force a UI update by triggering a window resize event
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+        console.log('Window resize event dispatched')
+      }, 50)
+      
+      // Also dispatch a custom event to ensure other components are updated
+      const event = new CustomEvent('mode-changed', { 
+        detail: mode,
+        bubbles: true,
+        cancelable: true
+      })
+      window.dispatchEvent(event)
+      console.log('Custom mode-changed event dispatched via window', { 
+        mode,
+        eventType: event.type,
+        eventDetail: event.detail
+      })
+      
+      console.log('Mode switch complete', { 
+        mode, 
+        storeMode: store.mode 
+      })
+      
+      // Log store state after update
+      logStoreState()
+    } catch (error) {
+      console.error('Error switching mode', error)
+      notify({
+        type: 'error',
+        message: 'Failed to switch mode. Please try again.'
+      })
     }
-    
-    // Force a store update to ensure reactivity
-    store.$patch({})
-    
-    // Notify the user about the mode change
-    notify({ 
-      type: 'info', 
-      message: `Switched to ${mode} mode` 
-    })
-    
-    // Force a UI update by triggering a window resize event
-    setTimeout(() => {
-      window.dispatchEvent(new Event('resize'))
-    }, 50)
+  } else {
+    console.log('Mode is already set to', mode)
   }
 }
 
@@ -313,8 +383,28 @@ const handleUndo = async () => {
   }
 }
 
-const handlePreview = () => {
-  // Implement preview functionality
+const handlePreview = async () => {
+  try {
+    store.setProcessing(true)
+    
+    // Call the backend to generate a preview URL
+    const response = await BuilderService.generatePreview(store.projectId || '')
+    
+    if (response && response.previewUrl) {
+      // Open the preview URL in a new tab
+      window.open(response.previewUrl, '_blank')
+      notify({ type: 'success', message: 'Preview launched successfully' })
+    } else {
+      throw new Error('Failed to generate preview URL')
+    }
+  } catch (err: any) {
+    notify({ 
+      type: 'error', 
+      message: err.message || 'Failed to launch preview' 
+    })
+  } finally {
+    store.setProcessing(false)
+  }
 }
 
 // Handle prompt submission
@@ -338,6 +428,16 @@ const handlePrompt = async () => {
       // For chat mode, use the chat service with the selected model
       await sendMessage(originalPrompt)
     } else {
+      // For build mode, ensure a file is selected when in build mode
+      if (!store.selectedFile) {
+        notify({
+          type: 'warning',
+          message: 'Please select a file first'
+        })
+        prompt.value = originalPrompt // Restore prompt
+        return
+      }
+      
       // For build mode, use the code generation service with the selected model and file
       const response = await generateCodeFromPrompt(originalPrompt)
       if (response.success) {
@@ -484,15 +584,58 @@ const refreshSession = async () => {
   }
 }
 
+// Debugging function to log store state
+const logStoreState = () => {
+  console.log('Current store state:', {
+    mode: store.mode,
+    selectedModelId: store.selectedModelId,
+    availableModels: store.availableModels?.length || 0,
+    files: store.files?.length || 0,
+    conversation: store.conversation?.length || 0,
+    isProcessing: store.isProcessing,
+    unsavedChanges: store.unsavedChanges,
+    error: store.error
+  })
+}
+
 // Initialize workspace
 onMounted(async () => {
   try {
+    console.log('Component mounted, initializing workspace')
+    
+    // Log initial store state
+    logStoreState()
+    
+    // Force direct initialization of store with default values
+    if (!store.mode) {
+      store.$patch({ mode: 'chat' })
+      console.log('Set default mode: chat')
+    }
+    
+    // Make sure AI_MODELS is defined and has elements before accessing
+    if (AI_MODELS && Array.isArray(AI_MODELS) && AI_MODELS.length > 0 && !store.selectedModelId) {
+      store.$patch({ selectedModelId: AI_MODELS[0].id })
+      console.log('Set default model:', AI_MODELS[0].id)
+    }
+    
+    // Log store state after defaults
+    logStoreState()
+    
     // Initialize the workspace
     await initializeWorkspace()
     
+    // Log store state after initialization
+    logStoreState()
+    
+    // Remove any existing event listeners to prevent duplicates
+    window.removeEventListener('model-changed', handleModelSelectionUpdated)
+    window.removeEventListener('mode-changed', handleModeSelectionUpdated)
+    
     // Add event listeners for model and mode changes
-    document.addEventListener('model-selection-updated', handleModelSelectionUpdated)
-    document.addEventListener('mode-selection-updated', handleModeSelectionUpdated)
+    window.addEventListener('model-changed', handleModelSelectionUpdated)
+    window.addEventListener('mode-changed', handleModeSelectionUpdated)
+    
+    console.log('Event listeners set up for model-changed and mode-changed events on window')
     
     // Check session status
     try {
@@ -517,7 +660,18 @@ onMounted(async () => {
     
     // Add beforeunload event listener
     window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    // Log final state after initialization
+    console.log('Component initialization complete', {
+      selectedModelId: store.selectedModelId,
+      mode: store.mode,
+      files: store.files?.length || 0
+    })
+    
+    // Final store state log
+    logStoreState()
   } catch (err: any) {
+    console.error('Error in onMounted', err)
     notify({ 
       type: 'error', 
       message: err.message || 'Failed to initialize workspace' 
@@ -527,8 +681,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   // Clean up event listeners
-  document.removeEventListener('model-selection-updated', handleModelSelectionUpdated)
-  document.removeEventListener('mode-selection-updated', handleModeSelectionUpdated)
+  window.removeEventListener('model-changed', handleModelSelectionUpdated)
+  window.removeEventListener('mode-changed', handleModeSelectionUpdated)
   
   // Clean up interval
   if (sessionCheckInterval.value) {
@@ -541,56 +695,121 @@ onBeforeUnmount(() => {
 
 // Handle model selection updates
 const handleModelSelectionUpdated = (event: Event) => {
+  // Log the current state for debugging
+  console.log('Model selection updated event received', {
+    event,
+    currentModelId: store.selectedModelId,
+    availableModels: store.availableModels
+  })
+
   // Force UI update by triggering a window resize event
   window.dispatchEvent(new Event('resize'))
   
   // Notify user of model change
   const customEvent = event as CustomEvent
-  if (customEvent.detail?.modelId) {
+  if (customEvent.detail) {
+    const modelId = customEvent.detail
+    
+    console.log('Updating store with new model ID from event', { modelId })
+    
+    // Ensure the store is updated with the new model ID
+    store.$patch({ selectedModelId: modelId })
+    
+    console.log('Store updated from event', { storeModelId: store.selectedModelId })
+    
+    const modelName = store.availableModels.find(m => m.id === modelId)?.name || 
+                     AI_MODELS.find(m => m.id === modelId)?.name || 
+                     'new model'
+    
     notify({
       type: 'info',
-      message: `Model changed to ${store.selectedModel?.name || 'new model'}`
+      message: `Model changed to ${modelName}`
     })
+    
+    // Log the updated state
+    console.log('After model selection update', {
+      modelId,
+      currentModelId: store.selectedModelId
+    })
+    
+    // Log store state after update
+    logStoreState()
   }
 }
 
 // Handle mode selection updates
 const handleModeSelectionUpdated = (event: Event) => {
+  // Log the current state for debugging
+  console.log('Mode selection updated event received', {
+    event,
+    currentMode: store.mode
+  })
+
   // Force UI update by triggering a window resize event
   window.dispatchEvent(new Event('resize'))
   
   // Notify user of mode change
   const customEvent = event as CustomEvent
-  if (customEvent.detail?.mode) {
+  if (customEvent.detail) {
+    const mode = customEvent.detail
+    
+    console.log('Updating store with new mode from event', { mode })
+    
+    // Ensure the store is updated - use direct patch instead of method call
+    store.$patch({ mode })
+    
+    console.log('Store updated from event', { storeMode: store.mode })
+    
+    // Clear conversation when switching to build mode
+    if (mode === 'build') {
+      store.$patch({ conversation: [] })
+      console.log('Conversation cleared for build mode from event')
+    }
+    
     notify({
       type: 'info',
-      message: `Switched to ${customEvent.detail.mode} mode`
+      message: `Switched to ${mode} mode`
     })
+    
+    // Log the updated state
+    console.log('After mode selection update', {
+      mode,
+      currentMode: store.mode
+    })
+    
+    // Log store state after update
+    logStoreState()
   }
 }
 
 // Add this function to initialize the builder
 const initializeWorkspace = async () => {
   try {
+    console.log('Initializing workspace')
+    
     // Set default models directly
     const defaultModels = ModelService.getDefaultModels()
+    console.log('Default models', defaultModels)
     
     // Ensure we're using the store correctly
     if (defaultModels && Array.isArray(defaultModels)) {
       try {
-        // Set default models in the store
-        store.setModels(defaultModels)
+        // Set models directly in the store state instead of using setModels
+        store.$patch({ availableModels: defaultModels })
+        console.log('Models set in store', store.availableModels)
         
         // If no model is selected, select the first one
         if (!store.selectedModelId && defaultModels.length > 0) {
-          if (typeof store.selectModel === 'function') {
-            store.selectModel(defaultModels[0].id)
-          } else {
-            // Fallback: directly update the store state
-            store.$patch({ selectedModelId: defaultModels[0].id })
-          }
+          const defaultModelId = defaultModels[0].id
+          console.log('Setting default model', defaultModelId)
+          
+          // Direct update to the store state
+          store.$patch({ selectedModelId: defaultModelId })
+          
+          console.log('Default model set', store.selectedModelId)
         }
       } catch (err) {
+        console.error('Error initializing models', err)
         notify({ 
           type: 'warning', 
           message: 'Failed to initialize AI models. Some features may be limited.' 
@@ -601,18 +820,21 @@ const initializeWorkspace = async () => {
     // Try to load models from API as well
     try {
       await loadModels()
+      console.log('Models loaded from API', store.availableModels)
     } catch (err) {
+      console.warn('Failed to load models from API, using defaults', err)
       // Silently fall back to default models
     }
     
     // Initialize mode if needed
     if (!store.mode) {
-      try {
-        store.setMode('chat')
-      } catch (modeError) {
-        // Fallback: directly update the store state if the action fails
-        store.$patch({ mode: 'chat' })
-      }
+      const defaultMode = 'chat'
+      console.log('Setting default mode', defaultMode)
+      
+      // Direct update to the store state
+      store.$patch({ mode: defaultMode })
+      
+      console.log('Default mode set', store.mode)
     }
     
     // Load project data if we have a project ID
@@ -620,20 +842,46 @@ const initializeWorkspace = async () => {
     if (projectId) {
       try {
         await projectStore.fetchProject(projectId)
+        console.log('Project fetched', projectStore.currentProject)
+        
+        // Load project files
+        const filesResponse = await ProjectService.getProjectFiles(projectId)
+        if (filesResponse && Array.isArray(filesResponse)) {
+          store.$patch({ files: filesResponse })
+          console.log('Project files loaded', store.files?.length || 0)
+        }
       } catch (err: any) {
+        console.error('Error loading project data', err)
         notify({ 
           type: 'error', 
           message: err.message || 'Failed to load project data' 
         })
       }
     }
+    
+    console.log('Workspace initialization complete', {
+      selectedModelId: store.selectedModelId,
+      mode: store.mode,
+      files: store.files?.length || 0
+    })
   } catch (err: any) {
+    console.error('Error initializing workspace', err)
     notify({ 
       type: 'error', 
       message: err.message || 'Failed to initialize workspace' 
     })
   }
 }
+
+// Watch for changes to the store's selectedModelId
+watch(() => store.selectedModelId, (newModelId, oldModelId) => {
+  console.log('Store selectedModelId changed', { newModelId, oldModelId })
+})
+
+// Watch for changes to the store's mode
+watch(() => store.mode, (newMode, oldMode) => {
+  console.log('Store mode changed', { newMode, oldMode })
+})
 </script>
 
 <style scoped>

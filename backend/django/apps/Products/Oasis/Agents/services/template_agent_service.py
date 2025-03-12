@@ -200,3 +200,81 @@ class TemplateAgentService(BaseAgentService):
                 result['response'] = fixed_content
         
         return result
+        
+    def process_message(self, user_input, model, **kwargs):
+        """
+        Process a message from the API endpoint.
+        This method is used by the API endpoint to process messages without creating a conversation.
+        """
+        conversation_history = kwargs.get('conversation_history', [])
+        provider = kwargs.get('provider', 'anthropic')
+        file_name = kwargs.get('file_name')
+        
+        # Prepare messages for the API call
+        api_messages = []
+        
+        # Add system prompt
+        system_prompt = self.get_system_prompt()
+        api_messages.append(system_prompt)
+        
+        # Add conversation history
+        for msg in conversation_history:
+            api_messages.append(msg)
+        
+        # Add current task context if file_name is provided
+        if file_name:
+            context_msg = {
+                "role": "system",
+                "content": f"\n=== CURRENT TASK ===\nYou are working on: {file_name}"
+            }
+            api_messages.append(context_msg)
+        
+        # Add user message
+        api_messages.append({
+            "role": "user",
+            "content": user_input
+        })
+        
+        # Make API call based on provider and model
+        try:
+            if provider == 'anthropic' or model.startswith('claude'):
+                # Extract messages for Claude (excluding system messages)
+                claude_messages = [
+                    msg for msg in api_messages 
+                    if msg["role"] != "system"
+                ]
+                
+                # Get system content
+                system_content = next(
+                    (msg["content"] for msg in api_messages if msg["role"] == "system"),
+                    self.get_system_prompt()["content"]
+                )
+                
+                completion = self.anthropic_client.messages.create(
+                    model=model,
+                    max_tokens=2048,
+                    system=system_content,
+                    messages=claude_messages
+                )
+                
+                if completion.content:
+                    response = completion.content[0].text
+                else:
+                    raise ValueError("Empty response from Claude API")
+            else:
+                # Use OpenAI for all other models
+                completion = self.openai_client.chat.completions.create(
+                    model=model,
+                    messages=api_messages
+                )
+                response = completion.choices[0].message.content
+            
+            # Fix any template issues if file_name is provided
+            if file_name:
+                response = self.fix_template_issues(response, file_name)
+            
+            return response
+            
+        except Exception as e:
+            print(f"Error in process_message: {str(e)}")
+            raise e
