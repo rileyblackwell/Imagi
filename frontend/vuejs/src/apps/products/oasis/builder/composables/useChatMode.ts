@@ -21,8 +21,7 @@ export function useChatMode() {
       throw new Error('Please select an AI model first')
     }
 
-    store.setProcessing(true)
-    store.setError(null)
+    store.$patch({ isProcessing: true, error: null })
 
     try {
       if (!store.projectId) {
@@ -37,16 +36,18 @@ export function useChatMode() {
 
       // Add messages to conversation history
       if (response.messages) {
-        response.messages.forEach(msg => store.addMessage(msg))
+        store.$patch({ 
+          conversation: [...store.conversation, ...response.messages] 
+        })
       }
 
       return response
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Failed to send message'
-      store.setError(error)
+      store.$patch({ error })
       throw err
     } finally {
-      store.setProcessing(false)
+      store.$patch({ isProcessing: false })
     }
   }
 
@@ -55,19 +56,18 @@ export function useChatMode() {
       if (store.projectId) {
         await BuilderService.clearConversation(store.projectId)
       }
-      store.reset()
+      store.$reset()
       conversationHistory.value = []
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Failed to clear conversation'
-      store.setError(error)
+      store.$patch({ error })
       throw err
     }
   }
 
   // Merged from useAI
   const fetchConversationHistory = async (projectId: string) => {
-    store.setProcessing(true)
-    store.setError(null)
+    store.$patch({ isProcessing: true, error: null })
 
     try {
       const response = await axios.get(`/api/v1/products/oasis/agents/conversations/${projectId}/`)
@@ -75,18 +75,18 @@ export function useChatMode() {
       
       // Also update the store conversation if needed
       if (response.data.messages && Array.isArray(response.data.messages)) {
-        // Update each message individually instead of using setConversation
-        store.reset() // Clear existing messages
-        response.data.messages.forEach((msg: AIMessage) => {
-          store.addMessage(msg)
+        // Reset the store and add new messages
+        store.$reset()
+        store.$patch({ 
+          conversation: response.data.messages 
         })
       }
     } catch (err) {
       // Set error without console logging
       const error = err instanceof Error ? err.message : 'Failed to fetch conversation history'
-      store.setError(error)
+      store.$patch({ error })
     } finally {
-      store.setProcessing(false)
+      store.$patch({ isProcessing: false })
     }
   }
 
@@ -96,7 +96,7 @@ export function useChatMode() {
       credits.value = response.data.credits
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Failed to fetch credits'
-      store.setError(error)
+      store.$patch({ error })
     }
   }
 

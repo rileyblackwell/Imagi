@@ -327,7 +327,43 @@ export const BuilderService = {
     } catch (error) {
       throw handleAPIError(error)
     }
-  }
+  },
+
+  // Project initialization - ensures the project files are created on the backend
+  async initializeProject(projectId: string): Promise<{ success: boolean }> {
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    try {
+      console.log(`Requesting project initialization for project ${projectId}`)
+      const response = await api.post(`/project-manager/projects/${projectId}/initialize/`)
+      console.log('Project initialization response:', response.data)
+      
+      // Return success or the actual data if available
+      return response.data?.success !== undefined 
+        ? response.data 
+        : { success: true }
+    } catch (error: any) {
+      // If we get a 409 status, it means the project is already initialized
+      if (error.response?.status === 409) {
+        console.log('Project is already initialized')
+        return { success: true }
+      }
+
+      console.error('Error initializing project:', error)
+      
+      // For 404 errors, we will treat this as "not yet created" and return success: false
+      // rather than throwing an error, as the project might still be in the creation process
+      if (error.response?.status === 404) {
+        console.warn('Project not found during initialization check - it might still be creating')
+        return { success: false }
+      }
+      
+      // For other errors, throw and let the caller handle it
+      throw handleAPIError(error)
+    }
+  },
 }
 
 // Export ModelService for backward compatibility

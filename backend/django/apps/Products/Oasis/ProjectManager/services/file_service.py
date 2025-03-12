@@ -1,40 +1,8 @@
-from typing import List, Optional
-from rest_framework.exceptions import ValidationError, NotFound
-from ..models import Project
-from ..services.project_service import ProjectGenerationService
 import os
 import uuid
 from datetime import datetime
-
-class ProjectService:
-    def __init__(self, user):
-        self.user = user
-        self.generation_service = ProjectGenerationService(user)
-
-    def get_active_projects(self) -> List[Project]:
-        """Get all active projects for the current user."""
-        return Project.objects.filter(user=self.user, is_active=True)
-
-    def create_project(self, project: Project) -> Project:
-        """Generate project files for a newly created project."""
-        try:
-            self.generation_service.create_project(project.name)
-            return project
-        except Exception as e:
-            project.delete()
-            raise ValidationError(f"Failed to generate project files: {str(e)}")
-
-    def get_project(self, project_id: int) -> Optional[Project]:
-        """Get a specific project by ID."""
-        return self.get_active_projects().filter(id=project_id).first()
-
-    def delete_project(self, project: Project) -> None:
-        """Delete a project and its associated files."""
-        try:
-            self.generation_service.delete_project(project.name)
-            project.delete()
-        except Exception as e:
-            raise ValidationError(f"Failed to delete project: {str(e)}")
+from rest_framework.exceptions import ValidationError, NotFound
+from .project_service import ProjectService
 
 class FileService:
     def __init__(self, user):
@@ -49,9 +17,9 @@ class FileService:
         # Get project directory path
         project_name = project.name
         timestamp = project.created_at.strftime("%Y%m%d%H%M%S")
-        sanitized_name = self.project_service.generation_service._sanitize_project_name(project_name)
+        sanitized_name = self.project_service._sanitize_project_name(project_name)
         unique_name = f"{sanitized_name}_{timestamp}"
-        project_path = os.path.join(self.project_service.generation_service.base_directory, unique_name)
+        project_path = os.path.join(self.project_service.base_directory, unique_name)
         
         # Check if directory exists
         if not os.path.exists(project_path):
@@ -105,9 +73,9 @@ class FileService:
         # Get project directory path
         project_name = project.name
         timestamp = project.created_at.strftime("%Y%m%d%H%M%S")
-        sanitized_name = self.project_service.generation_service._sanitize_project_name(project_name)
+        sanitized_name = self.project_service._sanitize_project_name(project_name)
         unique_name = f"{sanitized_name}_{timestamp}"
-        project_path = os.path.join(self.project_service.generation_service.base_directory, unique_name)
+        project_path = os.path.join(self.project_service.base_directory, unique_name)
         
         # Create full file path
         full_file_path = os.path.join(project_path, file_path)
@@ -163,9 +131,9 @@ class FileService:
         # Get project directory path
         project_name = project.name
         timestamp = project.created_at.strftime("%Y%m%d%H%M%S")
-        sanitized_name = self.project_service.generation_service._sanitize_project_name(project_name)
+        sanitized_name = self.project_service._sanitize_project_name(project_name)
         unique_name = f"{sanitized_name}_{timestamp}"
-        project_path = os.path.join(self.project_service.generation_service.base_directory, unique_name)
+        project_path = os.path.join(self.project_service.base_directory, unique_name)
         
         # Validate file data
         name = file_data.get('name', '')
@@ -225,9 +193,9 @@ class FileService:
         # Get project directory path
         project_name = project.name
         timestamp = project.created_at.strftime("%Y%m%d%H%M%S")
-        sanitized_name = self.project_service.generation_service._sanitize_project_name(project_name)
+        sanitized_name = self.project_service._sanitize_project_name(project_name)
         unique_name = f"{sanitized_name}_{timestamp}"
-        project_path = os.path.join(self.project_service.generation_service.base_directory, unique_name)
+        project_path = os.path.join(self.project_service.base_directory, unique_name)
         
         # Create full file path
         full_file_path = os.path.join(project_path, file_path)
@@ -276,4 +244,4 @@ class FileService:
             'content': content,
             'type': file_type,
             'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
-        }
+        } 

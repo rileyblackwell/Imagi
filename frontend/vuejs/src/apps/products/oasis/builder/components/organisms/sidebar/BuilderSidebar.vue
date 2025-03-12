@@ -177,7 +177,7 @@ const emit = defineEmits<{
   (e: 'update:modelId', value: string): void
   (e: 'update:mode', value: BuilderMode): void
   (e: 'selectFile', file: ProjectFile): void
-  (e: 'createFile', data: { name: string; type: string }): void
+  (e: 'createFile', data: { name: string; type: string; content?: string }): void
   (e: 'undo'): void
   (e: 'preview'): void
 }>()

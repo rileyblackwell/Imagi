@@ -7,6 +7,9 @@ urlpatterns = [
     # Builder endpoints
     path('builder/', include('apps.Builder.api.urls')),
     
+    # Project Manager endpoints
+    path('project-manager/', include('apps.Products.Oasis.ProjectManager.api.urls')),
+    
     # Payments endpoints
     path('payments/', include('apps.Payments.api.urls')),
     

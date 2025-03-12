@@ -42,7 +42,9 @@ export const useBuilderStore = defineStore('builder', {
 
   actions: {
     setProjectId(id: string | null) {
+      console.log('setProjectId action called', { id, currentProjectId: this.projectId })
       this.projectId = id
+      console.log('Project ID updated in store', this.projectId)
     },
 
     setMode(mode: BuilderMode) {

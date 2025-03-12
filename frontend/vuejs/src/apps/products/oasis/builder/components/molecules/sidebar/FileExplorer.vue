@@ -28,23 +28,9 @@
               v-model="newFileName"
               type="text"
               class="w-full bg-dark-900 border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
-              placeholder="File name"
+              placeholder="File name (with extension)"
               required
             />
-            <select
-              v-model="newFileType"
-              class="w-full bg-dark-900 border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
-              required
-            >
-              <option value="">Select type</option>
-              <option 
-                v-for="(label, type) in fileTypes"
-                :key="type"
-                :value="type"
-              >
-                {{ label }}
-              </option>
-            </select>
             <div class="flex justify-end space-x-2">
               <button
                 type="button"
@@ -92,13 +78,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'selectFile', file: ProjectFile): void
-  (e: 'createFile', data: { name: string; type: string }): void
+  (e: 'createFile', data: { name: string; type: string; content?: string }): void
 }>()
 
 // Local state
 const showNewForm = ref(false)
 const newFileName = ref('')
-const newFileType = ref('')
 
 // Computed
 const sortedFiles = computed(() => {
@@ -113,7 +98,7 @@ const sortedFiles = computed(() => {
 })
 
 const isValidFileName = computed(() => {
-  return /^[\w-]+([./][\w-]+)*$/.test(newFileName.value) && newFileType.value
+  return /^[\w-]+([./][\w-]+)*\.\w+$/.test(newFileName.value)
 })
 
 // Methods
@@ -124,9 +109,14 @@ const handleFileSelect = (file: ProjectFile) => {
 const handleCreateFile = () => {
   if (!isValidFileName.value) return
   
+  // Extract file extension from the filename
+  const fileExtension = newFileName.value.split('.').pop() || ''
+  
+  console.log('Creating file:', { name: newFileName.value, type: fileExtension })
+  
   emit('createFile', {
     name: newFileName.value,
-    type: newFileType.value
+    type: fileExtension
   })
   
   cancelNewFile()
@@ -135,7 +125,6 @@ const handleCreateFile = () => {
 const cancelNewFile = () => {
   showNewForm.value = false
   newFileName.value = ''
-  newFileType.value = ''
 }
 </script>
 

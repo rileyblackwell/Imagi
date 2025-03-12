@@ -12,7 +12,7 @@ export const builderGuard: NavigationGuard = async (to, from, next) => {
         return next(false)
       }
       // Reset store state when confirmed
-      store.reset()
+      store.$reset()
     }
   }
 

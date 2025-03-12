@@ -4,7 +4,7 @@ from django.conf import settings
 import os
 import shutil
 from .models import UserProject
-from .services import ProjectGenerationService
+from .services import ProjectService
 
 class ProjectManagerTests(TestCase):
     def setUp(self):
@@ -13,7 +13,7 @@ class ProjectManagerTests(TestCase):
             username='testuser',
             password='testpass123'
         )
-        self.service = ProjectGenerationService(self.user)
+        self.service = ProjectService(self.user)
 
     def tearDown(self):
         # Clean up created project directories
@@ -22,7 +22,14 @@ class ProjectManagerTests(TestCase):
             shutil.rmtree(user_projects_dir)
 
     def test_create_project(self):
-        project = self.service.create_project('TestProject')
+        # First create the project object
+        project = UserProject.objects.create(
+            user=self.user,
+            name='TestProject'
+        )
+        
+        # Now use the service to create project files
+        self.service.create_project(project)
         
         self.assertEqual(project.user, self.user)
         self.assertEqual(project.name, 'TestProject')

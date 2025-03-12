@@ -32,7 +32,7 @@ const store = useBuilderStore()
 const isDev = import.meta.env.DEV
 
 const handleReset = () => {
-  store.reset()
+  store.$reset()
   error.value = null
   // Refresh the page as a last resort
   window.location.reload()

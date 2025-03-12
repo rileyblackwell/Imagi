@@ -1,7 +1,8 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
-from .services import ProjectService, FileService
+from rest_framework.views import APIView
+from ..services import ProjectService, FileService
 from .serializers import (
     ProjectSerializer, 
     ProjectCreateSerializer,
@@ -121,3 +122,27 @@ class UndoActionView(generics.CreateAPIView):
             
         service.undo_action(project, action_id)
         return Response(status=status.HTTP_200_OK)
+
+class ProjectInitializeView(APIView):
+    """
+    Initialize a project with Django project structure.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, pk):
+        service = ProjectService(request.user)
+        project = service.get_project(pk)
+        
+        if not project:
+            raise NotFound('Project not found')
+            
+        # Check if project is already initialized
+        if hasattr(project, 'is_initialized') and project.is_initialized:
+            return Response({'detail': 'Project already initialized'}, status=status.HTTP_409_CONFLICT)
+            
+        # Initialize the project
+        try:
+            project = service.initialize_project(project)
+            return Response({'success': True}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

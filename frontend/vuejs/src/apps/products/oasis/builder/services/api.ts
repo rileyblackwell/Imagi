@@ -17,6 +17,60 @@ export const API_CONFIG = {
   RETRY_DELAY: 1000
 }
 
+// Debug function for token retrieval
+function getAuthToken() {
+  try {
+    const tokenData = localStorage.getItem('token')
+    if (!tokenData) {
+      console.debug('No token in localStorage')
+      return null
+    }
+    
+    const parsedToken = JSON.parse(tokenData)
+    if (!parsedToken || !parsedToken.value) {
+      console.debug('Invalid token format in localStorage')
+      return null
+    }
+    
+    const token = parsedToken.value
+    const expires = parsedToken.expires
+    
+    // Check if token is expired
+    if (expires && Date.now() > expires) {
+      console.debug('Token is expired')
+      localStorage.removeItem('token')
+      return null
+    }
+    
+    console.debug('Valid token found in localStorage')
+    return token
+  } catch (error) {
+    console.error('Error parsing token:', error)
+    return null
+  }
+}
+
+// Alternate token retrieval from session cookie
+function getAuthTokenFromCookie() {
+  try {
+    // Try to get a token from cookie
+    const tokenCookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('authToken='))
+      ?.split('=')[1]
+    
+    if (tokenCookie) {
+      console.debug('Found auth token in cookie')
+      return decodeURIComponent(tokenCookie)
+    }
+    return null
+  } catch (error) {
+    console.error('Error retrieving token from cookie:', error)
+    return null
+  }
+}
+
+// Create the API client with proper base URL
 const api: AxiosInstance = axios.create({
   baseURL: `${API_CONFIG.BASE_URL}/api/v1`,
   withCredentials: true,
@@ -24,12 +78,70 @@ const api: AxiosInstance = axios.create({
   timeout: API_CONFIG.TIMEOUT
 })
 
-// Update interceptor to handle CSRF token properly
+// Set auth token from localStorage on initialization if available
+const token = getAuthToken() || getAuthTokenFromCookie()
+if (token) {
+  api.defaults.headers.common['Authorization'] = `Token ${token}`
+  console.debug('Set Authorization header on API client initialization')
+}
+
+// Update token on storage change (listen for auth state changes)
+window.addEventListener('storage', (event) => {
+  if (event.key === 'token' && event.newValue) {
+    try {
+      const tokenData = JSON.parse(event.newValue);
+      if (tokenData && tokenData.value) {
+        api.defaults.headers.common['Authorization'] = `Token ${tokenData.value}`;
+        console.debug('Updated Authorization header from storage event');
+      }
+    } catch (error) {
+      console.error('Error handling storage event:', error);
+    }
+  }
+});
+
+// Log all request configurations for debugging
+const logRequestConfig = (config: InternalAxiosRequestConfig) => {
+  console.debug('API Request Configuration:', {
+    url: config.url,
+    method: config.method,
+    baseURL: config.baseURL,
+    headers: config.headers,
+    withCredentials: config.withCredentials,
+    timeout: config.timeout
+  })
+}
+
+// Update interceptor to handle authentication and CSRF token properly
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  // Log the request configuration
+  logRequestConfig(config)
+  
+  // Add authentication token if available
+  try {
+    // Check if Authorization header is already set
+    if (!config.headers['Authorization']) {
+      const token = getAuthToken() || getAuthTokenFromCookie()
+      if (token) {
+        config.headers['Authorization'] = `Token ${token}`
+        console.debug('Added Authorization header from storage')
+      } else {
+        console.debug('No valid auth token found for request')
+      }
+    }
+  } catch (error) {
+    console.error('Error setting auth token:', error)
+  }
+  
   // Only fetch CSRF token for mutation requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
     if (!document.cookie.includes('csrftoken')) {
-      await axios.get(`${API_CONFIG.BASE_URL}/api/v1/csrf/`)
+      console.debug('Fetching CSRF token')
+      try {
+        await axios.get(`${API_CONFIG.BASE_URL}/api/v1/csrf/`)
+      } catch (error) {
+        console.error('Error fetching CSRF token:', error)
+      }
     }
     
     const csrfToken = document.cookie
@@ -39,6 +151,9 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
     if (csrfToken && config.headers) {
       config.headers['X-CSRFToken'] = csrfToken
+      console.debug('Added X-CSRFToken header')
+    } else {
+      console.debug('No CSRF token found in cookies')
     }
   }
   
@@ -47,8 +162,30 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
 // Add response interceptor
 api.interceptors.response.use(
-  response => response,
+  response => {
+    // Log successful responses
+    console.debug('API Response:', {
+      url: response.config?.url,
+      method: response.config?.method,
+      status: response.status,
+      statusText: response.statusText,
+      dataSize: response.data ? JSON.stringify(response.data).length : 0,
+      dataType: typeof response.data,
+      isArray: Array.isArray(response.data),
+      headers: response.headers
+    })
+    return response
+  },
   async error => {
+    console.debug('API error intercepted:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n') // Show first 3 lines of stack
+    })
+    
     const originalRequest = error.config
 
     // Implement retry logic for network errors or 5xx responses
@@ -61,6 +198,7 @@ api.interceptors.response.use(
       
       // Exponential backoff
       const delay = API_CONFIG.RETRY_DELAY * Math.pow(2, originalRequest._retry - 1)
+      console.debug(`Retrying request (attempt ${originalRequest._retry}/${API_CONFIG.RETRY_ATTEMPTS}) after ${delay}ms`)
       await new Promise(resolve => setTimeout(resolve, delay))
       
       return api(originalRequest)
@@ -68,7 +206,18 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401) {
       // Handle authentication errors
-      window.location.href = '/login'
+      console.error('Authentication error:', error.response.data)
+      
+      // Check if the request already had an Authorization header
+      if (originalRequest.headers['Authorization']) {
+        console.debug('Request had Authorization header but still got 401')
+      }
+      
+      // Try to refresh the token or redirect if needed
+      const token = getAuthToken()
+      if (!token) {
+        console.debug('No valid token for unauthorized request')
+      }
     } else if (error.response?.status === 403) {
       console.error('Permission denied:', error.response.data)
     } else if (error.response?.status === 404) {

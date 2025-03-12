@@ -5,25 +5,32 @@ Service for managing Oasis web app projects.
 import os
 import shutil
 import logging
-from apps.Products.Oasis.ProjectManager.services import ProjectGenerationService
+from apps.Products.Oasis.ProjectManager.services import ProjectService
 
 logger = logging.getLogger(__name__)
 
 class ProjectService:
     def __init__(self, user):
         self.user = user
-        self.project_generator = ProjectGenerationService(user)
+        self.project_generator = ProjectService(user)
     
     def create_project(self, name):
         """Create a new Oasis web app project."""
         try:
-            # Create the project using ProjectManager service
-            user_project = self.project_generator.create_project(name)
+            # Create a project object
+            from apps.Products.Oasis.ProjectManager.models import UserProject
+            project = UserProject.objects.create(
+                user=self.user,
+                name=name
+            )
+            
+            # Create the project files using ProjectManager service
+            project = self.project_generator.create_project(project)
             
             # Initialize project with default files
-            self._initialize_project_files(user_project.project_path)
+            self._initialize_project_files(project.project_path)
             
-            return user_project
+            return project
         except Exception as e:
             logger.error(f"Error creating project: {str(e)}")
             raise

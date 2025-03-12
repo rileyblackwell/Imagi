@@ -133,25 +133,24 @@ export const useAuthStore = defineStore('global-auth', () => {
     try {
       loading.value = true
       
-      // Check if we're in a browser navigation context
-      const inBrowserNavigation = window.performance && 
-        window.performance.navigation && 
-        window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD;
+      // Check if we have a token in localStorage
+      const storedToken = getStoredToken()
+      const storedUser = getStoredUser()
       
-      // If we have a token and we're in a back/forward navigation event,
-      // just restore the auth state without making an API call
-      if (token.value && user.value && inBrowserNavigation) {
-        console.log('Browser navigation detected, restoring auth state without API call')
-        restoreAuthState(user.value, token.value)
+      if (!storedToken) {
+        // No token found, ensure we're in a clean state
+        await clearAuth()
         loading.value = false
         initialized.value = true
         return
       }
       
-      // Regular initialization flow
-      if (token.value) {
-        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-        
+      // We have a token, set it in axios headers
+      token.value = storedToken
+      user.value = storedUser
+      axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`
+      
+      try {
         // Check auth status with backend
         const response = await axios.get('/api/v1/auth/init/')
         
@@ -163,26 +162,18 @@ export const useAuthStore = defineStore('global-auth', () => {
           // Update stored user data
           localStorage.setItem('user', JSON.stringify(response.data.user))
         } else {
-          // Session invalid on server, but don't clear automatically during navigation
-          if (!inBrowserNavigation) {
-            await clearAuth()
-          }
+          // Session invalid on server
+          await clearAuth()
         }
-      } else {
-        // No token found, ensure we're in a clean state
-        await clearAuth()
+      } catch (error) {
+        console.error('Failed to validate auth with server:', error)
+        // Keep the token for now, but mark as not authenticated
+        // This allows components to handle auth errors gracefully
+        isAuthenticated.value = false
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error)
-      
-      // Don't clear auth during navigation events
-      const inBrowserNavigation = window.performance && 
-        window.performance.navigation && 
-        window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD;
-      
-      if (!inBrowserNavigation) {
-        await clearAuth()
-      }
+      await clearAuth()
     } finally {
       loading.value = false
       initialized.value = true

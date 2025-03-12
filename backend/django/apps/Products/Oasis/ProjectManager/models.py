@@ -1,8 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 import os
+
+User = get_user_model()
 
 class Project(models.Model):
     """
@@ -54,6 +56,7 @@ class Project(models.Model):
         default='pending',
         help_text="Current status of project generation"
     )
+    is_initialized = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-updated_at']
@@ -76,7 +79,16 @@ class Project(models.Model):
     def save(self, *args, **kwargs):
         # Generate slug from name if not set
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            
+            # Ensure the slug is unique
+            while Project.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+                
+            self.slug = slug
         
         # Generate project path if not set
         if not self.project_path:
