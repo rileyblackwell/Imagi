@@ -60,8 +60,8 @@ async function handleSubmit() {
     })
     
     router.push({
-      name: 'builder-project-detail',
-      params: { id: newProject.id }
+      name: 'builder-workspace',
+      params: { projectId: newProject.id.toString() }
     })
   } catch (error) {
     showNotification({

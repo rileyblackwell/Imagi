@@ -233,8 +233,8 @@ const resources = [
 const router = useRouter()
 const goToProject = (id) => {
   router.push({
-    name: 'products-builder-project-detail',
-    params: { id: String(id) }
+    name: 'builder-workspace',
+    params: { projectId: String(id) }
   }).catch(err => {
     console.error('Navigation error:', err)
     showNotification({

@@ -7,7 +7,7 @@ import type {
 
 // Constants for API configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || window.location.origin,
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   DEFAULT_HEADERS: {
     'Accept': 'application/json',
     'Content-Type': 'application/json'
@@ -72,7 +72,7 @@ function getAuthTokenFromCookie() {
 
 // Create the API client with proper base URL
 const api: AxiosInstance = axios.create({
-  baseURL: `${API_CONFIG.BASE_URL}/api/v1`,
+  baseURL: API_CONFIG.BASE_URL,
   withCredentials: true,
   headers: API_CONFIG.DEFAULT_HEADERS,
   timeout: API_CONFIG.TIMEOUT

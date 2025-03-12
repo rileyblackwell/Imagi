@@ -166,9 +166,8 @@ const navigationItems = [
 
 /**
  * Create a new project
- * This is the ONLY place in the application that should call projectStore.createProject
  */
-async function createProject(projectData: { name: string; description: string }) {
+async function createProject() {
   if (!authStore.isAuthenticated) {
     showNotification({
       title: 'Authentication Required',
@@ -178,10 +177,36 @@ async function createProject(projectData: { name: string; description: string })
     return
   }
   
+  // Validate project name
+  if (!newProjectName.value.trim()) {
+    showNotification({
+      title: 'Error',
+      message: 'Project name cannot be empty',
+      type: 'error'
+    })
+    return
+  }
+  
   isCreating.value = true
   
   try {
+    // Create a properly formatted project data object with name and description
+    const projectData = {
+      name: newProjectName.value.trim(),
+      description: '' // Default empty description
+    }
+    
     const newProject = await projectStore.createProject(projectData)
+    
+    // Clear the project name field after successful creation
+    newProjectName.value = ''
+    
+    // Log project information to debug any ID issues
+    console.debug('Created project details:', {
+      project: newProject,
+      id: newProject.id,
+      idType: typeof newProject.id
+    })
     
     showNotification({
       title: 'Success',
@@ -189,10 +214,14 @@ async function createProject(projectData: { name: string; description: string })
       type: 'success'
     })
     
+    // Ensure ID is properly formatted as a string
+    const projectId = String(newProject.id)
+    console.debug(`Navigating to project workspace with ID: ${projectId}`)
+    
     // Navigate to the new project workspace
     await router.push({
       name: 'builder-workspace',
-      params: { id: newProject.id.toString() }
+      params: { projectId }
     })
   } catch (error: any) {
     showNotification({
@@ -316,12 +345,11 @@ const testApiConnection = async () => {
     
     const token = parsedToken.value
     
-    // Try different API endpoints
+    // Try different API endpoints - use only standardized endpoints
     const endpoints = [
-      'project-manager/projects/',  // Try this first based on backend structure
-      'builder/projects/',
-      'products/oasis/project-manager/projects/',
-      'products/oasis/builder/projects/'
+      'api/v1/project-manager/projects/',  // Primary endpoint
+      'api/v1/builder/projects/',          // Fallback endpoint
+      'api/v1/agents/projects/'            // Another possible endpoint
     ]
     
     for (const endpoint of endpoints) {
@@ -335,14 +363,15 @@ const testApiConnection = async () => {
         if (Array.isArray(response.data) || response.data?.results) {
           const projectData = Array.isArray(response.data) ? response.data : response.data.results
           projectStore.updateProjects(projectData)
+          console.debug(`Successfully fetched ${projectData.length} projects from ${endpoint}`)
           return
         }
       } catch (error) {
-        // Handle error silently
+        console.debug(`API test failed for endpoint ${endpoint}:`, error)
       }
     }
   } catch (error) {
-    // Handle error silently
+    console.debug('API test failed:', error)
   }
 }
 

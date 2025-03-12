@@ -3,13 +3,9 @@ import api from './api'
 
 // Define API path constants
 const API_PATHS = {
-  PROJECT_MANAGER: 'project-manager',
-  BUILDER: 'builder',
-  PRODUCTS_OASIS_PROJECT_MANAGER: 'products/oasis/project-manager',
-  PRODUCTS_OASIS_BUILDER: 'products/oasis/builder',
-  CORE_BUILDER: 'builder',
-  DIRECT_BUILDER: 'builder', 
-  ABSOLUTE_API: window.location.origin + '/api/v1/project-manager' // Updated to use project-manager
+  PROJECT_MANAGER: 'api/v1/project-manager',
+  BUILDER: 'api/v1/builder',
+  AGENTS: 'api/v1/agents'
 }
 
 // Define cache keys
@@ -88,14 +84,10 @@ export const ProjectService = {
     
     // Update the order of API paths to try the project_manager endpoint first
     const apiPaths = [
-      API_PATHS.PROJECT_MANAGER + '/projects/',        // Try this first - Django backend uses project_manager
-      API_PATHS.PRODUCTS_OASIS_PROJECT_MANAGER + '/projects/',
-      API_PATHS.BUILDER + '/projects/',                // Then try builder paths
-      API_PATHS.PRODUCTS_OASIS_BUILDER + '/projects/',
-      API_PATHS.CORE_BUILDER + '/projects/',
-      API_PATHS.DIRECT_BUILDER + '/projects/',
-      'project-manager/projects/',                     // Try without the API path prefix
-      'builder/projects/',
+      'api/v1/project-manager/projects/',        // Try this first - Django backend uses project_manager
+      'api/v1/builder/projects/',                // Then try builder paths
+      API_PATHS.PROJECT_MANAGER + '/projects/',
+      API_PATHS.BUILDER + '/projects/',
     ]
     
     let lastError: any = null
@@ -241,19 +233,27 @@ export const ProjectService = {
     console.debug('Project API - creating project:', { name, description })
     
     try {
-      const response = await api.post(buildApiUrl(`${API_PATHS.CORE_BUILDER}/projects/`), {
+      const response = await api.post(buildApiUrl(`project-manager/projects/create/`), {
         name,
         description
       })
       
       console.debug('Project API - createProject response:', {
         status: response.status,
-        data: response.data
+        data: response.data,
+        responseType: typeof response.data,
+        id: response.data?.id,
+        idType: typeof response.data?.id
       })
       
       // Check if we got a valid project response
       if (!response.data || !response.data.id) {
         throw new Error('Invalid project data received from server')
+      }
+      
+      // Ensure the ID is a string to avoid type issues with routing
+      if (response.data.id) {
+        response.data.id = String(response.data.id);
       }
       
       return response.data
@@ -287,7 +287,7 @@ export const ProjectService = {
     
     try {
       const response = await api.patch(
-        `${API_PATHS.CORE_BUILDER}/projects/${projectId}/`,
+        `${API_PATHS.BUILDER}/projects/${projectId}/`,
         data
       )
       
@@ -323,7 +323,7 @@ export const ProjectService = {
     
     try {
       const response = await api.delete(
-        `${API_PATHS.CORE_BUILDER}/projects/${projectId}/`
+        buildApiUrl(`project-manager/projects/${projectId}/`)
       )
       
       console.debug('Project API - deleteProject response:', {
@@ -353,18 +353,19 @@ export const ProjectService = {
   async getProject(projectId: string, fullData = false): Promise<Project> {
     console.debug('Project API - getting project:', { projectId, fullData })
     
+    // Ensure projectId is a string
+    const projectIdStr = String(projectId);
+    
     // Try multiple API paths, starting with project-manager
     const apiPaths = [
-      // Try project-manager paths first (highest priority)
-      API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/',
-      'project-manager/projects/' + projectId + '/',  // Direct path
-      '/api/v1/project-manager/projects/' + projectId + '/', // Absolute path 
-      API_PATHS.PRODUCTS_OASIS_PROJECT_MANAGER + '/projects/' + projectId + '/',
+      // Try direct paths first with explicit API endpoint
+      'api/v1/project-manager/projects/' + projectIdStr + '/',
+      'api/v1/project-manager/projects/detail/' + projectIdStr + '/',
+      'api/v1/builder/projects/' + projectIdStr + '/',
       
-      // Then try builder paths as fallback
-      API_PATHS.BUILDER + '/projects/' + projectId + '/',
-      API_PATHS.PRODUCTS_OASIS_BUILDER + '/projects/' + projectId + '/',
-      API_PATHS.CORE_BUILDER + '/projects/' + projectId + '/',
+      // Then try the standard paths
+      API_PATHS.PROJECT_MANAGER + '/projects/' + projectIdStr + '/',
+      API_PATHS.BUILDER + '/projects/' + projectIdStr + '/',
     ]
     
     let lastError: any = null;
@@ -407,7 +408,7 @@ export const ProjectService = {
     // Try direct axios call as last resort with both endpoints
     for (const baseEndpoint of ['project-manager', 'builder']) {
       try {
-        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectId}/`
+        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectIdStr}/`
         console.debug(`Making direct axios call to ${absolutePath}`)
         
         const response = await axios.get(absolutePath, {
@@ -448,7 +449,7 @@ export const ProjectService = {
    */
   async getActivities(): Promise<Activity[]> {
     try {
-      const response = await api.get(`${API_PATHS.CORE_BUILDER}/activities/`)
+      const response = await api.get(`${API_PATHS.BUILDER}/activities/`)
       return response.data?.results || []
     } catch (error) {
       console.error('Failed to fetch activities:', error)
@@ -462,7 +463,7 @@ export const ProjectService = {
    */
   async getStats(): Promise<DashboardStats> {
     try {
-      const response = await api.get(`${API_PATHS.CORE_BUILDER}/stats/`)
+      const response = await api.get(`${API_PATHS.BUILDER}/stats/`)
       return response.data || { 
         activeBuildCount: 0, 
         apiCallCount: 0, 
@@ -504,12 +505,7 @@ export const ProjectService = {
       API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/',
       'project-manager/projects/' + projectId + '/files/',  // Direct path
       '/api/v1/project-manager/projects/' + projectId + '/files/', // Absolute path 
-      API_PATHS.PRODUCTS_OASIS_PROJECT_MANAGER + '/projects/' + projectId + '/files/',
-      
-      // Then try builder paths as fallback
       API_PATHS.BUILDER + '/projects/' + projectId + '/files/',
-      API_PATHS.PRODUCTS_OASIS_BUILDER + '/projects/' + projectId + '/files/',
-      API_PATHS.CORE_BUILDER + '/projects/' + projectId + '/files/',
     ]
     
     let lastError: any = null;
@@ -597,12 +593,7 @@ export const ProjectService = {
       API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
       'project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',  // Direct path
       '/api/v1/project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/', // Absolute path 
-      API_PATHS.PRODUCTS_OASIS_PROJECT_MANAGER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      
-      // Then try builder paths as fallback
       API_PATHS.BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      API_PATHS.PRODUCTS_OASIS_BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      API_PATHS.CORE_BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
     ]
     
     let lastError: any = null;
@@ -721,12 +712,7 @@ export const ProjectService = {
       API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/',
       'project-manager/projects/' + projectId + '/files/',  // Direct path
       '/api/v1/project-manager/projects/' + projectId + '/files/', // Absolute path 
-      API_PATHS.PRODUCTS_OASIS_PROJECT_MANAGER + '/projects/' + projectId + '/files/',
-      
-      // Then try builder paths as fallback
       API_PATHS.BUILDER + '/projects/' + projectId + '/files/',
-      API_PATHS.PRODUCTS_OASIS_BUILDER + '/projects/' + projectId + '/files/',
-      API_PATHS.CORE_BUILDER + '/projects/' + projectId + '/files/',
     ]
     
     let lastError: any = null;
@@ -818,7 +804,7 @@ export const ProjectService = {
     
     try {
       const response = await api.post(
-        `${API_PATHS.CORE_BUILDER}/projects/${projectId}/directories/`,
+        `${API_PATHS.BUILDER}/projects/${projectId}/directories/`,
         {
           path: directoryPath
         }
@@ -866,12 +852,7 @@ export const ProjectService = {
       API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
       'project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',  // Direct path
       '/api/v1/project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/', // Absolute path 
-      API_PATHS.PRODUCTS_OASIS_PROJECT_MANAGER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      
-      // Then try builder paths as fallback
       API_PATHS.BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      API_PATHS.PRODUCTS_OASIS_BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      API_PATHS.CORE_BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
     ]
     
     let lastError: any = null;
@@ -963,7 +944,7 @@ export const ProjectService = {
     
     try {
       const response = await api.delete(
-        `${API_PATHS.CORE_BUILDER}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`
+        `${API_PATHS.BUILDER}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`
       )
       
       console.debug('Project API - deleteFile response:', {
@@ -992,5 +973,6 @@ export const ProjectService = {
 function buildApiUrl(path: string) {
   // Strip any leading /api/v1/ to prevent duplication
   const cleanPath = path.replace(/^\/?(api\/v1\/)?/, '');
-  return cleanPath;
+  // Add api/v1/ prefix if not present
+  return cleanPath.startsWith('api/v1/') ? cleanPath : `api/v1/${cleanPath}`;
 }

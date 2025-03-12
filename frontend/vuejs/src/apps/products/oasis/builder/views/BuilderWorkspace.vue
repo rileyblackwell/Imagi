@@ -337,20 +337,23 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
     
     // Check if project ID is set
     if (!projectId) {
-      // Try to get project ID from route params
-      projectId = route.params.id || route.params.projectId
-      if (projectId) {
+      // Check for projectId in route params
+      const routeProjectId = route.params.projectId || route.params.id
+      
+      console.debug('Route parameters:', {
+        params: route.params,
+        projectId: routeProjectId
+      })
+      
+      if (routeProjectId) {
+        // Ensure it's a string
+        const projectIdStr = String(routeProjectId)
+        console.debug(`Setting project ID from route: ${projectIdStr}`)
+        
         // Set directly on the store state for immediate effect
-        store.projectId = projectId
-        store.$patch({ projectId })
-      } else if (currentProject.value?.id) {
-        // Try to get project ID from current project
-        projectId = String(currentProject.value.id)
-        // Set directly on the store state for immediate effect
-        store.projectId = projectId
-        store.$patch({ projectId })
-      } else {
-        throw new Error('No project selected. Please make sure you are in a project workspace.')
+        store.projectId = projectIdStr
+        store.$patch({ projectId: projectIdStr })
+        projectId = projectIdStr
       }
     }
     
@@ -929,12 +932,23 @@ const initializeWorkspace = async (isNewProject = false) => {
     let projectId = store.projectId
     
     if (!projectId) {
-      const routeProjectId = route.params.id || route.params.projectId
+      // Check for projectId in route params
+      const routeProjectId = route.params.projectId || route.params.id
+      
+      console.debug('Route parameters:', {
+        params: route.params,
+        projectId: routeProjectId
+      })
+      
       if (routeProjectId) {
+        // Ensure it's a string
+        const projectIdStr = String(routeProjectId)
+        console.debug(`Setting project ID from route: ${projectIdStr}`)
+        
         // Set directly on the store state for immediate effect
-        store.projectId = routeProjectId
-        store.$patch({ projectId: routeProjectId })
-        projectId = routeProjectId
+        store.projectId = projectIdStr
+        store.$patch({ projectId: projectIdStr })
+        projectId = projectIdStr
       }
     }
     
@@ -1097,6 +1111,107 @@ const initializeWorkspace = async (isNewProject = false) => {
       type: 'error', 
       message: err.message || 'Failed to initialize workspace' 
     })
+  }
+}
+
+/**
+ * Load project details and files
+ */
+async function loadProject(projectId: string) {
+  try {
+    // First, load the project details
+    const project = await projectStore.fetchProject(projectId)
+    
+    if (!project) {
+      showNotification({
+        title: 'Error',
+        message: 'Project not found',
+        type: 'error'
+      })
+      return false
+    }
+    
+    // Then load the project files
+    const files = await projectStore.fetchProjectFiles(projectId)
+    
+    console.debug(`Loaded project ${project.name} with ${files.length} files`)
+    return true
+  } catch (error: any) {
+    showNotification({
+      title: 'Error',
+      message: error?.message || 'Failed to load project',
+      type: 'error'
+    })
+    return false
+  }
+}
+
+/**
+ * Save file content
+ */
+async function updateFileContent(projectId: string, filePath: string, content: string) {
+  try {
+    await projectStore.updateFileContent(projectId, filePath, content)
+    
+    showNotification({
+      title: 'Success',
+      message: `File "${filePath}" saved successfully`,
+      type: 'success'
+    })
+    return true
+  } catch (error: any) {
+    showNotification({
+      title: 'Error',
+      message: error?.message || `Failed to save file "${filePath}"`,
+      type: 'error'
+    })
+    return false
+  }
+}
+
+/**
+ * Create a new file
+ */
+async function createProjectFile(projectId: string, filePath: string, content: string = '') {
+  try {
+    await projectStore.createFile(projectId, filePath, content)
+    
+    showNotification({
+      title: 'Success',
+      message: `File "${filePath}" created successfully`,
+      type: 'success'
+    })
+    return true
+  } catch (error: any) {
+    showNotification({
+      title: 'Error',
+      message: error?.message || `Failed to create file "${filePath}"`,
+      type: 'error'
+    })
+    return false
+  }
+}
+
+/**
+ * Delete a file
+ */
+async function deleteFile(projectId: string, filePath: string) {
+  try {
+    await projectStore.deleteFile(projectId, filePath)
+    
+    showNotification({
+      title: 'Success',
+      message: `File "${filePath}" deleted successfully`,
+      type: 'success'
+    })
+    return true
+  } catch (error: any) {
+    showNotification({
+      title: 'Error',
+      message: error?.message || `Failed to delete file "${filePath}"`,
+      type: 'error'
+    })
+    return false
   }
 }
 </script>
