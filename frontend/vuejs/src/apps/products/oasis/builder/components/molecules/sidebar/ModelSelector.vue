@@ -158,24 +158,12 @@ const closeDropdown = () => {
 }
 
 const handleModelSelect = async (modelId: string) => {
-  console.log('Model select requested in ModelSelector', { 
-    modelId, 
-    currentModelId: props.modelId,
-    displayModelsCount: displayModels.value.length,
-    defaultModelsCount: defaultModels.value.length
-  })
-  
   try {
     // Validate the model exists in either available models or default models
     const modelExists = displayModels.value.some(m => m.id === modelId) || 
                        defaultModels.value.some(m => m.id === modelId)
     
     if (!modelExists) {
-      console.log('Model does not exist', { 
-        modelId, 
-        displayModels: displayModels.value.map(m => m.id),
-        defaultModels: defaultModels.value.map(m => m.id)
-      })
       throw new Error(`Model ${modelId} not found in available models`)
     }
     
@@ -183,7 +171,6 @@ const handleModelSelect = async (modelId: string) => {
     await ModelService.checkRateLimit(modelId)
     rateLimitWarning.value = null
     
-    console.log('Emitting model update', { modelId })
     // Emit the update event
     emit('update:modelId', modelId)
     
@@ -196,19 +183,9 @@ const handleModelSelect = async (modelId: string) => {
         cancelable: true
       })
       window.dispatchEvent(event)
-      console.log('Custom event dispatched for model change via window', { 
-        modelId,
-        eventType: event.type,
-        eventDetail: event.detail
-      })
     }, 50)
     
     isDropdownOpen.value = false // Close dropdown after selection
-    
-    console.log('Model selection complete in ModelSelector', { 
-      modelId, 
-      currentModelId: props.modelId
-    })
   } catch (err) {
     console.error('Error selecting model', err)
     rateLimitWarning.value = err instanceof Error ? err.message : 'Error selecting model'

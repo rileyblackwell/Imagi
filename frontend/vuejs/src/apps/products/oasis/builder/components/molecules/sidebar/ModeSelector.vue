@@ -56,14 +56,7 @@ const emit = defineEmits<{
 
 // Add a method to handle mode changes
 const handleModeChange = (newMode: BuilderMode) => {
-  console.log('Mode change requested in ModeSelector', { 
-    newMode, 
-    currentMode: props.mode,
-    availableModes: modeOptions.map(m => m.id)
-  })
-  
   if (props.mode !== newMode) {
-    console.log('Mode differs, emitting update', { newMode })
     // Emit the update event
     emit('update:mode', newMode)
     
@@ -76,19 +69,7 @@ const handleModeChange = (newMode: BuilderMode) => {
         cancelable: true
       })
       window.dispatchEvent(event)
-      console.log('Custom event dispatched for mode change via window', { 
-        newMode,
-        eventType: event.type,
-        eventDetail: event.detail
-      })
     }, 50)
-    
-    console.log('Mode change complete in ModeSelector', { 
-      newMode, 
-      currentMode: props.mode
-    })
-  } else {
-    console.log('Mode is already set to', newMode)
   }
 }
 

@@ -207,15 +207,11 @@ const selectedModel = computed(() => {
 
 // Add validation before emitting model changes
 const handleModelChange = (modelId: string) => {
-  console.log('Model change requested in sidebar', { modelId, currentModelId: props.modelId })
-  
   // Check if the model exists in props.models or default models
   const modelInProps = props.models.find(m => m.id === modelId)
   const modelInDefaults = AI_MODELS.find(m => m.id === modelId)
   
   if (modelInProps || modelInDefaults) {
-    console.log('Model exists, emitting update', { modelId })
-    
     // Force immediate update
     emit('update:modelId', modelId)
     
@@ -228,22 +224,13 @@ const handleModelChange = (modelId: string) => {
         cancelable: true
       })
       window.dispatchEvent(event)
-      console.log('Custom event dispatched for model change via window', { 
-        modelId,
-        eventType: event.type,
-        eventDetail: event.detail
-      })
     }, 50)
   }
 }
 
 // Add validation before emitting mode changes
 const handleModeChange = (mode: BuilderMode) => {
-  console.log('Mode change requested in sidebar', { mode, currentMode: props.mode })
-  
   if (['chat', 'build'].includes(mode)) {
-    console.log('Mode is valid, emitting update', { mode })
-    
     // Force immediate update
     emit('update:mode', mode)
     
@@ -256,11 +243,6 @@ const handleModeChange = (mode: BuilderMode) => {
         cancelable: true
       })
       window.dispatchEvent(event)
-      console.log('Custom event dispatched for mode change via window', { 
-        mode,
-        eventType: event.type,
-        eventDetail: event.detail
-      })
     }, 50)
   }
 }
