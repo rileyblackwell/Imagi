@@ -1,9 +1,8 @@
 import { computed } from 'vue'
 import { useBuilderStore } from '../stores/builderStore'
-import { BuilderAPI } from '../services/api'
+import { BuilderService, ProjectService, ModelService } from '../services'
 import type { ProjectFile, AIModel } from '../types/builder'
 import axios from 'axios'
-import { ModelService } from '../services/modelService'
 
 interface CodeChange {
   file_path: string
@@ -22,7 +21,7 @@ export function useBuilderMode() {
     store.setError(null)
 
     try {
-      const response = await BuilderAPI.generateCode(store.projectId, {
+      const response = await BuilderService.generateCode(store.projectId, {
         prompt,
         mode: store.mode,
         model: store.selectedModel.id,
@@ -47,7 +46,7 @@ export function useBuilderMode() {
     if (!store.selectedFile) return
 
     try {
-      await BuilderAPI.updateFileContent(projectId, filePath, content)
+      await ProjectService.updateFileContent(projectId, filePath, content)
       store.setUnsavedChanges(false)
     } catch (err) {
       store.setError('Failed to save file changes')
@@ -61,7 +60,7 @@ export function useBuilderMode() {
     }
 
     try {
-      const content = await BuilderAPI.getFileContent(store.projectId, file.path)
+      const content = await ProjectService.getFileContent(store.projectId, file.path)
       store.selectFile({
         ...file,
         content: content.content
@@ -79,7 +78,7 @@ export function useBuilderMode() {
 
     try {
       store.setProcessing(true)
-      const file = await BuilderAPI.createFile(store.projectId, {
+      const file = await ProjectService.createFile(store.projectId, {
         name,
         type,
         content: ''
@@ -101,11 +100,11 @@ export function useBuilderMode() {
 
     try {
       store.setProcessing(true)
-      const result = await BuilderAPI.undoAction(store.projectId)
+      const result = await BuilderService.undoAction(store.projectId)
       
       // Refresh file content if needed
       if (store.selectedFile) {
-        const content = await BuilderAPI.getFileContent(store.projectId, store.selectedFile.path)
+        const content = await ProjectService.getFileContent(store.projectId, store.selectedFile.path)
         store.selectFile({
           ...store.selectedFile,
           content: content.content

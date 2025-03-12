@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { useBuilderStore } from '../stores/builderStore'
-import { BuilderAPI } from '../services/api'
+import { BuilderService } from '../services'
 import type { AIMessage } from '../types/api'
 import axios from 'axios'
 
@@ -29,7 +29,7 @@ export function useChatMode() {
         throw new Error('No project selected')
       }
 
-      const response = await BuilderAPI.processChat(store.projectId, {
+      const response = await BuilderService.processChat(store.projectId, {
         prompt: message,
         model: store.selectedModel.id,
         mode: store.mode
@@ -53,7 +53,7 @@ export function useChatMode() {
   const clearConversation = async () => {
     try {
       if (store.projectId) {
-        await BuilderAPI.clearConversation(store.projectId)
+        await BuilderService.clearConversation(store.projectId)
       }
       store.reset()
       conversationHistory.value = []

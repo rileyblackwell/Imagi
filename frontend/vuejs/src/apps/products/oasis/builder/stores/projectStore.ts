@@ -1,340 +1,358 @@
 import { defineStore } from 'pinia'
-import { BuilderAPI } from '../services/api'
+import { ref, computed } from 'vue'
+import { ProjectService, BuilderService } from '../services'
 import type { Project } from '../types/project'
 import { normalizeProject } from '../types/project'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { AIModel } from '../types/builder'
 
-interface ProjectState {
-  projects: Project[]
-  projectsMap: Map<string, Project>
-  currentProject: Project | null
-  loading: boolean
-  error: string | null
-  initialized: boolean
-  lastFetch: Date | null
-  activities: Activity[]
-  stats: DashboardStats | null
-  availableModels: AIModel[]
-  selectedModel: string | null
-  isLoading: boolean
-  isAuthenticated: boolean
-}
+export const useProjectStore = defineStore('builder', () => {
+  // State
+  const projects = ref<Project[]>([])
+  const projectsMap = ref<Map<string, Project>>(new Map())
+  const currentProject = ref<Project | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+  const initialized = ref(false)
+  const lastFetch = ref<Date | null>(null)
+  const activities = ref<Activity[]>([])
+  const stats = ref<DashboardStats | null>(null)
+  const availableModels = ref<AIModel[]>([])
+  const selectedModel = ref<string | null>(null)
+  const isLoading = ref(false)
+  const isAuthenticated = ref(false)
 
-export const useProjectStore = defineStore('builder', {
-  state: (): ProjectState => ({
-    projects: [],
-    projectsMap: new Map(),
-    currentProject: null,
-    loading: false,
-    error: null,
-    initialized: false,
-    lastFetch: null,
-    activities: [],
-    stats: null,
-    availableModels: [],
-    selectedModel: null,
-    isLoading: false,
-    isAuthenticated: false
-  }),
+  // Getters
+  const hasProjects = computed(() => {
+    const hasValidProjects = projects.value.length > 0
+    console.debug('Store hasProjects:', { 
+      initialized: initialized.value,
+      projectCount: projects.value.length,
+      result: hasValidProjects
+    })
+    return hasValidProjects
+  })
 
-  getters: {
-    hasProjects: (state) => {
-      const hasValidProjects = state.projects.length > 0
-      console.debug('Store hasProjects:', { 
-        initialized: state.initialized,
-        projectCount: state.projects.length,
-        result: hasValidProjects
-      })
-      return hasValidProjects
-    },
-    getProjectById: (state) => (id: string) => state.projectsMap.get(id),
+  const getProjectById = (id: string) => projectsMap.value.get(id)
+  
+  const sortedProjects = computed(() => {
+    return [...projects.value].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+  })
+
+  // Actions
+  function updateProjects(projectsData: unknown[]) {
+    console.debug('Updating projects:', {
+      rawProjects: projectsData,
+      isArray: Array.isArray(projectsData)
+    })
     
-    sortedProjects: (state) => {
-      return [...state.projects].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
+    if (!Array.isArray(projectsData)) {
+      console.error('Invalid projects data:', projectsData)
+      return
     }
-  },
+    
+    projects.value = projectsData
+      .filter(p => p && typeof p === 'object')
+      .map(p => normalizeProject(p))
 
-  actions: {
-    updateProjects(projects: unknown[]) {
-      console.debug('Updating projects:', {
-        rawProjects: projects,
-        isArray: Array.isArray(projects)
+    projectsMap.value.clear()
+    projects.value.forEach(project => {
+      if (project.id) {
+        projectsMap.value.set(String(project.id), project)
+      }
+    })
+    
+    console.debug('Updated store state:', {
+      projectCount: projects.value.length,
+      mapSize: projectsMap.value.size,
+      projects: projects.value
+    })
+  }
+
+  function setAuthenticated(status: boolean) {
+    console.debug('Setting authenticated state:', {
+      oldState: isAuthenticated.value,
+      newState: status
+    })
+    
+    isAuthenticated.value = status
+    if (!status) {
+      // Clear projects when user is not authenticated
+      projects.value = []
+      projectsMap.value.clear()
+      initialized.value = false
+      lastFetch.value = null
+    }
+  }
+
+  async function fetchProjects(force = false) {
+    const CACHE_DURATION = 5 * 60 * 1000
+    
+    console.debug('Fetching projects:', {
+      force,
+      initialized: initialized.value,
+      lastFetch: lastFetch.value,
+      projectCount: projects.value.length,
+      isAuthenticated: isAuthenticated.value,
+      cacheValid: lastFetch.value && (Date.now() - lastFetch.value.getTime()) < CACHE_DURATION
+    })
+
+    if (!isAuthenticated.value) {
+      console.debug('User not authenticated, skipping project fetch')
+      projects.value = []
+      projectsMap.value.clear()
+      return []
+    }
+
+    if (
+      !force && 
+      initialized.value && 
+      lastFetch.value && 
+      (Date.now() - lastFetch.value.getTime()) < CACHE_DURATION &&
+      projects.value.length > 0
+    ) {
+      console.debug('Using cached projects')
+      return projects.value
+    }
+
+    setLoading(true)
+    error.value = null
+    
+    try {
+      console.debug('Making API call to fetch projects')
+      const projectsData = await ProjectService.getProjects()
+      console.debug('Received projects from API:', {
+        count: projectsData.length,
+        projects: projectsData
       })
       
-      if (!Array.isArray(projects)) {
-        console.error('Invalid projects data:', projects)
-        return
-      }
-      
-      this.projects = projects
-        .filter(p => p && typeof p === 'object')
-        .map(p => normalizeProject(p))
-
-      this.projectsMap.clear()
-      this.projects.forEach(project => {
-        if (project.id) {
-          this.projectsMap.set(String(project.id), project)
-        }
+      updateProjects(projectsData)
+      initialized.value = true
+      lastFetch.value = new Date()
+      return projects.value
+    } catch (err: any) {
+      console.error('Error in fetchProjects:', {
+        error: err,
+        status: err.response?.status,
+        data: err.response?.data
       })
       
-      console.debug('Updated store state:', {
-        projectCount: this.projects.length,
-        mapSize: this.projectsMap.size,
-        projects: this.projects
-      })
-    },
-
-    setAuthenticated(status: boolean) {
-      console.debug('Setting authenticated state:', {
-        oldState: this.isAuthenticated,
-        newState: status
-      })
-      
-      this.isAuthenticated = status
-      if (!status) {
-        // Clear projects when user is not authenticated
-        this.projects = []
-        this.projectsMap.clear()
-        this.initialized = false
-        this.lastFetch = null
-      }
-    },
-
-    async fetchProjects(force = false) {
-      const CACHE_DURATION = 5 * 60 * 1000
-      
-      console.debug('Fetching projects:', {
-        force,
-        initialized: this.initialized,
-        lastFetch: this.lastFetch,
-        projectCount: this.projects.length,
-        isAuthenticated: this.isAuthenticated,
-        cacheValid: this.lastFetch && (Date.now() - this.lastFetch.getTime()) < CACHE_DURATION
-      })
-
-      if (!this.isAuthenticated) {
-        console.debug('User not authenticated, skipping project fetch')
-        this.projects = []
-        this.projectsMap.clear()
-        return []
-      }
-
-      if (
-        !force && 
-        this.initialized && 
-        this.lastFetch && 
-        (Date.now() - this.lastFetch.getTime()) < CACHE_DURATION &&
-        this.projects.length > 0
-      ) {
-        console.debug('Using cached projects')
-        return this.projects
-      }
-
-      this.setLoading(true)
-      this.error = null
-      
-      try {
-        console.debug('Making API call to fetch projects')
-        const projects = await BuilderAPI.getProjects()
-        console.debug('Received projects from API:', {
-          count: projects.length,
-          projects
-        })
-        
-        this.updateProjects(projects)
-        this.initialized = true
-        this.lastFetch = new Date()
-        return this.projects
-      } catch (err: any) {
-        console.error('Error in fetchProjects:', {
-          error: err,
-          status: err.response?.status,
-          data: err.response?.data
-        })
-        
-        if (err.response?.status === 401) {
-          this.setAuthenticated(false)
-          this.error = 'Please log in to view your projects'
-        } else {
-          this.handleError(err, 'Failed to fetch projects')
-        }
-        throw err
-      } finally {
-        this.setLoading(false)
-      }
-    },
-
-    async createProject(projectData: { name: string; description: string }) {
-      if (!this.isAuthenticated) {
-        throw new Error('You must be logged in to create projects')
-      }
-
-      this.loading = true
-      this.error = null
-      
-      try {
-        console.debug('Creating project:', projectData)
-        const newProject = await BuilderAPI.createProject(projectData)
-        
-        console.debug('Project created:', newProject)
-        
-        if (!newProject || typeof newProject !== 'object') {
-          throw new Error('Invalid project data received')
-        }
-
-        const normalizedProject = normalizeProject(newProject)
-        
-        // Update local state
-        this.projects = [...this.projects, normalizedProject]
-        this.projectsMap.set(String(normalizedProject.id), normalizedProject)
-        
-        console.debug('Store updated with new project:', {
-          projectId: normalizedProject.id,
-          totalProjects: this.projects.length,
-          project: normalizedProject
-        })
-        
-        return normalizedProject
-      } catch (err: any) {
-        console.error('Project creation error in store:', {
-          error: err,
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data
-        })
-        this.handleError(err, 'Failed to create project')
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async deleteProject(projectId: string) {
-      if (!this.isAuthenticated) {
-        throw new Error('You must be logged in to delete projects')
-      }
-
-      if (!projectId) {
-        throw new Error('Project ID is required')
-      }
-
-      this.loading = true
-      this.error = null
-      
-      try {
-        console.debug('Deleting project:', {
-          projectId,
-          existingProject: this.projectsMap.get(String(projectId))
-        })
-
-        await BuilderAPI.deleteProject(projectId)
-        
-        // Remove from projects array
-        this.projects = this.projects.filter(p => String(p.id) !== String(projectId))
-        // Remove from map
-        this.projectsMap.delete(String(projectId))
-        
-        console.debug('Project deleted, store updated:', {
-          remainingProjects: this.projects.length,
-          deletedId: projectId
-        })
-        
-      } catch (err: any) {
-        console.error('Project deletion error in store:', {
-          error: err,
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data,
-          projectId
-        })
-        this.handleError(err, 'Failed to delete project')
-        throw err
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async fetchActivities() {
-      try {
-        const activities = await BuilderAPI.getActivities()
-        this.activities = activities
-        return activities
-      } catch (error) {
-        console.warn('Failed to fetch activities:', error)
-        return [] // Return empty array as fallback
-      }
-    },
-
-    async fetchStats() {
-      try {
-        const stats = await BuilderAPI.getStats()
-        this.stats = stats
-        return stats
-      } catch (error) {
-        console.warn('Failed to fetch stats:', error)
-        return {
-          activeBuildCount: 0,
-          apiCallCount: 0,
-          creditsUsed: 0
-        }
-      }
-    },
-
-    handleError(err: any, defaultMessage: string) {
-      console.error(defaultMessage + ':', err)
       if (err.response?.status === 401) {
-        this.error = 'Please log in to continue'
-      } else if (err.response?.data?.error) {
-        this.error = err.response.data.error
+        setAuthenticated(false)
+        error.value = 'Please log in to view your projects'
       } else {
-        this.error = defaultMessage
+        handleError(err, 'Failed to fetch projects')
       }
-    },
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    clearError() {
-      this.error = null
-    },
+  async function createProject(projectData: { name: string; description: string }) {
+    if (!isAuthenticated.value) {
+      throw new Error('You must be logged in to create projects')
+    }
 
-    // Add simplified loading state setters for JS compatibility
-    setLoading(loading: boolean) {
-      this.loading = loading;
-      this.isLoading = loading; // Update both for compatibility
-    },
-
-    // New actions
-    async fetchProject(id: string): Promise<Project> {
-      this.loading = true
-      try {
-        const data = await BuilderAPI.getProject(id)
-        const project = normalizeProject(data)
-        this.currentProject = project
-        return project
-      } catch (err) {
-        this.error = err instanceof Error ? err.message : 'Failed to fetch project'
-        throw err
-      } finally {
-        this.loading = false
+    loading.value = true
+    error.value = null
+    
+    try {
+      console.debug('Creating project:', projectData)
+      const newProject = await ProjectService.createProject(projectData)
+      
+      console.debug('Project created:', newProject)
+      
+      if (!newProject || typeof newProject !== 'object') {
+        throw new Error('Invalid project data received')
       }
-    },
 
-    setSelectedModel(model: string | null) {
-      this.selectedModel = model
-    },
+      const normalizedProject = normalizeProject(newProject)
+      
+      // Update local state
+      projects.value = [...projects.value, normalizedProject]
+      projectsMap.value.set(String(normalizedProject.id), normalizedProject)
+      
+      console.debug('Store updated with new project:', {
+        projectId: normalizedProject.id,
+        totalProjects: projects.value.length,
+        project: normalizedProject
+      })
+      
+      return normalizedProject
+    } catch (err: any) {
+      console.error('Project creation error in store:', {
+        error: err,
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      })
+      handleError(err, 'Failed to create project')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
 
-    async fetchAvailableModels() {
-      this.loading = true
-      try {
-        const models = await BuilderAPI.getAvailableModels()
-        this.availableModels = models
-      } catch (err) {
-        this.error = err instanceof Error ? err.message : 'Failed to fetch models'
-        throw err
-      } finally {
-        this.loading = false
+  async function deleteProject(projectId: string) {
+    if (!isAuthenticated.value) {
+      throw new Error('You must be logged in to delete projects')
+    }
+
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    loading.value = true
+    error.value = null
+    
+    try {
+      console.debug('Deleting project:', {
+        projectId,
+        existingProject: projectsMap.value.get(String(projectId))
+      })
+
+      await ProjectService.deleteProject(projectId)
+      
+      // Remove from projects array
+      projects.value = projects.value.filter(p => String(p.id) !== String(projectId))
+      // Remove from map
+      projectsMap.value.delete(String(projectId))
+      
+      console.debug('Project deleted, store updated:', {
+        remainingProjects: projects.value.length,
+        deletedId: projectId
+      })
+      
+    } catch (err: any) {
+      console.error('Project deletion error in store:', {
+        error: err,
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        projectId
+      })
+      handleError(err, 'Failed to delete project')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchActivities() {
+    try {
+      const activitiesData = await ProjectService.getActivities()
+      activities.value = activitiesData
+      return activitiesData
+    } catch (error) {
+      console.warn('Failed to fetch activities:', error)
+      return [] // Return empty array as fallback
+    }
+  }
+
+  async function fetchStats() {
+    try {
+      const statsData = await ProjectService.getStats()
+      stats.value = statsData
+      return statsData
+    } catch (error) {
+      console.warn('Failed to fetch stats:', error)
+      return {
+        activeBuildCount: 0,
+        apiCallCount: 0,
+        creditsUsed: 0
       }
     }
+  }
+
+  function handleError(err: any, defaultMessage: string) {
+    console.error(defaultMessage + ':', err)
+    if (err.response?.status === 401) {
+      error.value = 'Please log in to continue'
+    } else if (err.response?.data?.error) {
+      error.value = err.response.data.error
+    } else {
+      error.value = defaultMessage
+    }
+  }
+
+  function clearError() {
+    error.value = null
+  }
+
+  function setLoading(isLoadingState: boolean) {
+    loading.value = isLoadingState
+    isLoading.value = isLoadingState // Update both for compatibility
+  }
+
+  async function fetchProject(id: string): Promise<Project> {
+    loading.value = true
+    try {
+      const data = await ProjectService.getProject(id)
+      const project = normalizeProject(data)
+      currentProject.value = project
+      return project
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch project'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function setSelectedModel(model: string | null) {
+    selectedModel.value = model
+  }
+
+  async function fetchAvailableModels() {
+    loading.value = true
+    try {
+      const models = await BuilderService.getAvailableModels()
+      availableModels.value = models
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch models'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    // State
+    projects,
+    projectsMap,
+    currentProject,
+    loading,
+    error,
+    initialized,
+    lastFetch,
+    activities,
+    stats,
+    availableModels,
+    selectedModel,
+    isLoading,
+    isAuthenticated,
+    
+    // Getters
+    hasProjects,
+    getProjectById,
+    sortedProjects,
+    
+    // Actions
+    updateProjects,
+    setAuthenticated,
+    fetchProjects,
+    createProject,
+    deleteProject,
+    fetchActivities,
+    fetchStats,
+    handleError,
+    clearError,
+    setLoading,
+    fetchProject,
+    setSelectedModel,
+    fetchAvailableModels
   }
 })

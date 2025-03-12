@@ -135,7 +135,7 @@ import { useChatMode } from '../composables/useChatMode'
 import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
 import { AI_MODELS } from '../types/builder'
-import { ModelService } from '../services/modelService'
+import { ModelService } from '../services'
 
 // Shared Components
 import ErrorBoundary from '../components/atoms/utility/ErrorBoundary.vue'

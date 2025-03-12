@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 import { useBuilderStore } from '../stores/builderStore'
-import { BuilderAPI } from '../services/api'
+import { ProjectService } from '../services'
 import { debounce } from 'lodash-es'
 
 const AUTOSAVE_DELAY = 2000 // 2 seconds
@@ -15,7 +15,7 @@ export function useFileManager() {
 
     try {
       store.setProcessing(true)
-      await BuilderAPI.updateFileContent(store.projectId || '', store.selectedFile.path, content)
+      await ProjectService.updateFileContent(store.projectId || '', store.selectedFile.path, content)
       lastSavedContent.value = content
       store.setUnsavedChanges(false)
     } catch (error) {
@@ -32,7 +32,7 @@ export function useFileManager() {
 
     try {
       store.setProcessing(true)
-      await BuilderAPI.updateFileContent(store.projectId || '', store.selectedFile.path, content)
+      await ProjectService.updateFileContent(store.projectId || '', store.selectedFile.path, content)
       lastSavedContent.value = content
       store.setUnsavedChanges(false)
     } catch (error) {
