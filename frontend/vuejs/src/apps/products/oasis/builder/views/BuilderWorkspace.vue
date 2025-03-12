@@ -149,6 +149,8 @@ import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
 import { AI_MODELS } from '../types/builder'
 import { ModelService, BuilderService, ProjectService } from '../services'
+import api from '../services/api'
+import axios from 'axios'
 
 // Shared Components
 import ErrorBoundary from '../components/atoms/utility/ErrorBoundary.vue'
@@ -769,7 +771,11 @@ const isProjectNotFoundError = (error: any): boolean => {
     error?.message?.includes('not found') ||
     error?.message?.includes('Not Found') ||
     error?.detail?.includes('not found') ||
-    error?.detail?.includes('Not Found')
+    error?.detail?.includes('Not Found') ||
+    error?.response?.data?.detail?.includes('not found') ||
+    error?.response?.data?.detail?.includes('Not Found') ||
+    error?.response?.data?.message?.includes('not found') ||
+    error?.response?.data?.message?.includes('Not Found')
   )
 }
 
@@ -798,12 +804,34 @@ onMounted(async () => {
     if (projectId) {
       console.log('Setting project ID in onMounted:', projectId, isNewProject ? '(NEW PROJECT)' : '')
       
-      // Use direct state mutation
+      // Use direct state mutation for immediate effect
       store.projectId = projectId
       store.$patch({ projectId })
       
       // Double-check that the project ID was set
       console.log('After setting, store.projectId =', store.projectId)
+      
+      // Pre-emptively try to update API headers in case they weren't set
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          let tokenValue = token;
+          // Try to parse as JSON if it's a JSON string
+          if (token.startsWith('{') && token.endsWith('}')) {
+            const parsedToken = JSON.parse(token)
+            if (parsedToken && parsedToken.value) {
+              tokenValue = parsedToken.value
+            }
+          }
+          
+          // Ensure the token is set in both API clients
+          api.defaults.headers.common['Authorization'] = `Token ${tokenValue}`
+          axios.defaults.headers.common['Authorization'] = `Token ${tokenValue}`
+          console.log('API Authorization header set from localStorage')
+        } catch (e) {
+          console.error('Error processing token from localStorage:', e)
+        }
+      }
     }
     
     // Initialize the workspace
