@@ -59,6 +59,7 @@ class ProjectCreationService:
         return sanitized
 
     def _create_project_files(self, project_name):
+        """Create a new Django project using django-admin startproject"""
         # First, deactivate any existing active projects with the same name
         existing_projects = Project.objects.filter(
             user=self.user,
@@ -79,29 +80,16 @@ class ProjectCreationService:
             # Create the project directory
             os.makedirs(project_path, exist_ok=True)
             
-            # Create Django project structure
-            project_files = {
-                '__init__.py': '',
-                'asgi.py': self._generate_asgi_content(unique_name),
-                'settings.py': self._generate_settings_content(unique_name),
-                'urls.py': self._generate_urls_content(),
-                'wsgi.py': self._generate_wsgi_content(unique_name),
-                'models.py': self._generate_models_content(),
-                'views.py': self._generate_views_content(),
-            }
+            # Use Django's startproject command to create the basic project structure
+            subprocess.run([
+                'django-admin', 'startproject', 
+                unique_name,  # Project name
+                project_path  # Destination directory
+            ], check=True)
             
-            # Create project package directory using unique name
-            package_dir = os.path.join(project_path, unique_name)
-            os.makedirs(package_dir, exist_ok=True)
-            
-            # Create project files
-            for filename, content in project_files.items():
-                with open(os.path.join(package_dir, filename), 'w') as f:
-                    f.write(content)
-            
-            # Create manage.py
-            with open(os.path.join(project_path, 'manage.py'), 'w') as f:
-                f.write(self._generate_manage_content(unique_name))
+            # Create necessary directories
+            os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
+            os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
             
             # Create Pipfile instead of requirements.txt
             with open(os.path.join(project_path, 'Pipfile'), 'w') as f:
@@ -115,12 +103,14 @@ class ProjectCreationService:
             with open(os.path.join(project_path, 'README.md'), 'w') as f:
                 f.write(self._generate_readme_content(project_name))
             
-            # Create necessary directories
-            os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
-            os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
-            
-            # Create default files
+            # Create template and static files
             self._create_default_files(project_path)
+            
+            # Update settings.py to include templates and static files directories
+            self._update_settings(project_path, unique_name)
+            
+            # Update urls.py to serve the index template
+            self._update_urls(project_path, unique_name)
                 
             return project_path
         except Exception as e:
@@ -129,6 +119,91 @@ class ProjectCreationService:
             if os.path.exists(project_path):
                 shutil.rmtree(project_path, ignore_errors=True)
             raise
+
+    def _update_settings(self, project_path, project_name):
+        """Update the Django settings.py file to include templates and static files directories"""
+        settings_path = os.path.join(project_path, project_name, 'settings.py')
+        
+        with open(settings_path, 'r') as f:
+            settings_content = f.read()
+        
+        # Add rest_framework and corsheaders to INSTALLED_APPS
+        installed_apps_pattern = r"INSTALLED_APPS = \[\n(.*?)\]"
+        installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
+        if installed_apps_match:
+            current_apps = installed_apps_match.group(1)
+            updated_apps = current_apps + "    'rest_framework',\n    'corsheaders',\n"
+            settings_content = settings_content.replace(current_apps, updated_apps)
+        
+        # Add corsheaders middleware
+        middleware_pattern = r"MIDDLEWARE = \[\n(.*?)\]"
+        middleware_match = re.search(middleware_pattern, settings_content, re.DOTALL)
+        if middleware_match:
+            current_middleware = middleware_match.group(1)
+            updated_middleware = current_middleware.replace(
+                "    'django.middleware.common.CommonMiddleware',", 
+                "    'corsheaders.middleware.CorsMiddleware',\n    'django.middleware.common.CommonMiddleware',"
+            )
+            settings_content = settings_content.replace(current_middleware, updated_middleware)
+        
+        # Add templates dir to TEMPLATES setting
+        templates_pattern = r"'DIRS': \[\],"
+        templates_replacement = "'DIRS': [BASE_DIR / 'templates'],"
+        settings_content = re.sub(templates_pattern, templates_replacement, settings_content)
+        
+        # Add STATICFILES_DIRS setting
+        static_files_pattern = r"STATIC_URL = 'static/'"
+        static_files_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
+        settings_content = re.sub(static_files_pattern, static_files_replacement, settings_content)
+        
+        # Add CORS and REST Framework settings
+        if "# Default primary key field type" in settings_content:
+            additional_settings = """
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+"""
+            settings_content = settings_content.replace(
+                "# Default primary key field type",
+                additional_settings + "\n# Default primary key field type"
+            )
+        
+        with open(settings_path, 'w') as f:
+            f.write(settings_content)
+
+    def _update_urls(self, project_path, project_name):
+        """Update the Django urls.py file to serve the index template"""
+        urls_path = os.path.join(project_path, project_name, 'urls.py')
+        
+        with open(urls_path, 'r') as f:
+            urls_content = f.read()
+        
+        # Add import for TemplateView
+        if 'TemplateView' not in urls_content:
+            urls_content = urls_content.replace(
+                'from django.urls import path',
+                'from django.urls import path\nfrom django.views.generic import TemplateView'
+            )
+        
+        # Add path for home page
+        if 'path(\'\', TemplateView' not in urls_content:
+            urls_content = urls_content.replace(
+                'urlpatterns = [',
+                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),'
+            )
+        
+        with open(urls_path, 'w') as f:
+            f.write(urls_content)
 
     def _create_default_files(self, project_path):
         """Create default files for a new project."""
@@ -225,234 +300,6 @@ h1 {
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with open(full_path, 'w') as f:
                 f.write(content.strip())
-
-    # Template generation methods
-    def _generate_asgi_content(self, project_name):
-        return f'''"""
-ASGI config for {project_name} project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.2/howto/deployment/asgi/
-"""
-
-import os
-
-from django.core.asgi import get_asgi_application
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{project_name}.settings')
-
-application = get_asgi_application()
-'''
-
-    def _generate_settings_content(self, project_name):
-        return f'''"""
-Django settings for {project_name} project.
-
-Generated by Django 4.2.3
-"""
-
-from pathlib import Path
-import os
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-{os.urandom(16).hex()}'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
-
-# Application definition
-
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'corsheaders',
-]
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-ROOT_URLCONF = '{project_name}.urls'
-
-TEMPLATES = [
-    {{
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {{
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        }},
-    }},
-]
-
-WSGI_APPLICATION = '{project_name}.wsgi.application'
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-DATABASES = {{
-    'default': {{
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }}
-}}
-
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {{
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    }},
-    {{
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    }},
-    {{
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    }},
-    {{
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    }},
-]
-
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
-
-# REST Framework settings
-REST_FRAMEWORK = {{
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}}
-'''
-
-    def _generate_urls_content(self):
-        return '''"""
-URL Configuration
-"""
-from django.contrib import admin
-from django.urls import path
-from django.views.generic import TemplateView
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', TemplateView.as_view(template_name='index.html'), name='home'),
-]
-'''
-
-    def _generate_wsgi_content(self, project_name):
-        return f'''"""
-WSGI config for {project_name} project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.2/howto/deployment/wsgi/
-"""
-
-import os
-
-from django.core.wsgi import get_wsgi_application
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{project_name}.settings')
-
-application = get_wsgi_application()
-'''
-
-    def _generate_models_content(self):
-        return '''"""
-Project models
-"""
-# You can define your models here if needed.
-'''
-
-    def _generate_views_content(self):
-        return '''"""
-Project views
-"""
-# You can define your views here if needed.
-'''
-
-    def _generate_manage_content(self, project_name):
-        return f'''#!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
-import os
-import sys
-
-
-def main():
-    """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', '{project_name}.settings')
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError as exc:
-        raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
-        ) from exc
-    execute_from_command_line(sys.argv)
-
-
-if __name__ == '__main__':
-    main()
-'''
 
     def _generate_pipfile_content(self):
         return '''[[source]]
