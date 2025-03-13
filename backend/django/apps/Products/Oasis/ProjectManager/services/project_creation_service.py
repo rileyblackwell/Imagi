@@ -415,91 +415,188 @@ A Django REST API project.
         """
         try:
             if not project.project_path or not os.path.exists(project.project_path):
-                raise ValueError("Project directory does not exist")
+                logger.error(f"Project directory does not exist: {project.project_path}")
+                # Try to create it if it doesn't exist
+                try:
+                    os.makedirs(project.project_path, exist_ok=True)
+                    logger.info(f"Created missing project directory: {project.project_path}")
+                except Exception as dir_err:
+                    logger.error(f"Failed to create project directory: {str(dir_err)}")
+                    raise ValueError(f"Failed to create project directory: {str(dir_err)}")
             
             project_path = project.project_path
-            
-            # Create a default Django app within the project
-            main_app_name = 'core'
             project_name = os.path.basename(project_path)
             
-            # Get the inner project directory (where manage.py is)
-            inner_project_dir = os.path.join(project_path, project_name)
-            if not os.path.exists(inner_project_dir):
-                # Try to find the manage.py to determine the correct directory
-                for root, dirs, files in os.walk(project_path):
-                    if 'manage.py' in files:
-                        inner_project_dir = root
-                        break
+            logger.info(f"Initializing project '{project.name}' (ID: {project.id}) at path: {project_path}")
             
-            # Create the main app
-            subprocess.run([
-                'python', os.path.join(inner_project_dir, 'manage.py'),
-                'startapp', main_app_name
-            ], cwd=inner_project_dir, check=True)
+            # First ensure the basic project structure exists
+            if not self._ensure_project_structure(project_path, project_name):
+                logger.error(f"Failed to ensure basic project structure for {project_name}")
+                raise ValueError(f"Failed to create basic project structure for {project_name}")
             
-            # Create basic models, views, and urls for the main app
+            # Now try to find the manage.py to determine the correct inner project directory
+            inner_project_dir = project_path
+            manage_py_found = False
+            
+            # Look for manage.py in the project directory
+            for root, dirs, files in os.walk(project_path):
+                if 'manage.py' in files:
+                    inner_project_dir = root
+                    manage_py_found = True
+                    logger.info(f"Found manage.py in {inner_project_dir}")
+                    break
+            
+            if not manage_py_found:
+                logger.warning(f"manage.py not found in project structure, using project root: {inner_project_dir}")
+            
+            # Create the core app if it doesn't exist
+            main_app_name = 'core'
             app_path = os.path.join(inner_project_dir, main_app_name)
             
-            # Update models.py with a basic model
-            with open(os.path.join(app_path, 'models.py'), 'w') as f:
-                f.write(self._generate_basic_model_content())
-            
-            # Update views.py with basic views
-            with open(os.path.join(app_path, 'views.py'), 'w') as f:
-                f.write(self._generate_basic_views_content())
-            
-            # Create urls.py for the app
-            with open(os.path.join(app_path, 'urls.py'), 'w') as f:
-                f.write(self._generate_basic_urls_content())
-            
-            # Update the project's settings.py to include the new app
-            project_settings_path = os.path.join(inner_project_dir, project_name, 'settings.py')
-            with open(project_settings_path, 'r') as f:
-                settings_content = f.read()
-            
-            if main_app_name not in settings_content:
-                # Add the app to INSTALLED_APPS
-                installed_apps_pattern = r"INSTALLED_APPS = \[\n(.*?)\]"
-                installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
-                if installed_apps_match:
-                    current_apps = installed_apps_match.group(1)
-                    updated_apps = current_apps + f"    '{main_app_name}',\n"
-                    settings_content = settings_content.replace(current_apps, updated_apps)
+            # Check if the app already exists to avoid errors
+            if os.path.exists(app_path):
+                logger.info(f"App {main_app_name} already exists, skipping creation")
+            else:
+                # Create the main app directory
+                os.makedirs(app_path, exist_ok=True)
+                logger.info(f"Created app directory: {app_path}")
                 
-                with open(project_settings_path, 'w') as f:
-                    f.write(settings_content)
-            
-            # Update the project's main urls.py to include the app urls
-            project_urls_path = os.path.join(inner_project_dir, project_name, 'urls.py')
-            with open(project_urls_path, 'r') as f:
-                urls_content = f.read()
-            
-            if f"include('{main_app_name}.urls')" not in urls_content:
-                # Add import for include if not present
-                if 'include' not in urls_content:
-                    urls_content = urls_content.replace(
-                        'from django.urls import path',
-                        'from django.urls import path, include'
-                    )
+                # Try to use Django's startapp command first
+                if manage_py_found:
+                    try:
+                        manage_py_path = os.path.join(inner_project_dir, 'manage.py')
+                        logger.info(f"Running startapp command: python {manage_py_path} startapp {main_app_name}")
+                        
+                        result = subprocess.run(
+                            ['python', manage_py_path, 'startapp', main_app_name],
+                            cwd=inner_project_dir,
+                            check=False,  # Don't raise exception on non-zero exit
+                            capture_output=True,
+                            text=True,
+                            timeout=30  # Timeout after 30 seconds
+                        )
+                        
+                        if result.returncode != 0:
+                            logger.error(f"startapp command failed with code {result.returncode}")
+                            logger.error(f"STDOUT: {result.stdout}")
+                            logger.error(f"STDERR: {result.stderr}")
+                            # We'll create the files manually below
+                        else:
+                            logger.info(f"Successfully created app {main_app_name} using manage.py")
+                    except Exception as e:
+                        logger.error(f"Error running startapp command: {str(e)}")
+                        # We'll create the files manually below
                 
-                # Add the app's URLs to the urlpatterns
-                urls_content = urls_content.replace(
-                    'urlpatterns = [',
-                    f'urlpatterns = [\n    path(\'{main_app_name}/\', include(\'{main_app_name}.urls\')),'
-                )
-                
-                with open(project_urls_path, 'w') as f:
-                    f.write(urls_content)
+                # Create basic app files manually
+                # Create __init__.py if it doesn't exist
+                init_file = os.path.join(app_path, '__init__.py')
+                if not os.path.exists(init_file):
+                    with open(init_file, 'w') as f:
+                        f.write("# Core app init file\n")
+                    logger.info(f"Created __init__.py at {init_file}")
             
-            # Mark the project as initialized
+            # Ensure the basic app files exist
+            # models.py
+            models_path = os.path.join(app_path, 'models.py')
+            if not os.path.exists(models_path):
+                with open(models_path, 'w') as f:
+                    f.write(self._generate_basic_model_content())
+                logger.info(f"Created models.py at {models_path}")
+            
+            # views.py
+            views_path = os.path.join(app_path, 'views.py')
+            if not os.path.exists(views_path):
+                with open(views_path, 'w') as f:
+                    f.write(self._generate_basic_views_content())
+                logger.info(f"Created views.py at {views_path}")
+            
+            # urls.py
+            urls_path = os.path.join(app_path, 'urls.py')
+            if not os.path.exists(urls_path):
+                with open(urls_path, 'w') as f:
+                    f.write(self._generate_basic_urls_content())
+                logger.info(f"Created urls.py at {urls_path}")
+            
+            # Try to update the project's settings.py and urls.py if they exist
+            try:
+                # Find the project package directory - it may not be directly in the inner_project_dir
+                project_package_dir = None
+                for root, dirs, files in os.walk(inner_project_dir):
+                    if 'settings.py' in files and 'urls.py' in files:
+                        project_package_dir = root
+                        break
+                
+                if not project_package_dir:
+                    project_package_dir = os.path.join(inner_project_dir, project_name)
+                    if not os.path.exists(project_package_dir):
+                        os.makedirs(project_package_dir, exist_ok=True)
+                
+                # Update settings.py if it exists
+                settings_path = os.path.join(project_package_dir, 'settings.py')
+                if os.path.exists(settings_path):
+                    try:
+                        with open(settings_path, 'r') as f:
+                            settings_content = f.read()
+                        
+                        # Add the app to INSTALLED_APPS if not already there
+                        if main_app_name not in settings_content:
+                            installed_apps_pattern = r"INSTALLED_APPS\s*=\s*\[\s*(.*?)\s*\]"
+                            installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
+                            if installed_apps_match:
+                                current_apps = installed_apps_match.group(1)
+                                if f"'{main_app_name}'" not in current_apps and f'"{main_app_name}"' not in current_apps:
+                                    updated_apps = current_apps + f"    '{main_app_name}',\n"
+                                    settings_content = settings_content.replace(current_apps, updated_apps)
+                                    
+                                    with open(settings_path, 'w') as f:
+                                        f.write(settings_content)
+                                    logger.info(f"Updated {settings_path} to include {main_app_name} app")
+                    except Exception as e:
+                        logger.error(f"Error updating settings.py: {str(e)}")
+                
+                # Update urls.py if it exists
+                urls_path = os.path.join(project_package_dir, 'urls.py')
+                if os.path.exists(urls_path):
+                    try:
+                        with open(urls_path, 'r') as f:
+                            urls_content = f.read()
+                        
+                        # Add include import if not present
+                        if f"include('{main_app_name}.urls')" not in urls_content and f'include("{main_app_name}.urls")' not in urls_content:
+                            if 'include' not in urls_content:
+                                if 'from django.urls import path' in urls_content:
+                                    urls_content = urls_content.replace(
+                                        'from django.urls import path',
+                                        'from django.urls import path, include'
+                                    )
+                            
+                            # Add the app's URLs to urlpatterns
+                            if 'urlpatterns = [' in urls_content:
+                                urls_content = urls_content.replace(
+                                    'urlpatterns = [',
+                                    f'urlpatterns = [\n    path(\'{main_app_name}/\', include(\'{main_app_name}.urls\')),'
+                                )
+                                
+                                with open(urls_path, 'w') as f:
+                                    f.write(urls_content)
+                                logger.info(f"Updated {urls_path} to include {main_app_name}.urls")
+                    except Exception as e:
+                        logger.error(f"Error updating urls.py: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error updating project settings/urls: {str(e)}")
+            
+            # All done - mark the project as initialized
             project.is_initialized = True
             project.save()
+            logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")
             
             return project
         
         except Exception as e:
             logger.error(f"Error initializing project: {str(e)}")
+            # Add stack trace for better debugging
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
             raise ValueError(f"Failed to initialize project: {str(e)}")
     
     def _generate_basic_model_content(self):
@@ -544,4 +641,272 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('api/items/', views.item_list, name='item-list'),
 ]
-""" 
+"""
+    
+    def _generate_basic_project_urls(self):
+        """Generate content for a basic project urls.py file"""
+        return """from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+]
+"""
+    
+    def _generate_basic_setup_py(self, project_name):
+        """Generate a basic setup.py file that handles import errors"""
+        return f"""#!/usr/bin/env python
+
+from setuptools import setup
+
+try:
+    from setuptools import find_packages
+except ImportError:
+    # Simple fallback if find_packages is not available
+    def find_packages(where='.'):
+        import os
+        packages = []
+        for root, dirs, files in os.walk(where):
+            if '__init__.py' in files:
+                packages.append(root.replace('/', '.'))
+        return packages
+
+setup(
+    name='{project_name}',
+    version='0.1.0',
+    description='A Django project generated by Imagi Oasis',
+    author='Imagi User',
+    author_email='user@example.com',
+    packages=find_packages(),
+    install_requires=[
+        'Django>=4.0',
+        'djangorestframework>=3.13.0',
+    ],
+    python_requires='>=3.8',
+)
+"""
+
+    def _generate_basic_manage_py(self, project_name):
+        """Generate a minimal Django manage.py file"""
+        return f"""#!/usr/bin/env python
+import os
+import sys
+
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "{project_name}.settings")
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and "
+            "available on your PYTHONPATH environment variable? Did you "
+            "forget to activate a virtual environment?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+"""
+
+    def _generate_basic_settings_py(self, project_name):
+        """Generate a minimal Django settings.py file"""
+        secret_key = ''.join(['x' for _ in range(50)])  # Placeholder secret key
+        return f"""
+import os
+from pathlib import Path
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = '{secret_key}'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'core',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = '{project_name}.urls'
+
+TEMPLATES = [
+    {{
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {{
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        }},
+    }},
+]
+
+WSGI_APPLICATION = '{project_name}.wsgi.application'
+
+# Database
+DATABASES = {{
+    'default': {{
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }}
+}}
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {{
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    }},
+    {{
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    }},
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True
+
+# REST Framework settings
+REST_FRAMEWORK = {{
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}}
+"""
+
+    def _ensure_project_structure(self, project_path, project_name):
+        """
+        Ensure the basic project structure exists
+        This is a fallback if the initialization commands failed
+        """
+        try:
+            logger.info(f"Ensuring basic project structure for {project_name} at {project_path}")
+            
+            # Make sure the project path exists
+            if not os.path.exists(project_path):
+                logger.warning(f"Creating project directory: {project_path}")
+                os.makedirs(project_path, exist_ok=True)
+            
+            # Create setup.py if it doesn't exist
+            setup_path = os.path.join(project_path, 'setup.py')
+            if not os.path.exists(setup_path):
+                with open(setup_path, 'w') as f:
+                    f.write(self._generate_basic_setup_py(project_name))
+                logger.info(f"Created setup.py at {setup_path}")
+                
+            # Ensure the project package directory exists
+            project_package_dir = os.path.join(project_path, project_name)
+            if not os.path.exists(project_package_dir):
+                logger.info(f"Creating project package directory: {project_package_dir}")
+                os.makedirs(project_package_dir, exist_ok=True)
+            
+            # Create __init__.py if it doesn't exist
+            init_path = os.path.join(project_package_dir, '__init__.py')
+            if not os.path.exists(init_path):
+                with open(init_path, 'w') as f:
+                    f.write("# Generated by Imagi Oasis\n")
+                logger.info(f"Created __init__.py at {init_path}")
+                
+            # Create a minimal manage.py if it doesn't exist anywhere
+            manage_path = os.path.join(project_path, 'manage.py')
+            manage_py_found = os.path.exists(manage_path)
+            
+            if not manage_py_found:
+                for root, dirs, files in os.walk(project_path):
+                    if 'manage.py' in files:
+                        manage_py_found = True
+                        break
+            
+            if not manage_py_found:
+                logger.warning(f"manage.py not found, creating minimal version at {manage_path}")
+                with open(manage_path, 'w') as f:
+                    f.write(self._generate_basic_manage_py(project_name))
+                # Make it executable
+                try:
+                    os.chmod(manage_path, 0o755)
+                except:
+                    logger.warning(f"Could not make manage.py executable: {manage_path}")
+                    
+            # Create minimal required dirs
+            dirs_to_create = [
+                os.path.join(project_path, 'static'),
+                os.path.join(project_path, 'static', 'css'),
+                os.path.join(project_path, 'templates'),
+                os.path.join(project_path, 'media'),
+            ]
+            
+            for dir_path in dirs_to_create:
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path, exist_ok=True)
+                    logger.info(f"Created directory: {dir_path}")
+            
+            # Create a minimal settings.py if it doesn't exist
+            settings_path = os.path.join(project_package_dir, 'settings.py')
+            if not os.path.exists(settings_path):
+                with open(settings_path, 'w') as f:
+                    f.write(self._generate_basic_settings_py(project_name))
+                logger.info(f"Created settings.py at {settings_path}")
+                
+            # Create a minimal urls.py if it doesn't exist
+            urls_path = os.path.join(project_package_dir, 'urls.py')
+            if not os.path.exists(urls_path):
+                with open(urls_path, 'w') as f:
+                    f.write(self._generate_basic_project_urls())
+                logger.info(f"Created urls.py at {urls_path}")
+                
+            logger.info(f"Basic project structure ensured for {project_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error ensuring project structure: {str(e)}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            # Don't raise the exception, just return False
+            return False 

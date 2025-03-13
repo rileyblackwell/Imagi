@@ -118,20 +118,116 @@ class ProjectInitializeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, pk):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Initialize request received for project {pk}")
+        
         service = ProjectCreationService(request.user)
+        management_service = ProjectManagementService(request.user)
+        project = management_service.get_project(pk)
+        
+        if not project:
+            logger.error(f"Project not found: {pk}")
+            raise NotFound('Project not found')
+        
+        logger.info(f"Found project {project.name} (ID: {project.id})")
+        
+        # Check if project is already initialized
+        if project.is_initialized:
+            logger.info(f"Project {project.name} (ID: {project.id}) is already initialized")
+            return Response({
+                'success': True, 
+                'already_initialized': True,
+                'project_id': project.id,
+                'name': project.name,
+                'is_initialized': project.is_initialized
+            }, status=status.HTTP_200_OK)
+            
+        # Add a check for partially initialized projects
+        # Make sure the path exists
+        if not hasattr(project, 'project_path') or not project.project_path:
+            logger.error(f"Project {project.name} (ID: {project.id}) has no project_path set")
+            
+            # Try to assign a default path
+            try:
+                from django.conf import settings
+                import os
+                from datetime import datetime
+                
+                # Create a default path based on user ID and project name
+                sanitized_name = ''.join(c if c.isalnum() else '_' for c in project.name)
+                if not sanitized_name[0].isalpha():
+                    sanitized_name = 'project_' + sanitized_name
+                    
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                unique_name = f"{sanitized_name}_{timestamp}"
+                
+                base_directory = os.path.join(settings.PROJECTS_ROOT, str(request.user.id))
+                os.makedirs(base_directory, exist_ok=True)
+                
+                project_path = os.path.join(base_directory, unique_name)
+                
+                # Set and save the path
+                project.project_path = project_path
+                project.save()
+                logger.info(f"Assigned default project path: {project_path}")
+            except Exception as path_err:
+                logger.error(f"Failed to assign default project path: {str(path_err)}")
+                return Response({
+                    'error': f"Project has no valid path: {str(path_err)}",
+                    'project_id': project.id,
+                    'name': project.name
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Initialize the project
+        try:
+            logger.info(f"Starting initialization for project {project.name} (ID: {project.id})")
+            project = service.initialize_project(project)
+            logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")
+            
+            return Response({
+                'success': True,
+                'project_id': project.id,
+                'name': project.name,
+                'is_initialized': project.is_initialized
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Failed to initialize project {project.name} (ID: {project.id}): {str(e)}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            
+            # Check if project exists but initialization failed
+            if project and hasattr(project, 'id'):
+                # Don't mark the project as failed - just return the error
+                return Response({
+                    'error': str(e),
+                    'project_id': project.id,
+                    'name': project.name
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            else:
+                return Response({
+                    'error': str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ProjectStatusView(APIView):
+    """
+    Check the status of a project.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, pk):
         management_service = ProjectManagementService(request.user)
         project = management_service.get_project(pk)
         
         if not project:
             raise NotFound('Project not found')
             
-        # Check if project is already initialized
-        if hasattr(project, 'is_initialized') and project.is_initialized:
-            return Response({'detail': 'Project already initialized'}, status=status.HTTP_409_CONFLICT)
-            
-        # Initialize the project
-        try:
-            project = service.initialize_project(project)
-            return Response({'success': True}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            'id': project.id,
+            'name': project.name,
+            'is_initialized': project.is_initialized,
+            'generation_status': project.generation_status,
+            'project_path': project.project_path,
+            'created_at': project.created_at,
+            'updated_at': project.updated_at
+        }, status=status.HTTP_200_OK)

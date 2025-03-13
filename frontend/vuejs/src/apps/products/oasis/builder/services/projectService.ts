@@ -335,21 +335,73 @@ export const ProjectService = {
    * Initialize a project after creation
    * This sets up the initial project structure
    */
-  async initializeProject(projectId: string): Promise<void> {
+  async initializeProject(projectId: string): Promise<any> {
     console.debug('Project API - initializing project:', { projectId })
     
+    if (!projectId) {
+      console.error('Project API - initializeProject: No project ID provided')
+      throw new Error('Project ID is required')
+    }
+    
     try {
-      const response = await api.post(
-        `api/v1/project-manager/projects/${projectId}/initialize/`
+      // First, check if the project is already initialized
+      const statusResponse = await api.get(
+        `api/v1/project-manager/projects/${projectId}/status/`
       )
       
-      console.debug('Project API - initializeProject response:', {
-        status: response.status
+      console.debug('Project API - project status check:', {
+        status: statusResponse.status,
+        data: statusResponse.data
       })
       
-      return response.data
+      // If project is already initialized, return immediately
+      if (statusResponse.data?.is_initialized) {
+        console.debug('Project is already initialized, skipping initialization')
+        return {
+          success: true,
+          already_initialized: true,
+          is_initialized: true,
+          project_id: statusResponse.data.id,
+          name: statusResponse.data.name
+        }
+      }
+      
+      // Add a small delay to ensure any previous operations are completed
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Otherwise, proceed with initialization
+      console.debug('Project not initialized, sending initialization request')
+      
+      // Use a timeout to prevent hanging requests
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
+      try {
+        const response = await api.post(
+          `api/v1/project-manager/projects/${projectId}/initialize/`,
+          {}, // empty body
+          { signal: controller.signal }
+        )
+        
+        clearTimeout(timeoutId)
+        
+        console.debug('Project API - initializeProject response:', {
+          status: response.status,
+          data: response.data
+        })
+        
+        return response.data
+      } catch (initError: any) {
+        clearTimeout(timeoutId)
+        throw initError
+      }
     } catch (error: any) {
       console.error('Project API - initializeProject error:', error)
+      
+      // If it's an abort error, provide a clearer message
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        throw new Error('Project initialization timed out. The server might be busy, please try again later.')
+      }
       
       if (error.response?.status === 404) {
         throw new Error('Project not found')
@@ -358,9 +410,17 @@ export const ProjectService = {
       } else if (error.response?.status === 403) {
         throw new Error('You do not have permission to initialize this project')
       } else if (error.response?.status === 409) {
-        throw new Error('Project already initialized')
+        // Project already initialized is not an error
+        console.debug('Project already initialized')
+        return { 
+          success: true, 
+          already_initialized: true,
+          project_id: projectId
+        }
       } else if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
+      } else if (error.response?.data?.error) {
+        throw new Error(error.response.data.error)
       }
       
       throw error

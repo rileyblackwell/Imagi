@@ -432,10 +432,77 @@ export const useProjectStore = defineStore('builder', () => {
 
     try {
       console.debug('Initializing project:', projectId)
-      await ProjectService.initializeProject(projectId)
       
-      console.debug('Project initialized successfully:', projectId)
+      // Implement retry logic with exponential backoff for project initialization
+      let attempts = 0
+      const maxAttempts = 3
+      const baseDelay = 1000 // 1 second
+      let result = null
+      let lastError = null
       
+      while (attempts < maxAttempts) {
+        try {
+          console.debug(`Initialize project attempt ${attempts + 1}/${maxAttempts} for project ${projectId}`)
+          result = await ProjectService.initializeProject(projectId)
+          
+          // If we get here, the request succeeded
+          console.debug('Project initialized successfully:', {
+            projectId, 
+            result
+          })
+          
+          // Update the project in the store if it's present
+          const project = projectsMap.value.get(String(projectId))
+          if (project) {
+            project.is_initialized = true
+            projectsMap.value.set(String(projectId), project)
+          }
+          
+          return result
+        } catch (err: any) {
+          attempts++
+          lastError = err
+          
+          console.error(`Project initialization attempt ${attempts} failed:`, {
+            error: err,
+            message: err.message
+          })
+          
+          // If this is the last attempt, we'll throw the error below after exiting the loop
+          if (attempts >= maxAttempts) {
+            break
+          }
+          
+          // If it's a 404 or 403 error, don't retry
+          if (err.response?.status === 404 || err.response?.status === 403) {
+            console.error('Not retrying due to 404/403 error')
+            break
+          }
+          
+          // Wait before the next attempt with exponential backoff
+          const delay = baseDelay * Math.pow(2, attempts - 1)
+          console.debug(`Retrying initialization in ${delay}ms...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+      
+      // If we got here with no result, throw the last error
+      if (!result) {
+        console.error('All initialization attempts failed:', lastError)
+        
+        // Format a more helpful error message
+        let errorMessage = 'Failed to initialize project'
+        if (lastError?.message) {
+          errorMessage = lastError.message
+        } else if (lastError?.response?.data?.error) {
+          errorMessage = lastError.response.data.error
+        }
+        
+        handleError(lastError, 'Failed to initialize project')
+        throw new Error(errorMessage)
+      }
+      
+      return result
     } catch (err: any) {
       console.error('Project initialization error in store:', {
         error: err,
@@ -449,6 +516,9 @@ export const useProjectStore = defineStore('builder', () => {
         handleError(err, 'Failed to initialize project')
         throw err
       }
+      
+      // Return success: true for already initialized projects
+      return { success: true, already_initialized: true }
     }
   }
 

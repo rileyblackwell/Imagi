@@ -1026,37 +1026,54 @@ const initializeWorkspace = async (isNewProject = false) => {
             // Check if project has files, if not ensure project is initialized
             if (filesResponse.length === 0) {
               try {
-                // First, try to initialize the project
-                const initResult = await AgentService.initializeProject(projectId)
+                // First try to check project status via ProjectService
+                let initialized = false;
+                try {
+                  const statusResponse = await ProjectService.initializeProject(projectId);
+                  initialized = statusResponse?.success || statusResponse?.is_initialized;
+                  console.debug('Project initialization check:', { statusResponse, initialized });
+                } catch (statusErr) {
+                  console.warn('Failed to check project status via ProjectService:', statusErr);
+                  
+                  // Fallback to AgentService
+                  try {
+                    const initResult = await AgentService.initializeProject(projectId);
+                    initialized = initResult?.success;
+                    console.debug('Project initialization via AgentService:', { initResult, initialized });
+                  } catch (agentErr) {
+                    console.warn('Failed to initialize project via AgentService:', agentErr);
+                  }
+                }
                 
-                if (initResult && initResult.success) {
+                if (initialized) {
                   // Wait a moment for files to be created
-                  await new Promise(resolve => setTimeout(resolve, 1000))
+                  await new Promise(resolve => setTimeout(resolve, 1000));
                   
                   // Reload project files after backend initialization
-                  const updatedFiles = await FileService.getProjectFiles(projectId)
+                  const updatedFiles = await FileService.getProjectFiles(projectId);
                   
                   if (updatedFiles && Array.isArray(updatedFiles)) {
-                    store.$patch({ files: updatedFiles })
+                    store.$patch({ files: updatedFiles });
                     
                     if (updatedFiles.length > 0) {
                       notify({ 
                         type: 'success', 
                         message: 'Project initialized successfully' 
-                      })
+                      });
                     } else {
                       notify({ 
                         type: 'warning', 
                         message: 'Project initialization did not create any files' 
-                      })
+                      });
                     }
                   }
                 }
               } catch (err) {
+                console.error('Project initialization failed:', err);
                 notify({ 
                   type: 'warning', 
                   message: 'Project initialization failed' 
-                })
+                });
               }
             }
           }
