@@ -3,9 +3,9 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-20">
         <div class="flex items-center">
-          <BrandLogo>
+          <ImagiLogo size="md">
             <slot name="logo">Imagi</slot>
-          </BrandLogo>
+          </ImagiLogo>
           <slot name="left"></slot>
         </div>
         <div class="flex items-center h-full">
@@ -18,12 +18,12 @@
 
 <script>
 import { defineComponent } from 'vue'
-import { BrandLogo } from '@/shared/components/molecules'
+import { ImagiLogo } from '@/shared/components/molecules'
 
 export default defineComponent({
   name: 'BaseNavbar',
   components: {
-    BrandLogo
+    ImagiLogo
   }
 })
 </script>

@@ -4,7 +4,7 @@
       <div class="py-8 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
         <div class="col-span-1 space-y-4">
           <div class="space-y-3">
-            <BrandLogo />
+            <ImagiLogo size="md" />
             <p class="text-gray-400/90 leading-relaxed base font-light">
               Transform your ideas into powerful web applications using natural language with Imagi's AI technology.
             </p>
@@ -34,13 +34,13 @@
 
 <script>
 import { defineComponent } from 'vue'
-import { NavLink, BrandLogo } from '@/shared/components/molecules'
+import { NavLink, ImagiLogo } from '@/shared/components/molecules'
 
 export default defineComponent({
   name: 'BaseFooter',
   components: {
     NavLink,
-    BrandLogo
+    ImagiLogo
   },
   computed: {
     currentYear() {

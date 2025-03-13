@@ -9,20 +9,7 @@
       >
         <!-- Logo and Brand -->
         <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-dark-800/70">
-          <router-link to="/" class="flex items-center">
-            <img 
-              src="@/assets/images/logo-icon.svg" 
-              alt="Imagi Logo" 
-              class="h-8 w-8"
-              :class="{'mx-auto': isSidebarCollapsed}"
-            />
-            <span 
-              v-if="!isSidebarCollapsed" 
-              class="ml-2 text-xl font-semibold bg-gradient-to-r from-primary-400 to-primary-600 text-transparent bg-clip-text"
-            >
-              Imagi
-            </span>
-          </router-link>
+          <ImagiLogo :icon-only="isSidebarCollapsed" size="md" />
         </div>
         
         <!-- Navigation -->
@@ -111,11 +98,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import BaseLayout from './BaseLayout.vue'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
+import { ImagiLogo } from '@/shared/components/molecules'
 
 interface NavigationItem {
   name: string
