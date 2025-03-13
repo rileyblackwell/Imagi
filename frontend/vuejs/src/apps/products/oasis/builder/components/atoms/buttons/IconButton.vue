@@ -9,13 +9,14 @@
       className
     ]"
     :disabled="disabled"
-    :title="title"
-    v-bind="$attrs"
+    title=""
+    v-bind="filteredAttrs"
   >
     <!-- Tooltip -->
     <span 
       v-if="title"
-      class="absolute left-full ml-2.5 px-2 py-1 bg-dark-800 border border-dark-600 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg"
+      class="absolute left-full ml-3 px-2.5 py-1.5 bg-dark-800 border border-dark-600 text-white text-xs font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[100] shadow-xl"
+      :class="{'sidebar-tooltip': isSidebarIcon}"
       style="transform: translateY(-50%); top: 50%;"
     >
       {{ title }}
@@ -36,7 +37,9 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed, useAttrs } from 'vue'
+
+const props = defineProps<{
   iconClass: string
   text?: string
   title?: string
@@ -44,5 +47,33 @@ defineProps<{
   size?: 'sm' | 'md'
   className?: string
   disabled?: boolean
+  isSidebarIcon?: boolean
 }>()
+
+// Prevent title attribute from being passed through to the button element
+defineOptions({
+  inheritAttrs: false
+})
+
+// Get all attributes and filter out 'title'
+const attrs = useAttrs()
+const filteredAttrs = computed(() => {
+  const result = { ...attrs }
+  delete result.title
+  return result
+})
 </script>
+
+<style scoped>
+/* Ensure tooltips are visible in the sidebar */
+.sidebar-tooltip {
+  left: calc(100% + 0.75rem);
+  z-index: 999;
+}
+
+/* Apply styles to make tooltips more visible */
+button:hover span {
+  visibility: visible;
+  opacity: 1 !important;
+}
+</style>

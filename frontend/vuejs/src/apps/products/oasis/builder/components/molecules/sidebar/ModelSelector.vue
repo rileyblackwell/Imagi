@@ -101,21 +101,6 @@
       leave-to-class="opacity-0 -translate-y-2"
     >
       <div 
-        v-if="selectedModelConfig" 
-        class="mt-3 p-3 bg-dark-800 rounded-lg text-sm"
-        :key="'config'"
-      >
-        <div class="flex justify-between text-gray-400 mb-1">
-          <span>Context window:</span>
-          <span>{{ formatNumber(selectedModelConfig.contextWindow) }} tokens</span>
-        </div>
-        <div class="flex justify-between text-gray-400">
-          <span>Capabilities:</span>
-          <span class="text-right">{{ formatCapabilities(selectedModelConfig.capabilities) }}</span>
-        </div>
-      </div>
-
-      <div 
         v-if="rateLimitWarning"
         class="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-400 text-xs"
         :key="'warning'"
@@ -193,23 +178,6 @@ const handleModelSelect = async (modelId: string) => {
 }
 
 // Utility functions
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M'
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(0) + 'K'
-  }
-  return num.toString()
-}
-
-const formatCapabilities = (capabilities: string[]): string => {
-  if (!capabilities || !Array.isArray(capabilities)) return 'None'
-  
-  return capabilities
-    .map(cap => cap.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
-    .join(', ')
-}
-
 const getModelTypeClass = (model: AIModel): string => {
   // Use type assertion to avoid type errors
   const modelType = (model as any).type || (model as any).provider || 'unknown';
@@ -281,12 +249,6 @@ const selectedModel = computed(() => {
   
   // If still not found, return the first available model
   return displayModels.value[0] || null
-})
-
-// Get the configuration for the selected model
-const selectedModelConfig = computed(() => {
-  if (!selectedModel.value) return null
-  return ModelService.getConfig(selectedModel.value)
 })
 
 // Auto-select first model if none selected

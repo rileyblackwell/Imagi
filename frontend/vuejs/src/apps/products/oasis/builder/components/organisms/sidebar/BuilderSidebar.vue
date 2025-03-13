@@ -1,12 +1,12 @@
 <template>
-  <div class="h-full flex flex-col bg-dark-900 border-r border-dark-700">
+  <div class="h-full flex flex-col bg-dark-900/90 backdrop-blur-sm border-r border-dark-700/70">
     <!-- Content that adapts to collapsed state -->
     <div class="flex-1 overflow-y-auto overflow-x-hidden relative">
       <template v-if="!isCollapsed">
         <!-- Project Info -->
-        <div class="p-4 border-b border-dark-700">
-          <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400">
+        <div class="p-4 border-b border-dark-700/50">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/30 to-primary-600/20 flex items-center justify-center text-primary-400 shadow-sm">
               <i class="fas fa-project-diagram"></i>
             </div>
             <div class="truncate">
@@ -21,8 +21,11 @@
         </div>
         
         <!-- AI Model Selection -->
-        <div class="p-4 border-b border-dark-700">
-          <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">AI Model</h4>
+        <div class="p-4 border-b border-dark-700/50">
+          <h4 class="text-xs font-medium text-gray-400 uppercase mb-3 flex items-center">
+            <i class="fas fa-robot mr-1.5 text-primary-400/70"></i>
+            AI Model
+          </h4>
           <ModelSelector
             :models="models || []"
             :model-id="modelId"
@@ -36,8 +39,11 @@
         </div>
         
         <!-- Mode Toggle -->
-        <div class="p-4 border-b border-dark-700">
-          <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Mode</h4>
+        <div class="p-4 border-b border-dark-700/50">
+          <h4 class="text-xs font-medium text-gray-400 uppercase mb-3 flex items-center">
+            <i class="fas fa-code-branch mr-1.5 text-primary-400/70"></i>
+            Mode
+          </h4>
           <ModeSelector
             :mode="mode"
             :modes="modes"
@@ -47,7 +53,10 @@
 
         <!-- File Explorer -->
         <div class="p-4">
-          <h4 class="text-xs font-medium text-gray-500 uppercase mb-2">Project Files</h4>
+          <h4 class="text-xs font-medium text-gray-400 uppercase mb-3 flex items-center">
+            <i class="fas fa-folder-open mr-1.5 text-primary-400/70"></i>
+            Project Files
+          </h4>
           <FileExplorer
             :files="files"
             :selected-file="selectedFile"
@@ -61,82 +70,72 @@
 
       <!-- Collapsed State Icons -->
       <template v-else>
-        <div class="py-4 flex flex-col items-center space-y-6">
-          <!-- Project Icon -->
-          <div class="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400">
-            <i class="fas fa-project-diagram"></i>
-          </div>
-          
-          <!-- Model Icon -->
-          <IconButton
-            icon-class="fa-robot"
-            size="sm"
-            :variant="modelId ? 'primary' : 'default'"
-            :title="'AI Model: ' + (selectedModel?.name || 'Select Model')"
-          />
-          
-          <!-- Mode Icons -->
-          <div class="space-y-2">
+        <div class="py-6 flex flex-col items-center space-y-8">
+          <!-- Mode Icons (Chat and Build) -->
+          <div class="space-y-6">
             <IconButton
               v-for="modeOption in modes"
               :key="modeOption"
               :icon-class="getModeIcon(modeOption)"
               :variant="mode === modeOption ? 'primary' : 'default'"
-              :title="formatMode(modeOption)"
-              size="sm"
+              :title="formatMode(modeOption) + ' Mode'"
+              size="md"
+              class-name="sidebar-collapsed-icon"
+              :is-sidebar-icon="true"
               @click="handleModeChange(modeOption)"
             />
           </div>
 
-          <!-- File Icon -->
-          <IconButton
-            icon-class="fa-folder"
-            :variant="selectedFile ? 'primary' : 'default'"
-            title="Project Files"
-            size="sm"
-          />
-
-          <!-- Action Icons -->
-          <div class="space-y-2">
-            <IconButton
-              icon-class="fa-eye"
-              :variant="currentEditorMode === 'preview' ? 'primary' : 'default'"
-              title="Preview App"
-              size="sm"
-              @click="$emit('preview')"
-            />
+          <!-- Action Icons (Undo and Preview) -->
+          <div class="space-y-6">
             <IconButton
               icon-class="fa-undo"
+              title="Undo Last Action"
+              size="md"
               :variant="'default'"
-              title="Undo Last Change"
-              size="sm"
               :disabled="isLoading"
+              class-name="sidebar-collapsed-icon"
+              :is-sidebar-icon="true"
               @click="$emit('undo')"
+            />
+            <IconButton
+              icon-class="fa-eye"
+              title="Preview Project"
+              size="md"
+              :variant="'default'"
+              :disabled="isLoading"
+              class-name="sidebar-collapsed-icon"
+              :is-sidebar-icon="true"
+              @click="$emit('preview')"
             />
           </div>
         </div>
       </template>
     </div>
 
-    <!-- Action Buttons (only shown when expanded) -->
-    <div v-if="!isCollapsed" class="shrink-0 border-t border-dark-700 p-4 space-y-3">
-      <ActionButton
-        title="Preview Application"
-        icon="eye"
-        text="Preview App"
-        :variant="currentEditorMode === 'preview' ? 'primary' : 'default'"
-        :full-width="true"
-        @click="$emit('preview')"
-      />
-      <ActionButton
-        title="Undo Last Change"
-        icon="undo"
-        text="Undo Last Change"
-        variant="default"
-        :full-width="true"
-        :disabled="isLoading"
-        @click="$emit('undo')"
-      />
+    <!-- Bottom Actions (only visible when not collapsed) -->
+    <div v-if="!isCollapsed" class="p-4 border-t border-dark-700/50 bg-dark-800/30">
+      <div class="flex justify-between items-center">
+        <button 
+          @click="$emit('undo')"
+          class="px-3 py-2 bg-dark-800 hover:bg-dark-700 text-gray-300 rounded-lg text-sm transition-colors flex items-center"
+          :disabled="isLoading"
+          :class="{'opacity-50 cursor-not-allowed': isLoading}"
+        >
+          <i class="fas fa-undo mr-2"></i>
+          <span>Undo</span>
+        </button>
+        
+        <button 
+          @click="$emit('preview')"
+          class="px-3 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 rounded-lg text-sm transition-colors flex items-center"
+          :disabled="isLoading"
+          :class="{'opacity-50 cursor-not-allowed': isLoading}"
+        >
+          <i class="fas fa-eye mr-2"></i>
+          <span>Preview</span>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -270,5 +269,33 @@ const modeOptions = computed(() => ([
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 300ms;
+}
+
+/* Custom styling for collapsed sidebar tooltips */
+:deep(.sidebar-collapsed-icon span) {
+  font-size: 0.75rem;
+  background-color: rgba(15, 15, 15, 0.95);
+  border: 1px solid rgba(55, 65, 81, 0.7);
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  color: white;
+  z-index: 100;
+  margin-left: 1rem;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Ensure sidebar icons have proper z-index for tooltips */
+.sidebar-collapsed-icon {
+  position: relative;
+  z-index: 20;
+}
+
+/* Override any potential overflow issues */
+:deep(.sidebar-tooltip) {
+  visibility: visible;
+  z-index: 999;
 }
 </style>

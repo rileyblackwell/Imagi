@@ -1,13 +1,13 @@
 <template>
   <div class="relative">
-    <div class="flex items-end border border-dark-700 rounded-lg bg-dark-900 shadow-lg">
+    <div class="flex items-end border border-dark-700/70 rounded-xl bg-dark-800/50 backdrop-blur-sm shadow-lg transition-all duration-200 hover:border-dark-600/70 focus-within:border-primary-500/50 focus-within:ring-1 focus-within:ring-primary-500/30">
       <!-- Auto-expanding textarea -->
       <textarea
         id="user-input"
         ref="textareaRef"
         v-model="inputValue"
         :placeholder="placeholder"
-        class="flex-1 bg-transparent text-white px-4 py-3 max-h-[200px] min-h-[56px] focus:outline-none resize-none overflow-y-auto"
+        class="flex-1 bg-transparent text-white px-4 py-3 max-h-[200px] min-h-[56px] focus:outline-none resize-none overflow-y-auto rounded-l-xl"
         :rows="rows"
         @input="autoResize"
         @keydown.enter.prevent="handleEnterKey"
@@ -16,10 +16,10 @@
       <!-- Send button -->
       <button
         @click="handleSubmit"
-        class="p-3 mr-2 mb-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        class="p-3 mr-2 mb-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         :class="[
           inputValue.trim() 
-            ? 'bg-primary-500 hover:bg-primary-600' 
+            ? 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 shadow-md hover:shadow-lg' 
             : 'bg-dark-700'
         ]"
         :disabled="loading || !inputValue.trim()"
@@ -32,16 +32,20 @@
     <!-- Mode indicator and helper text -->
     <div class="mt-2 flex justify-between items-center text-xs text-gray-500">
       <div>
-        <span class="inline-flex items-center">
-          <i class="fas mr-1" :class="mode === 'chat' ? 'fa-comments' : 'fa-code'"></i>
+        <span class="inline-flex items-center px-2 py-1 rounded-full bg-dark-800/70 backdrop-blur-sm">
+          <i class="fas mr-1.5" :class="mode === 'chat' ? 'fa-comments text-primary-400' : 'fa-code text-primary-400'"></i>
           {{ mode === 'chat' ? 'Chat Mode' : 'Build Mode' }}
         </span>
       </div>
-      <div>
-        <kbd class="px-1 py-0.5 bg-dark-800 rounded text-gray-400">Enter</kbd>
-        <span class="mx-1">to send</span>
-        <kbd class="px-1 py-0.5 bg-dark-800 rounded text-gray-400">Shift+Enter</kbd>
-        <span class="mx-1">for new line</span>
+      <div class="flex items-center space-x-2">
+        <span class="flex items-center">
+          <kbd class="px-1.5 py-0.5 bg-dark-800 rounded text-gray-400 border border-dark-700 shadow-sm">Enter</kbd>
+          <span class="mx-1">to send</span>
+        </span>
+        <span class="flex items-center">
+          <kbd class="px-1.5 py-0.5 bg-dark-800 rounded text-gray-400 border border-dark-700 shadow-sm">Shift+Enter</kbd>
+          <span class="mx-1">for new line</span>
+        </span>
       </div>
     </div>
   </div>
@@ -140,5 +144,9 @@ textarea::-webkit-scrollbar-track {
 textarea::-webkit-scrollbar-thumb {
   background-color: theme('colors.dark.700');
   border-radius: 9999px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  background-color: theme('colors.dark.600');
 }
 </style>

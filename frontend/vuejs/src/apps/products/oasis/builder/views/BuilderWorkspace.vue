@@ -40,7 +40,7 @@
 
       <template #default="{ collapsed }">
         <!-- Main Content -->
-        <div class="relative h-full bg-dark-950">
+        <div class="relative h-full bg-gradient-to-b from-dark-950 to-dark-900">
           <!-- Loading Overlay -->
           <LoadingOverlay 
             v-if="store.isProcessing"
@@ -52,30 +52,34 @@
             <!-- Main Content Area -->
             <Transition
               mode="out-in"
-              enter-active-class="transition-opacity duration-300"
-              enter-from-class="opacity-0"
-              enter-to-class="opacity-100"
-              leave-active-class="transition-opacity duration-300"
-              leave-from-class="opacity-100"
-              leave-to-class="opacity-0"
+              enter-active-class="transition-all duration-300 ease-out"
+              enter-from-class="opacity-0 transform scale-98"
+              enter-to-class="opacity-100 transform scale-100"
+              leave-active-class="transition-all duration-300 ease-in"
+              leave-from-class="opacity-100 transform scale-100"
+              leave-to-class="opacity-0 transform scale-98"
             >
-              <div v-if="store.mode === 'chat'" class="flex-1 overflow-auto">
-                <ChatConversation 
-                  :messages="store.conversation || []" 
-                  @use-example="handleExamplePrompt"
-                />
-              </div>
-              <div v-else class="flex-1 flex flex-col overflow-hidden">
-                <!-- Show chat feed at the top in build mode -->
-                <div class="flex-1 overflow-auto">
+              <div v-if="store.mode === 'chat'" class="flex-1 overflow-auto px-4 py-2">
+                <div class="max-w-4xl mx-auto">
                   <ChatConversation 
-                    :messages="store.conversation || []" 
+                    :messages="ensureValidMessages(store.conversation || [])" 
                     @use-example="handleExamplePrompt"
                   />
                 </div>
+              </div>
+              <div v-else class="flex-1 flex flex-col overflow-hidden">
+                <!-- Show chat feed at the top in build mode -->
+                <div class="flex-1 overflow-auto px-4 py-2">
+                  <div class="max-w-4xl mx-auto">
+                    <ChatConversation 
+                      :messages="ensureValidMessages(store.conversation || [])" 
+                      @use-example="handleExamplePrompt"
+                    />
+                  </div>
+                </div>
                 
                 <!-- Show editor below chat feed when a file is selected -->
-                <div v-if="store.selectedFile" class="h-1/2 border-t border-dark-800">
+                <div v-if="store.selectedFile" class="h-1/2 border-t border-dark-700/50 shadow-lg">
                   <BuilderEditor
                     v-model="editorContent"
                     :file="store.selectedFile"
@@ -89,16 +93,18 @@
 
             <!-- AI Input Area -->
             <div 
-              class="shrink-0 p-4 border-t border-dark-800 bg-dark-900/50 backdrop-blur-sm"
+              class="shrink-0 p-4 border-t border-dark-700/50 bg-dark-900/80 backdrop-blur-md shadow-lg"
               :class="{'opacity-50 pointer-events-none': store.isProcessing}"
             >
-              <AIPromptInput
-                v-model="prompt"
-                :loading="store.isProcessing"
-                :mode="store.mode || 'chat'"
-                :placeholder="promptPlaceholder"
-                @submit="handlePrompt"
-              />
+              <div class="max-w-4xl mx-auto">
+                <AIPromptInput
+                  v-model="prompt"
+                  :loading="store.isProcessing"
+                  :mode="store.mode || 'chat'"
+                  :placeholder="promptPlaceholder"
+                  @submit="handlePrompt"
+                />
+              </div>
               
               <!-- Error Message -->
               <TransitionGroup
@@ -111,9 +117,12 @@
               >
                 <div 
                   v-if="store.error"
-                  class="mt-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm"
+                  class="mt-2 max-w-4xl mx-auto px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm shadow-lg"
                 >
-                  {{ store.error }}
+                  <div class="flex items-start">
+                    <i class="fas fa-exclamation-circle mt-0.5 mr-2"></i>
+                    <span>{{ store.error }}</span>
+                  </div>
                 </div>
               </TransitionGroup>
             </div>
@@ -168,6 +177,7 @@ import ChatConversation from '../components/molecules/chat/ChatConversation.vue'
 // Utils
 import { notify } from '@/shared/utils'
 import type { ProjectFile, EditorMode } from '../types/builder'
+import type { AIMessage } from '../types/index'
 
 const route = useRoute()
 const router = useRouter()
@@ -326,8 +336,16 @@ const handleModeSwitch = (mode: 'chat' | 'build') => {
   }
 }
 
-const handleFileSelect = (file: ProjectFile) => {
-  store.selectFile(file)
+const handleFileSelect = (file: any) => {
+  // Ensure we're using the correct ProjectFile type
+  const projectFile: ProjectFile = {
+    path: file.path,
+    type: file.type,
+    content: file.content || '',
+    lastModified: file.lastModified || new Date().toISOString()
+  };
+  
+  store.selectFile(projectFile);
 }
 
 const handleFileCreate = async (data: { name: string; type: string; content?: string }) => {
@@ -373,14 +391,14 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
     }
     
     // This is where the actual file is created - this should only happen in the workspace
-    const newFile = await createFile(data.name, data.type, data.content || '', projectId)
+    const newFile = await createFile(data.name, data.type, data.content || '', projectId || '')
     notify({ type: 'success', message: 'File created successfully' })
     
     // If we just created one of the template files, check if others are needed
     if (data.name === 'templates/base.html' || data.name === 'templates/index.html' || data.name === 'static/css/styles.css') {
       // Reload project files to see what we have
-      const updatedFiles = await ProjectService.getProjectFiles(projectId, false)
-      const fileNames = updatedFiles.map(f => f.name)
+      const updatedFiles = await ProjectService.getProjectFiles(projectId || '')
+      const fileNames = updatedFiles.map(f => f.path)
       
       // Create any missing template files
       if (!fileNames.includes('templates/base.html')) {
@@ -419,7 +437,7 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
   {% block extra_js %}{% endblock %}
 </body>
 </html>`,
-          projectId
+          projectId || ''
         )
       }
       
@@ -439,7 +457,7 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
   <p>Edit this template to start building your web application.</p>
 </div>
 {% endblock %}`,
-          projectId
+          projectId || ''
         )
       }
       
@@ -505,7 +523,7 @@ footer {
   text-align: center;
   margin-top: 2rem;
 }`,
-          projectId
+          projectId || ''
         )
       }
     }
@@ -613,6 +631,19 @@ const handleExamplePrompt = (example: string) => {
       inputElement.focus()
     }
   }, 100)
+}
+
+// Ensure conversation messages have the correct timestamp type
+const ensureValidMessages = (messages: any[]): AIMessage[] => {
+  return messages.map(msg => ({
+    role: msg.role,
+    content: msg.content,
+    code: msg.code,
+    // Convert string timestamp to number if needed
+    timestamp: typeof msg.timestamp === 'string' ? Date.parse(msg.timestamp) : (msg.timestamp || Date.now()),
+    // Ensure id exists
+    id: msg.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+  }));
 }
 
 // Watch for editor content changes
@@ -865,7 +896,7 @@ const handleModeSelectionUpdated = (event: Event) => {
     window.dispatchEvent(new Event('resize'))
     
     // Get the mode from the event
-    const mode = (event as CustomEvent).detail as BuilderMode
+    const mode = (event as CustomEvent).detail as 'chat' | 'build'
     
     // Notify user of mode change
     notify({ 
@@ -966,7 +997,7 @@ const initializeWorkspace = async (isNewProject = false) => {
           // Try to fetch project, but don't let it block other initialization steps if it fails
           await projectStore.fetchProject(projectId, isNewProject)
           projectFetched = true;
-        } catch (projectErr) {
+        } catch (projectErr: any) {
           // Handle 404 (Not Found) errors by redirecting to projects page
           if (isProjectNotFoundError(projectErr) || projectErr?.response?.status === 404) {
             redirectToProjectsPage('Project not found or has been deleted')
@@ -986,7 +1017,7 @@ const initializeWorkspace = async (isNewProject = false) => {
         
         // Load project files - this can work even if the project details couldn't be fetched
         try {
-          const filesResponse = await ProjectService.getProjectFiles(projectId, isNewProject)
+          const filesResponse = await ProjectService.getProjectFiles(projectId)
           if (filesResponse && Array.isArray(filesResponse)) {
             store.$patch({ files: filesResponse })
             
@@ -1001,7 +1032,7 @@ const initializeWorkspace = async (isNewProject = false) => {
                   await new Promise(resolve => setTimeout(resolve, 1000))
                   
                   // Reload project files after backend initialization
-                  const updatedFiles = await ProjectService.getProjectFiles(projectId, true)
+                  const updatedFiles = await ProjectService.getProjectFiles(projectId)
                   
                   if (updatedFiles && Array.isArray(updatedFiles)) {
                     store.$patch({ files: updatedFiles })
@@ -1056,7 +1087,7 @@ const initializeWorkspace = async (isNewProject = false) => {
                 await new Promise(resolve => setTimeout(resolve, 1000))
                 
                 // Reload project files
-                const updatedFiles = await ProjectService.getProjectFiles(projectId, true)
+                const updatedFiles = await ProjectService.getProjectFiles(projectId)
                 if (updatedFiles && Array.isArray(updatedFiles)) {
                   store.$patch({ files: updatedFiles })
                   
@@ -1085,7 +1116,7 @@ const initializeWorkspace = async (isNewProject = false) => {
             message: 'Workspace initialized with limited functionality' 
           })
         }
-      } catch (err) {
+      } catch (err: any) {
         // Check if this is a not found error
         if (isProjectNotFoundError(err)) {
           redirectToProjectsPage('Project not found or has been deleted')
@@ -1100,7 +1131,7 @@ const initializeWorkspace = async (isNewProject = false) => {
     } else {
       redirectToProjectsPage('Failed to initialize workspace: No project ID available')
     }
-  } catch (err) {
+  } catch (err: any) {
     // Check if this is a not found error
     if (isProjectNotFoundError(err)) {
       redirectToProjectsPage('Project not found or has been deleted')
@@ -1123,10 +1154,9 @@ async function loadProject(projectId: string) {
     const project = await projectStore.fetchProject(projectId)
     
     if (!project) {
-      showNotification({
-        title: 'Error',
-        message: 'Project not found',
-        type: 'error'
+      notify({
+        type: 'error',
+        message: 'Project not found'
       })
       return false
     }
@@ -1137,10 +1167,9 @@ async function loadProject(projectId: string) {
     console.debug(`Loaded project ${project.name} with ${files.length} files`)
     return true
   } catch (error: any) {
-    showNotification({
-      title: 'Error',
-      message: error?.message || 'Failed to load project',
-      type: 'error'
+    notify({
+      type: 'error',
+      message: error?.message || 'Failed to load project'
     })
     return false
   }
@@ -1153,17 +1182,15 @@ async function updateFileContent(projectId: string, filePath: string, content: s
   try {
     await projectStore.updateFileContent(projectId, filePath, content)
     
-    showNotification({
-      title: 'Success',
-      message: `File "${filePath}" saved successfully`,
-      type: 'success'
+    notify({
+      type: 'success',
+      message: `File "${filePath}" saved successfully`
     })
     return true
   } catch (error: any) {
-    showNotification({
-      title: 'Error',
-      message: error?.message || `Failed to save file "${filePath}"`,
-      type: 'error'
+    notify({
+      type: 'error',
+      message: error?.message || `Failed to save file "${filePath}"`
     })
     return false
   }
@@ -1176,17 +1203,15 @@ async function createProjectFile(projectId: string, filePath: string, content: s
   try {
     await projectStore.createFile(projectId, filePath, content)
     
-    showNotification({
-      title: 'Success',
-      message: `File "${filePath}" created successfully`,
-      type: 'success'
+    notify({
+      type: 'success',
+      message: `File "${filePath}" created successfully`
     })
     return true
   } catch (error: any) {
-    showNotification({
-      title: 'Error',
-      message: error?.message || `Failed to create file "${filePath}"`,
-      type: 'error'
+    notify({
+      type: 'error',
+      message: error?.message || `Failed to create file "${filePath}"`
     })
     return false
   }
@@ -1199,17 +1224,15 @@ async function deleteFile(projectId: string, filePath: string) {
   try {
     await projectStore.deleteFile(projectId, filePath)
     
-    showNotification({
-      title: 'Success',
-      message: `File "${filePath}" deleted successfully`,
-      type: 'success'
+    notify({
+      type: 'success',
+      message: `File "${filePath}" deleted successfully`
     })
     return true
   } catch (error: any) {
-    showNotification({
-      title: 'Error',
-      message: error?.message || `Failed to delete file "${filePath}"`,
-      type: 'error'
+    notify({
+      type: 'error',
+      message: error?.message || `Failed to delete file "${filePath}"`
     })
     return false
   }

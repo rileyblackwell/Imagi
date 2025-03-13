@@ -32,11 +32,15 @@ export interface APIResponse<T> {
   error?: string;
 }
 
+/**
+ * Represents a message in the AI chat conversation
+ */
 export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: string;
   code?: string;
+  timestamp: number;
+  id?: string;
 }
 
 export interface CodeGenerationResponse {
@@ -58,6 +62,9 @@ export interface ProjectFile {
   type: EditorLanguage;
   content?: string;
   lastModified: string;
+  size?: number;
+  isDirectory?: boolean;
+  children?: ProjectFile[];
 }
 
 export interface UndoResponse {
@@ -67,4 +74,15 @@ export interface UndoResponse {
     file: string;
     content: string;
   }[];
+}
+
+/**
+ * AI Model definition
+ */
+export interface AIModel {
+  id: string;
+  name: string;
+  description?: string;
+  capabilities?: string[];
+  isDefault?: boolean;
 }
