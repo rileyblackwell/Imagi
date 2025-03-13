@@ -1,14 +1,30 @@
+"""
+Base agent service module for Imagi Oasis.
+
+This module provides the base class and utility functions for all agent services.
+The BaseAgentService class is meant to be inherited by specialized agent services,
+not used directly.
+
+Utility functions:
+- build_conversation_history: Builds a formatted conversation history for AI models
+- format_system_prompt: Formats a system prompt with optional context
+- get_last_assistant_message: Gets the most recent assistant message from a conversation
+- get_conversation_summary: Creates a summary of a conversation
+"""
+
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
 import anthropic
 from ..models import AgentMessage, AgentConversation, SystemPrompt
+from abc import ABC, abstractmethod
 
 # Load environment variables from .env
 load_dotenv()
 openai_key = os.getenv('OPENAI_KEY')
 anthropic_key = os.getenv('ANTHROPIC_KEY')
 
+# Initialize API clients
 openai_client = OpenAI(api_key=openai_key)
 anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
@@ -16,6 +32,12 @@ def build_conversation_history(conversation):
     """
     Builds a formatted conversation history for the AI model.
     Returns a list of messages in the format expected by the AI APIs.
+    
+    Args:
+        conversation: The AgentConversation object
+        
+    Returns:
+        list: A list of message dictionaries with 'role' and 'content' keys
     """
     messages = []
     
@@ -42,6 +64,13 @@ def build_conversation_history(conversation):
 def format_system_prompt(base_prompt, context=None):
     """
     Formats a system prompt with optional context.
+    
+    Args:
+        base_prompt (str): The base system prompt
+        context (str, optional): Additional context to append
+        
+    Returns:
+        dict: A message dictionary with 'role' and 'content' keys
     """
     prompt = base_prompt
     
@@ -56,6 +85,12 @@ def format_system_prompt(base_prompt, context=None):
 def get_last_assistant_message(conversation):
     """
     Gets the most recent assistant message from a conversation.
+    
+    Args:
+        conversation: The AgentConversation object
+        
+    Returns:
+        AgentMessage: The most recent assistant message, or None if none exists
     """
     return AgentMessage.objects.filter(
         conversation=conversation,
@@ -65,6 +100,12 @@ def get_last_assistant_message(conversation):
 def get_conversation_summary(conversation):
     """
     Creates a summary of the conversation including metadata and message count.
+    
+    Args:
+        conversation: The AgentConversation object
+        
+    Returns:
+        dict: A summary of the conversation
     """
     message_count = AgentMessage.objects.filter(conversation=conversation).count()
     system_prompt = getattr(conversation.system_prompt, 'content', None) if hasattr(conversation, 'system_prompt') else None
@@ -78,29 +119,59 @@ def get_conversation_summary(conversation):
         'system_prompt_preview': system_prompt[:100] + '...' if system_prompt else None
     }
 
-class BaseAgentService:
-    """Base class for specialized agent services."""
+class BaseAgentService(ABC):
+    """
+    Abstract base class for specialized agent services.
+    
+    This class provides common functionality for all agent services and defines
+    the interface that specialized services must implement. It should not be
+    instantiated directly.
+    """
     
     def __init__(self):
+        """Initialize the agent service with API clients."""
         self.openai_client = openai_client
         self.anthropic_client = anthropic_client
     
+    @abstractmethod
     def get_system_prompt(self):
         """
         Get the system prompt for this agent type.
-        Should be overridden by subclasses.
+        Must be implemented by subclasses.
+        
+        Returns:
+            dict: A message dictionary with 'role' and 'content' keys
         """
         raise NotImplementedError("Subclasses must implement get_system_prompt()")
     
+    @abstractmethod
     def validate_response(self, content):
         """
         Validate the AI model's response.
-        Should be overridden by subclasses.
+        Must be implemented by subclasses.
+        
+        Args:
+            content (str): The response content to validate
+            
+        Returns:
+            tuple: (is_valid, error_message)
         """
         raise NotImplementedError("Subclasses must implement validate_response()")
     
     def process_conversation(self, user_input, model, user, system_prompt_content=None, **kwargs):
-        """Process a conversation with an AI agent."""
+        """
+        Process a conversation with an AI agent.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            system_prompt_content (str, optional): Content for a new system prompt
+            **kwargs: Additional arguments for specialized processing
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
         try:
             # Get or create conversation
             if system_prompt_content:
@@ -113,15 +184,18 @@ class BaseAgentService:
                     content=system_prompt_content
                 )
             else:
-                conversation = AgentConversation.objects.filter(
-                    user=user
-                ).order_by('-created_at').first()
+                conversation = kwargs.get('conversation')
                 
                 if not conversation:
-                    return {
-                        'success': False,
-                        'error': 'no_active_conversation'
-                    }
+                    conversation = AgentConversation.objects.filter(
+                        user=user
+                    ).order_by('-created_at').first()
+                    
+                    if not conversation:
+                        return {
+                            'success': False,
+                            'error': 'no_active_conversation'
+                        }
 
             # Use provided messages if available, otherwise build them
             api_messages = kwargs.get('messages', [])

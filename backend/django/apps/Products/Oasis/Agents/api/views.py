@@ -1,198 +1,176 @@
 """
 API views for the Agents app.
+
+These views handle the API endpoints for the Agents app, delegating business logic
+to the appropriate agent services.
 """
 
 import logging
-from rest_framework import generics, status
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 
-from ..models import AgentConversation, SystemPrompt, AgentMessage
-from .serializers import (
-    AgentConversationSerializer,
-    SystemPromptSerializer,
-    AgentMessageSerializer,
-    ConversationHistorySerializer
-)
-from ..services.agent_service import build_conversation_history
-from ..services.template_agent_service import TemplateAgentService
+from .serializers import AgentMessageSerializer, MessageResponseSerializer
+# Import services from the barrel file
+from ..services import ChatAgentService, TemplateAgentService, StylesheetAgentService
 
 logger = logging.getLogger(__name__)
 
-class ConversationListCreateView(generics.ListCreateAPIView):
-    """List all conversations or create a new conversation."""
-    serializer_class = AgentConversationSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return AgentConversation.objects.filter(
-            user=self.request.user
-        ).order_by('-created_at')
-
-    def perform_create(self, serializer):
-        # Get provider from request data
-        provider = self.request.data.get('provider', 'anthropic')
-        
-        # Create the conversation with provider
-        conversation = serializer.save(
-            user=self.request.user,
-            provider=provider
-        )
-        
-        # Create initial system prompt
-        template_agent = TemplateAgentService()
-        system_prompt = template_agent.get_system_prompt()
-        
-        SystemPrompt.objects.create(
-            conversation=conversation,
-            content=system_prompt['content']
-        )
-        
-        # Return the conversation with provider information
-        return conversation
-
-class ConversationDetailView(generics.RetrieveDestroyAPIView):
-    """Retrieve or delete a conversation."""
-    serializer_class = ConversationHistorySerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return AgentConversation.objects.filter(user=self.request.user)
+# Initialize agent services
+template_agent = TemplateAgentService()
+stylesheet_agent = StylesheetAgentService()
+chat_agent = ChatAgentService()
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def send_message(request):
-    """Send a message to the agent and get a response."""
+def build_template(request):
+    """Handle template generation requests."""
     try:
-        conversation_id = request.data.get('conversation_id')
+        # Extract request data
         user_input = request.data.get('message')
         model = request.data.get('model', 'claude-3-5-sonnet-20241022')
-        provider = request.data.get('provider', 'anthropic')  # Default to anthropic if not specified
-        mode = request.data.get('mode', 'chat')
         file_path = request.data.get('file_path')
+        conversation_id = request.data.get('conversation_id')
         
-        if not all([conversation_id, user_input]):
+        # Validate required fields
+        if not all([user_input, file_path]):
             return Response({
                 'error': 'Missing required fields'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Get conversation
-        conversation = get_object_or_404(
-            AgentConversation,
-            id=conversation_id,
-            user=request.user
-        )
-        
-        # Save user message
-        user_message = AgentMessage.objects.create(
-            conversation=conversation,
-            role='user',
-            content=user_input
-        )
-        
-        # Build conversation history
-        history = build_conversation_history(conversation)
-        
-        # Get agent response
-        template_agent = TemplateAgentService()
-        
-        # Additional parameters for build mode
-        kwargs = {
-            'conversation_history': history,
-            'provider': provider
-        }
-        
-        # If in build mode and file_path is provided, add it to kwargs
-        if mode == 'build' and file_path:
-            kwargs['file_name'] = file_path
-        
-        response = template_agent.process_message(
+        # Delegate to service
+        result = template_agent.handle_template_request(
             user_input=user_input,
             model=model,
-            **kwargs
+            user=request.user,
+            file_path=file_path,
+            conversation_id=conversation_id
         )
         
-        # Save agent response
-        assistant_message = AgentMessage.objects.create(
-            conversation=conversation,
-            role='assistant',
-            content=response
-        )
-        
-        return Response({
-            'user_message': AgentMessageSerializer(user_message).data,
-            'assistant_message': AgentMessageSerializer(assistant_message).data
-        })
-        
-    except Exception as e:
-        logger.error(f"Error processing message: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def clear_conversation(request):
-    """Clear all messages from a conversation."""
-    try:
-        conversation_id = request.data.get('conversation_id')
-        if not conversation_id:
+        # Process result
+        if result.get('success'):
+            # Use the MessageResponseSerializer for consistent formatting
+            response_data = {
+                'success': True,
+                'conversation_id': result['conversation_id'],
+                'response': result['response'],
+                'user_message': result['user_message'],
+                'assistant_message': result['assistant_message']
+            }
+            serializer = MessageResponseSerializer(response_data)
+            return Response(serializer.data)
+        else:
             return Response({
-                'error': 'Missing conversation_id'
+                'success': False,
+                'error': result.get('error', 'Unknown error')
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        conversation = get_object_or_404(
-            AgentConversation,
-            id=conversation_id,
-            user=request.user
-        )
-        
-        # Delete all messages except system prompt
-        AgentMessage.objects.filter(
-            conversation=conversation
-        ).exclude(
-            role='system'
-        ).delete()
-        
-        return Response({
-            'message': 'Conversation cleared successfully'
-        })
-        
+            
     except Exception as e:
-        logger.error(f"Error clearing conversation: {str(e)}")
+        logger.error(f"Error in build_template: {str(e)}")
         return Response({
+            'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def update_system_prompt(request):
-    """Update the system prompt for a conversation."""
+def build_stylesheet(request):
+    """Handle stylesheet generation requests."""
     try:
+        # Extract request data
+        user_input = request.data.get('message')
+        model = request.data.get('model', 'claude-3-5-sonnet-20241022')
+        file_path = request.data.get('file_path')
         conversation_id = request.data.get('conversation_id')
-        new_prompt = request.data.get('prompt')
         
-        if not all([conversation_id, new_prompt]):
+        # Validate required fields
+        if not all([user_input, file_path]):
             return Response({
                 'error': 'Missing required fields'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        conversation = get_object_or_404(
-            AgentConversation,
-            id=conversation_id,
-            user=request.user
+        # Delegate to service
+        result = stylesheet_agent.handle_stylesheet_request(
+            user_input=user_input,
+            model=model,
+            user=request.user,
+            file_path=file_path,
+            conversation_id=conversation_id
         )
         
-        system_prompt = conversation.system_prompt
-        system_prompt.content = new_prompt
-        system_prompt.save()
-        
-        return Response(SystemPromptSerializer(system_prompt).data)
-        
+        # Process result
+        if result.get('success'):
+            # Use the MessageResponseSerializer for consistent formatting
+            response_data = {
+                'success': True,
+                'conversation_id': result['conversation_id'],
+                'response': result['response'],
+                'user_message': result['user_message'],
+                'assistant_message': result['assistant_message']
+            }
+            serializer = MessageResponseSerializer(response_data)
+            return Response(serializer.data)
+        else:
+            return Response({
+                'success': False,
+                'error': result.get('error', 'Unknown error')
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
     except Exception as e:
-        logger.error(f"Error updating system prompt: {str(e)}")
+        logger.error(f"Error in build_stylesheet: {str(e)}")
         return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chat(request):
+    """Handle chat interactions."""
+    try:
+        # Extract request data
+        user_input = request.data.get('message')
+        model = request.data.get('model', 'claude-3-5-sonnet-20241022')
+        project_path = request.data.get('project_path')
+        conversation_id = request.data.get('conversation_id')
+        
+        # Validate required fields
+        if not user_input:
+            return Response({
+                'error': 'Message is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Delegate to service
+        result = chat_agent.handle_chat_request(
+            user_input=user_input,
+            model=model,
+            user=request.user,
+            project_path=project_path,
+            conversation_id=conversation_id
+        )
+        
+        # Process result
+        if result.get('success'):
+            # Use the MessageResponseSerializer for consistent formatting
+            response_data = {
+                'success': True,
+                'conversation_id': result['conversation_id'],
+                'response': result['response'],
+                'user_message': result['user_message'],
+                'assistant_message': result['assistant_message']
+            }
+            serializer = MessageResponseSerializer(response_data)
+            return Response(serializer.data)
+        else:
+            return Response({
+                'success': False,
+                'error': result.get('error', 'Unknown error')
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        logger.error(f"Error in chat: {str(e)}")
+        return Response({
+            'success': False,
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 

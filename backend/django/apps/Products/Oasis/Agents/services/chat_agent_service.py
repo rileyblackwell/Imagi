@@ -1,15 +1,34 @@
+"""
+Chat agent service for Imagi Oasis.
+
+This module provides a specialized agent service for chat-based interactions,
+allowing users to have natural language conversations about their web applications.
+"""
+
 from dotenv import load_dotenv
 from .agent_service import BaseAgentService
+from ..models import AgentConversation, SystemPrompt, AgentMessage
+from django.shortcuts import get_object_or_404
 import os
 
 # Load environment variables from .env
 load_dotenv()
 
 class ChatAgentService(BaseAgentService):
-    """Specialized agent service for chat-based interactions."""
+    """
+    Specialized agent service for chat-based interactions.
+    
+    This service handles natural language conversations with users about their
+    web applications, providing explanations, suggestions, and guidance.
+    """
     
     def get_system_prompt(self):
-        """Get the system prompt for chat interactions."""
+        """
+        Get the system prompt for chat interactions.
+        
+        Returns:
+            dict: A message dictionary with 'role' and 'content' keys
+        """
         return {
             "role": "system",
             "content": (
@@ -41,12 +60,25 @@ class ChatAgentService(BaseAgentService):
         """
         Validate chat response.
         No specific validation needed for chat responses.
+        
+        Args:
+            content (str): The response content to validate
+            
+        Returns:
+            tuple: (is_valid, error_message)
         """
         return True, None
 
     def build_chat_conversation_history(self, project_path, messages):
         """
         Build a complete conversation history including all project files.
+        
+        Args:
+            project_path (str): Path to the project directory
+            messages (list): Existing conversation messages
+            
+        Returns:
+            list: A list of message dictionaries with 'role' and 'content' keys
         """
         api_messages = []
         
@@ -104,6 +136,16 @@ class ChatAgentService(BaseAgentService):
     def process_chat(self, user_input, model, user, project_path, conversation_history=None):
         """
         Process a chat interaction with complete project context.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            project_path (str): Path to the project directory
+            conversation_history (list, optional): Existing conversation messages
+            
+        Returns:
+            dict: The result of the operation, including success status and response
         """
         try:
             # Build complete conversation history
@@ -131,6 +173,90 @@ class ChatAgentService(BaseAgentService):
             
         except Exception as e:
             print(f"Error in process_chat: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def handle_chat_request(self, user_input, model, user, project_path, conversation_id=None):
+        """
+        Handle a complete chat request, including conversation management.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            project_path (str): The path to the project directory
+            conversation_id (int, optional): The ID of an existing conversation
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
+        try:
+            # Get or create conversation
+            if conversation_id:
+                conversation = get_object_or_404(
+                    AgentConversation,
+                    id=conversation_id,
+                    user=user
+                )
+            else:
+                conversation = AgentConversation.objects.create(
+                    user=user,
+                    model_name=model,
+                    provider='anthropic' if model.startswith('claude') else 'openai'
+                )
+                # Create initial system prompt
+                system_prompt = self.get_system_prompt()
+                SystemPrompt.objects.create(
+                    conversation=conversation,
+                    content=system_prompt['content']
+                )
+            
+            # Save user message
+            user_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='user',
+                content=user_input
+            )
+            
+            # Get conversation history
+            from .agent_service import build_conversation_history
+            history = build_conversation_history(conversation)
+            
+            # Process chat interaction
+            result = self.process_chat(
+                user_input=user_input,
+                model=model,
+                user=user,
+                project_path=project_path,
+                conversation_history=history
+            )
+            
+            if result.get('success'):
+                # Save assistant response
+                assistant_message = AgentMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['response']
+                )
+                
+                return {
+                    'success': True,
+                    'conversation_id': conversation.id,
+                    'response': result['response'],
+                    'user_message': user_message,
+                    'assistant_message': assistant_message
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Unknown error'),
+                    'response': result.get('response')
+                }
+                
+        except Exception as e:
+            print(f"Error in handle_chat_request: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

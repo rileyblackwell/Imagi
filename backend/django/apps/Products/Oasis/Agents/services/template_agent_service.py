@@ -1,19 +1,39 @@
+"""
+Template agent service for Imagi Oasis.
+
+This module provides a specialized agent service for Django HTML template generation,
+allowing users to create and modify templates through natural language instructions.
+"""
+
 from dotenv import load_dotenv
 import re
 from .agent_service import BaseAgentService
+from ..models import AgentConversation, SystemPrompt, AgentMessage
+from django.shortcuts import get_object_or_404
 
 # Load environment variables from .env
 load_dotenv()
 
 class TemplateAgentService(BaseAgentService):
-    """Specialized agent service for Django template generation."""
+    """
+    Specialized agent service for Django template generation.
+    
+    This service handles the generation and modification of Django HTML templates
+    based on user instructions, ensuring they follow best practices and proper structure.
+    """
     
     def __init__(self):
+        """Initialize the template agent service."""
         super().__init__()
         self.current_template_name = None
 
     def get_system_prompt(self):
-        """Get the optimized system prompt for Django template generation."""
+        """
+        Get the optimized system prompt for Django template generation.
+        
+        Returns:
+            dict: A message dictionary with 'role' and 'content' keys
+        """
         return {
             "role": "system",
             "content": (
@@ -85,14 +105,31 @@ class TemplateAgentService(BaseAgentService):
         }
 
     def get_additional_context(self, **kwargs):
-        """Get template-specific context."""
+        """
+        Get template-specific context.
+        
+        Args:
+            **kwargs: Additional arguments, including template_name
+            
+        Returns:
+            str: Additional context for the system prompt
+        """
         template_name = kwargs.get('template_name')
         if template_name:
             return f"You are creating/editing the template: {template_name}"
         return None
     
     def fix_template_issues(self, content, template_name):
-        """Fix common template issues and ensure proper tag order."""
+        """
+        Fix common template issues and ensure proper tag order.
+        
+        Args:
+            content (str): The template content to fix
+            template_name (str): The name of the template file
+            
+        Returns:
+            str: The fixed template content
+        """
         # Add missing DOCTYPE and basic HTML structure for base.html
         if template_name == 'base.html' and '<!DOCTYPE html>' not in content:
             return (
@@ -137,7 +174,12 @@ class TemplateAgentService(BaseAgentService):
     def validate_response(self, content):
         """
         Validate Django template syntax and structure.
-        Returns (is_valid, error_message)
+        
+        Args:
+            content (str): The template content to validate
+            
+        Returns:
+            tuple: (is_valid, error_message)
         """
         # Get the current template name
         template_name = self.current_template_name
@@ -177,9 +219,20 @@ class TemplateAgentService(BaseAgentService):
         return True, None
 
     def process_conversation(self, user_input, model, user, **kwargs):
-        """Process a conversation with the template agent."""
+        """
+        Process a conversation with the template agent.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            **kwargs: Additional arguments for template generation
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
         # Store the current template name
-        self.current_template_name = kwargs.get('template_name')
+        self.current_template_name = kwargs.get('template_name') or kwargs.get('file_name')
         
         # Get the response from the parent class
         result = super().process_conversation(user_input, model, user, **kwargs)
@@ -205,10 +258,21 @@ class TemplateAgentService(BaseAgentService):
         """
         Process a message from the API endpoint.
         This method is used by the API endpoint to process messages without creating a conversation.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            **kwargs: Additional arguments for template generation
+            
+        Returns:
+            str: The generated template content
         """
         conversation_history = kwargs.get('conversation_history', [])
         provider = kwargs.get('provider', 'anthropic')
         file_name = kwargs.get('file_name')
+        
+        # Store the current template name for validation
+        self.current_template_name = file_name
         
         # Prepare messages for the API call
         api_messages = []
@@ -278,3 +342,86 @@ class TemplateAgentService(BaseAgentService):
         except Exception as e:
             print(f"Error in process_message: {str(e)}")
             raise e
+
+    def handle_template_request(self, user_input, model, user, file_path, conversation_id=None):
+        """
+        Handle a complete template generation request, including conversation management.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            file_path (str): The path to the template file
+            conversation_id (int, optional): The ID of an existing conversation
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
+        try:
+            # Store the current template name for validation
+            self.current_template_name = file_path.split('/')[-1] if file_path else None
+            
+            # Get or create conversation
+            if conversation_id:
+                conversation = get_object_or_404(
+                    AgentConversation,
+                    id=conversation_id,
+                    user=user
+                )
+            else:
+                conversation = AgentConversation.objects.create(
+                    user=user,
+                    model_name=model,
+                    provider='anthropic' if model.startswith('claude') else 'openai'
+                )
+                # Create initial system prompt
+                system_prompt = self.get_system_prompt()
+                SystemPrompt.objects.create(
+                    conversation=conversation,
+                    content=system_prompt['content']
+                )
+            
+            # Save user message
+            user_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='user',
+                content=user_input
+            )
+            
+            # Process template generation
+            result = self.process_conversation(
+                user_input=user_input,
+                model=model,
+                user=user,
+                file_name=file_path,
+                conversation=conversation
+            )
+            
+            if result.get('success'):
+                # Save assistant response
+                assistant_message = AgentMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['response']
+                )
+                
+                return {
+                    'success': True,
+                    'conversation_id': conversation.id,
+                    'response': result['response'],
+                    'user_message': user_message,
+                    'assistant_message': assistant_message
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Unknown error'),
+                    'response': result.get('response')
+                }
+                
+        except Exception as e:
+            print(f"Error in handle_template_request: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }

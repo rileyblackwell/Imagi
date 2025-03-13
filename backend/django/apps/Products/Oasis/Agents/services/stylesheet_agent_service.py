@@ -1,7 +1,16 @@
+"""
+Stylesheet agent service for Imagi Oasis.
+
+This module provides a specialized agent service for CSS stylesheet generation,
+allowing users to create and modify stylesheets through natural language instructions.
+"""
+
 from dotenv import load_dotenv
 import cssutils
 import logging
 from .agent_service import BaseAgentService
+from ..models import AgentConversation, SystemPrompt, AgentMessage
+from django.shortcuts import get_object_or_404
 
 # Suppress cssutils parsing warnings
 cssutils.log.setLevel(logging.CRITICAL)
@@ -10,9 +19,20 @@ cssutils.log.setLevel(logging.CRITICAL)
 load_dotenv()
 
 class StylesheetAgentService(BaseAgentService):
-    """Specialized agent service for CSS stylesheet generation."""
+    """
+    Specialized agent service for CSS stylesheet generation.
+    
+    This service handles the generation and modification of CSS stylesheets
+    based on user instructions, ensuring they follow best practices and proper structure.
+    """
+    
     def get_system_prompt(self):
-        """Get the system prompt for CSS stylesheet generation."""
+        """
+        Get the system prompt for CSS stylesheet generation.
+        
+        Returns:
+            dict: A message dictionary with 'role' and 'content' keys
+        """
         return {
             "role": "system",
             "content": (
@@ -87,13 +107,26 @@ class StylesheetAgentService(BaseAgentService):
         }
 
     def get_additional_context(self, **kwargs):
-        """Get stylesheet-specific context."""
+        """
+        Get stylesheet-specific context.
+        
+        Args:
+            **kwargs: Additional arguments
+            
+        Returns:
+            str: Additional context for the system prompt
+        """
         return "You are creating/editing styles.css for the project"
     
     def validate_response(self, content):
         """
         Validate CSS syntax and structure.
-        Returns (is_valid, error_message)
+        
+        Args:
+            content (str): The CSS content to validate
+            
+        Returns:
+            tuple: (is_valid, error_message)
         """
         try:
             # Check if content is empty
@@ -145,4 +178,84 @@ class StylesheetAgentService(BaseAgentService):
             return True, None
             
         except Exception as e:
-            return False, f"CSS validation error: {str(e)}" 
+            return False, f"CSS validation error: {str(e)}"
+
+    def handle_stylesheet_request(self, user_input, model, user, file_path, conversation_id=None):
+        """
+        Handle a complete stylesheet generation request, including conversation management.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            file_path (str): The path to the stylesheet file
+            conversation_id (int, optional): The ID of an existing conversation
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
+        try:
+            # Get or create conversation
+            if conversation_id:
+                conversation = get_object_or_404(
+                    AgentConversation,
+                    id=conversation_id,
+                    user=user
+                )
+            else:
+                conversation = AgentConversation.objects.create(
+                    user=user,
+                    model_name=model,
+                    provider='anthropic' if model.startswith('claude') else 'openai'
+                )
+                # Create initial system prompt
+                system_prompt = self.get_system_prompt()
+                SystemPrompt.objects.create(
+                    conversation=conversation,
+                    content=system_prompt['content']
+                )
+            
+            # Save user message
+            user_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='user',
+                content=user_input
+            )
+            
+            # Process stylesheet generation
+            result = self.process_conversation(
+                user_input=user_input,
+                model=model,
+                user=user,
+                file_name=file_path,
+                conversation=conversation
+            )
+            
+            if result.get('success'):
+                # Save assistant response
+                assistant_message = AgentMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['response']
+                )
+                
+                return {
+                    'success': True,
+                    'conversation_id': conversation.id,
+                    'response': result['response'],
+                    'user_message': user_message,
+                    'assistant_message': assistant_message
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Unknown error'),
+                    'response': result.get('response')
+                }
+                
+        except Exception as e:
+            print(f"Error in handle_stylesheet_request: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            } 
