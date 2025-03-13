@@ -22,9 +22,10 @@ from ..services.oasis_service import (
     undo_last_action_service,
     process_chat_mode_input_service
 )
-from ..services.project_service import ProjectService
+from apps.Products.Oasis.ProjectManager.services.project_service import ProjectService
 from ..services.ai_service import AIService
 from ..services.file_service import FileService
+from ..services.dev_server_service import DevServerManager
 from ..views import BuilderView
 
 import logging
@@ -68,8 +69,8 @@ class ProjectFilesView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id):
-        project = get_object_or_404(Project, id=project_id, user=request.user)
-        file_service = FileService(project)
+        project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+        file_service = FileService(project=project)
         files = file_service.list_files()
         return Response(files)
 
@@ -79,49 +80,41 @@ class GenerateCodeView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, project_id):
-        project = get_object_or_404(Project, id=project_id, user=request.user)
-        
-        # Get request data
-        prompt = request.data.get('prompt')
-        model = request.data.get('model', 'claude-3-5-sonnet-20241022')
-        file_path = request.data.get('file_path')
-        mode = request.data.get('mode', 'build')
-        
-        if not prompt:
-            return Response(
-                {'error': 'Prompt is required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        if not file_path:
-            return Response(
-                {'error': 'File path is required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
         try:
-            ai_service = AIService()
-            result = ai_service.generate_code(
-                project=project,
-                prompt=prompt,
-                model=model,
-                file_path=file_path
-            )
+            # Get project
+            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
             
-            if mode == 'build':
-                # Update the file content
-                file_service = FileService(project)
-                file_service.update_file(
-                    file_path=file_path,
-                    content=result['content'],
-                    commit_message=f'Update {file_path} via AI generation'
+            # Get request data
+            prompt = request.data.get('prompt', '')
+            model = request.data.get('model', 'gpt-4')
+            file_path = request.data.get('file_path', None)
+            
+            if not prompt:
+                return Response(
+                    {'error': 'Prompt is required'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             
-            return Response(result)
+            # Process the prompt
+            ai_service = AIService()
+            
+            # If file_path is provided, get the file content
+            file_content = None
+            if file_path:
+                file_service = FileService(project=project)
+                try:
+                    file_content = file_service.get_file_content(file_path)
+                except Exception as e:
+                    logger.error(f"Error getting file content: {str(e)}")
+            
+            # Generate code
+            response = ai_service.generate_code(prompt, model, file_content)
+            
+            return Response(response)
         except Exception as e:
             logger.error(f"Error generating code: {str(e)}")
             return Response(
-                {'error': str(e)}, 
+                {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -190,26 +183,29 @@ class FileDetailView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id, file_path):
-        project = get_object_or_404(Project, id=project_id, user=request.user)
-        file_service = FileService(project)
+        project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+        file_service = FileService(project=project)
         file_details = file_service.get_file_details(file_path)
         return Response(file_details)
 
     def put(self, request, project_id, file_path):
-        project = get_object_or_404(Project, id=project_id, user=request.user)
-        file_service = FileService(project)
-        
         try:
-            result = file_service.update_file(
-                file_path=file_path,
-                content=request.data.get('content'),
-                commit_message=request.data.get('commit_message', 'Update file')
-            )
+            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            file_service = FileService(project=project)
+            
+            content = request.data.get('content', '')
+            if not content:
+                return Response(
+                    {'error': 'Content is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            result = file_service.update_file(file_path, content)
             return Response(result)
         except Exception as e:
             logger.error(f"Error updating file: {str(e)}")
             return Response(
-                {'error': str(e)}, 
+                {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -219,8 +215,8 @@ class FileContentView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id, file_path):
-        project = get_object_or_404(Project, id=project_id, user=request.user)
-        file_service = FileService(project)
+        project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+        file_service = FileService(project=project)
         content = file_service.get_file_content(file_path)
         return Response({'content': content})
 
@@ -337,3 +333,47 @@ class PageView(generics.RetrieveAPIView):
             conversation__user=self.request.user,
             filename=filename
         )
+
+@method_decorator(never_cache, name='dispatch')
+class PreviewView(APIView, BuilderView):
+    """Preview a project by starting a development server."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_id):
+        try:
+            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            
+            # Start the development server
+            dev_server = DevServerManager(project)
+            server_url = dev_server.get_server_url()
+            
+            return Response({
+                'success': True,
+                'preview_url': server_url,
+                'message': 'Development server started successfully'
+            })
+        except Exception as e:
+            logger.error(f"Error starting preview server: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def delete(self, request, project_id):
+        try:
+            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            
+            # Stop the development server
+            dev_server = DevServerManager(project)
+            dev_server.stop_server()
+            
+            return Response({
+                'success': True,
+                'message': 'Development server stopped successfully'
+            })
+        except Exception as e:
+            logger.error(f"Error stopping preview server: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

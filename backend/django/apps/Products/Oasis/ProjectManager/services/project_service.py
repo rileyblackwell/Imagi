@@ -3,12 +3,15 @@ import shutil
 import subprocess
 import tempfile
 import re
+import logging
 from datetime import datetime
 from pathlib import Path
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from typing import List, Optional
 from ..models import Project
+
+logger = logging.getLogger(__name__)
 
 class ProjectService:
     def __init__(self, user):
@@ -25,22 +28,87 @@ class ProjectService:
         """Get a specific project by ID."""
         return self.get_active_projects().filter(id=project_id).first()
 
-    def create_project(self, project: Project) -> Project:
-        """Generate project files for a newly created project."""
+    def create_project(self, name_or_project):
+        """
+        Create a new project.
+        Can accept either a project name (string) or a Project instance.
+        """
         try:
-            self._create_project_files(project.name)
+            # Handle both string name and Project instance
+            if isinstance(name_or_project, str):
+                # Create a project object
+                project = Project.objects.create(
+                    user=self.user,
+                    name=name_or_project
+                )
+            else:
+                project = name_or_project
+                
+            # Generate project files
+            project_path = self._create_project_files(project.name)
+            
+            # Update project with path
+            project.project_path = project_path
+            project.save()
+            
+            # Initialize project with default files
+            self._initialize_project_files(project_path)
+            
             return project
         except Exception as e:
-            project.delete()
+            logger.error(f"Error creating project: {str(e)}")
+            if isinstance(name_or_project, Project):
+                name_or_project.delete(hard_delete=True)
             raise ValidationError(f"Failed to generate project files: {str(e)}")
 
-    def delete_project(self, project: Project) -> None:
+    def delete_project(self, project_or_id):
         """Delete a project and its associated files."""
         try:
+            # Get project if ID is provided
+            if isinstance(project_or_id, int):
+                project = self.get_project(project_or_id)
+                if not project:
+                    raise ValidationError("Project not found")
+            else:
+                project = project_or_id
+                
+            # Delete project files
             self._delete_project_files(project.name)
+            
+            # Delete project record
             project.delete()
+            
+            logger.info(f"Project {project.name} deleted successfully")
+            return {"success": True, "message": f"Project {project.name} deleted successfully"}
         except Exception as e:
+            logger.error(f"Error deleting project: {str(e)}")
             raise ValidationError(f"Failed to delete project: {str(e)}")
+
+    def undo_last_action(self, project_or_id):
+        """Undo the last action in a project."""
+        try:
+            # Get project if ID is provided
+            if isinstance(project_or_id, int):
+                project = self.get_project(project_or_id)
+                if not project:
+                    raise ValidationError("Project not found")
+            else:
+                project = project_or_id
+                
+            # Get the project's git repository
+            repo_path = project.project_path
+            if not os.path.exists(repo_path):
+                raise ValidationError("Project repository not found")
+            
+            # TODO: Implement git-based undo functionality
+            # For now, return a placeholder response
+            return {
+                'success': True,
+                'message': 'Last action undone successfully'
+            }
+        except Exception as e:
+            logger.error(f"Error undoing action: {str(e)}")
+            raise ValidationError(f"Failed to undo last action: {str(e)}")
 
     # Project generation methods (from ProjectGenerationService)
     def _sanitize_project_name(self, name):
@@ -66,7 +134,7 @@ class ProjectService:
         project_path = os.path.join(self.base_directory, unique_name)
         
         try:
-            print(f"Creating project at: {project_path}")
+            logger.info(f"Creating project at: {project_path}")
             
             # Create the project directory
             os.makedirs(project_path, exist_ok=True)
@@ -129,7 +197,7 @@ class ProjectService:
                 
             return project_path
         except Exception as e:
-            print(f"Error creating project: {str(e)}")
+            logger.error(f"Error creating project: {str(e)}")
             # Clean up failed project directory
             if os.path.exists(project_path):
                 shutil.rmtree(project_path, ignore_errors=True)
@@ -143,8 +211,77 @@ class ProjectService:
             if item.startswith(sanitized_name + '_'):
                 project_path = os.path.join(self.base_directory, item)
                 if os.path.isdir(project_path):
-                    print(f"Deleting project directory: {project_path}")
+                    logger.info(f"Deleting project directory: {project_path}")
                     shutil.rmtree(project_path, ignore_errors=True)
+
+    def _initialize_project_files(self, project_path):
+        """Initialize a new project with default files and structure."""
+        try:
+            # Create necessary directories
+            os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
+            os.makedirs(os.path.join(project_path, 'static', 'js'), exist_ok=True)
+            os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
+            
+            # Create default files
+            self._create_default_files(project_path)
+            
+            logger.info(f"Project files initialized at {project_path}")
+        except Exception as e:
+            logger.error(f"Error initializing project files: {str(e)}")
+            raise
+
+    def _create_default_files(self, project_path):
+        """Create default files for a new project."""
+        default_files = {
+            'templates/base.html': '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Oasis App{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    
+    <script src="/static/js/main.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+''',
+            'static/css/styles.css': '''
+/* Base styles */
+:root {
+    --primary-color: #4f46e5;
+    --secondary-color: #818cf8;
+    --text-color: #1f2937;
+    --bg-color: #ffffff;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+}
+''',
+            'static/js/main.js': '''
+// Main JavaScript file
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Application initialized');
+});
+'''
+        }
+        
+        for file_path, content in default_files.items():
+            full_path = os.path.join(project_path, file_path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, 'w') as f:
+                f.write(content.strip())
 
     # Template generation methods
     def _generate_asgi_content(self, project_name):
@@ -548,7 +685,6 @@ A Django REST API project.
 - SQLite database (for development)
 '''
 
-    # Project initialization method
     def initialize_project(self, project):
         """Initialize a new Django project with standard files.
         

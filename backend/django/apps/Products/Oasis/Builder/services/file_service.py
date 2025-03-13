@@ -3,33 +3,76 @@ Service for managing project files.
 """
 
 import os
+import uuid
 import logging
+from datetime import datetime
+from rest_framework.exceptions import ValidationError, NotFound
+from ..models import Project
 
 logger = logging.getLogger(__name__)
 
 class FileService:
-    def __init__(self, project):
+    def __init__(self, user=None, project=None):
+        """
+        Initialize the file service with either a user or a project.
+        If a project is provided, it will be used directly.
+        If a user is provided, project_id must be passed to methods.
+        """
+        self.user = user
         self.project = project
-        self.project_path = project.user_project.project_path
+        
+        if project:
+            self.project_path = project.project_path
+        
+    def get_project(self, project_id):
+        """Get a project by ID when initialized with user."""
+        if not self.user:
+            raise ValidationError("FileService initialized without user")
+            
+        try:
+            return Project.objects.get(id=project_id, user=self.user, is_active=True)
+        except Project.DoesNotExist:
+            raise NotFound('Project not found')
     
-    def list_files(self):
+    def get_project_path(self, project_id=None):
+        """Get the project path for the current project or specified project ID."""
+        if self.project:
+            return self.project_path
+            
+        if project_id:
+            project = self.get_project(project_id)
+            return project.project_path
+            
+        raise ValidationError("No project specified")
+    
+    def list_files(self, project_id=None):
         """List all files in the project."""
         try:
+            project_path = self.get_project_path(project_id)
             files = []
-            for root, _, filenames in os.walk(self.project_path):
+            
+            for root, _, filenames in os.walk(project_path):
                 for filename in filenames:
                     full_path = os.path.join(root, filename)
-                    rel_path = os.path.relpath(full_path, self.project_path)
+                    rel_path = os.path.relpath(full_path, project_path)
                     
                     # Skip hidden files and directories
                     if any(part.startswith('.') for part in rel_path.split(os.sep)):
                         continue
                     
+                    # Get file stats
+                    stats = os.stat(full_path)
+                    
+                    # Generate a unique ID for the file
+                    file_id = str(uuid.uuid4())
+                    
                     files.append({
+                        'id': file_id,
+                        'name': filename,
                         'path': rel_path,
                         'type': self._get_file_type(rel_path),
                         'size': os.path.getsize(full_path),
-                        'modified': os.path.getmtime(full_path)
+                        'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
                     })
             
             return sorted(files, key=lambda x: x['path'])
@@ -37,30 +80,42 @@ class FileService:
             logger.error(f"Error listing files: {str(e)}")
             raise
     
-    def get_file_details(self, file_path):
+    def get_file_details(self, file_path, project_id=None):
         """Get details about a specific file."""
         try:
-            full_path = os.path.join(self.project_path, file_path)
-            if not os.path.exists(full_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
+            project_path = self.get_project_path(project_id)
+            full_path = os.path.join(project_path, file_path)
+            
+            if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                raise NotFound(f"File not found: {file_path}")
+            
+            # Get file stats
+            stats = os.stat(full_path)
+            
+            # Generate a unique ID for the file
+            file_id = str(uuid.uuid4())
             
             return {
+                'id': file_id,
+                'name': os.path.basename(file_path),
                 'path': file_path,
                 'type': self._get_file_type(file_path),
                 'size': os.path.getsize(full_path),
-                'modified': os.path.getmtime(full_path),
-                'content': self.get_file_content(file_path)
+                'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                'content': self.get_file_content(file_path, project_id)
             }
         except Exception as e:
             logger.error(f"Error getting file details: {str(e)}")
             raise
     
-    def get_file_content(self, file_path):
+    def get_file_content(self, file_path, project_id=None):
         """Get the content of a file."""
         try:
-            full_path = os.path.join(self.project_path, file_path)
-            if not os.path.exists(full_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
+            project_path = self.get_project_path(project_id)
+            full_path = os.path.join(project_path, file_path)
+            
+            if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                raise NotFound(f"File not found: {file_path}")
             
             with open(full_path, 'r') as f:
                 return f.read()
@@ -68,26 +123,112 @@ class FileService:
             logger.error(f"Error reading file content: {str(e)}")
             raise
     
-    def update_file(self, file_path, content, commit_message='Update file'):
+    def update_file(self, file_path, content, project_id=None, commit_message='Update file'):
         """Update the content of a file."""
         try:
-            full_path = os.path.join(self.project_path, file_path)
+            project_path = self.get_project_path(project_id)
+            full_path = os.path.join(project_path, file_path)
             
             # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            os.makedirs(os.path.dirname(os.path.abspath(full_path)), exist_ok=True)
             
-            # Write the content
+            # Write content to file
             with open(full_path, 'w') as f:
                 f.write(content)
             
-            # TODO: Add git commit functionality
+            # Get file stats
+            stats = os.stat(full_path)
+            
+            # Generate a unique ID for the file
+            file_id = str(uuid.uuid4())
             
             return {
-                'success': True,
+                'id': file_id,
+                'name': os.path.basename(file_path),
+                'path': file_path,
+                'content': content,
+                'type': self._get_file_type(file_path),
+                'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
                 'message': f'File {file_path} updated successfully'
             }
         except Exception as e:
             logger.error(f"Error updating file: {str(e)}")
+            raise
+    
+    def create_file(self, file_data, project_id=None):
+        """Create a new file."""
+        try:
+            project_path = self.get_project_path(project_id)
+            
+            # Validate file data
+            name = file_data.get('name', '')
+            file_type = file_data.get('type', '')
+            content = file_data.get('content', '')
+            
+            if not name:
+                raise ValidationError('File name is required')
+            
+            # Determine file path based on type
+            if file_type == 'python':
+                file_path = f"{name}.py"
+            elif file_type == 'html':
+                file_path = f"{name}.html"
+            elif file_type == 'css':
+                file_path = f"{name}.css"
+            elif file_type == 'javascript':
+                file_path = f"{name}.js"
+            elif file_type == 'json':
+                file_path = f"{name}.json"
+            elif file_type == 'markdown':
+                file_path = f"{name}.md"
+            else:
+                file_path = name
+            
+            # Create full file path
+            full_file_path = os.path.join(project_path, file_path)
+            
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(os.path.abspath(full_file_path)), exist_ok=True)
+            
+            # Write content to file
+            with open(full_file_path, 'w') as f:
+                f.write(content)
+            
+            # Get file stats
+            stats = os.stat(full_file_path)
+            
+            # Generate a unique ID for the file
+            file_id = str(uuid.uuid4())
+            
+            return {
+                'id': file_id,
+                'name': os.path.basename(file_path),
+                'path': file_path,
+                'content': content,
+                'type': file_type,
+                'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error creating file: {str(e)}")
+            raise
+    
+    def delete_file(self, file_path, project_id=None):
+        """Delete a file."""
+        try:
+            project_path = self.get_project_path(project_id)
+            full_path = os.path.join(project_path, file_path)
+            
+            if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                raise NotFound(f"File not found: {file_path}")
+            
+            os.remove(full_path)
+            
+            return {
+                'success': True,
+                'message': f'File {file_path} deleted successfully'
+            }
+        except Exception as e:
+            logger.error(f"Error deleting file: {str(e)}")
             raise
     
     def _get_file_type(self, file_path):
@@ -101,7 +242,9 @@ class FileService:
             '.json': 'json',
             '.py': 'python',
             '.md': 'markdown',
-            '.txt': 'text'
+            '.txt': 'text',
+            '.vue': 'vue',
+            '.ts': 'typescript'
         }
         
         return type_mapping.get(ext, 'unknown') 
