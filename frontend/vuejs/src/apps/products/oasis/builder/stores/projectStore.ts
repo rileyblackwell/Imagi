@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { ProjectService, BuilderService } from '../services'
+import { ProjectService } from '../services/projectService'
+import { AgentService } from '../services/agentService'
 import api from '../services/api'
 import type { Project } from '../types/project'
 import { normalizeProject } from '../types/project'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { AIModel } from '../types/builder'
 import { useAuthStore } from '@/shared/stores/auth'
-import { ProjectService as UpdatedProjectService } from '../services/projectService'
 
 /**
  * Project Store
@@ -265,7 +265,7 @@ export const useProjectStore = defineStore('builder', () => {
       while (attempts < maxAttempts) {
         try {
           console.debug(`Project fetch attempt ${attempts + 1}/${maxAttempts}`);
-          projectsData = await UpdatedProjectService.getProjects();
+          projectsData = await ProjectService.getProjects();
           
           // If we got here, request succeeded
           break;
@@ -374,7 +374,7 @@ export const useProjectStore = defineStore('builder', () => {
     
     try {
       console.debug('Creating project:', projectData)
-      const newProject = await UpdatedProjectService.createProject(projectData)
+      const newProject = await ProjectService.createProject(projectData)
       
       console.debug('Project created:', newProject)
       
@@ -394,6 +394,14 @@ export const useProjectStore = defineStore('builder', () => {
         project: normalizedProject
       })
       
+      // Initialize the project right after creation
+      try {
+        await initializeProject(String(normalizedProject.id))
+      } catch (initError: any) {
+        console.warn('Project created but initialization failed:', initError)
+        // Don't rethrow - we want to return the created project even if initialization fails
+      }
+      
       return normalizedProject
     } catch (err: any) {
       console.error('Project creation error in store:', {
@@ -406,6 +414,41 @@ export const useProjectStore = defineStore('builder', () => {
       throw err
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * Initialize an existing project
+   * This sets up the initial project structure
+   */
+  async function initializeProject(projectId: string) {
+    if (!isAuthenticated.value) {
+      throw new Error('You must be logged in to initialize projects')
+    }
+
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    try {
+      console.debug('Initializing project:', projectId)
+      await ProjectService.initializeProject(projectId)
+      
+      console.debug('Project initialized successfully:', projectId)
+      
+    } catch (err: any) {
+      console.error('Project initialization error in store:', {
+        error: err,
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      })
+      
+      // Only throw if it's not already initialized (409 Conflict)
+      if (!err.response || err.response.status !== 409) {
+        handleError(err, 'Failed to initialize project')
+        throw err
+      }
     }
   }
 
@@ -432,7 +475,7 @@ export const useProjectStore = defineStore('builder', () => {
         existingProject: projectsMap.value.get(String(projectId))
       })
 
-      await UpdatedProjectService.deleteProject(projectId)
+      await ProjectService.deleteProject(projectId)
       
       // Remove from projects array
       projects.value = projects.value.filter(p => String(p.id) !== String(projectId))
@@ -465,7 +508,7 @@ export const useProjectStore = defineStore('builder', () => {
    */
   async function fetchActivities() {
     try {
-      const activitiesData = await UpdatedProjectService.getActivities()
+      const activitiesData = await ProjectService.getActivities()
       activities.value = activitiesData
       return activitiesData
     } catch (error) {
@@ -480,7 +523,7 @@ export const useProjectStore = defineStore('builder', () => {
    */
   async function fetchStats() {
     try {
-      const statsData = await UpdatedProjectService.getStats()
+      const statsData = await ProjectService.getStats()
       stats.value = statsData
       return statsData
     } catch (error) {
@@ -518,7 +561,7 @@ export const useProjectStore = defineStore('builder', () => {
         while (attempts < maxAttempts) {
           try {
             console.log(`ProjectStore: Attempt ${attempts + 1}/${maxAttempts} to fetch new project ${projectId}`)
-            project = await UpdatedProjectService.getProject(projectId, true)
+            project = await ProjectService.getProject(projectId, true)
             break // Success, exit the retry loop
           } catch (err) {
             attempts++
@@ -536,7 +579,7 @@ export const useProjectStore = defineStore('builder', () => {
         }
       } else {
         // Normal fetch for existing projects
-        project = await UpdatedProjectService.getProject(projectId)
+        project = await ProjectService.getProject(projectId)
       }
       
       if (project) {
@@ -556,7 +599,7 @@ export const useProjectStore = defineStore('builder', () => {
 
   async function fetchProjectFiles(projectId: string) {
     try {
-      const files = await UpdatedProjectService.getProjectFiles(projectId)
+      const files = await ProjectService.getProjectFiles(projectId)
       // Process and store the files
       return files
     } catch (error) {
@@ -567,7 +610,7 @@ export const useProjectStore = defineStore('builder', () => {
 
   async function createFile(projectId: string, filePath: string, content: string) {
     try {
-      const file = await UpdatedProjectService.createFile(projectId, filePath, content)
+      const file = await ProjectService.createFile(projectId, filePath, content)
       // Process and update store
       return file
     } catch (error) {
@@ -578,7 +621,7 @@ export const useProjectStore = defineStore('builder', () => {
 
   async function updateFileContent(projectId: string, filePath: string, content: string) {
     try {
-      const file = await UpdatedProjectService.updateFileContent(projectId, filePath, content)
+      const file = await ProjectService.updateFileContent(projectId, filePath, content)
       // Process and update store
       return file
     } catch (error) {
@@ -589,7 +632,7 @@ export const useProjectStore = defineStore('builder', () => {
 
   async function deleteFile(projectId: string, filePath: string) {
     try {
-      await UpdatedProjectService.deleteFile(projectId, filePath)
+      await ProjectService.deleteFile(projectId, filePath)
       // Update store
       return true
     } catch (error) {
@@ -629,7 +672,7 @@ export const useProjectStore = defineStore('builder', () => {
   async function fetchAvailableModels() {
     loading.value = true
     try {
-      const models = await BuilderService.getAvailableModels()
+      const models = await AgentService.getAvailableModels()
       availableModels.value = models
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch models'

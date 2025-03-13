@@ -134,7 +134,7 @@
                     <div class="flex items-center gap-3">
                       <!-- Open project button with enhanced hover effect -->
                       <button
-                        @click="$router.push({ name: 'builder-workspace', params: { projectId: project.id }})"
+                        @click="openProject(project)"
                         class="flex-1 p-3 text-primary-400 hover:text-white transition-all duration-200 rounded-lg bg-primary-500/10 hover:bg-primary-500 hover:scale-105 shadow-md shadow-primary-500/5 hover:shadow-lg hover:shadow-primary-500/20"
                         title="Open project"
                       >
@@ -244,6 +244,24 @@ async function fetchProjects() {
       message: 'Failed to fetch projects'
     });
   }
+}
+
+function openProject(project) {
+  if (!project.id) {
+    showNotification({
+      type: 'error',
+      message: 'Project ID is missing or invalid'
+    });
+    return;
+  }
+  
+  const projectId = String(project.id);
+  
+  // Navigate to workspace with proper ID
+  router.push({
+    name: 'builder-workspace',
+    params: { projectId }
+  });
 }
 
 onMounted(fetchProjects);

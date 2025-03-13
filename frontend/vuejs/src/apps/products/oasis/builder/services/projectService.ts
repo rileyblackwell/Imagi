@@ -108,9 +108,9 @@ export const ProjectService = {
     
     // Update the order of API paths to try the project_manager endpoint first
     const apiPaths = [
-      'api/v1/project-manager/projects/',        // Try this first - Django backend uses project_manager
-      'api/v1/builder/projects/',                // Then try builder paths
+      'api/v1/project-manager/projects/',  // Primary endpoint matching Django backend URLs
       API_PATHS.PROJECT_MANAGER + '/projects/',
+      'api/v1/builder/projects/',          // Fallback endpoint
       API_PATHS.BUILDER + '/projects/',
     ]
     
@@ -285,7 +285,8 @@ export const ProjectService = {
     console.debug('Project API - creating project:', { name, description })
     
     try {
-      const response = await api.post(buildApiUrl(`project-manager/projects/create/`), {
+      // Update to match the exact URL structure in backend/django/apps/Products/Oasis/ProjectManager/api/urls.py
+      const response = await api.post(`api/v1/project-manager/projects/create/`, {
         name,
         description
       })
@@ -322,6 +323,42 @@ export const ProjectService = {
         throw new Error('You do not have permission to create projects')
       } else if (error.response?.data?.error) {
         throw new Error(error.response.data.error)
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      
+      throw error
+    }
+  },
+
+  /**
+   * Initialize a project after creation
+   * This sets up the initial project structure
+   */
+  async initializeProject(projectId: string): Promise<void> {
+    console.debug('Project API - initializing project:', { projectId })
+    
+    try {
+      const response = await api.post(
+        `api/v1/project-manager/projects/${projectId}/initialize/`
+      )
+      
+      console.debug('Project API - initializeProject response:', {
+        status: response.status
+      })
+      
+      return response.data
+    } catch (error: any) {
+      console.error('Project API - initializeProject error:', error)
+      
+      if (error.response?.status === 404) {
+        throw new Error('Project not found')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to initialize a project')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to initialize this project')
+      } else if (error.response?.status === 409) {
+        throw new Error('Project already initialized')
       } else if (error.response?.data?.detail) {
         throw new Error(error.response.data.detail)
       }
@@ -374,8 +411,9 @@ export const ProjectService = {
     console.debug('Project API - deleting project:', { projectId })
     
     try {
+      // Update to match the exact URL structure in backend/django/apps/Products/Oasis/ProjectManager/api/urls.py
       const response = await api.delete(
-        buildApiUrl(`project-manager/projects/${projectId}/`)
+        `api/v1/project-manager/projects/${projectId}/delete/`
       )
       
       console.debug('Project API - deleteProject response:', {
@@ -551,85 +589,13 @@ export const ProjectService = {
   async getProjectFiles(projectId: string): Promise<ProjectFile[]> {
     console.debug('Project API - getting project files:', { projectId })
     
-    // Try multiple API paths, starting with project-manager (similar to getProject method)
-    const apiPaths = [
-      // Try project-manager paths first (highest priority)
-      API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/',
-      'project-manager/projects/' + projectId + '/files/',  // Direct path
-      '/api/v1/project-manager/projects/' + projectId + '/files/', // Absolute path 
-      API_PATHS.BUILDER + '/projects/' + projectId + '/files/',
-    ]
+    // DEPRECATED: This method is now moved to FileService.
+    // This is kept for backward compatibility but will log a warning.
+    console.warn('ProjectService.getProjectFiles is deprecated. Please use FileService.getProjectFiles instead.')
     
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        const cleanPath = buildApiUrl(path);
-        console.debug(`Making API request to get project files from path: ${cleanPath}`)
-        
-        const response = await api.get(cleanPath)
-        
-        console.debug(`Project API - getProjectFiles response from ${cleanPath}:`, {
-          status: response.status,
-          fileCount: response.data?.length
-        })
-        
-        return response.data || []
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for project files path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to view project files')
-          } else {
-            throw new Error('You do not have permission to view files for this project')
-          }
-        }
-      }
-    }
-    
-    // Try direct axios call as last resort with both endpoints
-    for (const baseEndpoint of ['project-manager', 'builder']) {
-      try {
-        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectId}/files/`
-        console.debug(`Making direct axios call to ${absolutePath}`)
-        
-        const response = await axios.get(absolutePath, {
-          headers: api.defaults.headers.common
-        })
-        
-        console.debug('Direct axios call response:', {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data || []
-      } catch (directError: any) {
-        console.error(`Direct axios call to ${baseEndpoint} failed:`, directError)
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('Project API - getProjectFiles error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('Project not found')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
-      }
-      
-      throw lastError
-    }
-    
-    throw new Error('Failed to fetch project files')
+    // Redirect to FileService
+    const { FileService } = await import('./fileService')
+    return FileService.getProjectFiles(projectId)
   },
 
   /**
@@ -639,89 +605,13 @@ export const ProjectService = {
   async getFile(projectId: string, filePath: string): Promise<ProjectFile> {
     console.debug('Project API - getting file:', { projectId, filePath })
     
-    // Try multiple API paths, starting with project-manager
-    const apiPaths = [
-      // Try project-manager paths first (highest priority)
-      API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      'project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',  // Direct path
-      '/api/v1/project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/', // Absolute path 
-      API_PATHS.BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-    ]
+    // DEPRECATED: This method is now moved to FileService.
+    // This is kept for backward compatibility but will log a warning.
+    console.warn('ProjectService.getFile is deprecated. Please use FileService.getFile instead.')
     
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        const cleanPath = buildApiUrl(path);
-        console.debug(`Making API request to get file from path: ${cleanPath}`)
-        
-        const response = await api.get(cleanPath)
-        
-        console.debug(`Project API - getFile response from ${cleanPath}:`, {
-          status: response.status,
-          contentLength: response.data?.content?.length
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for get file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to view this file')
-          } else {
-            throw new Error('You do not have permission to view this file')
-          }
-        }
-      }
-    }
-    
-    // Try direct axios call as last resort with both endpoints
-    for (const baseEndpoint of ['project-manager', 'builder']) {
-      try {
-        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`
-        console.debug(`Making direct axios call to ${absolutePath}`)
-        
-        const response = await axios.get(absolutePath, {
-          headers: api.defaults.headers.common
-        })
-        
-        console.debug('Direct axios call response:', {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (directError: any) {
-        console.error(`Direct axios call to ${baseEndpoint} failed:`, directError)
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('Project API - getFile error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (lastError.response?.status === 401) {
-        throw new Error('You must be logged in to view this file')
-      } else if (lastError.response?.status === 403) {
-        throw new Error('You do not have permission to view this file')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
-      }
-      
-      throw lastError
-    }
-    
-    throw new Error('Failed to fetch file')
+    // Redirect to FileService
+    const { FileService } = await import('./fileService')
+    return FileService.getFile(projectId, filePath)
   },
 
   /**
@@ -734,117 +624,15 @@ export const ProjectService = {
     filePath: string,
     content: string
   ): Promise<ProjectFile> {
-    console.debug('Project API - creating file:', { projectId, filePath, contentLength: content.length })
+    console.debug('Project API - creating file:', { projectId, filePath })
     
-    // Check if we need to create parent directories first
-    const pathParts = filePath.split('/')
-    if (pathParts.length > 1) {
-      // Remove the file name to get the directory path
-      pathParts.pop()
-      const directoryPath = pathParts.join('/')
-      
-      if (directoryPath) {
-        console.debug('Project API - ensuring directory exists:', { projectId, directoryPath })
-        try {
-          // Try to create the directory structure first
-          await this.createDirectory(projectId, directoryPath)
-        } catch (error: any) {
-          // Ignore 409 errors (directory already exists)
-          if (error.response?.status !== 409) {
-            console.error('Project API - failed to create parent directory:', error)
-            throw error
-          }
-        }
-      }
-    }
+    // DEPRECATED: This method is now moved to FileService.
+    // This is kept for backward compatibility but will log a warning.
+    console.warn('ProjectService.createFile is deprecated. Please use FileService.createFile instead.')
     
-    // Try multiple API paths, starting with project-manager
-    const apiPaths = [
-      // Try project-manager paths first (highest priority)
-      API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/',
-      'project-manager/projects/' + projectId + '/files/',  // Direct path
-      '/api/v1/project-manager/projects/' + projectId + '/files/', // Absolute path 
-      API_PATHS.BUILDER + '/projects/' + projectId + '/files/',
-    ]
-    
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        const cleanPath = buildApiUrl(path);
-        console.debug(`Making API request to create file using path: ${cleanPath}`)
-        
-        const response = await api.post(cleanPath, {
-          path: filePath,
-          content
-        })
-        
-        console.debug(`Project API - createFile response from ${cleanPath}:`, {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for create file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to create files')
-          } else {
-            throw new Error('You do not have permission to create files in this project')
-          }
-        }
-      }
-    }
-    
-    // Try direct axios call as last resort with both endpoints
-    for (const baseEndpoint of ['project-manager', 'builder']) {
-      try {
-        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectId}/files/`
-        console.debug(`Making direct axios call to ${absolutePath}`)
-        
-        const response = await axios.post(absolutePath, {
-          path: filePath,
-          content
-        }, {
-          headers: api.defaults.headers.common
-        })
-        
-        console.debug('Direct axios call response:', {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (directError: any) {
-        console.error(`Direct axios call to ${baseEndpoint} failed:`, directError)
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('Project API - createFile error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('Project not found')
-      } else if (lastError.response?.status === 409) {
-        throw new Error('File already exists')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
-      }
-      
-      throw lastError
-    }
-    
-    throw new Error('Failed to create file')
+    // Redirect to FileService
+    const { FileService } = await import('./fileService')
+    return FileService.createFile(projectId, filePath, content)
   },
 
   /**
@@ -854,33 +642,13 @@ export const ProjectService = {
   async createDirectory(projectId: string, directoryPath: string): Promise<void> {
     console.debug('Project API - creating directory:', { projectId, directoryPath })
     
-    try {
-      const response = await api.post(
-        `${API_PATHS.BUILDER}/projects/${projectId}/directories/`,
-        {
-          path: directoryPath
-        }
-      )
-      
-      console.debug('Project API - createDirectory response:', {
-        status: response.status
-      })
-    } catch (error: any) {
-      console.error('Project API - createDirectory error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('Project not found')
-      } else if (error.response?.status === 409) {
-        // Directory already exists, which is fine
-        console.debug('Directory already exists:', directoryPath)
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to create directories')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to create directories in this project')
-      } else {
-        throw error
-      }
-    }
+    // DEPRECATED: This method is now moved to FileService.
+    // This is kept for backward compatibility but will log a warning.
+    console.warn('ProjectService.createDirectory is deprecated. Please use FileService.createDirectory instead.')
+    
+    // Redirect to FileService
+    const { FileService } = await import('./fileService')
+    return FileService.createDirectory(projectId, directoryPath)
   },
 
   /**
@@ -892,99 +660,15 @@ export const ProjectService = {
     filePath: string,
     content: string
   ): Promise<ProjectFile> {
-    console.debug('Project API - updating file content:', { 
-      projectId, 
-      filePath, 
-      contentLength: content.length 
-    })
+    console.debug('Project API - updating file content:', { projectId, filePath })
     
-    // Try multiple API paths, starting with project-manager
-    const apiPaths = [
-      // Try project-manager paths first (highest priority)
-      API_PATHS.PROJECT_MANAGER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-      'project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',  // Direct path
-      '/api/v1/project-manager/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/', // Absolute path 
-      API_PATHS.BUILDER + '/projects/' + projectId + '/files/' + encodeURIComponent(filePath) + '/',
-    ]
+    // DEPRECATED: This method is now moved to FileService.
+    // This is kept for backward compatibility but will log a warning.
+    console.warn('ProjectService.updateFileContent is deprecated. Please use FileService.updateFileContent instead.')
     
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        const cleanPath = buildApiUrl(path);
-        console.debug(`Making API request to update file content using path: ${cleanPath}`)
-        
-        const response = await api.put(cleanPath, {
-          content
-        })
-        
-        console.debug(`Project API - updateFileContent response from ${cleanPath}:`, {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for update file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to update files')
-          } else {
-            throw new Error('You do not have permission to update this file')
-          }
-        }
-      }
-    }
-    
-    // Try direct axios call as last resort with both endpoints
-    for (const baseEndpoint of ['project-manager', 'builder']) {
-      try {
-        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`
-        console.debug(`Making direct axios call to ${absolutePath}`)
-        
-        const response = await axios.put(absolutePath, {
-          content
-        }, {
-          headers: api.defaults.headers.common
-        })
-        
-        console.debug('Direct axios call response:', {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (directError: any) {
-        console.error(`Direct axios call to ${baseEndpoint} failed:`, directError)
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('Project API - updateFileContent error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (lastError.response?.status === 401) {
-        throw new Error('You must be logged in to update files')
-      } else if (lastError.response?.status === 403) {
-        throw new Error('You do not have permission to update this file')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
-      }
-      
-      throw lastError
-    }
-    
-    throw new Error('Failed to update file content')
+    // Redirect to FileService
+    const { FileService } = await import('./fileService')
+    return FileService.updateFileContent(projectId, filePath, content)
   },
 
   /**
@@ -994,37 +678,23 @@ export const ProjectService = {
   async deleteFile(projectId: string, filePath: string): Promise<void> {
     console.debug('Project API - deleting file:', { projectId, filePath })
     
-    try {
-      const response = await api.delete(
-        `${API_PATHS.BUILDER}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`
-      )
-      
-      console.debug('Project API - deleteFile response:', {
-        status: response.status
-      })
-    } catch (error: any) {
-      console.error('Project API - deleteFile error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to delete files')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to delete this file')
-      }
-      
-      throw error
-    }
+    // DEPRECATED: This method is now moved to FileService.
+    // This is kept for backward compatibility but will log a warning.
+    console.warn('ProjectService.deleteFile is deprecated. Please use FileService.deleteFile instead.')
+    
+    // Redirect to FileService
+    const { FileService } = await import('./fileService')
+    return FileService.deleteFile(projectId, filePath)
   }
 }
 
 /**
- * Helper function to safely construct API URLs
- * Prevents duplicate /api/v1/ prefixes
+ * Helper function to build a proper API URL
  */
 function buildApiUrl(path: string) {
-  // Strip any leading /api/v1/ to prevent duplication
-  const cleanPath = path.replace(/^\/?(api\/v1\/)?/, '');
-  // Add api/v1/ prefix if not present
+  // Remove leading slashes for consistency
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+  
+  // If already has api/v1/ prefix, use as is, otherwise add it
   return cleanPath.startsWith('api/v1/') ? cleanPath : `api/v1/${cleanPath}`;
 }

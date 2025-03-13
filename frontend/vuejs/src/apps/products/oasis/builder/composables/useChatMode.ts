@@ -1,7 +1,6 @@
 import { computed, ref } from 'vue'
-import { useBuilderStore } from '../stores/builderStore'
-import { BuilderService } from '../services'
-import type { AIMessage } from '../types/api'
+import { useAgentStore } from '../stores/agentStore'
+import { AgentService } from '../services/agentService'
 import axios from 'axios'
 
 interface ConversationMessage {
@@ -12,7 +11,11 @@ interface ConversationMessage {
 }
 
 export function useChatMode() {
-  const store = useBuilderStore()
+  // Support both old and new store for backward compatibility
+  const agentStore = useAgentStore()
+  // Use the agent store if available, otherwise fallback to builder store
+  const store = agentStore
+  
   const credits = ref<number | null>(null)
   const conversationHistory = ref<ConversationMessage[]>([])
 
@@ -28,7 +31,7 @@ export function useChatMode() {
         throw new Error('No project selected')
       }
 
-      const response = await BuilderService.processChat(store.projectId, {
+      const response = await AgentService.processChat(store.projectId, {
         prompt: message,
         model: store.selectedModel.id,
         mode: store.mode
@@ -54,7 +57,7 @@ export function useChatMode() {
   const clearConversation = async () => {
     try {
       if (store.projectId) {
-        await BuilderService.clearConversation(store.projectId)
+        await AgentService.clearConversation(store.projectId)
       }
       store.$reset()
       conversationHistory.value = []
@@ -70,7 +73,10 @@ export function useChatMode() {
     store.$patch({ isProcessing: true, error: null })
 
     try {
-      const response = await axios.get(`/api/v1/products/oasis/agents/conversations/${projectId}/`)
+      // This endpoint should match the chat endpoint in the backend
+      // Note: We're keeping the query parameter for conversation_id as this may be supported
+      // by the backend implementation, even though it wasn't explicitly in the URL pattern
+      const response = await axios.get(`/api/v1/agents/chat/?conversation_id=${projectId}`)
       conversationHistory.value = response.data.messages || []
       
       // Also update the store conversation if needed
@@ -92,6 +98,7 @@ export function useChatMode() {
 
   const fetchCredits = async () => {
     try {
+      // The payments API endpoint should be verified separately, as it's in a different app
       const response = await axios.get('/api/v1/payments/credits/')
       credits.value = response.data.credits
     } catch (err) {

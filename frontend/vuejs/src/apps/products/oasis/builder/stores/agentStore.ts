@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { AIModel, BuilderMode, ProjectFile } from '../types/builder'
 import type { AIMessage } from '../types/api'
 
-interface BuilderState {
+interface AgentState {
   projectId: string | null
   mode: BuilderMode
   selectedModelId: string | null
@@ -15,8 +15,8 @@ interface BuilderState {
   error: string | null
 }
 
-export const useBuilderStore = defineStore('builder', {
-  state: (): BuilderState => ({
+export const useAgentStore = defineStore('agent', {
+  state: (): AgentState => ({
     projectId: null,
     mode: 'build',
     selectedModelId: null,
@@ -118,4 +118,4 @@ export const useBuilderStore = defineStore('builder', {
       this.$reset()
     }
   }
-})
+}) 

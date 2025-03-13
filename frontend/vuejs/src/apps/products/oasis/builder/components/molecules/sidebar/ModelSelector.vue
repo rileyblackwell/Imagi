@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
-import { ModelService } from '../../../services'
+import { ModelService } from '../../../services/agentService'
 import { AI_MODELS } from '../../../types/builder'
 import type { AIModel } from '../../../types/builder'
 

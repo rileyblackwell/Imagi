@@ -239,7 +239,7 @@ async function createProject() {
     })
     
     showNotification({
-      message: `Project "${newProject.name}" created successfully`,
+      message: `Project "${newProject.name}" created successfully. Setting up your workspace...`,
       type: 'success'
     })
     
@@ -247,11 +247,14 @@ async function createProject() {
     const projectId = String(newProject.id)
     console.debug(`Navigating to project workspace with ID: ${projectId}`)
     
-    // Navigate to the new project workspace
-    await router.push({
-      name: 'builder-workspace',
-      params: { projectId }
-    })
+    // Add a small delay to allow initialization to complete
+    setTimeout(async () => {
+      // Navigate to the new project workspace
+      await router.push({
+        name: 'builder-workspace',
+        params: { projectId }
+      })
+    }, 1000)
   } catch (error: any) {
     showNotification({
       message: error?.message || 'Failed to create project',

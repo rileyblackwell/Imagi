@@ -1,8 +1,8 @@
-import { useBuilderStore } from '../stores/builderStore'
+import { useAgentStore } from '../stores/agentStore'
 import type { NavigationGuard } from 'vue-router'
 
 export const builderGuard: NavigationGuard = async (to, from, next) => {
-  const store = useBuilderStore()
+  const store = useAgentStore()
 
   // Check if leaving builder workspace
   if (from.name === 'builder' && to.name !== 'builder') {

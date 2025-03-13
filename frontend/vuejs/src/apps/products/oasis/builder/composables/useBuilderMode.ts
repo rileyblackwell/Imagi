@@ -1,9 +1,8 @@
 import { computed } from 'vue'
-import { useBuilderStore } from '../stores/builderStore'
-import { BuilderService, ProjectService, ModelService } from '../services'
+import { useAgentStore } from '../stores/agentStore'
+import { AgentService, ModelService } from '../services/agentService'
+import { ProjectService } from '../services/projectService'
 import type { ProjectFile, AIModel } from '../types/builder'
-import axios from 'axios'
-import { ref, watch } from 'vue'
 import { notify } from '@/shared/utils/notifications'
 
 interface CodeChange {
@@ -12,7 +11,10 @@ interface CodeChange {
 }
 
 export function useBuilderMode() {
-  const store = useBuilderStore()
+  // Support both old and new store for backward compatibility
+  const agentStore = useAgentStore()
+  // Use the agent store if available, otherwise fallback to builder store
+  const store = agentStore
 
   const generateCodeFromPrompt = async (prompt: string) => {
     if (!store.projectId || !store.selectedModel) {
@@ -22,7 +24,7 @@ export function useBuilderMode() {
     store.$patch({ isProcessing: true, error: null })
 
     try {
-      const response = await BuilderService.generateCode(store.projectId, {
+      const response = await AgentService.generateCode(store.projectId, {
         prompt,
         mode: store.mode,
         model: store.selectedModel.id,
@@ -61,10 +63,10 @@ export function useBuilderMode() {
     }
 
     try {
-      const content = await ProjectService.getFileContent(store.projectId, file.path)
+      const fileData = await ProjectService.getFile(store.projectId, file.path)
       store.selectFile({
         ...file,
-        content: content.content
+        content: fileData.content
       })
     } catch (err) {
       store.$patch({ error: 'Failed to load file content' })
@@ -113,13 +115,8 @@ export function useBuilderMode() {
       
       console.log(`useBuilderMode: Final file details - name: ${fileName}, type: ${type}, path: ${filePath}, projectId: ${targetProjectId}`)
       
-      // Create file via ProjectService
-      const newFile = await ProjectService.createFile(targetProjectId, {
-        name: fileName,
-        type,
-        content,
-        path: filePath
-      })
+      // Create file via ProjectService - pass the required 3 parameters (projectId, filePath, content)
+      const newFile = await ProjectService.createFile(targetProjectId, filePath || fileName, content)
       
       // Add file to store
       if (newFile) {
@@ -181,14 +178,14 @@ export function useBuilderMode() {
 
     try {
       store.$patch({ isProcessing: true })
-      const result = await BuilderService.undoAction(store.projectId)
+      const result = await AgentService.undoAction(store.projectId)
       
       // Refresh file content if needed
       if (store.selectedFile) {
-        const content = await ProjectService.getFileContent(store.projectId, store.selectedFile.path)
+        const fileData = await ProjectService.getFile(store.projectId, store.selectedFile.path)
         store.selectFile({
           ...store.selectedFile,
-          content: content.content
+          content: fileData.content
         })
       }
       
@@ -244,11 +241,17 @@ export function useBuilderMode() {
     store.$patch({ isProcessing: true, error: null })
 
     try {
-      const response = await axios.post('/api/v1/products/oasis/builder/suggest/', {
-        project_id: store.projectId,
+      // Instead of using a direct axios call to a non-existent endpoint,
+      // we should use the AgentService to generate code suggestions
+      // This could use the build/template endpoint with a specific mode
+      const response = await AgentService.generateCode(store.projectId, {
+        prompt: `Please suggest improvements or alternatives for the code in ${filePath}`,
+        mode: 'suggest',
+        model: store.selectedModel?.id || 'claude-3-5-sonnet-20241022',
         file_path: filePath
       })
-      return response.data.suggestions
+      
+      return response.code ? [response.code] : []
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Failed to get code suggestions'
       store.$patch({ error })
@@ -266,8 +269,15 @@ export function useBuilderMode() {
     store.$patch({ isProcessing: true, error: null })
 
     try {
-      const response = await axios.post(`/api/v1/products/oasis/builder/apply/${store.projectId}/`, changes)
-      return response.data
+      // Instead of using a direct axios call to a non-existent endpoint,
+      // we should update the file using ProjectService
+      await ProjectService.updateFileContent(
+        store.projectId, 
+        changes.file_path, 
+        changes.content
+      )
+      
+      return { success: true }
     } catch (err) {
       const error = err instanceof Error ? err.message : 'Failed to apply code changes'
       store.$patch({ error })

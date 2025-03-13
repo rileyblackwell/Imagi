@@ -1,12 +1,12 @@
 import { ref, watch } from 'vue'
-import { useBuilderStore } from '../stores/builderStore'
-import { ProjectService } from '../services'
+import { useAgentStore } from '../stores/agentStore'
+import { ProjectService } from '../services/projectService'
 import { debounce } from 'lodash-es'
 
 const AUTOSAVE_DELAY = 2000 // 2 seconds
 
 export function useFileManager() {
-  const store = useBuilderStore()
+  const store = useAgentStore()
   const lastSavedContent = ref<string>('')
 
   // Debounced autosave function

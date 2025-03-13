@@ -25,10 +25,10 @@
 
 <script setup lang="ts">
 import { ref, onErrorCaptured } from 'vue'
-import { useBuilderStore } from '@/apps/products/oasis/builder/stores/builderStore'
+import { useAgentStore } from '@/apps/products/oasis/builder/stores/agentStore'
 
 const error = ref<Error | null>(null)
-const store = useBuilderStore()
+const store = useAgentStore()
 const isDev = import.meta.env.DEV
 
 const handleReset = () => {

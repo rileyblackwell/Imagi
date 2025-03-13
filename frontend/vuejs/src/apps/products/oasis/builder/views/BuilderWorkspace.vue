@@ -151,13 +151,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useBuilderStore } from '../stores/builderStore'
+import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
 import { useChatMode } from '../composables/useChatMode'
 import { useFileManager } from '../composables/useFileManager'
 import { useProjectStore } from '../stores/projectStore'
 import { AI_MODELS } from '../types/builder'
-import { ModelService, BuilderService, ProjectService } from '../services'
+import { AgentService, ModelService } from '../services/agentService'
+import { ProjectService } from '../services/projectService'
 import api from '../services/api'
 import axios from 'axios'
 
@@ -181,7 +182,7 @@ import type { AIMessage } from '../types/index'
 
 const route = useRoute()
 const router = useRouter()
-const store = useBuilderStore()
+const store = useAgentStore()
 const projectStore = useProjectStore()
 const { 
   generateCodeFromPrompt, 
@@ -556,7 +557,7 @@ const handlePreview = async () => {
     store.setProcessing(true)
     
     // Call the backend to generate a preview URL
-    const response = await BuilderService.generatePreview(store.projectId || '')
+    const response = await AgentService.generatePreview(store.projectId || '')
     
     if (response && response.previewUrl) {
       // Open the preview URL in a new tab
@@ -1025,7 +1026,7 @@ const initializeWorkspace = async (isNewProject = false) => {
             if (filesResponse.length === 0) {
               try {
                 // First, try to initialize the project
-                const initResult = await BuilderService.initializeProject(projectId)
+                const initResult = await AgentService.initializeProject(projectId)
                 
                 if (initResult && initResult.success) {
                   // Wait a moment for files to be created
@@ -1076,7 +1077,7 @@ const initializeWorkspace = async (isNewProject = false) => {
             // For new projects, try to initialize directly
             try {
               // Initialize the project and create default files
-              const initResult = await BuilderService.initializeProject(projectId)
+              const initResult = await AgentService.initializeProject(projectId)
               if (initResult && initResult.success) {
                 notify({ 
                   type: 'info', 
