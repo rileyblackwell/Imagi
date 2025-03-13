@@ -64,15 +64,11 @@ export const useAgentStore = defineStore('agent', {
     },
 
     setModels(models: AIModel[]) {
-      console.log('setModels action called', { models })
-      
       this.availableModels = models
-      console.log('Models updated in store', this.availableModels)
       
       // Set default model if none selected
       if (!this.selectedModelId && models.length > 0) {
         this.selectedModelId = models[0].id
-        console.log('Default model set', this.selectedModelId)
       }
     },
 

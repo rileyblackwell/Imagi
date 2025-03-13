@@ -96,9 +96,24 @@ class ProjectFilesView(APIView, BuilderView):
             except PMProject.DoesNotExist:
                 raise NotFound('Project not found')
         
+        # Check if project path exists
+        if not project.project_path:
+            logger.error(f"Project path not found for project: {project.id}")
+            return Response(
+                {'error': 'Project path not found. The project may not be properly initialized.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         file_service = FileService(project=project)
-        files = file_service.list_files()
-        return Response(files)
+        try:
+            files = file_service.list_files()
+            return Response(files)
+        except Exception as e:
+            logger.error(f"Error listing files: {str(e)}")
+            return Response(
+                {'error': f'Error listing files: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 @method_decorator(never_cache, name='dispatch')
 class GenerateCodeView(APIView, BuilderView):

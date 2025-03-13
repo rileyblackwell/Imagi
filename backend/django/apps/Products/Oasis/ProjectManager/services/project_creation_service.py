@@ -406,4 +406,142 @@ A Django REST API project.
 - Django REST framework API
 - CORS enabled
 - SQLite database (for development)
-''' 
+'''
+
+    def initialize_project(self, project):
+        """
+        Initialize a project after it has been created.
+        This method sets up additional project structure and marks it as initialized.
+        """
+        try:
+            if not project.project_path or not os.path.exists(project.project_path):
+                raise ValueError("Project directory does not exist")
+            
+            project_path = project.project_path
+            
+            # Create a default Django app within the project
+            main_app_name = 'core'
+            project_name = os.path.basename(project_path)
+            
+            # Get the inner project directory (where manage.py is)
+            inner_project_dir = os.path.join(project_path, project_name)
+            if not os.path.exists(inner_project_dir):
+                # Try to find the manage.py to determine the correct directory
+                for root, dirs, files in os.walk(project_path):
+                    if 'manage.py' in files:
+                        inner_project_dir = root
+                        break
+            
+            # Create the main app
+            subprocess.run([
+                'python', os.path.join(inner_project_dir, 'manage.py'),
+                'startapp', main_app_name
+            ], cwd=inner_project_dir, check=True)
+            
+            # Create basic models, views, and urls for the main app
+            app_path = os.path.join(inner_project_dir, main_app_name)
+            
+            # Update models.py with a basic model
+            with open(os.path.join(app_path, 'models.py'), 'w') as f:
+                f.write(self._generate_basic_model_content())
+            
+            # Update views.py with basic views
+            with open(os.path.join(app_path, 'views.py'), 'w') as f:
+                f.write(self._generate_basic_views_content())
+            
+            # Create urls.py for the app
+            with open(os.path.join(app_path, 'urls.py'), 'w') as f:
+                f.write(self._generate_basic_urls_content())
+            
+            # Update the project's settings.py to include the new app
+            project_settings_path = os.path.join(inner_project_dir, project_name, 'settings.py')
+            with open(project_settings_path, 'r') as f:
+                settings_content = f.read()
+            
+            if main_app_name not in settings_content:
+                # Add the app to INSTALLED_APPS
+                installed_apps_pattern = r"INSTALLED_APPS = \[\n(.*?)\]"
+                installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
+                if installed_apps_match:
+                    current_apps = installed_apps_match.group(1)
+                    updated_apps = current_apps + f"    '{main_app_name}',\n"
+                    settings_content = settings_content.replace(current_apps, updated_apps)
+                
+                with open(project_settings_path, 'w') as f:
+                    f.write(settings_content)
+            
+            # Update the project's main urls.py to include the app urls
+            project_urls_path = os.path.join(inner_project_dir, project_name, 'urls.py')
+            with open(project_urls_path, 'r') as f:
+                urls_content = f.read()
+            
+            if f"include('{main_app_name}.urls')" not in urls_content:
+                # Add import for include if not present
+                if 'include' not in urls_content:
+                    urls_content = urls_content.replace(
+                        'from django.urls import path',
+                        'from django.urls import path, include'
+                    )
+                
+                # Add the app's URLs to the urlpatterns
+                urls_content = urls_content.replace(
+                    'urlpatterns = [',
+                    f'urlpatterns = [\n    path(\'{main_app_name}/\', include(\'{main_app_name}.urls\')),'
+                )
+                
+                with open(project_urls_path, 'w') as f:
+                    f.write(urls_content)
+            
+            # Mark the project as initialized
+            project.is_initialized = True
+            project.save()
+            
+            return project
+        
+        except Exception as e:
+            logger.error(f"Error initializing project: {str(e)}")
+            raise ValueError(f"Failed to initialize project: {str(e)}")
+    
+    def _generate_basic_model_content(self):
+        """Generate content for a basic Django model"""
+        return """from django.db import models
+
+class Item(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.name
+"""
+    
+    def _generate_basic_views_content(self):
+        """Generate content for basic Django views"""
+        return """from django.shortcuts import render
+from django.http import JsonResponse
+from .models import Item
+
+def index(request):
+    \"\"\"Render the index page\"\"\"
+    items = Item.objects.all()
+    return render(request, 'core/index.html', {'items': items})
+
+def item_list(request):
+    \"\"\"Return a JSON list of items\"\"\"
+    items = Item.objects.all().values('id', 'name', 'description')
+    return JsonResponse({'items': list(items)})
+"""
+    
+    def _generate_basic_urls_content(self):
+        """Generate content for basic Django URLs"""
+        return """from django.urls import path
+from . import views
+
+app_name = 'core'
+
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('api/items/', views.item_list, name='item-list'),
+]
+""" 

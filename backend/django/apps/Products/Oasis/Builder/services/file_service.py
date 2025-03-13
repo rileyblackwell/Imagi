@@ -36,19 +36,35 @@ class FileService:
     
     def get_project_path(self, project_id=None):
         """Get the project path for the current project or specified project ID."""
-        if self.project:
-            return self.project_path
-            
-        if project_id:
-            project = self.get_project(project_id)
-            return project.project_path
-            
-        raise ValidationError("No project specified")
+        try:
+            if self.project:
+                if not self.project.project_path:
+                    logger.error(f"Project {self.project.id} has no project_path")
+                    return None
+                return self.project.project_path
+                
+            if project_id:
+                project = self.get_project(project_id)
+                if not project.project_path:
+                    logger.error(f"Project {project.id} has no project_path")
+                    return None
+                return project.project_path
+                
+            raise ValidationError("No project specified")
+        except Exception as e:
+            logger.error(f"Error getting project path: {str(e)}")
+            return None
     
     def list_files(self, project_id=None):
         """List all files in the project."""
         try:
             project_path = self.get_project_path(project_id)
+            
+            # Check if project path exists
+            if not project_path or not os.path.exists(project_path):
+                logger.error(f"Project path does not exist: {project_path}")
+                return []
+                
             files = []
             
             for root, _, filenames in os.walk(project_path):

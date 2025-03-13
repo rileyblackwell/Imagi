@@ -25,9 +25,16 @@ class Project(models.Model):
 
     @property
     def project_path(self):
-        """Get the project path from the associated UserProject"""
-        if self.user_project:
-            return self.user_project.project_path
+        """Get the project path from the associated ProjectManager Project"""
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+            pm_project = PMProject.objects.filter(id=self.id, user=self.user).first()
+            if pm_project:
+                return pm_project.project_path
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error getting project path: {str(e)}")
         return None
 
 

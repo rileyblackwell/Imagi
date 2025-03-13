@@ -159,6 +159,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { AI_MODELS } from '../types/builder'
 import { AgentService, ModelService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
+import { FileService } from '../services/fileService'
 import api from '../services/api'
 import axios from 'axios'
 
@@ -398,7 +399,7 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
     // If we just created one of the template files, check if others are needed
     if (data.name === 'templates/base.html' || data.name === 'templates/index.html' || data.name === 'static/css/styles.css') {
       // Reload project files to see what we have
-      const updatedFiles = await ProjectService.getProjectFiles(projectId || '')
+      const updatedFiles = await FileService.getProjectFiles(projectId || '')
       const fileNames = updatedFiles.map(f => f.path)
       
       // Create any missing template files
@@ -1018,7 +1019,7 @@ const initializeWorkspace = async (isNewProject = false) => {
         
         // Load project files - this can work even if the project details couldn't be fetched
         try {
-          const filesResponse = await ProjectService.getProjectFiles(projectId)
+          const filesResponse = await FileService.getProjectFiles(projectId)
           if (filesResponse && Array.isArray(filesResponse)) {
             store.$patch({ files: filesResponse })
             
@@ -1033,7 +1034,7 @@ const initializeWorkspace = async (isNewProject = false) => {
                   await new Promise(resolve => setTimeout(resolve, 1000))
                   
                   // Reload project files after backend initialization
-                  const updatedFiles = await ProjectService.getProjectFiles(projectId)
+                  const updatedFiles = await FileService.getProjectFiles(projectId)
                   
                   if (updatedFiles && Array.isArray(updatedFiles)) {
                     store.$patch({ files: updatedFiles })
@@ -1088,7 +1089,7 @@ const initializeWorkspace = async (isNewProject = false) => {
                 await new Promise(resolve => setTimeout(resolve, 1000))
                 
                 // Reload project files
-                const updatedFiles = await ProjectService.getProjectFiles(projectId)
+                const updatedFiles = await FileService.getProjectFiles(projectId)
                 if (updatedFiles && Array.isArray(updatedFiles)) {
                   store.$patch({ files: updatedFiles })
                   
