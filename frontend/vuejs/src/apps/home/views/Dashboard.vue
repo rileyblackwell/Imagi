@@ -1,126 +1,263 @@
 <template>
   <DashboardLayout :navigationItems="navigationItems">
-    <div class="flex flex-col w-full min-h-screen bg-dark-900">
-      <!-- Enhanced Background -->
-      <div class="absolute inset-0 bg-dark-900">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-dark-900 to-violet-500/5"></div>
-        <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-50"></div>
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
+    <div class="flex flex-col w-full min-h-screen bg-dark-900 relative overflow-hidden">
+      <!-- Enhanced Background Effects -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Refined gradient background -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-violet-500/10"></div>
+        
+        <!-- Ambient glow effects -->
+        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-gradient-to-r from-primary-500/15 to-violet-500/15 rounded-full blur-[120px] opacity-40"></div>
+        <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-r from-indigo-500/10 to-primary-500/10 rounded-full blur-[100px] opacity-30"></div>
+        
+        <!-- Subtle grid pattern -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02] mix-blend-overlay"></div>
       </div>
 
       <!-- Dashboard Content -->
-      <div class="relative">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <!-- Welcome Section -->
+      <div class="relative z-10">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
+          <!-- Welcome Section with Imagi Title Styling -->
           <div class="mb-12">
-            <div class="mb-6">
-              <GradientText variant="primary" size="3xl" class="font-bold">
-                Main Dashboard
-              </GradientText>
+            <!-- Imagi Title with Auth Page Styling -->
+            <div class="inline-flex items-center justify-center mb-8">
+              <div class="rounded-2xl bg-gradient-to-br p-[1px] from-primary-300/40 to-violet-300/40
+                        hover:from-primary-200/50 hover:to-violet-200/50 transition-all duration-300">
+                <div class="px-8 py-4 rounded-2xl bg-dark-800/95 backdrop-blur-xl
+                          shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)]">
+                  <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-300 via-emerald-300 to-yellow-200 
+                            bg-clip-text text-transparent tracking-tight
+                            drop-shadow-[0_0_12px_rgba(236,72,153,0.3)]
+                            animate-gradient">
+                    Imagi
+                  </h1>
+                </div>
+              </div>
             </div>
-            <div class="flex items-center justify-between">
+            
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
-                <h2 class="text-2xl font-bold text-white mb-2">
+                <h2 class="text-3xl font-bold text-white mb-3 tracking-tight">
                   Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋
                 </h2>
-                <p class="text-gray-400">
+                <p class="text-lg text-gray-300/90 max-w-2xl leading-relaxed">
                   Here's what's happening with your projects today.
                 </p>
               </div>
-              <IconButton
-                icon="fas fa-plus"
-                variant="primary"
-                size="lg"
+              <button
                 @click="$router.push({ name: 'builder-new-project' })"
+                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:translate-y-[-2px] transition-all duration-300 self-start"
               >
+                <i class="fas fa-plus mr-2.5"></i>
                 New Project
-              </IconButton>
+              </button>
             </div>
           </div>
 
-          <!-- Stats Overview -->
+          <!-- Stats Overview with Enhanced Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            <StatsCard
-              v-for="stat in statsData"
+            <div 
+              v-for="stat in statsData" 
               :key="stat.title"
-              v-bind="stat"
-            />
+              class="group relative transform transition-all duration-300 hover:translate-y-[-3px]"
+            >
+              <!-- Enhanced hover glow effect -->
+              <div class="absolute -inset-[1px] rounded-xl bg-gradient-to-r opacity-0 group-hover:opacity-100 blur-[2px] transition-all duration-300" 
+                :class="{
+                  'from-primary-500/30 via-violet-500/30 to-indigo-500/30': stat.color === 'primary',
+                  'from-green-500/30 via-emerald-500/30 to-teal-500/30': stat.color === 'success',
+                  'from-yellow-500/30 via-amber-500/30 to-orange-500/30': stat.color === 'warning',
+                  'from-blue-500/30 via-sky-500/30 to-cyan-500/30': stat.color === 'info'
+                }"
+              ></div>
+              
+              <!-- Card content with enhanced styling -->
+              <div class="relative bg-dark-800/80 backdrop-blur-md rounded-xl p-6 border border-dark-700/80 group-hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/30 group-hover:shadow-xl group-hover:shadow-primary-500/10 h-full">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-medium text-gray-300">{{ stat.title }}</h3>
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300"
+                    :class="{
+                      'bg-primary-500/15 text-primary-400': stat.color === 'primary',
+                      'bg-green-500/15 text-green-400': stat.color === 'success',
+                      'bg-yellow-500/15 text-yellow-400': stat.color === 'warning',
+                      'bg-blue-500/15 text-blue-400': stat.color === 'info'
+                    }"
+                  >
+                    <i :class="[stat.icon, 'text-lg']"></i>
+                  </div>
+                </div>
+                <div class="flex items-end justify-between">
+                  <div class="text-3xl font-bold text-white">{{ stat.value }}</div>
+                  <div class="text-sm font-medium"
+                    :class="{
+                      'text-green-400': stat.trend.startsWith('+'),
+                      'text-red-400': stat.trend.startsWith('-')
+                    }"
+                  >
+                    {{ stat.trend }}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- Main Grid -->
+          <!-- Main Grid with Enhanced Cards -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Projects & Activity Column -->
             <div class="lg:col-span-2 space-y-8">
               <!-- Recent Projects -->
-              <CardContainer title="Recent Projects" :showViewAll="true" viewAllLink="/products/oasis/builder/projects">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
+                <div class="flex items-center justify-between mb-6">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20 transform hover:scale-105 transition-all duration-300">
+                      <i class="fas fa-folder-open text-xl text-white"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white">Recent Projects</h2>
+                  </div>
+                  <router-link 
+                    to="/products/oasis/builder/projects"
+                    class="text-primary-400 hover:text-primary-300 transition-colors text-sm font-medium flex items-center"
+                  >
+                    View All
+                    <i class="fas fa-arrow-right ml-2"></i>
+                  </router-link>
+                </div>
+                
                 <div class="space-y-4">
-                  <ProjectListItem
+                  <div 
                     v-for="project in recentProjects"
                     :key="project.id"
-                    :project="project"
+                    class="group bg-dark-900/50 hover:bg-dark-900/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl p-4 transition-all duration-300 transform hover:translate-y-[-2px] cursor-pointer"
                     @click="goToProject(project.id)"
-                  />
-                  <EmptyState
-                    v-if="!recentProjects.length"
-                    icon="fas fa-folder-open"
-                    title="No projects yet"
-                    description="Start by creating your first project"
-                  />
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
+                          <i class="fas fa-cube text-primary-400"></i>
+                        </div>
+                        <div>
+                          <h3 class="text-white font-medium group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
+                          <p class="text-gray-400 text-sm">Last updated {{ formatDate(project.updated_at) }}</p>
+                        </div>
+                      </div>
+                      <div class="text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-arrow-right"></i>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div v-if="!recentProjects.length" class="flex flex-col items-center justify-center py-10 bg-dark-900/30 rounded-xl border border-dark-700/50">
+                    <i class="fas fa-folder-open text-3xl text-gray-500 mb-3 opacity-50"></i>
+                    <p class="text-gray-400 text-center">No projects yet. Create your first project to get started!</p>
+                    <button
+                      @click="$router.push({ name: 'builder-new-project' })"
+                      class="mt-4 px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg hover:bg-primary-500/30 transition-colors"
+                    >
+                      <i class="fas fa-plus mr-2"></i>
+                      Create Project
+                    </button>
+                  </div>
                 </div>
-              </CardContainer>
+              </div>
 
               <!-- Recent Activity -->
-              <CardContainer title="Activity Feed" :showViewAll="true">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
+                <div class="flex items-center gap-4 mb-6">
+                  <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 transform hover:scale-105 transition-all duration-300">
+                    <i class="fas fa-history text-xl text-white"></i>
+                  </div>
+                  <h2 class="text-xl font-bold text-white">Activity Feed</h2>
+                </div>
+                
                 <ActivityFeed :activities="recentActivities" />
-              </CardContainer>
+              </div>
             </div>
 
             <!-- Quick Actions & Resources Column -->
             <div class="space-y-8">
               <!-- Quick Actions -->
-              <CardContainer title="Quick Actions">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
+                <div class="flex items-center gap-4 mb-6">
+                  <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 transform hover:scale-105 transition-all duration-300">
+                    <i class="fas fa-bolt text-xl text-white"></i>
+                  </div>
+                  <h2 class="text-xl font-bold text-white">Quick Actions</h2>
+                </div>
+                
                 <div class="space-y-3">
-                  <ActionButton
+                  <button
                     v-for="action in quickActions"
                     :key="action.title"
-                    v-bind="action"
-                  />
+                    @click="$router.push(action.route)"
+                    class="w-full flex items-center justify-between p-4 bg-dark-900/50 hover:bg-dark-900/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:translate-y-[-2px] text-white hover:text-primary-400 group"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                        <i :class="[action.icon, 'text-primary-400']"></i>
+                      </div>
+                      <span>{{ action.title }}</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-500 group-hover:text-primary-400 transition-colors"></i>
+                  </button>
                 </div>
-              </CardContainer>
+              </div>
 
               <!-- Available Credits -->
-              <CardContainer title="Credits Overview">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
+                <div class="flex items-center gap-4 mb-6">
+                  <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20 transform hover:scale-105 transition-all duration-300">
+                    <i class="fas fa-coins text-xl text-white"></i>
+                  </div>
+                  <h2 class="text-xl font-bold text-white">Credits Overview</h2>
+                </div>
+                
                 <div class="text-center p-4">
-                  <div class="text-3xl font-bold text-primary-400 mb-2">
+                  <div class="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-3">
                     {{ credits }}
                   </div>
-                  <p class="text-gray-400 mb-4">Available Credits</p>
-                  <ProgressBar
-                    :value="creditsUsed"
-                    :total="creditsPlan"
-                    class="mb-4"
-                  />
-                  <IconButton
+                  <p class="text-gray-300 mb-6">Available Credits</p>
+                  <div class="relative h-3 bg-dark-900/70 rounded-full overflow-hidden mb-6">
+                    <div 
+                      class="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full"
+                      :style="{ width: `${(creditsUsed / creditsPlan) * 100}%` }"
+                    ></div>
+                  </div>
+                  <router-link 
                     to="/payments"
-                    variant="outline"
-                    size="sm"
-                    icon="fas fa-plus"
+                    class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-xl hover:from-amber-600 hover:to-yellow-600 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
                   >
+                    <i class="fas fa-plus mr-2"></i>
                     Add Credits
-                  </IconButton>
+                  </router-link>
                 </div>
-              </CardContainer>
+              </div>
 
               <!-- Resources -->
-              <CardContainer title="Resources">
-                <div class="space-y-4">
-                  <ResourceLink
-                    v-for="resource in resources"
-                    :key="resource.title"
-                    v-bind="resource"
-                  />
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
+                <div class="flex items-center gap-4 mb-6">
+                  <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20 transform hover:scale-105 transition-all duration-300">
+                    <i class="fas fa-book text-xl text-white"></i>
+                  </div>
+                  <h2 class="text-xl font-bold text-white">Resources</h2>
                 </div>
-              </CardContainer>
+                
+                <div class="space-y-4">
+                  <a 
+                    v-for="resource in resources" 
+                    :key="resource.title"
+                    :href="resource.url"
+                    class="block p-4 bg-dark-900/50 hover:bg-dark-900/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:translate-y-[-2px] group"
+                  >
+                    <div class="flex items-center gap-3 mb-2">
+                      <div class="w-8 h-8 rounded-lg bg-green-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                        <i :class="[resource.icon, 'text-green-400']"></i>
+                      </div>
+                      <h3 class="text-white font-medium group-hover:text-green-400 transition-colors">{{ resource.title }}</h3>
+                    </div>
+                    <p class="text-gray-400 text-sm pl-11">{{ resource.description }}</p>
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -229,6 +366,16 @@ const resources = [
   { title: 'Community', icon: 'fas fa-users', url: '/community', description: 'Join our Discord' }
 ]
 
+// Format date helper
+function formatDate(date) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(date));
+}
+
 // Add navigation method
 const router = useRouter()
 const goToProject = (id) => {
@@ -283,3 +430,49 @@ onMounted(() => {
   fetchDashboardData()
 })
 </script>
+
+<style scoped>
+/* Enhanced scrollbar styling */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.gray.700') transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: theme('colors.gray.700');
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: theme('colors.gray.600');
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% auto;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* Add subtle animation for loading state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+</style>
