@@ -54,7 +54,7 @@
               </div>
               
               <!-- Enhanced Badge -->
-              <div class="inline-flex items-center px-5 py-2 bg-dark-800/70 backdrop-blur-sm rounded-full border border-primary-500/30 shadow-lg shadow-primary-500/10 transform hover:scale-105 transition-all duration-300">
+              <div class="inline-flex items-center px-5 py-2 bg-dark-800/70 backdrop-blur-sm rounded-full border border-primary-500/30 shadow-lg shadow-primary-500/10 transform transition-all duration-300">
                 <i class="fas fa-sparkles text-primary-400 mr-2.5"></i>
                 <span class="text-sm font-medium bg-gradient-to-r from-gray-100 to-gray-300 bg-clip-text text-transparent">
                   AI-Powered Project Builder
