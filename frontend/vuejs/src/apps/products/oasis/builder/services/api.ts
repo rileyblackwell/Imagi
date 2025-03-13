@@ -78,24 +78,44 @@ const api: AxiosInstance = axios.create({
   timeout: API_CONFIG.TIMEOUT
 })
 
-// Set auth token from localStorage on initialization if available
-const token = getAuthToken() || getAuthTokenFromCookie()
-if (token) {
-  api.defaults.headers.common['Authorization'] = `Token ${token}`
-  console.debug('Set Authorization header on API client initialization')
-}
+// Immediately initialize API with token
+const initializeApi = () => {
+  // Set auth token from localStorage on initialization if available
+  const token = getAuthToken() || getAuthTokenFromCookie()
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Token ${token}`
+    console.debug('Set Authorization header on API client initialization')
+  } else {
+    console.debug('No valid token found during API initialization')
+  }
+};
+
+// Call initialization immediately
+initializeApi();
+
+// Re-initialize API when the window gains focus to ensure token is fresh
+window.addEventListener('focus', () => {
+  console.debug('Window gained focus, refreshing API token')
+  initializeApi();
+});
 
 // Update token on storage change (listen for auth state changes)
 window.addEventListener('storage', (event) => {
-  if (event.key === 'token' && event.newValue) {
-    try {
-      const tokenData = JSON.parse(event.newValue);
-      if (tokenData && tokenData.value) {
-        api.defaults.headers.common['Authorization'] = `Token ${tokenData.value}`;
-        console.debug('Updated Authorization header from storage event');
+  if (event.key === 'token') {
+    if (event.newValue) {
+      try {
+        const tokenData = JSON.parse(event.newValue);
+        if (tokenData && tokenData.value) {
+          api.defaults.headers.common['Authorization'] = `Token ${tokenData.value}`;
+          console.debug('Updated Authorization header from storage event');
+        }
+      } catch (error) {
+        console.error('Error handling storage event:', error);
       }
-    } catch (error) {
-      console.error('Error handling storage event:', error);
+    } else {
+      // Token was removed
+      delete api.defaults.headers.common['Authorization'];
+      console.debug('Removed Authorization header due to token removal');
     }
   }
 });

@@ -64,21 +64,45 @@ export const ProjectService = {
   async getProjects() {
     // Check auth token before making requests
     const authHeader = api.defaults.headers.common['Authorization']
+    
+    console.debug('Project API - getProjects starting:', {
+      baseURL: api.defaults.baseURL,
+      authHeaderPresent: !!authHeader
+    })
+    
     if (!authHeader) {
-      // Try to get projects from local cache as fallback
-      const cachedProjects = this._getCachedProjects()
-      if (cachedProjects) {
-        return cachedProjects
+      // Try to get token from localStorage as the API headers might not be set yet
+      try {
+        const tokenData = localStorage.getItem('token')
+        if (tokenData) {
+          const parsedToken = JSON.parse(tokenData)
+          if (parsedToken && parsedToken.value) {
+            // Set the token in the API headers
+            api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
+            console.debug('Set Authorization header from localStorage')
+          }
+        }
+      } catch (e) {
+        console.warn('Error reading token from localStorage:', e)
       }
       
-      throw new Error('You must be logged in to view projects')
+      // If still no auth header after attempting to set it
+      if (!api.defaults.headers.common['Authorization']) {
+        // Try to get projects from local cache as fallback
+        const cachedProjects = this._getCachedProjects()
+        if (cachedProjects) {
+          return cachedProjects
+        }
+        
+        throw new Error('You must be logged in to view projects')
+      }
     }
     
     // Try to get projects from local cache while waiting for API
     const cachedProjects = this._getCachedProjects()
     if (cachedProjects) {
       // We'll still try the API, but return the cached data immediately
-      setTimeout(() => this._refreshProjectsInBackground(authHeader), 100)
+      setTimeout(() => this._refreshProjectsInBackground(api.defaults.headers.common['Authorization']), 100)
       return cachedProjects
     }
     
@@ -93,41 +117,37 @@ export const ProjectService = {
     let lastError: any = null
     
     // Log API configuration details and auth state
-    console.debug('Project API - getProjects starting:', {
-      baseURL: axios.defaults.baseURL,
-      paths: apiPaths,
-      authHeaderPresent: !!axios.defaults.headers.common['Authorization'],
-      withCredentials: axios.defaults.withCredentials
-    })
+    console.debug('Project API - getProjects paths to try:', apiPaths)
     
     // Try each path in sequence
     for (const path of apiPaths) {
       try {
-        const cleanPath = buildApiUrl(path);
+        const cleanPath = path.startsWith('/') ? path.substring(1) : path;
         console.debug(`Making API request to get projects from path: ${cleanPath}`)
         
-        // Log the headers being sent for debugging
-        console.debug('Auth header present:', !!authHeader)
+        // Debug log auth header to verify it's being sent
+        console.debug('Auth header present in request:', !!api.defaults.headers.common['Authorization'])
         
         const response = await api.get(cleanPath)
         
         console.debug(`Project API - getProjects response from ${path}:`, {
           status: response.status,
           statusText: response.statusText,
-          data: response.data,
-          headers: response.headers,
           dataType: typeof response.data
         })
         
         // Handle both array response and paginated response
         if (Array.isArray(response.data)) {
           console.debug('Response is an array with length:', response.data.length)
+          this._cacheProjects(response.data) // Cache the successful response
           return response.data
         } else if (response.data?.results && Array.isArray(response.data.results)) {
           console.debug('Response has results array with length:', response.data.results.length)
+          this._cacheProjects(response.data.results) // Cache the successful response
           return response.data.results
         } else if (response.data?.projects && Array.isArray(response.data.projects)) {
           console.debug('Response has projects array with length:', response.data.projects.length)
+          this._cacheProjects(response.data.projects) // Cache the successful response
           return response.data.projects
         } else {
           console.warn(`Unexpected response format from ${path}:`, response.data)
@@ -135,6 +155,7 @@ export const ProjectService = {
           const possibleArrays = Object.values(response.data || {}).filter(val => Array.isArray(val))
           if (possibleArrays.length > 0) {
             console.debug('Found a possible array in response:', possibleArrays[0])
+            this._cacheProjects(possibleArrays[0]) // Cache the successful response
             return possibleArrays[0]
           }
         }
@@ -149,6 +170,28 @@ export const ProjectService = {
         // If it's a 401/403 error, no need to try other paths
         if (error.response?.status === 401 || error.response?.status === 403) {
           console.error('Authentication error when fetching projects')
+          // Try one more time with a direct approach
+          try {
+            // Attempt to refresh the token from localStorage
+            const tokenData = localStorage.getItem('token')
+            if (tokenData) {
+              const parsedToken = JSON.parse(tokenData)
+              if (parsedToken && parsedToken.value) {
+                // Update the token in the API headers
+                api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
+                // Try again with the first path only
+                const retryResponse = await api.get(apiPaths[0])
+                if (Array.isArray(retryResponse.data)) {
+                  return retryResponse.data
+                } else if (retryResponse.data?.results && Array.isArray(retryResponse.data.results)) {
+                  return retryResponse.data.results
+                }
+              }
+            }
+          } catch (retryError) {
+            console.error('Retry with refreshed token failed:', retryError)
+          }
+          
           throw new Error('You must be logged in to view projects')
         }
       }
@@ -156,10 +199,10 @@ export const ProjectService = {
     
     // Try direct axios call as last resort
     try {
-      console.debug('Making direct axios call to /api/v1/builder/projects/')
-      const response = await axios.get('/api/v1/builder/projects/', {
+      console.debug('Making direct axios call to /api/v1/project-manager/projects/')
+      const response = await axios.get('/api/v1/project-manager/projects/', {
         headers: {
-          'Authorization': authHeader
+          'Authorization': String(api.defaults.headers.common['Authorization'])
         }
       })
       
@@ -169,12 +212,21 @@ export const ProjectService = {
       })
       
       if (Array.isArray(response.data)) {
+        this._cacheProjects(response.data)
         return response.data
       } else if (response.data?.results && Array.isArray(response.data.results)) {
+        this._cacheProjects(response.data.results)
         return response.data.results
       }
     } catch (directError: any) {
       console.error('Direct axios call failed:', directError)
+    }
+    
+    // If we got here after trying everything, check if we have cached projects as a last resort
+    const lastResortCache = this._getCachedProjects()
+    if (lastResortCache && Array.isArray(lastResortCache) && lastResortCache.length > 0) {
+      console.debug('Using cached projects as last resort after API failures')
+      return lastResortCache
     }
     
     // If we've tried all paths and none worked, throw the last error

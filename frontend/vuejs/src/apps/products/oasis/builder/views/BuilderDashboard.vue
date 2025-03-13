@@ -281,11 +281,13 @@ const fetchProjects = async (force = false) => {
     // Ensure we have a valid token set in the API headers
     if (authStore.token && !api.defaults.headers.common['Authorization']) {
       api.defaults.headers.common['Authorization'] = `Token ${authStore.token}`
+      console.debug('Set Authorization header in fetch from authStore token')
     }
     
     await projectStore.fetchProjects(force)
     
   } catch (error: any) {
+    console.error('Error fetching projects:', error)
     showNotification({
       message: error?.message || 'Failed to load projects',
       type: 'error'
@@ -300,7 +302,7 @@ const fetchProjects = async (force = false) => {
  */
 const retryFetch = () => {
   projectStore.clearError()
-  retryFetchWithDiagnostics()
+  fetchProjects(true) // Force refresh when retrying
 }
 
 /**
@@ -399,14 +401,29 @@ const testApiConnection = async () => {
   }
 }
 
-// Retry utility
+/**
+ * Enhanced debug function to diagnose project loading issues
+ */
 const retryFetchWithDiagnostics = async () => {
-  projectStore.clearError()
+  console.debug('Running diagnostic fetch...')
   
-  // First try direct API testing
+  // Check authentication state
+  console.debug('Auth state:', {
+    authStoreAuthenticated: authStore.isAuthenticated,
+    token: authStore.token ? 'exists' : 'missing',
+    projectStoreAuthenticated: projectStore.isAuthenticated
+  })
+  
+  // Ensure token is set in API headers
+  if (authStore.token) {
+    api.defaults.headers.common['Authorization'] = `Token ${authStore.token}`
+    console.debug('Set Authorization header for diagnostics')
+  }
+  
+  // Try direct access to API
   await testApiConnection()
   
-  // Then try normal fetch
+  // Force a regular fetch
   fetchProjects(true)
 }
 
@@ -461,34 +478,44 @@ const synchronizeStores = async () => {
   }
 }
 
-// Initialize on component mount
+// Set up watchers and lifecycle hooks
 onMounted(async () => {
-  // Set initializing flag
-  isInitializing.value = true
+  console.debug('BuilderDashboard mounted')
+  // Ensure API setup is done first
+  if (authStore.isAuthenticated && authStore.token) {
+    if (!api.defaults.headers.common['Authorization']) {
+      api.defaults.headers.common['Authorization'] = `Token ${authStore.token}`
+      console.debug('Set Authorization header on mount')
+    }
+  }
   
-  // Synchronize all stores
-  await synchronizeStores()
-  
-  if (authStore.isAuthenticated) {
-    await fetchProjects(true) // Force refresh on initial load
-  } else {
-    isInitializing.value = false
+  // Fetch projects with a retry mechanism in case of failure
+  try {
+    await fetchProjects()
+  } catch (error) {
+    console.error('Initial project fetch failed:', error)
+    
+    // Wait a moment and try again if authentication is confirmed
+    if (authStore.isAuthenticated) {
+      setTimeout(async () => {
+        try {
+          console.debug('Retrying project fetch after initial failure')
+          await fetchProjects(true)
+        } catch (retryError) {
+          console.error('Retry fetch also failed:', retryError)
+        }
+      }, 2000)
+    }
   }
 })
 
-// Watch for authentication state changes
+// Watch auth store authentication status
 watch(
   () => authStore.isAuthenticated,
-  (newValue, oldValue) => {
-    // Only respond to meaningful changes
-    if (newValue !== oldValue) {
-      // Sync auth state with project store whenever it changes
-      projectStore.setAuthenticated(newValue)
-      
-      if (newValue === true) {
-        // User just logged in, fetch projects
-        fetchProjects(true)
-      }
+  (newAuthStatus) => {
+    console.debug('Auth state changed:', newAuthStatus)
+    if (newAuthStatus) {
+      fetchProjects(true)
     }
   }
 )
