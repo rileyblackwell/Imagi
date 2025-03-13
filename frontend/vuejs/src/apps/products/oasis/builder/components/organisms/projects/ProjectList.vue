@@ -1,94 +1,109 @@
 <template>
-  <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-    <!-- Header -->
-    <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center mb-6">
-      <i class="fas fa-folder-open text-2xl text-white"></i>
+  <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
+    <!-- Enhanced Header with Gradient Icon -->
+    <div class="flex items-center gap-5 mb-8">
+      <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 transform hover:scale-105 transition-all duration-300">
+        <i class="fas fa-folder-open text-2xl text-white"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-bold text-white mb-1">Your Projects</h2>
+        <p class="text-gray-400">Continue working on your existing web projects</p>
+      </div>
     </div>
-    
-    <h2 class="text-2xl font-bold text-white mb-4">Your Projects</h2>
-    <p class="text-gray-400 mb-8">Continue working on your existing web projects and bring your ideas to life.</p>
 
     <template v-if="!isLoading && !error && projects?.length">
-      <!-- Recent Projects -->
-      <div v-if="recentProjects.length" class="mb-8">
-        <h3 class="text-sm font-medium text-gray-400 mb-4">Recently Opened</h3>
-        <div class="space-y-3">
+      <!-- Recent Projects with Enhanced Styling -->
+      <div v-if="recentProjects.length" class="mb-10">
+        <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-5 flex items-center">
+          <i class="fas fa-clock text-primary-400 mr-2 opacity-80"></i>
+          Recently Opened
+        </h3>
+        <div class="space-y-4">
           <ProjectCard
             v-for="project in recentProjects"
             :key="project.id"
             :project="project"
-            @delete="$emit('delete', project)"
+            @delete="$emit('delete', project.id, project.name)"
           />
         </div>
       </div>
 
-      <!-- Search Section -->
-      <div class="space-y-4">
+      <!-- Search Section with Enhanced Styling -->
+      <div class="space-y-5">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-medium text-gray-400">All Projects</h3>
-          <div class="relative group w-96">
-            <!-- Add pointer-events-none class -->
-            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-300 pointer-events-none"></div>
-            <input
-              :value="searchQuery"
-              @input="onSearchInput"
-              type="text"
-              placeholder="Search all projects..."
-              class="relative z-10 w-full px-4 py-2 bg-dark-900/50 border border-dark-600 focus:border-primary-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
-            >
+          <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center">
+            <i class="fas fa-search text-primary-400 mr-2 opacity-80"></i>
+            All Projects
+          </h3>
+          <div class="relative group w-full max-w-md">
+            <!-- Enhanced focus effect -->
+            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-xl blur-[2px] opacity-0 group-focus-within:opacity-100 transition duration-300 pointer-events-none"></div>
+            <div class="relative flex items-center">
+              <i class="fas fa-search text-gray-500 absolute left-4"></i>
+              <input
+                :value="searchQuery"
+                @input="onSearchInput"
+                type="text"
+                placeholder="Search all projects..."
+                class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/70 border border-dark-600 focus:border-primary-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
+              >
+            </div>
           </div>
         </div>
 
-        <!-- Search Results -->
+        <!-- Search Results with Enhanced Scrollbar -->
         <div 
           v-if="searchQuery"
-          class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar"
+          class="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar"
         >
           <template v-if="filteredProjects.length">
             <ProjectCard
               v-for="project in filteredProjects"
               :key="project.id"
               :project="project"
-              @delete="$emit('delete', project)"
+              @delete="$emit('delete', project.id, project.name)"
             />
           </template>
           
-          <div v-else class="text-center py-8">
+          <div v-else class="text-center py-10 bg-dark-900/30 rounded-xl border border-dark-700/50">
+            <i class="fas fa-search text-3xl text-gray-500 mb-3 opacity-50"></i>
             <p class="text-gray-400">No projects match your search</p>
           </div>
         </div>
       </div>
     </template>
 
-    <!-- Loading, Error, Empty States -->
+    <!-- Enhanced Loading, Error, Empty States -->
     <div v-else>
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-        <div class="w-14 h-14 bg-primary-500/10 rounded-full flex items-center justify-center mb-4">
+      <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
+        <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5 animate-pulse">
           <i class="fas fa-spinner fa-spin text-2xl text-primary-400"></i>
         </div>
-        <p class="text-gray-400">Loading your projects...</p>
+        <p class="text-gray-400 text-lg">Loading your projects...</p>
       </div>
 
-      <div v-else-if="error" class="flex flex-col items-center justify-center py-12">
-        <div class="w-14 h-14 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+      <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
+        <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-5">
           <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
         </div>
-        <p class="text-gray-400 mb-4">{{ error }}</p>
+        <p class="text-gray-400 mb-6 text-center max-w-md">{{ error }}</p>
         <ActionButton 
           title="Try Again"
           icon="fa-redo"
           variant="secondary" 
           @click="$emit('retry')"
+          class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
         >
+          <i class="fas fa-sync-alt mr-2"></i>
           Try Again
         </ActionButton>
       </div>
 
-      <div v-else class="flex flex-col items-center justify-center py-12">
-        <div class="w-14 h-14 bg-dark-700 rounded-full flex items-center justify-center mb-4">
+      <div v-else class="flex flex-col items-center justify-center py-16">
+        <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mb-5">
           <i class="fas fa-folder-open text-2xl text-gray-400"></i>
         </div>
-        <p class="text-gray-400 text-center">No projects yet. Create your first project to get started!</p>
+        <p class="text-gray-400 text-center text-lg">No projects yet. Create your first project to get started!</p>
       </div>
     </div>
   </div>
@@ -132,7 +147,7 @@ const filteredProjects = computed(() => {
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().startsWith(query)  // Changed from includes() to startsWith()
+      project.name.toLowerCase().startsWith(query)
     )
     .sort((a, b) => {
       const dateA = new Date(a.updated_at).getTime()
@@ -163,5 +178,15 @@ function onSearchInput(e: Event): void {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: theme('colors.gray.600');
+}
+
+/* Add subtle animation for loading state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
 }
 </style>
