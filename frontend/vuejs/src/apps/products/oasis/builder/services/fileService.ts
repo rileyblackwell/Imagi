@@ -1,4 +1,3 @@
-import axios from 'axios'
 import api from './api'
 import type { ProjectFile } from '../types/builder'
 
@@ -28,10 +27,10 @@ export const FileService = {
     // Builder API paths for file operations
     const apiPaths = [
       // Main builder API path (should be primary path)
-      `/api/v1/builder/api/projects/${projectId}/files/`,
+      `/api/v1/builder/projects/${projectId}/files/`,
       
       // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/api/projects/${projectId}/files/`,
+      `${API_PATHS.BUILDER}/projects/${projectId}/files/`,
     ]
     
     let lastError: any = null;
@@ -94,13 +93,13 @@ export const FileService = {
     // Builder API paths for file operations
     const apiPaths = [
       // Main builder API path (should be primary path)
-      `/api/v1/builder/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      `/api/v1/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
       
       // Content-specific endpoint as a fallback
-      `/api/v1/builder/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/content/`,
+      `/api/v1/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/content/`,
       
       // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      `${API_PATHS.BUILDER}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
     ]
     
     let lastError: any = null;
@@ -171,10 +170,10 @@ export const FileService = {
     // Builder API paths for file operations
     const apiPaths = [
       // Main builder API path (should be primary path)
-      `/api/v1/builder/api/projects/${projectId}/files/`,
+      `/api/v1/builder/projects/${projectId}/files/`,
       
       // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/api/projects/${projectId}/files/`,
+      `${API_PATHS.BUILDER}/projects/${projectId}/files/`,
     ]
     
     let lastError: any = null;
@@ -241,7 +240,7 @@ export const FileService = {
     
     try {
       const response = await api.post(
-        `/api/v1/builder/api/projects/${projectId}/directories/`,
+        `/api/v1/builder/projects/${projectId}/directories/`,
         {
           path: directoryPath
         }
@@ -281,11 +280,14 @@ export const FileService = {
     
     // Builder API paths for file operations
     const apiPaths = [
-      // Main builder API path for file update
-      `/api/v1/builder/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      // Main builder API path (should be primary path)
+      `/api/v1/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      
+      // Content-specific endpoint as a fallback
+      `/api/v1/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/content/`,
       
       // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      `${API_PATHS.BUILDER}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
     ]
     
     let lastError: any = null;
@@ -350,10 +352,10 @@ export const FileService = {
     // Builder API paths for file operations
     const apiPaths = [
       // Main builder API path (should be primary path)
-      `/api/v1/builder/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      `/api/v1/builder/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
       
       // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/api/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
+      `${API_PATHS.BUILDER}/projects/${projectId}/files/${encodeURIComponent(filePath)}/`,
     ]
     
     let lastError: any = null;

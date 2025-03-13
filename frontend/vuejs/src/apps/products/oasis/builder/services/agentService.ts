@@ -275,7 +275,7 @@ export const AgentService = {
 
   async undoAction(projectId: string): Promise<UndoResponse> {
     try {
-      const response = await api.post(`/project-manager/projects/${projectId}/undo/`)
+      const response = await api.post(`/api/v1/builder/projects/${projectId}/undo/`)
       return response.data
     } catch (error) {
       throw handleAPIError(error)
@@ -334,7 +334,7 @@ export const AgentService = {
   // Preview project - migrated from BuilderService
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      const response = await api.post(`/project-manager/projects/${projectId}/preview/`)
+      const response = await api.post(`/api/v1/builder/projects/${projectId}/preview/`)
       return {
         previewUrl: response.data.preview_url || response.data.previewUrl
       }
@@ -346,7 +346,7 @@ export const AgentService = {
   // Deploy project - migrated from BuilderService
   async deployProject(projectId: string, options: { environment: string }): Promise<{ deploymentUrl: string }> {
     try {
-      const response = await api.post(`/project-manager/projects/${projectId}/deploy/`, options)
+      const response = await api.post(`/api/v1/builder/projects/${projectId}/deploy/`, options)
       return {
         deploymentUrl: response.data.deployment_url || response.data.deploymentUrl
       }
@@ -362,7 +362,7 @@ export const AgentService = {
 
     try {
       console.log(`Requesting project initialization for project ${projectId}`)
-      const response = await api.post(`/project-manager/projects/${projectId}/initialize/`)
+      const response = await api.post(`/api/v1/builder/projects/${projectId}/initialize/`)
       console.log('Project initialization response:', response.data)
       
       // Return success or the actual data if available

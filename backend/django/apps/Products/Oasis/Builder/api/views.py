@@ -2,6 +2,7 @@
 API views for the Builder app.
 """
 
+import logging
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +11,7 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
+from rest_framework.exceptions import NotFound
 
 from ..models import Project, Conversation, Page, Message
 from .serializers import (
@@ -29,7 +31,6 @@ from ..services.file_service import FileService
 from ..services.dev_server_service import DevServerManager
 from ..views import BuilderView
 
-import logging
 logger = logging.getLogger(__name__)
 
 @method_decorator(never_cache, name='dispatch')
@@ -70,7 +71,31 @@ class ProjectFilesView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id):
-        project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+        try:
+            # First try to get the project from the Builder app
+            project = Project.objects.get(id=project_id, user=request.user, is_active=True)
+        except Project.DoesNotExist:
+            # If not found, try to get it from the ProjectManager app
+            try:
+                from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+                pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
+                
+                # Create a corresponding project in the Builder app if it doesn't exist
+                project, created = Project.objects.get_or_create(
+                    id=pm_project.id,
+                    defaults={
+                        'name': pm_project.name,
+                        'description': pm_project.description,
+                        'user': request.user,
+                        'is_active': True
+                    }
+                )
+                
+                if created:
+                    logger.info(f"Created Builder project from ProjectManager project: {project.id}")
+            except PMProject.DoesNotExist:
+                raise NotFound('Project not found')
+        
         file_service = FileService(project=project)
         files = file_service.list_files()
         return Response(files)
@@ -184,14 +209,62 @@ class FileDetailView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id, file_path):
-        project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+        try:
+            # First try to get the project from the Builder app
+            project = Project.objects.get(id=project_id, user=request.user, is_active=True)
+        except Project.DoesNotExist:
+            # If not found, try to get it from the ProjectManager app
+            try:
+                from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+                pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
+                
+                # Create a corresponding project in the Builder app if it doesn't exist
+                project, created = Project.objects.get_or_create(
+                    id=pm_project.id,
+                    defaults={
+                        'name': pm_project.name,
+                        'description': pm_project.description,
+                        'user': request.user,
+                        'is_active': True
+                    }
+                )
+                
+                if created:
+                    logger.info(f"Created Builder project from ProjectManager project: {project.id}")
+            except PMProject.DoesNotExist:
+                raise NotFound('Project not found')
+        
         file_service = FileService(project=project)
         file_details = file_service.get_file_details(file_path)
         return Response(file_details)
 
     def put(self, request, project_id, file_path):
         try:
-            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            try:
+                # First try to get the project from the Builder app
+                project = Project.objects.get(id=project_id, user=request.user, is_active=True)
+            except Project.DoesNotExist:
+                # If not found, try to get it from the ProjectManager app
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+                    pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
+                    
+                    # Create a corresponding project in the Builder app if it doesn't exist
+                    project, created = Project.objects.get_or_create(
+                        id=pm_project.id,
+                        defaults={
+                            'name': pm_project.name,
+                            'description': pm_project.description,
+                            'user': request.user,
+                            'is_active': True
+                        }
+                    )
+                    
+                    if created:
+                        logger.info(f"Created Builder project from ProjectManager project: {project.id}")
+                except PMProject.DoesNotExist:
+                    raise NotFound('Project not found')
+            
             file_service = FileService(project=project)
             
             content = request.data.get('content', '')
@@ -216,7 +289,31 @@ class FileContentView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id, file_path):
-        project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+        try:
+            # First try to get the project from the Builder app
+            project = Project.objects.get(id=project_id, user=request.user, is_active=True)
+        except Project.DoesNotExist:
+            # If not found, try to get it from the ProjectManager app
+            try:
+                from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+                pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
+                
+                # Create a corresponding project in the Builder app if it doesn't exist
+                project, created = Project.objects.get_or_create(
+                    id=pm_project.id,
+                    defaults={
+                        'name': pm_project.name,
+                        'description': pm_project.description,
+                        'user': request.user,
+                        'is_active': True
+                    }
+                )
+                
+                if created:
+                    logger.info(f"Created Builder project from ProjectManager project: {project.id}")
+            except PMProject.DoesNotExist:
+                raise NotFound('Project not found')
+        
         file_service = FileService(project=project)
         content = file_service.get_file_content(file_path)
         return Response({'content': content})
