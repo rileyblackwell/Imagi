@@ -2,7 +2,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
-from ..services import ProjectService, FileService
+from ..services import ProjectCreationService, ProjectManagementService, FileService
 from .serializers import (
     ProjectSerializer, 
     ProjectCreateSerializer,
@@ -15,7 +15,7 @@ class ProjectListView(generics.ListAPIView):
     serializer_class = ProjectSerializer
 
     def get_queryset(self):
-        service = ProjectService(self.request.user)
+        service = ProjectManagementService(self.request.user)
         return service.get_active_projects()
 
 class ProjectCreateView(generics.CreateAPIView):
@@ -28,7 +28,7 @@ class ProjectCreateView(generics.CreateAPIView):
         
         try:
             project = serializer.save()  # Don't pass user here, handle it in serializer
-            service = ProjectService(request.user)
+            service = ProjectCreationService(request.user)
             service.create_project(project)
             
             response_serializer = ProjectSerializer(project)
@@ -46,7 +46,7 @@ class ProjectDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = ProjectSerializer
     
     def get_object(self):
-        service = ProjectService(self.request.user)
+        service = ProjectManagementService(self.request.user)
         project = service.get_project(self.kwargs['pk'])
         if not project:
             raise NotFound('Project not found')
@@ -56,7 +56,7 @@ class ProjectDeleteView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def destroy(self, request, *args, **kwargs):
-        service = ProjectService(request.user)
+        service = ProjectManagementService(request.user)
         project = service.get_project(self.kwargs['pk'])
         
         if not project:
@@ -99,28 +99,16 @@ class ProjectFileDetailView(generics.RetrieveUpdateDestroyAPIView):
         service = FileService(self.request.user)
         return service.update_file(project_id, file_path, serializer.validated_data)
 
-class ComponentTreeView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, project_id):
-        service = ProjectService(request.user)
-        project = service.get_project(project_id)
-        if not project:
-            raise NotFound('Project not found')
-            
-        component_tree = service.get_component_tree(project)
-        return Response(component_tree)
-
 class UndoActionView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, project_id, action_id):
-        service = ProjectService(request.user)
+        service = ProjectManagementService(request.user)
         project = service.get_project(project_id)
         if not project:
             raise NotFound('Project not found')
             
-        service.undo_action(project, action_id)
+        service.undo_last_action(project)
         return Response(status=status.HTTP_200_OK)
 
 class ProjectInitializeView(APIView):
@@ -130,8 +118,9 @@ class ProjectInitializeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, pk):
-        service = ProjectService(request.user)
-        project = service.get_project(pk)
+        service = ProjectCreationService(request.user)
+        management_service = ProjectManagementService(request.user)
+        project = management_service.get_project(pk)
         
         if not project:
             raise NotFound('Project not found')

@@ -22,7 +22,8 @@ from ..services.oasis_service import (
     undo_last_action_service,
     process_chat_mode_input_service
 )
-from apps.Products.Oasis.ProjectManager.services.project_service import ProjectService
+from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
+from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from ..services.ai_service import AIService
 from ..services.file_service import FileService
 from ..services.dev_server_service import DevServerManager
@@ -42,7 +43,7 @@ class ProjectListCreateView(generics.ListCreateAPIView, BuilderView):
 
     def perform_create(self, serializer):
         try:
-            project_service = ProjectService(self.request.user)
+            project_service = ProjectCreationService(self.request.user)
             project = project_service.create_project(serializer.validated_data['name'])
             serializer.save(user=self.request.user, project=project)
         except Exception as e:
@@ -60,7 +61,7 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView, BuilderView):
         return Project.objects.filter(user=self.request.user, is_active=True)
 
     def perform_destroy(self, instance):
-        project_service = ProjectService(self.request.user)
+        project_service = ProjectManagementService(self.request.user)
         project_service.delete_project(instance)
 
 @method_decorator(never_cache, name='dispatch')
@@ -127,7 +128,7 @@ class UndoActionView(APIView, BuilderView):
         project = get_object_or_404(Project, id=project_id, user=request.user)
         
         try:
-            project_service = ProjectService(request.user)
+            project_service = ProjectManagementService(request.user)
             result = project_service.undo_last_action(project)
             return Response(result)
         except Exception as e:

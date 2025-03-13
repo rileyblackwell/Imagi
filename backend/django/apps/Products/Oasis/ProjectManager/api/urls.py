@@ -14,8 +14,5 @@ urlpatterns = [
     path('projects/<int:pk>/', views.ProjectDetailView.as_view(), name='project-detail'),
     path('projects/<int:pk>/delete/', views.ProjectDeleteView.as_view(), name='project-delete'),
     path('projects/<int:pk>/initialize/', views.ProjectInitializeView.as_view(), name='project-initialize'),
-    
-    # Component Management
-    path('projects/<int:project_id>/components/', views.ComponentTreeView.as_view(), name='component-tree'),
 ]
     

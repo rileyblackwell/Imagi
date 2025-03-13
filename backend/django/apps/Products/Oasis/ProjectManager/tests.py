@@ -4,7 +4,8 @@ from django.conf import settings
 import os
 import shutil
 from .models import UserProject
-from .services import ProjectService
+from .services.project_creation_service import ProjectCreationService
+from .services.project_management_service import ProjectManagementService
 
 class ProjectManagerTests(TestCase):
     def setUp(self):
@@ -13,7 +14,8 @@ class ProjectManagerTests(TestCase):
             username='testuser',
             password='testpass123'
         )
-        self.service = ProjectService(self.user)
+        self.creation_service = ProjectCreationService(self.user)
+        self.management_service = ProjectManagementService(self.user)
 
     def tearDown(self):
         # Clean up created project directories
@@ -29,7 +31,7 @@ class ProjectManagerTests(TestCase):
         )
         
         # Now use the service to create project files
-        self.service.create_project(project)
+        self.creation_service.create_project(project)
         
         self.assertEqual(project.user, self.user)
         self.assertEqual(project.name, 'TestProject')

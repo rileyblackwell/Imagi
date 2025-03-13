@@ -13,20 +13,11 @@ from ..models import Project
 
 logger = logging.getLogger(__name__)
 
-class ProjectService:
+class ProjectCreationService:
     def __init__(self, user):
         self.user = user
         self.base_directory = os.path.join(settings.PROJECTS_ROOT, str(user.id))
         os.makedirs(self.base_directory, exist_ok=True)
-
-    # Project management methods (from ProjectService)
-    def get_active_projects(self) -> List[Project]:
-        """Get all active projects for the current user."""
-        return Project.objects.filter(user=self.user, is_active=True)
-
-    def get_project(self, project_id: int) -> Optional[Project]:
-        """Get a specific project by ID."""
-        return self.get_active_projects().filter(id=project_id).first()
 
     def create_project(self, name_or_project):
         """
@@ -61,56 +52,6 @@ class ProjectService:
                 name_or_project.delete(hard_delete=True)
             raise ValidationError(f"Failed to generate project files: {str(e)}")
 
-    def delete_project(self, project_or_id):
-        """Delete a project and its associated files."""
-        try:
-            # Get project if ID is provided
-            if isinstance(project_or_id, int):
-                project = self.get_project(project_or_id)
-                if not project:
-                    raise ValidationError("Project not found")
-            else:
-                project = project_or_id
-                
-            # Delete project files
-            self._delete_project_files(project.name)
-            
-            # Delete project record
-            project.delete()
-            
-            logger.info(f"Project {project.name} deleted successfully")
-            return {"success": True, "message": f"Project {project.name} deleted successfully"}
-        except Exception as e:
-            logger.error(f"Error deleting project: {str(e)}")
-            raise ValidationError(f"Failed to delete project: {str(e)}")
-
-    def undo_last_action(self, project_or_id):
-        """Undo the last action in a project."""
-        try:
-            # Get project if ID is provided
-            if isinstance(project_or_id, int):
-                project = self.get_project(project_or_id)
-                if not project:
-                    raise ValidationError("Project not found")
-            else:
-                project = project_or_id
-                
-            # Get the project's git repository
-            repo_path = project.project_path
-            if not os.path.exists(repo_path):
-                raise ValidationError("Project repository not found")
-            
-            # TODO: Implement git-based undo functionality
-            # For now, return a placeholder response
-            return {
-                'success': True,
-                'message': 'Last action undone successfully'
-            }
-        except Exception as e:
-            logger.error(f"Error undoing action: {str(e)}")
-            raise ValidationError(f"Failed to undo last action: {str(e)}")
-
-    # Project generation methods (from ProjectGenerationService)
     def _sanitize_project_name(self, name):
         """Convert project name to a valid Python identifier"""
         sanitized = ''.join(c if c.isalnum() else '_' for c in name)
@@ -203,17 +144,6 @@ class ProjectService:
                 shutil.rmtree(project_path, ignore_errors=True)
             raise
 
-    def _delete_project_files(self, project_name):
-        """Delete project files for a given project name"""
-        # Find project directories matching the project name
-        sanitized_name = self._sanitize_project_name(project_name)
-        for item in os.listdir(self.base_directory):
-            if item.startswith(sanitized_name + '_'):
-                project_path = os.path.join(self.base_directory, item)
-                if os.path.isdir(project_path):
-                    logger.info(f"Deleting project directory: {project_path}")
-                    shutil.rmtree(project_path, ignore_errors=True)
-
     def _initialize_project_files(self, project_path):
         """Initialize a new project with default files and structure."""
         try:
@@ -251,6 +181,22 @@ class ProjectService:
 </body>
 </html>
 ''',
+            'templates/index.html': '''
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome | My Oasis App{% endblock %}
+
+{% block content %}
+<div class="welcome-container">
+    <h1>Welcome to your new Oasis App</h1>
+    <p>This is your starting point for building amazing Django applications.</p>
+    <div class="cta-button">
+        <a href="/admin/">Go to Admin</a>
+    </div>
+</div>
+{% endblock %}
+''',
             'static/css/styles.css': '''
 /* Base styles */
 :root {
@@ -268,6 +214,40 @@ body {
     margin: 0;
     padding: 0;
 }
+
+.welcome-container {
+    max-width: 800px;
+    margin: 5rem auto;
+    padding: 2rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    text-align: center;
+}
+
+h1 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.cta-button {
+    margin-top: 2rem;
+}
+
+.cta-button a {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.cta-button a:hover {
+    background-color: var(--secondary-color);
+}
 ''',
             'static/js/main.js': '''
 // Main JavaScript file
@@ -282,6 +262,243 @@ document.addEventListener('DOMContentLoaded', function() {
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with open(full_path, 'w') as f:
                 f.write(content.strip())
+
+    def initialize_project(self, project):
+        """Initialize a new Django project with standard files.
+        
+        This method creates a standard Django project structure with:
+        1. Django project files via django-admin startproject
+        2. Pipfile for dependency management
+        3. templates/base.html and templates/index.html
+        4. static/styles.css
+        """
+        # Base directory for Oasis projects
+        projects_root = Path(settings.PROJECTS_ROOT)
+        
+        # Project-specific directory
+        project_dir = projects_root / str(project.id)
+        
+        # Create project directory if it doesn't exist
+        os.makedirs(project_dir, exist_ok=True)
+        
+        # Run django-admin startproject in a temporary directory
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Initialize Django project
+            subprocess.run([
+                'django-admin', 'startproject', 
+                'config',  # Using 'config' as the project name
+                temp_dir
+            ], check=True)
+            
+            # Copy Django project files to the project directory
+            for item in os.listdir(temp_dir):
+                item_path = os.path.join(temp_dir, item)
+                if os.path.isfile(item_path):
+                    with open(item_path, 'rb') as src_file:
+                        with open(os.path.join(project_dir, item), 'wb') as dst_file:
+                            dst_file.write(src_file.read())
+                elif os.path.isdir(item_path) and item == 'config':
+                    # Ensure config directory exists
+                    os.makedirs(os.path.join(project_dir, 'config'), exist_ok=True)
+                    
+                    # Copy all files from the config directory
+                    for config_file in os.listdir(item_path):
+                        config_file_path = os.path.join(item_path, config_file)
+                        if os.path.isfile(config_file_path):
+                            with open(config_file_path, 'rb') as src_file:
+                                with open(os.path.join(project_dir, 'config', config_file), 'wb') as dst_file:
+                                    dst_file.write(src_file.read())
+        
+        # Create templates directory
+        templates_dir = project_dir / 'templates'
+        os.makedirs(templates_dir, exist_ok=True)
+        
+        # Create static directory and css subdirectory
+        static_dir = project_dir / 'static'
+        css_dir = static_dir / 'css'
+        os.makedirs(css_dir, exist_ok=True)
+        
+        # Create base.html
+        base_html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Django Project{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="container">
+        <h1>My Django Project</h1>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; {% now "Y" %} My Django Project</p>
+    </div>
+  </footer>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>"""
+        
+        with open(os.path.join(templates_dir, 'base.html'), 'w') as f:
+            f.write(base_html_content)
+        
+        # Create index.html
+        index_html_content = """{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Home | Django Project{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+  <h2>Welcome to your new Django project</h2>
+  <p>This is the homepage of your Django application.</p>
+  <p>Edit this template to start building your web application.</p>
+</div>
+{% endblock %}"""
+        
+        with open(os.path.join(templates_dir, 'index.html'), 'w') as f:
+            f.write(index_html_content)
+        
+        # Create styles.css
+        styles_css_content = """/* Main stylesheet */
+
+:root {
+  --primary-color: #4b6bfb;
+  --secondary-color: #2e3856;
+  --text-color: #333;
+  --light-bg: #f9f9f9;
+  --dark-bg: #2d3748;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  color: var(--text-color);
+  background-color: var(--light-bg);
+}
+
+.container {
+  width: 85%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+main {
+  padding: 2rem 0;
+}
+
+.welcome-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+footer {
+  background-color: var(--secondary-color);
+  color: white;
+  padding: 1rem 0;
+  text-align: center;
+  margin-top: 2rem;
+}"""
+        
+        with open(os.path.join(css_dir, 'styles.css'), 'w') as f:
+            f.write(styles_css_content)
+        
+        # Create Pipfile
+        pipfile_content = """[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "~=4.2.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"
+"""
+        
+        with open(os.path.join(project_dir, 'Pipfile'), 'w') as f:
+            f.write(pipfile_content)
+        
+        # Update settings.py to include templates and static directories
+        settings_path = os.path.join(project_dir, 'config', 'settings.py')
+        
+        with open(settings_path, 'r') as f:
+            settings_content = f.read()
+        
+        # Add templates dir to TEMPLATES setting
+        templates_pattern = r"'DIRS': \[\],"
+        templates_replacement = "'DIRS': [BASE_DIR / 'templates'],"
+        settings_content = re.sub(templates_pattern, templates_replacement, settings_content)
+        
+        # Add STATICFILES_DIRS setting
+        static_files_pattern = r"STATIC_URL = 'static/'"
+        static_files_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
+        settings_content = re.sub(static_files_pattern, static_files_replacement, settings_content)
+        
+        with open(settings_path, 'w') as f:
+            f.write(settings_content)
+        
+        # Update urls.py to include a path for the home page
+        urls_path = os.path.join(project_dir, 'config', 'urls.py')
+        
+        with open(urls_path, 'r') as f:
+            urls_content = f.read()
+        
+        if 'TemplateView' not in urls_content:
+            # Add import for TemplateView
+            urls_content = urls_content.replace(
+                'from django.urls import path', 
+                'from django.urls import path\nfrom django.views.generic import TemplateView'
+            )
+            
+            # Add path for home page
+            urls_content = urls_content.replace(
+                'urlpatterns = [', 
+                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),'
+            )
+            
+            with open(urls_path, 'w') as f:
+                f.write(urls_content)
+        
+        # Mark the project as initialized in the database
+        project.is_initialized = True
+        project.save(update_fields=['is_initialized'])
+        
+        return project
 
     # Template generation methods
     def _generate_asgi_content(self, project_name):
@@ -683,241 +900,4 @@ A Django REST API project.
 - Django REST framework API
 - CORS enabled
 - SQLite database (for development)
-'''
-
-    def initialize_project(self, project):
-        """Initialize a new Django project with standard files.
-        
-        This method creates a standard Django project structure with:
-        1. Django project files via django-admin startproject
-        2. Pipfile for dependency management
-        3. templates/base.html and templates/index.html
-        4. static/styles.css
-        """
-        # Base directory for Oasis projects
-        projects_root = Path(settings.PROJECTS_ROOT)
-        
-        # Project-specific directory
-        project_dir = projects_root / str(project.id)
-        
-        # Create project directory if it doesn't exist
-        os.makedirs(project_dir, exist_ok=True)
-        
-        # Run django-admin startproject in a temporary directory
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Initialize Django project
-            subprocess.run([
-                'django-admin', 'startproject', 
-                'config',  # Using 'config' as the project name
-                temp_dir
-            ], check=True)
-            
-            # Copy Django project files to the project directory
-            for item in os.listdir(temp_dir):
-                item_path = os.path.join(temp_dir, item)
-                if os.path.isfile(item_path):
-                    with open(item_path, 'rb') as src_file:
-                        with open(os.path.join(project_dir, item), 'wb') as dst_file:
-                            dst_file.write(src_file.read())
-                elif os.path.isdir(item_path) and item == 'config':
-                    # Ensure config directory exists
-                    os.makedirs(os.path.join(project_dir, 'config'), exist_ok=True)
-                    
-                    # Copy all files from the config directory
-                    for config_file in os.listdir(item_path):
-                        config_file_path = os.path.join(item_path, config_file)
-                        if os.path.isfile(config_file_path):
-                            with open(config_file_path, 'rb') as src_file:
-                                with open(os.path.join(project_dir, 'config', config_file), 'wb') as dst_file:
-                                    dst_file.write(src_file.read())
-        
-        # Create templates directory
-        templates_dir = project_dir / 'templates'
-        os.makedirs(templates_dir, exist_ok=True)
-        
-        # Create static directory and css subdirectory
-        static_dir = project_dir / 'static'
-        css_dir = static_dir / 'css'
-        os.makedirs(css_dir, exist_ok=True)
-        
-        # Create base.html
-        base_html_content = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Django Project{% endblock %}</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-  {% block extra_css %}{% endblock %}
-</head>
-<body>
-  <header>
-    <nav>
-      <div class="container">
-        <h1>My Django Project</h1>
-      </div>
-    </nav>
-  </header>
-
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer>
-    <div class="container">
-      <p>&copy; {% now "Y" %} My Django Project</p>
-    </div>
-  </footer>
-  
-  {% block extra_js %}{% endblock %}
-</body>
-</html>"""
-        
-        with open(os.path.join(templates_dir, 'base.html'), 'w') as f:
-            f.write(base_html_content)
-        
-        # Create index.html
-        index_html_content = """{% extends "base.html" %}
-{% load static %}
-
-{% block title %}Home | Django Project{% endblock %}
-
-{% block content %}
-<div class="welcome-section">
-  <h2>Welcome to your new Django project</h2>
-  <p>This is the homepage of your Django application.</p>
-  <p>Edit this template to start building your web application.</p>
-</div>
-{% endblock %}"""
-        
-        with open(os.path.join(templates_dir, 'index.html'), 'w') as f:
-            f.write(index_html_content)
-        
-        # Create styles.css
-        styles_css_content = """/* Main stylesheet */
-
-:root {
-  --primary-color: #4b6bfb;
-  --secondary-color: #2e3856;
-  --text-color: #333;
-  --light-bg: #f9f9f9;
-  --dark-bg: #2d3748;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
-  color: var(--text-color);
-  background-color: var(--light-bg);
-}
-
-.container {
-  width: 85%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-header {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 1rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-header h1 {
-  margin: 0;
-  font-size: 1.75rem;
-}
-
-main {
-  padding: 2rem 0;
-}
-
-.welcome-section {
-  background-color: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
-}
-
-footer {
-  background-color: var(--secondary-color);
-  color: white;
-  padding: 1rem 0;
-  text-align: center;
-  margin-top: 2rem;
-}"""
-        
-        with open(os.path.join(css_dir, 'styles.css'), 'w') as f:
-            f.write(styles_css_content)
-        
-        # Create Pipfile
-        pipfile_content = """[[source]]
-url = "https://pypi.org/simple"
-verify_ssl = true
-name = "pypi"
-
-[packages]
-django = "~=4.2.0"
-
-[dev-packages]
-
-[requires]
-python_version = "3.10"
-"""
-        
-        with open(os.path.join(project_dir, 'Pipfile'), 'w') as f:
-            f.write(pipfile_content)
-        
-        # Update settings.py to include templates and static directories
-        settings_path = os.path.join(project_dir, 'config', 'settings.py')
-        
-        with open(settings_path, 'r') as f:
-            settings_content = f.read()
-        
-        # Add templates dir to TEMPLATES setting
-        templates_pattern = r"'DIRS': \[\],"
-        templates_replacement = "'DIRS': [BASE_DIR / 'templates'],"
-        settings_content = re.sub(templates_pattern, templates_replacement, settings_content)
-        
-        # Add STATICFILES_DIRS setting
-        static_files_pattern = r"STATIC_URL = 'static/'"
-        static_files_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
-        settings_content = re.sub(static_files_pattern, static_files_replacement, settings_content)
-        
-        with open(settings_path, 'w') as f:
-            f.write(settings_content)
-        
-        # Update urls.py to include a path for the home page
-        urls_path = os.path.join(project_dir, 'config', 'urls.py')
-        
-        with open(urls_path, 'r') as f:
-            urls_content = f.read()
-        
-        if 'TemplateView' not in urls_content:
-            # Add import for TemplateView
-            urls_content = urls_content.replace(
-                'from django.urls import path', 
-                'from django.urls import path\nfrom django.views.generic import TemplateView'
-            )
-            
-            # Add path for home page
-            urls_content = urls_content.replace(
-                'urlpatterns = [', 
-                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),'
-            )
-            
-            with open(urls_path, 'w') as f:
-                f.write(urls_content)
-        
-        # Mark the project as initialized in the database
-        project.is_initialized = True
-        project.save(update_fields=['is_initialized'])
-        
-        return project
+''' 
