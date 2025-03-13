@@ -42,8 +42,7 @@ class ProjectCreationService:
             project.project_path = project_path
             project.save()
             
-            # Initialize project with default files
-            self._initialize_project_files(project_path)
+            logger.info(f"Project successfully created at: {project_path}")
             
             return project
         except Exception as e:
@@ -88,7 +87,6 @@ class ProjectCreationService:
                 'urls.py': self._generate_urls_content(),
                 'wsgi.py': self._generate_wsgi_content(unique_name),
                 'models.py': self._generate_models_content(),
-                'serializers.py': self._generate_serializers_content(),
                 'views.py': self._generate_views_content(),
             }
             
@@ -101,32 +99,13 @@ class ProjectCreationService:
                 with open(os.path.join(package_dir, filename), 'w') as f:
                     f.write(content)
             
-            # Create main app directory
-            app_dir = os.path.join(project_path, 'main_app')
-            os.makedirs(app_dir, exist_ok=True)
-            
-            # Create app files
-            app_files = {
-                '__init__.py': '',
-                'admin.py': self._generate_admin_content(),
-                'apps.py': self._generate_apps_content(),
-                'models.py': self._generate_app_models_content(),
-                'serializers.py': self._generate_app_serializers_content(),
-                'views.py': self._generate_app_views_content(),
-                'urls.py': self._generate_app_urls_content(),
-            }
-            
-            for filename, content in app_files.items():
-                with open(os.path.join(app_dir, filename), 'w') as f:
-                    f.write(content)
-            
             # Create manage.py
             with open(os.path.join(project_path, 'manage.py'), 'w') as f:
                 f.write(self._generate_manage_content(unique_name))
             
-            # Create requirements.txt
-            with open(os.path.join(project_path, 'requirements.txt'), 'w') as f:
-                f.write(self._generate_requirements_content())
+            # Create Pipfile instead of requirements.txt
+            with open(os.path.join(project_path, 'Pipfile'), 'w') as f:
+                f.write(self._generate_pipfile_content())
             
             # Create .gitignore
             with open(os.path.join(project_path, '.gitignore'), 'w') as f:
@@ -135,6 +114,13 @@ class ProjectCreationService:
             # Create README.md
             with open(os.path.join(project_path, 'README.md'), 'w') as f:
                 f.write(self._generate_readme_content(project_name))
+            
+            # Create necessary directories
+            os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
+            os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
+            
+            # Create default files
+            self._create_default_files(project_path)
                 
             return project_path
         except Exception as e:
@@ -142,22 +128,6 @@ class ProjectCreationService:
             # Clean up failed project directory
             if os.path.exists(project_path):
                 shutil.rmtree(project_path, ignore_errors=True)
-            raise
-
-    def _initialize_project_files(self, project_path):
-        """Initialize a new project with default files and structure."""
-        try:
-            # Create necessary directories
-            os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
-            os.makedirs(os.path.join(project_path, 'static', 'js'), exist_ok=True)
-            os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
-            
-            # Create default files
-            self._create_default_files(project_path)
-            
-            logger.info(f"Project files initialized at {project_path}")
-        except Exception as e:
-            logger.error(f"Error initializing project files: {str(e)}")
             raise
 
     def _create_default_files(self, project_path):
@@ -176,7 +146,6 @@ class ProjectCreationService:
 <body>
     {% block content %}{% endblock %}
     
-    <script src="/static/js/main.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
@@ -248,12 +217,6 @@ h1 {
 .cta-button a:hover {
     background-color: var(--secondary-color);
 }
-''',
-            'static/js/main.js': '''
-// Main JavaScript file
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Application initialized');
-});
 '''
         }
         
@@ -262,243 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             with open(full_path, 'w') as f:
                 f.write(content.strip())
-
-    def initialize_project(self, project):
-        """Initialize a new Django project with standard files.
-        
-        This method creates a standard Django project structure with:
-        1. Django project files via django-admin startproject
-        2. Pipfile for dependency management
-        3. templates/base.html and templates/index.html
-        4. static/styles.css
-        """
-        # Base directory for Oasis projects
-        projects_root = Path(settings.PROJECTS_ROOT)
-        
-        # Project-specific directory
-        project_dir = projects_root / str(project.id)
-        
-        # Create project directory if it doesn't exist
-        os.makedirs(project_dir, exist_ok=True)
-        
-        # Run django-admin startproject in a temporary directory
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Initialize Django project
-            subprocess.run([
-                'django-admin', 'startproject', 
-                'config',  # Using 'config' as the project name
-                temp_dir
-            ], check=True)
-            
-            # Copy Django project files to the project directory
-            for item in os.listdir(temp_dir):
-                item_path = os.path.join(temp_dir, item)
-                if os.path.isfile(item_path):
-                    with open(item_path, 'rb') as src_file:
-                        with open(os.path.join(project_dir, item), 'wb') as dst_file:
-                            dst_file.write(src_file.read())
-                elif os.path.isdir(item_path) and item == 'config':
-                    # Ensure config directory exists
-                    os.makedirs(os.path.join(project_dir, 'config'), exist_ok=True)
-                    
-                    # Copy all files from the config directory
-                    for config_file in os.listdir(item_path):
-                        config_file_path = os.path.join(item_path, config_file)
-                        if os.path.isfile(config_file_path):
-                            with open(config_file_path, 'rb') as src_file:
-                                with open(os.path.join(project_dir, 'config', config_file), 'wb') as dst_file:
-                                    dst_file.write(src_file.read())
-        
-        # Create templates directory
-        templates_dir = project_dir / 'templates'
-        os.makedirs(templates_dir, exist_ok=True)
-        
-        # Create static directory and css subdirectory
-        static_dir = project_dir / 'static'
-        css_dir = static_dir / 'css'
-        os.makedirs(css_dir, exist_ok=True)
-        
-        # Create base.html
-        base_html_content = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Django Project{% endblock %}</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-  {% block extra_css %}{% endblock %}
-</head>
-<body>
-  <header>
-    <nav>
-      <div class="container">
-        <h1>My Django Project</h1>
-      </div>
-    </nav>
-  </header>
-
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer>
-    <div class="container">
-      <p>&copy; {% now "Y" %} My Django Project</p>
-    </div>
-  </footer>
-  
-  {% block extra_js %}{% endblock %}
-</body>
-</html>"""
-        
-        with open(os.path.join(templates_dir, 'base.html'), 'w') as f:
-            f.write(base_html_content)
-        
-        # Create index.html
-        index_html_content = """{% extends "base.html" %}
-{% load static %}
-
-{% block title %}Home | Django Project{% endblock %}
-
-{% block content %}
-<div class="welcome-section">
-  <h2>Welcome to your new Django project</h2>
-  <p>This is the homepage of your Django application.</p>
-  <p>Edit this template to start building your web application.</p>
-</div>
-{% endblock %}"""
-        
-        with open(os.path.join(templates_dir, 'index.html'), 'w') as f:
-            f.write(index_html_content)
-        
-        # Create styles.css
-        styles_css_content = """/* Main stylesheet */
-
-:root {
-  --primary-color: #4b6bfb;
-  --secondary-color: #2e3856;
-  --text-color: #333;
-  --light-bg: #f9f9f9;
-  --dark-bg: #2d3748;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
-  color: var(--text-color);
-  background-color: var(--light-bg);
-}
-
-.container {
-  width: 85%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-header {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 1rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-header h1 {
-  margin: 0;
-  font-size: 1.75rem;
-}
-
-main {
-  padding: 2rem 0;
-}
-
-.welcome-section {
-  background-color: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
-}
-
-footer {
-  background-color: var(--secondary-color);
-  color: white;
-  padding: 1rem 0;
-  text-align: center;
-  margin-top: 2rem;
-}"""
-        
-        with open(os.path.join(css_dir, 'styles.css'), 'w') as f:
-            f.write(styles_css_content)
-        
-        # Create Pipfile
-        pipfile_content = """[[source]]
-url = "https://pypi.org/simple"
-verify_ssl = true
-name = "pypi"
-
-[packages]
-django = "~=4.2.0"
-
-[dev-packages]
-
-[requires]
-python_version = "3.10"
-"""
-        
-        with open(os.path.join(project_dir, 'Pipfile'), 'w') as f:
-            f.write(pipfile_content)
-        
-        # Update settings.py to include templates and static directories
-        settings_path = os.path.join(project_dir, 'config', 'settings.py')
-        
-        with open(settings_path, 'r') as f:
-            settings_content = f.read()
-        
-        # Add templates dir to TEMPLATES setting
-        templates_pattern = r"'DIRS': \[\],"
-        templates_replacement = "'DIRS': [BASE_DIR / 'templates'],"
-        settings_content = re.sub(templates_pattern, templates_replacement, settings_content)
-        
-        # Add STATICFILES_DIRS setting
-        static_files_pattern = r"STATIC_URL = 'static/'"
-        static_files_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
-        settings_content = re.sub(static_files_pattern, static_files_replacement, settings_content)
-        
-        with open(settings_path, 'w') as f:
-            f.write(settings_content)
-        
-        # Update urls.py to include a path for the home page
-        urls_path = os.path.join(project_dir, 'config', 'urls.py')
-        
-        with open(urls_path, 'r') as f:
-            urls_content = f.read()
-        
-        if 'TemplateView' not in urls_content:
-            # Add import for TemplateView
-            urls_content = urls_content.replace(
-                'from django.urls import path', 
-                'from django.urls import path\nfrom django.views.generic import TemplateView'
-            )
-            
-            # Add path for home page
-            urls_content = urls_content.replace(
-                'urlpatterns = [', 
-                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),'
-            )
-            
-            with open(urls_path, 'w') as f:
-                f.write(urls_content)
-        
-        # Mark the project as initialized in the database
-        project.is_initialized = True
-        project.save(update_fields=['is_initialized'])
-        
-        return project
 
     # Template generation methods
     def _generate_asgi_content(self, project_name):
@@ -555,7 +281,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'main_app',
 ]
 
 MIDDLEWARE = [
@@ -574,7 +299,7 @@ ROOT_URLCONF = '{project_name}.urls'
 TEMPLATES = [
     {{
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {{
             'context_processors': [
@@ -633,6 +358,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -659,11 +387,12 @@ REST_FRAMEWORK = {{
 URL Configuration
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('main_app.urls')),
+    path('', TemplateView.as_view(template_name='index.html'), name='home'),
 ]
 '''
 
@@ -693,85 +422,11 @@ Project models
 # You can define your models here if needed.
 '''
 
-    def _generate_serializers_content(self):
-        return '''"""
-Project serializers
-"""
-# You can define your serializers here if needed.
-'''
-
     def _generate_views_content(self):
         return '''"""
 Project views
 """
 # You can define your views here if needed.
-'''
-
-    def _generate_admin_content(self):
-        return '''from django.contrib import admin
-from .models import Item
-
-# Register your models here.
-admin.site.register(Item)
-'''
-
-    def _generate_apps_content(self):
-        return '''from django.apps import AppConfig
-
-
-class MainAppConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'main_app'
-'''
-
-    def _generate_app_models_content(self):
-        return '''from django.db import models
-
-class Item(models.Model):
-    """Example model for the main app"""
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return self.name
-'''
-
-    def _generate_app_serializers_content(self):
-        return '''from rest_framework import serializers
-from .models import Item
-
-class ItemSerializer(serializers.ModelSerializer):
-    """Serializer for the Item model"""
-    class Meta:
-        model = Item
-        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']
-'''
-
-    def _generate_app_views_content(self):
-        return '''from rest_framework import viewsets
-from .models import Item
-from .serializers import ItemSerializer
-
-class ItemViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Item model"""
-    queryset = Item.objects.all()
-    serializer_class = ItemSerializer
-'''
-
-    def _generate_app_urls_content(self):
-        return '''from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import ItemViewSet
-
-router = DefaultRouter()
-router.register(r'items', ItemViewSet)
-
-urlpatterns = [
-    path('', include(router.urls)),
-]
 '''
 
     def _generate_manage_content(self, project_name):
@@ -799,10 +454,21 @@ if __name__ == '__main__':
     main()
 '''
 
-    def _generate_requirements_content(self):
-        return '''Django==4.2.3
-djangorestframework==3.14.0
-django-cors-headers==4.1.0
+    def _generate_pipfile_content(self):
+        return '''[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "~=4.2.3"
+djangorestframework = "~=3.14.0"
+django-cors-headers = "~=4.1.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"
 '''
 
     def _generate_gitignore_content(self):
@@ -862,19 +528,18 @@ A Django REST API project.
 ### Prerequisites
 
 - Python 3.8+
-- pip
+- pipenv
 
 ### Installation
 
 1. Clone the repository
-2. Create a virtual environment:
+2. Install dependencies:
    ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\\Scripts\\activate
+   pipenv install
    ```
-3. Install dependencies:
+3. Activate the virtual environment:
    ```
-   pip install -r requirements.txt
+   pipenv shell
    ```
 4. Run migrations:
    ```
@@ -888,12 +553,6 @@ A Django REST API project.
    ```
    python manage.py runserver
    ```
-
-## API Endpoints
-
-- Admin panel: `/admin/`
-- API root: `/api/`
-- Items API: `/api/items/`
 
 ## Features
 
