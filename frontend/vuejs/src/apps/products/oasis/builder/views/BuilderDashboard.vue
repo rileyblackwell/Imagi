@@ -75,10 +75,10 @@
         </div>
 
         <!-- Project Section with Enhanced Layout -->
-        <div v-else class="px-6 sm:px-8 lg:px-12 pb-20">
+        <div v-else class="px-6 sm:px-8 lg:px-12 pb-24">
           <div class="max-w-7xl mx-auto">
-            <!-- Project Cards with Refined Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Project Cards with Refined Grid and more spacing -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
               <!-- New Project Card with improved positioning -->
               <div class="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-8">
                 <ProjectCard

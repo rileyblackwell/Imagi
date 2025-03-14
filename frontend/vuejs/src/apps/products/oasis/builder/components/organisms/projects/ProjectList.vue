@@ -6,24 +6,35 @@
     <!-- Glowing orb effect -->
     <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-10 blur-3xl transition-opacity duration-500 group-hover:opacity-20 bg-indigo-500"></div>
     
-    <!-- Enhanced Header with better styling -->
-    <div class="relative z-10 flex items-center gap-5 mb-8">
-      <div class="w-14 h-14 bg-indigo-500/15 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10 transform hover:scale-105 transition-all duration-300 border border-indigo-500/20">
-        <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
+    <!-- Enhanced Header with badge styling to match project card -->
+    <div class="relative z-10 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="inline-block px-4 py-1.5 bg-indigo-500/10 rounded-full">
+          <span class="text-indigo-400 font-semibold text-sm tracking-wider">YOUR PROJECTS</span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
+          <i class="fas fa-folder-open text-indigo-400 text-lg"></i>
+        </div>
       </div>
-      <div>
-        <h2 class="text-2xl font-bold text-white mb-1">Your Projects</h2>
-        <p class="text-gray-300">Continue working on your existing web projects</p>
+      
+      <!-- Title section -->
+      <div class="mb-2">
+        <h2 class="text-2xl font-bold text-white mb-2">Project Library</h2>
+        <p class="text-gray-300">Continue working on your existing web applications</p>
+        
+        <!-- Decorative element matching new project card -->
+        <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mt-4"></div>
       </div>
     </div>
 
     <template v-if="!isLoading && !error && projects?.length">
       <!-- Recent Projects with Enhanced Styling -->
       <div v-if="recentProjects.length" class="mb-10">
-        <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-5 flex items-center">
-          <i class="fas fa-clock text-indigo-400 mr-2 opacity-80"></i>
-          Recently Opened
-        </h3>
+        <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-5">
+          <i class="fas fa-clock text-indigo-400 mr-3"></i>
+          <h3 class="text-sm font-medium text-white uppercase tracking-wider">Recently Opened</h3>
+        </div>
+        
         <div class="space-y-4">
           <ProjectCard
             v-for="project in recentProjects"
@@ -36,11 +47,12 @@
 
       <!-- Search Section with Enhanced Styling -->
       <div class="space-y-5">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center">
-            <i class="fas fa-search text-indigo-400 mr-2 opacity-80"></i>
-            All Projects
-          </h3>
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2">
+            <i class="fas fa-search text-indigo-400 mr-3"></i>
+            <h3 class="text-sm font-medium text-white uppercase tracking-wider">All Projects</h3>
+          </div>
+          
           <div class="relative group w-full max-w-md">
             <!-- Enhanced focus effect -->
             <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 rounded-xl blur-[2px] opacity-0 group-focus-within:opacity-100 transition duration-300 pointer-events-none"></div>
@@ -50,7 +62,7 @@
                 :value="searchQuery"
                 @input="onSearchInput"
                 type="text"
-                placeholder="Search all projects..."
+                placeholder="Search projects by name..."
                 class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/70 border border-dark-600 focus:border-indigo-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
               >
             </div>
@@ -60,7 +72,7 @@
         <!-- Search Results with Enhanced Scrollbar -->
         <div 
           v-if="searchQuery"
-          class="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar"
+          class="space-y-4 mt-6 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar"
         >
           <template v-if="filteredProjects.length">
             <ProjectCard
@@ -71,9 +83,17 @@
             />
           </template>
           
-          <div v-else class="text-center py-10 bg-dark-900/30 rounded-xl border border-dark-700/50">
-            <i class="fas fa-search text-3xl text-gray-500 mb-3 opacity-50"></i>
-            <p class="text-gray-400">No projects match your search</p>
+          <div v-else class="text-center py-10 bg-indigo-500/5 rounded-xl border border-indigo-500/20">
+            <i class="fas fa-search text-3xl text-indigo-400 mb-3 opacity-70"></i>
+            <p class="text-gray-300">No projects match your search</p>
+          </div>
+        </div>
+        
+        <!-- Project count badge shown when not searching -->
+        <div v-if="!searchQuery && projects.length > 3" class="flex justify-center mt-6">
+          <div class="bg-indigo-500/10 text-indigo-300 px-4 py-2 rounded-full text-sm inline-flex items-center">
+            <i class="fas fa-cube mr-2 text-xs"></i>
+            {{ projects.length }} Total Projects
           </div>
         </div>
       </div>
@@ -109,8 +129,14 @@
         <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
           <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
         </div>
-        <p class="text-gray-300 mb-2 text-lg">No projects yet</p>
-        <p class="text-gray-400 text-center max-w-md mb-6">Create your first project to get started with Imagi</p>
+        <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
+        <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
+        
+        <!-- Directional hint -->
+        <div class="flex items-center text-indigo-400 animate-pulse-slow">
+          <i class="fas fa-long-arrow-alt-left text-lg mr-2"></i>
+          <span>Get started with a new project</span>
+        </div>
       </div>
     </div>
   </div>
@@ -154,7 +180,7 @@ const filteredProjects = computed(() => {
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().startsWith(query)
+      project.name.toLowerCase().includes(query)
     )
     .sort((a, b) => {
       const dateA = new Date(a.updated_at).getTime()
@@ -195,5 +221,9 @@ function onSearchInput(e: Event): void {
 
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
 }
 </style>
