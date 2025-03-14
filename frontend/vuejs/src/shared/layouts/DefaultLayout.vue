@@ -31,7 +31,7 @@
 import { ref, onMounted } from 'vue'
 import { BaseLayout } from '@/shared/layouts'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
-import { HomeNavbar } from '@/apps/home/components'
+import HomeNavbar from '@/apps/home/components/organisms/navigation/HomeNavbar.vue'
 import gsap from 'gsap'
 
 export default {

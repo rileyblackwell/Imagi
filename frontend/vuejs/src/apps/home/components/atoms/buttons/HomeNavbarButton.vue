@@ -19,7 +19,7 @@
 
 <script>
 import { defineComponent, computed } from 'vue'
-import { IconButton } from '@/apps/home/components'
+import IconButton from './IconButton.vue'
 
 export default defineComponent({
   name: 'HomeNavbarButton',
@@ -42,30 +42,48 @@ export default defineComponent({
     },
     icon: {
       type: String,
-      default: ''
+      default: null
     },
     gradientType: {
       type: String,
       default: 'primary',
-      validator: value => ['primary', 'secondary', 'amber', 'indigo', 'ghost'].includes(value)
+      validator: (value) => ['primary', 'amber', 'emerald', 'rose', 'fuchsia', 'indigo'].includes(value)
     }
   },
   emits: ['click'],
   setup(props) {
+    // Computed class for gradient
     const gradientClass = computed(() => {
       const gradients = {
-        primary: 'bg-gradient-to-r from-primary-500 via-indigo-500 to-violet-500 hover:from-primary-400 hover:via-indigo-400 hover:to-violet-400 hover:shadow-primary-500/20 text-white',
-        secondary: 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 hover:from-violet-400 hover:via-fuchsia-400 hover:to-pink-400 hover:shadow-violet-500/20 text-white',
-        amber: 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:via-orange-400 hover:to-yellow-400 hover:shadow-amber-500/20 text-white',
-        indigo: 'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 hover:from-blue-400 hover:via-indigo-400 hover:to-violet-400 hover:shadow-blue-500/20 text-white',
-        ghost: 'bg-gradient-to-r from-primary-500/90 via-indigo-500/90 to-violet-500/90 hover:from-primary-400/90 hover:via-indigo-400/90 hover:to-violet-400/90 backdrop-blur-md border border-white/10 hover:border-white/20 shadow-sm hover:shadow-primary-500/10 text-white'
+        primary: 'bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 hover:to-indigo-500',
+        amber: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500',
+        emerald: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500',
+        rose: 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500',
+        fuchsia: 'bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500',
+        indigo: 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500'
+      };
+
+      const ghostGradients = {
+        primary: 'bg-dark-800/60 hover:bg-dark-800/90 border border-primary-500/30 hover:border-primary-500/50',
+        amber: 'bg-dark-800/60 hover:bg-dark-800/90 border border-amber-500/30 hover:border-amber-500/50',
+        emerald: 'bg-dark-800/60 hover:bg-dark-800/90 border border-emerald-500/30 hover:border-emerald-500/50',
+        rose: 'bg-dark-800/60 hover:bg-dark-800/90 border border-rose-500/30 hover:border-rose-500/50',
+        fuchsia: 'bg-dark-800/60 hover:bg-dark-800/90 border border-fuchsia-500/30 hover:border-fuchsia-500/50',
+        indigo: 'bg-dark-800/60 hover:bg-dark-800/90 border border-indigo-500/30 hover:border-indigo-500/50'
+      };
+
+      if (props.variant === 'primary') {
+        return gradients[props.gradientType];
+      } else if (props.variant === 'ghost') {
+        return ghostGradients[props.gradientType];
       }
-      return gradients[props.gradientType]
-    })
+      
+      return '';
+    });
 
     return {
       gradientClass
-    }
+    };
   }
 })
 </script> 

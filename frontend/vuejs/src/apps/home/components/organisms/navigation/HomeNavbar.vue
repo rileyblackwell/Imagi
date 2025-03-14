@@ -46,10 +46,10 @@
           <template v-if="isAuthenticated">
             <HomeNavbarButton
               @click="handleLogout"
-              variant="ghost"
+              variant="primary"
               size="base"
               icon="fas fa-sign-out-alt"
-              gradient-type="primary"
+              gradient-type="indigo"
             >
               Logout
             </HomeNavbarButton>
@@ -57,10 +57,10 @@
           <template v-else>
             <HomeNavbarButton
               to="/auth/login"
-              variant="ghost"
+              variant="primary"
               size="base"
               icon="fas fa-sign-in-alt"
-              gradient-type="primary"
+              gradient-type="indigo"
             >
               Sign In
             </HomeNavbarButton>
@@ -79,16 +79,14 @@
 </template>
 
 <script>
-import { computed, ref, defineComponent } from 'vue'
+import { defineComponent, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
-import { BaseNavbar } from '@/shared/components'
-import {
-  IconButton,
-  HomeNavbarButton,
-  GradientText,
-  HomeNavbarDropdownButton
-} from '@/apps/home/components'
+import BaseNavbar from '@/shared/components/organisms/navigation/BaseNavbar.vue'
+import GradientText from '@/apps/home/components/atoms/text/GradientText.vue'
+import IconButton from '@/apps/home/components/atoms/buttons/IconButton.vue'
+import HomeNavbarButton from '@/apps/home/components/atoms/buttons/HomeNavbarButton.vue'
+import HomeNavbarDropdownButton from '@/apps/home/components/atoms/buttons/HomeNavbarDropdownButton.vue'
 
 export default defineComponent({
   name: 'HomeNavbar',
