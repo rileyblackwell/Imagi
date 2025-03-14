@@ -32,7 +32,7 @@
         <!-- Buy Credits Button - Only shown when authenticated -->
         <HomeNavbarButton
           v-if="isAuthenticated"
-          to="/payments/checkout"
+          to="/payments/add-credits"
           variant="primary"
           size="base"
           icon="fas fa-coins"

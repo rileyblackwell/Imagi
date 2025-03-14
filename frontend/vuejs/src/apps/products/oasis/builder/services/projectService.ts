@@ -155,7 +155,7 @@ export const ProjectService = {
           const possibleArrays = Object.values(response.data || {}).filter(val => Array.isArray(val))
           if (possibleArrays.length > 0) {
             console.debug('Found a possible array in response:', possibleArrays[0])
-            this._cacheProjects(possibleArrays[0]) // Cache the successful response
+            this._cacheProjects(possibleArrays[0] as any[]) // Cache the successful response
             return possibleArrays[0]
           }
         }

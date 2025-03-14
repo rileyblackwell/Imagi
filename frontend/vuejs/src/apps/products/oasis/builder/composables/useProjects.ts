@@ -11,7 +11,7 @@ export const useProjects = () => {
     if (!selectedFile.value || !store.currentProject?.id) return
 
     try {
-      await updateFile(store.currentProject.id, selectedFile.value.path, content)
+      await updateFile(String(store.currentProject.id), selectedFile.value.path, content)
     } catch (err) {
       throw err
     }

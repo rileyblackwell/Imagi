@@ -238,6 +238,11 @@ export const useAuthStore = defineStore('global-auth', () => {
     initialized.value = false
   }
 
+  // Add logout method that simply calls clearAuth for better semantics
+  const logout = async () => {
+    return await clearAuth()
+  }
+
   const refreshToken = async () => {
     try {
       const response = await axios.post('/api/v1/auth/refresh-token/')
@@ -273,6 +278,7 @@ export const useAuthStore = defineStore('global-auth', () => {
     checkAuth,
     validateAuth,
     clearAuth,
+    logout,
     refreshToken
   }
 }) 

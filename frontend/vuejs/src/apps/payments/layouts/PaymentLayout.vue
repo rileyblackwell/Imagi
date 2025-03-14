@@ -1,28 +1,22 @@
 <!-- Payment layout with shared components -->
 <template>
-  <div class="payment-layout min-h-screen bg-dark-900">
-    <!-- Navigation -->
-    <PaymentNavbar />
-
+  <DefaultLayout>
     <!-- Main Content -->
-    <main class="min-h-screen py-16">
-      <router-view></router-view>
-    </main>
-
-    <!-- Footer -->
-    <PaymentFooter />
-  </div>
+    <div class="payment-layout min-h-screen bg-dark-900">
+      <main class="min-h-screen py-16">
+        <slot></slot>
+      </main>
+    </div>
+  </DefaultLayout>
 </template>
 
 <script>
-import PaymentNavbar from '../components/layout/PaymentNavbar.vue'
-import PaymentFooter from '../components/layout/PaymentFooter.vue'
+import { DefaultLayout } from '@/shared/layouts'
 
 export default {
   name: 'PaymentLayout',
   components: {
-    PaymentNavbar,
-    PaymentFooter
+    DefaultLayout
   },
   mounted() {
     // Load Stripe.js if not already loaded

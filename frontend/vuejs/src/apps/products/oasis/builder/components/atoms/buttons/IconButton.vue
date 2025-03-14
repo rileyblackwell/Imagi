@@ -57,8 +57,8 @@ defineOptions({
 
 // Get all attributes and filter out 'title'
 const attrs = useAttrs()
-const filteredAttrs = computed(() => {
-  const result = { ...attrs }
+const filteredAttrs = computed<Record<string, any>>(() => {
+  const result: Record<string, any> = { ...attrs }
   delete result.title
   return result
 })
