@@ -7,62 +7,264 @@
         <div class="absolute inset-0 bg-dark-900">
           <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
           <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
+          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
         </div>
 
         <!-- Content -->
         <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div class="mb-8 sm:mb-10">
-            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              <span class="text-white block mb-2 sm:mb-3">Terms of Service</span>
-              <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
-                Our Agreement
-              </GradientText>
-            </h1>
-            <p class="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto">
-              Please read these terms carefully before using our services.
-            </p>
-          </div>
+          <HeroBadge text="Legal & Agreements" />
+          
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+            <span class="text-white block mb-2 sm:mb-3">Terms of Service</span>
+            <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
+              Our Agreement
+            </GradientText>
+          </h1>
+          
+          <p class="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto">
+            Please read these terms carefully before using our services.
+          </p>
         </div>
       </section>
 
       <!-- Main Content -->
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
         <!-- Decorative background elements -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
           <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-20 transform rotate-45"></div>
           <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-20 transform -rotate-45"></div>
         </div>
 
+        <!-- Introduction -->
+        <div class="relative mb-16">
+          <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-300">
+            <p class="text-lg text-gray-300 mb-4">
+              Welcome to Imagi Oasis. Our Terms of Service govern your use of our platform and services. By using Imagi Oasis, you agree to these terms in their entirety.
+            </p>
+            <p class="text-lg text-gray-300">
+              These terms were last updated on July 15, 2023. We may update these terms from time to time, so please check this page occasionally to ensure you're aware of any changes.
+            </p>
+          </div>
+        </div>
+
         <!-- Terms Content -->
-        <div class="space-y-12 relative">
-          <section v-for="(section, index) in termsSection" :key="index"
-                   class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500"
-          >
-            <div class="flex items-center mb-8">
-              <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-500">
-                <i :class="['text-2xl text-primary-400', section.icon]"></i>
+        <div class="space-y-16 relative">
+          <SectionHeader 
+            title="Terms of Service" 
+            subtitle="Please familiarize yourself with our terms before using Imagi Oasis."
+          />
+          
+          <!-- Terms Sections -->
+          <div class="space-y-12">
+            <!-- Acceptance of Terms Section -->
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-check-circle text-white text-xl"></i>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white">Acceptance of Terms</h2>
+                </div>
+                <p class="text-gray-300 mb-5">{{ termsSection[0].description }}</p>
               </div>
-              <h2 class="text-2xl sm:text-3xl font-bold text-white group-hover:text-primary-300 transition-colors">
-                {{ section.title }}
-              </h2>
             </div>
-            
-            <div class="prose prose-invert max-w-none prose-p:text-gray-300 prose-li:text-gray-300 prose-strong:text-white">
-              <p v-if="section.description" class="text-lg mb-6">{{ section.description }}</p>
-              <ul v-if="section.items" class="space-y-4">
-                <li v-for="(item, itemIndex) in section.items" :key="itemIndex" class="flex items-start">
-                  <div class="w-2 h-2 rounded-full bg-primary-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                  <span v-if="typeof item === 'string'">{{ item }}</span>
-                  <span v-else>
-                    <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
-                  </span>
-                </li>
-              </ul>
+
+            <!-- Prohibited Uses Section -->
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-ban text-white text-xl"></i>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white">Prohibited Uses</h2>
+                </div>
+                <p class="text-gray-300 mb-5">{{ termsSection[1].description }}</p>
+              </div>
+              
+              <div class="px-7 pb-7">
+                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                  <ul class="space-y-4">
+                    <li v-for="(item, index) in termsSection[1].items" :key="index" class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-violet-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                      <span>{{ item }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
-          </section>
+
+            <!-- Service Description Section -->
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-cube text-white text-xl"></i>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white">Service Description and Limitations</h2>
+                </div>
+                <p class="text-gray-300 mb-5">{{ termsSection[2].description }}</p>
+              </div>
+              
+              <div class="px-7 pb-7">
+                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                  <ul class="space-y-4">
+                    <li v-for="(item, index) in termsSection[2].items" :key="index" class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-indigo-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                      <span>{{ item }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- User Responsibilities Section -->
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-purple-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-user-shield text-white text-xl"></i>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white">User Responsibilities and Conduct</h2>
+                </div>
+                <p class="text-gray-300 mb-5">{{ termsSection[3].description }}</p>
+              </div>
+              
+              <div class="px-7 pb-7">
+                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                  <ul class="space-y-4">
+                    <li v-for="(item, index) in termsSection[3].items" :key="index" class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-purple-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                      <span>{{ item }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-dark-700"></div>
+            </div>
+            <div class="relative flex justify-center">
+              <span class="bg-dark-900 px-4 text-sm text-gray-400">Additional Information</span>
+            </div>
+          </div>
+
+          <!-- Additional Information -->
+          <SectionHeader 
+            title="Additional Terms" 
+            subtitle="Further important information about using our services."
+          />
+
+          <!-- Additional sections -->
+          <div class="space-y-12">
+            <!-- Payment Terms Section -->
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-green-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-credit-card text-white text-xl"></i>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white">Payment Terms and Billing</h2>
+                </div>
+              </div>
+              
+              <div class="px-7 pb-7">
+                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                  <ul class="space-y-4">
+                    <li v-for="(item, index) in termsSection[4].items" :key="index" class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-green-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                      <span>
+                        <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Intellectual Property Rights -->
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <div class="flex items-center gap-4 mb-5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
+                    <i class="fas fa-copyright text-white text-xl"></i>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white">Intellectual Property Rights</h2>
+                </div>
+                <p class="text-gray-300 mb-5">{{ termsSection[5].description }}</p>
+              </div>
+              
+              <div class="px-7 pb-7">
+                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                  <ul class="space-y-4">
+                    <li v-for="(item, index) in termsSection[5].items" :key="index" class="flex items-start">
+                      <div class="w-2 h-2 rounded-full bg-primary-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                      <span>
+                        <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Limitation of Liability and Termination (2 column) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Limitation of Liability -->
+              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+                <div class="p-7">
+                  <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-md">
+                      <i class="fas fa-shield-halved text-white text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Limitation of Liability</h2>
+                  </div>
+                  <p class="text-gray-300 mb-5">{{ termsSection[6].description }}</p>
+                </div>
+                
+                <div class="px-7 pb-7">
+                  <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                    <ul class="space-y-4">
+                      <li v-for="(item, index) in termsSection[6].items" :key="index" class="flex items-start">
+                        <div class="w-2 h-2 rounded-full bg-violet-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                        <span>{{ item }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Termination -->
+              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+                <div class="p-7">
+                  <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-md">
+                      <i class="fas fa-door-closed text-white text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Termination</h2>
+                  </div>
+                  <p class="text-gray-300 mb-5">{{ termsSection[7].description }}</p>
+                </div>
+                
+                <div class="px-7 pb-7">
+                  <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
+                    <ul class="space-y-4">
+                      <li v-for="(item, index) in termsSection[7].items" :key="index" class="flex items-start">
+                        <div class="w-2 h-2 rounded-full bg-indigo-400 mt-2.5 mr-3 flex-shrink-0"></div>
+                        <span>{{ item }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Contact Section -->
-          <section class="bg-gradient-to-br from-primary-600/90 via-violet-600/90 to-purple-600/90 rounded-2xl p-8 relative overflow-hidden">
+          <section class="bg-gradient-to-br from-primary-600/90 via-violet-600/90 to-purple-600/90 rounded-2xl p-8 relative overflow-hidden mt-12">
             <div class="absolute inset-0">
               <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
             </div>
@@ -77,11 +279,12 @@
               
               <p class="text-lg text-white/90">
                 If you have any questions about these Terms, please 
-                <router-link to="/contact" 
-                  class="text-white font-semibold hover:text-primary-200 underline decoration-primary-400/30 hover:decoration-primary-200 transition-colors"
+                <HomeNavbarButton
+                  to="/contact" 
+                  class="inline-block font-semibold text-white hover:text-primary-200 underline decoration-primary-400/30 hover:decoration-primary-200 transition-colors"
                 >
                   contact us
-                </router-link>.
+                </HomeNavbarButton>.
               </p>
             </div>
           </section>
@@ -94,13 +297,23 @@
 <script>
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { GradientText } from '@/apps/home/components'
+import { 
+  GradientText,
+  HeroBadge,
+  HomeNavbarButton,
+  CardContainer,
+  SectionHeader 
+} from '@/apps/home/components'
 
 export default defineComponent({
   name: 'Terms',
   components: {
     DefaultLayout,
-    GradientText
+    GradientText,
+    HeroBadge,
+    HomeNavbarButton,
+    CardContainer,
+    SectionHeader
   },
   setup() {
     const termsSection = [
@@ -209,20 +422,19 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Reset list styles */
-.prose ul {
+/* Style for list items */
+ul {
   padding-left: 0;
   margin: 0;
   list-style: none;
 }
 
-.prose li {
-  padding-left: 0;
-  margin: 0;
+li {
+  margin-bottom: 0.5rem;
+  color: #d1d5db; /* text-gray-300 */
 }
 
-/* Remove default bullet points */
-.prose li::before {
-  display: none !important;
+strong {
+  font-weight: 600;
 }
 </style>

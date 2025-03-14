@@ -1,35 +1,36 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-900">
-      <!-- Hero Section - Updated spacing -->
+      <!-- Hero Section -->
       <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
         <!-- Background Effects -->
         <div class="absolute inset-0 bg-dark-900">
           <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
           <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
+          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
         </div>
 
-        <!-- Content - Added responsive padding -->
+        <!-- Content -->
         <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <!-- Title section - Adjusted spacing -->
-          <div class="mb-8 sm:mb-10">
-            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-              <span class="text-white block mb-2 sm:mb-3">About</span>
-              <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
-                Our Story
-              </GradientText>
-            </h1>
-            <p class="text-lg sm:text-xl text-gray-300 mb-12 sm:mb-16 max-w-2xl mx-auto">
-              We're pioneering the future of web development through AI-powered innovation and human-centric design.
-            </p>
-          </div>
+          <HeroBadge text="Our Company" />
+          
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+            <span class="text-white block mb-2 sm:mb-3">About</span>
+            <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
+              Our Story
+            </GradientText>
+          </h1>
+          
+          <p class="text-lg sm:text-xl text-gray-300 mb-12 sm:mb-16 max-w-2xl mx-auto">
+            We're pioneering the future of web development through AI-powered innovation and human-centric design.
+          </p>
 
-          <!-- Stats Grid - Added responsive gaps -->
+          <!-- Stats Grid - Enhanced styling -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
             <div v-for="(stat, index) in stats" :key="index"
-                 class="bg-dark-800/50 backdrop-blur-sm rounded-xl p-4 border border-dark-700/50"
+                 class="bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-sm rounded-xl p-4 border border-dark-700/50 hover:border-primary-500/30 transition-all duration-300 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]"
             >
-              <div class="text-2xl sm:text-3xl font-bold text-white mb-1">
+              <div class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent mb-1">
                 {{ stat.value }}
               </div>
               <div class="text-sm text-gray-400">{{ stat.label }}</div>
@@ -49,44 +50,58 @@
         <div class="space-y-24 relative">
           <!-- Mission Section -->
           <section>
-            <div class="text-center mb-16">
-              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Mission</GradientText>
-            </div>
+            <SectionHeader 
+              title="Our Mission" 
+              subtitle="We're transforming the world of web development through innovative AI solutions."
+            />
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
-                <div class="flex items-center mb-6">
-                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <i class="fas fa-bullseye text-2xl text-primary-400"></i>
+              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+                <div class="p-7">
+                  <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
+                      <i class="fas fa-bullseye text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Democratizing Web Development</h3>
                   </div>
-                  <h3 class="ml-4 text-xl font-semibold text-white group-hover:text-primary-300 transition-colors">Democratizing Web Development</h3>
+                  <p class="text-gray-300">We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.</p>
                 </div>
-                <p class="text-gray-300">We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.</p>
               </div>
               
-              <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
-                <div class="flex items-center mb-6">
-                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <i class="fas fa-lightbulb text-2xl text-primary-400"></i>
+              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+                <div class="p-7">
+                  <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
+                      <i class="fas fa-lightbulb text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Innovation Through AI</h3>
                   </div>
-                  <h3 class="ml-4 text-xl font-semibold text-white group-hover:text-primary-300 transition-colors">Innovation Through AI</h3>
+                  <p class="text-gray-300">We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.</p>
                 </div>
-                <p class="text-gray-300">We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.</p>
               </div>
             </div>
           </section>
 
           <!-- What We Do Section -->
           <section>
-            <div class="text-center mb-16">
-              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">What We Do</GradientText>
-            </div>
-            <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
-              <div class="prose prose-invert max-w-none prose-p:text-gray-300 prose-li:text-gray-300 prose-strong:text-white">
-                <p class="text-lg mb-12">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional web applications, making the development process more intuitive and efficient than ever before.</p>
+            <SectionHeader 
+              title="What We Do" 
+              subtitle="Our innovative platform transforms how web applications are built, deployed, and maintained."
+            />
+            
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <p class="text-lg text-gray-300 mb-10">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional web applications, making the development process more intuitive and efficient than ever before.</p>
                 
-                <h3 class="text-xl font-semibold mb-8">Key Features:</h3>
-                <ul class="space-y-8">
-                  <li class="flex items-start gap-6">
+                <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/20 to-primary-600/20 flex items-center justify-center">
+                    <i class="fas fa-star text-primary-400"></i>
+                  </div>
+                  Key Features
+                </h3>
+                
+                <div class="space-y-8">
+                  <div class="flex items-start gap-6">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-wand-magic-sparkles text-sm text-primary-400"></i>
                     </div>
@@ -94,8 +109,8 @@
                       <strong class="text-white block mb-2">Natural Language Generation</strong>
                       <span class="text-gray-300">Simply describe your vision in plain English, and watch as our AI transforms it into clean, professional code.</span>
                     </div>
-                  </li>
-                  <li class="flex items-start gap-6">
+                  </div>
+                  <div class="flex items-start gap-6">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-code text-sm text-primary-400"></i>
                     </div>
@@ -103,8 +118,8 @@
                       <strong class="text-white block mb-2">Full-Stack Development</strong>
                       <span class="text-gray-300">Generate both frontend and backend code, complete with database structures, API endpoints, and user interfaces.</span>
                     </div>
-                  </li>
-                  <li class="flex items-start gap-6">
+                  </div>
+                  <div class="flex items-start gap-6">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-arrows-rotate text-sm text-primary-400"></i>
                     </div>
@@ -112,8 +127,8 @@
                       <strong class="text-white block mb-2">Iterative Refinement</strong>
                       <span class="text-gray-300">Continuously refine and enhance your application through natural conversation with our AI.</span>
                     </div>
-                  </li>
-                  <li class="flex items-start gap-6">
+                  </div>
+                  <div class="flex items-start gap-6">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mt-1 flex-shrink-0">
                       <i class="fas fa-shield-halved text-sm text-primary-400"></i>
                     </div>
@@ -121,55 +136,60 @@
                       <strong class="text-white block mb-2">Best Practices Built-in</strong>
                       <span class="text-gray-300">Every generated application follows industry standards for security, performance, and maintainability.</span>
                     </div>
-                  </li>
-                </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
 
           <!-- Vision Section -->
           <section>
-            <div class="text-center mb-16">
-              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Vision</GradientText>
-            </div>
+            <SectionHeader 
+              title="Our Vision" 
+              subtitle="We're creating a future where technology enables creativity without barriers."
+            />
+            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <!-- Vision cards with enhanced styling -->
               <div v-for="(item, index) in visionItems" :key="index"
-                   class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500"
+                   class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]"
               >
-                <div class="flex items-center mb-6">
-                  <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <i :class="['text-2xl text-primary-400', item.icon]"></i>
+                <div class="p-7">
+                  <div class="flex items-center gap-4 mb-5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
+                      <i :class="['text-white text-xl', item.icon]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">{{ item.title }}</h3>
                   </div>
-                  <h3 class="ml-4 text-xl font-semibold text-white group-hover:text-primary-300 transition-colors">{{ item.title }}</h3>
+                  <p class="text-gray-300">{{ item.description }}</p>
                 </div>
-                <p class="text-gray-300">{{ item.description }}</p>
               </div>
             </div>
           </section>
 
           <!-- Technology Section -->
           <section>
-            <div class="text-center mb-16">
-              <GradientText variant="primary" class="text-3xl sm:text-4xl font-bold mb-4">Our Technology</GradientText>
-            </div>
-            <div class="group bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-500">
-              <div class="prose prose-invert max-w-none prose-p:text-gray-300">
-                <p class="text-lg">At the heart of Imagi lies a sophisticated AI system that understands context, requirements, and user intent. Our technology stack combines:</p>
+            <SectionHeader 
+              title="Our Technology" 
+              subtitle="Powered by cutting-edge AI and a modern technology stack."
+            />
+            
+            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
+              <div class="p-7">
+                <p class="text-lg text-gray-300 mb-8">At the heart of Imagi lies a sophisticated AI system that understands context, requirements, and user intent. Our technology stack combines:</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mt-6 md:mt-8">
-                  <div class="bg-dark-900/30 backdrop-blur-sm rounded-xl p-6 border border-dark-600">
-                    <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 flex-shrink-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-6 border border-dark-600 hover:border-indigo-500/30 transition-all duration-300">
+                    <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center flex-shrink-0">
                         <i class="fas fa-brain text-primary-400"></i>
                       </div>
                       Advanced AI Models
                     </h4>
                     <p class="text-gray-300">State-of-the-art language models trained on vast amounts of code and development patterns to understand and generate high-quality applications.</p>
                   </div>
-                  <div class="bg-dark-900/30 backdrop-blur-sm rounded-xl p-6 border border-dark-600">
-                    <h4 class="text-lg font-semibold text-white mb-4 flex items-center">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center mr-3 flex-shrink-0">
+                  <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-6 border border-dark-600 hover:border-indigo-500/30 transition-all duration-300">
+                    <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center flex-shrink-0">
                         <i class="fas fa-cubes text-primary-400"></i>
                       </div>
                       Modern Architecture
@@ -191,6 +211,7 @@
               <div class="absolute inset-0">
                 <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
                 <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full blur-[100px] opacity-30"></div>
+                <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-400 rounded-full blur-[100px] opacity-30"></div>
               </div>
 
               <!-- Content -->
@@ -232,14 +253,16 @@
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
 import { DefaultLayout } from '@/shared/layouts'
-import { GradientText, HomeNavbarButton } from '@/apps/home/components'
+import { GradientText, HomeNavbarButton, HeroBadge, SectionHeader } from '@/apps/home/components'
 
 export default defineComponent({
   name: 'About',
   components: {
     DefaultLayout,
     GradientText,
-    HomeNavbarButton
+    HomeNavbarButton,
+    HeroBadge,
+    SectionHeader
   },
   setup() {
     const authStore = useAuthStore()
