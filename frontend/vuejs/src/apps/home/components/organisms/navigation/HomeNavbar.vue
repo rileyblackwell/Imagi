@@ -3,7 +3,7 @@
   <BaseNavbar>
     <!-- Logo override -->
     <template #logo>
-      <GradientText variant="primary" size="xl">Imagi</GradientText>
+      <GradientText variant="imagi" size="xl">Imagi</GradientText>
     </template>
 
     <!-- Right side menu -->

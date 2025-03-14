@@ -2,7 +2,7 @@
 <template>
   <span
     class="bg-gradient-to-r bg-clip-text text-transparent"
-    :class="[gradientClass, fontClass]"
+    :class="[gradientClass, fontClass, variant === 'imagi' ? 'animate-gradient drop-shadow-[0_0_12px_rgba(236,72,153,0.3)] tracking-tight' : '']"
   >
     <slot></slot>
   </span>
@@ -15,7 +15,7 @@ export default {
     variant: {
       type: String,
       default: 'primary',
-      validator: value => ['primary', 'secondary', 'accent'].includes(value)
+      validator: value => ['primary', 'secondary', 'accent', 'imagi'].includes(value)
     },
     size: {
       type: String,
@@ -28,7 +28,8 @@ export default {
       const gradients = {
         primary: 'from-primary-400 to-primary-600',
         secondary: 'from-cyan-400 to-blue-500',
-        accent: 'from-emerald-400 to-teal-600'
+        accent: 'from-emerald-400 to-teal-600',
+        imagi: 'from-pink-300 via-emerald-300 to-yellow-200'
       }
       return gradients[this.variant]
     },
@@ -45,4 +46,17 @@ export default {
     }
   }
 }
-</script> 
+</script>
+
+<style scoped>
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% auto;
+  animation: gradient-shift 4s ease infinite;
+}
+</style> 
