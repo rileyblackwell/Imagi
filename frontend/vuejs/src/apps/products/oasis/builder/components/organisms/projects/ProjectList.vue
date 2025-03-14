@@ -1,13 +1,19 @@
 <template>
-  <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
-    <!-- Enhanced Header with Gradient Icon -->
-    <div class="flex items-center gap-5 mb-8">
-      <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 transform hover:scale-105 transition-all duration-300">
-        <i class="fas fa-folder-open text-2xl text-white"></i>
+  <div class="relative rounded-2xl border border-gray-800/60 bg-dark-900/40 backdrop-blur-sm transition-all duration-500 hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)] overflow-hidden p-8">
+    <!-- Background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br opacity-10 -z-10 transition-opacity duration-300 group-hover:opacity-20 from-indigo-900 to-violet-900"></div>
+    
+    <!-- Glowing orb effect -->
+    <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-10 blur-3xl transition-opacity duration-500 group-hover:opacity-20 bg-indigo-500"></div>
+    
+    <!-- Enhanced Header with better styling -->
+    <div class="relative z-10 flex items-center gap-5 mb-8">
+      <div class="w-14 h-14 bg-indigo-500/15 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10 transform hover:scale-105 transition-all duration-300 border border-indigo-500/20">
+        <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
       </div>
       <div>
         <h2 class="text-2xl font-bold text-white mb-1">Your Projects</h2>
-        <p class="text-gray-400">Continue working on your existing web projects</p>
+        <p class="text-gray-300">Continue working on your existing web projects</p>
       </div>
     </div>
 
@@ -15,7 +21,7 @@
       <!-- Recent Projects with Enhanced Styling -->
       <div v-if="recentProjects.length" class="mb-10">
         <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-5 flex items-center">
-          <i class="fas fa-clock text-primary-400 mr-2 opacity-80"></i>
+          <i class="fas fa-clock text-indigo-400 mr-2 opacity-80"></i>
           Recently Opened
         </h3>
         <div class="space-y-4">
@@ -32,12 +38,12 @@
       <div class="space-y-5">
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider flex items-center">
-            <i class="fas fa-search text-primary-400 mr-2 opacity-80"></i>
+            <i class="fas fa-search text-indigo-400 mr-2 opacity-80"></i>
             All Projects
           </h3>
           <div class="relative group w-full max-w-md">
             <!-- Enhanced focus effect -->
-            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-xl blur-[2px] opacity-0 group-focus-within:opacity-100 transition duration-300 pointer-events-none"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 rounded-xl blur-[2px] opacity-0 group-focus-within:opacity-100 transition duration-300 pointer-events-none"></div>
             <div class="relative flex items-center">
               <i class="fas fa-search text-gray-500 absolute left-4"></i>
               <input
@@ -45,7 +51,7 @@
                 @input="onSearchInput"
                 type="text"
                 placeholder="Search all projects..."
-                class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/70 border border-dark-600 focus:border-primary-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
+                class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/70 border border-dark-600 focus:border-indigo-500/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-200"
               >
             </div>
           </div>
@@ -76,23 +82,23 @@
     <!-- Enhanced Loading, Error, Empty States -->
     <div v-else>
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
-        <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5 animate-pulse">
-          <i class="fas fa-spinner fa-spin text-2xl text-primary-400"></i>
+        <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5 animate-pulse">
+          <i class="fas fa-spinner fa-spin text-2xl text-indigo-400"></i>
         </div>
-        <p class="text-gray-400 text-lg">Loading your projects...</p>
+        <p class="text-gray-300 text-lg">Loading your projects...</p>
       </div>
 
       <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
         <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-5">
           <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
         </div>
-        <p class="text-gray-400 mb-6 text-center max-w-md">{{ error }}</p>
+        <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
         <ActionButton 
           title="Try Again"
           icon="fa-redo"
           variant="secondary" 
           @click="$emit('retry')"
-          class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
+          class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 text-white rounded-xl shadow-lg hover:shadow-indigo-500/20 transform hover:-translate-y-1 transition-all duration-300"
         >
           <i class="fas fa-sync-alt mr-2"></i>
           Try Again
@@ -100,10 +106,11 @@
       </div>
 
       <div v-else class="flex flex-col items-center justify-center py-16">
-        <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mb-5">
-          <i class="fas fa-folder-open text-2xl text-gray-400"></i>
+        <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
+          <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
         </div>
-        <p class="text-gray-400 text-center text-lg">No projects yet. Create your first project to get started!</p>
+        <p class="text-gray-300 mb-2 text-lg">No projects yet</p>
+        <p class="text-gray-400 text-center max-w-md mb-6">Create your first project to get started with Imagi</p>
       </div>
     </div>
   </div>
