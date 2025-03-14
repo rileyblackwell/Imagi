@@ -33,18 +33,7 @@
               <!-- Refined Logo and Title Section -->
               <div class="text-center mb-10">
                 <div class="inline-flex items-center justify-center mb-8">
-                  <div class="rounded-2xl bg-gradient-to-br p-[1px] from-primary-300/40 to-violet-300/40
-                            hover:from-primary-200/50 hover:to-violet-200/50 transition-all duration-300">
-                    <div class="px-6 py-3 rounded-2xl bg-dark-900/95 backdrop-blur-xl
-                              shadow-[0_0_15px_-3px_rgba(99,102,241,0.4)]">
-                      <h1 class="text-3xl font-bold bg-gradient-to-r from-pink-300 via-emerald-300 to-yellow-200 
-                                bg-clip-text text-transparent tracking-tight
-                                drop-shadow-[0_0_12px_rgba(236,72,153,0.3)]
-                                animate-gradient">
-                        Imagi
-                      </h1>
-                    </div>
-                  </div>
+                  <ImagiLogo size="lg" to="#" />
                 </div>
                 <h2 class="text-2xl sm:text-3xl font-semibold text-white mb-3 tracking-tight">
                   {{ route.meta.title }}
@@ -71,6 +60,7 @@
 <script setup lang="ts">
 import { DefaultLayout } from '@/shared/layouts'
 import { useRoute } from 'vue-router'
+import { ImagiLogo } from '@/shared/components/molecules'
 
 const route = useRoute()
 </script>
@@ -84,16 +74,5 @@ const route = useRoute()
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  background-size: 200% auto;
-  animation: gradient-shift 4s ease infinite;
 }
 </style>
