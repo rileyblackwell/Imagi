@@ -69,85 +69,113 @@
       </section>
 
       <!-- Features Section -->
-      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
+      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 relative">
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
             <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Why Choose Imagi</h2>
             <p class="text-xl text-gray-300">Transform your ideas into reality with powerful AI-driven web development</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 relative">
+            <!-- Connected cards with thin gradient line -->
+            <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500/0 via-primary-500/50 to-primary-500/0 -z-10 hidden lg:block"></div>
+            
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <!-- Card glow effect -->
+              <div class="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-keyboard text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">Natural Language Input</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-300 transition-colors">Natural Language Input</h3>
               <p class="text-gray-300">Describe your vision in plain English, and watch as it transforms into reality.</p>
+              
+              <!-- Border highlight effect -->
+              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500/0 via-primary-500 to-primary-500/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-6">
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-bolt text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">Rapid Development</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-indigo-300 transition-colors">Rapid Development</h3>
               <p class="text-gray-300">Build websites and applications in minutes, not months.</p>
+              
+              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/0 via-indigo-500 to-indigo-500/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-6">
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 relative group overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <div class="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-code text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">Professional Code</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-violet-300 transition-colors">Professional Code</h3>
               <p class="text-gray-300">Generate clean, maintainable code that follows industry best practices.</p>
+              
+              <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500/0 via-violet-500 to-violet-500/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- How It Works -->
-      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50">
+      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50 relative">
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
             <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">How It Works</h2>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 relative">
+            <!-- Connected steps with gradient line -->
+            <div class="absolute top-[4.5rem] left-[calc(12.5%-1px)] right-[calc(12.5%-1px)] h-0.5 bg-gradient-to-r from-primary-500 via-violet-500 to-fuchsia-500 hidden lg:block"></div>
+            
             <div class="relative">
-              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-                <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-6">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-dark-800 border-2 border-primary-500 flex items-center justify-center text-primary-400 font-bold text-sm z-10">1</div>
+                
+                <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <i class="fas fa-pencil-alt text-white text-xl"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">1. Describe Your Vision</h3>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-300 transition-colors">Describe Your Vision</h3>
                 <p class="text-gray-300">Tell us what you want to build using natural language. Describe your features, design preferences, and requirements.</p>
               </div>
             </div>
 
             <div class="relative">
-              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-6">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-indigo-500/50 transition-all duration-300 hover:-translate-y-1 group hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-dark-800 border-2 border-indigo-500 flex items-center justify-center text-indigo-400 font-bold text-sm z-10">2</div>
+                
+                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <i class="fas fa-magic text-white text-xl"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">2. AI Generation</h3>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-indigo-300 transition-colors">AI Generation</h3>
                 <p class="text-gray-300">Our advanced AI analyzes your description and generates all necessary code, from frontend interfaces to backend logic.</p>
               </div>
             </div>
 
             <div class="relative">
-              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-                <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-6">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-violet-500/50 transition-all duration-300 hover:-translate-y-1 group hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-dark-800 border-2 border-violet-500 flex items-center justify-center text-violet-400 font-bold text-sm z-10">3</div>
+                
+                <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <i class="fas fa-sliders-h text-white text-xl"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">3. Customize & Refine</h3>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-violet-300 transition-colors">Customize & Refine</h3>
                 <p class="text-gray-300">Review the generated application, make adjustments, and refine details using natural language commands.</p>
               </div>
             </div>
 
             <div class="relative">
-              <div class="bg-dark-800 rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-                <div class="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-pink-500 rounded-lg flex items-center justify-center mb-6">
+              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-fuchsia-500/50 transition-all duration-300 hover:-translate-y-1 group hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+                <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-dark-800 border-2 border-fuchsia-500 flex items-center justify-center text-fuchsia-400 font-bold text-sm z-10">4</div>
+                
+                <div class="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-pink-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                   <i class="fas fa-rocket text-white text-xl"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">4. Launch & Scale</h3>
+                <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-fuchsia-300 transition-colors">Launch & Scale</h3>
                 <p class="text-gray-300">Deploy your application with confidence, knowing it's built with scalable, secure, and maintainable code.</p>
               </div>
             </div>
@@ -156,42 +184,54 @@
       </section>
 
       <!-- Use Cases -->
-      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
+      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 relative">
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
             <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">What You Can Build</h2>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-lg flex items-center justify-center mb-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 relative">
+            <!-- Connected cards with thin gradient line -->
+            <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500/10 via-primary-500/50 to-primary-500/10 -z-10 hidden lg:block"></div>
+            
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <!-- Card glass reflection effect -->
+              <div class="absolute -inset-0.5 bg-gradient-to-tr from-primary-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-store text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">E-commerce Sites</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-primary-300 transition-colors">E-commerce Sites</h3>
               <p class="text-gray-300">Create full-featured online stores with product catalogs, shopping carts, and secure payment processing.</p>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center mb-6">
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-indigo-500/50 transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <div class="absolute -inset-0.5 bg-gradient-to-tr from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-briefcase text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">Business Applications</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-indigo-300 transition-colors">Business Applications</h3>
               <p class="text-gray-300">Build custom CRM systems, inventory management tools, and other business-specific applications.</p>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center mb-6">
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-violet-500/50 transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <div class="absolute -inset-0.5 bg-gradient-to-tr from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-users text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">Community Platforms</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-violet-300 transition-colors">Community Platforms</h3>
               <p class="text-gray-300">Develop social networks, forums, and community-driven websites with user management and content sharing.</p>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/50 transition-all duration-300">
-              <div class="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-pink-500 rounded-lg flex items-center justify-center mb-6">
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-fuchsia-500/50 transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <div class="absolute -inset-0.5 bg-gradient-to-tr from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
+              
+              <div class="w-12 h-12 bg-gradient-to-br from-fuchsia-500 to-pink-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <i class="fas fa-chart-line text-white text-xl"></i>
               </div>
-              <h3 class="text-xl font-semibold text-white mb-4">Analytics Dashboards</h3>
+              <h3 class="text-xl font-semibold text-white mb-4 group-hover:text-fuchsia-300 transition-colors">Analytics Dashboards</h3>
               <p class="text-gray-300">Create data visualization tools and interactive dashboards for business intelligence and reporting.</p>
             </div>
           </div>
@@ -199,7 +239,7 @@
       </section>
 
       <!-- Stats Section -->
-      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50">
+      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 bg-dark-800/50 relative">
         <div class="max-w-7xl mx-auto">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div class="text-center">
@@ -223,17 +263,26 @@
       </section>
 
       <!-- Testimonials Section -->
-      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8">
+      <section class="py-12 md:py-24 px-4 sm:px-6 lg:px-8 relative">
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
             <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">What Developers Say</h2>
             <p class="text-xl text-gray-300">Join thousands of satisfied developers who trust Imagi</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            <!-- Connecting line between testimonials -->
+            <div class="absolute top-1/3 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500/0 via-primary-500/40 to-primary-500/0 -z-10 hidden md:block"></div>
+            
+            <!-- Testimonial 1 -->
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-primary-500/40 transition-all duration-300 group relative hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <!-- Decorative corner accent -->
+              <div class="absolute top-0 right-0 w-20 h-20 overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-primary-500/20 to-primary-500/5 rounded-full blur-md group-hover:opacity-100 opacity-0 transition-opacity duration-500"></div>
+              </div>
+              
               <div class="flex items-center mb-6">
-                <div class="flex text-primary-400">
+                <div class="flex text-primary-400 group-hover:scale-105 transition-transform">
                   <i class="fas fa-star"></i>
                   <i class="fas fa-star"></i>
                   <i class="fas fa-star"></i>
@@ -241,21 +290,31 @@
                   <i class="fas fa-star"></i>
                 </div>
               </div>
-              <p class="text-gray-300 mb-6">"Imagi has revolutionized how I build web applications. What used to take weeks now takes hours. The AI understands exactly what I need."</p>
+              <p class="text-gray-300 mb-6 relative">
+                <span class="absolute -left-1 -top-1 text-4xl text-primary-500/20 font-serif">"</span>
+                <span class="relative">Imagi has revolutionized how I build web applications. What used to take weeks now takes hours. The AI understands exactly what I need.</span>
+                <span class="absolute -right-1 bottom-0 text-4xl text-primary-500/20 font-serif">"</span>
+              </p>
               <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center ring-2 ring-primary-500/20 shadow-md">
                   <span class="text-white font-semibold">JS</span>
                 </div>
                 <div class="ml-3">
-                  <div class="text-white font-semibold">John Smith</div>
+                  <div class="text-white font-semibold group-hover:text-primary-300 transition-colors">John Smith</div>
                   <div class="text-gray-400 text-sm">Senior Developer</div>
                 </div>
               </div>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700">
+            <!-- Testimonial 2 -->
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-indigo-500/40 transition-all duration-300 group relative mt-8 md:mt-0 hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <!-- Decorative corner accent -->
+              <div class="absolute top-0 right-0 w-20 h-20 overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 rounded-full blur-md group-hover:opacity-100 opacity-0 transition-opacity duration-500"></div>
+              </div>
+              
               <div class="flex items-center mb-6">
-                <div class="flex text-primary-400">
+                <div class="flex text-indigo-400 group-hover:scale-105 transition-transform">
                   <i class="fas fa-star"></i>
                   <i class="fas fa-star"></i>
                   <i class="fas fa-star"></i>
@@ -263,21 +322,31 @@
                   <i class="fas fa-star"></i>
                 </div>
               </div>
-              <p class="text-gray-300 mb-6">"The code quality is impressive. It's not just about speed - Imagi generates clean, maintainable code that follows best practices."</p>
+              <p class="text-gray-300 mb-6 relative">
+                <span class="absolute -left-1 -top-1 text-4xl text-indigo-500/20 font-serif">"</span>
+                <span class="relative">The code quality is impressive. It's not just about speed - Imagi generates clean, maintainable code that follows best practices.</span>
+                <span class="absolute -right-1 bottom-0 text-4xl text-indigo-500/20 font-serif">"</span>
+              </p>
               <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center ring-2 ring-indigo-500/20 shadow-md">
                   <span class="text-white font-semibold">AD</span>
                 </div>
                 <div class="ml-3">
-                  <div class="text-white font-semibold">Alice Davis</div>
+                  <div class="text-white font-semibold group-hover:text-indigo-300 transition-colors">Alice Davis</div>
                   <div class="text-gray-400 text-sm">Tech Lead</div>
                 </div>
               </div>
             </div>
 
-            <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700">
+            <!-- Testimonial 3 -->
+            <div class="bg-dark-800/60 backdrop-blur-xl rounded-2xl p-8 border border-dark-700 hover:border-violet-500/40 transition-all duration-300 group relative mt-8 md:mt-0 hover:shadow-[0_15px_30px_-5px_rgba(99,102,241,0.2),0_5px_15px_-5px_rgba(124,58,237,0.15),0_0_0_1px_rgba(99,102,241,0.1)] shadow-[0_10px_25px_-5px_rgba(99,102,241,0.1),0_0_10px_-5px_rgba(124,58,237,0.1),0_0_0_1px_rgba(99,102,241,0.05)]">
+              <!-- Decorative corner accent -->
+              <div class="absolute top-0 right-0 w-20 h-20 overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-violet-500/20 to-violet-500/5 rounded-full blur-md group-hover:opacity-100 opacity-0 transition-opacity duration-500"></div>
+              </div>
+              
               <div class="flex items-center mb-6">
-                <div class="flex text-primary-400">
+                <div class="flex text-violet-400 group-hover:scale-105 transition-transform">
                   <i class="fas fa-star"></i>
                   <i class="fas fa-star"></i>
                   <i class="fas fa-star"></i>
@@ -285,13 +354,17 @@
                   <i class="fas fa-star"></i>
                 </div>
               </div>
-              <p class="text-gray-300 mb-6">"Perfect for startups and MVPs. We've cut our development time by 80% and can iterate much faster with customer feedback."</p>
+              <p class="text-gray-300 mb-6 relative">
+                <span class="absolute -left-1 -top-1 text-4xl text-violet-500/20 font-serif">"</span>
+                <span class="relative">Perfect for startups and MVPs. We've cut our development time by 80% and can iterate much faster with customer feedback.</span>
+                <span class="absolute -right-1 bottom-0 text-4xl text-violet-500/20 font-serif">"</span>
+              </p>
               <div class="flex items-center">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center ring-2 ring-violet-500/20 shadow-md">
                   <span class="text-white font-semibold">MR</span>
                 </div>
                 <div class="ml-3">
-                  <div class="text-white font-semibold">Mike Ross</div>
+                  <div class="text-white font-semibold group-hover:text-violet-300 transition-colors">Mike Ross</div>
                   <div class="text-gray-400 text-sm">Startup Founder</div>
                 </div>
               </div>
@@ -300,18 +373,19 @@
         </div>
       </section>
 
-      <!-- CTA Section -->
-      <section class="py-12 px-4 sm:px-6 lg:px-8">
+      <!-- CTA Section - Redesigned -->
+      <section class="py-12 px-4 sm:px-6 lg:px-8 relative">
         <div class="max-w-4xl mx-auto relative">
-          <!-- Main CTA Card -->
-          <div class="relative rounded-2xl overflow-hidden">
-            <!-- Gradient Background -->
-            <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-violet-600 to-purple-600"></div>
+          <!-- Main CTA Card - Redesigned with smoother effects -->
+          <div class="relative rounded-2xl overflow-hidden bg-dark-800/80 backdrop-blur-md border border-dark-700 hover:border-primary-500/30 transition-all duration-500 shadow-lg">
+            <!-- Subtle gradient background -->
+            <div class="absolute inset-0 bg-gradient-to-br from-primary-600/20 via-violet-600/10 to-purple-600/20"></div>
             
-            <!-- Decorative Elements -->
+            <!-- Subtle decorative elements -->
             <div class="absolute inset-0">
-              <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
-              <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full blur-[100px] opacity-30"></div>
+              <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5"></div>
+              <div class="absolute top-0 right-0 w-80 h-80 bg-primary-500/10 rounded-full blur-[120px] opacity-30"></div>
+              <div class="absolute bottom-0 left-0 w-60 h-60 bg-violet-500/10 rounded-full blur-[100px] opacity-20"></div>
             </div>
 
             <!-- Content Container -->
@@ -325,30 +399,30 @@
                   </span>
                 </h2>
 
-                <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
+                <p class="text-lg text-white/80 mb-8 max-w-xl mx-auto">
                   Join thousands of developers building amazing applications
-                  <span class="font-semibold text-primary-200">10x faster</span> with AI.
+                  <span class="font-semibold text-primary-300">10x faster</span> with AI.
                 </p>
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <!-- Start Building Button -->
+                  <!-- Start Building Button with more subtle effects -->
                   <HomeNavbarButton
                     :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-                    class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl border-2 border-primary-300 hover:border-primary-200 bg-transparent hover:bg-white/10 transition-all duration-300 transform hover:-translate-y-0.5"
+                    class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl bg-primary-500/80 hover:bg-primary-500/90 border border-primary-500/50 hover:border-primary-400 transition-all duration-300 transform hover:-translate-y-1 shadow-md hover:shadow-primary-500/20"
                   >
-                    <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
+                    <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white">
                       Start Building Free
                       <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
                     </span>
                   </HomeNavbarButton>
 
-                  <!-- Contact Sales Button -->
+                  <!-- Contact Sales Button with more subtle effects -->
                   <HomeNavbarButton
                     to="/contact"
-                    class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl border-2 border-white hover:border-white/90 bg-transparent hover:bg-white/10 transition-all duration-300 transform hover:-translate-y-0.5"
+                    class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl bg-dark-700/50 hover:bg-dark-700/80 border border-dark-600 hover:border-primary-500/30 transition-all duration-300 transform hover:-translate-y-1 shadow-sm hover:shadow-lg"
                   >
-                    <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
+                    <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white">
                       Contact Sales
                       <i class="fas fa-arrow-up-right-from-square ml-2 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i>
                     </span>
@@ -392,3 +466,19 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+/* Removed the pulse-glow animation */
+
+/* Gradient animation for connecting lines */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-gradient-to-r {
+  background-size: 200% 100%;
+  animation: gradient-shift 8s ease infinite;
+}
+</style>
