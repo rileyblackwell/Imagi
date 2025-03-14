@@ -1,6 +1,4 @@
 export { default as FeaturesGrid } from './grids/FeaturesGrid.vue'
 export { default as HomeNavbar } from './navigation/HomeNavbar.vue'
-export { default as HeroSection } from './sections/hero/HeroSection.vue'
-export { default as FeaturesSection } from './sections/features/FeaturesSection.vue'
-export { default as ContactSection } from './sections/contact/ContactSection.vue'
-export { default as StatsCard } from './cards/StatsCard.vue'
+export { default as HeroSection } from './sections/HeroSection.vue'
+export { default as FeaturesSection } from './sections/FeaturesSection.vue'

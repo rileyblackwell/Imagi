@@ -272,7 +272,7 @@ import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
-import { ProjectListItem, CardContainer, StatsCard } from '@/apps/home/components'
+import { CardContainer, StatCard } from '@/apps/home/components'
 import { useNotification } from '@/shared/composables/useNotification'
 import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
 import {   
