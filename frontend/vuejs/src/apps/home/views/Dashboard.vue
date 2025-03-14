@@ -3,31 +3,31 @@
     <div class="flex flex-col w-full min-h-screen bg-dark-900 relative overflow-hidden">
       <!-- Enhanced Background Effects -->
       <div class="absolute inset-0 pointer-events-none">
-        <!-- Refined gradient background -->
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-violet-500/10"></div>
+        <!-- Refined gradient background with improved colors matching Imagi brand -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-600/10 via-indigo-500/5 to-violet-600/10"></div>
         
-        <!-- Ambient glow effects -->
-        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-gradient-to-r from-primary-500/15 to-violet-500/15 rounded-full blur-[120px] opacity-40"></div>
-        <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-r from-indigo-500/10 to-primary-500/10 rounded-full blur-[100px] opacity-30"></div>
+        <!-- Ambient glow effects with subtle pulsing animation -->
+        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-gradient-to-r from-primary-600/15 to-violet-600/15 rounded-full blur-[120px] opacity-40 animate-pulse-slow"></div>
+        <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-r from-indigo-600/10 to-primary-600/10 rounded-full blur-[100px] opacity-30"></div>
         
-        <!-- Subtle grid pattern -->
+        <!-- Enhanced subtle grid pattern -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02] mix-blend-overlay"></div>
       </div>
 
-      <!-- Dashboard Content -->
+      <!-- Dashboard Content with improved spacing and organization -->
       <div class="relative z-10">
-        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
-          <!-- Welcome Section with Imagi Title Styling -->
-          <div class="mb-12">
-            <!-- Imagi Title with Auth Page Styling -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <!-- Welcome Section with Enhanced Imagi Title Styling -->
+          <div class="mb-10">
+            <!-- Imagi Title with improved glow and animation -->
             <div class="inline-flex items-center justify-center mb-8">
-              <div class="rounded-2xl bg-gradient-to-br p-[1px] from-primary-300/40 to-violet-300/40
-                        hover:from-primary-200/50 hover:to-violet-200/50 transition-all duration-300">
+              <div class="rounded-2xl bg-gradient-to-br p-[1.5px] from-primary-400/50 to-violet-400/50
+                        hover:from-primary-300/60 hover:to-violet-300/60 transition-all duration-300">
                 <div class="px-8 py-4 rounded-2xl bg-dark-800/95 backdrop-blur-xl
-                          shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)]">
+                          shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)]">
                   <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-300 via-emerald-300 to-yellow-200 
                             bg-clip-text text-transparent tracking-tight
-                            drop-shadow-[0_0_12px_rgba(236,72,153,0.3)]
+                            drop-shadow-[0_0_15px_rgba(236,72,153,0.3)]
                             animate-gradient">
                     Imagi
                   </h1>
@@ -46,7 +46,7 @@
               </div>
               <button
                 @click="$router.push({ name: 'builder-new-project' })"
-                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:translate-y-[-2px] transition-all duration-300 self-start"
+                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-violet-600 text-white rounded-xl hover:from-primary-700 hover:to-violet-700 shadow-lg shadow-primary-600/30 hover:shadow-primary-600/40 transform hover:translate-y-[-2px] transition-all duration-300 self-start"
               >
                 <i class="fas fa-plus mr-2.5"></i>
                 New Project
@@ -54,33 +54,33 @@
             </div>
           </div>
 
-          <!-- Stats Overview with Enhanced Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <!-- Stats Overview with Enhanced Cards and Consistent Styling -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
             <div 
               v-for="stat in statsData" 
               :key="stat.title"
               class="group relative transform transition-all duration-300 hover:translate-y-[-3px]"
             >
-              <!-- Enhanced hover glow effect -->
+              <!-- Enhanced hover glow effect with improved colors -->
               <div class="absolute -inset-[1px] rounded-xl bg-gradient-to-r opacity-0 group-hover:opacity-100 blur-[2px] transition-all duration-300" 
                 :class="{
-                  'from-primary-500/30 via-violet-500/30 to-indigo-500/30': stat.color === 'primary',
-                  'from-green-500/30 via-emerald-500/30 to-teal-500/30': stat.color === 'success',
-                  'from-yellow-500/30 via-amber-500/30 to-orange-500/30': stat.color === 'warning',
-                  'from-blue-500/30 via-sky-500/30 to-cyan-500/30': stat.color === 'info'
+                  'from-primary-600/30 via-violet-600/30 to-indigo-600/30': stat.color === 'primary',
+                  'from-green-600/30 via-emerald-600/30 to-teal-600/30': stat.color === 'success',
+                  'from-yellow-600/30 via-amber-600/30 to-orange-600/30': stat.color === 'warning',
+                  'from-blue-600/30 via-sky-600/30 to-cyan-600/30': stat.color === 'info'
                 }"
               ></div>
               
-              <!-- Card content with enhanced styling -->
-              <div class="relative bg-dark-800/80 backdrop-blur-md rounded-xl p-6 border border-dark-700/80 group-hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/30 group-hover:shadow-xl group-hover:shadow-primary-500/10 h-full">
+              <!-- Card content with enhanced styling and consistent brand colors -->
+              <div class="relative bg-dark-800/80 backdrop-blur-md rounded-xl p-6 border border-dark-700/80 group-hover:border-primary-600/30 transition-all duration-300 shadow-lg shadow-dark-950/40 group-hover:shadow-xl group-hover:shadow-primary-600/15 h-full">
                 <div class="flex items-center justify-between mb-4">
                   <h3 class="text-lg font-medium text-gray-300">{{ stat.title }}</h3>
                   <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300"
                     :class="{
-                      'bg-primary-500/15 text-primary-400': stat.color === 'primary',
-                      'bg-green-500/15 text-green-400': stat.color === 'success',
-                      'bg-yellow-500/15 text-yellow-400': stat.color === 'warning',
-                      'bg-blue-500/15 text-blue-400': stat.color === 'info'
+                      'bg-primary-600/15 text-primary-400': stat.color === 'primary',
+                      'bg-green-600/15 text-green-400': stat.color === 'success',
+                      'bg-yellow-600/15 text-yellow-400': stat.color === 'warning',
+                      'bg-blue-600/15 text-blue-400': stat.color === 'info'
                     }"
                   >
                     <i :class="[stat.icon, 'text-lg']"></i>
@@ -331,7 +331,6 @@ const statsData = computed(() => [
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
   { name: 'Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder' },
-  { name: 'Templates', to: '/products/oasis/builder/templates', icon: 'fas fa-box' },
   { name: 'Credits', to: '/payments', icon: 'fas fa-coins' }
 ]
 
@@ -474,5 +473,15 @@ onMounted(() => {
 
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Slower pulsing animation for background elements */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.2; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
 }
 </style>
