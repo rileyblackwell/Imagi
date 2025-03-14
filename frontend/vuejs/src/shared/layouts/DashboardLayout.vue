@@ -9,7 +9,9 @@
       >
         <!-- Logo and Brand -->
         <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-dark-800/70">
-          <ImagiLogo :icon-only="isSidebarCollapsed" size="md" />
+          <ImagiLogo :icon-only="isSidebarCollapsed" size="md">
+            {{ isSidebarCollapsed ? 'I' : 'Imagi' }}
+          </ImagiLogo>
         </div>
         
         <!-- Navigation -->
