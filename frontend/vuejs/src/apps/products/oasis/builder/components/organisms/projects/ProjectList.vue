@@ -180,7 +180,7 @@ const filteredProjects = computed(() => {
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().includes(query)
+      project.name.toLowerCase().startsWith(query)
     )
     .sort((a, b) => {
       const dateA = new Date(a.updated_at).getTime()
