@@ -1,10 +1,10 @@
 <template>
   <div>
-    <label v-if="label" :for="id" class="block text-sm font-medium text-gray-300 mb-2">
+    <label v-if="label" :for="id" class="block text-sm font-medium text-white/80 mb-2">
       {{ label }}
     </label>
     <div class="relative" :class="{ 'mt-2': !!label }">
-      <span v-if="prefix" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+      <span v-if="prefix" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60">
         {{ prefix }}
       </span>
       <input
@@ -19,10 +19,11 @@
         :disabled="disabled"
         :readonly="readonly"
         :class="[
-          'w-full px-4 py-3 bg-dark-900 border border-dark-700 rounded-lg text-white',
-          'focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'w-full px-4 py-3 bg-white/5 backdrop-blur-sm border border-white/20 rounded-xl text-white',
+          'focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-300',
+          'disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-white/40',
           prefix ? 'pl-8' : '',
+          error ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/50' : '',
           customClass,
         ]"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
@@ -30,10 +31,10 @@
         @focus="$emit('focus', $event)"
       >
     </div>
-    <p v-if="helpText" class="mt-2 text-sm text-gray-400">
+    <p v-if="helpText" class="mt-2 text-sm text-white/60">
       {{ helpText }}
     </p>
-    <p v-if="error" class="mt-2 text-sm text-red-500">
+    <p v-if="error" class="mt-2 text-sm text-red-400">
       {{ error }}
     </p>
   </div>
@@ -121,5 +122,14 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Input focus glow effect */
+input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1), 0 0 10px 2px rgba(59, 130, 246, 0.1);
+}
+
+input.border-red-500\/50:focus {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1), 0 0 10px 2px rgba(239, 68, 68, 0.1);
 }
 </style> 

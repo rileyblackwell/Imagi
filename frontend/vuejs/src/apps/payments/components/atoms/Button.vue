@@ -3,12 +3,13 @@
     :type="type"
     :disabled="disabled" 
     :class="[
-      'px-6 py-3 rounded-lg transition-colors focus:outline-none',
-      variant === 'primary' ? 'bg-primary-600 hover:bg-primary-700 text-white' : '',
-      variant === 'secondary' ? 'bg-dark-700 hover:bg-dark-600 text-white' : '',
-      variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : '',
-      variant === 'outline' ? 'bg-transparent border border-primary-500 text-primary-500 hover:bg-primary-500/10' : '',
-      disabled ? 'opacity-50 cursor-not-allowed' : '',
+      'px-6 py-3 rounded-xl transition-all duration-300 transform font-medium',
+      variant === 'primary' ? 'bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 hover:scale-[1.02]' : '',
+      variant === 'secondary' ? 'bg-white/5 backdrop-blur-sm border border-white/20 text-white hover:bg-white/10 hover:scale-[1.02]' : '',
+      variant === 'danger' ? 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 hover:scale-[1.02]' : '',
+      variant === 'outline' ? 'bg-transparent border border-primary-500 text-primary-400 hover:bg-primary-500/10 hover:scale-[1.02]' : '',
+      variant === 'success' ? 'bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white shadow-lg shadow-green-500/20 hover:shadow-xl hover:shadow-green-500/30 hover:scale-[1.02]' : '',
+      disabled ? 'opacity-50 cursor-not-allowed transform-none hover:scale-100' : '',
       fullWidth ? 'w-full' : '',
       loading ? 'relative' : '',
       customClass
@@ -32,7 +33,7 @@ export default defineComponent({
   name: 'PaymentButton',
   props: {
     variant: {
-      type: String as PropType<'primary' | 'secondary' | 'danger' | 'outline'>,
+      type: String as PropType<'primary' | 'secondary' | 'danger' | 'outline' | 'success'>,
       default: 'primary'
     },
     type: {
@@ -73,5 +74,17 @@ export default defineComponent({
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Gradient animation for buttons */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-gradient-to-r {
+  background-size: 200% auto;
+  animation: gradient-shift 8s ease infinite;
 }
 </style> 
