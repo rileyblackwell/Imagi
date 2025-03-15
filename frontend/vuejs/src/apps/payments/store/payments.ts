@@ -12,6 +12,8 @@ import type {
 export const usePaymentsStore = defineStore('payments', {
   state: (): PaymentStoreState => ({
     balance: 0,
+    userCredits: 0,
+    lastUpdated: null,
     isLoading: false,
     error: null,
     paymentHistory: [],
@@ -44,6 +46,22 @@ export const usePaymentsStore = defineStore('payments', {
       }
     },
     
+    async fetchUserCredits(): Promise<void> {
+      this.isLoading = true
+      this.error = null
+      
+      try {
+        const response = await axios.get<{ credits: number }>('/api/v1/user/credits/')
+        this.userCredits = response.data.credits
+        this.lastUpdated = new Date()
+      } catch (error: any) {
+        this.error = error.response?.data?.message || 'Failed to fetch user credits'
+        console.error('Failed to fetch user credits:', error)
+      } finally {
+        this.isLoading = false
+      }
+    },
+    
     async fetchPaymentHistory(): Promise<void> {
       this.isHistoryLoading = true
       
@@ -70,6 +88,12 @@ export const usePaymentsStore = defineStore('payments', {
         // Update balance after successful payment
         this.balance = response.data.new_balance
         
+        // Update user credits
+        if (response.data.credits_added) {
+          this.userCredits += response.data.credits_added
+          this.lastUpdated = new Date()
+        }
+        
         // Return payment data for further processing
         return response.data
       } catch (error: any) {
@@ -87,7 +111,11 @@ export const usePaymentsStore = defineStore('payments', {
       
       try {
         const response = await axios.get<{ packages: CreditPackage[] }>('/api/v1/payments/packages/')
-        this.packages = response.data.packages
+        // Ensure all packages have a description field to match the type
+        this.packages = response.data.packages.map(pkg => ({
+          ...pkg,
+          description: pkg.description || 'Credit package' // Provide default description if missing
+        }))
       } catch (error: any) {
         this.error = error.response?.data?.message || 'Failed to fetch packages'
         console.error('Failed to fetch credit packages:', error)

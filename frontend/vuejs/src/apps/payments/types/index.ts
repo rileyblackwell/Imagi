@@ -6,20 +6,20 @@ export interface Toast {
 
 export interface Transaction {
   id: string;
-  date: string;
-  created_at: string;
   amount: number;
+  status: string;
+  transaction_type: string;
   description: string;
-  status: 'completed' | 'pending' | 'failed';
-  paymentMethod?: string;
-  reference?: string;
+  created_at: string;
+  stripe_payment_intent_id?: string;
+  stripe_checkout_session_id?: string;
 }
 
 export interface TransactionHistoryItem {
   id: string;
+  date: string;
   amount: number;
   status: string;
-  created_at: string;
   description: string;
 }
 
@@ -42,33 +42,27 @@ export interface CheckoutSessionData {
 }
 
 export interface PaymentIntent {
-  id: string;
   clientSecret: string;
-  amount: number;
-  status: string;
-  created: number;
+  id?: string;
 }
 
 export interface PaymentMethod {
   id: string;
-  type: string;
-  card?: {
-    brand: string;
-    last4: string;
-    exp_month: number;
-    exp_year: number;
-  };
-  isDefault?: boolean;
+  payment_method_id: string;
+  card_brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  is_default: boolean;
 }
 
 export interface Plan {
   id: string;
   name: string;
-  amount: number;
+  price: number;
   currency: string;
   interval: string;
-  description: string;
-  features?: string[];
+  credits: number;
 }
 
 export interface PaymentResponse {
@@ -84,21 +78,19 @@ export interface PaymentIntentRequest {
 }
 
 export interface PaymentData {
-  amount: number;
+  amount?: number;
   plan_id?: string;
   success_url?: string;
   cancel_url?: string;
-  return_url?: string;
 }
 
 export interface BalanceResponse {
   balance: number;
-  lastUpdated?: string;
 }
 
 export interface TransactionsResponse {
   transactions: Transaction[];
-  total: number;
+  total_count: number;
 }
 
 export interface PaymentIntentResponse {
@@ -107,13 +99,14 @@ export interface PaymentIntentResponse {
 }
 
 export interface SessionResponse {
-  id: string;
-  url: string;
+  session_id: string;
+  checkout_url: string;
 }
 
 export interface SessionStatus {
-  status: 'open' | 'complete' | 'expired';
-  payment_status?: 'paid' | 'unpaid';
+  status: 'complete' | 'pending';
+  payment_status: string;
+  credits_added?: number;
 }
 
 export interface ErrorMessages {
@@ -123,9 +116,11 @@ export interface ErrorMessages {
 export interface CreditPackage {
   id: string;
   name: string;
-  amount: number;
   price: number;
-  description: string;
+  credits: number;
+  amount: number;
+  description?: string;
+  is_active: boolean;
 }
 
 export interface PaymentState {

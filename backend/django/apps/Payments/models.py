@@ -83,6 +83,41 @@ class Payment(models.Model):
         """Calculate credits from dollar amount (1:1 ratio)"""
         return Decimal(str(amount))
 
+class PaymentMethod(models.Model):
+    """
+    Stores user payment methods from Stripe.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payment_methods'
+    )
+    payment_method_id = models.CharField(max_length=100, unique=True)
+    card_brand = models.CharField(max_length=20)  # visa, mastercard, etc.
+    last4 = models.CharField(max_length=4)  # Last 4 digits of card
+    exp_month = models.PositiveSmallIntegerField()
+    exp_year = models.PositiveSmallIntegerField()
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Payment Method'
+        verbose_name_plural = 'Payment Methods'
+        ordering = ['-is_default', '-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username}'s {self.card_brand} •••• {self.last4}"
+    
+    def save(self, *args, **kwargs):
+        # If this is set as default, remove default status from other methods
+        if self.is_default:
+            PaymentMethod.objects.filter(
+                user=self.user, 
+                is_default=True
+            ).update(is_default=False)
+        
+        super().save(*args, **kwargs)
+
 class CreditBalance(models.Model):
     """
     Tracks a user's credit balance.
@@ -169,6 +204,12 @@ class Transaction(models.Model):
         default='pending'
     )
     stripe_payment_intent_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        unique=True
+    )
+    stripe_checkout_session_id = models.CharField(
         max_length=100,
         blank=True,
         null=True,

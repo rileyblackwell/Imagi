@@ -35,10 +35,13 @@ export interface PaymentProcessResponse {
   new_balance: number;
   transaction_id?: string;
   message?: string;
+  credits_added?: number;
 }
 
 export interface PaymentStoreState {
   balance: number;
+  userCredits: number;
+  lastUpdated: Date | null;
   isLoading: boolean;
   error: string | null;
   paymentHistory: PaymentHistoryItem[];

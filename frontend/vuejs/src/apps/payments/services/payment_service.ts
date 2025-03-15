@@ -58,7 +58,7 @@ class PaymentService implements IPaymentService {
       return response.data
     } catch (error: any) {
       console.error('Error creating payment intent:', error)
-      throw new Error(error.response?.data?.error || 'Failed to create payment intent')
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to create payment intent')
     }
   }
 
@@ -71,7 +71,7 @@ class PaymentService implements IPaymentService {
       return response.data
     } catch (error: any) {
       console.error('Error fetching balance:', error)
-      throw new Error(error.response?.data?.error || 'Failed to fetch balance')
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch balance')
     }
   }
 
@@ -80,8 +80,9 @@ class PaymentService implements IPaymentService {
    */
   async getTransactionHistory(): Promise<TransactionHistoryItem[]> {
     try {
-      const response = await axios.get(`${this.apiUrl}/transactions/`)
-      return response.data
+      // Use the history endpoint based on our backend implementation
+      const response = await axios.get(`${this.apiUrl}/history/`)
+      return response.data.payments || []
     } catch (error) {
       throw this.handleError(error as Error)
     }
@@ -103,7 +104,7 @@ class PaymentService implements IPaymentService {
       return response.data
     } catch (error: any) {
       console.error('Error fetching transactions:', error)
-      throw new Error(error.response?.data?.error || 'Failed to fetch transactions')
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch transactions')
     }
   }
 
@@ -116,7 +117,22 @@ class PaymentService implements IPaymentService {
       return response.data
     } catch (error: any) {
       console.error(`Error fetching transaction ${id}:`, error)
-      throw new Error(error.response?.data?.error || 'Failed to fetch transaction')
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch transaction')
+    }
+  }
+
+  /**
+   * Process payment directly
+   */
+  async processPayment(amount: number, paymentMethodId: string): Promise<any> {
+    try {
+      const response = await axios.post(`${this.apiUrl}/process/`, {
+        amount,
+        payment_method_id: paymentMethodId
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error as Error)
     }
   }
 
@@ -194,8 +210,8 @@ class PaymentService implements IPaymentService {
       const response = await axios.post(`${this.apiUrl}/create-checkout-session/`, {
         amount: data.amount,
         plan_id: data.plan_id,
-        success_url: data.success_url || window.location.origin + '/payment/success',
-        cancel_url: data.cancel_url || window.location.origin + '/payment/cancel'
+        success_url: data.success_url || window.location.origin + '/payments/success',
+        cancel_url: data.cancel_url || window.location.origin + '/payments/cancel'
       })
       return response.data
     } catch (error) {
@@ -230,6 +246,18 @@ class PaymentService implements IPaymentService {
   }
 
   /**
+   * Get available credit packages
+   */
+  async getPackages(): Promise<any[]> {
+    try {
+      const response = await axios.get(`${this.apiUrl}/packages/`)
+      return response.data.packages || []
+    } catch (error) {
+      throw this.handleError(error as Error)
+    }
+  }
+
+  /**
    * Verify a webhook event from Stripe
    */
   async verifyWebhook(eventId: string) {
@@ -240,7 +268,38 @@ class PaymentService implements IPaymentService {
       return response.data
     } catch (error: any) {
       console.error('Error verifying webhook:', error)
-      throw new Error(error.response?.data?.error || 'Failed to verify webhook')
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to verify webhook')
+    }
+  }
+
+  /**
+   * Check if user has sufficient credits
+   */
+  async checkCredits(requiredCredits: number): Promise<any> {
+    try {
+      const response = await axios.post(`${this.apiUrl}/check-credits/`, {
+        required_credits: requiredCredits
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Error checking credits:', error)
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to check credits')
+    }
+  }
+
+  /**
+   * Deduct credits from the user's balance
+   */
+  async deductCredits(credits: number, description?: string): Promise<any> {
+    try {
+      const response = await axios.post(`${this.apiUrl}/deduct-credits/`, {
+        credits,
+        description
+      })
+      return response.data
+    } catch (error: any) {
+      console.error('Error deducting credits:', error)
+      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to deduct credits')
     }
   }
 

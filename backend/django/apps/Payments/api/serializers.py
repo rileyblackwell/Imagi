@@ -5,7 +5,7 @@ Serializers for the Payments app API.
 from rest_framework import serializers
 from decimal import Decimal
 from django.contrib.auth import get_user_model
-from ..models import CreditBalance, Transaction, CreditPlan, CreditPackage, Payment, AIModel, AIModelUsage
+from ..models import CreditBalance, Transaction, CreditPlan, CreditPackage, Payment, AIModel, AIModelUsage, PaymentMethod
 
 User = get_user_model()
 
@@ -19,8 +19,24 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = ('id', 'user', 'amount', 'transaction_type', 'status', 
-                 'stripe_payment_intent_id', 'created_at', 'updated_at')
+                 'stripe_payment_intent_id', 'created_at', 'updated_at', 'description')
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+class PaymentHistorySerializer(serializers.ModelSerializer):
+    """Serializer for payment history items displayed in the frontend."""
+    
+    class Meta:
+        model = Transaction
+        fields = ('id', 'amount', 'status', 'created_at', 'description')
+        read_only_fields = ('id', 'created_at')
+    
+    def to_representation(self, instance):
+        """Format the data to match what the frontend expects."""
+        representation = super().to_representation(instance)
+        # Make sure all transaction amounts are positive for display
+        representation['amount'] = abs(float(instance.amount))
+        representation['created_at'] = instance.created_at.isoformat()
+        return representation
 
 class CreditPlanSerializer(serializers.ModelSerializer):
     price_in_dollars = serializers.SerializerMethodField()
@@ -55,6 +71,22 @@ class CreditPackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = CreditPackage
         fields = ['id', 'name', 'amount', 'credits', 'features', 'is_popular']
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    """Serializer for saved payment methods."""
+    
+    class Meta:
+        model = PaymentMethod
+        fields = ['id', 'user', 'payment_method_id', 'card_brand', 'last4', 
+                 'exp_month', 'exp_year', 'is_default', 'created_at']
+        read_only_fields = ['id', 'created_at']
+    
+    def to_representation(self, instance):
+        """Format payment method data as expected by frontend."""
+        representation = super().to_representation(instance)
+        # Add friendly display name
+        representation['display_name'] = f"{instance.card_brand} •••• {instance.last4}"
+        return representation
 
 class PaymentSerializer(serializers.ModelSerializer):
     package_name = serializers.CharField(source='package.name', read_only=True)

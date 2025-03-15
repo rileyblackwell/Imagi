@@ -33,7 +33,20 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/apps/products/oasis/builder/views/BuilderWorkspace.vue'),
     props: true,
     meta: { requiresAuth: true }
-  }
+  },
+  // Payment system routes - explicitly defined for clarity
+  {
+    path: '/payments/success',
+    name: 'payment-success',
+    component: () => import('@/apps/payments/views/PaymentSuccessView.vue'),
+    meta: { requiresAuth: true, title: 'Payment Successful - Imagi Oasis' }
+  },
+  {
+    path: '/payments/cancel',
+    name: 'payment-cancel',
+    component: () => import('@/apps/payments/views/PaymentCancelView.vue'),
+    meta: { requiresAuth: true, title: 'Payment Cancelled - Imagi Oasis' }
+  },
 ]
 
 const router = createRouter({
