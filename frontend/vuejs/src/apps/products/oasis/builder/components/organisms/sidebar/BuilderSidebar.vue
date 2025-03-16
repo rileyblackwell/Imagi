@@ -1,124 +1,140 @@
 <template>
-  <div class="h-full flex flex-col bg-dark-900/90 backdrop-blur-sm border-r border-dark-700/70">
-    <!-- Content that adapts to collapsed state -->
-    <div class="flex-1 overflow-y-auto overflow-x-hidden relative">
-      <template v-if="!isCollapsed">
-        <!-- Project Info -->
-        <div class="p-4 border-b border-dark-700/50">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/30 to-primary-600/20 flex items-center justify-center text-primary-400 shadow-sm">
-              <i class="fas fa-project-diagram"></i>
-            </div>
-            <div class="truncate">
-              <h3 class="font-medium text-gray-200 truncate">
-                {{ currentProject?.name || 'Untitled Project' }}
-              </h3>
-              <p class="text-xs text-gray-500">
-                {{ currentProject?.description || 'No description' }}
-              </p>
-            </div>
+  <div 
+    class="h-full flex flex-col bg-dark-900/80 backdrop-blur-md border-r border-dark-800/50 relative"
+    :class="{'px-4': !isCollapsed, 'items-center': isCollapsed}"
+  >
+    <!-- Decorative elements -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <!-- Gradient top edge -->
+      <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary-500/30 to-transparent"></div>
+      
+      <!-- Glow effect in top corner -->
+      <div class="absolute -top-10 -left-10 w-40 h-40 bg-primary-600/20 rounded-full filter blur-xl opacity-40"></div>
+    </div>
+
+    <!-- Project Info Section -->
+    <div class="shrink-0 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
+      <div v-if="!isCollapsed" class="mb-4">
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Project</span>
+        <h2 class="text-lg font-semibold text-white truncate">
+          {{ currentProject?.name || 'Untitled Project' }}
+        </h2>
+        <p v-if="currentProject?.description" class="text-sm text-gray-400 mt-1 truncate">
+          {{ currentProject.description }}
+        </p>
+      </div>
+      
+      <!-- Model Selector -->
+      <div :class="{'mb-4': !isCollapsed}">
+        <ModelSelector 
+          v-if="!isCollapsed"
+          :models="models"
+          :model-id="modelId"
+          :mode="mode"
+          @update:model-id="(id) => $emit('update:modelId', id)"
+        />
+        <div 
+          v-else
+          class="tooltip-container"
+        >
+          <button 
+            class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
+            :title="selectedModel?.name || 'AI Model'"
+          >
+            <i class="fas fa-brain text-primary-400"></i>
+          </button>
+          <div class="tooltip">
+            {{ selectedModel?.name || 'AI Model' }}
           </div>
         </div>
-        
-        <!-- AI Model Selection -->
-        <div class="p-4 border-b border-dark-700/50">
-          <h4 class="text-xs font-medium text-gray-400 uppercase mb-3 flex items-center">
-            <i class="fas fa-robot mr-1.5 text-primary-400/70"></i>
-            AI Model
-          </h4>
-          <ModelSelector
-            :models="models || []"
-            :model-id="modelId"
-            :mode="mode"
-            @update:model-id="handleModelChange"
-          />
-          <!-- Debug info (hidden in production) -->
-          <div v-if="false" class="mt-2 p-2 bg-dark-800 rounded text-xs text-gray-400">
-            Models count: {{ models?.length || 0 }}
-          </div>
-        </div>
-        
-        <!-- Mode Toggle -->
-        <div class="p-4 border-b border-dark-700/50">
-          <h4 class="text-xs font-medium text-gray-400 uppercase mb-3 flex items-center">
-            <i class="fas fa-code-branch mr-1.5 text-primary-400/70"></i>
-            Mode
-          </h4>
+      </div>
+    </div>
+    
+    <!-- Mode Selector -->
+    <div 
+      class="shrink-0 py-4" 
+      :class="{'border-b border-dark-700/50': !isCollapsed}"
+    >
+      <div v-if="!isCollapsed" class="mb-2">
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode</span>
+      </div>
+      
+      <div class="flex items-center" :class="{'justify-center': isCollapsed, 'space-x-2': !isCollapsed}">
+        <template v-if="!isCollapsed">
           <ModeSelector
-            :mode="mode"
             :modes="modes"
-            @update:mode="handleModeChange"
+            :mode="mode"
+            @update:mode="(newMode) => $emit('update:mode', newMode)"
           />
-        </div>
-
-        <!-- File Explorer -->
-        <div class="p-4">
-          <h4 class="text-xs font-medium text-gray-400 uppercase mb-3 flex items-center">
-            <i class="fas fa-folder-open mr-1.5 text-primary-400/70"></i>
-            Project Files
-          </h4>
-          <FileExplorer
-            :files="files"
-            :selected-file="selectedFile"
-            :show-new-form="showNewFileFormValue"
-            :file-types="fileTypes"
-            @select-file="$emit('selectFile', $event)"
-            @create-file="$emit('createFile', $event)"
-          />
-        </div>
-      </template>
-
-      <!-- Collapsed State Icons -->
-      <template v-else>
-        <div class="py-6 flex flex-col items-center space-y-8">
-          <!-- Mode Icons (Chat and Build) -->
-          <div class="space-y-6">
-            <IconButton
-              v-for="modeOption in modes"
-              :key="modeOption"
-              :icon-class="getModeIcon(modeOption)"
-              :variant="mode === modeOption ? 'primary' : 'default'"
-              :title="formatMode(modeOption) + ' Mode'"
-              size="md"
-              class-name="sidebar-collapsed-icon"
-              :is-sidebar-icon="true"
-              @click="handleModeChange(modeOption)"
-            />
+        </template>
+        <template v-else>
+          <div class="space-y-2">
+            <button 
+              v-for="m in modes" 
+              :key="m"
+              class="w-10 h-10 rounded-md flex items-center justify-center transition-colors tooltip-container"
+              :class="[
+                mode === m 
+                  ? 'bg-primary-600/30 border border-primary-500/40 text-primary-400' 
+                  : 'bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 text-gray-400 hover:text-white'
+              ]"
+              @click="$emit('update:mode', m)"
+            >
+              <i :class="['fas', getModeIcon(m)]"></i>
+              <div class="tooltip">{{ formatMode(m) }}</div>
+            </button>
           </div>
-
-          <!-- Action Icons (Undo and Preview) -->
-          <div class="space-y-6">
-            <IconButton
-              icon-class="fa-undo"
-              title="Undo Last Action"
-              size="md"
-              :variant="'default'"
-              :disabled="isLoading"
-              class-name="sidebar-collapsed-icon"
-              :is-sidebar-icon="true"
-              @click="$emit('undo')"
-            />
-            <IconButton
-              icon-class="fa-eye"
-              title="Preview Project"
-              size="md"
-              :variant="'default'"
-              :disabled="isLoading"
-              class-name="sidebar-collapsed-icon"
-              :is-sidebar-icon="true"
-              @click="$emit('preview')"
-            />
+        </template>
+      </div>
+    </div>
+    
+    <!-- Files Section -->
+    <div class="flex-1 overflow-hidden py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
+      <div v-if="!isCollapsed" class="mb-2 flex items-center justify-between">
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
+        
+        <ActionButton
+          v-if="!showNewFileFormValue"
+          size="sm"
+          variant="secondary"
+          @click="showNewFileFormValue = true"
+        >
+          <i class="fas fa-plus mr-1"></i>
+          New File
+        </ActionButton>
+      </div>
+      
+      <template v-if="!isCollapsed">
+        <FileExplorer
+          :files="files"
+          :selected-file="selectedFile"
+          :file-types="fileTypes"
+          :show-new-form="showNewFileFormValue"
+          @select-file="$emit('selectFile', $event)"
+          @create-file="$emit('createFile', $event)"
+        />
+      </template>
+      <template v-else>
+        <div class="tooltip-container">
+          <button 
+            class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
+            title="Files"
+          >
+            <i class="fas fa-folder text-primary-400"></i>
+          </button>
+          <div class="tooltip">
+            {{ files.length }} Files
           </div>
         </div>
       </template>
     </div>
-
-    <!-- Bottom Actions (only visible when not collapsed) -->
-    <div v-if="!isCollapsed" class="p-4 border-t border-dark-700/50 bg-dark-800/30">
+    
+    <!-- Action Buttons -->
+    <div v-if="!isCollapsed" class="p-4 border-t border-dark-700/50 bg-dark-800/30 backdrop-blur-sm">
       <div class="flex justify-between items-center">
         <button 
           @click="$emit('undo')"
-          class="px-3 py-2 bg-dark-800 hover:bg-dark-700 text-gray-300 rounded-lg text-sm transition-colors flex items-center"
+          class="px-3 py-2 bg-dark-800/80 hover:bg-dark-700/80 text-gray-300 rounded-lg text-sm transition-colors flex items-center border border-dark-700/50"
           :disabled="isLoading"
           :class="{'opacity-50 cursor-not-allowed': isLoading}"
         >
@@ -128,7 +144,7 @@
         
         <button 
           @click="$emit('preview')"
-          class="px-3 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 rounded-lg text-sm transition-colors flex items-center"
+          class="px-3 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 rounded-lg text-sm transition-colors flex items-center border border-primary-500/20"
           :disabled="isLoading"
           :class="{'opacity-50 cursor-not-allowed': isLoading}"
         >
@@ -254,48 +270,31 @@ const modeOptions = computed(() => ([
 </script>
 
 <style scoped>
-/* Hide scrollbar but allow scrolling */
-.overflow-y-auto {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.overflow-y-auto::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-/* Smooth transitions */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
-}
-
-/* Custom styling for collapsed sidebar tooltips */
-:deep(.sidebar-collapsed-icon span) {
-  font-size: 0.75rem;
-  background-color: rgba(15, 15, 15, 0.95);
-  border: 1px solid rgba(55, 65, 81, 0.7);
-  padding: 0.4rem 0.7rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-  color: white;
-  z-index: 100;
-  margin-left: 1rem;
-  min-width: 120px;
-  text-align: center;
-}
-
-/* Ensure sidebar icons have proper z-index for tooltips */
-.sidebar-collapsed-icon {
+.tooltip-container {
   position: relative;
-  z-index: 20;
 }
 
-/* Override any potential overflow issues */
-:deep(.sidebar-tooltip) {
-  visibility: visible;
-  z-index: 999;
+.tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  background-color: rgba(30, 30, 46, 0.9);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  backdrop-filter: blur(4px);
+}
+
+.tooltip-container:hover .tooltip {
+  opacity: 1;
 }
 </style>

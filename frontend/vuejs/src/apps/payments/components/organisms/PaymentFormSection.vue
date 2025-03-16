@@ -201,57 +201,78 @@ const formattedAmount = computed(() => {
 })
 
 // Initialize Stripe
-onMounted(() => {
-  if (!window.Stripe) {
-    emit('payment-error', 'Stripe.js failed to load. Please refresh the page.')
-    return
-  }
-  
-  try {
-    const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-    const elements = stripe.elements()
-    stripeElements.value = elements
+onMounted(async () => {
+  // Wait a bit to ensure Stripe has time to load from layout
+  setTimeout(async () => {
+    if (!window.Stripe) {
+      console.error('Stripe.js not loaded yet. Attempting to retry...')
+      // Wait another moment and try again
+      setTimeout(() => {
+        if (!window.Stripe) {
+          emit('payment-error', 'Stripe.js failed to load. Please refresh the page.')
+          return
+        } else {
+          initializeStripe()
+        }
+      }, 1500)
+      return
+    }
     
-    // Create card element
+    initializeStripe()
+  }, 500)
+})
+
+// Function to initialize Stripe elements
+const initializeStripe = () => {
+  try {
+    // Get Stripe instance with explicit API version
+    const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    const stripe = window.Stripe(stripePublishableKey, {
+      apiVersion: '2022-11-15'
+    });
+    
+    // Create elements instance with minimal configuration
+    const elements = stripe.elements();
+    stripeElements.value = elements;
+    
+    // Create card element with limited options to avoid __shared_params__ warning
     const card = elements.create('card', {
       style: {
         base: {
           color: '#FFFFFF',
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          fontSmoothing: 'antialiased',
           fontSize: '16px',
           '::placeholder': {
             color: 'rgba(255, 255, 255, 0.4)'
           }
         },
         invalid: {
-          color: '#F87171',
-          iconColor: '#F87171'
+          color: '#F87171'
         }
       }
-    })
+    });
+    
+    // Add HTTP warning only in development
+    if (import.meta.env.DEV && window.location.protocol === 'http:') {
+      console.warn('Stripe is running over HTTP. This is fine for development, but HTTPS is required for production.');
+    }
     
     // Mount card element
-    card.mount('#card-element')
+    card.mount('#card-element');
     
-    // Handle real-time validation errors
+    // Handle validation events
     card.on('change', (event: any) => {
-      const displayError = document.getElementById('card-errors')
+      const displayError = document.getElementById('card-errors');
       if (displayError) {
-        if (event.error) {
-          displayError.textContent = event.error.message
-        } else {
-          displayError.textContent = ''
-        }
+        displayError.textContent = event.error ? event.error.message : '';
       }
-      
-      cardComplete.value = event.complete
-    })
+      cardComplete.value = event.complete;
+    });
   } catch (err: any) {
-    console.error('Error initializing Stripe:', err)
-    emit('payment-error', err.message || 'Failed to initialize payment form')
+    console.error('Error initializing Stripe:', err);
+    emit('payment-error', err.message || 'Failed to initialize payment form');
   }
-})
+}
 
 // Clean up on unmount
 onUnmounted(() => {

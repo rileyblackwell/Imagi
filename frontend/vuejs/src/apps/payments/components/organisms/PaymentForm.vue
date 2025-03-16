@@ -81,9 +81,16 @@ export default {
     onMounted(() => {
       // Initialize Stripe
       if (window.Stripe) {
-        stripe.value = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
-        const elements = stripe.value.elements()
+        // Create Stripe instance with explicit API version
+        const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+        stripe.value = window.Stripe(stripePublishableKey, {
+          apiVersion: '2022-11-15'
+        });
         
+        // Create elements with minimal configuration
+        const elements = stripe.value.elements();
+        
+        // Create card element with simple styling
         card.value = elements.create('card', {
           style: {
             base: {
@@ -91,24 +98,31 @@ export default {
               fontFamily: '"Inter", sans-serif',
               fontSize: '16px',
               '::placeholder': {
-                color: '#6b7280',
-              },
-              iconColor: '#6b7280'
+                color: '#6b7280'
+              }
+            },
+            invalid: {
+              color: '#ef4444'
             }
           }
-        })
+        });
+        
+        // Add HTTP warning only in development
+        if (import.meta.env.DEV && window.location.protocol === 'http:') {
+          console.warn('Stripe is running over HTTP. This is fine for development, but HTTPS is required for production.');
+        }
         
         // Mount the card element
-        card.value.mount(cardElement.value)
+        card.value.mount(cardElement.value);
         
         // Listen for changes
         card.value.on('change', (event) => {
-          cardComplete.value = event.complete
-          cardError.value = event.error ? event.error.message : ''
-        })
+          cardComplete.value = event.complete;
+          cardError.value = event.error ? event.error.message : '';
+        });
       } else {
-        console.error('Stripe.js not loaded')
-        cardError.value = 'Payment system not available'
+        console.error('Stripe.js not loaded');
+        cardError.value = 'Payment system not available';
       }
     })
 

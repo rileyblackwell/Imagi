@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, onMounted } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
 
 export default defineComponent({
@@ -32,20 +32,50 @@ export default defineComponent({
   components: {
     DefaultLayout
   },
+  data() {
+    return {
+      stripeLoading: false
+    }
+  },
   mounted() {
     // Load Stripe.js if not already loaded
-    if (!window.Stripe && !document.querySelector('script[src*="stripe.com"]')) {
-      const script = document.createElement('script')
-      script.src = 'https://js.stripe.com/v3/'
-      script.async = true
-      script.defer = true
-      script.addEventListener('load', () => {
-        console.log('Stripe.js loaded successfully')
+    this.loadStripeJs()
+  },
+  methods: {
+    loadStripeJs() {
+      if (window.Stripe) {
+        console.log('Stripe already loaded')
+        return Promise.resolve(window.Stripe)
+      }
+      
+      if (this.stripeLoading) {
+        console.log('Stripe loading in progress')
+        return
+      }
+      
+      this.stripeLoading = true
+      
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = 'https://js.stripe.com/v3/'
+        script.async = true
+        script.onload = () => {
+          this.stripeLoading = false
+          console.log('Stripe.js loaded successfully')
+          if (window.Stripe) {
+            resolve(window.Stripe)
+          } else {
+            reject(new Error('Stripe.js loaded but window.Stripe is not available'))
+          }
+        }
+        script.onerror = (error) => {
+          this.stripeLoading = false
+          console.error('Failed to load Stripe.js:', error)
+          reject(error)
+        }
+        
+        document.head.appendChild(script)
       })
-      script.addEventListener('error', (error) => {
-        console.error('Failed to load Stripe.js:', error)
-      })
-      document.head.appendChild(script)
     }
   }
 })

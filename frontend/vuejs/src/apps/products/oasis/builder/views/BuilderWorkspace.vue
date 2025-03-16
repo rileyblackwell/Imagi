@@ -38,26 +38,40 @@
         />
       </template>
 
-      <template #default="{ collapsed }">
-        <!-- Main Content -->
-        <div class="relative h-full bg-gradient-to-b from-dark-950 to-dark-900">
-          <!-- Loading Overlay -->
-          <LoadingOverlay 
-            v-if="store.isProcessing"
-            :message="loadingMessage"
-            transparent
-          />
+      <!-- Main Content Area -->
+      <template #main-content>
+        <div class="h-full relative flex flex-col">
+          <!-- Background decorative elements -->
+          <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <!-- Gradient effect -->
+            <div class="absolute inset-0 bg-gradient-to-br from-dark-900 to-dark-950"></div>
+            
+            <!-- Animated orbs -->
+            <div class="absolute top-[10%] right-[5%] w-96 h-96 bg-primary-600/10 rounded-full filter blur-3xl opacity-30 animate-float-slow"></div>
+            <div class="absolute bottom-[20%] left-[10%] w-64 h-64 bg-violet-600/10 rounded-full filter blur-2xl opacity-20 animate-float-slow-reverse"></div>
+            
+            <!-- Grid pattern overlay -->
+            <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+          </div>
 
-          <div class="h-[calc(100vh-4rem)] flex flex-col">
-            <!-- Main Content Area -->
+          <!-- Loading Overlay -->
+          <div 
+            v-if="store.isProcessing"
+            class="absolute inset-0 bg-dark-950/70 backdrop-blur-sm flex items-center justify-center z-50"
+          >
+            <div class="text-center">
+              <div class="inline-block w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mb-4"></div>
+              <p class="text-lg text-white font-medium">Processing...</p>
+              <p class="text-sm text-gray-400 mt-1">The AI is working on your request</p>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 flex flex-col overflow-hidden relative">
             <Transition
+              name="fade"
               mode="out-in"
-              enter-active-class="transition-all duration-300 ease-out"
-              enter-from-class="opacity-0 transform scale-98"
-              enter-to-class="opacity-100 transform scale-100"
-              leave-active-class="transition-all duration-300 ease-in"
-              leave-from-class="opacity-100 transform scale-100"
-              leave-to-class="opacity-0 transform scale-98"
+              appear
             >
               <div v-if="store.mode === 'chat'" class="flex-1 overflow-auto px-4 py-2">
                 <div class="max-w-4xl mx-auto">
@@ -93,55 +107,39 @@
 
             <!-- AI Input Area -->
             <div 
-              class="shrink-0 p-4 border-t border-dark-700/50 bg-dark-900/80 backdrop-blur-md shadow-lg"
+              class="shrink-0 p-4 border-t border-dark-700/50 bg-dark-900/80 backdrop-blur-md shadow-lg relative"
               :class="{'opacity-50 pointer-events-none': store.isProcessing}"
             >
-              <div class="max-w-4xl mx-auto">
-                <AIPromptInput
-                  v-model="prompt"
-                  :loading="store.isProcessing"
-                  :mode="store.mode || 'chat'"
-                  :placeholder="promptPlaceholder"
-                  @submit="handlePrompt"
-                />
-              </div>
+              <!-- Gradient header line -->
+              <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary-500/30 to-transparent"></div>
               
-              <!-- Error Message -->
-              <TransitionGroup
-                enter-active-class="transition-all duration-300 ease-out"
-                enter-from-class="opacity-0 transform -translate-y-2"
-                enter-to-class="opacity-100 transform translate-y-0"
-                leave-active-class="transition-all duration-300 ease-in"
-                leave-from-class="opacity-100 transform translate-y-0"
-                leave-to-class="opacity-0 transform -translate-y-2"
-              >
-                <div 
-                  v-if="store.error"
-                  class="mt-2 max-w-4xl mx-auto px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm shadow-lg"
+              <div class="max-w-4xl mx-auto">
+                <ChatInputArea
+                  v-model="prompt"
+                  :placeholder="promptPlaceholder"
+                  :focused="false"
+                  :is-processing="store.isProcessing"
+                  :show-examples="store.conversation.length === 0"
+                  @submit="handlePrompt"
+                  @examples="() => {}"
                 >
-                  <div class="flex items-start">
-                    <i class="fas fa-exclamation-circle mt-0.5 mr-2"></i>
-                    <span>{{ store.error }}</span>
-                  </div>
-                </div>
-              </TransitionGroup>
+                  <template #examples v-if="promptExamplesComputed && promptExamplesComputed.length > 0">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
+                      <button
+                        v-for="example in promptExamplesComputed"
+                        :key="example.text"
+                        class="text-left p-3 bg-dark-800/60 hover:bg-dark-800/90 rounded-md border border-dark-700/50 hover:border-primary-500/40 text-gray-300 transition-all duration-200 backdrop-blur-sm hover:shadow-md"
+                        @click="prompt = example.text; handlePrompt()"
+                      >
+                        <p class="font-medium text-white">{{ example.title }}</p>
+                        <p class="text-sm text-gray-400 mt-1 line-clamp-2">{{ example.text }}</p>
+                      </button>
+                    </div>
+                  </template>
+                </ChatInputArea>
+              </div>
             </div>
           </div>
-
-          <!-- Add keyboard shortcuts -->
-          <AppShortcuts
-            :shortcuts="[
-              { key: 'mod+s', handler: handleSave, description: 'Save changes' },
-              { key: 'mod+enter', handler: handlePrompt, description: 'Submit prompt' },
-              { key: 'esc', handler: () => store.$patch({ error: null }), description: 'Clear error' }
-            ]"
-          />
-
-          <!-- Add session timeout warning -->
-          <SessionTimeoutWarning 
-            v-if="sessionTimeoutWarning"
-            @refresh="refreshSession"
-          />
         </div>
       </template>
     </BuilderLayout>
@@ -175,6 +173,7 @@ import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
 import BuilderEditor from '../components/organisms/editor/BuilderEditor.vue'
 import AIPromptInput from '../components/molecules/inputs/AIPromptInput.vue'
 import ChatConversation from '../components/molecules/chat/ChatConversation.vue'
+import ChatInputArea from '../components/molecules/inputs/ChatInputArea.vue'
 
 // Utils
 import { notify } from '@/shared/utils'
@@ -238,6 +237,29 @@ const promptPlaceholder = computed(() =>
       ? 'Describe the changes you want to make...'
       : 'Select a file to start making changes...'
 )
+
+// Computed prompt examples
+const promptExamplesComputed = computed(() => {
+  // Return basic examples if not available from another source
+  return [
+    {
+      title: 'Create a landing page',
+      text: 'Please create a landing page with a hero section, features, and a contact form.'
+    },
+    {
+      title: 'Build an ecommerce product page',
+      text: 'I need a product details page with image gallery, pricing, and add to cart functionality.'
+    },
+    {
+      title: 'Generate a dashboard',
+      text: 'Create a dashboard with stats, charts, and a recent activity feed.'
+    },
+    {
+      title: 'Make a blog layout',
+      text: 'Design a blog page with articles, sidebar, and newsletter signup.'
+    }
+  ];
+});
 
 // Event handlers
 const handleModelSelect = (modelId: string) => {
@@ -1259,11 +1281,58 @@ async function deleteFile(projectId: string, filePath: string) {
 </script>
 
 <style scoped>
-textarea {
-  tab-size: 2;
-  -moz-tab-size: 2;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  line-height: 1.5;
-  font-size: 0.875rem;
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-10px) translateX(10px);
+  }
+  50% {
+    transform: translateY(0) translateX(20px);
+  }
+  75% {
+    transform: translateY(10px) translateX(10px);
+  }
+}
+
+@keyframes float-slow-reverse {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(10px) translateX(-10px);
+  }
+  50% {
+    transform: translateY(0) translateX(-20px);
+  }
+  75% {
+    transform: translateY(-10px) translateX(-10px);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
+}
+
+.animate-float-slow-reverse {
+  animation: float-slow-reverse 25s ease-in-out infinite;
 }
 </style>
