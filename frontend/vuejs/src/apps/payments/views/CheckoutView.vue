@@ -1,13 +1,29 @@
 <template>
   <PaymentLayout>
-    <div class="checkout-view container mx-auto px-4 py-16">
-      <!-- Page Header -->
-      <PageHeader 
-        title-prefix="Upgrade Your" 
-        highlighted-title="Imagi Experience" 
-        subtitle="Purchase credits to use AI models and unlock your creative potential."
-        :animate="true"
-      />
+    <div class="checkout-view max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
+      <!-- Animated background elements -->
+      <div class="absolute -z-10 inset-0 pointer-events-none overflow-hidden">
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+        <div class="absolute top-[20%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] rounded-full bg-primary-600/5 blur-[120px] animate-pulse-slow"></div>
+        <div class="absolute bottom-[10%] left-[10%] w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] rounded-full bg-violet-600/5 blur-[100px] animate-pulse-slow animation-delay-150"></div>
+      </div>
+    
+      <!-- Page Header with modern styling -->
+      <div class="mb-16 text-center">
+        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
+          <span class="text-primary-400 font-semibold text-sm tracking-wider">CREDITS & PAYMENTS</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
+          <span>Upgrade Your </span>
+          <span class="bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">Imagi Experience</span>
+        </h1>
+        <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+          Purchase credits to use AI models and unlock your creative potential.
+        </p>
+        
+        <!-- Decorative line with gradient -->
+        <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-8"></div>
+      </div>
       
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left Column: Account & Status -->
@@ -29,37 +45,71 @@
         
         <!-- Right Column: Payment Form -->
         <div class="lg:col-span-2 flex flex-col gap-8">
-          <!-- Status Messages -->
-          <StatusMessage 
-            v-if="success" 
-            type="success"
-            title="Payment Successful!"
-            message="Your payment has been processed and credits have been added to your account."
-          />
-          
-          <StatusMessage 
-            v-if="paymentError" 
-            type="error"
-            title="Payment Error"
-            :message="paymentError"
-          />
-          
-          <!-- Payment Form -->
-          <div class="animate-fade-in-up animation-delay-600">
-            <PaymentFormSection
-              :is-loading="processingPayment"
-              :animate="false"
-              :button-text="`Pay $${formattedAmount}`"
-              @submit="processPayment"
-              @update:amount="updateAmount"
-              @payment-error="handlePaymentError"
-            />
+          <!-- Status Messages with enhanced styling -->
+          <div v-if="success" class="animate-fade-in-up">
+            <div class="relative group">
+              <div class="absolute -inset-0.5 rounded-xl opacity-70 bg-gradient-to-r from-green-500/50 to-emerald-500/50 blur-md"></div>
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 p-6">
+                <div class="flex items-start gap-4">
+                  <div class="w-10 h-10 bg-green-500/20 rounded-full flex-shrink-0 flex items-center justify-center">
+                    <i class="fas fa-check text-green-400"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-semibold text-white mb-1">Payment Successful!</h3>
+                    <p class="text-gray-300">Your payment has been processed and credits have been added to your account.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           
-          <!-- Secure Payment Badge -->
-          <div class="flex items-center justify-center gap-2 text-white/60 text-sm animate-fade-in-up animation-delay-750">
-            <i class="fas fa-lock"></i>
-            <span>All payments are secure and encrypted</span>
+          <div v-if="paymentError" class="animate-fade-in-up">
+            <div class="relative group">
+              <div class="absolute -inset-0.5 rounded-xl opacity-70 bg-gradient-to-r from-red-500/50 to-rose-500/50 blur-md"></div>
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 p-6">
+                <div class="flex items-start gap-4">
+                  <div class="w-10 h-10 bg-red-500/20 rounded-full flex-shrink-0 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-400"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-semibold text-white mb-1">Payment Error</h3>
+                    <p class="text-gray-300">{{ paymentError }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Payment Form with enhanced styling -->
+          <div class="animate-fade-in-up animation-delay-600">
+            <div class="relative group">
+              <div class="absolute -inset-0.5 rounded-xl opacity-30 group-hover:opacity-70 bg-gradient-to-r from-primary-500/50 to-violet-500/50 blur group-hover:blur-md transition-all duration-300"></div>
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300">
+                <!-- Card header with gradient -->
+                <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
+                
+                <div class="p-8">
+                  <PaymentFormSection
+                    :is-loading="processingPayment"
+                    :animate="false"
+                    :button-text="`Pay $${formattedAmount}`"
+                    @submit="processPayment"
+                    @update:amount="updateAmount"
+                    @payment-error="handlePaymentError"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Secure Payment Badge with enhanced styling -->
+          <div class="animate-fade-in-up animation-delay-750">
+            <div class="flex items-center justify-center gap-3 py-3 px-6 bg-dark-900/40 backdrop-blur-sm rounded-xl border border-dark-800/60 w-fit mx-auto">
+              <div class="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
+                <i class="fas fa-lock text-primary-400"></i>
+              </div>
+              <span class="text-gray-300 text-sm">All payments are secure and encrypted</span>
+            </div>
           </div>
         </div>
       </div>
@@ -72,7 +122,6 @@ import { ref, computed, onMounted } from 'vue'
 import { usePaymentsStore } from '../store'
 import { storeToRefs } from 'pinia'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
-import PageHeader from '../components/molecules/PageHeader.vue'
 import StatusMessage from '../components/molecules/StatusMessage.vue'
 import AccountBalanceCard from '../components/organisms/AccountBalanceCard.vue'
 import ModelPricingSection from '../components/organisms/ModelPricingSection.vue'
@@ -179,5 +228,14 @@ const processPayment = async (paymentData: any) => {
 
 .animate-fade-in-up {
   animation: fade-in-up 0.7s ease-out forwards;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
 }
 </style> 

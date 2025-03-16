@@ -1,25 +1,51 @@
 <template>
-  <PaymentCard contentClass="p-8" :class="animate ? 'animate-fade-in-up animation-delay-450' : ''">
-    <h2 class="text-2xl font-semibold mb-6 bg-gradient-to-r from-primary-300 to-primary-500 bg-clip-text text-transparent">
-      {{ title }}
-    </h2>
+  <div class="relative group" :class="animate ? 'animate-fade-in-up animation-delay-450' : ''">
+    <!-- Enhanced glass morphism effect with glow -->
+    <div class="absolute -inset-0.5 rounded-xl opacity-30 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300 bg-gradient-to-r from-primary-500/50 to-violet-500/50"></div>
     
-    <div class="grid grid-cols-1 gap-4">
-      <ModelPriceCard
-        v-for="model in models"
-        :key="model.id"
-        :model-name="model.name"
-        :price="model.price"
-        :unit="'per use'"
-      />
+    <!-- Card with enhanced glass morphism -->
+    <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300">
+      <!-- Card header with gradient -->
+      <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
+      
+      <div class="p-6 sm:p-8">
+        <h2 class="text-xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
+          {{ title }}
+        </h2>
+        
+        <div class="grid grid-cols-1 gap-4">
+          <!-- Model price cards with modern styling -->
+          <div 
+            v-for="model in models"
+            :key="model.id"
+            class="flex items-center justify-between p-4 rounded-lg bg-dark-800/50 border border-dark-700/40 backdrop-blur-sm hover:border-primary-500/30 transition-all duration-300"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
+                <i class="fas fa-robot text-primary-400"></i>
+              </div>
+              <span class="font-medium text-white">{{ model.name }}</span>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span class="font-semibold text-white">{{ model.price.toFixed(4) }}</span>
+              <span class="text-xs text-gray-400">per use</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Information note -->
+        <div class="mt-4 p-3 rounded-lg bg-dark-800/40 border border-primary-500/10">
+          <div class="flex items-start gap-2">
+            <i class="fas fa-info-circle text-primary-400 mt-0.5"></i>
+            <p class="text-sm text-gray-300">Model usage is charged per request. Credits are deducted from your account balance automatically.</p>
+          </div>
+        </div>
+      </div>
     </div>
-  </PaymentCard>
+  </div>
 </template>
 
 <script setup lang="ts">
-import PaymentCard from '../atoms/Card.vue';
-import ModelPriceCard from '../molecules/ModelPriceCard.vue';
-
 interface PricingModel {
   id: string;
   name: string;
@@ -48,6 +74,11 @@ const props = defineProps({
         id: 'gpt4o-mini', 
         name: 'GPT-4o-mini', 
         price: 0.005
+      },
+      { 
+        id: 'claude-haiku', 
+        name: 'Claude-Haiku', 
+        price: 0.005
       }
     ]
   },
@@ -59,11 +90,6 @@ const props = defineProps({
 </script>
 
 <style scoped>
-/* Animation delays */
-.animation-delay-450 {
-  animation-delay: 450ms;
-}
-
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -77,5 +103,9 @@ const props = defineProps({
 
 .animate-fade-in-up {
   animation: fade-in-up 0.7s ease-out forwards;
+}
+
+.animation-delay-450 {
+  animation-delay: 450ms;
 }
 </style> 

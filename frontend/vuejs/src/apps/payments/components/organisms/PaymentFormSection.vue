@@ -1,6 +1,6 @@
 <template>
-  <PaymentCard contentClass="p-8" :class="animate ? 'animate-fade-in-up animation-delay-600' : ''">
-    <h2 class="text-xl font-semibold mb-4 bg-gradient-to-r from-primary-300 to-primary-500 bg-clip-text text-transparent">
+  <div>
+    <h2 class="text-xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
       {{ title }}
     </h2>
     
@@ -9,7 +9,7 @@
       <h3 class="text-lg font-medium mb-4 text-white/90">{{ amountSectionTitle }}</h3>
       <div class="mb-4">
         <label class="block text-sm font-medium text-white/80 mb-2">{{ amountLabel }}</label>
-        <div class="relative mt-1 rounded-md shadow-sm">
+        <div class="relative mt-1 rounded-xl shadow-sm">
           <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <span class="text-white/60 sm:text-sm">$</span>
           </div>
@@ -18,7 +18,7 @@
             type="number"
             :min="minAmount"
             :step="step"
-            class="block w-full rounded-xl border-white/20 bg-dark-800/50 py-3 pl-8 pr-12 text-white placeholder-white/40 backdrop-blur-sm focus:border-primary-500 focus:ring-primary-500 transition-all duration-300"
+            class="block w-full rounded-xl border-white/20 bg-dark-800/60 py-3 pl-8 pr-12 text-white placeholder-white/40 backdrop-blur-sm focus:border-primary-500 focus:ring-primary-500 transition-all duration-300"
             :placeholder="placeholder"
           />
           <div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -31,7 +31,7 @@
     
     <!-- Payment Form -->
     <div>
-      <h3 class="text-lg font-medium mb-6 bg-gradient-to-r from-primary-300 to-primary-500 bg-clip-text text-transparent">
+      <h3 class="text-lg font-medium mb-6 bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
         {{ paymentSectionTitle }}
       </h3>
       <form @submit.prevent="submitPayment">
@@ -43,98 +43,86 @@
             <div 
               id="card-element" 
               ref="cardElement"
-              class="block w-full rounded-xl border border-white/20 bg-dark-800/50 py-3 px-4 text-white backdrop-blur-sm transition-all duration-300 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 min-h-[45px]"
+              class="block w-full rounded-xl border border-white/20 bg-dark-800/60 py-3 px-4 text-white backdrop-blur-sm transition-all duration-300 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 min-h-[45px]"
             ></div>
             <div id="card-errors" class="mt-2 text-sm text-red-400"></div>
           </div>
           
-          <!-- Additional Payment Fields -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-white/80 mb-2">Name on Card</label>
-              <input
-                v-model="cardholderName"
-                type="text"
-                class="block w-full rounded-xl border-white/20 bg-dark-800/50 py-3 px-4 text-white placeholder-white/40 backdrop-blur-sm focus:border-primary-500 focus:ring-primary-500 transition-all duration-300"
-                placeholder="John Smith"
-              />
+          <!-- Save Card Checkbox -->
+          <div class="flex items-center">
+            <input 
+              type="checkbox" 
+              id="save-card" 
+              v-model="saveCard" 
+              class="w-4 h-4 text-primary-500 bg-dark-900 border-white/20 rounded focus:ring-primary-500 focus:ring-offset-dark-900"
+            />
+            <label for="save-card" class="ml-2 text-sm text-white/80">
+              {{ saveCardLabel }}
+            </label>
+          </div>
+        </div>
+        
+        <!-- Order Summary -->
+        <div class="mb-8 rounded-xl border border-white/10 bg-dark-800/40 backdrop-blur-sm overflow-hidden">
+          <div class="p-4 border-b border-white/10 bg-gradient-to-r from-primary-900/40 to-violet-900/40">
+            <h4 class="font-medium text-white">{{ summaryTitle }}</h4>
+            <p class="text-sm text-white/60">{{ summarySubtitle }}</p>
+          </div>
+          <div class="p-4">
+            <div class="flex justify-between py-2 border-b border-white/10">
+              <span class="text-white/70">{{ amountSummaryLabel }}</span>
+              <span class="font-medium text-white">${{ formattedAmount }}</span>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-white/80 mb-2">Email</label>
-              <input
-                v-model="email"
-                type="email"
-                class="block w-full rounded-xl border-white/20 bg-dark-800/50 py-3 px-4 text-white placeholder-white/40 backdrop-blur-sm focus:border-primary-500 focus:ring-primary-500 transition-all duration-300"
-                placeholder="you@example.com"
-              />
+            <div class="flex justify-between py-2">
+              <span class="text-white/70">{{ totalLabel }}</span>
+              <span class="font-medium text-white">${{ formattedAmount }}</span>
             </div>
           </div>
         </div>
         
-        <!-- Submission Button -->
-        <button
-          type="submit"
-          class="group relative w-full py-4 px-6 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-xl border border-primary-500/40 hover:border-primary-400/50 shadow-lg shadow-primary-600/30 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-          :disabled="isLoading || !isValidAmount || !stripe || !elements || !cardElement || !isStripeReady"
-        >
-          <span class="relative z-10">
+        <!-- Submit Button with modern styling -->
+        <div class="relative group transform transition-all duration-300 hover:-translate-y-1">
+          <div class="absolute -inset-0.5 rounded-xl opacity-40 group-hover:opacity-70 bg-gradient-to-r from-primary-500/70 to-violet-500/70 blur group-hover:blur-md transition-all duration-300"></div>
+          <button 
+            type="submit"
+            :disabled="!isValidAmount || isLoading || !cardComplete"
+            class="relative w-full py-3 px-6 font-medium rounded-xl text-white backdrop-blur-sm border border-dark-800/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden bg-dark-900/70"
+          >
             <span v-if="isLoading" class="flex items-center justify-center">
-              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {{ loadingText }}
+              <span class="h-5 w-5 mr-2">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+              <span>Processing payment...</span>
             </span>
-            <span v-else>{{ buttonText }}</span>
-          </span>
-          <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm -z-10"></div>
-        </button>
-        
-        <!-- Payment Card Icons -->
-        <div class="mt-4 flex justify-center gap-2">
-          <img src="@/assets/images/visa.svg" alt="Visa" class="h-6 opacity-60">
-          <img src="@/assets/images/mastercard.svg" alt="Mastercard" class="h-6 opacity-60">
-          <img src="@/assets/images/amex.svg" alt="American Express" class="h-6 opacity-60">
+            <span v-else class="flex items-center justify-center">
+              {{ buttonText }}
+              <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
+            </span>
+          </button>
         </div>
       </form>
     </div>
-  </PaymentCard>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import PaymentCard from '../atoms/Card.vue';
-import { loadStripe } from '@stripe/stripe-js';
-import type { Stripe, StripeElements, StripeCardElement } from '@stripe/stripe-js';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 
 const props = defineProps({
   title: {
     type: String,
-    default: 'Buy Credits'
+    default: 'Payment Details'
   },
   amountSectionTitle: {
     type: String,
-    default: 'Enter Amount'
+    default: 'Amount'
   },
   amountLabel: {
     type: String,
-    default: 'Amount to Add ($USD)'
-  },
-  paymentSectionTitle: {
-    type: String,
-    default: 'Payment Details'
-  },
-  cardLabel: {
-    type: String,
-    default: 'Card Information'
-  },
-  buttonText: {
-    type: String,
-    default: 'Pay'
-  },
-  loadingText: {
-    type: String,
-    default: 'Processing...'
+    default: 'Credit Amount'
   },
   minAmount: {
     type: Number,
@@ -150,207 +138,147 @@ const props = defineProps({
   },
   helpText: {
     type: String,
-    default: 'Minimum amount: $5'
+    default: 'Minimum amount is $5'
   },
-  stripePublicKey: {
+  paymentSectionTitle: {
     type: String,
-    default: 'pk_test_51MmOZjDEzYnWl3gYjUCK9hFdnx8ayRW9M46FG1cBnXP0nh0obUYyKF6ub5mZsMZJmQfnoJ5pLzfwsVRgGSAhp9jB00bvJjsRqV'
+    default: 'Payment Method'
+  },
+  cardLabel: {
+    type: String,
+    default: 'Card Information'
+  },
+  saveCardLabel: {
+    type: String,
+    default: 'Save card for future payments'
+  },
+  summaryTitle: {
+    type: String,
+    default: 'Order Summary'
+  },
+  summarySubtitle: {
+    type: String,
+    default: 'Review your order details'
+  },
+  amountSummaryLabel: {
+    type: String,
+    default: 'Credits'
+  },
+  totalLabel: {
+    type: String,
+    default: 'Total'
   },
   isLoading: {
     type: Boolean,
     default: false
   },
+  buttonText: {
+    type: String,
+    default: 'Complete Payment'
+  },
   animate: {
     type: Boolean,
-    default: false
+    default: true
   }
-});
+})
 
-const emit = defineEmits(['submit', 'update:amount', 'payment-error']);
+const emit = defineEmits(['submit', 'update:amount', 'payment-error'])
 
-// Payment form state
-const amount = ref<string | number>('');
-const cardholderName = ref('');
-const email = ref('');
+// State
+const cardElement = ref<HTMLElement | null>(null)
+const stripeElements = ref<any>(null)
+const cardComplete = ref(false)
+const amount = ref(props.minAmount)
+const saveCard = ref(false)
 
-// Stripe related state
-const stripe = ref<Stripe | null>(null);
-const elements = ref<StripeElements | null>(null);
-const cardElement = ref<StripeCardElement | null>(null);
-const isStripeReady = ref(false);
-const cardErrors = ref('');
-
-watch(amount, (newAmount) => {
-  emit('update:amount', newAmount);
-});
-
+// Computed
 const isValidAmount = computed(() => {
-  const numAmount = typeof amount.value === 'string' ? parseFloat(amount.value) : amount.value;
-  return !isNaN(numAmount) && numAmount >= props.minAmount;
-});
+  return amount.value >= props.minAmount
+})
 
 const formattedAmount = computed(() => {
-  const numAmount = typeof amount.value === 'string' ? parseFloat(amount.value) : amount.value;
-  return isNaN(numAmount) ? '0.00' : numAmount.toFixed(2);
-});
+  return amount.value.toFixed(2)
+})
 
 // Initialize Stripe
-const initializeStripe = async () => {
-  try {
-    stripe.value = await loadStripe(props.stripePublicKey);
-    
-    if (!stripe.value) {
-      throw new Error('Failed to load Stripe');
-    }
-    
-    elements.value = stripe.value.elements({
-      appearance: {
-        theme: 'night',
-        variables: {
-          colorPrimary: '#3b82f6',
-          colorBackground: 'rgba(22, 26, 34, 0.95)',
-          colorText: '#ffffff',
-          colorDanger: '#ef4444',
-          fontFamily: 'system-ui, sans-serif',
-          borderRadius: '0.75rem',
-          fontSizeBase: '16px'
-        },
-        rules: {
-          '.Input': {
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: 'none',
-            padding: '12px',
-          },
-          '.Input:focus': {
-            border: '1px solid rgba(59, 130, 246, 0.8)',
-            boxShadow: '0 0 0 1px rgba(59, 130, 246, 0.4)',
-          }
-        }
-      }
-    });
-    
-    cardElement.value = elements.value.create('card', {
-      hidePostalCode: true,
-      style: {
-        base: {
-          color: '#ffffff',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '16px',
-          '::placeholder': {
-            color: 'rgba(255, 255, 255, 0.4)',
-          },
-          iconColor: 'rgba(255, 255, 255, 0.6)'
-        },
-        invalid: {
-          color: '#ef4444',
-          iconColor: '#ef4444'
-        }
-      }
-    });
-    
-    // Mount card element
-    cardElement.value.mount('#card-element');
-    
-    // Handle real-time validation errors
-    cardElement.value.on('change', (event) => {
-      const displayError = document.getElementById('card-errors');
-      if (displayError) {
-        if (event.error) {
-          cardErrors.value = event.error.message;
-          displayError.textContent = event.error.message;
-        } else {
-          cardErrors.value = '';
-          displayError.textContent = '';
-        }
-      }
-    });
-    
-    isStripeReady.value = true;
-  } catch (error: any) {
-    console.error('Stripe initialization error:', error);
-    emit('payment-error', error.message);
-  }
-};
-
-const submitPayment = async () => {
-  if (!isValidAmount.value || !stripe.value || !elements.value || !cardElement.value) {
-    return;
+onMounted(() => {
+  if (!window.Stripe) {
+    emit('payment-error', 'Stripe.js failed to load. Please refresh the page.')
+    return
   }
   
   try {
-    // Get payment details
-    const { paymentMethod, error } = await stripe.value.createPaymentMethod({
-      type: 'card',
-      card: cardElement.value,
-      billing_details: {
-        name: cardholderName.value,
-        email: email.value
+    const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+    const elements = stripe.elements()
+    stripeElements.value = elements
+    
+    // Create card element
+    const card = elements.create('card', {
+      style: {
+        base: {
+          color: '#FFFFFF',
+          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+          fontSmoothing: 'antialiased',
+          fontSize: '16px',
+          '::placeholder': {
+            color: 'rgba(255, 255, 255, 0.4)'
+          }
+        },
+        invalid: {
+          color: '#F87171',
+          iconColor: '#F87171'
+        }
       }
-    });
+    })
     
-    if (error) {
-      cardErrors.value = error.message || 'Payment failed';
-      emit('payment-error', error.message);
-      return;
-    }
+    // Mount card element
+    card.mount('#card-element')
     
-    // Payment method created successfully
-    emit('submit', {
-      amount: parseFloat(formattedAmount.value),
-      paymentMethodId: paymentMethod.id,
-      email: email.value,
-      name: cardholderName.value
-    });
-    
-  } catch (error: any) {
-    cardErrors.value = error.message || 'Payment processing failed';
-    emit('payment-error', error.message);
+    // Handle real-time validation errors
+    card.on('change', (event: any) => {
+      const displayError = document.getElementById('card-errors')
+      if (displayError) {
+        if (event.error) {
+          displayError.textContent = event.error.message
+        } else {
+          displayError.textContent = ''
+        }
+      }
+      
+      cardComplete.value = event.complete
+    })
+  } catch (err: any) {
+    console.error('Error initializing Stripe:', err)
+    emit('payment-error', err.message || 'Failed to initialize payment form')
   }
-};
+})
 
-onMounted(() => {
-  initializeStripe();
-});
-
+// Clean up on unmount
 onUnmounted(() => {
-  if (cardElement.value) {
-    cardElement.value.unmount();
+  if (stripeElements.value) {
+    // Cleanup if needed
   }
-});
+})
+
+// Watch amount changes
+watch(amount, (newValue) => {
+  emit('update:amount', newValue)
+})
+
+// Submit payment
+const submitPayment = async () => {
+  if (!isValidAmount.value || props.isLoading || !cardComplete.value) {
+    return
+  }
+  
+  // Emit payment data
+  emit('submit', {
+    amount: amount.value,
+    saveCard: saveCard.value
+  })
+}
 </script>
 
 <style scoped>
-/* Animation delays */
-.animation-delay-600 {
-  animation-delay: 600ms;
-}
-
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.7s ease-out forwards;
-}
-
-/* Custom styling for card elements */
-:deep(.StripeElement) {
-  width: 100%;
-}
-
-:deep(.StripeElement--focus) {
-  border-color: rgba(59, 130, 246, 0.8);
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
-}
-
-:deep(.StripeElement--invalid) {
-  border-color: rgba(239, 68, 68, 0.8);
-}
+/* Component-specific styles */
 </style> 
