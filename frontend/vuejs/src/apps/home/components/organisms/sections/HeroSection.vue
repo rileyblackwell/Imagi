@@ -1,13 +1,13 @@
 <!-- Hero Section Component -->
 <template>
-  <section class="relative min-h-[90vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden py-16 md:py-24 mt-16 sm:mt-0">
+  <section class="relative min-h-[80vh] sm:min-h-[85vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden py-12 sm:py-16 md:py-24 mt-20 sm:mt-16 md:mt-0">
     <!-- Enhanced Background Effects -->
     <div class="absolute inset-0">
       <!-- Base gradient background -->
       <div class="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950"></div>
       
       <!-- Animated glow effects -->
-      <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-70 animate-pulse-slower"></div>
+      <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-[900px] h-[500px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-70 animate-pulse-slower"></div>
       
       <!-- Subtle grid pattern -->
       <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
@@ -16,39 +16,39 @@
     </div>
 
     <!-- Content -->
-    <div class="relative w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-8">
-      <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+    <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-20">
         <!-- Left side - Main content -->
-        <div class="flex-1 text-center lg:text-left">
+        <div class="flex-1 text-center lg:text-left pt-6 sm:pt-0">
           <!-- Enhanced badge with animation -->
-          <div class="mb-6 inline-block animate-fade-in-up">
+          <div class="mb-4 sm:mb-6 inline-block animate-fade-in-up">
             <HeroBadge text="AI-Powered Web Development" class="shadow-glow-sm" />
           </div>
 
-          <!-- Enhanced title with animation - reduced size as requested -->
-          <h1 class="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight mb-8 animate-fade-in-up animation-delay-150">
+          <!-- Enhanced title with animation - responsive sizes -->
+          <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-8 animate-fade-in-up animation-delay-150">
             <span class="text-white block mb-2">{{ titleLine1 }}</span>
             <span class="text-white block mb-2">{{ titleLine2 }}</span>
-            <GradientText variant="primary" class="font-bold block text-4xl sm:text-5xl lg:text-7xl tracking-tighter mt-2">
+            <GradientText variant="primary" class="font-bold block text-3xl sm:text-4xl md:text-5xl lg:text-7xl tracking-tighter mt-2">
               {{ highlightedTitle }}
             </GradientText>
           </h1>
 
           <!-- Enhanced description with animation -->
-          <p class="text-xl text-gray-300 mb-10 max-w-2xl animate-fade-in-up animation-delay-300 leading-relaxed">
+          <p class="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-10 max-w-2xl mx-auto lg:mx-0 animate-fade-in-up animation-delay-300 leading-relaxed">
             {{ description }}
           </p>
 
           <!-- Enhanced buttons with animation -->
-          <div class="flex flex-col sm:flex-row items-center gap-5 justify-center lg:justify-start animate-fade-in-up animation-delay-450">
+          <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 justify-center lg:justify-start animate-fade-in-up animation-delay-450">
             <!-- Primary button -->
             <HomeNavbarButton
               :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-              class="group relative w-full sm:w-auto !h-14 px-8 rounded-xl bg-primary-600 hover:bg-primary-500 border border-primary-500/40 hover:border-primary-400/70 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-primary-600/20"
+              class="group relative w-full sm:w-auto !h-12 sm:!h-14 px-6 sm:px-8 rounded-xl bg-primary-600 hover:bg-primary-500 border border-primary-500/40 hover:border-primary-400/70 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-primary-600/20"
             >
-              <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white">
+              <span class="relative z-10 flex items-center justify-center text-base sm:text-lg font-medium text-white">
                 {{ primaryButtonText }}
-                <i class="fas fa-arrow-right ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
+                <i class="fas fa-arrow-right ml-2 sm:ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
               </span>
               <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm -z-10"></div>
             </HomeNavbarButton>
@@ -56,12 +56,12 @@
             <!-- Secondary button -->
             <a 
               :href="secondaryButtonHref" 
-              class="group flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 px-8 py-4 rounded-xl border border-gray-700/30 hover:border-primary-500/30 bg-dark-800/50 hover:bg-dark-700/50 backdrop-blur-sm transform hover:-translate-y-1"
+              class="group flex items-center gap-2 sm:gap-3 text-gray-300 hover:text-white transition-all duration-300 px-6 sm:px-8 py-3 sm:py-4 rounded-xl border border-gray-700/30 hover:border-primary-500/30 bg-dark-800/50 hover:bg-dark-700/50 backdrop-blur-sm transform hover:-translate-y-1"
             >
-              <div class="w-8 h-8 rounded-full bg-dark-700/80 group-hover:bg-primary-500/20 flex items-center justify-center transition-all duration-300">
+              <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-dark-700/80 group-hover:bg-primary-500/20 flex items-center justify-center transition-all duration-300">
                 <i class="fas fa-play text-xs text-primary-400"></i>
               </div>
-              <span class="font-medium text-lg">{{ secondaryButtonText }}</span>
+              <span class="font-medium text-base sm:text-lg">{{ secondaryButtonText }}</span>
             </a>
           </div>
           
@@ -69,7 +69,7 @@
         </div>
 
         <!-- Right side - Interactive Demo -->
-        <div class="flex-1 w-full max-w-xl mx-auto lg:mx-0 animate-fade-in-up animation-delay-300">
+        <div class="flex-1 w-full max-w-xl mx-auto lg:mx-0 mt-10 lg:mt-0 animate-fade-in-up animation-delay-300">
           <div class="relative">
             <!-- Glow effect behind terminal -->
             <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-xl blur-md"></div>
@@ -80,8 +80,8 @@
             </div>
             
             <!-- Decorative elements -->
-            <div class="absolute -z-10 -bottom-6 -right-6 w-24 h-24 bg-primary-500/10 rounded-full blur-xl"></div>
-            <div class="absolute -z-10 -top-6 -left-6 w-32 h-32 bg-violet-500/10 rounded-full blur-xl"></div>
+            <div class="absolute -z-10 -bottom-6 -right-6 w-16 sm:w-24 h-16 sm:h-24 bg-primary-500/10 rounded-full blur-xl"></div>
+            <div class="absolute -z-10 -top-6 -left-6 w-24 sm:w-32 h-24 sm:h-32 bg-violet-500/10 rounded-full blur-xl"></div>
           </div>
         </div>
       </div>

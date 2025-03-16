@@ -1,34 +1,34 @@
 <!-- Features Section Component with Modern UI -->
 <template>
-  <section class="py-20 md:py-32 px-4 sm:px-6 lg:px-8 relative">
+  <section class="py-16 sm:py-20 md:py-32 px-4 sm:px-6 lg:px-8 relative">
     <!-- Background decorative elements -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <div class="absolute top-[30%] right-[5%] w-[500px] h-[500px] rounded-full bg-primary-600/10 blur-[100px]"></div>
-      <div class="absolute bottom-[20%] left-[10%] w-[400px] h-[400px] rounded-full bg-violet-600/10 blur-[80px]"></div>
+      <div class="absolute top-[30%] right-[5%] w-[300px] sm:w-[400px] md:w-[500px] h-[300px] sm:h-[400px] md:h-[500px] rounded-full bg-primary-600/10 blur-[100px]"></div>
+      <div class="absolute bottom-[20%] left-[10%] w-[250px] sm:w-[300px] md:w-[400px] h-[250px] sm:h-[300px] md:h-[400px] rounded-full bg-violet-600/10 blur-[80px]"></div>
     </div>
     
     <div class="max-w-7xl mx-auto relative">
       <!-- Enhanced section header with animation -->
-      <div class="text-center mb-16 relative">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">POWERFUL FEATURES</span>
+      <div class="text-center mb-10 sm:mb-16 relative">
+        <div class="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary-500/10 rounded-full mb-3">
+          <span class="text-primary-400 font-semibold text-xs sm:text-sm tracking-wider">POWERFUL FEATURES</span>
         </div>
-        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{{ title }}</h2>
-        <p class="text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">{{ title }}</h2>
+        <p class="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
         
         <!-- Decorative element -->
-        <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-8"></div>
+        <div class="w-16 sm:w-24 h-1 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-6 sm:mt-8"></div>
       </div>
 
       <!-- 3D-like feature cards with glassmorphism -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
         <div 
           v-for="(feature, index) in features" 
           :key="index"
           class="feature-card relative group"
         >
           <!-- Card with 3D hover effect -->
-          <div class="relative h-full p-8 rounded-2xl border border-gray-800/50 bg-dark-900/40 backdrop-blur-sm transition-all duration-300 overflow-hidden group-hover:shadow-glow group-hover:shadow-[--feature-color] group-hover:-translate-y-1"
+          <div class="relative h-full p-6 sm:p-8 rounded-2xl border border-gray-800/50 bg-dark-900/40 backdrop-blur-sm transition-all duration-300 overflow-hidden group-hover:shadow-glow group-hover:shadow-[--feature-color] group-hover:-translate-y-1"
                :style="{ '--feature-color': getFeatureColor(feature.color) }">
             
             <!-- Subtle gradient background -->
@@ -36,20 +36,20 @@
                  :class="getGradientClass(feature.color)"></div>
             
             <!-- Glowing orb in corner -->
-            <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20 blur-2xl transition-all duration-300 group-hover:opacity-40 group-hover:scale-125"
+            <div class="absolute -top-20 -right-20 w-32 sm:w-40 h-32 sm:h-40 rounded-full opacity-20 blur-2xl transition-all duration-300 group-hover:opacity-40 group-hover:scale-125"
                  :class="getOrbClass(feature.color)"></div>
                  
             <!-- Icon container with 3D effect -->
-            <div class="w-14 h-14 flex items-center justify-center rounded-xl mb-6 transform transition-all duration-300 shadow-lg group-hover:shadow-xl"
+            <div class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-xl mb-4 sm:mb-6 transform transition-all duration-300 shadow-lg group-hover:shadow-xl"
                  :class="getIconContainerClass(feature.color)">
-              <i :class="[feature.icon, 'text-2xl transition-all duration-300', getIconClass(feature.color)]"></i>
+              <i :class="[feature.icon, 'text-xl sm:text-2xl transition-all duration-300', getIconClass(feature.color)]"></i>
             </div>
             
-            <h3 class="text-xl font-bold mb-3 transition-all duration-300 group-hover:text-white">{{ feature.title }}</h3>
-            <p class="text-gray-400 transition-all duration-300 group-hover:text-gray-300">{{ feature.description }}</p>
+            <h3 class="text-lg sm:text-xl font-bold mb-2 sm:mb-3 transition-all duration-300 group-hover:text-white">{{ feature.title }}</h3>
+            <p class="text-sm sm:text-base text-gray-400 transition-all duration-300 group-hover:text-gray-300">{{ feature.description }}</p>
             
             <!-- Subtle "Learn more" link -->
-            <div class="mt-6 flex items-center text-sm font-medium transition-all duration-300"
+            <div class="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-medium transition-all duration-300"
                  :class="getLinkClass(feature.color)">
               <span>Learn more</span>
               <i class="fas fa-arrow-right ml-2 text-xs transition-all duration-300 group-hover:translate-x-1"></i>
