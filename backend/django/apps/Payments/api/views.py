@@ -137,7 +137,14 @@ def create_payment_intent(request):
             'credits': str(amount)
         }
         
-        intent = stripe_service.create_payment_intent(amount, metadata)
+        # Use direct payment instead
+        payment_method_id = request.data.get('payment_method_id')
+        if not payment_method_id:
+            return Response({
+                'error': 'Payment method ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        intent = stripe_service.create_direct_payment(amount, payment_method_id, metadata)
         
         # Create a transaction record
         transaction_service.create_purchase_transaction(
@@ -166,7 +173,7 @@ def process_payment(request):
     """Process payment and add credits to user's account."""
     try:
         amount = request.data.get('amount')
-        payment_method_id = request.data.get('payment_method_id')
+        payment_method_id = request.data.get('paymentMethodId')
         
         if not amount or not payment_method_id:
             return Response({
@@ -197,7 +204,8 @@ def process_payment(request):
             return Response({
                 'success': True,
                 'message': 'Payment processed successfully',
-                'new_balance': result['new_balance']
+                'new_balance': result['new_balance'],
+                'credits_added': amount
             })
         
         # If payment needs additional actions

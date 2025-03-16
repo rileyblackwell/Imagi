@@ -8,7 +8,7 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from typing import Dict, Any, Union, Optional
 
-from ..models import CreditBalance, CreditPlan
+from ..models import CreditBalance
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -100,20 +100,19 @@ class CreditService:
                         'current_balance': float(balance.balance),
                         'required_credits': amount
                     }
-                
-                # Create usage transaction
-                from ..models import Transaction
-                Transaction.objects.create(
-                    user=user,
-                    amount=-amount,
-                    transaction_type='usage',
-                    status='completed',
-                    description=transaction_description or f"Usage of {amount} credits"
-                )
-                
+                    
                 # Update balance
                 balance.balance = Decimal(str(float(balance.balance) - amount))
                 balance.save()
+                
+                # Create usage transaction
+                if hasattr(self, 'transaction_service'):
+                    transaction_description = transaction_description or f"Used {amount} credits"
+                    self.transaction_service.create_usage_transaction(
+                        user,
+                        amount,
+                        description=transaction_description
+                    )
                 
             return {
                 'success': True,
@@ -121,11 +120,6 @@ class CreditService:
                 'credits_deducted': amount
             }
             
-        except ValueError as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
         except Exception as e:
             logger.error(f"Error deducting credits: {str(e)}")
             return {
@@ -139,39 +133,27 @@ class CreditService:
         
         Args:
             user: The user
-            required_credits: The amount of credits required
+            required_credits: The required credits
             
         Returns:
-            Dict with sufficient status and balance info
+            Dict with the check result
         """
         try:
-            if required_credits <= 0:
-                return {
-                    'success': False,
-                    'error': 'Invalid credit amount'
-                }
+            current_balance = self.get_balance(user)
             
-            balance, created = CreditBalance.objects.get_or_create(user=user)
-            has_sufficient_credits = float(balance.balance) >= required_credits
+            has_sufficient = current_balance >= required_credits
             
             result = {
                 'success': True,
-                'has_sufficient_credits': has_sufficient_credits,
-                'current_balance': float(balance.balance),
+                'has_sufficient': has_sufficient,
+                'current_balance': current_balance,
                 'required_credits': required_credits
             }
             
-            if not has_sufficient_credits:
-                # Get the smallest plan that covers the required credits
-                plan = CreditPlan.objects.filter(
-                    credits__gte=required_credits,
-                    is_active=True
-                ).order_by('credits').first()
+            # If insufficient, calculate how many more are needed
+            if not has_sufficient:
+                result['needed_credits'] = required_credits - current_balance
                 
-                if plan:
-                    from ..api.serializers import CreditPlanSerializer
-                    result['suggested_plan'] = CreditPlanSerializer(plan).data
-            
             return result
             
         except Exception as e:

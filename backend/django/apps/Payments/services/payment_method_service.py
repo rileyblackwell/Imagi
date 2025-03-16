@@ -4,6 +4,7 @@ Service for managing user payment methods.
 
 import logging
 from typing import Dict, Any, List, Optional
+from django.db import transaction
 
 from ..models import PaymentMethod
 
@@ -98,7 +99,7 @@ class PaymentMethodService:
             List of payment methods
         """
         try:
-            return PaymentMethod.objects.filter(user=user)
+            return list(PaymentMethod.objects.filter(user=user).order_by('-is_default', '-created_at'))
             
         except Exception as e:
             logger.error(f"Error getting payment methods: {str(e)}")
@@ -127,25 +128,23 @@ class PaymentMethodService:
         
         Args:
             user: The user
-            payment_method_id: The ID of the payment method to set as default
+            payment_method_id: The payment method ID
             
         Returns:
             True if successful, False otherwise
         """
         try:
-            # Clear current default
-            PaymentMethod.objects.filter(user=user, is_default=True).update(is_default=False)
-            
-            # Set new default
-            payment_method = PaymentMethod.objects.get(user=user, id=payment_method_id)
-            payment_method.is_default = True
-            payment_method.save()
-            
+            with transaction.atomic():
+                # Clear existing default
+                PaymentMethod.objects.filter(user=user, is_default=True).update(is_default=False)
+                
+                # Set new default
+                method = PaymentMethod.objects.get(user=user, payment_method_id=payment_method_id)
+                method.is_default = True
+                method.save()
+                
             return True
             
-        except PaymentMethod.DoesNotExist:
-            logger.error(f"Payment method not found: {payment_method_id}")
-            return False
         except Exception as e:
             logger.error(f"Error setting default payment method: {str(e)}")
             return False
@@ -156,26 +155,25 @@ class PaymentMethodService:
         
         Args:
             user: The user
-            payment_method_id: The ID of the payment method to delete
+            payment_method_id: The payment method ID
             
         Returns:
             True if successful, False otherwise
         """
         try:
-            payment_method = PaymentMethod.objects.get(user=user, id=payment_method_id)
+            method = PaymentMethod.objects.get(user=user, payment_method_id=payment_method_id)
             
-            # If this is the default payment method, set another one as default
-            if payment_method.is_default:
-                other_method = PaymentMethod.objects.filter(user=user).exclude(id=payment_method_id).first()
-                if other_method:
-                    other_method.is_default = True
-                    other_method.save()
+            # If this is the default method, find a new default
+            if method.is_default:
+                next_method = PaymentMethod.objects.filter(user=user).exclude(payment_method_id=payment_method_id).first()
+                if next_method:
+                    next_method.is_default = True
+                    next_method.save()
                     
-            payment_method.delete()
+            method.delete()
             return True
             
         except PaymentMethod.DoesNotExist:
-            logger.error(f"Payment method not found: {payment_method_id}")
             return False
         except Exception as e:
             logger.error(f"Error deleting payment method: {str(e)}")

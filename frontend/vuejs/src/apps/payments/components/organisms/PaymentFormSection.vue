@@ -14,15 +14,38 @@
             <span class="text-white/60 sm:text-sm">$</span>
           </div>
           <input
-            v-model="amount"
+            v-model.number="amount"
             type="number"
             :min="minAmount"
+            :max="maxAmount"
             :step="step"
             class="block w-full rounded-xl border-white/20 bg-dark-800/60 py-3 pl-8 pr-12 text-white placeholder-white/40 backdrop-blur-sm focus:border-primary-500 focus:ring-primary-500 transition-all duration-300"
             :placeholder="placeholder"
           />
           <div class="absolute inset-y-0 right-0 flex items-center pr-3">
             <span class="text-white/60 sm:text-sm">USD</span>
+          </div>
+          <div class="absolute inset-y-0 right-12 flex flex-col h-full">
+            <button 
+              type="button" 
+              @click="incrementAmount"
+              class="flex-1 px-1 text-white/60 hover:text-primary-400 transition-colors duration-200 flex items-center justify-center"
+              tabindex="-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <button 
+              type="button" 
+              @click="decrementAmount"
+              class="flex-1 px-1 text-white/60 hover:text-primary-400 transition-colors duration-200 flex items-center justify-center"
+              tabindex="-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clip-rule="evenodd" />
+              </svg>
+            </button>
           </div>
         </div>
         <p class="mt-2 text-sm text-white/60">{{ helpText }}</p>
@@ -128,6 +151,10 @@ const props = defineProps({
     type: Number,
     default: 5
   },
+  maxAmount: {
+    type: Number,
+    default: 100
+  },
   step: {
     type: Number,
     default: 1
@@ -138,7 +165,7 @@ const props = defineProps({
   },
   helpText: {
     type: String,
-    default: 'Minimum amount is $5'
+    default: 'Amount range: $5 - $100'
   },
   paymentSectionTitle: {
     type: String,
@@ -187,17 +214,19 @@ const emit = defineEmits(['submit', 'update:amount', 'payment-error'])
 // State
 const cardElement = ref<HTMLElement | null>(null)
 const stripeElements = ref<any>(null)
+const stripeInstance = ref<any>(null)
 const cardComplete = ref(false)
-const amount = ref(props.minAmount)
+const amount = ref<number>(props.minAmount)
 const saveCard = ref(false)
 
 // Computed
 const isValidAmount = computed(() => {
-  return amount.value >= props.minAmount
+  return amount.value && amount.value >= props.minAmount && amount.value <= props.maxAmount
 })
 
 const formattedAmount = computed(() => {
-  return amount.value.toFixed(2)
+  const numAmount = typeof amount.value === 'string' ? parseFloat(amount.value) : amount.value;
+  return numAmount ? numAmount.toFixed(2) : '0.00';
 })
 
 // Initialize Stripe
@@ -230,6 +259,9 @@ const initializeStripe = () => {
     const stripe = window.Stripe(stripePublishableKey, {
       apiVersion: '2022-11-15'
     });
+    
+    // Store the stripe instance
+    stripeInstance.value = stripe;
     
     // Create elements instance with minimal configuration
     const elements = stripe.elements();
@@ -292,14 +324,71 @@ const submitPayment = async () => {
     return
   }
   
-  // Emit payment data
-  emit('submit', {
-    amount: amount.value,
-    saveCard: saveCard.value
-  })
+  try {
+    // Use the same Stripe instance that was created in initializeStripe
+    if (!stripeInstance.value) {
+      throw new Error('Stripe has not been initialized properly');
+    }
+    
+    // Create a payment method with the card element
+    const result = await stripeInstance.value.createPaymentMethod({
+      type: 'card',
+      card: stripeElements.value.getElement('card'),
+    });
+    
+    if (result.error) {
+      // Show error to your customer
+      const errorElement = document.getElementById('card-errors');
+      if (errorElement) {
+        errorElement.textContent = result.error.message || 'An unexpected error occurred';
+      }
+      emit('payment-error', result.error.message || 'Payment failed');
+      return;
+    }
+    
+    // Emit payment data with payment method ID
+    emit('submit', {
+      amount: amount.value,
+      paymentMethodId: result.paymentMethod.id,
+      saveCard: saveCard.value
+    });
+  } catch (err: any) {
+    console.error('Payment submission error:', err);
+    emit('payment-error', err.message || 'Payment submission failed');
+  }
+}
+
+// Increment amount
+const incrementAmount = () => {
+  if (amount.value < props.maxAmount) {
+    amount.value += props.step;
+  }
+}
+
+// Decrement amount
+const decrementAmount = () => {
+  if (amount.value > props.minAmount) {
+    amount.value -= props.step;
+  }
 }
 </script>
 
 <style scoped>
 /* Component-specific styles */
+/* Hide default number input arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Custom button hover effects */
+button:hover svg {
+  transform: scale(1.2);
+  transition: transform 0.2s ease;
+}
 </style> 

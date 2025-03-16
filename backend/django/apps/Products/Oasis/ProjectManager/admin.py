@@ -8,16 +8,20 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'user_link',
+        'user_email',
         'generation_status',
         'created_at',
         'last_generated_at',
-        'is_active'
+        'is_active',
+        'user_transactions',
+        'user_balance'
     )
     list_filter = (
         'is_active',
         'generation_status',
         'created_at',
-        'last_generated_at'
+        'last_generated_at',
+        'user'
     )
     search_fields = (
         'name',
@@ -57,6 +61,32 @@ class ProjectAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">{}</a>', url, obj.user.username)
     user_link.short_description = 'User'
     user_link.admin_order_field = 'user__username'
+
+    def user_email(self, obj):
+        """Display user email."""
+        return obj.user.email
+    user_email.short_description = 'Email'
+    user_email.admin_order_field = 'user__email'
+
+    def user_transactions(self, obj):
+        """Link to user's transaction history."""
+        url = reverse('admin:Payments_transaction_changelist') + f'?user__id__exact={obj.user.id}'
+        return format_html('<a href="{}">Transactions</a>', url)
+    user_transactions.short_description = 'Transactions'
+
+    def user_balance(self, obj):
+        """Link to user's balance."""
+        try:
+            from apps.Payments.models import CreditBalance
+            balance = CreditBalance.objects.filter(user=obj.user).first()
+            if balance:
+                url = reverse('admin:Payments_creditbalance_change', args=[balance.id])
+                return format_html('<a href="{}">{} credits</a>', url, balance.balance)
+            else:
+                return "0 credits"
+        except:
+            return "N/A"
+    user_balance.short_description = 'Balance'
 
     def get_queryset(self, request):
         """Optimize admin list query."""

@@ -28,6 +28,7 @@ export interface CreditPackage {
 export interface PaymentProcessRequest {
   amount: number;
   paymentMethodId: string;
+  saveCard?: boolean;
 }
 
 export interface PaymentProcessResponse {
@@ -48,4 +49,6 @@ export interface PaymentStoreState {
   isHistoryLoading: boolean;
   transactions: Transaction[];
   packages: CreditPackage[];
+  balanceRefreshTimer: ReturnType<typeof setInterval> | null;
+  isAutoRefreshEnabled: boolean;
 } 

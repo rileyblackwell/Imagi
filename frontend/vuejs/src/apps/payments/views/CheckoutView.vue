@@ -136,6 +136,20 @@ const customAmount = ref<number | null>(null)
 const paymentError = ref('')
 const processingPayment = ref(false)
 
+// Initialize payment data when component mounts
+onMounted(async () => {
+  try {
+    // Initialize the payment system with auto-refresh
+    await store.initializePayments();
+    
+    // Set default amount
+    customAmount.value = 5;
+  } catch (err: any) {
+    console.error('Failed to initialize payment data:', err);
+    paymentError.value = 'Failed to load account data. Please refresh the page.';
+  }
+})
+
 // Computed
 const isValidAmount = computed(() => {
   return customAmount.value !== null && customAmount.value >= 5
@@ -158,35 +172,33 @@ const processPayment = async (paymentData: any) => {
   if (!isValidAmount.value) return
 
   try {
-    // Here you would typically call your backend API to process the Stripe payment
-    // For now we'll just simulate a successful payment
-
-    console.log('Processing payment with data:', paymentData)
+    // Clear any previous errors
+    paymentError.value = ''
     
     // Set local loading state
     processingPayment.value = true
     
-    // Simulate backend API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // Check for simulated payment error (for testing)
-    if (paymentData.amount > 500) {
-      throw new Error('Payment amount exceeds maximum allowed.')
-    }
+    console.log('Processing payment with data:', paymentData)
     
-    // Process successful payment
+    // Actually call the backend API to process the payment
+    const response = await store.processPayment({
+      amount: paymentData.amount,
+      paymentMethodId: paymentData.paymentMethodId
+    });
+    
+    // Handle successful payment
     success.value = true
-    paymentError.value = ''
     
-    // Refresh user credits
+    // Refresh user credits immediately
     await store.fetchUserCredits()
     
-    // Reset success message after delay
+    // Success message will be cleared after 5 seconds
     setTimeout(() => {
       success.value = false
     }, 5000)
   } catch (err: any) {
-    paymentError.value = err.message || 'Payment processing failed'
+    console.error('Payment error:', err)
+    paymentError.value = err.response?.data?.error || err.message || 'Payment processing failed'
   } finally {
     processingPayment.value = false
   }
