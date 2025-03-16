@@ -1,7 +1,7 @@
 <!-- Home landing page -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-gradient-to-b from-dark-950 to-dark-900">
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
       <!-- Decorative Elements -->
       <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <!-- Gradient orbs -->
@@ -120,19 +120,6 @@ export default defineComponent({
 
 .animate-pulse-slow {
   animation: pulse-slow 4s ease-in-out infinite;
-}
-
-/* Override any dark-950 if not available in Tailwind config */
-.bg-dark-950 {
-  background-color: rgba(9, 11, 17, 0.95);
-}
-
-.from-dark-950 {
-  --tw-gradient-from: rgba(9, 11, 17, 0.95);
-}
-
-.to-dark-950 {
-  --tw-gradient-to: rgba(9, 11, 17, 0.95);
 }
 
 /* Add subtle scrollbar styling */

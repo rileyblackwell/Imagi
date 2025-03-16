@@ -4,11 +4,11 @@
     <!-- Enhanced decorative background elements -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <!-- 3D grid effect -->
-      <div class="absolute inset-0 bg-[url('/grid-pattern-dark.svg')] opacity-[0.03]"></div>
+      <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
       
       <!-- Large gradient orbs -->
-      <div class="absolute top-[10%] right-[15%] w-[700px] h-[700px] rounded-full bg-primary-600/5 blur-[150px] opacity-60"></div>
-      <div class="absolute bottom-[15%] left-[10%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[130px] opacity-50"></div>
+      <div class="absolute top-[10%] right-[15%] w-[700px] h-[700px] rounded-full bg-primary-600/5 blur-[150px] animate-pulse-slow"></div>
+      <div class="absolute bottom-[15%] left-[10%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[130px] animate-pulse-slow animation-delay-150"></div>
       
       <!-- Particle effect (static representation) -->
       <div class="absolute inset-0 overflow-hidden opacity-30">
@@ -19,104 +19,96 @@
     <div class="container mx-auto px-6 relative z-10">
       <!-- Modern Section Header -->
       <div class="max-w-3xl mx-auto text-center mb-20">
-        <div class="inline-block px-4 py-1.5 bg-violet-500/10 rounded-full mb-3">
-          <span class="text-violet-400 font-semibold text-sm tracking-wider">BY THE NUMBERS</span>
+        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
+          <span class="text-primary-400 font-semibold text-sm tracking-wider">BY THE NUMBERS</span>
         </div>
-        <h2 class="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight gradient-text">{{ title }}</h2>
+        <h2 class="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">{{ title }}</h2>
         <p class="text-xl text-gray-300 leading-relaxed">{{ subtitle }}</p>
         
         <!-- Animated decorative line -->
-        <div class="w-32 h-1.5 bg-gradient-to-r from-primary-500 via-violet-500 to-fuchsia-500 rounded-full mx-auto mt-10 opacity-80"></div>
+        <div class="w-32 h-1.5 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-10 opacity-80"></div>
       </div>
       
       <!-- 3D Stats Dashboard -->
       <div class="relative max-w-7xl mx-auto">
         <!-- Animated connection lines between stats -->
-        <div class="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent -z-10 hidden lg:block animate-pulse-slow"></div>
-        <div class="absolute top-[calc(50%-10px)] left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent -z-10 hidden lg:block animate-pulse-slower"></div>
-        <div class="absolute top-[calc(50%+10px)] left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent -z-10 hidden lg:block animate-pulse-slowest"></div>
+        <div class="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent -z-10 hidden lg:block animate-pulse-slow"></div>
+        <div class="absolute top-[calc(50%-10px)] left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent -z-10 hidden lg:block animate-pulse-slow animation-delay-150"></div>
+        <div class="absolute top-[calc(50%+10px)] left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent -z-10 hidden lg:block animate-pulse-slow animation-delay-300"></div>
         
-        <!-- Stats Grid with 3D cards -->
+        <!-- Stats Grid with enhanced glass morphism cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
           <div 
             v-for="(stat, index) in stats"
             :key="index"
-            class="stat-card transform transition-all duration-500 hover:scale-105 hover:-translate-y-2"
+            class="group relative transform transition-all duration-300 hover:-translate-y-2"
           >
-            <!-- 3D Glassmorphism Stat Card -->
-            <div class="relative h-full p-6 rounded-2xl border border-gray-800/60 bg-dark-900/40 backdrop-blur-sm overflow-hidden group">
-              <!-- Gradient background -->
-              <div class="absolute inset-0 bg-gradient-to-br opacity-10 -z-10 transition-opacity duration-300 group-hover:opacity-20"
-                   :class="getGradientClass(stat.color)"></div>
-                   
-              <!-- Glowing orb -->
-              <div class="absolute -bottom-20 -right-20 w-48 h-48 rounded-full opacity-20 blur-3xl transition-all duration-300 group-hover:opacity-30 group-hover:scale-110"
-                   :class="getOrbClass(stat.color)"></div>
+            <!-- Enhanced glass morphism effect with glow -->
+            <div class="absolute -inset-0.5 rounded-xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"
+                 :class="getGlowBorderClass(stat.color)"></div>
+            
+            <!-- Stat card with enhanced glass morphism -->
+            <div class="relative h-full bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300">
+              <!-- Card header with gradient -->
+              <div class="h-2 w-full transition-all duration-300"
+                   :class="getHeaderGradientClass(stat.color)"></div>
               
-              <!-- Stat card top section -->
-              <div class="flex items-start justify-between mb-6">
-                <!-- Icon with 3D effect -->
-                <div class="stat-icon-container relative w-14 h-14 rounded-xl flex items-center justify-center transform transition-all duration-300 group-hover:-translate-y-1"
-                     :class="getIconBgClass(stat.color)">
-                  <i :class="[stat.icon, 'text-2xl', getIconClass(stat.color)]"></i>
-                  
-                  <!-- Secondary icon for layered effect -->
-                  <div class="absolute -right-2 -bottom-2 w-6 h-6 rounded-lg flex items-center justify-center bg-dark-800 border border-gray-700/50"
-                       v-if="stat.secondaryIcon">
-                    <i :class="[stat.secondaryIcon, 'text-xs', getIconClass(stat.color)]"></i>
-                  </div>
-                  
-                  <!-- Icon shadow -->
-                  <div class="absolute w-full h-full rounded-xl top-0 left-0 blur-md -z-10 opacity-60 scale-90"
-                       :class="getIconShadowClass(stat.color)"></div>
+              <!-- Card content -->
+              <div class="p-6">
+                <!-- Icon with enhanced styling -->
+                <div class="w-12 h-12 rounded-lg mb-4 flex items-center justify-center transform transition-all duration-300 group-hover:scale-110"
+                     :class="getIconContainerClass(stat.color)">
+                  <i :class="[stat.icon, 'text-xl', getIconClass(stat.color)]"></i>
                 </div>
                 
-                <!-- Mini chart/visualization -->
-                <div class="w-24 h-12 rounded-lg overflow-hidden bg-dark-800/70 flex items-end p-1">
-                  <div 
-                    v-for="bar in 8" 
-                    :key="bar" 
-                    class="stat-bar mx-0.5 rounded-t-sm w-full" 
-                    :class="getBarClass(stat.color)"
-                    :style="{
-                      height: `${15 + Math.floor(Math.random() * 20)}px`,
-                      animationDelay: `${bar * 0.1}s`
-                    }"
-                  ></div>
+                <!-- Value with enhanced gradient text -->
+                <div class="flex items-baseline gap-1 mb-1">
+                  <div class="text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent"
+                       :class="getValueGradientClass(stat.color)">{{ stat.value }}</div>
+                  <div class="text-sm font-medium" :class="getUnitClass(stat.color)">{{ stat.unit }}</div>
                 </div>
-              </div>
-              
-              <!-- Stat value with 3D counter effect -->
-              <div class="stat-value-container">
-                <div class="text-3xl md:text-4xl font-bold text-white mb-1 flex items-baseline">
-                  <span>{{ stat.value }}</span>
-                  
-                  <!-- Progress bar for percentage stats -->
-                  <div v-if="stat.percent" class="ml-3 w-20 h-1.5 bg-dark-700 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-1000" 
-                         :class="getProgressClass(stat.color)"
-                         :style="{ width: `${stat.percent}%` }"></div>
-                  </div>
-                </div>
-                <div class="text-gray-400 text-lg font-medium">{{ stat.label }}</div>
                 
-                <!-- 24/7 indicator with pulsing dots -->
-                <div v-if="stat.isClock" class="flex items-center mt-2 space-x-2">
-                  <span class="text-xs font-medium uppercase tracking-wide" :class="getIconClass(stat.color)">Always Available</span>
-                  <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="getDotClass(stat.color)"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2" :class="getDotClass(stat.color)"></span>
-                  </span>
+                <!-- Label -->
+                <div class="text-base text-gray-300">{{ stat.label }}</div>
+                
+                <!-- Growth indicator with arrow -->
+                <div v-if="stat.growth" class="mt-3 flex items-center text-sm font-medium" 
+                     :class="getGrowthClass(stat.growth > 0 ? 'positive' : 'negative')">
+                  <i :class="[
+                    stat.growth > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down',
+                    'mr-1'
+                  ]"></i>
+                  {{ Math.abs(stat.growth) }}% <span class="ml-1 opacity-70">from last month</span>
                 </div>
               </div>
-              
-              <!-- Hover border effect -->
-              <div class="absolute inset-0 rounded-2xl border opacity-0 transition-all duration-300 group-hover:opacity-20 pointer-events-none"
-                   :class="getBorderClass(stat.color)"></div>
-                   
-              <!-- Hover indicator -->
-              <div class="absolute bottom-3 right-3 w-2 h-2 rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100"
-                   :class="getDotClass(stat.color)"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Secondary Stats Row with enhanced styling -->
+        <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div v-for="(metric, index) in metrics" :key="index"
+               class="group relative transform transition-all duration-300 hover:-translate-y-1">
+            <!-- Subtle glow effect -->
+            <div class="absolute -inset-0.5 rounded-xl opacity-0 group-hover:opacity-50 blur group-hover:blur-sm transition-all duration-300"
+                 :class="getGlowBorderClass(metric.color)"></div>
+                 
+            <div class="relative bg-dark-900/60 backdrop-blur-md rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300 p-6">
+              <div class="flex items-center gap-4">
+                <!-- Icon with enhanced styling -->
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                     :class="getIconContainerClass(metric.color)">
+                  <i :class="[metric.icon, 'text-lg', getIconClass(metric.color)]"></i>
+                </div>
+                
+                <div>
+                  <!-- Value with enhanced styling -->
+                  <div class="text-2xl font-bold text-white">{{ metric.value }}</div>
+                  
+                  <!-- Label -->
+                  <div class="text-sm text-gray-400">{{ metric.label }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -132,164 +124,146 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'StatsSection',
-  setup() {
-    const title = ref('Our Impact')
-    const subtitle = ref('Imagi is revolutionizing web development for businesses and developers around the world')
-    
-    const stats = ref([
-      {
-        icon: 'fas fa-users',
-        secondaryIcon: 'fas fa-user-group',
-        value: '5K+',
-        label: 'Active Users',
-        percent: null,
-        color: 'primary'
-      },
-      {
-        icon: 'fas fa-code',
-        secondaryIcon: 'fas fa-laptop-code',
-        value: '10K+',
-        label: 'Apps Created',
-        percent: null,
-        color: 'indigo'
-      },
-      {
-        icon: 'fas fa-clock',
-        value: '80%',
-        label: 'Dev Time Saved',
-        percent: 80,
-        color: 'green'
-      },
-      {
-        icon: 'fas fa-headset',
-        value: '24/7',
-        label: 'AI Support',
-        percent: 100,
-        isClock: true,
-        color: 'purple'
-      }
-    ])
-    
-    return {
-      title,
-      subtitle,
-      stats
+  props: {
+    title: {
+      type: String,
+      default: 'Our Impact By The Numbers'
+    },
+    subtitle: {
+      type: String,
+      default: 'See how our AI-powered platform is transforming the web development landscape through measurable results.'
+    },
+    stats: {
+      type: Array,
+      default: () => [
+        {
+          icon: 'fas fa-users',
+          value: '50K+',
+          unit: '',
+          label: 'Active Users',
+          growth: 28,
+          color: 'primary'
+        },
+        {
+          icon: 'fas fa-code',
+          value: '5M+',
+          unit: '',
+          label: 'Lines of Code Generated',
+          growth: 42,
+          color: 'violet'
+        },
+        {
+          icon: 'fas fa-laptop-code',
+          value: '100K+',
+          unit: '',
+          label: 'Apps Built',
+          growth: 35,
+          color: 'blue'
+        },
+        {
+          icon: 'fas fa-clock',
+          value: '1.5M+',
+          unit: '',
+          label: 'Hours Saved',
+          growth: 57,
+          color: 'purple'
+        }
+      ]
+    },
+    metrics: {
+      type: Array,
+      default: () => [
+        {
+          icon: 'fas fa-bolt',
+          value: '10x Faster',
+          label: 'Development Speed',
+          color: 'primary'
+        },
+        {
+          icon: 'fas fa-calendar',
+          value: '99.9%',
+          label: 'Uptime Reliability',
+          color: 'violet'
+        },
+        {
+          icon: 'fas fa-globe',
+          value: '150+',
+          label: 'Countries Served',
+          color: 'blue'
+        }
+      ]
     }
   },
   methods: {
+    getGlowBorderClass(color) {
+      const classes = {
+        primary: 'bg-gradient-to-r from-primary-500/50 to-violet-500/50',
+        violet: 'bg-gradient-to-r from-violet-500/50 to-purple-500/50',
+        purple: 'bg-gradient-to-r from-purple-500/50 to-primary-500/50',
+        blue: 'bg-gradient-to-r from-blue-500/50 to-violet-500/50',
+      }
+      return classes[color] || classes.primary
+    },
+    getHeaderGradientClass(color) {
+      const classes = {
+        primary: 'bg-gradient-to-r from-primary-500 to-violet-500',
+        violet: 'bg-gradient-to-r from-violet-500 to-purple-500',
+        purple: 'bg-gradient-to-r from-purple-500 to-primary-500',
+        blue: 'bg-gradient-to-r from-blue-500 to-violet-500',
+      }
+      return classes[color] || classes.primary
+    },
     getGradientClass(color) {
       const classes = {
-        primary: 'from-primary-900 to-primary-600',
-        indigo: 'from-indigo-900 to-indigo-600',
-        violet: 'from-violet-900 to-violet-600',
-        fuchsia: 'from-fuchsia-900 to-fuchsia-600',
-        purple: 'from-purple-900 to-purple-600',
-        green: 'from-emerald-900 to-emerald-600'
-      };
-      return classes[color] || classes.primary;
+        primary: 'from-primary-900 to-primary-700',
+        violet: 'from-violet-900 to-violet-700',
+        purple: 'from-purple-900 to-purple-700',
+        blue: 'from-blue-900 to-blue-700',
+      }
+      return classes[color] || classes.primary
     },
-    getOrbClass(color) {
+    getIconContainerClass(color) {
       const classes = {
-        primary: 'bg-primary-500',
-        indigo: 'bg-indigo-500',
-        violet: 'bg-violet-500',
-        fuchsia: 'bg-fuchsia-500',
-        purple: 'bg-purple-500',
-        green: 'bg-emerald-500'
-      };
-      return classes[color] || classes.primary;
-    },
-    getIconBgClass(color) {
-      const classes = {
-        primary: 'bg-primary-900/80 border border-primary-700/50',
-        indigo: 'bg-indigo-900/80 border border-indigo-700/50',
-        violet: 'bg-violet-900/80 border border-violet-700/50',
-        fuchsia: 'bg-fuchsia-900/80 border border-fuchsia-700/50',
-        purple: 'bg-purple-900/80 border border-purple-700/50',
-        green: 'bg-emerald-900/80 border border-emerald-700/50'
-      };
-      return classes[color] || classes.primary;
+        primary: 'bg-primary-500/10 border border-primary-500/20',
+        violet: 'bg-violet-500/10 border border-violet-500/20',
+        purple: 'bg-purple-500/10 border border-purple-500/20',
+        blue: 'bg-blue-500/10 border border-blue-500/20',
+      }
+      return classes[color] || classes.primary
     },
     getIconClass(color) {
       const classes = {
         primary: 'text-primary-400',
-        indigo: 'text-indigo-400',
         violet: 'text-violet-400',
-        fuchsia: 'text-fuchsia-400',
         purple: 'text-purple-400',
-        green: 'text-emerald-400'
-      };
-      return classes[color] || classes.primary;
+        blue: 'text-blue-400',
+      }
+      return classes[color] || classes.primary
     },
-    getIconShadowClass(color) {
+    getValueGradientClass(color) {
       const classes = {
-        primary: 'bg-primary-500/30',
-        indigo: 'bg-indigo-500/30',
-        violet: 'bg-violet-500/30',
-        fuchsia: 'bg-fuchsia-500/30',
-        purple: 'bg-purple-500/30',
-        green: 'bg-emerald-500/30'
-      };
-      return classes[color] || classes.primary;
+        primary: 'from-primary-300 to-violet-300',
+        violet: 'from-violet-300 to-purple-300',
+        purple: 'from-purple-300 to-primary-300',
+        blue: 'from-blue-300 to-violet-300',
+      }
+      return classes[color] || classes.primary
     },
-    getDotClass(color) {
+    getUnitClass(color) {
       const classes = {
-        primary: 'bg-primary-500',
-        indigo: 'bg-indigo-500',
-        violet: 'bg-violet-500',
-        fuchsia: 'bg-fuchsia-500',
-        purple: 'bg-purple-500',
-        green: 'bg-emerald-500'
-      };
-      return classes[color] || classes.primary;
+        primary: 'text-primary-400',
+        violet: 'text-violet-400',
+        purple: 'text-purple-400',
+        blue: 'text-blue-400',
+      }
+      return classes[color] || classes.primary
     },
-    getBarClass(color) {
-      const classes = {
-        primary: 'bg-primary-500',
-        indigo: 'bg-indigo-500',
-        violet: 'bg-violet-500',
-        fuchsia: 'bg-fuchsia-500',
-        purple: 'bg-purple-500',
-        green: 'bg-emerald-500'
-      };
-      return classes[color] || classes.primary;
-    },
-    getProgressClass(color) {
-      const classes = {
-        primary: 'bg-primary-500',
-        indigo: 'bg-indigo-500',
-        violet: 'bg-violet-500',
-        fuchsia: 'bg-fuchsia-500',
-        purple: 'bg-purple-500',
-        green: 'bg-emerald-500'
-      };
-      return classes[color] || classes.primary;
-    },
-    getClockClass(color) {
-      const classes = {
-        primary: 'bg-primary-400',
-        indigo: 'bg-indigo-400',
-        violet: 'bg-violet-400',
-        fuchsia: 'bg-fuchsia-400',
-        purple: 'bg-purple-400',
-        green: 'bg-emerald-400'
-      };
-      return classes[color] || classes.primary;
-    },
-    getBorderClass(color) {
-      const classes = {
-        primary: 'border-primary-500',
-        indigo: 'border-indigo-500',
-        violet: 'border-violet-500',
-        fuchsia: 'border-fuchsia-500',
-        purple: 'border-purple-500',
-        green: 'border-emerald-500'
-      };
-      return classes[color] || classes.primary;
+    getGrowthClass(type) {
+      return type === 'positive' ? 'text-emerald-400' : 'text-rose-400'
     }
   }
 })
@@ -353,30 +327,20 @@ export default defineComponent({
 
 /* Custom pulse animations at different speeds */
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes pulse-slower {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.6; }
-}
-
-@keyframes pulse-slowest {
-  0%, 100% { opacity: 0.1; }
-  50% { opacity: 0.5; }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
 }
 
 .animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
+  animation: pulse-slow 3s ease-in-out infinite;
 }
 
-.animate-pulse-slower {
-  animation: pulse-slower 6s ease-in-out infinite;
+.animation-delay-150 {
+  animation-delay: 150ms;
 }
 
-.animate-pulse-slowest {
-  animation: pulse-slowest 8s ease-in-out infinite;
+.animation-delay-300 {
+  animation-delay: 300ms;
 }
 
 /* Particle container styles */
