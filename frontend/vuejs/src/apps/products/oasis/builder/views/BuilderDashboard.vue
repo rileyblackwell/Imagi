@@ -359,7 +359,7 @@ const testApiConnection = async () => {
     // Try different API endpoints - use only standardized endpoints
     const endpoints = [
       'api/v1/project-manager/projects/',  // Primary endpoint
-      'api/v1/builder/projects/',          // Fallback endpoint
+      'api/v1/builder/builder/',          // Fallback endpoint
       'api/v1/agents/projects/'            // Another possible endpoint
     ]
     

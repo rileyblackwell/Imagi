@@ -11,9 +11,8 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
-from rest_framework.exceptions import NotFound
 
-from ..models import Conversation, Page, Message
+from ..models import Conversation
 from .serializers import (
     ProjectSerializer,
     ConversationSerializer,
@@ -21,30 +20,24 @@ from .serializers import (
     MessageSerializer
 )
 from ..services.file_service import FileService
-from ..services.dev_server_service import DevServerManager
-from apps.Products.Oasis.ProjectManager.models import Project as PMProject
-from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
+from ..services.models_service import ModelsService
+from ..services.conversation_service import ConversationService
+from ..services.preview_service import PreviewService
+from ..services.ai_service import AIService
 from ..services.oasis_service import (
     process_builder_mode_input_service,
     undo_last_action_service,
     process_chat_mode_input_service
 )
+from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
-from ..services.ai_service import AIService
+from rest_framework.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
 
-class BuilderView:
-    """Base class for Builder views with common functionality."""
-    def get_project(self, project_id, user):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
 @method_decorator(never_cache, name='dispatch')
-class ProjectListCreateView(generics.ListCreateAPIView, BuilderView):
+class ProjectListCreateView(generics.ListCreateAPIView):
     """List all projects or create a new project."""
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -54,15 +47,15 @@ class ProjectListCreateView(generics.ListCreateAPIView, BuilderView):
 
     def perform_create(self, serializer):
         try:
-            project_service = ProjectCreationService(self.request.user)
-            project = project_service.create_project(serializer.validated_data['name'])
+            project_creation_service = ProjectCreationService(self.request.user)
+            project = project_creation_service.create_project(serializer.validated_data['name'])
             serializer.save(user=self.request.user, project=project)
         except Exception as e:
             logger.error(f"Error creating project: {str(e)}")
             raise
 
 @method_decorator(never_cache, name='dispatch')
-class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView, BuilderView):
+class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a project."""
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
@@ -72,28 +65,35 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView, BuilderView):
         return PMProject.objects.filter(user=self.request.user, is_active=True)
 
     def perform_destroy(self, instance):
-        project_service = ProjectManagementService(self.request.user)
-        project_service.delete_project(instance)
+        project_management_service = ProjectManagementService(self.request.user)
+        project_management_service.delete_project(instance)
 
 @method_decorator(never_cache, name='dispatch')
-class ProjectFilesView(APIView, BuilderView):
+class ProjectFilesView(APIView):
     """List all files in a project."""
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, project_id):
-        # Get project from ProjectManager
-        project = self.get_project(project_id, request.user)
-        
-        # Check if project path exists
-        if not project.project_path:
-            logger.error(f"Project path not found for project: {project.id}")
-            return Response(
-                {'error': 'Project path not found. The project may not be properly initialized.'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        file_service = FileService(project=project)
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
         try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def get(self, request, project_id):
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            file_service = FileService(project=project)
             files = file_service.list_files()
             return Response(files)
         except Exception as e:
@@ -104,13 +104,12 @@ class ProjectFilesView(APIView, BuilderView):
             )
     
     def post(self, request, project_id):
-        # Get project from ProjectManager
-        project = self.get_project(project_id, request.user)
-        
-        # Create file using the Builder's FileService
-        file_service = FileService(project=project)
-        
         try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Create file using the Builder's FileService
+            file_service = FileService(project=project)
             file_data = request.data
             result = file_service.create_file(file_data)
             return Response(result, status=status.HTTP_201_CREATED)
@@ -122,14 +121,21 @@ class ProjectFilesView(APIView, BuilderView):
             )
 
 @method_decorator(never_cache, name='dispatch')
-class GenerateCodeView(APIView, BuilderView):
+class GenerateCodeView(APIView):
     """Generate code using AI models."""
     permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
 
     def post(self, request, project_id):
         try:
             # Get project
-            project = self.get_project(project_id, request.user)
+            project = self.get_project(project_id)
             
             # Get request data
             prompt = request.data.get('prompt', '')
@@ -142,7 +148,7 @@ class GenerateCodeView(APIView, BuilderView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Process the prompt
+            # Process the prompt using AI service
             ai_service = AIService()
             
             # If file_path is provided, get the file content
@@ -155,7 +161,7 @@ class GenerateCodeView(APIView, BuilderView):
                     logger.error(f"Error getting file content: {str(e)}")
             
             # Generate code
-            response = ai_service.generate_code(prompt, model, file_content)
+            response = ai_service.generate_code(project, prompt, model, file_content)
             
             return Response(response)
         except Exception as e:
@@ -166,16 +172,22 @@ class GenerateCodeView(APIView, BuilderView):
             )
 
 @method_decorator(never_cache, name='dispatch')
-class UndoActionView(APIView, BuilderView):
+class UndoActionView(APIView):
     """Undo last action in a project."""
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, project_id):
-        project = self.get_project(project_id, request.user)
-        
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
         try:
-            project_service = ProjectManagementService(request.user)
-            result = project_service.undo_last_action(project)
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        try:
+            project = self.get_project(project_id)
+            project_management_service = ProjectManagementService(request.user)
+            result = project_management_service.undo_last_action(project)
             return Response(result)
         except Exception as e:
             logger.error(f"Error undoing action: {str(e)}")
@@ -185,62 +197,46 @@ class UndoActionView(APIView, BuilderView):
             )
 
 @method_decorator(never_cache, name='dispatch')
-class AIModelsView(APIView, BuilderView):
+class AIModelsView(APIView):
     """Get available AI models."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        models = [
-            {
-                'id': 'claude-3-5-sonnet-20241022',
-                'name': 'Claude 3.5 Sonnet',
-                'provider': 'anthropic',
-                'type': 'anthropic',
-                'description': 'Anthropic | High-performance model for complex tasks',
-                'capabilities': ['code_generation', 'chat', 'analysis'],
-                'maxTokens': 200000,
-                'costPerRequest': 0.04
-            },
-            {
-                'id': 'gpt-4o',
-                'name': 'GPT-4o',
-                'provider': 'openai',
-                'type': 'openai',
-                'description': 'OpenAI | Powerful reasoning and creative capability',
-                'capabilities': ['code_generation', 'chat', 'analysis'],
-                'maxTokens': 128000,
-                'costPerRequest': 0.04
-            },
-            {
-                'id': 'gpt-4o-mini',
-                'name': 'GPT-4o Mini',
-                'provider': 'openai',
-                'type': 'openai',
-                'description': 'OpenAI | Fast and cost-effective performance',
-                'capabilities': ['code_generation', 'chat', 'analysis'],
-                'maxTokens': 128000,
-                'costPerRequest': 0.005
-            }
-        ]
+        models_service = ModelsService()
+        models = models_service.get_available_models()
         return Response(models)
 
 @method_decorator(never_cache, name='dispatch')
-class FileDetailView(APIView, BuilderView):
+class FileDetailView(APIView):
     """Get or update file details."""
     permission_classes = [IsAuthenticated]
 
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
     def get(self, request, project_id, file_path):
-        # Get project from ProjectManager
-        project = self.get_project(project_id, request.user)
-        
-        file_service = FileService(project=project)
-        file_details = file_service.get_file_details(file_path)
-        return Response(file_details)
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            file_service = FileService(project=project)
+            file_details = file_service.get_file_details(file_path)
+            return Response(file_details)
+        except Exception as e:
+            logger.error(f"Error getting file details: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def put(self, request, project_id, file_path):
         try:
             # Get project from ProjectManager
-            project = self.get_project(project_id, request.user)
+            project = self.get_project(project_id)
             
             file_service = FileService(project=project)
             
@@ -263,7 +259,7 @@ class FileDetailView(APIView, BuilderView):
     def delete(self, request, project_id, file_path):
         try:
             # Get project from ProjectManager
-            project = self.get_project(project_id, request.user)
+            project = self.get_project(project_id)
             
             file_service = FileService(project=project)
             result = file_service.delete_file(file_path)
@@ -276,17 +272,31 @@ class FileDetailView(APIView, BuilderView):
             )
 
 @method_decorator(never_cache, name='dispatch')
-class FileContentView(APIView, BuilderView):
+class FileContentView(APIView):
     """Get file content."""
     permission_classes = [IsAuthenticated]
 
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
     def get(self, request, project_id, file_path):
-        # Get project from ProjectManager
-        project = self.get_project(project_id, request.user)
-        
-        file_service = FileService(project=project)
-        content = file_service.get_file_content(file_path)
-        return Response({'content': content})
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            file_service = FileService(project=project)
+            content = file_service.get_file_content(file_path)
+            return Response({'content': content})
+        except Exception as e:
+            logger.error(f"Error getting file content: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ConversationListView(generics.ListAPIView):
     """List conversations for a project."""
@@ -295,8 +305,8 @@ class ConversationListView(generics.ListAPIView):
 
     def get_queryset(self):
         project_name = self.kwargs['project_name']
-        project = get_object_or_404(PMProject, user=self.request.user, name=project_name)
-        return Conversation.objects.filter(project=project)
+        conversation_service = ConversationService(self.request.user)
+        return conversation_service.list_conversations(project_name)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -368,17 +378,10 @@ def clear_conversation(request):
             return Response({
                 'error': 'Missing conversation_id'
             }, status=status.HTTP_400_BAD_REQUEST)
-            
-        conversation = get_object_or_404(
-            Conversation, 
-            id=conversation_id,
-            user=request.user
-        )
         
-        Message.objects.filter(conversation=conversation).delete()
-        Page.objects.filter(conversation=conversation).delete()
-        
-        return Response({'message': 'Conversation cleared successfully'})
+        conversation_service = ConversationService(request.user)
+        result = conversation_service.clear_conversation(conversation_id)
+        return Response(result)
         
     except Exception as e:
         logger.error(f"Error clearing conversation: {str(e)}")
@@ -395,31 +398,29 @@ class PageView(generics.RetrieveAPIView):
         conversation_id = self.kwargs.get('conversation_id')
         filename = self.kwargs.get('filename')
         
-        return get_object_or_404(
-            Page,
-            conversation__id=conversation_id,
-            conversation__user=self.request.user,
-            filename=filename
-        )
+        conversation_service = ConversationService(self.request.user)
+        return conversation_service.get_page(conversation_id, filename)
 
 @method_decorator(never_cache, name='dispatch')
-class PreviewView(APIView, BuilderView):
+class PreviewView(APIView):
     """Preview a project by starting a development server."""
     permission_classes = [IsAuthenticated]
 
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
     def get(self, request, project_id):
         try:
-            project = self.get_project(project_id, request.user)
+            project = self.get_project(project_id)
             
-            # Start the development server
-            dev_server = DevServerManager(project)
-            server_url = dev_server.get_server_url()
+            preview_service = PreviewService(project)
+            result = preview_service.start_preview()
             
-            return Response({
-                'success': True,
-                'preview_url': server_url,
-                'message': 'Development server started successfully'
-            })
+            return Response(result)
         except Exception as e:
             logger.error(f"Error starting preview server: {str(e)}")
             return Response({
@@ -429,16 +430,12 @@ class PreviewView(APIView, BuilderView):
     
     def delete(self, request, project_id):
         try:
-            project = self.get_project(project_id, request.user)
+            project = self.get_project(project_id)
             
-            # Stop the development server
-            dev_server = DevServerManager(project)
-            dev_server.stop_server()
+            preview_service = PreviewService(project)
+            result = preview_service.stop_preview()
             
-            return Response({
-                'success': True,
-                'message': 'Development server stopped successfully'
-            })
+            return Response(result)
         except Exception as e:
             logger.error(f"Error stopping preview server: {str(e)}")
             return Response({

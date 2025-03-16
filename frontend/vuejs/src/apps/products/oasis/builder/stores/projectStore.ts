@@ -347,7 +347,7 @@ export const useProjectStore = defineStore('builder', () => {
       } else if (err.response?.status === 404) {
         // API endpoint might be incorrect
         error.value = 'Project listing API not found. Please check the API configuration.'
-        console.error('API endpoint not found. Check if the path is correct: /api/v1/builder/projects/')
+        console.error('API endpoint not found. Check if the path is correct: /api/v1/builder/builder/')
       } else {
         handleError(err, 'Failed to fetch projects')
       }

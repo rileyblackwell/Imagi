@@ -110,8 +110,8 @@ export const ProjectService = {
     const apiPaths = [
       'api/v1/project-manager/projects/',  // Primary endpoint matching Django backend URLs
       API_PATHS.PROJECT_MANAGER + '/projects/',
-      'api/v1/builder/projects/',          // Fallback endpoint
-      API_PATHS.BUILDER + '/projects/',
+      'api/v1/builder/builder/',          // Fallback endpoint using new URL structure
+      API_PATHS.BUILDER + '/builder/',
     ]
     
     let lastError: any = null
@@ -511,7 +511,7 @@ export const ProjectService = {
       // Try direct paths first with explicit API endpoint
       'api/v1/project-manager/projects/' + projectIdStr + '/',
       'api/v1/project-manager/projects/detail/' + projectIdStr + '/',
-      'api/v1/builder/projects/' + projectIdStr + '/',
+      'api/v1/builder/builder/' + projectIdStr + '/',
       
       // Then try the standard paths
       API_PATHS.PROJECT_MANAGER + '/projects/' + projectIdStr + '/',
