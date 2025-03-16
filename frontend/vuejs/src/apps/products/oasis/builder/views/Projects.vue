@@ -3,52 +3,39 @@
     storage-key="projectsViewSidebarCollapsed"
     :navigation-items="navigationItems"
   >
-    <div class="min-h-screen bg-dark-900 relative overflow-hidden">
-      <!-- Enhanced Background Effects -->
-      <div class="absolute inset-0 pointer-events-none">
-        <!-- Refined gradient background -->
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-transparent to-violet-500/10"></div>
-        
-        <!-- Ambient glow effects -->
-        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-gradient-to-r from-primary-500/15 to-violet-500/15 rounded-full blur-[120px] opacity-40"></div>
-        <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-r from-indigo-500/10 to-primary-500/10 rounded-full blur-[100px] opacity-30"></div>
-        
-        <!-- Subtle grid pattern -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02] mix-blend-overlay"></div>
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
+      <!-- Enhanced Background Effects matching Home landing page -->
+      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <!-- Gradient orbs matching Home landing page -->
+        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
+        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+        <!-- Subtle noise texture -->
+        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
       </div>
 
       <!-- Content Container -->
       <div class="relative z-10">
         <!-- Enhanced Header -->
-        <div class="pt-16 pb-12 px-6 sm:px-8 lg:px-12">
+        <div class="pt-20 pb-16 px-6 sm:px-8 lg:px-12">
           <div class="max-w-7xl mx-auto">
             <div class="md:flex md:items-center md:justify-between">
               <div class="flex-1 min-w-0">
-                <!-- Imagi Title with Auth Page Styling -->
-                <div class="inline-flex items-center justify-center mb-6">
-                  <div class="rounded-2xl bg-gradient-to-br p-[1px] from-primary-300/40 to-violet-300/40
-                            hover:from-primary-200/50 hover:to-violet-200/50 transition-all duration-300">
-                    <div class="px-8 py-4 rounded-2xl bg-dark-800/95 backdrop-blur-xl
-                              shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)]">
-                      <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-300 via-emerald-300 to-yellow-200 
-                                bg-clip-text text-transparent tracking-tight
-                                drop-shadow-[0_0_12px_rgba(236,72,153,0.3)]
-                                animate-gradient">
-                        Imagi
-                      </h1>
-                    </div>
-                  </div>
+                <!-- Enhanced section header to match home landing page -->
+                <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
+                  <span class="text-primary-400 font-semibold text-sm tracking-wider">YOUR PROJECTS</span>
                 </div>
                 
-                <h2 class="text-3xl font-bold text-white tracking-tight">All Projects</h2>
-                <p class="mt-3 text-lg text-gray-300/90 max-w-2xl leading-relaxed">
+                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">Project Collection</h2>
+                <p class="text-xl text-gray-300 max-w-3xl leading-relaxed">
                   Manage and organize all your web applications in one place
                 </p>
               </div>
               <div class="mt-6 md:mt-0 md:ml-4">
                 <button
                   @click="$router.push({ name: 'builder-dashboard' })"
-                  class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
+                  class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
                 >
                   <i class="fas fa-plus mr-2.5"></i>
                   Create New Project
@@ -56,6 +43,11 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Divider with animated line matching Home page -->
+        <div class="relative h-16 max-w-7xl mx-auto">
+          <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
         </div>
 
         <!-- Project List with Enhanced Styling -->
@@ -66,7 +58,7 @@
               <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5 animate-pulse">
                 <i class="fas fa-spinner fa-spin text-2xl text-primary-400"></i>
               </div>
-              <p class="text-gray-400 text-lg">Loading your projects...</p>
+              <p class="text-gray-300 text-lg">Loading your projects...</p>
             </div>
 
             <!-- Error State -->
@@ -74,10 +66,10 @@
               <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-5">
                 <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
               </div>
-              <p class="text-gray-400 mb-6 text-center max-w-md">{{ error }}</p>
+              <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
               <button
                 @click="retryFetch"
-                class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
+                class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300"
               >
                 <i class="fas fa-sync-alt mr-2"></i>
                 Try Again
@@ -86,13 +78,14 @@
 
             <!-- Empty State -->
             <div v-else-if="projects.length === 0" class="flex flex-col items-center justify-center py-16">
-              <div class="w-16 h-16 bg-dark-700 rounded-full flex items-center justify-center mb-5">
-                <i class="fas fa-folder-open text-2xl text-gray-400"></i>
+              <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5">
+                <i class="fas fa-folder-open text-2xl text-primary-400"></i>
               </div>
-              <p class="text-gray-400 text-center text-lg mb-6">No projects yet. Create your first project to get started!</p>
+              <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
+              <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
               <button
                 @click="$router.push({ name: 'builder-dashboard' })"
-                class="px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 hover:from-primary-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
+                class="px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 hover:from-primary-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
               >
                 <i class="fas fa-plus mr-2"></i>
                 Create Your First Project
@@ -100,56 +93,61 @@
             </div>
 
             <!-- Project Grid -->
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div
                 v-for="project in sortedProjects"
                 :key="project.id"
-                class="group relative transform transition-all duration-300 hover:translate-y-[-3px]"
+                class="group relative transform transition-all duration-300 hover:-translate-y-2"
               >
-                <!-- Enhanced hover glow effect -->
-                <div class="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-primary-500/30 via-violet-500/30 to-indigo-500/30 opacity-0 group-hover:opacity-100 blur-[2px] transition-all duration-300"></div>
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
                 
                 <!-- Card content with enhanced styling -->
-                <div class="relative bg-dark-800/80 backdrop-blur-md rounded-xl p-7 border border-dark-700/80 group-hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/30 group-hover:shadow-xl group-hover:shadow-primary-500/10 h-full flex flex-col">
-                  <div class="flex items-center gap-4 mb-4">
-                    <!-- Enhanced icon container with animation -->
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20 shadow-md shadow-primary-500/5">
-                      <i class="fas fa-cube text-primary-400 text-lg"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-white truncate group-hover:text-primary-400/90 transition-colors">
-                      {{ project.name }}
-                    </h3>
-                  </div>
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-3 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
                   
-                  <p class="text-gray-400 mb-6 line-clamp-2 text-sm">
-                    {{ project.description || 'No description provided' }}
-                  </p>
-                  
-                  <div class="mt-auto">
-                    <div class="flex items-center text-sm text-gray-500 mb-4">
-                      <i class="fas fa-clock text-xs opacity-70 mr-2"></i>
-                      Last updated {{ formatDate(project.updated_at) }}
+                  <div class="p-6">
+                    <div class="flex items-center gap-4 mb-4">
+                      <!-- Enhanced icon with glowing effect -->
+                      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20 shadow-lg shadow-primary-500/5">
+                        <i class="fas fa-cube text-primary-400 text-lg"></i>
+                      </div>
+                      <h3 class="text-xl font-semibold text-white truncate group-hover:text-primary-400 transition-colors">
+                        {{ project.name }}
+                      </h3>
                     </div>
                     
-                    <div class="flex items-center gap-3">
-                      <!-- Open project button with enhanced hover effect -->
-                      <button
-                        @click="openProject(project)"
-                        class="flex-1 p-3 text-primary-400 hover:text-white transition-all duration-200 rounded-lg bg-primary-500/10 hover:bg-primary-500 hover:scale-105 shadow-md shadow-primary-500/5 hover:shadow-lg hover:shadow-primary-500/20"
-                        title="Open project"
-                      >
-                        <i class="fas fa-arrow-right mr-2"></i>
-                        Open Project
-                      </button>
+                    <p class="text-gray-400 mb-6 line-clamp-2 text-sm">
+                      {{ project.description || 'No description provided' }}
+                    </p>
+                    
+                    <div class="mt-auto">
+                      <div class="flex items-center text-sm text-gray-500 mb-4">
+                        <i class="fas fa-clock text-xs opacity-70 mr-2"></i>
+                        Last updated {{ formatDate(project.updated_at) }}
+                      </div>
                       
-                      <!-- Delete button with enhanced hover effect -->
-                      <button
-                        @click="confirmDelete(project)"
-                        class="p-3 text-red-400 hover:text-white transition-all duration-200 rounded-lg bg-red-500/10 hover:bg-red-500 hover:scale-105 shadow-md shadow-red-500/5 hover:shadow-lg hover:shadow-red-500/20"
-                        title="Delete project"
-                      >
-                        <i class="fas fa-trash"></i>
-                      </button>
+                      <div class="flex items-center gap-3">
+                        <!-- Open project button with enhanced hover effect -->
+                        <button
+                          @click="openProject(project)"
+                          class="flex-1 py-3 px-4 text-primary-400 hover:text-white transition-all duration-200 rounded-lg bg-primary-500/10 hover:bg-gradient-to-r hover:from-primary-500 hover:to-violet-500 transform hover:scale-105 shadow-md shadow-primary-500/5 hover:shadow-lg hover:shadow-primary-500/20"
+                          title="Open project"
+                        >
+                          <i class="fas fa-arrow-right mr-2"></i>
+                          Open Project
+                        </button>
+                        
+                        <!-- Delete button with enhanced hover effect -->
+                        <button
+                          @click="confirmDelete(project)"
+                          class="p-3 text-red-400 hover:text-white transition-all duration-200 rounded-lg bg-red-500/10 hover:bg-red-500 transform hover:scale-105 shadow-md shadow-red-500/5 hover:shadow-lg hover:shadow-red-500/20"
+                          title="Delete project"
+                        >
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -310,6 +308,24 @@ onMounted(fetchProjects);
 
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+/* Float animation for background orbs */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 18s ease-in-out infinite reverse;
 }
 
 /* Line clamp for description */
