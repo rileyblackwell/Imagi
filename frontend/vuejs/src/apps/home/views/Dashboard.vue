@@ -176,23 +176,87 @@
                 </div>
               </div>
 
-              <!-- Recent Activity -->
+              <!-- Payment Transactions -->
               <div class="group relative">
                 <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-green-500/50 to-teal-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
                 
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-green-500/30 transition-all duration-300">
                   <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+                  <div class="h-2 w-full bg-gradient-to-r from-green-500 to-teal-500"></div>
                   <div class="p-8">
-                    <div class="flex items-center gap-4 mb-6">
-                      <div class="w-12 h-12 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10 transform hover:scale-105 transition-all duration-300 border border-indigo-500/20">
-                        <i class="fas fa-history text-xl text-indigo-400"></i>
+                    <div class="flex items-center justify-between mb-6">
+                      <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/10 transform hover:scale-105 transition-all duration-300 border border-green-500/20">
+                          <i class="fas fa-money-bill-wave text-xl text-green-400"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-white">Payment Transactions</h2>
                       </div>
-                      <h2 class="text-xl font-bold text-white">Activity Feed</h2>
+                      <router-link 
+                        to="/payments"
+                        class="text-green-400 hover:text-green-300 transition-colors text-sm font-medium flex items-center"
+                      >
+                        View All
+                        <i class="fas fa-arrow-right ml-2"></i>
+                      </router-link>
                     </div>
                     
-                    <ActivityFeed :activities="recentActivities" />
+                    <div class="space-y-3">
+                      <div 
+                        v-for="transaction in recentTransactions" 
+                        :key="transaction.id"
+                        class="bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-green-500/30 rounded-xl p-4 transition-all duration-300"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                              :class="{
+                                'bg-green-500/15 text-green-400': transaction.status === 'completed',
+                                'bg-amber-500/15 text-amber-400': transaction.status === 'pending',
+                                'bg-red-500/15 text-red-400': transaction.status === 'failed'
+                              }"
+                            >
+                              <i :class="[
+                                transaction.status === 'completed' ? 'fas fa-check' : 
+                                transaction.status === 'pending' ? 'fas fa-clock' : 
+                                'fas fa-times'
+                              ]"></i>
+                            </div>
+                            <div>
+                              <h3 class="text-white font-medium">{{ transaction.description }}</h3>
+                              <p class="text-gray-400 text-sm">{{ formatDate(transaction.created_at) }}</p>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <p class="text-white font-medium">${{ typeof transaction.amount === 'number' ? transaction.amount.toFixed(2) : transaction.amount }}</p>
+                            <p class="text-xs"
+                              :class="{
+                                'text-green-400': transaction.status === 'completed',
+                                'text-amber-400': transaction.status === 'pending',
+                                'text-red-400': transaction.status === 'failed'
+                              }"
+                            >
+                              {{ transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1) }}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div v-if="!recentTransactions.length" class="flex flex-col items-center justify-center py-10 bg-dark-800/30 rounded-xl border border-dark-700/50">
+                        <div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-5">
+                          <i class="fas fa-money-bill-wave text-2xl text-green-400"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">No transactions yet</h3>
+                        <p class="text-gray-300 text-center max-w-md mb-6">Add funds to your account to see transactions here</p>
+                        <button
+                          @click="$router.push({ name: 'payments' })"
+                          class="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-xl shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transform hover:-translate-y-1 transition-all duration-300"
+                        >
+                          <i class="fas fa-plus mr-2"></i>
+                          Add Funds
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -292,6 +356,7 @@ import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/store'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
+import { usePaymentsStore } from '@/apps/payments/store/payments'
 import { CardContainer, StatCard } from '@/apps/home/components'
 import { useNotification } from '@/shared/composables/useNotification'
 import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
@@ -299,21 +364,17 @@ import {
   EmptyState,
   ResourceLink
 } from '@/shared/components/molecules'
-import { ActivityFeed } from '@/shared/components/organisms'
 
 // Store initialization
 const authStore = useAuthStore()
 const projectStore = useProjectStore()
+const paymentsStore = usePaymentsStore()
 const { showNotification } = useNotification()
 
 // Reactive state
-const credits = ref(1000)
-const creditsUsed = ref(250)
-const creditsPlan = ref(1000)
-const activeBuildCount = ref(0)
-const apiCallCount = ref(0)
 const recentProjects = ref([])
-const recentActivities = ref([])
+const recentTransactions = ref([])
+const stats = ref(null)
 
 // Stats data with computed values
 const statsData = computed(() => [
@@ -325,22 +386,22 @@ const statsData = computed(() => [
     color: 'primary' 
   },
   { 
-    title: 'Active Builds', 
-    value: activeBuildCount.value, 
+    title: 'Active Projects', 
+    value: projectStore.projects?.filter(p => p.status === 'active').length || 0, 
     icon: 'fas fa-hammer', 
     trend: '+5%', 
     color: 'success' 
   },
   { 
-    title: 'Credits Used', 
-    value: creditsUsed.value, 
-    icon: 'fas fa-coins', 
-    trend: '-8%', 
+    title: 'Account Balance', 
+    value: `$${typeof paymentsStore.balance === 'number' ? paymentsStore.balance.toFixed(2) : '0.00'}`, 
+    icon: 'fas fa-money-bill-wave', 
+    trend: '', 
     color: 'warning' 
   },
   { 
     title: 'API Calls', 
-    value: apiCallCount.value, 
+    value: stats.value?.apiCallCount || 0, 
     icon: 'fas fa-bolt', 
     trend: '+25%', 
     color: 'info' 
@@ -351,7 +412,7 @@ const statsData = computed(() => [
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
   { name: 'Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder' },
-  { name: 'Credits', to: '/payments', icon: 'fas fa-coins' }
+  { name: 'Balance', to: '/payments', icon: 'fas fa-money-bill-wave' }
 ]
 
 // Quick actions configuration
@@ -362,11 +423,6 @@ const quickActions = [
     route: { name: 'products-builder-new-project' } 
   },
   { 
-    title: 'Browse Templates', 
-    icon: 'fas fa-box', 
-    route: { name: 'products-builder-templates' } 
-  },
-  { 
     title: 'API Documentation', 
     icon: 'fas fa-book', 
     route: { name: 'docs-api' } 
@@ -375,11 +431,16 @@ const quickActions = [
     title: 'Invite Team', 
     icon: 'fas fa-user-plus', 
     route: { name: 'settings-team' } 
+  },
+  { 
+    title: 'Account Settings', 
+    icon: 'fas fa-cog', 
+    route: { name: 'settings' } 
   }
 ]
 
 // Resources links
-const resources = [
+const resourceLinks = [
   { title: 'Documentation', icon: 'fas fa-book', url: '/docs', description: 'Learn how to use Imagi' },
   { title: 'API Reference', icon: 'fas fa-code', url: '/docs/api', description: 'Integrate with our API' },
   { title: 'Community', icon: 'fas fa-users', url: '/community', description: 'Join our Discord' }
@@ -418,24 +479,19 @@ async function fetchDashboardData() {
       recentProjects.value = projectStore.projects?.slice(0, 5) || []
     }
     
-    // Fetch other data if methods exist, but don't fail if they error
+    // Fetch payments data
     try {
-      if (projectStore.fetchActivities) {
-        recentActivities.value = await projectStore.fetchActivities()
-      }
+      await paymentsStore.fetchBalance()
+      await paymentsStore.fetchTransactions()
+      recentTransactions.value = paymentsStore.transactions.slice(0, 5) || []
     } catch (err) {
-      recentActivities.value = []
+      console.error('Failed to fetch payment data:', err)
+      recentTransactions.value = []
     }
     
-    try {
-      if (projectStore.fetchStats) {
-        const stats = await projectStore.fetchStats()
-        activeBuildCount.value = stats?.activeBuildCount || 0
-        apiCallCount.value = stats?.apiCallCount || 0
-        creditsUsed.value = stats?.creditsUsed || 0
-      }
-    } catch (err) {
-      // Handle error silently
+    // Stats endpoint doesn't exist yet, so we don't need to try fetching it
+    stats.value = {
+      apiCallCount: 0
     }
   } catch (err) {
     showNotification({

@@ -51,11 +51,6 @@
                   <i v-for="n in 5" :key="n" class="fas fa-star text-sm" 
                      :class="n <= testimonial.rating ? getStarClass(testimonial.color) : 'text-gray-600'"></i>
                 </div>
-                
-                <!-- Decorative quote mark -->
-                <div class="text-4xl opacity-20 leading-none" :class="getQuoteClass(testimonial.color)">
-                  "
-                </div>
               </div>
               
               <!-- Testimonial text -->
