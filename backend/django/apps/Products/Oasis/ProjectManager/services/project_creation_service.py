@@ -1,15 +1,13 @@
 import os
 import shutil
 import subprocess
-import tempfile
 import re
 import logging
 from datetime import datetime
-from pathlib import Path
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
-from typing import List, Optional
 from ..models import Project
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -449,148 +447,22 @@ A Django REST API project.
             if not manage_py_found:
                 logger.warning(f"manage.py not found in project structure, using project root: {inner_project_dir}")
             
-            # Create the core app if it doesn't exist
-            main_app_name = 'core'
-            app_path = os.path.join(inner_project_dir, main_app_name)
+            # We're no longer creating a core app
+            # Just update project status
             
-            # Check if the app already exists to avoid errors
-            if os.path.exists(app_path):
-                logger.info(f"App {main_app_name} already exists, skipping creation")
-            else:
-                # Create the main app directory
-                os.makedirs(app_path, exist_ok=True)
-                logger.info(f"Created app directory: {app_path}")
-                
-                # Try to use Django's startapp command first
-                if manage_py_found:
-                    try:
-                        manage_py_path = os.path.join(inner_project_dir, 'manage.py')
-                        logger.info(f"Running startapp command: python {manage_py_path} startapp {main_app_name}")
-                        
-                        result = subprocess.run(
-                            ['python', manage_py_path, 'startapp', main_app_name],
-                            cwd=inner_project_dir,
-                            check=False,  # Don't raise exception on non-zero exit
-                            capture_output=True,
-                            text=True,
-                            timeout=30  # Timeout after 30 seconds
-                        )
-                        
-                        if result.returncode != 0:
-                            logger.error(f"startapp command failed with code {result.returncode}")
-                            logger.error(f"STDOUT: {result.stdout}")
-                            logger.error(f"STDERR: {result.stderr}")
-                            # We'll create the files manually below
-                        else:
-                            logger.info(f"Successfully created app {main_app_name} using manage.py")
-                    except Exception as e:
-                        logger.error(f"Error running startapp command: {str(e)}")
-                        # We'll create the files manually below
-                
-                # Create basic app files manually
-                # Create __init__.py if it doesn't exist
-                init_file = os.path.join(app_path, '__init__.py')
-                if not os.path.exists(init_file):
-                    with open(init_file, 'w') as f:
-                        f.write("# Core app init file\n")
-                    logger.info(f"Created __init__.py at {init_file}")
-            
-            # Ensure the basic app files exist
-            # models.py
-            models_path = os.path.join(app_path, 'models.py')
-            if not os.path.exists(models_path):
-                with open(models_path, 'w') as f:
-                    f.write(self._generate_basic_model_content())
-                logger.info(f"Created models.py at {models_path}")
-            
-            # views.py
-            views_path = os.path.join(app_path, 'views.py')
-            if not os.path.exists(views_path):
-                with open(views_path, 'w') as f:
-                    f.write(self._generate_basic_views_content())
-                logger.info(f"Created views.py at {views_path}")
-            
-            # urls.py
-            urls_path = os.path.join(app_path, 'urls.py')
-            if not os.path.exists(urls_path):
-                with open(urls_path, 'w') as f:
-                    f.write(self._generate_basic_urls_content())
-                logger.info(f"Created urls.py at {urls_path}")
-            
-            # Try to update the project's settings.py and urls.py if they exist
-            try:
-                # Find the project package directory - it may not be directly in the inner_project_dir
-                project_package_dir = None
-                for root, dirs, files in os.walk(inner_project_dir):
-                    if 'settings.py' in files and 'urls.py' in files:
-                        project_package_dir = root
-                        break
-                
-                if not project_package_dir:
-                    project_package_dir = os.path.join(inner_project_dir, project_name)
-                    if not os.path.exists(project_package_dir):
-                        os.makedirs(project_package_dir, exist_ok=True)
-                
-                # Update settings.py if it exists
-                settings_path = os.path.join(project_package_dir, 'settings.py')
-                if os.path.exists(settings_path):
-                    try:
-                        with open(settings_path, 'r') as f:
-                            settings_content = f.read()
-                        
-                        # Add the app to INSTALLED_APPS if not already there
-                        if main_app_name not in settings_content:
-                            installed_apps_pattern = r"INSTALLED_APPS\s*=\s*\[\s*(.*?)\s*\]"
-                            installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
-                            if installed_apps_match:
-                                current_apps = installed_apps_match.group(1)
-                                if f"'{main_app_name}'" not in current_apps and f'"{main_app_name}"' not in current_apps:
-                                    updated_apps = current_apps + f"    '{main_app_name}',\n"
-                                    settings_content = settings_content.replace(current_apps, updated_apps)
-                                    
-                                    with open(settings_path, 'w') as f:
-                                        f.write(settings_content)
-                                    logger.info(f"Updated {settings_path} to include {main_app_name} app")
-                    except Exception as e:
-                        logger.error(f"Error updating settings.py: {str(e)}")
-                
-                # Update urls.py if it exists
-                urls_path = os.path.join(project_package_dir, 'urls.py')
-                if os.path.exists(urls_path):
-                    try:
-                        with open(urls_path, 'r') as f:
-                            urls_content = f.read()
-                        
-                        # Add include import if not present
-                        if f"include('{main_app_name}.urls')" not in urls_content and f'include("{main_app_name}.urls")' not in urls_content:
-                            if 'include' not in urls_content:
-                                if 'from django.urls import path' in urls_content:
-                                    urls_content = urls_content.replace(
-                                        'from django.urls import path',
-                                        'from django.urls import path, include'
-                                    )
-                            
-                            # Add the app's URLs to urlpatterns
-                            if 'urlpatterns = [' in urls_content:
-                                urls_content = urls_content.replace(
-                                    'urlpatterns = [',
-                                    f'urlpatterns = [\n    path(\'{main_app_name}/\', include(\'{main_app_name}.urls\')),'
-                                )
-                                
-                                with open(urls_path, 'w') as f:
-                                    f.write(urls_content)
-                                logger.info(f"Updated {urls_path} to include {main_app_name}.urls")
-                    except Exception as e:
-                        logger.error(f"Error updating urls.py: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error updating project settings/urls: {str(e)}")
-            
-            # All done - mark the project as initialized
+            # Mark the project as initialized
             project.is_initialized = True
+            project.updated_at = timezone.now()
+            project.generation_status = 'completed'
             project.save()
+            
             logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")
             
-            return project
+            return {
+                'success': True,
+                'message': 'Project initialized successfully',
+                'is_initialized': True
+            }
         
         except Exception as e:
             logger.error(f"Error initializing project: {str(e)}")
@@ -651,39 +523,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
 ]
-"""
-    
-    def _generate_basic_setup_py(self, project_name):
-        """Generate a basic setup.py file that handles import errors"""
-        return f"""#!/usr/bin/env python
-
-from setuptools import setup
-
-try:
-    from setuptools import find_packages
-except ImportError:
-    # Simple fallback if find_packages is not available
-    def find_packages(where='.'):
-        import os
-        packages = []
-        for root, dirs, files in os.walk(where):
-            if '__init__.py' in files:
-                packages.append(root.replace('/', '.'))
-        return packages
-
-setup(
-    name='{project_name}',
-    version='0.1.0',
-    description='A Django project generated by Imagi Oasis',
-    author='Imagi User',
-    author_email='user@example.com',
-    packages=find_packages(),
-    install_requires=[
-        'Django>=4.0',
-        'djangorestframework>=3.13.0',
-    ],
-    python_requires='>=3.8',
-)
 """
 
     def _generate_basic_manage_py(self, project_name):
@@ -834,13 +673,6 @@ REST_FRAMEWORK = {{
                 logger.warning(f"Creating project directory: {project_path}")
                 os.makedirs(project_path, exist_ok=True)
             
-            # Create setup.py if it doesn't exist
-            setup_path = os.path.join(project_path, 'setup.py')
-            if not os.path.exists(setup_path):
-                with open(setup_path, 'w') as f:
-                    f.write(self._generate_basic_setup_py(project_name))
-                logger.info(f"Created setup.py at {setup_path}")
-                
             # Ensure the project package directory exists
             project_package_dir = os.path.join(project_path, project_name)
             if not os.path.exists(project_package_dir):

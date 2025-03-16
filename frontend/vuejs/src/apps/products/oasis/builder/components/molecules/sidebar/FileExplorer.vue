@@ -1,15 +1,18 @@
 <template>
   <div class="flex-1 overflow-y-auto">
     <!-- File Tree -->
-    <div class="p-4">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-medium text-gray-200">Project Files</h3>
+    <div class="p-3">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-medium text-gray-200 flex items-center">
+          <i class="fas fa-folder-open text-primary-400 mr-1.5"></i>
+          <span>Project Files</span>
+        </h3>
         <button
-          class="p-1 text-gray-400 hover:text-white transition-colors"
+          class="p-1 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-dark-700/50"
           @click="showNewForm = true"
           title="New File"
         >
-          <i class="fas fa-plus" />
+          <i class="fas fa-plus text-xs"></i>
         </button>
       </div>
 
@@ -22,26 +25,27 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="showNewForm" class="mb-4">
-          <form @submit.prevent="handleCreateFile" class="space-y-3">
+        <div v-if="showNewForm" class="mb-3 bg-dark-800/80 p-2 rounded-lg border border-dark-700/70">
+          <form @submit.prevent="handleCreateFile" class="space-y-2">
+            <div class="text-xs font-medium text-gray-300 mb-1">New File</div>
             <input
               v-model="newFileName"
               type="text"
-              class="w-full bg-dark-900 border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
+              class="w-full py-1 px-2 text-sm bg-dark-900 border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
               placeholder="File name (with extension)"
               required
             />
             <div class="flex justify-end space-x-2">
               <button
                 type="button"
-                class="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+                class="px-2 py-1 text-xs text-gray-400 hover:text-white transition-colors"
                 @click="cancelNewFile"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                class="px-3 py-1 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                class="px-2 py-1 text-xs bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                 :disabled="!isValidFileName"
               >
                 Create
@@ -51,8 +55,26 @@
         </div>
       </Transition>
 
+      <!-- Directory structure -->
+      <div class="space-y-0.5 pb-1 mb-2 border-b border-dark-700/30">
+        <div 
+          class="flex items-center text-xs py-1 px-2 rounded hover:bg-dark-800/80 transition-colors text-primary-300 cursor-pointer"
+          @click="emitSelectDirectoryFile('templates')"
+        >
+          <i class="fas fa-folder text-primary-400 mr-1.5 w-4 text-center"></i>
+          <span>Templates</span>
+        </div>
+        <div
+          class="flex items-center text-xs py-1 px-2 rounded hover:bg-dark-800/80 transition-colors text-primary-300 cursor-pointer"
+          @click="emitSelectDirectoryFile('static/css')"
+        >
+          <i class="fas fa-folder text-primary-400 mr-1.5 w-4 text-center"></i>
+          <span>Styles</span>
+        </div>
+      </div>
+
       <!-- File List -->
-      <div class="space-y-1">
+      <div v-if="sortedFiles.length > 0" class="space-y-0.5">
         <FileTreeItem
           v-for="file in sortedFiles"
           :key="file.path"
@@ -60,6 +82,11 @@
           :is-selected="selectedFile?.path === file.path"
           @select="handleFileSelect"
         />
+      </div>
+      <div v-else class="text-center text-xs text-gray-500 py-2">
+        <div class="mb-1"><i class="fas fa-info-circle"></i></div>
+        No project files yet.
+        <div class="mt-1">Create a new file to get started.</div>
       </div>
     </div>
   </div>
@@ -88,11 +115,17 @@ const newFileName = ref('')
 // Computed
 const sortedFiles = computed(() => {
   return [...props.files].sort((a, b) => {
-    // Sort by directory first, then by name
-    const aIsDir = a.path.endsWith('/')
-    const bIsDir = b.path.endsWith('/')
-    if (aIsDir && !bIsDir) return -1
-    if (!aIsDir && bIsDir) return 1
+    // Group files by directory
+    const aDir = a.path.split('/')[0]
+    const bDir = b.path.split('/')[0]
+    
+    if (aDir !== bDir) {
+      // Sort templates first, then static files
+      if (aDir === 'templates') return -1
+      if (bDir === 'templates') return 1
+    }
+    
+    // Sort by filename within same directory
     return a.path.localeCompare(b.path)
   })
 })
@@ -106,17 +139,47 @@ const handleFileSelect = (file: ProjectFile) => {
   emit('selectFile', file)
 }
 
+const emitSelectDirectoryFile = (dirPath: string) => {
+  // Find first file in directory or mock one if none exists
+  const dirFile = props.files.find(f => f.path.startsWith(dirPath + '/'))
+  
+  if (dirFile) {
+    emit('selectFile', dirFile)
+  } else {
+    // Show the new file form as fallback
+    showNewForm.value = true
+    newFileName.value = dirPath === 'templates' ? 'page.html' : 'styles.css'
+  }
+}
+
 const handleCreateFile = () => {
   if (!isValidFileName.value) return
   
-  // Extract file extension from the filename
+  // Determine file type
+  let fileType = 'text'
   const fileExtension = newFileName.value.split('.').pop() || ''
   
-  console.log('Creating file:', { name: newFileName.value, type: fileExtension })
+  if (fileExtension === 'html') {
+    fileType = 'html'
+  } else if (fileExtension === 'css') {
+    fileType = 'css'
+  }
+  
+  // Determine correct path - ensure templates or static/css prefix
+  let filePath = newFileName.value
+  if (!filePath.startsWith('templates/') && !filePath.startsWith('static/css/')) {
+    if (fileExtension === 'html') {
+      filePath = `templates/${filePath}`
+    } else if (fileExtension === 'css') {
+      filePath = `static/css/${filePath}`
+    }
+  }
+  
+  console.log('Creating file:', { name: filePath, type: fileType })
   
   emit('createFile', {
-    name: newFileName.value,
-    type: fileExtension
+    name: filePath,
+    type: fileType
   })
   
   cancelNewFile()

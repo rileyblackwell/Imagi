@@ -1,25 +1,32 @@
 <template>
   <button
-    class="w-full flex items-center px-2 py-1.5 rounded-lg text-left transition-colors"
+    class="w-full flex items-center px-2 py-1 rounded-md text-left transition-colors text-xs"
     :class="[
       isSelected 
-        ? 'bg-primary-500/20 text-white' 
-        : 'text-gray-400 hover:text-white hover:bg-dark-800'
+        ? 'bg-primary-500/20 text-white border border-primary-500/30' 
+        : 'text-gray-300 hover:text-white hover:bg-dark-800/80 border border-transparent'
     ]"
     @click="$emit('select', file)"
   >
     <!-- File Icon -->
     <i 
-      class="fas mr-2"
-      :class="[
-        file.path.endsWith('/') 
-          ? 'fa-folder text-yellow-500' 
-          : `fa-file text-${fileIconColor}`
-      ]"
+      class="fas mr-1.5 w-4 text-center"
+      :class="fileIcon"
     />
     
-    <!-- File Name -->
-    <span class="truncate">{{ fileName }}</span>
+    <!-- File Name with Directory Badge -->
+    <div class="flex items-center flex-1 min-w-0">
+      <!-- Directory badge -->
+      <span 
+        v-if="fileDirectory" 
+        class="mr-1.5 text-xxs px-1 py-0.5 rounded bg-dark-700/80 text-primary-300 font-medium"
+      >
+        {{ fileDirectory }}
+      </span>
+      
+      <!-- File name -->
+      <span class="truncate">{{ fileName }}</span>
+    </div>
     
     <!-- File Status Indicators -->
     <div class="ml-auto flex items-center space-x-1">
@@ -48,20 +55,42 @@ const emit = defineEmits<{
 
 const fileName = computed(() => {
   const parts = props.file.path.split('/')
-  return parts[parts.length - 1] || parts[parts.length - 2]
+  // Return just the filename, not the full path
+  return parts[parts.length - 1] || props.file.path
 })
 
-const fileIconColor = computed(() => {
-  const extensionMap: Record<string, string> = {
-    '.ts': 'blue-500',
-    '.js': 'yellow-500',
-    '.vue': 'green-500',
-    '.css': 'pink-500',
-    '.html': 'orange-500',
-    '.json': 'purple-500'
+// Get the directory part for badge display
+const fileDirectory = computed(() => {
+  const parts = props.file.path.split('/')
+  if (parts.length > 1) {
+    // Return the first directory
+    if (parts[0] === 'templates') return 'template'
+    if (parts[0] === 'static' && parts[1] === 'css') return 'css'
+    return parts[0]
+  }
+  return null
+})
+
+const fileIcon = computed(() => {
+  // Get file extension
+  const extension = props.file.path.split('.').pop()?.toLowerCase() || ''
+  
+  // Icon based on file type
+  if (extension === 'html') {
+    return 'fa-file-code text-orange-400'
+  } else if (extension === 'css') {
+    return 'fa-file-code text-blue-400'
+  } else if (props.file.path.endsWith('/')) {
+    return 'fa-folder text-yellow-500'
   }
   
-  const extension = props.file.path.split('.').pop()
-  return extensionMap[`.${extension}`] || 'gray-500'
+  return 'fa-file text-gray-500'
 })
 </script>
+
+<style scoped>
+.text-xxs {
+  font-size: 0.65rem;
+  line-height: 1rem;
+}
+</style>

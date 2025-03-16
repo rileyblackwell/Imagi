@@ -76,6 +76,15 @@ class FileService:
                     if any(part.startswith('.') for part in rel_path.split(os.sep)):
                         continue
                     
+                    # Only include HTML templates and CSS files
+                    file_extension = os.path.splitext(filename)[1].lower()
+                    if file_extension not in ['.html', '.css']:
+                        continue
+                        
+                    # Skip files outside templates or static directories
+                    if not ('templates' in rel_path or ('static' in rel_path and file_extension == '.css')):
+                        continue
+                    
                     # Get file stats
                     stats = os.stat(full_path)
                     

@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="h-full flex flex-col bg-dark-900/80 backdrop-blur-md border-r border-dark-800/50 relative"
+    class="h-full max-h-screen flex flex-col overflow-auto pb-2 bg-dark-900/80 backdrop-blur-md border-r border-dark-800/50 relative"
     :class="{'px-4': !isCollapsed, 'items-center': isCollapsed}"
   >
     <!-- Decorative elements -->
@@ -89,7 +89,7 @@
     </div>
     
     <!-- Files Section -->
-    <div class="flex-1 overflow-hidden py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
+    <div class="flex-1 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
       <div v-if="!isCollapsed" class="mb-2 flex items-center justify-between">
         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
         
@@ -130,7 +130,7 @@
     </div>
     
     <!-- Action Buttons -->
-    <div v-if="!isCollapsed" class="p-4 border-t border-dark-700/50 bg-dark-800/30 backdrop-blur-sm">
+    <div v-if="!isCollapsed" class="sticky bottom-0 left-0 right-0 p-4 mt-auto border-t border-dark-700/50 bg-dark-800/30 backdrop-blur-sm">
       <div class="flex justify-between items-center">
         <button 
           @click="$emit('undo')"
@@ -296,5 +296,24 @@ const modeOptions = computed(() => ([
 
 .tooltip-container:hover .tooltip {
   opacity: 1;
+}
+
+/* Scrollbar styling */
+.overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.dark.600') transparent;
+}
+
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background-color: theme('colors.dark.600');
+  border-radius: 3px;
 }
 </style>
