@@ -1,52 +1,39 @@
 <template>
   <DashboardLayout :navigationItems="navigationItems">
-    <div class="flex flex-col w-full min-h-screen bg-dark-900 relative overflow-hidden">
-      <!-- Enhanced Background Effects -->
-      <div class="absolute inset-0 pointer-events-none">
-        <!-- Refined gradient background with improved colors matching Imagi brand -->
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-600/10 via-indigo-500/5 to-violet-600/10"></div>
-        
-        <!-- Ambient glow effects with subtle pulsing animation -->
-        <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-gradient-to-r from-primary-600/15 to-violet-600/15 rounded-full blur-[120px] opacity-40 animate-pulse-slow"></div>
-        <div class="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-r from-indigo-600/10 to-primary-600/10 rounded-full blur-[100px] opacity-30"></div>
-        
-        <!-- Enhanced subtle grid pattern -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02] mix-blend-overlay"></div>
+    <div class="flex flex-col w-full min-h-screen bg-dark-950 relative overflow-hidden">
+      <!-- Enhanced Background Effects matching Projects page -->
+      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <!-- Gradient orbs matching Projects page -->
+        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
+        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+        <!-- Subtle noise texture -->
+        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
       </div>
 
       <!-- Dashboard Content with improved spacing and organization -->
       <div class="relative z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <!-- Welcome Section with Enhanced Imagi Title Styling -->
-          <div class="mb-10">
-            <!-- Imagi Title with improved glow and animation -->
-            <div class="inline-flex items-center justify-center mb-8">
-              <div class="rounded-2xl bg-gradient-to-br p-[1.5px] from-primary-400/50 to-violet-400/50
-                        hover:from-primary-300/60 hover:to-violet-300/60 transition-all duration-300">
-                <div class="px-8 py-4 rounded-2xl bg-dark-800/95 backdrop-blur-xl
-                          shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)]">
-                  <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-300 via-emerald-300 to-yellow-200 
-                            bg-clip-text text-transparent tracking-tight
-                            drop-shadow-[0_0_15px_rgba(236,72,153,0.3)]
-                            animate-gradient">
-                    Imagi
-                  </h1>
-                </div>
-              </div>
+          <div class="mb-12">
+            <!-- Enhanced section header to match projects page -->
+            <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
+              <span class="text-primary-400 font-semibold text-sm tracking-wider">YOUR DASHBOARD</span>
             </div>
             
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
-                <h2 class="text-3xl font-bold text-white mb-3 tracking-tight">
+                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
                   Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋
                 </h2>
-                <p class="text-lg text-gray-300/90 max-w-2xl leading-relaxed">
+                <p class="text-xl text-gray-300 max-w-3xl leading-relaxed">
                   Here's what's happening with your projects today.
                 </p>
               </div>
               <button
                 @click="$router.push({ name: 'builder-new-project' })"
-                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-600 to-violet-600 text-white rounded-xl hover:from-primary-700 hover:to-violet-700 shadow-lg shadow-primary-600/30 hover:shadow-primary-600/40 transform hover:translate-y-[-2px] transition-all duration-300 self-start"
+                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300 self-start"
               >
                 <i class="fas fa-plus mr-2.5"></i>
                 New Project
@@ -54,47 +41,64 @@
             </div>
           </div>
 
+          <!-- Divider with animated line matching Projects page -->
+          <div class="relative h-16 max-w-7xl mx-auto mb-8">
+            <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
+          </div>
+
           <!-- Stats Overview with Enhanced Cards and Consistent Styling -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-10">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
             <div 
               v-for="stat in statsData" 
               :key="stat.title"
-              class="group relative transform transition-all duration-300 hover:translate-y-[-3px]"
+              class="group relative transform transition-all duration-300 hover:-translate-y-2"
             >
-              <!-- Enhanced hover glow effect with improved colors -->
-              <div class="absolute -inset-[1px] rounded-xl bg-gradient-to-r opacity-0 group-hover:opacity-100 blur-[2px] transition-all duration-300" 
+              <!-- Enhanced glass morphism effect with glow -->
+              <div class="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"
                 :class="{
-                  'from-primary-600/30 via-violet-600/30 to-indigo-600/30': stat.color === 'primary',
-                  'from-green-600/30 via-emerald-600/30 to-teal-600/30': stat.color === 'success',
-                  'from-yellow-600/30 via-amber-600/30 to-orange-600/30': stat.color === 'warning',
-                  'from-blue-600/30 via-sky-600/30 to-cyan-600/30': stat.color === 'info'
+                  'bg-gradient-to-r from-primary-500/50 to-violet-500/50': stat.color === 'primary',
+                  'bg-gradient-to-r from-green-500/50 to-emerald-500/50': stat.color === 'success',
+                  'bg-gradient-to-r from-yellow-500/50 to-amber-500/50': stat.color === 'warning',
+                  'bg-gradient-to-r from-blue-500/50 to-sky-500/50': stat.color === 'info'
                 }"
               ></div>
               
-              <!-- Card content with enhanced styling and consistent brand colors -->
-              <div class="relative bg-dark-800/80 backdrop-blur-md rounded-xl p-6 border border-dark-700/80 group-hover:border-primary-600/30 transition-all duration-300 shadow-lg shadow-dark-950/40 group-hover:shadow-xl group-hover:shadow-primary-600/15 h-full">
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-lg font-medium text-gray-300">{{ stat.title }}</h3>
-                  <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300"
-                    :class="{
-                      'bg-primary-600/15 text-primary-400': stat.color === 'primary',
-                      'bg-green-600/15 text-green-400': stat.color === 'success',
-                      'bg-yellow-600/15 text-yellow-400': stat.color === 'warning',
-                      'bg-blue-600/15 text-blue-400': stat.color === 'info'
-                    }"
-                  >
-                    <i :class="[stat.icon, 'text-lg']"></i>
+              <!-- Card content with enhanced styling -->
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                <!-- Card header with gradient matching project color -->
+                <div class="h-2 w-full"
+                  :class="{
+                    'bg-gradient-to-r from-primary-500 to-violet-500': stat.color === 'primary',
+                    'bg-gradient-to-r from-green-500 to-emerald-500': stat.color === 'success',
+                    'bg-gradient-to-r from-yellow-500 to-amber-500': stat.color === 'warning',
+                    'bg-gradient-to-r from-blue-500 to-sky-500': stat.color === 'info'
+                  }"
+                ></div>
+                
+                <div class="p-5">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-300">{{ stat.title }}</h3>
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300"
+                      :class="{
+                        'bg-primary-500/15 text-primary-400': stat.color === 'primary',
+                        'bg-green-500/15 text-green-400': stat.color === 'success',
+                        'bg-yellow-500/15 text-yellow-400': stat.color === 'warning',
+                        'bg-blue-500/15 text-blue-400': stat.color === 'info'
+                      }"
+                    >
+                      <i :class="[stat.icon, 'text-lg']"></i>
+                    </div>
                   </div>
-                </div>
-                <div class="flex items-end justify-between">
-                  <div class="text-3xl font-bold text-white">{{ stat.value }}</div>
-                  <div class="text-sm font-medium"
-                    :class="{
-                      'text-green-400': stat.trend.startsWith('+'),
-                      'text-red-400': stat.trend.startsWith('-')
-                    }"
-                  >
-                    {{ stat.trend }}
+                  <div class="flex items-end justify-between">
+                    <div class="text-3xl font-bold text-white">{{ stat.value }}</div>
+                    <div class="text-sm font-medium"
+                      :class="{
+                        'text-green-400': stat.trend.startsWith('+'),
+                        'text-red-400': stat.trend.startsWith('-')
+                      }"
+                    >
+                      {{ stat.trend }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -106,156 +110,172 @@
             <!-- Projects & Activity Column -->
             <div class="lg:col-span-2 space-y-8">
               <!-- Recent Projects -->
-              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
-                <div class="flex items-center justify-between mb-6">
-                  <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/20 transform hover:scale-105 transition-all duration-300">
-                      <i class="fas fa-folder-open text-xl text-white"></i>
-                    </div>
-                    <h2 class="text-xl font-bold text-white">Recent Projects</h2>
-                  </div>
-                  <router-link 
-                    to="/products/oasis/builder/projects"
-                    class="text-primary-400 hover:text-primary-300 transition-colors text-sm font-medium flex items-center"
-                  >
-                    View All
-                    <i class="fas fa-arrow-right ml-2"></i>
-                  </router-link>
-                </div>
+              <div class="group relative">
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
                 
-                <div class="space-y-4">
-                  <div 
-                    v-for="project in recentProjects"
-                    :key="project.id"
-                    class="group bg-dark-900/50 hover:bg-dark-900/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl p-4 transition-all duration-300 transform hover:translate-y-[-2px] cursor-pointer"
-                    @click="goToProject(project.id)"
-                  >
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                          <i class="fas fa-cube text-primary-400"></i>
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
+                  <div class="p-8">
+                    <div class="flex items-center justify-between mb-6">
+                      <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500/20 to-violet-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/10 transform hover:scale-105 transition-all duration-300 border border-primary-500/20">
+                          <i class="fas fa-folder-open text-xl text-primary-400"></i>
                         </div>
-                        <div>
-                          <h3 class="text-white font-medium group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
-                          <p class="text-gray-400 text-sm">Last updated {{ formatDate(project.updated_at) }}</p>
+                        <h2 class="text-xl font-bold text-white">Recent Projects</h2>
+                      </div>
+                      <router-link 
+                        to="/products/oasis/builder/projects"
+                        class="text-primary-400 hover:text-primary-300 transition-colors text-sm font-medium flex items-center"
+                      >
+                        View All
+                        <i class="fas fa-arrow-right ml-2"></i>
+                      </router-link>
+                    </div>
+                    
+                    <div class="space-y-4">
+                      <div 
+                        v-for="project in recentProjects"
+                        :key="project.id"
+                        class="group bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl p-4 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+                        @click="goToProject(project.id)"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
+                              <i class="fas fa-cube text-primary-400"></i>
+                            </div>
+                            <div>
+                              <h3 class="text-white font-medium group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
+                              <p class="text-gray-400 text-sm">Last updated {{ formatDate(project.updated_at) }}</p>
+                            </div>
+                          </div>
+                          <div class="text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-arrow-right"></i>
+                          </div>
                         </div>
                       </div>
-                      <div class="text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <i class="fas fa-arrow-right"></i>
+                      
+                      <div v-if="!recentProjects.length" class="flex flex-col items-center justify-center py-10 bg-dark-800/30 rounded-xl border border-dark-700/50">
+                        <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5">
+                          <i class="fas fa-folder-open text-2xl text-primary-400"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
+                        <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
+                        <button
+                          @click="$router.push({ name: 'builder-new-project' })"
+                          class="px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 hover:from-primary-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
+                        >
+                          <i class="fas fa-plus mr-2"></i>
+                          Create Your First Project
+                        </button>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div v-if="!recentProjects.length" class="flex flex-col items-center justify-center py-10 bg-dark-900/30 rounded-xl border border-dark-700/50">
-                    <i class="fas fa-folder-open text-3xl text-gray-500 mb-3 opacity-50"></i>
-                    <p class="text-gray-400 text-center">No projects yet. Create your first project to get started!</p>
-                    <button
-                      @click="$router.push({ name: 'builder-new-project' })"
-                      class="mt-4 px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg hover:bg-primary-500/30 transition-colors"
-                    >
-                      <i class="fas fa-plus mr-2"></i>
-                      Create Project
-                    </button>
                   </div>
                 </div>
               </div>
 
               <!-- Recent Activity -->
-              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
-                <div class="flex items-center gap-4 mb-6">
-                  <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 transform hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-history text-xl text-white"></i>
-                  </div>
-                  <h2 class="text-xl font-bold text-white">Activity Feed</h2>
-                </div>
+              <div class="group relative">
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
                 
-                <ActivityFeed :activities="recentActivities" />
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+                  <div class="p-8">
+                    <div class="flex items-center gap-4 mb-6">
+                      <div class="w-12 h-12 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/10 transform hover:scale-105 transition-all duration-300 border border-indigo-500/20">
+                        <i class="fas fa-history text-xl text-indigo-400"></i>
+                      </div>
+                      <h2 class="text-xl font-bold text-white">Activity Feed</h2>
+                    </div>
+                    
+                    <ActivityFeed :activities="recentActivities" />
+                  </div>
+                </div>
               </div>
             </div>
 
             <!-- Quick Actions & Resources Column -->
             <div class="space-y-8">
               <!-- Quick Actions -->
-              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
-                <div class="flex items-center gap-4 mb-6">
-                  <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 transform hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-bolt text-xl text-white"></i>
-                  </div>
-                  <h2 class="text-xl font-bold text-white">Quick Actions</h2>
-                </div>
+              <div class="group relative">
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500/50 to-cyan-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
                 
-                <div class="space-y-3">
-                  <button
-                    v-for="action in quickActions"
-                    :key="action.title"
-                    @click="$router.push(action.route)"
-                    class="w-full flex items-center justify-between p-4 bg-dark-900/50 hover:bg-dark-900/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:translate-y-[-2px] text-white hover:text-primary-400 group"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                        <i :class="[action.icon, 'text-primary-400']"></i>
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-2 w-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
+                  <div class="p-8">
+                    <div class="flex items-center gap-4 mb-6">
+                      <div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/10 transform hover:scale-105 transition-all duration-300 border border-blue-500/20">
+                        <i class="fas fa-bolt text-xl text-blue-400"></i>
                       </div>
-                      <span>{{ action.title }}</span>
+                      <h2 class="text-xl font-bold text-white">Quick Actions</h2>
                     </div>
-                    <i class="fas fa-chevron-right text-gray-500 group-hover:text-primary-400 transition-colors"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Available Credits -->
-              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
-                <div class="flex items-center gap-4 mb-6">
-                  <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20 transform hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-coins text-xl text-white"></i>
+                    
+                    <div class="space-y-3">
+                      <button
+                        v-for="action in quickActions"
+                        :key="action.title"
+                        @click="$router.push(action.route)"
+                        class="w-full flex items-center justify-between p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 text-white hover:text-primary-400 group"
+                      >
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                            <i :class="[action.icon, 'text-primary-400']"></i>
+                          </div>
+                          <span>{{ action.title }}</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-primary-400 transition-colors"></i>
+                      </button>
+                    </div>
                   </div>
-                  <h2 class="text-xl font-bold text-white">Credits Overview</h2>
-                </div>
-                
-                <div class="text-center p-4">
-                  <div class="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-3">
-                    {{ credits }}
-                  </div>
-                  <p class="text-gray-300 mb-6">Available Credits</p>
-                  <div class="relative h-3 bg-dark-900/70 rounded-full overflow-hidden mb-6">
-                    <div 
-                      class="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full"
-                      :style="{ width: `${(creditsUsed / creditsPlan) * 100}%` }"
-                    ></div>
-                  </div>
-                  <router-link 
-                    to="/payments"
-                    class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-xl hover:from-amber-600 hover:to-yellow-600 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transform hover:translate-y-[-2px] transition-all duration-300"
-                  >
-                    <i class="fas fa-plus mr-2"></i>
-                    Add Credits
-                  </router-link>
                 </div>
               </div>
 
               <!-- Resources -->
-              <div class="bg-dark-800/70 backdrop-blur-md rounded-2xl p-8 border border-dark-700/80 hover:border-primary-500/30 transition-all duration-300 shadow-lg shadow-dark-950/20 hover:shadow-xl hover:shadow-primary-500/10">
-                <div class="flex items-center gap-4 mb-6">
-                  <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20 transform hover:scale-105 transition-all duration-300">
-                    <i class="fas fa-book text-xl text-white"></i>
-                  </div>
-                  <h2 class="text-xl font-bold text-white">Resources</h2>
-                </div>
+              <div class="group relative">
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/50 to-teal-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
                 
-                <div class="space-y-4">
-                  <a 
-                    v-for="resource in resources" 
-                    :key="resource.title"
-                    :href="resource.url"
-                    class="block p-4 bg-dark-900/50 hover:bg-dark-900/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:translate-y-[-2px] group"
-                  >
-                    <div class="flex items-center gap-3 mb-2">
-                      <div class="w-8 h-8 rounded-lg bg-green-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                        <i :class="[resource.icon, 'text-green-400']"></i>
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-2 w-full bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+                  <div class="p-8">
+                    <div class="flex items-center gap-4 mb-6">
+                      <div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/10 transform hover:scale-105 transition-all duration-300 border border-emerald-500/20">
+                        <i class="fas fa-book text-xl text-emerald-400"></i>
                       </div>
-                      <h3 class="text-white font-medium group-hover:text-green-400 transition-colors">{{ resource.title }}</h3>
+                      <h2 class="text-xl font-bold text-white">Resources</h2>
                     </div>
-                    <p class="text-gray-400 text-sm pl-11">{{ resource.description }}</p>
-                  </a>
+                    
+                    <div class="space-y-3">
+                      <a 
+                        v-for="resource in resourceLinks" 
+                        :key="resource.title"
+                        :href="resource.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                              <i :class="[resource.icon, 'text-emerald-400']"></i>
+                            </div>
+                            <div>
+                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">{{ resource.title }}</h3>
+                              <p class="text-sm text-gray-400">{{ resource.description }}</p>
+                            </div>
+                          </div>
+                          <i class="fas fa-external-link-alt text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -475,13 +495,21 @@ onMounted(() => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* Slower pulsing animation for background elements */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.2; }
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 8s ease-in-out infinite;
+/* Float animation for background orbs */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 18s ease-in-out infinite reverse;
 }
 </style>
