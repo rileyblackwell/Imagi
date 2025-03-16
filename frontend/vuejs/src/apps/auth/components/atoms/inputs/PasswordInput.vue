@@ -9,15 +9,22 @@
         :id="id"
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
+        @blur="onBlur"
+        @change="onChange"
         :type="inputType"
+        :name="name"
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
-        class="w-full py-3.5 pl-11 pr-10 bg-dark-800 border border-dark-700 rounded-xl 
-               text-white placeholder-gray-500 outline-none focus:ring-0
-               focus:border-primary-400 disabled:opacity-50 disabled:cursor-not-allowed 
-               transition-all duration-500 ease-out hover:border-primary-400/50
-               hover:bg-dark-800/80"
+        class="w-full py-3.5 pl-11 pr-10 bg-dark-800 border rounded-xl 
+               text-white placeholder-gray-500 outline-none focus:outline-none
+               disabled:opacity-50 disabled:cursor-not-allowed 
+               transition-colors duration-300"
+        :class="{ 
+          'border-red-500 ring-1 ring-red-500': hasError,
+          'border-dark-700 focus:border-primary-400 focus:ring-1 focus:ring-primary-400': !hasError,
+          'hover:border-dark-600': !hasError && !disabled
+        }"
       >
       <button
         type="button"
@@ -42,7 +49,7 @@ const togglePassword = () => {
 
 const inputType = computed(() => isVisible.value ? 'text' : 'password')
 
-defineProps({
+const props = defineProps({
   modelValue: {
     type: String,
     required: true
@@ -66,8 +73,38 @@ defineProps({
   id: {
     type: String,
     default: () => `password-input-${Math.random().toString(36).substr(2, 9)}`
+  },
+  hasError: {
+    type: Boolean,
+    default: false
+  },
+  name: {
+    type: String,
+    default: 'password'
+  },
+  // Vee-validate field props
+  onBlur: {
+    type: Function,
+    default: () => {}
+  },
+  onChange: {
+    type: Function,
+    default: () => {}
   }
 })
 
 defineEmits(['update:modelValue'])
 </script>
+
+<style scoped>
+/* Custom focus styles */
+input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Override browser-specific focus styles */
+input:focus-visible {
+  outline: none !important;
+}
+</style>

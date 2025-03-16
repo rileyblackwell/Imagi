@@ -63,6 +63,12 @@ const setupAxiosInterceptors = () => {
       }
       
       config.headers = headers
+      
+      // Set reasonable timeout
+      if (!config.timeout) {
+        config.timeout = 30000 // 30 seconds default timeout
+      }
+      
       return config
     },
     error => Promise.reject(error)
@@ -72,10 +78,23 @@ const setupAxiosInterceptors = () => {
   axios.interceptors.response.use(
     response => response,
     async error => {
+      // Handle request timeout
+      if (error.code === 'ECONNABORTED') {
+        console.error('Request timed out:', error.config?.url)
+        return Promise.reject(new Error('Network Error: Request timed out'))
+      }
+      
+      // Handle network errors
+      if (!error.response) {
+        console.error('Network error:', error)
+        return Promise.reject(new Error('Network Error: Unable to connect to server'))
+      }
+      
       // Handle 403 (CSRF) errors
       if (error.response?.status === 403 && !error.config._retry) {
         error.config._retry = true
         try {
+          console.log('Getting new CSRF token due to 403 error')
           await AuthAPI.getCSRFToken()
           const newToken = getCookie('csrftoken')
           if (newToken) {
@@ -83,15 +102,24 @@ const setupAxiosInterceptors = () => {
           }
           return axios(error.config)
         } catch (retryError) {
+          console.error('Failed to retry with new CSRF token:', retryError)
           return Promise.reject(retryError)
         }
       }
       
       // Handle 401 (Unauthorized) errors
       if (error.response?.status === 401) {
+        console.log('Unauthorized request. Clearing auth data')
         localStorage.removeItem('token')
+        localStorage.removeItem('user')
         delete axios.defaults.headers.common['Authorization']
-        window.location.href = '/' // Redirect to home
+        
+        // Only redirect to home if not already on an auth page
+        const currentPath = window.location.pathname
+        if (!currentPath.startsWith('/auth/')) {
+          console.log('Redirecting to home from', currentPath)
+          window.location.href = '/'
+        }
       }
       
       return Promise.reject(error)
@@ -108,7 +136,8 @@ export const AuthAPI = {
   async getCSRFToken() {
     try {
       const response = await axios.get(`${BASE_URL}/csrf/`, {
-        withCredentials: true
+        withCredentials: true,
+        timeout: 10000 // 10 second timeout
       })
       return response
     } catch (error) {
@@ -120,9 +149,20 @@ export const AuthAPI = {
   async ensureCSRFToken(): Promise<string | null> {
     const token = getCookie('csrftoken')
     if (!token) {
-      await this.getCSRFToken()
+      console.log('No CSRF token found, fetching a new one')
+      try {
+        await this.getCSRFToken()
+        const newToken = getCookie('csrftoken')
+        if (!newToken) {
+          console.error('Failed to get CSRF token after explicit request')
+        }
+        return newToken
+      } catch (error) {
+        console.error('Error fetching CSRF token:', error)
+        return null
+      }
     }
-    return getCookie('csrftoken')
+    return token
   },
 
   async init(): Promise<{ data: { isAuthenticated: boolean; user: User } }> {
@@ -136,13 +176,33 @@ export const AuthAPI = {
         throw new Error('Username and password are required')
       }
 
+      // Make sure we have a CSRF token before attempting login
+      const csrfToken = await this.ensureCSRFToken();
+      if (!csrfToken) {
+        console.error('Could not obtain CSRF token');
+        throw new Error('Authentication error: Could not obtain security token');
+      }
+      
       const response = await axios.post(`${BASE_URL}/login/`, credentials, {
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
         },
-        withCredentials: true
-      })
+        withCredentials: true,
+        // Add timeout to prevent hanging requests
+        timeout: 15000
+      });
+
+      // Validate response format
+      if (!response.data) {
+        throw new Error('Invalid server response: Empty response')
+      }
+      
+      if (!response.data.token && !response.data.key) {
+        console.error('Login response missing token:', response.data);
+        throw new Error('Invalid server response: Missing token')
+      }
 
       return { 
         data: {
@@ -151,24 +211,68 @@ export const AuthAPI = {
         }
       }
     } catch (error: any) {
+      console.error('Login error details:', error);
+      
+      // Handle network errors
+      if (error.code === 'ECONNABORTED' || !error.response) {
+        throw new Error('Network Error')
+      }
+      
+      // Handle specific status codes with clear messages
       if (error.response?.status === 401) {
         throw new Error('Invalid credentials')
       }
+      
       if (error.response?.status === 400) {
         const errorData = error.response.data
-        throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Invalid credentials')
+        
+        // Check for error structure from backend
+        if (errorData.error) {
+          throw new Error(errorData.error)
+        }
+        
+        if (errorData.detail) {
+          // Check if detail is an object with field-specific errors
+          if (typeof errorData.detail === 'object') {
+            throw error // Pass the original error to preserve structure
+          }
+          throw new Error(errorData.detail)
+        }
+        
+        if (errorData.non_field_errors?.[0]) {
+          throw new Error(errorData.non_field_errors[0])
+        }
+        
+        throw new Error('Invalid credentials')
       }
+      
+      // Fallback for other errors
       throw error
     }
   },
 
   async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
     try {
-      await this.ensureCSRFToken()
+      // Make sure we have a CSRF token before attempting registration
+      const csrfToken = await this.ensureCSRFToken();
+      if (!csrfToken) {
+        console.error('Could not obtain CSRF token');
+        throw new Error('Registration error: Could not obtain security token');
+      }
       
       // Validate required fields
       if (!userData.username || !userData.email || !userData.password || !userData.password_confirmation) {
-        throw new Error('All fields are required')
+        throw new Error('All registration fields are required')
+      }
+      
+      // Validate that password and confirmation match
+      if (userData.password !== userData.password_confirmation) {
+        throw new Error('Passwords do not match')
+      }
+      
+      // Validate terms acceptance
+      if (!userData.terms_accepted) {
+        throw new Error('You must accept the terms and conditions')
       }
 
       // Validate email format only (remove uniqueness check)
@@ -177,42 +281,80 @@ export const AuthAPI = {
         throw new Error('Please enter a valid email address')
       }
 
-      // Validate passwords match
-      if (userData.password !== userData.password_confirmation) {
-        throw new Error('Passwords do not match')
-      }
-
-      // Validate terms acceptance
-      if (!userData.terms_accepted) {
-        throw new Error('You must accept the terms and privacy policy')
-      }
-
       const response = await axios.post(`${BASE_URL}/register/`, userData, {
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
         },
-        withCredentials: true
+        withCredentials: true,
+        // Add timeout to prevent hanging requests
+        timeout: 15000
       })
 
-      if (!response?.data?.token) {
-        throw new Error('Invalid server response')
+      // Validate response format
+      if (!response.data) {
+        throw new Error('Invalid server response: Empty response')
+      }
+      
+      if (!response.data.token && !response.data.key) {
+        throw new Error('Invalid server response: Missing token')
       }
 
-      return response
+      return { 
+        data: {
+          token: response.data.token || response.data.key,
+          user: response.data.user || {}
+        }
+      }
     } catch (error: any) {
+      // Handle network errors
+      if (error.code === 'ECONNABORTED' || !error.response) {
+        throw new Error('Network Error')
+      }
+      
       if (error.response?.status === 400) {
         const errorData = error.response.data
-        // Only check for username uniqueness, ignore email uniqueness errors
+        
+        // Check for error structure from backend
+        if (errorData.error) {
+          throw new Error(errorData.error)
+        }
+        
+        if (errorData.detail) {
+          // Check if detail is an object with field-specific errors
+          if (typeof errorData.detail === 'object') {
+            throw error // Pass the original error to preserve structure
+          }
+          throw new Error(errorData.detail)
+        }
+        
+        // Handle specific field errors
         if (errorData.username) {
-          throw new Error('Username is already taken')
+          // Make it clear this is a uniqueness error
+          const usernameError = Array.isArray(errorData.username) ? errorData.username[0] : errorData.username;
+          if (usernameError.includes('already') || usernameError.includes('taken')) {
+            throw new Error('This username is already taken. Please choose another one.')
+          }
+          throw new Error(usernameError)
         }
-        // Ignore email uniqueness errors
-        if (errorData.email && !errorData.email[0].includes('already registered')) {
-          throw new Error(errorData.email[0])
+        
+        if (errorData.email) {
+          throw new Error(Array.isArray(errorData.email) ? errorData.email[0] : errorData.email)
         }
-        throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'Registration failed')
+        
+        if (errorData.password) {
+          throw new Error(Array.isArray(errorData.password) ? errorData.password[0] : errorData.password)
+        }
+        
+        if (errorData.non_field_errors?.[0]) {
+          throw new Error(errorData.non_field_errors[0])
+        }
+        
+        throw new Error('Registration failed')
       }
+      
+      // Fallback for other errors
       throw error
     }
   },

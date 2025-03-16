@@ -23,7 +23,7 @@
       <label class="text-sm text-gray-300">
         <slot></slot>
       </label>
-      <ErrorMessage :name="name" class="block mt-1 text-sm text-red-400" />
+      <ErrorMessage v-if="showError && false" :name="name" class="block mt-1 text-sm text-red-400" />
     </div>
   </div>
 </template>
@@ -39,6 +39,10 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  showError: {
+    type: Boolean,
+    default: true
   }
 })
 </script>

@@ -21,6 +21,14 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
     password_confirmation = serializers.CharField(write_only=True)
 
+    def validate_username(self, username):
+        username = username.strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError(
+                "This username is already taken. Please choose another one."
+            )
+        return username
+
     def validate_email(self, email):
         email = get_adapter().clean_email(email)
         if allauth_settings.UNIQUE_EMAIL:
@@ -31,7 +39,9 @@ class RegisterSerializer(serializers.Serializer):
         return email
 
     def validate_password(self, password):
-        # Remove password validation temporarily
+        # Basic password validation
+        if len(password) < 8:
+            raise serializers.ValidationError("Password must be at least 8 characters long")
         return password
 
     def validate(self, data):
@@ -50,25 +60,53 @@ class RegisterSerializer(serializers.Serializer):
         adapter = get_adapter()
         user = adapter.new_user(request)
         self.cleaned_data = self.get_cleaned_data()
-        adapter.save_user(request, user, self)
-        setup_user_email(request, user, [])
-        return user
+        try:
+            adapter.save_user(request, user, self)
+            setup_user_email(request, user, [])
+            return user
+        except Exception as e:
+            # Log the detailed error but return a user-friendly message
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"User registration error: {str(e)}")
+            raise serializers.ValidationError("Unable to complete registration. Please try again.")
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
     password = serializers.CharField(required=True, write_only=True)
 
     def validate(self, attrs):
+        username = attrs.get('username', '').strip()
+        password = attrs.get('password', '')
+        
+        # Validation for empty fields
+        if not username:
+            raise serializers.ValidationError({
+                'username': 'Username is required'
+            })
+        
+        if not password:
+            raise serializers.ValidationError({
+                'password': 'Password is required'
+            })
+        
         try:
+            # Check if user exists first
+            user_exists = User.objects.filter(username__iexact=username).exists()
+            if not user_exists:
+                raise serializers.ValidationError({
+                    'error': 'No account found with this username'
+                })
+            
             # Attempt to authenticate
             user = authenticate(
-                username=attrs.get('username'),
-                password=attrs.get('password')
+                username=username,
+                password=password
             )
 
             if not user:
                 raise serializers.ValidationError({
-                    'error': 'Invalid username or password'
+                    'error': 'Invalid password. Please try again'
                 })
 
             if not user.is_active:
@@ -80,7 +118,14 @@ class LoginSerializer(serializers.Serializer):
             attrs['user'] = user
             return attrs
 
+        except serializers.ValidationError:
+            # Re-raise validation errors
+            raise
         except Exception as e:
+            # Log the error but provide a user-friendly message
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Login validation error: {str(e)}")
             raise serializers.ValidationError({
-                'error': str(e)
+                'error': 'Login failed. Please try again later'
             })

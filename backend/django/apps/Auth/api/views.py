@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authentication import TokenAuthentication
+from rest_framework import serializers
 
 # Django and Allauth
 from django.contrib.auth import get_user_model
@@ -83,11 +84,34 @@ class RegisterView(generics.CreateAPIView):
                 'message': 'Registration successful'
             }, status=status.HTTP_201_CREATED)
             
+        except serializers.ValidationError as e:
+            # Get specific validation errors
+            error_msg = 'Registration failed'
+            error_details = {}
+            
+            if hasattr(e, 'detail'):
+                if isinstance(e.detail, dict):
+                    for field, errors in e.detail.items():
+                        if isinstance(errors, list) and errors:
+                            error_details[field] = errors[0]
+                        else:
+                            error_details[field] = errors
+                elif isinstance(e.detail, list) and e.detail:
+                    error_msg = str(e.detail[0])
+                else:
+                    error_msg = str(e.detail)
+            
+            logger.error(f"Registration validation error: {error_details or error_msg}")
+            return Response({
+                'error': error_msg,
+                'detail': error_details or error_msg
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
             return Response({
                 'error': 'Registration failed',
-                'detail': str(e)
+                'detail': 'An unexpected error occurred. Please try again.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
@@ -106,10 +130,38 @@ class LoginView(APIView):
                 'token': token.key,
                 'user': UserSerializer(user).data
             })
+        except serializers.ValidationError as e:
+            # Extract validation error details
+            error_msg = 'Invalid login credentials'
+            error_details = {}
+            
+            if hasattr(e, 'detail'):
+                if isinstance(e.detail, dict):
+                    if 'error' in e.detail:
+                        error_msg = e.detail['error']
+                    
+                    for field, errors in e.detail.items():
+                        if isinstance(errors, list) and errors:
+                            error_details[field] = errors[0]
+                        else:
+                            error_details[field] = errors
+                            
+                elif isinstance(e.detail, list) and e.detail:
+                    error_msg = str(e.detail[0])
+                else:
+                    error_msg = str(e.detail)
+            
+            logger.error(f"Login validation error: {error_details or error_msg}")
+            return Response({
+                'error': error_msg,
+                'detail': error_details
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
             return Response({
-                'error': str(e)
+                'error': 'Login failed',
+                'detail': 'An unexpected error occurred. Please try again.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):

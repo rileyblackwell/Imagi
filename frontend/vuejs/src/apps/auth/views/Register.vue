@@ -1,59 +1,79 @@
 <template>
-  <div class="space-y-5">
-    <Form @submit="handleSubmit" v-slot="{ errors: formErrors, submitCount }" class="space-y-5">
-      <!-- Top row - full width fields -->
+  <div class="space-y-6">
+    <Form v-slot="{ errors: formErrors, submitCount, submitForm }" class="space-y-6" @submit="handleSubmit">
+      <!-- Top row - full width fields with enhanced styling -->
       <div class="space-y-5">
-        <FormInput
-          name="username"
-          label="Username"
-          icon="fas fa-user"
-          rules="required|username"
-          placeholder="Create a username"
-          :disabled="authStore.loading"
-          :showError="submitCount > 0"
-          class="min-h-[42px]"
-        />
-
-        <FormInput
-          name="email"
-          label="Email"
-          icon="fas fa-envelope"
-          rules="required|email"
-          placeholder="Enter your email"
-          :disabled="authStore.loading"
-          :showError="submitCount > 0"
-          v-model="formData.email"
-          class="min-h-[42px]"
-        />
-      </div>
-
-      <!-- Password section with full-width requirements -->
-      <div class="space-y-4">
-        <!-- Password inputs stacked vertically -->
-        <div class="space-y-5">
-          <PasswordInput
-            name="password"
-            v-model="formData.password"
-            rules="required|registration_password"
-            placeholder="Create password"
-            :disabled="authStore.loading"
-            :showError="submitCount > 0"
-            class="min-h-[42px]"
-          />
-
-          <PasswordInput
-            name="password_confirmation"
-            v-model="formData.passwordConfirmation"
-            :rules="{ required: true, password_confirmation: formData.password }"
-            placeholder="Confirm password"
-            :disabled="authStore.loading"
-            :showError="submitCount > 0"
-            class="min-h-[42px]"
-          />
+        <!-- Username input with micro-interactions -->
+        <div class="relative">
+          <Field name="username" rules="required|username" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+            <FormInput
+              v-bind="field"
+              name="username"
+              label="Username"
+              icon="fas fa-user"
+              placeholder="Create a username"
+              :disabled="authStore.loading || isSubmitting"
+              :hasError="!!errorMessage && submitCount > 0"
+              v-model="formData.username"
+              class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
+            />
+          </Field>
         </div>
 
-        <!-- Password requirements with simplified styling -->
-        <div class="px-4 py-3 bg-dark-800/50 rounded-lg border border-dark-700/50">
+        <!-- Email input with micro-interactions -->
+        <div class="relative">
+          <Field name="email" rules="required|email" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+            <FormInput
+              v-bind="field"
+              name="email"
+              label="Email"
+              icon="fas fa-envelope"
+              placeholder="Enter your email"
+              :disabled="authStore.loading || isSubmitting"
+              :hasError="!!errorMessage && submitCount > 0"
+              v-model="formData.email"
+              class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
+            />
+          </Field>
+        </div>
+      </div>
+
+      <!-- Password section with enhanced styling -->
+      <div class="space-y-5">
+        <!-- Password inputs with micro-interactions -->
+        <div class="space-y-5">
+          <div class="relative">
+            <Field name="password" rules="required|registration_password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+              <PasswordInput
+                v-bind="field"
+                name="password"
+                v-model="formData.password"
+                placeholder="Create password"
+                :disabled="authStore.loading || isSubmitting"
+                :hasError="!!errorMessage && submitCount > 0"
+                class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
+              />
+            </Field>
+          </div>
+
+          <div class="relative">
+            <Field name="password_confirmation" :rules="{ required: true, password_confirmation: formData.password }" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+              <PasswordInput
+                v-bind="field"
+                name="password_confirmation"
+                v-model="formData.passwordConfirmation"
+                placeholder="Confirm password"
+                :disabled="authStore.loading || isSubmitting"
+                :hasError="!!errorMessage && submitCount > 0"
+                class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
+              />
+            </Field>
+          </div>
+        </div>
+
+        <!-- Password requirements with enhanced styling -->
+        <div class="px-5 py-4 bg-dark-800/60 backdrop-blur-sm rounded-xl border border-dark-700/50 
+                    hover:border-primary-500/20 transition-all duration-300 shadow-inner">
           <PasswordRequirements 
             :password="formData.password || ''"
             ref="passwordRequirements"
@@ -62,49 +82,62 @@
         </div>
       </div>
 
-      <!-- Bottom section - full width -->
-      <div class="space-y-5 pt-2">
-        <FormCheckbox 
-          name="agreeToTerms" 
-          rules="required|terms"
-          :disabled="authStore.loading"
-          :showError="submitCount > 0"
-        >
-          I agree to the 
-          <router-link to="/terms" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
-            Terms of Service
-          </router-link>
-          and
-          <router-link to="/privacy" class="text-primary-400 hover:text-primary-300 transition-colors duration-300">
-            Privacy Policy
-          </router-link>
-        </FormCheckbox>
-
-        <div v-if="serverError && hasAttemptedSubmit" 
-             class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-          <p class="text-sm font-medium text-red-400 text-center">{{ serverError }}</p>
+      <!-- Bottom section with enhanced styling -->
+      <div class="space-y-5 pt-3">
+        <!-- Terms checkbox with enhanced styling -->
+        <div class="px-4 py-3 bg-dark-800/40 backdrop-blur-sm rounded-xl border border-dark-700/40 
+                    hover:border-primary-500/20 transition-all duration-300 shadow-sm">
+          <Field name="agreeToTerms" rules="required|terms" :validateOnBlur="false">
+            <FormCheckbox 
+              name="agreeToTerms" 
+              :disabled="authStore.loading || isSubmitting"
+              :showError="false"
+            >
+              I agree to the 
+              <router-link to="/terms" class="text-primary-400 hover:text-primary-300 transition-colors duration-300 font-medium">
+                Terms of Service
+              </router-link>
+              and
+              <router-link to="/privacy" class="text-primary-400 hover:text-primary-300 transition-colors duration-300 font-medium">
+                Privacy Policy
+              </router-link>
+            </FormCheckbox>
+          </Field>
         </div>
 
+        <!-- Enhanced error message with animation -->
+        <transition name="fade-up">
+          <div v-if="serverError" 
+               class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm
+                      shadow-inner transition-all duration-300">
+            <p class="text-sm font-medium text-red-400 text-center whitespace-pre-line">{{ serverError }}</p>
+          </div>
+        </transition>
+
+        <!-- Elevated button with enhanced styling -->
         <GradientButton
           type="submit"
-          :disabled="authStore.loading || Object.keys(formErrors).length > 0"
-          :loading="authStore.loading"
+          :disabled="authStore.loading || isSubmitting"
+          :loading="authStore.loading || isSubmitting"
           loading-text="Creating account..."
-          class="w-full"
+          class="w-full min-h-[48px] sm:min-h-[52px] mt-4"
         >
           Create Account
         </GradientButton>
       </div>
     </Form>
 
-    <AuthLinks />
+    <!-- AuthLinks with animations removed -->
+    <div class="pt-4">
+      <AuthLinks />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeUnmount } from 'vue'
+import { ref, reactive, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Form } from 'vee-validate'
+import { Form, Field, ErrorMessage } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/store/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
@@ -122,17 +155,29 @@ const router = useRouter()
 const authStore = useAuthStore()
 const serverError = ref('')
 const hasAttemptedSubmit = ref(false)
+const isSubmitting = ref(false)
 const passwordRequirements = ref<PasswordRequirementsRef | null>(null)
 
 const formData = reactive({
   email: '',
   password: '',
-  passwordConfirmation: ''
+  passwordConfirmation: '',
+  username: ''
 })
 
 defineOptions({
   name: 'Register'
 })
+
+// Clear error when form fields change
+watch(
+  [() => formData.email, () => formData.password, () => formData.passwordConfirmation, () => formData.username],
+  () => {
+    if (serverError.value) {
+      serverError.value = ''
+    }
+  }
+)
 
 // Clear any auth errors when component is unmounted
 onBeforeUnmount(() => {
@@ -140,32 +185,73 @@ onBeforeUnmount(() => {
 })
 
 const handleSubmit = async (values: RegisterFormValues) => {
-  hasAttemptedSubmit.value = true
   serverError.value = ''
+  isSubmitting.value = true
 
   try {
-    if (!values.username || !values.email || values.agreeToTerms === undefined) {
+    // Set form data from values if empty
+    if (!formData.username && values.username) {
+      formData.username = values.username
+    }
+    
+    if (!formData.email && values.email) {
+      formData.email = values.email
+    }
+    
+    if (!formData.password && values.password) {
+      formData.password = values.password
+    }
+    
+    // Validate all required fields
+    if (!formData.username || !formData.email || !formData.password || !values.agreeToTerms) {
       serverError.value = 'All fields are required'
+      isSubmitting.value = false
       return
     }
 
-    // We'll rely on the form validation for password requirements
-    // instead of checking passwordRequirements.value.isValid()
+    // Check password confirmation matches
+    if (formData.password !== formData.passwordConfirmation) {
+      serverError.value = 'Passwords do not match'
+      isSubmitting.value = false
+      return
+    }
 
+    // Create registration data
     const registerData = {
-      username: values.username.trim(),
-      email: values.email.trim(),
+      username: formData.username.trim(),
+      email: formData.email.trim(),
       password: formData.password,
       password_confirmation: formData.passwordConfirmation,
       terms_accepted: values.agreeToTerms
     }
 
+    // Show loading state in UI
+    document.body.style.cursor = 'wait'
+
     await authStore.register(registerData)
+    
     // After successful registration, redirect to home
     await router.push('/')
   } catch (error: unknown) {
     console.error('Registration error:', error)
     serverError.value = formatAuthError(error, 'register')
+  } finally {
+    isSubmitting.value = false
+    document.body.style.cursor = 'default'
   }
 }
 </script>
+
+<style scoped>
+/* Only keeping essential transitions for error messages */
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style>
