@@ -296,8 +296,7 @@
                       class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 transition-all duration-300 transform hover:-translate-y-1"
                     >
                       <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
-                        Start Building Free
-                        <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+                        Start Building
                       </span>
                     </HomeNavbarButton>
                   </div>

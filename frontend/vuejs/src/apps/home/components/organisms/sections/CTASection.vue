@@ -136,7 +136,7 @@ export default defineComponent({
     },
     primaryButtonText: {
       type: String,
-      default: 'Start Building Free'
+      default: 'Start Building'
     },
     secondaryButtonText: {
       type: String,

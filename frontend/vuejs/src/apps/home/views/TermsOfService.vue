@@ -100,7 +100,6 @@
                 <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                   <ul class="space-y-4">
                     <li v-for="(item, index) in termsSection[1].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-violet-400 mt-2.5 mr-3 flex-shrink-0"></div>
                       <span>{{ item }}</span>
                     </li>
                   </ul>
@@ -124,7 +123,6 @@
                 <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                   <ul class="space-y-4">
                     <li v-for="(item, index) in termsSection[2].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-indigo-400 mt-2.5 mr-3 flex-shrink-0"></div>
                       <span>{{ item }}</span>
                     </li>
                   </ul>
@@ -148,7 +146,6 @@
                 <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                   <ul class="space-y-4">
                     <li v-for="(item, index) in termsSection[3].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-purple-400 mt-2.5 mr-3 flex-shrink-0"></div>
                       <span>{{ item }}</span>
                     </li>
                   </ul>
@@ -190,7 +187,6 @@
                 <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                   <ul class="space-y-4">
                     <li v-for="(item, index) in termsSection[4].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-green-400 mt-2.5 mr-3 flex-shrink-0"></div>
                       <span>
                         <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
                       </span>
@@ -216,7 +212,6 @@
                 <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                   <ul class="space-y-4">
                     <li v-for="(item, index) in termsSection[5].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-primary-400 mt-2.5 mr-3 flex-shrink-0"></div>
                       <span>
                         <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
                       </span>
@@ -244,7 +239,6 @@
                   <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                     <ul class="space-y-4">
                       <li v-for="(item, index) in termsSection[6].items" :key="index" class="flex items-start">
-                        <div class="w-2 h-2 rounded-full bg-violet-400 mt-2.5 mr-3 flex-shrink-0"></div>
                         <span>{{ item }}</span>
                       </li>
                     </ul>
@@ -268,7 +262,6 @@
                   <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
                     <ul class="space-y-4">
                       <li v-for="(item, index) in termsSection[7].items" :key="index" class="flex items-start">
-                        <div class="w-2 h-2 rounded-full bg-indigo-400 mt-2.5 mr-3 flex-shrink-0"></div>
                         <span>{{ item }}</span>
                       </li>
                     </ul>
