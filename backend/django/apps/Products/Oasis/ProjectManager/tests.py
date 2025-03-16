@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 import os
 import shutil
-from .models import UserProject
+from .models import Project
 from .services.project_creation_service import ProjectCreationService
 from .services.project_management_service import ProjectManagementService
 
@@ -25,7 +25,7 @@ class ProjectManagerTests(TestCase):
 
     def test_create_project(self):
         # First create the project object
-        project = UserProject.objects.create(
+        project = Project.objects.create(
             user=self.user,
             name='TestProject'
         )
@@ -49,3 +49,29 @@ class ProjectManagerTests(TestCase):
         # Verify template files
         self.assertTrue(os.path.exists(os.path.join(project.project_path, 'templates', 'base.html')))
         self.assertTrue(os.path.exists(os.path.join(project.project_path, 'static', 'css', 'style.css')))
+
+    def test_delete_project(self):
+        """Test that project deletion removes both database record and files"""
+        # First create a project
+        project = Project.objects.create(
+            user=self.user,
+            name='TestDeleteProject'
+        )
+        
+        # Generate files for the project
+        self.creation_service.create_project(project)
+        
+        # Verify project exists in database
+        self.assertTrue(Project.objects.filter(id=project.id).exists())
+        
+        # Verify project files exist
+        self.assertTrue(os.path.exists(project.project_path))
+        
+        # Delete the project
+        self.management_service.delete_project(project)
+        
+        # Verify project is deleted from database
+        self.assertFalse(Project.objects.filter(id=project.id).exists())
+        
+        # Verify project files are deleted
+        self.assertFalse(os.path.exists(project.project_path))

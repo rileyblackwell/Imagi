@@ -13,25 +13,35 @@ from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from rest_framework.exceptions import NotFound
 
-from ..models import Project, Conversation, Page, Message
+from ..models import Conversation, Page, Message
 from .serializers import (
     ProjectSerializer,
     ConversationSerializer,
     PageSerializer,
+    MessageSerializer
 )
+from ..services.file_service import FileService
+from ..services.dev_server_service import DevServerManager
+from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from ..services.oasis_service import (
     process_builder_mode_input_service,
     undo_last_action_service,
     process_chat_mode_input_service
 )
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
-from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from ..services.ai_service import AIService
-from ..services.file_service import FileService
-from ..services.dev_server_service import DevServerManager
-from ..views import BuilderView
 
 logger = logging.getLogger(__name__)
+
+class BuilderView:
+    """Base class for Builder views with common functionality."""
+    def get_project(self, project_id, user):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
 
 @method_decorator(never_cache, name='dispatch')
 class ProjectListCreateView(generics.ListCreateAPIView, BuilderView):
@@ -40,7 +50,7 @@ class ProjectListCreateView(generics.ListCreateAPIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user, is_active=True).order_by('-updated_at')
+        return PMProject.objects.filter(user=self.request.user, is_active=True).order_by('-updated_at')
 
     def perform_create(self, serializer):
         try:
@@ -59,7 +69,7 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView, BuilderView):
     lookup_field = 'pk'
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user, is_active=True)
+        return PMProject.objects.filter(user=self.request.user, is_active=True)
 
     def perform_destroy(self, instance):
         project_service = ProjectManagementService(self.request.user)
@@ -71,30 +81,8 @@ class ProjectFilesView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id):
-        try:
-            # First try to get the project from the Builder app
-            project = Project.objects.get(id=project_id, user=request.user, is_active=True)
-        except Project.DoesNotExist:
-            # If not found, try to get it from the ProjectManager app
-            try:
-                from apps.Products.Oasis.ProjectManager.models import Project as PMProject
-                pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
-                
-                # Create a corresponding project in the Builder app if it doesn't exist
-                project, created = Project.objects.get_or_create(
-                    id=pm_project.id,
-                    defaults={
-                        'name': pm_project.name,
-                        'description': pm_project.description,
-                        'user': request.user,
-                        'is_active': True
-                    }
-                )
-                
-                if created:
-                    logger.info(f"Created Builder project from ProjectManager project: {project.id}")
-            except PMProject.DoesNotExist:
-                raise NotFound('Project not found')
+        # Get project from ProjectManager
+        project = self.get_project(project_id, request.user)
         
         # Check if project path exists
         if not project.project_path:
@@ -111,7 +99,25 @@ class ProjectFilesView(APIView, BuilderView):
         except Exception as e:
             logger.error(f"Error listing files: {str(e)}")
             return Response(
-                {'error': f'Error listing files: {str(e)}'},
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def post(self, request, project_id):
+        # Get project from ProjectManager
+        project = self.get_project(project_id, request.user)
+        
+        # Create file using the Builder's FileService
+        file_service = FileService(project=project)
+        
+        try:
+            file_data = request.data
+            result = file_service.create_file(file_data)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating file: {str(e)}")
+            return Response(
+                {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -123,7 +129,7 @@ class GenerateCodeView(APIView, BuilderView):
     def post(self, request, project_id):
         try:
             # Get project
-            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            project = self.get_project(project_id, request.user)
             
             # Get request data
             prompt = request.data.get('prompt', '')
@@ -165,7 +171,7 @@ class UndoActionView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, project_id):
-        project = get_object_or_404(Project, id=project_id, user=request.user)
+        project = self.get_project(project_id, request.user)
         
         try:
             project_service = ProjectManagementService(request.user)
@@ -224,30 +230,8 @@ class FileDetailView(APIView, BuilderView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id, file_path):
-        try:
-            # First try to get the project from the Builder app
-            project = Project.objects.get(id=project_id, user=request.user, is_active=True)
-        except Project.DoesNotExist:
-            # If not found, try to get it from the ProjectManager app
-            try:
-                from apps.Products.Oasis.ProjectManager.models import Project as PMProject
-                pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
-                
-                # Create a corresponding project in the Builder app if it doesn't exist
-                project, created = Project.objects.get_or_create(
-                    id=pm_project.id,
-                    defaults={
-                        'name': pm_project.name,
-                        'description': pm_project.description,
-                        'user': request.user,
-                        'is_active': True
-                    }
-                )
-                
-                if created:
-                    logger.info(f"Created Builder project from ProjectManager project: {project.id}")
-            except PMProject.DoesNotExist:
-                raise NotFound('Project not found')
+        # Get project from ProjectManager
+        project = self.get_project(project_id, request.user)
         
         file_service = FileService(project=project)
         file_details = file_service.get_file_details(file_path)
@@ -255,30 +239,8 @@ class FileDetailView(APIView, BuilderView):
 
     def put(self, request, project_id, file_path):
         try:
-            try:
-                # First try to get the project from the Builder app
-                project = Project.objects.get(id=project_id, user=request.user, is_active=True)
-            except Project.DoesNotExist:
-                # If not found, try to get it from the ProjectManager app
-                try:
-                    from apps.Products.Oasis.ProjectManager.models import Project as PMProject
-                    pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
-                    
-                    # Create a corresponding project in the Builder app if it doesn't exist
-                    project, created = Project.objects.get_or_create(
-                        id=pm_project.id,
-                        defaults={
-                            'name': pm_project.name,
-                            'description': pm_project.description,
-                            'user': request.user,
-                            'is_active': True
-                        }
-                    )
-                    
-                    if created:
-                        logger.info(f"Created Builder project from ProjectManager project: {project.id}")
-                except PMProject.DoesNotExist:
-                    raise NotFound('Project not found')
+            # Get project from ProjectManager
+            project = self.get_project(project_id, request.user)
             
             file_service = FileService(project=project)
             
@@ -298,36 +260,29 @@ class FileDetailView(APIView, BuilderView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    def delete(self, request, project_id, file_path):
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id, request.user)
+            
+            file_service = FileService(project=project)
+            result = file_service.delete_file(file_path)
+            return Response(result)
+        except Exception as e:
+            logger.error(f"Error deleting file: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 @method_decorator(never_cache, name='dispatch')
 class FileContentView(APIView, BuilderView):
     """Get file content."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id, file_path):
-        try:
-            # First try to get the project from the Builder app
-            project = Project.objects.get(id=project_id, user=request.user, is_active=True)
-        except Project.DoesNotExist:
-            # If not found, try to get it from the ProjectManager app
-            try:
-                from apps.Products.Oasis.ProjectManager.models import Project as PMProject
-                pm_project = PMProject.objects.get(id=project_id, user=request.user, is_active=True)
-                
-                # Create a corresponding project in the Builder app if it doesn't exist
-                project, created = Project.objects.get_or_create(
-                    id=pm_project.id,
-                    defaults={
-                        'name': pm_project.name,
-                        'description': pm_project.description,
-                        'user': request.user,
-                        'is_active': True
-                    }
-                )
-                
-                if created:
-                    logger.info(f"Created Builder project from ProjectManager project: {project.id}")
-            except PMProject.DoesNotExist:
-                raise NotFound('Project not found')
+        # Get project from ProjectManager
+        project = self.get_project(project_id, request.user)
         
         file_service = FileService(project=project)
         content = file_service.get_file_content(file_path)
@@ -340,7 +295,7 @@ class ConversationListView(generics.ListAPIView):
 
     def get_queryset(self):
         project_name = self.kwargs['project_name']
-        project = get_object_or_404(Project, user=self.request.user, name=project_name)
+        project = get_object_or_404(PMProject, user=self.request.user, name=project_name)
         return Conversation.objects.filter(project=project)
 
 @api_view(['POST'])
@@ -454,7 +409,7 @@ class PreviewView(APIView, BuilderView):
 
     def get(self, request, project_id):
         try:
-            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            project = self.get_project(project_id, request.user)
             
             # Start the development server
             dev_server = DevServerManager(project)
@@ -474,7 +429,7 @@ class PreviewView(APIView, BuilderView):
     
     def delete(self, request, project_id):
         try:
-            project = get_object_or_404(Project, id=project_id, user=request.user, is_active=True)
+            project = self.get_project(project_id, request.user)
             
             # Stop the development server
             dev_server = DevServerManager(project)

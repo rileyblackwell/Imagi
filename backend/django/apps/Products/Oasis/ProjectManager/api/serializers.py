@@ -31,14 +31,3 @@ class ProjectCreateSerializer(serializers.ModelSerializer):
             description=validated_data.get('description', '')
         )
         return project
-
-class FileSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    path = serializers.CharField()
-    type = serializers.CharField()
-    size = serializers.IntegerField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
-
-class FileContentSerializer(serializers.Serializer):
-    content = serializers.CharField()
-    encoding = serializers.CharField(required=False, default='utf-8')

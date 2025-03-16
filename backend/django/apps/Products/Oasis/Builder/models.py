@@ -2,49 +2,31 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.text import slugify
+import logging
 
-
-class Project(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='builder_projects')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.name} - {self.user.username}"
-    
-    def get_url_safe_name(self):
-        """Returns a URL-safe version of the project name"""
-        return slugify(self.name)
-
-    @property
-    def project_path(self):
-        """Get the project path from the associated ProjectManager Project"""
-        try:
-            from apps.Products.Oasis.ProjectManager.models import Project as PMProject
-            pm_project = PMProject.objects.filter(id=self.id, user=self.user).first()
-            if pm_project:
-                return pm_project.project_path
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error getting project path: {str(e)}")
-        return None
-
+logger = logging.getLogger(__name__)
 
 class Conversation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="conversations")
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="conversations", null=True)
+    project_id = models.IntegerField(null=True)  # Store reference to ProjectManager's Project ID
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Conversation {self.id} for {self.user.username} - Project: {self.project.name if self.project else 'None'}"
+        return f"Conversation {self.id} for {self.user.username} - Project ID: {self.project_id or 'None'}"
+    
+    @property
+    def project_name(self):
+        """Get the project name from the ProjectManager app"""
+        if not self.project_id:
+            return None
+            
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.filter(id=self.project_id, user=self.user).first()
+            return project.name if project else None
+        except Exception as e:
+            logger.error(f"Error getting project name: {str(e)}")
+            return None
 
 
 class Page(models.Model):

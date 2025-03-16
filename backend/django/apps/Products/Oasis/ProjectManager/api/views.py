@@ -2,12 +2,10 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
-from ..services import ProjectCreationService, ProjectManagementService, FileService
+from ..services import ProjectCreationService, ProjectManagementService
 from .serializers import (
     ProjectSerializer, 
-    ProjectCreateSerializer,
-    FileSerializer,
-    FileContentSerializer
+    ProjectCreateSerializer
 )
 
 class ProjectListView(generics.ListAPIView):
@@ -64,40 +62,6 @@ class ProjectDeleteView(generics.DestroyAPIView):
             
         service.delete_project(project)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-class ProjectFilesView(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = FileSerializer
-
-    def get_queryset(self):
-        project_id = self.kwargs['project_id']
-        service = FileService(self.request.user)
-        return service.get_project_files(project_id)
-
-    def perform_create(self, serializer):
-        project_id = self.kwargs['project_id']
-        service = FileService(self.request.user)
-        return service.create_file(project_id, serializer.validated_data)
-
-class ProjectFileDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = FileContentSerializer
-    lookup_url_kwarg = 'file_path'
-
-    def get_object(self):
-        project_id = self.kwargs['project_id']
-        file_path = self.kwargs['file_path']
-        service = FileService(self.request.user)
-        file_obj = service.get_file(project_id, file_path)
-        if not file_obj:
-            raise NotFound('File not found')
-        return file_obj
-
-    def perform_update(self, serializer):
-        project_id = self.kwargs['project_id']
-        file_path = self.kwargs['file_path']
-        service = FileService(self.request.user)
-        return service.update_file(project_id, file_path, serializer.validated_data)
 
 class UndoActionView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]

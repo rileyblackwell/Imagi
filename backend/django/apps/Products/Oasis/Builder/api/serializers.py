@@ -3,48 +3,52 @@ Serializers for the Builder app API.
 """
 
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from ..models import Project, Conversation, Page, Message
+from django.contrib.auth.models import User
+from ..models import Conversation, Page, Message
+from apps.Products.Oasis.ProjectManager.models import Project as PMProject
 
-User = get_user_model()
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+        read_only_fields = ['id', 'username', 'email']
 
 class ProjectSerializer(serializers.ModelSerializer):
-    url_safe_name = serializers.SerializerMethodField()
-    
+    """Project serializer using ProjectManager's Project model."""
     class Meta:
-        model = Project
-        fields = ('id', 'name', 'description', 'created_at', 'updated_at', 
-                 'is_active', 'url_safe_name', 'project_path')
-        read_only_fields = ('id', 'created_at', 'updated_at', 'project_path')
-    
-    def get_url_safe_name(self, obj):
-        return obj.get_url_safe_name()
+        model = PMProject
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at', 'is_active']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+class ConversationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Conversation
+        fields = ['id', 'user', 'project_id', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+class PageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Page
+        fields = ['id', 'conversation', 'filename', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ('id', 'conversation', 'page', 'role', 'content', 'created_at')
-        read_only_fields = ('id', 'created_at')
+        fields = ['id', 'conversation', 'page', 'role', 'content', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
-class PageSerializer(serializers.ModelSerializer):
-    messages = MessageSerializer(many=True, read_only=True)
-    
-    class Meta:
-        model = Page
-        fields = ('id', 'conversation', 'filename', 'created_at', 'messages')
-        read_only_fields = ('id', 'created_at')
+class FileSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    path = serializers.CharField()
+    type = serializers.CharField()
+    size = serializers.IntegerField(read_only=True)
+    lastModified = serializers.DateTimeField(read_only=True)
+    content = serializers.CharField(required=False)
 
-class ConversationSerializer(serializers.ModelSerializer):
-    messages = MessageSerializer(many=True, read_only=True)
-    pages = PageSerializer(many=True, read_only=True)
-    
-    class Meta:
-        model = Conversation
-        fields = ('id', 'user', 'project', 'created_at', 'messages', 'pages')
-        read_only_fields = ('id', 'created_at')
+class FileUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+    path = serializers.CharField(required=False)
 
-class ProjectDetailSerializer(ProjectSerializer):
-    conversations = ConversationSerializer(many=True, read_only=True)
-    
-    class Meta(ProjectSerializer.Meta):
-        fields = ProjectSerializer.Meta.fields + ('conversations',) 
+class FileContentSerializer(serializers.Serializer):
+    content = serializers.CharField() 

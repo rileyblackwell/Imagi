@@ -7,7 +7,7 @@ import uuid
 import logging
 from datetime import datetime
 from rest_framework.exceptions import ValidationError, NotFound
-from ..models import Project
+from apps.Products.Oasis.ProjectManager.models import Project
 
 logger = logging.getLogger(__name__)
 

@@ -39,6 +39,15 @@ class ProjectAdmin(admin.ModelAdmin):
     ordering = ('-updated_at',)
     date_hierarchy = 'created_at'
     
+    # Default filtering to only show active projects
+    def get_queryset(self, request):
+        """Optimize admin list query and filter by default to active projects."""
+        qs = super().get_queryset(request).select_related('user')
+        # Only show active projects by default
+        if not request.GET.get('is_active__exact'):
+            qs = qs.filter(is_active=True)
+        return qs
+    
     fieldsets = (
         ('Project Information', {
             'fields': ('name', 'slug', 'description', 'user')
@@ -87,10 +96,6 @@ class ProjectAdmin(admin.ModelAdmin):
         except:
             return "N/A"
     user_balance.short_description = 'Balance'
-
-    def get_queryset(self, request):
-        """Optimize admin list query."""
-        return super().get_queryset(request).select_related('user')
 
     def has_delete_permission(self, request, obj=None):
         """Only allow hard deletion through admin interface."""

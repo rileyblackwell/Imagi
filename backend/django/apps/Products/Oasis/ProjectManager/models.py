@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 import os
+import logging
 
 User = get_user_model()
 
@@ -121,8 +122,15 @@ class Project(models.Model):
     def delete(self, *args, **kwargs):
         """Soft delete by default, with option for hard delete."""
         hard_delete = kwargs.pop('hard_delete', False)
+        
         if hard_delete:
-            super().delete(*args, **kwargs)
+            # Log the hard delete operation
+            logger = logging.getLogger(__name__)
+            logger.info(f"Hard deleting project {self.id}: {self.name}")
+            
+            # Call the parent's delete method for actual database deletion
+            return super().delete(*args, **kwargs)
         else:
+            # Soft delete - just mark as inactive
             self.is_active = False
-            self.save()
+            self.save(update_fields=['is_active', 'updated_at'])
