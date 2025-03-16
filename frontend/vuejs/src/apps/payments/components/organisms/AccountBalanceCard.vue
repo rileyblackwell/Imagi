@@ -23,9 +23,9 @@
                   <div class="h-9 w-20 bg-dark-800 rounded"></div>
                 </div>
                 <div v-else class="text-3xl font-bold bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent">
-                  {{ credits.toLocaleString() }}
+                  ${{ credits.toLocaleString() }}
                 </div>
-                <div class="text-sm text-primary-400">credits</div>
+                <div class="text-sm text-primary-400">USD</div>
               </div>
               
               <!-- Last updated info -->
@@ -38,13 +38,7 @@
           <!-- Action buttons -->
           <div v-if="showActions" class="flex flex-col sm:flex-row gap-3">
             <slot name="actions">
-              <!-- Default action button with modern styling -->
-              <button class="relative group transform transition-all duration-300 hover:-translate-y-1 px-4 py-2 rounded-xl text-white backdrop-blur-sm border border-dark-800/50 hover:border-primary-500/50 overflow-hidden bg-dark-800/70">
-                <span class="relative z-10 flex items-center justify-center text-sm font-medium">
-                  <i class="fas fa-plus mr-2"></i>
-                  Add Credits
-                </span>
-              </button>
+              <!-- Empty by default as "Add Credits" button has been removed -->
             </slot>
           </div>
         </div>

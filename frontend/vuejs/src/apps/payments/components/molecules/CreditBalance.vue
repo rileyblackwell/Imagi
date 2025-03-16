@@ -10,7 +10,7 @@
     
     <div v-else-if="balance !== null" class="balance-display">
       <div class="flex items-center">
-        <span v-if="size === 'large'" class="font-semibold mr-1">Credits:</span>
+        <span v-if="size === 'large'" class="font-semibold mr-1">Available Balance:</span>
         <span 
           class="balance-value" 
           :class="{ 
@@ -20,7 +20,7 @@
             'font-semibold': size !== 'small'
           }"
         >
-          {{ balance.toLocaleString() }}
+          ${{ balance.toLocaleString() }}
         </span>
         <button 
           v-if="showRefresh" 
@@ -34,14 +34,7 @@
         </button>
       </div>
       
-      <div v-if="showAddCredits" class="mt-2">
-        <router-link 
-          to="/payments/checkout" 
-          class="add-credits-btn text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-        >
-          + Add Credits
-        </router-link>
-      </div>
+      <!-- "Add Credits" button removed as requested -->
     </div>
     
     <div v-else class="text-red-500 text-sm">

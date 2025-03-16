@@ -43,7 +43,7 @@
         <span class="mr-2">Processing</span>
         <span class="animate-spin">⟳</span>
       </span>
-      <span v-else>Add Credits</span>
+      <span v-else>Add Funds</span>
     </button>
   </div>
 </template>

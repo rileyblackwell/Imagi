@@ -37,7 +37,7 @@
         <div class="mt-4 p-3 rounded-lg bg-dark-800/40 border border-primary-500/10">
           <div class="flex items-start gap-2">
             <i class="fas fa-info-circle text-primary-400 mt-0.5"></i>
-            <p class="text-sm text-gray-300">Model usage is charged per request. Credits are deducted from your account balance automatically.</p>
+            <p class="text-sm text-gray-300">Model usage is charged per request. Funds are deducted from your account balance automatically.</p>
           </div>
         </div>
       </div>
@@ -73,11 +73,6 @@ const props = defineProps({
       { 
         id: 'gpt4o-mini', 
         name: 'GPT-4o-mini', 
-        price: 0.005
-      },
-      { 
-        id: 'claude-haiku', 
-        name: 'Claude-Haiku', 
         price: 0.005
       }
     ]
