@@ -97,6 +97,7 @@
                   :error="error || ''"
                   @delete="confirmDelete"
                   @retry="retryFetch"
+                  @refresh="refreshProjects"
                 />
                 
                 <!-- Diagnostic button only shown in dev mode -->
@@ -228,6 +229,14 @@ async function createProject() {
     // Ensure ID is properly formatted as a string
     const projectId = String(newProject.id)
     console.debug(`Navigating to project workspace with ID: ${projectId}`)
+    
+    // Force refresh all projects to ensure the projects list is up-to-date
+    try {
+      await projectStore.fetchProjects(true)
+    } catch (refreshError) {
+      console.warn('Failed to refresh projects after creation:', refreshError)
+      // Continue with navigation even if refresh fails
+    }
     
     // Add a small delay to allow initialization to complete
     setTimeout(async () => {
@@ -463,6 +472,30 @@ const synchronizeStores = async () => {
   }
 }
 
+/**
+ * Force refresh projects (used by refresh button)
+ */
+const refreshProjects = async () => {
+  try {
+    showNotification({
+      type: 'info',
+      message: 'Refreshing projects...'
+    })
+    
+    await fetchProjects(true) // Force refresh
+    
+    showNotification({
+      type: 'success',
+      message: 'Projects refreshed successfully'
+    })
+  } catch (error) {
+    showNotification({
+      type: 'error',
+      message: 'Failed to refresh projects'
+    })
+  }
+}
+
 // Set up watchers and lifecycle hooks
 onMounted(async () => {
   console.debug('BuilderDashboard mounted')
@@ -474,9 +507,10 @@ onMounted(async () => {
     }
   }
   
-  // Fetch projects with a retry mechanism in case of failure
+  // Always force refresh projects when the dashboard loads to ensure fresh data
   try {
-    await fetchProjects()
+    // Always use force=true to ensure we get the latest data
+    await fetchProjects(true)
   } catch (error) {
     console.error('Initial project fetch failed:', error)
     

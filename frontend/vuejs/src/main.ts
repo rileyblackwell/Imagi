@@ -8,6 +8,8 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
+import { useAuthStore } from '@/shared/stores/auth'
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
@@ -169,3 +171,56 @@ performance.mark('app-init')
 app.mount('#app')
 performance.mark('app-mounted')
 performance.measure('app-total-init', 'app-init', 'app-mounted')
+
+// Add project data refresh when tab visibility changes (user returns to the tab)
+document.addEventListener('visibilitychange', () => {
+  // Only refresh when document becomes visible again
+  if (document.visibilityState === 'visible') {
+    try {
+      const authStore = useAuthStore()
+      
+      // Only refresh if user is authenticated
+      if (authStore.isAuthenticated) {
+        const projectStore = useProjectStore()
+        
+        // Fetch latest projects in the background
+        projectStore.fetchProjects(true).catch(error => {
+          console.error('Failed to refresh projects on tab visibility change:', error)
+        })
+      }
+    } catch (error) {
+      console.error('Error handling visibility change:', error)
+    }
+  }
+})
+
+// Add project data refresh on navigation
+// This ensures projects are always up-to-date when navigating between views
+router.beforeEach(async (to, from, next) => {
+  // Check if navigating to a project-related view
+  const projectRoutes = [
+    'builder-dashboard',
+    'builder-projects', 
+    'builder-workspace', 
+    'dashboard'
+  ]
+  
+  if (projectRoutes.includes(String(to.name))) {
+    // Get the auth store
+    const authStore = useAuthStore()
+    
+    // Only refresh projects if authenticated
+    if (authStore.isAuthenticated) {
+      // Get the project store
+      const projectStore = useProjectStore()
+      
+      // Force refresh project data when navigating to a project-related view
+      // But don't block navigation - refresh in the background
+      projectStore.fetchProjects(true).catch(error => {
+        console.error('Failed to refresh projects during navigation:', error)
+      })
+    }
+  }
+  
+  next()
+})

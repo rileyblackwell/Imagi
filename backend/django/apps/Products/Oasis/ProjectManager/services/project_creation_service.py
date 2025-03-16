@@ -412,7 +412,22 @@ A Django REST API project.
         This method sets up additional project structure and marks it as initialized.
         """
         try:
-            if not project.project_path or not os.path.exists(project.project_path):
+            if not project.project_path:
+                logger.error("Project path is not set")
+                raise ValueError("Project path is not set")
+                
+            # Ensure the parent directory exists
+            parent_dir = os.path.dirname(project.project_path)
+            if not os.path.exists(parent_dir):
+                try:
+                    os.makedirs(parent_dir, exist_ok=True)
+                    logger.info(f"Created parent directory for project: {parent_dir}")
+                except Exception as dir_err:
+                    logger.error(f"Failed to create parent directory: {str(dir_err)}")
+                    raise ValueError(f"Failed to create parent directory: {str(dir_err)}")
+                
+            # Now check/create the project directory
+            if not os.path.exists(project.project_path):
                 logger.error(f"Project directory does not exist: {project.project_path}")
                 # Try to create it if it doesn't exist
                 try:
@@ -447,9 +462,6 @@ A Django REST API project.
             if not manage_py_found:
                 logger.warning(f"manage.py not found in project structure, using project root: {inner_project_dir}")
             
-            # We're no longer creating a core app
-            # Just update project status
-            
             # Mark the project as initialized
             project.is_initialized = True
             project.updated_at = timezone.now()
@@ -458,10 +470,13 @@ A Django REST API project.
             
             logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")
             
+            # Return either the project object or a dictionary with appropriate status
             return {
                 'success': True,
                 'message': 'Project initialized successfully',
-                'is_initialized': True
+                'is_initialized': True,
+                'project_id': project.id,
+                'name': project.name
             }
         
         except Exception as e:
@@ -469,6 +484,15 @@ A Django REST API project.
             # Add stack trace for better debugging
             import traceback
             logger.error(f"Stack trace: {traceback.format_exc()}")
+            
+            # Try to update the project status if possible
+            try:
+                if project and hasattr(project, 'id'):
+                    project.generation_status = 'failed'
+                    project.save()
+            except:
+                pass  # Silently ignore errors in the error handler
+                
             raise ValueError(f"Failed to initialize project: {str(e)}")
     
     def _generate_basic_model_content(self):

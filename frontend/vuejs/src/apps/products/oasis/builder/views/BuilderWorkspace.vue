@@ -160,6 +160,8 @@ import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 import api from '../services/api'
 import axios from 'axios'
+import { useAuthStore } from '@/shared/stores/auth'
+import { useNotification } from '@/shared/composables/useNotification'
 
 // Shared Components
 import ErrorBoundary from '../components/atoms/utility/ErrorBoundary.vue'
@@ -214,6 +216,9 @@ const sessionCheckInterval = ref<number>()
 const sessionCheckEnabled = ref(true)
 const sessionCheckFailCount = ref(0)
 const MAX_SESSION_CHECK_FAILS = 3
+
+// Add a ref to store the interval ID
+const refreshInterval = ref<number | null>(null)
 
 // Computed properties
 const currentProject = computed(() => {
@@ -818,6 +823,27 @@ const isProjectNotFoundError = (error: any): boolean => {
   )
 }
 
+// Properly place the onBeforeUnmount hook at the top level
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  window.removeEventListener('model-changed', handleModelSelectionUpdated)
+  window.removeEventListener('mode-changed', handleModeSelectionUpdated)
+  
+  // Clean up the project refresh interval if it exists
+  if (refreshInterval.value !== null) {
+    clearInterval(refreshInterval.value)
+    refreshInterval.value = null
+  }
+  
+  // Clean up session check interval
+  if (sessionCheckInterval.value) {
+    clearInterval(sessionCheckInterval.value)
+  }
+  
+  // Remove beforeunload event listener
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
+
 // Initialize workspace
 onMounted(async () => {
   // Extract project ID from route parameters
@@ -849,6 +875,17 @@ onMounted(async () => {
         // Handle error silently
       }
     }
+    
+    // Refresh all projects before initializing workspace to ensure fresh data
+    try {
+      const authStore = useAuthStore()
+      if (authStore.isAuthenticated && projectStore.fetchProjects) {
+        await projectStore.fetchProjects(true)
+      }
+    } catch (refreshError) {
+      console.warn('Failed to refresh projects before workspace initialization:', refreshError)
+      // Continue with initialization even if refresh fails
+    }
   }
   
   // Initialize the workspace
@@ -862,27 +899,26 @@ onMounted(async () => {
     })
   }
   
-  // Remove any existing event listeners to prevent duplicates
-  window.removeEventListener('model-changed', handleModelSelectionUpdated)
-  window.removeEventListener('mode-changed', handleModeSelectionUpdated)
-  
   // Add event listeners for model and mode changes
   window.addEventListener('model-changed', handleModelSelectionUpdated)
   window.addEventListener('mode-changed', handleModeSelectionUpdated)
-})
-
-onBeforeUnmount(() => {
-  // Clean up event listeners
-  window.removeEventListener('model-changed', handleModelSelectionUpdated)
-  window.removeEventListener('mode-changed', handleModeSelectionUpdated)
   
-  // Clean up interval
-  if (sessionCheckInterval.value) {
-    clearInterval(sessionCheckInterval.value)
-  }
-  
-  // Remove beforeunload event listener
-  window.removeEventListener('beforeunload', handleBeforeUnload)
+  // Set up periodic refresh of project data to ensure it stays up to date
+  refreshInterval.value = window.setInterval(() => {
+    try {
+      const authStore = useAuthStore()
+      if (authStore.isAuthenticated && projectStore.fetchProjects) {
+        // Only perform background refresh when the document is visible
+        if (document.visibilityState === 'visible') {
+          projectStore.fetchProjects(true).catch(error => {
+            console.warn('Background project refresh failed:', error)
+          })
+        }
+      }
+    } catch (error) {
+      console.warn('Error during background project refresh:', error)
+    }
+  }, 60000) // Refresh every minute in the background
 })
 
 // Handle model selection updates from events
@@ -1018,7 +1054,12 @@ const initializeWorkspace = async (isNewProject = false) => {
         let projectFetched = false;
         
         try {
-          // Try to fetch project, but don't let it block other initialization steps if it fails
+          // First refresh all projects to avoid stale data
+          if (projectStore.fetchProjects) {
+            await projectStore.fetchProjects(true)
+          }
+          
+          // Then fetch the specific project
           await projectStore.fetchProject(projectId, isNewProject)
           projectFetched = true;
         } catch (projectErr: any) {

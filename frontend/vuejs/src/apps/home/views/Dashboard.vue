@@ -475,7 +475,8 @@ const goToProject = (id) => {
 async function fetchDashboardData() {
   try {
     if (projectStore.fetchProjects) {
-      await projectStore.fetchProjects()
+      // Always use force=true to ensure we get the latest data
+      await projectStore.fetchProjects(true)
       recentProjects.value = projectStore.projects?.slice(0, 5) || []
     }
     

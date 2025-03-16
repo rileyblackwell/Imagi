@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+import tempfile
+import stat
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # Update BASE_DIR to point to the django directory
@@ -359,7 +361,30 @@ PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
 # Projects settings
 PROJECTS_ROOT = BASE_DIR.parent / 'oasis_projects'
-os.makedirs(PROJECTS_ROOT, exist_ok=True)
+try:
+    if not os.path.exists(PROJECTS_ROOT):
+        os.makedirs(PROJECTS_ROOT, exist_ok=True)
+        # Set appropriate permissions (rwx for owner only)
+        os.chmod(PROJECTS_ROOT, stat.S_IRWXU)
+        print(f"Created projects directory at {PROJECTS_ROOT}")
+    elif not os.access(PROJECTS_ROOT, os.W_OK):
+        print(f"WARNING: The project directory {PROJECTS_ROOT} exists but is not writable")
+        # Try to make it writable
+        try:
+            current_mode = os.stat(PROJECTS_ROOT).st_mode
+            os.chmod(PROJECTS_ROOT, current_mode | stat.S_IWUSR)
+            print(f"Fixed permissions on {PROJECTS_ROOT}")
+        except Exception as perm_err:
+            print(f"ERROR: Could not fix permissions: {str(perm_err)}")
+except Exception as dir_err:
+    print(f"WARNING: Error setting up projects directory: {str(dir_err)}")
+    # Fallback to a directory that should be writable
+    PROJECTS_ROOT = os.path.join(tempfile.gettempdir(), 'imagi_projects')
+    try:
+        os.makedirs(PROJECTS_ROOT, exist_ok=True)
+        print(f"Using fallback projects directory: {PROJECTS_ROOT}")
+    except:
+        print(f"CRITICAL: Could not create fallback directory")
 
 # Token Settings
 TOKEN_EXPIRED_AFTER_SECONDS = 86400  # 24 hours

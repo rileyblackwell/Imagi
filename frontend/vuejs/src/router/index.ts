@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import type { RouteModule } from './types'
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 
 // Import route modules
 const modules = import.meta.glob<RouteModule>('@/apps/**/router/index.ts', { eager: true })
@@ -143,6 +144,31 @@ router.beforeEach(async (to, from, next) => {
     if (auth.isAuthenticated && to.query.redirect) {
       next({ path: to.query.redirect as string })
       return
+    }
+  }
+
+  // Check if navigating to a project-related view
+  const projectRoutes = [
+    'builder-dashboard',
+    'builder-projects', 
+    'builder-workspace', 
+    'dashboard'
+  ]
+  
+  if (projectRoutes.includes(String(to.name))) {
+    // Get the auth store - we need to import this here to avoid circular dependencies
+    const authStore = useAuthStore()
+    
+    // Only refresh projects if authenticated
+    if (authStore.isAuthenticated) {
+      // Get the project store
+      const projectStore = useProjectStore()
+      
+      // Force refresh project data when navigating to a project-related view
+      // But don't block navigation - refresh in the background
+      projectStore.fetchProjects(true).catch((error: Error) => {
+        console.error('Failed to refresh projects during navigation:', error)
+      })
     }
   }
 

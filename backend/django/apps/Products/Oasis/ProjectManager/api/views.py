@@ -86,92 +86,132 @@ class ProjectInitializeView(APIView):
         logger = logging.getLogger(__name__)
         logger.info(f"Initialize request received for project {pk}")
         
-        service = ProjectCreationService(request.user)
-        management_service = ProjectManagementService(request.user)
-        project = management_service.get_project(pk)
-        
-        if not project:
-            logger.error(f"Project not found: {pk}")
-            raise NotFound('Project not found')
-        
-        logger.info(f"Found project {project.name} (ID: {project.id})")
-        
-        # Check if project is already initialized
-        if project.is_initialized:
-            logger.info(f"Project {project.name} (ID: {project.id}) is already initialized")
-            return Response({
-                'success': True, 
-                'already_initialized': True,
-                'project_id': project.id,
-                'name': project.name,
-                'is_initialized': project.is_initialized
-            }, status=status.HTTP_200_OK)
-            
-        # Add a check for partially initialized projects
-        # Make sure the path exists
-        if not hasattr(project, 'project_path') or not project.project_path:
-            logger.error(f"Project {project.name} (ID: {project.id}) has no project_path set")
-            
-            # Try to assign a default path
-            try:
-                from django.conf import settings
-                import os
-                from datetime import datetime
-                
-                # Create a default path based on user ID and project name
-                sanitized_name = ''.join(c if c.isalnum() else '_' for c in project.name)
-                if not sanitized_name[0].isalpha():
-                    sanitized_name = 'project_' + sanitized_name
-                    
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                unique_name = f"{sanitized_name}_{timestamp}"
-                
-                base_directory = os.path.join(settings.PROJECTS_ROOT, str(request.user.id))
-                os.makedirs(base_directory, exist_ok=True)
-                
-                project_path = os.path.join(base_directory, unique_name)
-                
-                # Set and save the path
-                project.project_path = project_path
-                project.save()
-                logger.info(f"Assigned default project path: {project_path}")
-            except Exception as path_err:
-                logger.error(f"Failed to assign default project path: {str(path_err)}")
-                return Response({
-                    'error': f"Project has no valid path: {str(path_err)}",
-                    'project_id': project.id,
-                    'name': project.name
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Initialize the project
         try:
-            logger.info(f"Starting initialization for project {project.name} (ID: {project.id})")
-            project = service.initialize_project(project)
-            logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")
+            # Ensure PROJECTS_ROOT exists before proceeding
+            from django.conf import settings
+            import os
             
-            return Response({
-                'success': True,
-                'project_id': project.id,
-                'name': project.name,
-                'is_initialized': project.is_initialized
-            }, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Failed to initialize project {project.name} (ID: {project.id}): {str(e)}")
-            import traceback
-            logger.error(f"Stack trace: {traceback.format_exc()}")
+            if not os.path.exists(settings.PROJECTS_ROOT):
+                logger.warning(f"PROJECTS_ROOT directory does not exist: {settings.PROJECTS_ROOT}")
+                try:
+                    os.makedirs(settings.PROJECTS_ROOT, exist_ok=True)
+                    logger.info(f"Created PROJECTS_ROOT directory: {settings.PROJECTS_ROOT}")
+                except Exception as root_err:
+                    logger.error(f"Failed to create PROJECTS_ROOT directory: {str(root_err)}")
+                    return Response({
+                        'error': f"Failed to create projects directory: {str(root_err)}",
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            # Check if project exists but initialization failed
-            if project and hasattr(project, 'id'):
-                # Don't mark the project as failed - just return the error
+            service = ProjectCreationService(request.user)
+            management_service = ProjectManagementService(request.user)
+            project = management_service.get_project(pk)
+            
+            if not project:
+                logger.error(f"Project not found: {pk}")
+                raise NotFound('Project not found')
+            
+            logger.info(f"Found project {project.name} (ID: {project.id})")
+            
+            # Check if project is already initialized
+            if project.is_initialized:
+                logger.info(f"Project {project.name} (ID: {project.id}) is already initialized")
+                return Response({
+                    'success': True, 
+                    'already_initialized': True,
+                    'project_id': project.id,
+                    'name': project.name,
+                    'is_initialized': project.is_initialized
+                }, status=status.HTTP_200_OK)
+                
+            # Add a check for partially initialized projects
+            # Make sure the path exists
+            if not hasattr(project, 'project_path') or not project.project_path:
+                logger.error(f"Project {project.name} (ID: {project.id}) has no project_path set")
+                
+                # Try to assign a default path
+                try:
+                    from django.conf import settings
+                    import os
+                    from datetime import datetime
+                    
+                    # Create a default path based on user ID and project name
+                    sanitized_name = ''.join(c if c.isalnum() else '_' for c in project.name)
+                    if not sanitized_name[0].isalpha():
+                        sanitized_name = 'project_' + sanitized_name
+                        
+                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                    unique_name = f"{sanitized_name}_{timestamp}"
+                    
+                    base_directory = os.path.join(settings.PROJECTS_ROOT, str(request.user.id))
+                    
+                    # Ensure the user's project directory exists
+                    if not os.path.exists(base_directory):
+                        os.makedirs(base_directory, exist_ok=True)
+                        logger.info(f"Created user project directory: {base_directory}")
+                    
+                    project_path = os.path.join(base_directory, unique_name)
+                    
+                    # Set and save the path
+                    project.project_path = project_path
+                    project.save()
+                    logger.info(f"Assigned default project path: {project_path}")
+                except Exception as path_err:
+                    logger.error(f"Failed to assign default project path: {str(path_err)}")
+                    import traceback
+                    logger.error(f"Stack trace: {traceback.format_exc()}")
+                    return Response({
+                        'error': f"Project has no valid path: {str(path_err)}",
+                        'project_id': project.id,
+                        'name': project.name
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Initialize the project
+            try:
+                logger.info(f"Starting initialization for project {project.name} (ID: {project.id})")
+                result = service.initialize_project(project)
+                if isinstance(result, dict) and result.get('success'):
+                    logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")
+                    
+                    return Response({
+                        'success': True,
+                        'project_id': project.id,
+                        'name': project.name,
+                        'is_initialized': project.is_initialized
+                    }, status=status.HTTP_200_OK)
+                else:
+                    # Project may have been initialized but the result wasn't properly formatted
+                    project.refresh_from_db()
+                    if project.is_initialized:
+                        logger.info(f"Project marked as initialized despite non-standard result format")
+                        return Response({
+                            'success': True,
+                            'project_id': project.id,
+                            'name': project.name,
+                            'is_initialized': project.is_initialized
+                        }, status=status.HTTP_200_OK)
+                    else:
+                        logger.error(f"Project initialization returned unexpected result: {result}")
+                        return Response({
+                            'error': "Project initialization returned unexpected result",
+                            'project_id': project.id,
+                            'name': project.name
+                        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                logger.error(f"Failed to initialize project {project.name} (ID: {project.id}): {str(e)}")
+                import traceback
+                logger.error(f"Stack trace: {traceback.format_exc()}")
                 return Response({
                     'error': str(e),
                     'project_id': project.id,
                     'name': project.name
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            else:
-                return Response({
-                    'error': str(e)
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as outer_e:
+            logger.error(f"Unhandled exception in project initialization: {str(outer_e)}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            return Response({
+                'error': f"Server error: {str(outer_e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ProjectStatusView(APIView):
     """
