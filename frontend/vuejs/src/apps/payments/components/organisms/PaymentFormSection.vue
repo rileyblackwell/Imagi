@@ -341,16 +341,16 @@ onUnmounted(() => {
 }
 
 /* Custom styling for card elements */
-::v-deep .StripeElement {
+:deep(.StripeElement) {
   width: 100%;
 }
 
-::v-deep .StripeElement--focus {
+:deep(.StripeElement--focus) {
   border-color: rgba(59, 130, 246, 0.8);
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
 }
 
-::v-deep .StripeElement--invalid {
+:deep(.StripeElement--invalid) {
   border-color: rgba(239, 68, 68, 0.8);
 }
 </style> 

@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue'
+// defineProps and defineEmits are compiler macros and don't need to be imported
 
 interface Project {
   id: string | number;
