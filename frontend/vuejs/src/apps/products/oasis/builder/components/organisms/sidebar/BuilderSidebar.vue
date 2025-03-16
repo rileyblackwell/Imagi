@@ -41,10 +41,21 @@
             class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
             :title="selectedModel?.name || 'AI Model'"
           >
-            <i class="fas fa-brain text-primary-400"></i>
+            <i 
+              class="fas" 
+              :class="[
+                selectedModel?.id === 'claude-3-5-sonnet-20241022' || selectedModel?.id === 'gpt-4o' ? 'fa-brain text-primary-400' :
+                selectedModel?.provider === 'anthropic' ? 'fa-diamond text-blue-400' : 
+                selectedModel?.provider === 'openai' ? 'fa-bolt text-emerald-400' : 
+                'fa-robot text-primary-400'
+              ]"
+            ></i>
           </button>
           <div class="tooltip">
             {{ selectedModel?.name || 'AI Model' }}
+            <div v-if="selectedModel?.costPerRequest" class="text-xs mt-1 text-primary-300">
+              ${{ selectedModel.costPerRequest >= 0.01 ? selectedModel.costPerRequest.toFixed(2) : selectedModel.costPerRequest.toFixed(3) }} per use
+            </div>
           </div>
         </div>
       </div>

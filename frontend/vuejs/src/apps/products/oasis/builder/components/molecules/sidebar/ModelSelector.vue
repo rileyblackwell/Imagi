@@ -12,10 +12,10 @@
         class="w-full flex items-center justify-between p-3 rounded-lg border transition-colors bg-dark-800 border-dark-700 hover:border-dark-600"
         :class="{ 'border-primary-500 bg-primary-500/10': isDropdownOpen }"
       >
-        <div v-if="selectedModel" class="flex items-center space-x-3">
+        <div v-if="selectedModel" class="flex items-center space-x-3 max-w-[85%]">
           <!-- Selected Model Icon -->
           <div 
-            class="w-8 h-8 rounded-full flex items-center justify-center"
+            class="w-8 h-8 rounded-md flex items-center justify-center"
             :class="[getModelTypeClass(selectedModel)]"
           >
             <i class="fas" :class="getModelTypeIcon(selectedModel)"></i>
@@ -24,9 +24,10 @@
           <!-- Selected Model Info -->
           <div class="flex flex-col text-left">
             <span class="font-medium text-gray-200">{{ selectedModel.name }}</span>
-            <span class="text-xs text-gray-400 truncate max-w-[150px]">
-              {{ selectedModel.description }}
-            </span>
+            <div class="flex items-center gap-1 text-xs truncate max-w-[150px]">
+              <span class="text-gray-400">{{ selectedModel.description }}</span>
+              <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300">${{ formatPrice(selectedModel.costPerRequest) }}</span>
+            </div>
           </div>
         </div>
         <div v-else class="flex items-center space-x-3">
@@ -56,7 +57,7 @@
           >
             <!-- Model Icon -->
             <div 
-              class="w-8 h-8 rounded-full flex items-center justify-center"
+              class="w-8 h-8 rounded-md flex items-center justify-center"
               :class="[getModelTypeClass(model)]"
             >
               <i class="fas" :class="getModelTypeIcon(model)"></i>
@@ -65,9 +66,10 @@
             <!-- Model Info -->
             <div class="flex flex-col text-left">
               <span class="font-medium text-gray-200">{{ model.name }}</span>
-              <span class="text-xs text-gray-400">
-                {{ model.description }}
-              </span>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-gray-400">{{ model.description }}</span>
+                <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300">${{ formatPrice(model.costPerRequest) }}</span>
+              </div>
             </div>
             
             <!-- Selected Indicator -->
@@ -183,22 +185,27 @@ const getModelTypeClass = (model: AIModel): string => {
   const modelType = (model as any).type || (model as any).provider || 'unknown';
   
   if (modelType === 'anthropic') {
-    return 'bg-blue-500/20 text-blue-400';
+    return 'bg-gradient-to-br from-blue-600/20 to-indigo-600/20 text-blue-400 border border-blue-500/20';
   } else if (modelType === 'openai') {
-    return 'bg-green-500/20 text-green-400';
+    return 'bg-gradient-to-br from-emerald-600/20 to-green-600/20 text-emerald-400 border border-emerald-500/20';
   }
   
-  return 'bg-gray-500/20 text-gray-400';
+  return 'bg-gradient-to-br from-gray-600/20 to-gray-700/20 text-gray-400 border border-gray-500/20';
 }
 
 const getModelTypeIcon = (model: AIModel): string => {
-  // Use type assertion to avoid type errors
+  // Special cases for high-tier models to use brain icon
+  if (model.id === 'claude-3-5-sonnet-20241022' || model.id === 'gpt-4o') {
+    return 'fa-brain';
+  }
+  
+  // Standard provider-based icons for other models
   const modelType = (model as any).type || (model as any).provider || 'unknown';
   
   if (modelType === 'anthropic') {
-    return 'fa-robot';
+    return 'fa-diamond'; // More modern Anthropic logo representation
   } else if (modelType === 'openai') {
-    return 'fa-brain';
+    return 'fa-bolt'; // More modern OpenAI logo representation
   }
   
   return 'fa-question';
@@ -257,6 +264,12 @@ watch(() => displayModels.value, async (models) => {
     await handleModelSelect(models[0].id)
   }
 }, { immediate: true })
+
+// Add this function to the script section
+const formatPrice = (price: number): string => {
+  // Show fewer decimal places for larger prices
+  return price >= 0.01 ? price.toFixed(2) : price.toFixed(3);
+}
 </script>
 
 <style scoped>

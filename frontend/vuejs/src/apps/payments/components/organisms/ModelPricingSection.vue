@@ -61,8 +61,8 @@ const props = defineProps({
     type: Array as () => PricingModel[],
     default: () => [
       { 
-        id: 'claude-sonnet', 
-        name: 'Claude-Sonnet', 
+        id: 'claude-3-5-sonnet-20241022', 
+        name: 'Claude 3.5 Sonnet', 
         price: 0.04
       },
       { 
