@@ -1,18 +1,25 @@
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-dark-900">
-      <!-- Hero Section -->
-      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
-        <!-- Background Effects -->
-        <div class="absolute inset-0 bg-dark-900">
-          <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
-          <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
-          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
-        </div>
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
+      <!-- Enhanced Background Effects matching other pages -->
+      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <!-- Gradient orbs -->
+        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
+        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+        <!-- Subtle noise texture -->
+        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+      </div>
 
+      <!-- Hero Section with improved styling -->
+      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
         <!-- Content -->
-        <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <HeroBadge text="Legal & Agreements" />
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <!-- Enhanced section header to match other pages -->
+          <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
+            <span class="text-primary-400 font-semibold text-sm tracking-wider">LEGAL & AGREEMENTS</span>
+          </div>
           
           <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
             <span class="text-white block mb-2 sm:mb-3">Terms of Service</span>
@@ -21,34 +28,42 @@
             </GradientText>
           </h1>
           
-          <p class="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto">
+          <p class="text-xl text-gray-300 mb-12 sm:mb-16 max-w-3xl mx-auto leading-relaxed">
             Please read these terms carefully before using our services.
           </p>
         </div>
       </section>
 
+      <!-- Divider with animated line matching other pages -->
+      <div class="relative h-16 max-w-7xl mx-auto">
+        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
+      </div>
+
       <!-- Main Content -->
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
-        <!-- Decorative background elements -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-          <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-20 transform rotate-45"></div>
-          <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-20 transform -rotate-45"></div>
-        </div>
-
         <!-- Introduction -->
         <div class="relative mb-16">
-          <div class="bg-dark-800/50 backdrop-blur-sm rounded-2xl p-8 border border-dark-700 hover:border-primary-500/30 transition-all duration-300">
-            <p class="text-lg text-gray-300 mb-4">
-              Welcome to Imagi Oasis. Our Terms of Service govern your use of our platform and services. By using Imagi Oasis, you agree to these terms in their entirety.
-            </p>
-            <p class="text-lg text-gray-300">
-              These terms were last updated on July 15, 2023. We may update these terms from time to time, so please check this page occasionally to ensure you're aware of any changes.
-            </p>
+          <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
+            <!-- Enhanced glass morphism effect with glow -->
+            <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-blue-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+            
+            <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+              <!-- Card header with gradient -->
+              <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-blue-500"></div>
+              <div class="p-8">
+                <p class="text-lg text-gray-300 mb-4">
+                  Welcome to Imagi Oasis. Our Terms of Service govern your use of our platform and services. By using Imagi Oasis, you agree to these terms in their entirety.
+                </p>
+                <p class="text-lg text-gray-300">
+                  These terms were last updated on July 15, 2023. We may update these terms from time to time, so please check this page occasionally to ensure you're aware of any changes.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Terms Content -->
-        <div class="space-y-16 relative">
+        <div class="space-y-12 relative z-10">
           <SectionHeader 
             title="Terms of Service" 
             subtitle="Please familiarize yourself with our terms before using Imagi Oasis."
@@ -422,19 +437,57 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Float animation for background orbs */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 18s ease-in-out infinite reverse;
+}
+
+/* Add subtle animation for loading state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
 /* Style for list items */
 ul {
-  padding-left: 0;
-  margin: 0;
-  list-style: none;
+  @apply pl-6 mb-4;
 }
 
-li {
-  margin-bottom: 0.5rem;
-  color: #d1d5db; /* text-gray-300 */
+ul li {
+  @apply mb-2 relative pl-6;
 }
 
-strong {
-  font-weight: 600;
+ul li::before {
+  content: '';
+  @apply absolute left-0 top-[0.6em] w-3 h-3 bg-primary-500/20 rounded-sm -translate-y-1/2;
+}
+
+h3 {
+  @apply text-xl font-bold text-white mb-4;
+}
+
+h4 {
+  @apply text-lg font-semibold text-white mb-3;
+}
+
+p {
+  @apply mb-4 text-gray-300;
+}
+
+p:last-child {
+  @apply mb-0;
 }
 </style>

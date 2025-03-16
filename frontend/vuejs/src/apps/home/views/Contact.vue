@@ -1,19 +1,26 @@
 <!-- Contact page -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-dark-900">
-      <!-- Hero Section -->
-      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
-        <!-- Background Effects -->
-        <div class="absolute inset-0 bg-dark-900">
-          <div class="absolute inset-0 bg-gradient-to-br from-primary-500/10 via-dark-900 to-violet-500/10"></div>
-          <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-r from-primary-500/20 to-violet-500/20 rounded-full blur-[120px] opacity-70"></div>
-          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
-        </div>
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
+      <!-- Enhanced Background Effects matching other pages -->
+      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <!-- Gradient orbs -->
+        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
+        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+        <!-- Subtle noise texture -->
+        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+      </div>
 
+      <!-- Hero Section with improved styling -->
+      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
         <!-- Content -->
-        <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <HeroBadge text="Support & Assistance" />
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <!-- Enhanced section header to match other pages -->
+          <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
+            <span class="text-primary-400 font-semibold text-sm tracking-wider">SUPPORT & ASSISTANCE</span>
+          </div>
           
           <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
             <span class="text-white block mb-2 sm:mb-3">Get in Touch</span>
@@ -22,22 +29,21 @@
             </GradientText>
           </h1>
           
-          <p class="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto">
+          <p class="text-xl text-gray-300 mb-12 sm:mb-16 max-w-3xl mx-auto leading-relaxed">
             Have questions or need assistance? We're here to help you bring your ideas to life.
           </p>
         </div>
       </section>
 
+      <!-- Divider with animated line matching other pages -->
+      <div class="relative h-16 max-w-7xl mx-auto">
+        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
+      </div>
+
       <!-- Main Content -->
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
-        <!-- Decorative background elements -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-          <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full blur-[100px] opacity-20 transform rotate-45"></div>
-          <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full blur-[100px] opacity-20 transform -rotate-45"></div>
-        </div>
-
         <!-- Contact Content -->
-        <div class="space-y-16 relative">
+        <div class="space-y-16 relative z-10">
           <!-- Contact Methods -->
           <section>
             <SectionHeader 
@@ -46,140 +52,165 @@
             />
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-8">
-              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] p-7">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-envelope text-white text-xl"></i>
+              <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+                
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
+                  <div class="p-7">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20 shadow-lg shadow-primary-500/5 mb-6">
+                      <i class="fas fa-envelope text-primary-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Email Support</h3>
+                    <p class="text-gray-300 mb-4">For general inquiries and assistance with your projects.</p>
+                    <a href="mailto:support@imagi-oasis.com" class="inline-flex items-center text-primary-400 hover:text-primary-300 transition-colors">
+                      support@imagi-oasis.com
+                      <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                    </a>
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Email Support</h3>
-                <p class="text-gray-300 mb-2">For general inquiries and support</p>
-                <a href="mailto:rileyblackwell5@gmail.com" class="text-primary-400 hover:text-primary-300 transition-colors">rileyblackwell5@gmail.com</a>
               </div>
               
-              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] p-7">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-md mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-phone text-white text-xl"></i>
+              <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
+                <!-- Enhanced glass morphism effect with glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+                
+                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                  <!-- Card header with gradient -->
+                  <div class="h-2 w-full bg-gradient-to-r from-cyan-500 to-blue-500"></div>
+                  <div class="p-7">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-cyan-500/20 shadow-lg shadow-cyan-500/5 mb-6">
+                      <i class="fas fa-headset text-cyan-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Live Chat</h3>
+                    <p class="text-gray-300 mb-4">Get real-time assistance from our support team.</p>
+                    <button class="inline-flex items-center text-cyan-400 hover:text-cyan-300 transition-colors">
+                      Start Chat
+                      <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                    </button>
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Phone Support</h3>
-                <p class="text-gray-300 mb-2">Available during business hours</p>
-                <a href="tel:6168813592" class="text-primary-400 hover:text-primary-300 transition-colors">616-881-3592</a>
               </div>
             </div>
           </section>
 
-          <!-- Divider -->
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-dark-700"></div>
-            </div>
-            <div class="relative flex justify-center">
-              <span class="bg-dark-900 px-4 text-sm text-gray-400">Contact Form</span>
-            </div>
-          </div>
-
-          <!-- Contact Form -->
+          <!-- Contact Form Section -->
           <section>
             <SectionHeader 
               title="Send Us a Message" 
               subtitle="Fill out the form below and we'll get back to you as soon as possible."
             />
             
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] p-7 mt-8">
-              <form class="space-y-6" @submit.prevent="handleSubmit">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label class="text-white mb-2 flex items-center text-sm font-medium">
-                      <i class="fas fa-user text-primary-400 mr-2"></i>
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      v-model="form.name"
-                      required
-                      class="w-full bg-dark-900/70 border border-dark-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/50 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label class="text-white mb-2 flex items-center text-sm font-medium">
-                      <i class="fas fa-envelope text-primary-400 mr-2"></i>
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      v-model="form.email"
-                      required
-                      class="w-full bg-dark-900/70 border border-dark-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/50 transition-all"
-                    />
-                  </div>
+            <div class="group relative transform transition-all duration-300 hover:-translate-y-2 mt-8">
+              <!-- Enhanced glass morphism effect with glow -->
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+              
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                <!-- Card header with gradient -->
+                <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+                <div class="p-7">
+                  <!-- Contact Form -->
+                  <form @submit.prevent="submitForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label for="name" class="block text-sm font-medium text-gray-300 mb-2">Your Name</label>
+                        <input
+                          type="text"
+                          id="name"
+                          v-model="formData.name"
+                          class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700 focus:border-primary-500/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25 transition-all duration-200"
+                          placeholder="Enter your name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label for="email" class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                        <input
+                          type="email"
+                          id="email"
+                          v-model="formData.email"
+                          class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700 focus:border-primary-500/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25 transition-all duration-200"
+                          placeholder="youremail@example.com"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label for="subject" class="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                      <input
+                        type="text"
+                        id="subject"
+                        v-model="formData.subject"
+                        class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700 focus:border-primary-500/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25 transition-all duration-200"
+                        placeholder="What is your message about?"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label for="message" class="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                      <textarea
+                        id="message"
+                        v-model="formData.message"
+                        rows="5"
+                        class="w-full px-4 py-3 bg-dark-800/50 border border-dark-700 focus:border-primary-500/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/25 transition-all duration-200 resize-none"
+                        placeholder="Tell us how we can help you..."
+                        required
+                      ></textarea>
+                    </div>
+                    
+                    <div>
+                      <button
+                        type="submit"
+                        :disabled="isSubmitting"
+                        class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
+                      >
+                        <span v-if="isSubmitting">
+                          <i class="fas fa-spinner fa-spin mr-2"></i>
+                          Sending...
+                        </span>
+                        <span v-else>
+                          <i class="fas fa-paper-plane mr-2"></i>
+                          Send Message
+                        </span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <div>
-                  <label class="text-white mb-2 flex items-center text-sm font-medium">
-                    <i class="fas fa-tag text-primary-400 mr-2"></i>
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    v-model="form.subject"
-                    required
-                    class="w-full bg-dark-900/70 border border-dark-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/50 transition-all"
-                  />
-                </div>
-                <div>
-                  <label class="text-white mb-2 flex items-center text-sm font-medium">
-                    <i class="fas fa-comment text-primary-400 mr-2"></i>
-                    Message
-                  </label>
-                  <textarea
-                    v-model="form.message"
-                    required
-                    rows="5"
-                    class="w-full bg-dark-900/70 border border-dark-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/50 transition-all resize-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <button
-                    type="submit"
-                    class="w-full bg-gradient-to-r from-primary-600 to-primary-400 hover:from-primary-500 hover:to-primary-300 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center"
-                  >
-                    <span>Send Message</span>
-                    <i class="fas fa-paper-plane ml-2"></i>
-                  </button>
-                </div>
-              </form>
+              </div>
             </div>
           </section>
 
-          <!-- Divider -->
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-dark-700"></div>
-            </div>
-            <div class="relative flex justify-center">
-              <span class="bg-dark-900 px-4 text-sm text-gray-400">Response Times</span>
-            </div>
-          </div>
-
-          <!-- Response Time -->
+          <!-- FAQ Section -->
           <section>
             <SectionHeader 
-              title="Response Time" 
-              subtitle="We strive to respond to all inquiries as quickly as possible."
+              title="Frequently Asked Questions" 
+              subtitle="Find quick answers to common questions about our services."
             />
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mt-8">
-              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] p-7">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-clock text-white text-xl"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-4">General Support</h3>
-                <p class="text-gray-300">We typically respond within 24 hours during business days.</p>
-              </div>
+            <div class="group relative transform transition-all duration-300 hover:-translate-y-2 mt-8">
+              <!-- Enhanced glass morphism effect with glow -->
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/50 to-teal-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
               
-              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)] p-7">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-md mb-6 group-hover:scale-110 transition-transform">
-                  <i class="fas fa-exclamation-circle text-white text-xl"></i>
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
+                <!-- Card header with gradient -->
+                <div class="h-2 w-full bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+                <div class="p-7">
+                  <div class="space-y-6">
+                    <div v-for="(faq, index) in faqs" :key="index" class="border-b border-dark-700 pb-6 last:border-0 last:pb-0">
+                      <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                          <i class="fas fa-question text-xs text-emerald-400"></i>
+                        </div>
+                        {{ faq.question }}
+                      </h3>
+                      <p class="text-gray-300">{{ faq.answer }}</p>
+                    </div>
+                  </div>
                 </div>
-                <h3 class="text-xl font-semibold text-white mb-4">Urgent Issues</h3>
-                <p class="text-gray-300">For urgent matters, please use our phone support for immediate assistance.</p>
               </div>
             </div>
           </section>
@@ -189,53 +220,96 @@
   </DefaultLayout>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
-import { DefaultLayout } from '@/shared/layouts'
-import { 
-  GradientText, 
-  HeroBadge,
-  SectionHeader 
-} from '@/apps/home/components'
+<script setup>
 import { ref } from 'vue'
+import { DefaultLayout } from '@/shared/layouts'
+import { GradientText, HeroBadge, SectionHeader } from '@/apps/home/components'
+import { useNotification } from '@/shared/composables/useNotification'
 
-export default defineComponent({
-  name: 'Contact',
-  components: {
-    DefaultLayout,
-    GradientText,
-    HeroBadge,
-    SectionHeader
+const { showNotification } = useNotification()
+
+const formData = ref({
+  name: '',
+  email: '',
+  subject: '',
+  message: ''
+})
+
+const isSubmitting = ref(false)
+
+const faqs = ref([
+  {
+    question: 'How quickly will I receive a response to my inquiry?',
+    answer: 'We strive to respond to all inquiries within 24 hours during business days. For urgent matters, please use the live chat feature for immediate assistance.'
   },
-  setup() {
-    const form = ref({
+  {
+    question: 'Do you offer technical support for all plans?',
+    answer: 'Yes, all plans include technical support. Premium plans receive priority support with faster response times and dedicated support specialists.'
+  },
+  {
+    question: 'Can I schedule a demo of the platform?',
+    answer: 'Absolutely! You can schedule a personalized demo with our team by sending us a message through the contact form or emailing support@imagi-oasis.com.'
+  },
+  {
+    question: 'How do I report a bug or suggest a feature?',
+    answer: 'You can report bugs or suggest features through our support email or by using the contact form. We appreciate your feedback and continuously work to improve our platform.'
+  }
+])
+
+async function submitForm() {
+  isSubmitting.value = true
+  
+  try {
+    // Simulate API call with a delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Show success notification
+    showNotification({
+      type: 'success',
+      message: 'Your message has been sent successfully! We\'ll get back to you soon.'
+    })
+    
+    // Reset form
+    formData.value = {
       name: '',
       email: '',
       subject: '',
       message: ''
+    }
+  } catch (error) {
+    // Show error notification
+    showNotification({
+      type: 'error',
+      message: 'There was an error sending your message. Please try again.'
     })
-
-    const handleSubmit = async () => {
-      // TODO: Implement form submission
-      console.log('Form submitted:', form.value)
-    }
-
-    return {
-      form,
-      handleSubmit
-    }
+  } finally {
+    isSubmitting.value = false
   }
-})
+}
 </script>
 
 <style scoped>
-/* Styles for form elements */
-input:focus, textarea:focus {
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+/* Float animation for background orbs */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
 
-/* Input hover effects */
-input:hover, textarea:hover {
-  border-color: rgba(99, 102, 241, 0.3);
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 18s ease-in-out infinite reverse;
+}
+
+/* Add subtle animation for loading state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
 }
 </style>
