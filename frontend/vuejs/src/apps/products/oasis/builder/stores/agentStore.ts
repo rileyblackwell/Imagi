@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { AIModel, BuilderMode, ProjectFile } from '../types/builder'
 import type { AIMessage } from '../types/api'
+import { FileService } from '../services/fileService'
 
 interface AgentState {
   projectId: string | null
@@ -112,6 +113,41 @@ export const useAgentStore = defineStore('agent', {
 
     reset() {
       this.$reset()
+    },
+
+    /**
+     * Undo changes to the currently selected file
+     */
+    async undoFileChanges() {
+      try {
+        // Make sure we have a project and a selected file
+        if (!this.projectId) {
+          throw new Error('No project selected')
+        }
+        
+        if (!this.selectedFile) {
+          throw new Error('No file selected')
+        }
+        
+        this.isProcessing = true
+        
+        // Call the file-specific undo endpoint
+        const updatedContent = await FileService.undoFileChanges(this.projectId, this.selectedFile.path)
+        
+        // Update the selected file with the new content
+        if (updatedContent) {
+          this.selectFile({
+            ...this.selectedFile,
+            content: updatedContent
+          })
+        }
+        
+        return true
+      } catch (error: any) {
+        throw error
+      } finally {
+        this.isProcessing = false
+      }
     }
   }
 }) 

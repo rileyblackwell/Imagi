@@ -28,13 +28,23 @@
       <span class="truncate">{{ fileName }}</span>
     </div>
     
-    <!-- File Status Indicators -->
+    <!-- File Status Indicators and Actions -->
     <div class="ml-auto flex items-center space-x-1">
       <span 
         v-if="hasUnsavedChanges"
         class="w-1.5 h-1.5 rounded-full bg-yellow-500"
         title="Unsaved changes"
       />
+      
+      <!-- Delete button -->
+      <button
+        class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-400 transition-colors"
+        title="Delete file"
+        @click.stop="$emit('delete', file)"
+        aria-label="Delete file"
+      >
+        <i class="fas fa-trash-alt text-xs"></i>
+      </button>
     </div>
   </button>
 </template>
@@ -51,6 +61,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'select', file: ProjectFile): void
+  (e: 'delete', file: ProjectFile): void
 }>()
 
 const fileName = computed(() => {
@@ -92,5 +103,14 @@ const fileIcon = computed(() => {
 .text-xxs {
   font-size: 0.65rem;
   line-height: 1rem;
+}
+
+/* Make the parent a group to enable hover effects on children */
+button {
+  position: relative;
+}
+
+button:hover .opacity-0 {
+  opacity: 1 !important;
 }
 </style>

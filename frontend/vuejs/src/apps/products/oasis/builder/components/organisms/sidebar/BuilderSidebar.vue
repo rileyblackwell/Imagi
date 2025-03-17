@@ -103,16 +103,6 @@
     <div class="flex-1 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
       <div v-if="!isCollapsed" class="mb-2 flex items-center justify-between">
         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
-        
-        <ActionButton
-          v-if="!showNewFileFormValue"
-          size="sm"
-          variant="secondary"
-          @click="showNewFileFormValue = true"
-        >
-          <i class="fas fa-plus mr-1"></i>
-          New File
-        </ActionButton>
       </div>
       
       <template v-if="!isCollapsed">
@@ -121,8 +111,10 @@
           :selected-file="selectedFile"
           :file-types="fileTypes"
           :show-new-form="showNewFileFormValue"
+          :project-id="projectId"
           @select-file="$emit('selectFile', $event)"
           @create-file="$emit('createFile', $event)"
+          @delete-file="$emit('deleteFile', $event)"
         />
       </template>
       <template v-else>
@@ -197,6 +189,7 @@ const props = defineProps<{
   mode: BuilderMode
   currentEditorMode?: EditorMode
   isCollapsed?: boolean
+  projectId: string
 }>()
 
 const emit = defineEmits<{
@@ -204,6 +197,7 @@ const emit = defineEmits<{
   (e: 'update:mode', value: BuilderMode): void
   (e: 'selectFile', file: ProjectFile): void
   (e: 'createFile', data: { name: string; type: string; content?: string }): void
+  (e: 'deleteFile', file: ProjectFile): void
   (e: 'undo'): void
   (e: 'preview'): void
 }>()

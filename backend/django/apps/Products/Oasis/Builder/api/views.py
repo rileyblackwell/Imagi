@@ -69,58 +69,6 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
         project_management_service.delete_project(instance)
 
 @method_decorator(never_cache, name='dispatch')
-class ProjectFilesView(APIView):
-    """List all files in a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            file_service = FileService(project=project)
-            files = file_service.list_files()
-            return Response(files)
-        except Exception as e:
-            logger.error(f"Error listing files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-    
-    def post(self, request, project_id):
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Create file using the Builder's FileService
-            file_service = FileService(project=project)
-            file_data = request.data
-            result = file_service.create_file(file_data)
-            return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error creating file: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
 class GenerateCodeView(APIView):
     """Generate code using AI models."""
     permission_classes = [IsAuthenticated]
@@ -172,31 +120,6 @@ class GenerateCodeView(APIView):
             )
 
 @method_decorator(never_cache, name='dispatch')
-class UndoActionView(APIView):
-    """Undo last action in a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def post(self, request, project_id):
-        try:
-            project = self.get_project(project_id)
-            project_management_service = ProjectManagementService(request.user)
-            result = project_management_service.undo_last_action(project)
-            return Response(result)
-        except Exception as e:
-            logger.error(f"Error undoing action: {str(e)}")
-            return Response(
-                {'error': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
 class AIModelsView(APIView):
     """Get available AI models."""
     permission_classes = [IsAuthenticated]
@@ -205,71 +128,6 @@ class AIModelsView(APIView):
         models_service = ModelsService()
         models = models_service.get_available_models()
         return Response(models)
-
-@method_decorator(never_cache, name='dispatch')
-class FileDetailView(APIView):
-    """Get or update file details."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id, file_path):
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            file_service = FileService(project=project)
-            file_details = file_service.get_file_details(file_path)
-            return Response(file_details)
-        except Exception as e:
-            logger.error(f"Error getting file details: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def put(self, request, project_id, file_path):
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            file_service = FileService(project=project)
-            
-            content = request.data.get('content', '')
-            if not content:
-                return Response(
-                    {'error': 'Content is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            result = file_service.update_file(file_path, content)
-            return Response(result)
-        except Exception as e:
-            logger.error(f"Error updating file: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def delete(self, request, project_id, file_path):
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            file_service = FileService(project=project)
-            result = file_service.delete_file(file_path)
-            return Response(result)
-        except Exception as e:
-            logger.error(f"Error deleting file: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 @method_decorator(never_cache, name='dispatch')
 class FileContentView(APIView):
@@ -442,3 +300,199 @@ class PreviewView(APIView):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(never_cache, name='dispatch')
+class CreateFileView(APIView):
+    """Create a new file in a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Validate request data
+            file_data = request.data
+            
+            if not file_data.get('path') and not file_data.get('name'):
+                return Response(
+                    {'error': 'File path or name is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Create file using the Builder's FileService
+            file_service = FileService(project=project)
+            
+            # Handle requests with path directly
+            if file_data.get('path'):
+                # Update file_data to include name field based on path if missing
+                if not file_data.get('name'):
+                    file_data['name'] = file_data['path']
+                
+                # Determine file type from extension if not provided
+                if not file_data.get('type'):
+                    import os
+                    ext = os.path.splitext(file_data['path'])[1].lower()
+                    if ext == '.html':
+                        file_data['type'] = 'html'
+                    elif ext == '.css':
+                        file_data['type'] = 'css'
+            
+            result = file_service.create_file(file_data)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating file: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class DeleteFileView(APIView):
+    """Delete a file from a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id, file_path):
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Delete file using the Builder's FileService
+            file_service = FileService(project=project)
+            result = file_service.delete_file(file_path)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error deleting file: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class DirectoryView(APIView):
+    """Create a directory in a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Validate request data
+            directory_path = request.data.get('path')
+            
+            if not directory_path:
+                return Response(
+                    {'error': 'Directory path is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Create directory
+            import os
+            directory_full_path = os.path.join(project.project_path, directory_path)
+            os.makedirs(directory_full_path, exist_ok=True)
+            
+            return Response(
+                {'success': True, 'message': f'Directory {directory_path} created successfully'},
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            logger.error(f"Error creating directory: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class FileUndoView(APIView):
+    """Undo changes to a specific file."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id, file_path):
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Get file type based on extension
+            import os
+            file_extension = os.path.splitext(file_path)[1].lower()
+            
+            if not file_extension:
+                return Response(
+                    {'error': 'Cannot determine file type - no extension found'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Call the appropriate service to handle the undo
+            project_management_service = ProjectManagementService(request.user)
+            
+            # Call undo_file_changes with the specific file path
+            result = project_management_service.undo_file_changes(project, file_path)
+            
+            return Response(result)
+        except Exception as e:
+            logger.error(f"Error undoing file changes: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

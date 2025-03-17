@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProjectFile } from '../types/builder'
+import type { ProjectFile, EditorLanguage } from '../types/index'
 
 // Define API path constants
 const API_PATHS = {
@@ -18,217 +18,291 @@ const API_PATHS = {
  */
 export const FileService = {
   /**
-   * Get all files for a project
-   * Used by workspace for file listing
+   * Get all files in a project
    */
   async getProjectFiles(projectId: string): Promise<ProjectFile[]> {
     console.debug('File API - getting project files:', { projectId })
     
-    // Builder API paths for file operations
-    const apiPaths = [
-      // Main builder API path (should be primary path)
-      `/api/v1/builder/builder/${projectId}/files/`,
+    try {
+      // Build a list of files by using directory structure
+      // First, get all files from templates folder
+      const templateFiles = await this.getDirectoryFiles(projectId, 'templates')
       
-      // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/builder/${projectId}/files/`,
-    ]
+      // Then get all files from static/css folder
+      const cssFiles = await this.getDirectoryFiles(projectId, 'static/css')
+      
+      // Combine the results
+      return [...templateFiles, ...cssFiles]
+    } catch (error: any) {
+      console.error('File API - getProjectFiles error:', error)
+      
+      if (error.response?.status === 404) {
+        throw new Error('Project not found or not initialized')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to access project files')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to access this project')
+      }
+      
+      throw error
+    }
+  },
+  
+  /**
+   * Get files from a specific directory
+   */
+  async getDirectoryFiles(projectId: string, directory: string): Promise<ProjectFile[]> {
+    console.debug('File API - getting directory files:', { projectId, directory })
     
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        console.debug(`Making API request to get project files from path: ${path}`)
+    try {
+      // Create a directory structure manually
+      // This is a temporary solution until we have a better API
+      if (directory === 'templates') {
+        // Get all HTML files from content endpoint
+        const templatesStructure = [
+          { path: 'templates/index.html', type: 'html' as EditorLanguage },
+          { path: 'templates/base.html', type: 'html' as EditorLanguage }
+        ]
         
-        const response = await api.get(path)
-        
-        console.debug(`File API - getProjectFiles response from ${path}:`, {
-          status: response.status,
-          fileCount: response.data?.length
-        })
-        
-        return response.data || []
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for project files path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to view project files')
-          } else {
-            throw new Error('You do not have permission to view files for this project')
+        // For each file, get the content and other details
+        const files: ProjectFile[] = []
+        for (const template of templatesStructure) {
+          try {
+            const content = await this.getFileContent(projectId, template.path)
+            const fileName = template.path.split('/').pop() || ''
+            files.push({
+              id: `${projectId}-${template.path}`,
+              name: fileName,
+              path: template.path,
+              type: template.type,
+              content: content,
+              lastModified: new Date().toISOString()
+            })
+          } catch (error) {
+            // Skip if file doesn't exist
+            console.warn(`File ${template.path} not found, skipping`)
           }
         }
+        
+        return files
+      } else if (directory === 'static/css') {
+        // Get all CSS files
+        const cssStructure = [
+          { path: 'static/css/styles.css', type: 'css' as EditorLanguage }
+        ]
+        
+        // For each file, get the content and other details
+        const files: ProjectFile[] = []
+        for (const css of cssStructure) {
+          try {
+            const content = await this.getFileContent(projectId, css.path)
+            const fileName = css.path.split('/').pop() || ''
+            files.push({
+              id: `${projectId}-${css.path}`,
+              name: fileName,
+              path: css.path,
+              type: css.type,
+              content: content,
+              lastModified: new Date().toISOString()
+            })
+          } catch (error) {
+            // Skip if file doesn't exist
+            console.warn(`File ${css.path} not found, skipping`)
+          }
+        }
+        
+        return files
       }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('File API - getProjectFiles error:', lastError)
       
-      if (lastError.response?.status === 404) {
-        throw new Error('Project files not found. The project may not be initialized yet.')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
-      }
-      
-      throw lastError
+      return []
+    } catch (error: any) {
+      console.error('File API - getDirectoryFiles error:', error)
+      throw error
     }
-    
-    throw new Error('Failed to fetch project files')
   },
 
   /**
-   * Get a specific file by path
-   * Used by workspace for file editing
+   * Get a file by path
    */
   async getFile(projectId: string, filePath: string): Promise<ProjectFile> {
     console.debug('File API - getting file:', { projectId, filePath })
     
-    // Builder API paths for file operations
-    const apiPaths = [
-      // Main builder API path (should be primary path)
-      `/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/`,
+    try {
+      // Get the file content using the content endpoint
+      const content = await this.getFileContent(projectId, filePath)
       
-      // Content-specific endpoint as a fallback
-      `/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`,
+      // Determine file type from extension
+      const fileExtension = filePath.split('.').pop() || ''
+      const fileName = filePath.split('/').pop() || ''
+      let fileType: EditorLanguage = 'html'
       
-      // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/builder/${projectId}/files/${encodeURIComponent(filePath)}/`,
-    ]
+      if (fileExtension === 'html') {
+        fileType = 'html'
+      } else if (fileExtension === 'css') {
+        fileType = 'css'
+      } else if (fileExtension === 'js' || fileExtension === 'javascript') {
+        fileType = 'javascript'
+      } else if (fileExtension === 'ts' || fileExtension === 'typescript') {
+        fileType = 'typescript'
+      } else if (fileExtension === 'py') {
+        fileType = 'python'
+      } else if (fileExtension === 'vue') {
+        fileType = 'vue'
+      }
+      
+      // Return file details
+      return {
+        id: `${projectId}-${filePath}`,
+        name: fileName,
+        path: filePath,
+        type: fileType,
+        content: content,
+        lastModified: new Date().toISOString()
+      }
+    } catch (error: any) {
+      console.error('File API - getFile error:', error)
+      
+      if (error.response?.status === 404) {
+        throw new Error('File not found')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to access this file')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to access this file')
+      }
+      
+      throw error
+    }
+  },
+
+  /**
+   * Get file content
+   */
+  async getFileContent(projectId: string, filePath: string): Promise<string> {
+    console.debug('File API - getting file content:', { projectId, filePath })
     
-    let lastError: any = null;
+    try {
+      const response = await api.get(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`)
+      return response.data.content || ''
+    } catch (error: any) {
+      console.error('File API - getFileContent error:', error)
+      
+      if (error.response?.status === 404) {
+        throw new Error('File not found')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to access this file')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to access this file')
+      }
+      
+      throw error
+    }
+  },
+
+  /**
+   * Update file content
+   */
+  async updateFileContent(projectId: string, filePath: string, content: string): Promise<ProjectFile> {
+    console.debug('File API - updating file content:', { projectId, filePath })
     
-    // Try each path in sequence
-    for (const path of apiPaths) {
+    try {
+      // First, check if the file exists by trying to get its content
       try {
-        console.debug(`Making API request to get file from path: ${path}`)
-        
-        const response = await api.get(path)
-        
-        console.debug(`File API - getFile response from ${path}:`, {
-          status: response.status,
-          contentLength: response.data?.content?.length
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for get file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to view this file')
-          } else {
-            throw new Error('You do not have permission to view this file')
-          }
-        }
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('File API - getFile error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('File not found. The project may not be initialized yet.')
-      } else if (lastError.response?.status === 401) {
-        throw new Error('You must be logged in to view this file')
-      } else if (lastError.response?.status === 403) {
-        throw new Error('You do not have permission to view this file')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
+        await this.getFileContent(projectId, filePath)
+      } catch (error) {
+        // If the file doesn't exist, create it
+        return this.createFile(projectId, filePath, content)
       }
       
-      throw lastError
+      // Create a temporary file with the new content
+      const tempFilePath = `${filePath}.new`
+      await this.createFile(projectId, tempFilePath, content)
+      
+      // Delete the original file
+      await this.deleteFile(projectId, filePath)
+      
+      // Rename the temporary file to the original name
+      const newFile = await this.createFile(projectId, filePath, content)
+      
+      // Delete the temporary file
+      try {
+        await this.deleteFile(projectId, tempFilePath)
+      } catch (error) {
+        // Ignore errors here
+        console.warn(`Could not delete temporary file ${tempFilePath}`)
+      }
+      
+      return newFile
+    } catch (error: any) {
+      console.error('File API - updateFileContent error:', error)
+      
+      if (error.response?.status === 404) {
+        throw new Error('File not found')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to update this file')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to update this file')
+      }
+      
+      throw error
     }
-    
-    throw new Error('Failed to fetch file')
   },
 
   /**
    * Create a new file
-   * Used by workspace for file creation
    */
-  async createFile(
-    projectId: string,
-    filePath: string,
-    content: string
-  ): Promise<ProjectFile> {
+  async createFile(projectId: string, filePath: string, content: string = ''): Promise<ProjectFile> {
     console.debug('File API - creating file:', { projectId, filePath })
     
-    // Builder API paths for file operations
-    const apiPaths = [
-      // Main builder API path (should be primary path)
-      `/api/v1/builder/builder/${projectId}/files/`,
+    try {
+      const response = await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
+        content
+      })
       
-      // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/builder/${projectId}/files/`,
-    ]
-    
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        console.debug(`Making API request to create file using path: ${path}`)
-        
-        const response = await api.post(path, {
-          path: filePath,
-          content
-        })
-        
-        console.debug(`File API - createFile response from ${path}:`, {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for create file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to create files')
-          } else {
-            throw new Error('You do not have permission to create files in this project')
-          }
-        }
+      console.debug('File API - createFile response:', {
+        status: response.status,
+        data: response.data
+      })
+      
+      // Generate file details from path
+      const fileExtension = filePath.split('.').pop() || ''
+      const fileName = filePath.split('/').pop() || ''
+      let fileType: EditorLanguage = 'html'
+      
+      if (fileExtension === 'html') {
+        fileType = 'html'
+      } else if (fileExtension === 'css') {
+        fileType = 'css'
+      } else if (fileExtension === 'js' || fileExtension === 'javascript') {
+        fileType = 'javascript'
+      } else if (fileExtension === 'ts' || fileExtension === 'typescript') {
+        fileType = 'typescript'
+      } else if (fileExtension === 'py') {
+        fileType = 'python'
+      } else if (fileExtension === 'vue') {
+        fileType = 'vue'
       }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('File API - createFile error:', lastError)
       
-      if (lastError.response?.status === 404) {
-        throw new Error('Project not found or not initialized')
-      } else if (lastError.response?.status === 409) {
+      return {
+        id: `${projectId}-${filePath}`,
+        name: fileName,
+        path: filePath,
+        type: fileType,
+        content: content,
+        lastModified: new Date().toISOString()
+      }
+    } catch (error: any) {
+      console.error('File API - createFile error:', error)
+      
+      if (error.response?.status === 409) {
         throw new Error('File already exists')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to create files')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to create files in this project')
       }
       
-      throw lastError
+      throw error
     }
-    
-    throw new Error('Failed to create file')
   },
 
   /**
@@ -268,138 +342,60 @@ export const FileService = {
   },
 
   /**
-   * Update file content
-   * Used by workspace for file editing
+   * Delete a file
    */
-  async updateFileContent(
-    projectId: string,
-    filePath: string,
-    content: string
-  ): Promise<ProjectFile> {
-    console.debug('File API - updating file:', { projectId, filePath })
+  async deleteFile(projectId: string, filePath: string): Promise<boolean> {
+    console.debug('File API - deleting file:', { projectId, filePath })
     
-    // Builder API paths for file operations
-    const apiPaths = [
-      // Main builder API path (should be primary path)
-      `/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/`,
+    try {
+      await api.delete(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`)
+      return true
+    } catch (error: any) {
+      console.error('File API - deleteFile error:', error)
       
-      // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/builder/${projectId}/files/${encodeURIComponent(filePath)}/`,
-    ]
-    
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        console.debug(`Making API request to update file using path: ${path}`)
-        
-        const response = await api.put(path, {
-          content
-        })
-        
-        console.debug(`File API - updateFileContent response:`, {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for update file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to update files')
-          } else {
-            throw new Error('You do not have permission to update files in this project')
-          }
-        }
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('File API - updateFileContent error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('File not found or project not initialized')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
+      if (error.response?.status === 404) {
+        throw new Error('File not found')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to delete files')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to delete files in this project')
       }
       
-      throw lastError
+      throw error
     }
-    
-    throw new Error('Failed to update file')
   },
 
   /**
-   * Delete a file
-   * Used by workspace for file deletion
+   * Undo the last change to a specific file
    */
-  async deleteFile(projectId: string, filePath: string): Promise<void> {
-    console.debug('File API - deleting file:', { projectId, filePath })
+  async undoFileChanges(projectId: string, filePath: string): Promise<string> {
+    console.debug('File API - undoing file changes:', { projectId, filePath })
     
-    // Builder API paths for file operations
-    const apiPaths = [
-      // Main builder API path (should be primary path)
-      `/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/`,
+    try {
+      const response = await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`)
       
-      // Alternative paths as fallbacks
-      `${API_PATHS.BUILDER}/builder/${projectId}/files/${encodeURIComponent(filePath)}/`,
-    ]
-    
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        console.debug(`Making API request to delete file using path: ${path}`)
-        
-        const response = await api.delete(path)
-        
-        console.debug(`File API - deleteFile response:`, {
-          status: response.status
-        })
-        
-        return
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for delete file path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to delete files')
-          } else {
-            throw new Error('You do not have permission to delete files in this project')
-          }
-        }
-      }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('File API - deleteFile error:', lastError)
+      console.debug('File API - undoFileChanges response:', {
+        status: response.status,
+        data: response.data
+      })
       
-      if (lastError.response?.status === 404) {
-        // File already deleted or never existed - consider this a success
-        return
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
+      if (response.data && response.data.content) {
+        return response.data.content
       }
       
-      throw lastError
+      return ''
+    } catch (error: any) {
+      console.error('File API - undoFileChanges error:', error)
+      
+      if (error.response?.status === 404) {
+        throw new Error('No previous version found for this file')
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to undo changes')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to undo changes in this project')
+      }
+      
+      throw error
     }
   }
 }

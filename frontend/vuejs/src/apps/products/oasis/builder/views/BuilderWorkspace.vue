@@ -29,10 +29,12 @@
           :mode="store.mode || 'chat'"
           :current-editor-mode="currentEditorMode"
           :is-collapsed="collapsed"
+          :project-id="projectId || ''"
           @update:model-id="handleModelSelect"
           @update:mode="handleModeSwitch"
           @select-file="handleFileSelect"
           @create-file="handleFileCreate"
+          @delete-file="handleFileDelete"
           @undo="handleUndo"
           @preview="handlePreview"
         />
@@ -186,14 +188,16 @@ const route = useRoute()
 const router = useRouter()
 const store = useAgentStore()
 const projectStore = useProjectStore()
+const projectId = ref<string>('')
 const { 
   generateCodeFromPrompt, 
+  updateFile, 
   createFile, 
-  undoLastAction,
-  loadModels
+  loadModels,
+  undoLastAction
 } = useBuilderMode()
 const { sendMessage } = useChatMode()
-const { autosaveContent, saveFile, checkUnsavedChanges } = useFileManager()
+const { autosaveContent, saveFile, checkUnsavedChanges, undoFileChanges } = useFileManager()
 
 // Constants
 const fileTypes = {
@@ -367,12 +371,12 @@ const handleModeSwitch = (mode: 'chat' | 'build') => {
 
 const handleFileSelect = (file: any) => {
   // Ensure we're using the correct ProjectFile type
-  const projectFile: ProjectFile = {
+  const projectFile = {
     path: file.path,
     type: file.type,
     content: file.content || '',
     lastModified: file.lastModified || new Date().toISOString()
-  };
+  } as any; // Type assertion to fix compatibility
   
   store.selectFile(projectFile);
 }
@@ -380,10 +384,10 @@ const handleFileSelect = (file: any) => {
 const handleFileCreate = async (data: { name: string; type: string; content?: string }) => {
   try {
     // Get project ID from various sources
-    let projectId = store.projectId
+    let projectIdStr = store.projectId
     
     // Check if project ID is set
-    if (!projectId) {
+    if (!projectIdStr) {
       // Check for projectId in route params
       const routeProjectId = route.params.projectId || route.params.id
       
@@ -394,13 +398,12 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
       
       if (routeProjectId) {
         // Ensure it's a string
-        const projectIdStr = String(routeProjectId)
+        projectIdStr = String(routeProjectId)
         console.debug(`Setting project ID from route: ${projectIdStr}`)
         
         // Set directly on the store state for immediate effect
         store.projectId = projectIdStr
         store.$patch({ projectId: projectIdStr })
-        projectId = projectIdStr
       }
     }
     
@@ -420,13 +423,36 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
     }
     
     // This is where the actual file is created - this should only happen in the workspace
-    const newFile = await createFile(data.name, data.type, data.content || '', projectId || '')
+    const newFile = await createFile(data.name, data.type, data.content || '', projectIdStr || '')
+    
+    // Immediately reload the file directory after a successful file creation
+    if (newFile && projectIdStr) {
+      // Fetch updated file list
+      try {
+        const updatedFiles = await FileService.getProjectFiles(projectIdStr)
+        if (updatedFiles && Array.isArray(updatedFiles)) {
+          // Update store with fresh file list using functional update
+          store.$patch((state) => {
+            state.files = updatedFiles as any // Type assertion to fix compatibility
+          })
+          
+          // Select the newly created file
+          const createdFile = updatedFiles.find(file => file.path === newFile.path)
+          if (createdFile) {
+            store.selectFile(createdFile as any) // Type assertion to fix compatibility
+          }
+        }
+      } catch (reloadErr) {
+        console.error('Error reloading file directory:', reloadErr)
+      }
+    }
+    
     notify({ type: 'success', message: 'File created successfully' })
     
     // If we just created one of the template files, check if others are needed
     if (data.name === 'templates/base.html' || data.name === 'templates/index.html' || data.name === 'static/css/styles.css') {
       // Reload project files to see what we have
-      const updatedFiles = await FileService.getProjectFiles(projectId || '')
+      const updatedFiles = await FileService.getProjectFiles(projectIdStr || '')
       const fileNames = updatedFiles.map(f => f.path)
       
       // Create any missing template files
@@ -466,7 +492,7 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
   {% block extra_js %}{% endblock %}
 </body>
 </html>`,
-          projectId || ''
+          projectIdStr || ''
         )
       }
       
@@ -486,7 +512,7 @@ const handleFileCreate = async (data: { name: string; type: string; content?: st
   <p>Edit this template to start building your web application.</p>
 </div>
 {% endblock %}`,
-          projectId || ''
+          projectIdStr || ''
         )
       }
       
@@ -552,7 +578,7 @@ footer {
   text-align: center;
   margin-top: 2rem;
 }`,
-          projectId || ''
+          projectIdStr || ''
         )
       }
     }
@@ -567,18 +593,66 @@ footer {
 
 const handleUndo = async () => {
   try {
-    store.setProcessing(true)
-    await undoLastAction()
-    notify({ type: 'success', message: 'Last action undone successfully' })
+    // Check if a file is selected
+    if (!store.selectedFile) {
+      notify({ 
+        type: 'warning', 
+        message: 'No file selected to undo changes' 
+      });
+      return;
+    }
+    
+    // Use the store's undoFileChanges method
+    await store.undoFileChanges();
+    
+    // Show success message
+    notify({ 
+      type: 'success', 
+      message: `Changes to ${store.selectedFile.path} undone successfully` 
+    });
   } catch (err: any) {
     notify({ 
       type: 'error', 
-      message: err.message || 'Failed to undo last action' 
-    })
-  } finally {
-    store.setProcessing(false)
+      message: err.message || 'Failed to undo changes' 
+    });
   }
-}
+};
+
+const handleFileDelete = async (file: ProjectFile) => {
+  try {
+    store.setProcessing(true);
+    
+    // Get the project ID
+    const projectIdStr = store.projectId;
+    if (!projectIdStr) {
+      throw new Error('No project selected');
+    }
+    
+    // Call the API to delete the file
+    await FileService.deleteFile(projectIdStr, file.path);
+    
+    // If the deleted file was selected, clear the selection
+    if (store.selectedFile?.path === file.path) {
+      store.selectFile(null);
+    }
+    
+    // Refresh the file list
+    const updatedFiles = await FileService.getProjectFiles(projectIdStr);
+    // Update store with functional update to avoid type issues
+    store.$patch((state) => {
+      state.files = updatedFiles as any; // Type assertion to fix compatibility
+    });
+    
+    notify({ type: 'success', message: `File ${file.path} deleted successfully` });
+  } catch (err: any) {
+    notify({ 
+      type: 'error', 
+      message: err.message || `Failed to delete file ${file.path}` 
+    });
+  } finally {
+    store.setProcessing(false);
+  }
+};
 
 const handlePreview = async () => {
   try {
@@ -844,16 +918,132 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 
+// Handle model selection updates from events
+const handleModelSelectionUpdated = (event: Event) => {
+  try {
+    // Force UI update
+    window.dispatchEvent(new Event('resize'))
+    
+    // Get the model ID from the event
+    const modelId = (event as CustomEvent).detail
+    
+    // Find the model name for notification
+    const model = [...(store.availableModels || []), ...AI_MODELS].find(m => m.id === modelId)
+    
+    // Notify user of model change
+    if (model) {
+      notify({ 
+        type: 'info', 
+        message: `Switched to ${model.name}` 
+      })
+    }
+  } catch (error) {
+    console.error('Error handling model selection:', error)
+  }
+}
+
+// Handle mode selection updates from events
+const handleModeSelectionUpdated = (event: Event) => {
+  try {
+    // Force UI update
+    window.dispatchEvent(new Event('resize'))
+    
+    // Get the mode from the event
+    const mode = (event as CustomEvent).detail
+    
+    // Notify user of mode change
+    notify({ 
+      type: 'info', 
+      message: `Switched to ${mode} mode` 
+    })
+  } catch (error) {
+    console.error('Error handling mode selection:', error)
+  }
+}
+
 // Initialize workspace
+const initializeWorkspace = async (isNewProject: boolean = false) => {
+  try {
+    store.setProcessing(true)
+    
+    // Extract project ID from route parameters
+    const routeProjectId = route.params.id as string
+    if (routeProjectId) {
+      projectId.value = routeProjectId
+      store.projectId = routeProjectId
+    }
+    
+    // Load project data
+    if (projectId.value) {
+      const project = await ProjectService.getProject(projectId.value)
+      if (project) {
+        // Set current project in the project store
+        projectStore.currentProject = project
+        
+        // Load project files
+        const files = await FileService.getProjectFiles(projectId.value)
+        if (files && Array.isArray(files)) {
+          // Use a functional update to ensure type compatibility
+          store.$patch((state) => {
+            state.files = files as any // Type assertion to fix compatibility
+          })
+        }
+        
+        // Load available models
+        const models = await loadModels()
+        if (models && Array.isArray(models) && models.length > 0) {
+          // Set default model if none selected
+          if (!store.selectedModelId) {
+            handleModelSelect(models[0].id)
+          }
+        }
+      } else {
+        throw new Error('Project not found')
+      }
+    } else {
+      throw new Error('No project ID specified')
+    }
+    
+    // Set up session check interval
+    sessionCheckInterval.value = window.setInterval(checkSession, 60000)
+    
+    // Check session immediately
+    await checkSession()
+    
+    // Add beforeunload event listener
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
+    // Show welcome message for new projects
+    if (isNewProject) {
+      notify({ 
+        type: 'success',
+        message: 'Project created successfully! Start by adding files or asking the AI to help.'
+      })
+    }
+  } catch (err: any) {
+    if (isProjectNotFoundError(err)) {
+      redirectToProjectsPage('Project not found or access denied')
+    } else {
+      notify({
+        type: 'error',
+        message: err.message || 'Failed to initialize workspace'
+      })
+    }
+  } finally {
+    store.setProcessing(false)
+  }
+}
+
+// Initialize workspace on component mount
 onMounted(async () => {
   // Extract project ID from route parameters
-  const projectId = route.params.id as string || ''
+  const routeProjectId = route.params.id as string
   const isNewProject = route.query.new === 'true'
   
-  if (projectId) {
+  if (routeProjectId) {
     // Use direct state mutation for immediate effect
-    store.projectId = projectId
-    store.$patch({ projectId })
+    store.projectId = routeProjectId
+    store.$patch({ projectId: routeProjectId })
     
     // Pre-emptively try to update API headers in case they weren't set
     const token = localStorage.getItem('token')
@@ -890,7 +1080,7 @@ onMounted(async () => {
   
   // Initialize the workspace
   try {
-    await initializeWorkspace(isNewProject)
+    await initializeWorkspace(route.query.new === 'true')
   } catch (initError) {
     // Show error but don't fail completely - some features might still work
     notify({ 
@@ -920,460 +1110,14 @@ onMounted(async () => {
     }
   }, 60000) // Refresh every minute in the background
 })
-
-// Handle model selection updates from events
-const handleModelSelectionUpdated = (event: Event) => {
-  try {
-    // Force UI update
-    window.dispatchEvent(new Event('resize'))
-    
-    // Get the model ID from the event
-    const modelId = (event as CustomEvent).detail
-    
-    // Find the model name for notification
-    const model = [...(store.availableModels || []), ...AI_MODELS].find(m => m.id === modelId)
-    
-    // Notify user of model change
-    if (model) {
-      notify({ 
-        type: 'info', 
-        message: `Switched to ${model.name} model` 
-      })
-    }
-    
-    // Update store
-    store.selectedModelId = modelId
-    store.$patch({}) // Force reactive update
-  } catch (err: any) {
-    console.error('Error handling model selection update', err)
-  }
-}
-
-// Handle mode selection updates from events
-const handleModeSelectionUpdated = (event: Event) => {
-  try {
-    // Force UI update
-    window.dispatchEvent(new Event('resize'))
-    
-    // Get the mode from the event
-    const mode = (event as CustomEvent).detail as 'chat' | 'build'
-    
-    // Notify user of mode change
-    notify({ 
-      type: 'info', 
-      message: `Switched to ${mode} mode` 
-    })
-    
-    // Update store
-    store.mode = mode
-    store.$patch({}) // Force reactive update
-    
-    // Clear conversation when switching to build mode
-    if (mode === 'build' && store.conversation?.length) {
-      store.conversation = []
-    }
-  } catch (err: any) {
-    console.error('Error handling mode selection update', err)
-  }
-}
-
-// Add this function to initialize the builder
-const initializeWorkspace = async (isNewProject = false) => {
-  try {
-    // Set default models directly
-    const defaultModels = ModelService.getDefaultModels()
-    
-    // Ensure we're using the store correctly
-    if (defaultModels && Array.isArray(defaultModels)) {
-      try {
-        // Set models directly in the store state instead of using setModels
-        store.$patch({ availableModels: defaultModels })
-        
-        // If no model is selected, select the first one
-        if (!store.selectedModelId && defaultModels.length > 0) {
-          const defaultModelId = defaultModels[0].id
-          
-          // Direct update to the store state
-          store.$patch({ selectedModelId: defaultModelId })
-        }
-      } catch (err) {
-        notify({ 
-          type: 'warning', 
-          message: 'Failed to initialize AI models. Some features may be limited.' 
-        })
-      }
-    }
-    
-    // Try to load models from API as well
-    try {
-      await loadModels()
-    } catch (err) {
-      // Silently fall back to default models
-    }
-    
-    // Initialize mode if needed
-    if (!store.mode) {
-      const defaultMode = 'chat'
-      
-      // Direct update to the store state
-      store.$patch({ mode: defaultMode })
-    }
-    
-    // Ensure we have a project ID
-    let projectId = store.projectId
-    
-    if (!projectId) {
-      // Check for projectId in route params
-      const routeProjectId = route.params.projectId || route.params.id
-      
-      console.debug('Route parameters:', {
-        params: route.params,
-        projectId: routeProjectId
-      })
-      
-      if (routeProjectId) {
-        // Ensure it's a string
-        const projectIdStr = String(routeProjectId)
-        console.debug(`Setting project ID from route: ${projectIdStr}`)
-        
-        // Set directly on the store state for immediate effect
-        store.projectId = projectIdStr
-        store.$patch({ projectId: projectIdStr })
-        projectId = projectIdStr
-      }
-    }
-    
-    // Use the project ID from the store after ensuring it's set
-    if (projectId) {
-      try {
-        // Ensure the store has the project ID
-        if (!store.projectId) {
-          store.projectId = projectId
-        }
-        
-        let projectFetched = false;
-        
-        try {
-          // First refresh all projects to avoid stale data
-          if (projectStore.fetchProjects) {
-            await projectStore.fetchProjects(true)
-          }
-          
-          // Then fetch the specific project
-          await projectStore.fetchProject(projectId, isNewProject)
-          projectFetched = true;
-        } catch (projectErr: any) {
-          // Handle 404 (Not Found) errors by redirecting to projects page
-          if (isProjectNotFoundError(projectErr) || projectErr?.response?.status === 404) {
-            redirectToProjectsPage('Project not found or has been deleted')
-            return
-          } else if (projectErr?.response?.status === 403) {
-            // Handle forbidden errors
-            redirectToProjectsPage('You do not have permission to access this project')
-            return
-          } else {
-            // For other errors, continue with initialization but show warning
-            notify({ 
-              type: 'warning', 
-              message: 'Project details could not be loaded, but you can still work with files' 
-            })
-          }
-        }
-        
-        // Load project files - this can work even if the project details couldn't be fetched
-        try {
-          const filesResponse = await FileService.getProjectFiles(projectId)
-          if (filesResponse && Array.isArray(filesResponse)) {
-            store.$patch({ files: filesResponse })
-            
-            // Check if project has files, if not ensure project is initialized
-            if (filesResponse.length === 0) {
-              try {
-                // First try to check project status via ProjectService
-                let initialized = false;
-                try {
-                  const statusResponse = await ProjectService.initializeProject(projectId);
-                  initialized = statusResponse?.success || statusResponse?.is_initialized;
-                  console.debug('Project initialization check:', { statusResponse, initialized });
-                } catch (statusErr) {
-                  console.warn('Failed to check project status via ProjectService:', statusErr);
-                  
-                  // Fallback to AgentService
-                  try {
-                    const initResult = await AgentService.initializeProject(projectId);
-                    initialized = initResult?.success;
-                    console.debug('Project initialization via AgentService:', { initResult, initialized });
-                  } catch (agentErr) {
-                    console.warn('Failed to initialize project via AgentService:', agentErr);
-                  }
-                }
-                
-                if (initialized) {
-                  // Wait a moment for files to be created
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  
-                  // Reload project files after backend initialization
-                  const updatedFiles = await FileService.getProjectFiles(projectId);
-                  
-                  if (updatedFiles && Array.isArray(updatedFiles)) {
-                    store.$patch({ files: updatedFiles });
-                    
-                    if (updatedFiles.length > 0) {
-                      notify({ 
-                        type: 'success', 
-                        message: 'Project initialized successfully' 
-                      });
-                    } else {
-                      notify({ 
-                        type: 'warning', 
-                        message: 'Project initialization did not create any files' 
-                      });
-                    }
-                  }
-                }
-              } catch (err) {
-                console.error('Project initialization failed:', err);
-                notify({ 
-                  type: 'warning', 
-                  message: 'Project initialization failed' 
-                });
-              }
-            }
-          }
-        } catch (filesErr) {
-          // If this is a 404 error, redirect to projects page
-          if (isProjectNotFoundError(filesErr)) {
-            redirectToProjectsPage('Project not found or has been deleted')
-            return
-          }
-          
-          notify({ 
-            type: 'warning', 
-            message: 'Could not load project files' 
-          })
-          // Still keep the workspace usable with empty files array
-          store.$patch({ files: [] })
-
-          if (isNewProject) {
-            // For new projects, try to initialize directly
-            try {
-              // Initialize the project and create default files
-              const initResult = await AgentService.initializeProject(projectId)
-              if (initResult && initResult.success) {
-                notify({ 
-                  type: 'info', 
-                  message: 'Project initialization in progress. Files will appear shortly.' 
-                })
-                
-                // Wait a moment for files to be created
-                await new Promise(resolve => setTimeout(resolve, 1000))
-                
-                // Reload project files
-                const updatedFiles = await FileService.getProjectFiles(projectId)
-                if (updatedFiles && Array.isArray(updatedFiles)) {
-                  store.$patch({ files: updatedFiles })
-                  
-                  if (updatedFiles.length > 0) {
-                    notify({ 
-                      type: 'success', 
-                      message: 'Project initialized successfully' 
-                    })
-                  }
-                }
-              }
-            } catch (err) {
-              // Check if this is a not found error
-              if (isProjectNotFoundError(err)) {
-                redirectToProjectsPage('Project not found or has been deleted')
-                return
-              }
-            }
-          }
-        }
-        
-        // If everything completed without major errors, show success message
-        if (!projectFetched) {
-          notify({ 
-            type: 'info', 
-            message: 'Workspace initialized with limited functionality' 
-          })
-        }
-      } catch (err: any) {
-        // Check if this is a not found error
-        if (isProjectNotFoundError(err)) {
-          redirectToProjectsPage('Project not found or has been deleted')
-          return
-        }
-        
-        notify({ 
-          type: 'error', 
-          message: err.message || 'Failed to load project data' 
-        })
-      }
-    } else {
-      redirectToProjectsPage('Failed to initialize workspace: No project ID available')
-    }
-  } catch (err: any) {
-    // Check if this is a not found error
-    if (isProjectNotFoundError(err)) {
-      redirectToProjectsPage('Project not found or has been deleted')
-      return
-    }
-    
-    notify({ 
-      type: 'error', 
-      message: err.message || 'Failed to initialize workspace' 
-    })
-  }
-}
-
-/**
- * Load project details and files
- */
-async function loadProject(projectId: string) {
-  try {
-    // First, load the project details
-    const project = await projectStore.fetchProject(projectId)
-    
-    if (!project) {
-      notify({
-        type: 'error',
-        message: 'Project not found'
-      })
-      return false
-    }
-    
-    // Then load the project files
-    const files = await projectStore.fetchProjectFiles(projectId)
-    
-    console.debug(`Loaded project ${project.name} with ${files.length} files`)
-    return true
-  } catch (error: any) {
-    notify({
-      type: 'error',
-      message: error?.message || 'Failed to load project'
-    })
-    return false
-  }
-}
-
-/**
- * Save file content
- */
-async function updateFileContent(projectId: string, filePath: string, content: string) {
-  try {
-    await projectStore.updateFileContent(projectId, filePath, content)
-    
-    notify({
-      type: 'success',
-      message: `File "${filePath}" saved successfully`
-    })
-    return true
-  } catch (error: any) {
-    notify({
-      type: 'error',
-      message: error?.message || `Failed to save file "${filePath}"`
-    })
-    return false
-  }
-}
-
-/**
- * Create a new file
- */
-async function createProjectFile(projectId: string, filePath: string, content: string = '') {
-  try {
-    await projectStore.createFile(projectId, filePath, content)
-    
-    notify({
-      type: 'success',
-      message: `File "${filePath}" created successfully`
-    })
-    return true
-  } catch (error: any) {
-    notify({
-      type: 'error',
-      message: error?.message || `Failed to create file "${filePath}"`
-    })
-    return false
-  }
-}
-
-/**
- * Delete a file
- */
-async function deleteFile(projectId: string, filePath: string) {
-  try {
-    await projectStore.deleteFile(projectId, filePath)
-    
-    notify({
-      type: 'success',
-      message: `File "${filePath}" deleted successfully`
-    })
-    return true
-  } catch (error: any) {
-    notify({
-      type: 'error',
-      message: error?.message || `Failed to delete file "${filePath}"`
-    })
-    return false
-  }
-}
 </script>
 
 <style scoped>
-.bg-grid-pattern {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-@keyframes float-slow {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-  }
-  25% {
-    transform: translateY(-10px) translateX(10px);
-  }
-  50% {
-    transform: translateY(0) translateX(20px);
-  }
-  75% {
-    transform: translateY(10px) translateX(10px);
-  }
-}
-
-@keyframes float-slow-reverse {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-  }
-  25% {
-    transform: translateY(10px) translateX(-10px);
-  }
-  50% {
-    transform: translateY(0) translateX(-20px);
-  }
-  75% {
-    transform: translateY(-10px) translateX(-10px);
-  }
-}
-
-.animate-float-slow {
-  animation: float-slow 20s ease-in-out infinite;
-}
-
-.animate-float-slow-reverse {
-  animation: float-slow-reverse 25s ease-in-out infinite;
-}
+  /* Add your styles here */
 </style>
+
+<script lang="ts">
+export default {
+  name: 'BuilderWorkspace'
+}
+</script>

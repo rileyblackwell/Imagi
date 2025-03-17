@@ -171,17 +171,17 @@ export function useBuilderMode() {
     }
   }
 
-  const undoLastAction = async () => {
+  const undoLastAction = async (filePath?: string) => {
     if (!store.projectId) {
       throw new Error('No project selected')
     }
 
     try {
       store.$patch({ isProcessing: true })
-      const result = await AgentService.undoAction(store.projectId)
+      const result = await AgentService.undoAction(store.projectId, filePath)
       
       // Refresh file content if needed
-      if (store.selectedFile) {
+      if (store.selectedFile && (!filePath || store.selectedFile.path === filePath)) {
         const fileData = await ProjectService.getFile(store.projectId, store.selectedFile.path)
         store.selectFile({
           ...store.selectedFile,

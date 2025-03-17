@@ -273,12 +273,17 @@ export const AgentService = {
     }
   },
 
-  async undoAction(projectId: string): Promise<UndoResponse> {
+  async undoAction(projectId: string, filePath?: string): Promise<UndoResponse> {
     try {
-      const response = await api.post(`/api/v1/builder/builder/${projectId}/undo/`)
-      return response.data
+      // Use the file-specific undo endpoint if a file path is provided
+      const endpoint = filePath 
+        ? `/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`
+        : `/api/v1/builder/builder/${projectId}/undo/`;
+      
+      const response = await api.post(endpoint);
+      return response.data;
     } catch (error) {
-      throw handleAPIError(error)
+      throw handleAPIError(error);
     }
   },
 
