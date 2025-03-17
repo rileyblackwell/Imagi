@@ -195,25 +195,52 @@ class FileService:
             name = file_data.get('name', '')
             file_type = file_data.get('type', '')
             content = file_data.get('content', '')
+            path = file_data.get('path', '')
             
-            if not name:
-                raise ValidationError('File name is required')
-            
-            # Determine file path based on type
-            if file_type == 'python':
-                file_path = f"{name}.py"
-            elif file_type == 'html':
-                file_path = f"{name}.html"
-            elif file_type == 'css':
-                file_path = f"{name}.css"
-            elif file_type == 'javascript':
-                file_path = f"{name}.js"
-            elif file_type == 'json':
-                file_path = f"{name}.json"
-            elif file_type == 'markdown':
-                file_path = f"{name}.md"
+            # If a path is provided, use that directly
+            if path:
+                file_path = path
             else:
-                file_path = name
+                if not name:
+                    raise ValidationError('File name is required')
+                
+                # Determine file extension based on type
+                if file_type == 'python':
+                    ext = '.py'
+                elif file_type == 'html':
+                    ext = '.html'
+                elif file_type == 'css':
+                    ext = '.css'
+                elif file_type == 'javascript':
+                    ext = '.js'
+                elif file_type == 'json':
+                    ext = '.json'
+                elif file_type == 'markdown':
+                    ext = '.md'
+                else:
+                    ext = ''
+                
+                # Add extension if it's not already part of the name
+                if ext and not name.endswith(ext):
+                    name = f"{name}{ext}"
+                
+                # Determine directory based on file type if not already specified
+                if not any(name.startswith(prefix) for prefix in ['templates/', 'static/']):
+                    if file_type == 'html':
+                        file_path = f"templates/{name}"
+                    elif file_type == 'css':
+                        file_path = f"static/css/{name}"
+                    elif file_type == 'javascript':
+                        file_path = f"static/{name}"
+                    else:
+                        file_path = name
+                else:
+                    file_path = name
+                    
+                    # Ensure CSS files are always in static/css/
+                    if file_type == 'css' and not file_path.startswith('static/css/'):
+                        file_name = os.path.basename(file_path)
+                        file_path = f"static/css/{file_name}"
             
             # Create full file path
             full_file_path = os.path.join(project_path, file_path)
@@ -236,7 +263,7 @@ class FileService:
                 'name': os.path.basename(file_path),
                 'path': file_path,
                 'content': content,
-                'type': file_type,
+                'type': file_type or self._get_file_type(file_path),
                 'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
             }
         except Exception as e:
@@ -265,8 +292,8 @@ class FileService:
                 try:
                     from apps.Products.Oasis.Builder.models import ProjectFile
                     if project_id and not project:
-                        from apps.Products.ProjectManager.models import Project as PMProject
-                        project = PMProject.objects.get(id=project_id)
+                        from apps.Products.Oasis.ProjectManager.models import Project
+                        project = Project.objects.get(id=project_id)
                     
                     # Delete any ProjectFile records for this file
                     ProjectFile.objects.filter(

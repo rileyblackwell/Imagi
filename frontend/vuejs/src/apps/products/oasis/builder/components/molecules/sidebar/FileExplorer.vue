@@ -39,7 +39,7 @@
           />
           
           <p class="text-xxs text-gray-500">
-            Examples: templates/page.html, static/css/style.css
+            Examples: templates/about.html, static/css/about_styles.css
           </p>
           
           <div class="flex justify-end space-x-2">
@@ -230,10 +230,26 @@ const createFile = () => {
   
   // Ensure directory exists in path
   let filePath = newFileName.value
+  
+  // Check if a directory is already specified in the file path
   if (!filePath.includes('/')) {
-    // If no directory is specified, use the current directory
-    if (currentDirectory.value) {
+    // If no directory is specified, place it in the appropriate directory based on type
+    if (ext === 'html') {
+      filePath = `templates/${filePath}`
+    } else if (ext === 'css') {
+      filePath = `static/css/${filePath}`
+    } else if (ext === 'js') {
+      filePath = `static/${filePath}`
+    } else if (currentDirectory.value) {
+      // For other file types, use the current directory
       filePath = `${currentDirectory.value}/${filePath}`
+    }
+  } else {
+    // If a path is already specified, but it's for a CSS file that's not in static/css,
+    // and it's not already in static/css, adjust it
+    if (ext === 'css' && !filePath.includes('static/css/')) {
+      const fileName = filePath.split('/').pop() || ''
+      filePath = `static/css/${fileName}`
     }
   }
   

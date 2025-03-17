@@ -8,7 +8,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 
@@ -132,7 +131,7 @@ class AIModelsView(APIView):
 
 @method_decorator(never_cache, name='dispatch')
 class FileContentView(APIView):
-    """Get file content."""
+    """Get or update file content."""
     permission_classes = [IsAuthenticated]
 
     def get_project(self, project_id):
@@ -152,6 +151,46 @@ class FileContentView(APIView):
             return Response({'content': content})
         except Exception as e:
             logger.error(f"Error getting file content: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+    def post(self, request, project_id, file_path):
+        """Create or update file content."""
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Get content from request
+            content = request.data.get('content', '')
+            
+            # Create parent directories if needed
+            import os
+            dir_path = os.path.dirname(file_path)
+            if dir_path:
+                try:
+                    full_dir_path = os.path.join(project.project_path, dir_path)
+                    os.makedirs(full_dir_path, exist_ok=True)
+                except Exception as dir_error:
+                    logger.error(f"Error creating directory structure: {str(dir_error)}")
+                    # Continue anyway as the file creation might still succeed
+            
+            # Create or update the file
+            file_service = FileService(project=project)
+            file_data = file_service.update_file(file_path, content)
+            
+            return Response(file_data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating/updating file content: {str(e)}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

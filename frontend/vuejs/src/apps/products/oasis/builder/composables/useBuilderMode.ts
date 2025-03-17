@@ -2,7 +2,10 @@ import { computed } from 'vue'
 import { useAgentStore } from '../stores/agentStore'
 import { AgentService, ModelService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
-import type { ProjectFile, AIModel } from '../types/builder'
+import { FileService } from '../services/fileService'
+// Use types from builder.ts since that's what the store uses
+import type { AIModel } from '../types/index'
+import type { ProjectFile } from '../types/builder'
 import { notify } from '@/shared/utils/notifications'
 
 interface CodeChange {
@@ -75,37 +78,25 @@ export function useBuilderMode() {
   }
 
   const createFile = async (name: string, type: string, content = '', projectId?: string, path?: string): Promise<ProjectFile | null> => {
-    console.log(`useBuilderMode: Creating file "${name}" (${type})${path ? ` at path ${path}` : ''} for project ${projectId || store.projectId}`)
-    
-    if (!name) {
-      console.error('useBuilderMode: Cannot create file - name is required')
-      notify({ type: 'error', message: 'File name is required' })
-      return null
-    }
-    
-    if (!type) {
-      console.error('useBuilderMode: Cannot create file - type is required')
-      notify({ type: 'error', message: 'File type is required' })
-      return null
-    }
-    
-    // Use store project ID if none provided
-    const targetProjectId = projectId || store.projectId
-    
-    if (!targetProjectId) {
-      console.error('useBuilderMode: Cannot create file - no project ID available')
-      notify({ type: 'error', message: 'No project ID available. Please reload the page.' })
-      return null
-    }
-    
     try {
-      // Extract extension from name if needed and generate path
+      const targetProjectId = projectId || store.projectId
+      
+      if (!targetProjectId) {
+        notify({ type: 'error', message: 'No project selected' })
+        return null
+      }
+      
+      store.setProcessing(true)
+      
+      // Normalize file path
+      let filePath = path || name
       let fileName = name
-      let filePath = path
-
-      // If path is not provided, construct it from name
-      if (!filePath) {
-        // Only handle extension extraction if type is not already an extension
+      
+      // If a file path was provided, use it for file creation
+      if (path) {
+        filePath = path
+      } else {
+        // Add extension if needed based on type
         if (!fileName.includes('.') && !['html', 'css', 'js', 'py', 'json', 'txt'].includes(type)) {
           filePath = `${fileName}.${type}`
         } else {
@@ -113,61 +104,40 @@ export function useBuilderMode() {
         }
       }
       
-      console.log(`useBuilderMode: Final file details - name: ${fileName}, type: ${type}, path: ${filePath}, projectId: ${targetProjectId}`)
+      // Create file via FileService 
+      const fileServiceResult = await FileService.createFile(targetProjectId, filePath || fileName, content)
       
-      // Create file via ProjectService - pass the required 3 parameters (projectId, filePath, content)
-      const newFile = await ProjectService.createFile(targetProjectId, filePath || fileName, content)
+      // Convert the result to the ProjectFile format expected by the store
+      const newFile: ProjectFile = {
+        path: fileServiceResult.path,
+        type: fileServiceResult.type as any, // Type casting to handle potential incompatibility
+        content: content,
+        lastModified: fileServiceResult.lastModified || new Date().toISOString()
+      }
       
       // Add file to store
       if (newFile) {
-        console.log('useBuilderMode: File created successfully, updating store')
-        // Check if store.files exists before pushing
-        if (!store.files) {
-          console.log('useBuilderMode: Initializing store.files as empty array')
-          store.$patch({ files: [] });
-        }
+        // Refresh project files from server to get the most up-to-date list
+        const updatedFiles = await FileService.getProjectFiles(targetProjectId)
         
-        // Now safely push to store.files
-        if (Array.isArray(store.files)) {
-          store.files.push(newFile);
-        } else {
-          console.log('useBuilderMode: store.files is not an array, setting it directly')
-          store.$patch({ files: [newFile] });
-        }
+        // Update store with newest files
+        store.$patch((state) => {
+          state.files = updatedFiles as any;
+        });
         
         notify({ type: 'success', message: `File ${fileName} created successfully` })
         return newFile
-      } else {
-        console.error('useBuilderMode: Empty response when creating file')
-        notify({ type: 'error', message: 'Error creating file: Empty response from server' })
-        return null
-      }
-    } catch (error: any) {
-      // Enhanced error handling with more specific messages
-      let errorMessage = 'Error creating file'
-      
-      if (error?.response) {
-        // Handle specific HTTP errors
-        if (error.response.status === 400) {
-          errorMessage = `Invalid file data: ${error.response.data?.detail || error.response.data?.message || 'Please check file details'}`
-        } else if (error.response.status === 404) {
-          errorMessage = `Project not found: ${targetProjectId}`
-        } else if (error.response.status === 403) {
-          errorMessage = 'You don\'t have permission to create files in this project'
-        } else if (error.response.status === 413) {
-          errorMessage = 'File content is too large'
-        } else if (error.response.status === 429) {
-          errorMessage = 'Rate limit exceeded. Please try again later.'
-        } else {
-          errorMessage = `Server error (${error.response.status}): ${error.response.data?.detail || error.response.data?.message || 'Unknown error'}`
-        }
-      } else if (error?.message) {
-        errorMessage = error.message
       }
       
-      console.error(`useBuilderMode: Error creating file:`, error)
-      notify({ type: 'error', message: errorMessage })
       return null
+    } catch (error: any) {
+      notify({ 
+        type: 'error', 
+        message: error.message || `Failed to create file ${name}` 
+      })
+      return null
+    } finally {
+      store.setProcessing(false)
     }
   }
 

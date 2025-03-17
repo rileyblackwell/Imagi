@@ -248,15 +248,6 @@ export const FileService = {
     console.debug('File API - creating file:', { projectId, filePath })
     
     try {
-      const response = await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
-        content
-      })
-      
-      console.debug('File API - createFile response:', {
-        status: response.status,
-        data: response.data
-      })
-      
       // Generate file details from path
       const fileExtension = filePath.split('.').pop() || ''
       const fileName = filePath.split('/').pop() || ''
@@ -276,13 +267,75 @@ export const FileService = {
         fileType = 'vue'
       }
       
-      return {
-        id: `${projectId}-${filePath}`,
-        name: fileName,
-        path: filePath,
-        type: fileType,
-        content: content,
-        lastModified: new Date().toISOString()
+      // Determine appropriate directory for file based on extension if not already specified
+      let finalPath = filePath;
+      if (!filePath.startsWith('templates/') && !filePath.startsWith('static/')) {
+        if (fileExtension === 'html') {
+          finalPath = `templates/${filePath}`
+        } else if (fileExtension === 'css') {
+          // Make sure we're not adding static/css/ to a file that already has a directory structure
+          if (filePath.includes('/')) {
+            const parts = filePath.split('/');
+            const fileName = parts.pop() || '';
+            finalPath = `static/css/${fileName}`;
+          } else {
+            finalPath = `static/css/${filePath}`;
+          }
+        } else if (['js', 'jpg', 'jpeg', 'png', 'gif', 'svg'].includes(fileExtension)) {
+          finalPath = `static/${filePath}`
+        }
+      } else if (fileExtension === 'css' && !filePath.includes('static/css/')) {
+        // If it's a CSS file but not in static/css/, move it there
+        const fileName = filePath.split('/').pop() || '';
+        finalPath = `static/css/${fileName}`;
+      }
+      
+      // Try the primary file creation endpoint first
+      try {
+        const response = await api.post(`/api/v1/builder/builder/${projectId}/files/create/`, {
+          path: finalPath,
+          name: fileName,
+          type: fileType,
+          content: content
+        })
+        
+        console.debug('File API - createFile response:', {
+          status: response.status,
+          data: response.data
+        })
+        
+        return {
+          id: `${projectId}-${finalPath}`,
+          name: fileName,
+          path: finalPath,
+          type: fileType,
+          content: content,
+          lastModified: new Date().toISOString()
+        }
+      } catch (createError: any) {
+        // If create endpoint fails, try the content endpoint as fallback
+        if (createError.response?.status === 404 || createError.response?.status === 405) {
+          console.debug('Create endpoint failed, trying content endpoint as fallback:', createError)
+          const contentResponse = await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(finalPath)}/content/`, {
+            content
+          })
+          
+          console.debug('File API - createFile fallback response:', {
+            status: contentResponse.status,
+            data: contentResponse.data
+          })
+          
+          return {
+            id: `${projectId}-${finalPath}`,
+            name: fileName,
+            path: finalPath,
+            type: fileType,
+            content: content,
+            lastModified: new Date().toISOString()
+          }
+        }
+        
+        throw createError
       }
     } catch (error: any) {
       console.error('File API - createFile error:', error)
