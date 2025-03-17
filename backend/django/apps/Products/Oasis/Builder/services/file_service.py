@@ -252,7 +252,32 @@ class FileService:
             if not os.path.exists(full_path) or not os.path.isfile(full_path):
                 raise NotFound(f"File not found: {file_path}")
             
+            # Delete the physical file
             os.remove(full_path)
+            
+            # Delete any database records associated with this file
+            project = self.project
+            if not project_id and not project:
+                # If no project is specified, we can't delete DB records
+                logger.warning(f"No project specified when deleting file {file_path}, skipping DB cleanup")
+            else:
+                # If there are any DB models tracking files, delete those records here
+                try:
+                    from apps.Products.Oasis.Builder.models import ProjectFile
+                    if project_id and not project:
+                        from apps.Products.ProjectManager.models import Project as PMProject
+                        project = PMProject.objects.get(id=project_id)
+                    
+                    # Delete any ProjectFile records for this file
+                    ProjectFile.objects.filter(
+                        project=project, 
+                        path=file_path
+                    ).delete()
+                    
+                    logger.info(f"Deleted database records for file {file_path}")
+                except Exception as db_error:
+                    # Log but don't fail if DB cleanup has issues
+                    logger.error(f"Error cleaning up database records for file {file_path}: {str(db_error)}")
             
             return {
                 'success': True,

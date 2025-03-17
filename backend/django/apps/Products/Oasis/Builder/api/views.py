@@ -400,6 +400,15 @@ class DeleteFileView(APIView):
             raise NotFound('Project not found')
 
     def post(self, request, project_id, file_path):
+        """Handle file deletion via POST method."""
+        return self._delete_file(request, project_id, file_path)
+        
+    def delete(self, request, project_id, file_path):
+        """Handle file deletion via DELETE method."""
+        return self._delete_file(request, project_id, file_path)
+        
+    def _delete_file(self, request, project_id, file_path):
+        """Common implementation for file deletion."""
         try:
             # Get project from ProjectManager
             project = self.get_project(project_id)

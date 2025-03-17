@@ -342,8 +342,19 @@ export const FileService = {
     console.debug('File API - deleting file:', { projectId, filePath })
     
     try {
-      await api.delete(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`)
-      return true
+      // First try the correct DELETE endpoint
+      try {
+        await api.delete(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
+        return true
+      } catch (deleteError: any) {
+        // If DELETE fails with 405, fall back to POST
+        if (deleteError.response?.status === 405) {
+          console.debug('DELETE method not allowed, falling back to POST')
+          await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
+          return true
+        }
+        throw deleteError
+      }
     } catch (error: any) {
       console.error('File API - deleteFile error:', error)
       
