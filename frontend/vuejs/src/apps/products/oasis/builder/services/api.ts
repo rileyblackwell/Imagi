@@ -183,6 +183,36 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 // Add response interceptor
 api.interceptors.response.use(
   response => {
+    // Check if response is HTML instead of expected JSON
+    const contentType = response.headers['content-type'] || '';
+    if ((contentType.includes('text/html') || contentType.includes('text/plain')) && 
+        !contentType.includes('application/json')) {
+      
+      // If response data is a string and starts with DOCTYPE, it's likely an HTML error page
+      if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
+        console.error('Received HTML response instead of JSON:', {
+          url: response.config?.url,
+          method: response.config?.method,
+          status: response.status,
+          contentType,
+          dataPreview: response.data.substring(0, 100) + '...'
+        });
+        
+        // Create a standardized error response
+        return Promise.reject({
+          response: {
+            status: response.status,
+            statusText: 'Invalid Response Format',
+            data: {
+              detail: 'The server returned HTML instead of JSON. This usually indicates a server error or authentication issue.'
+            }
+          },
+          message: 'Received HTML response instead of JSON',
+          isHtmlResponse: true
+        });
+      }
+    }
+    
     // Log successful responses
     console.debug('API Response:', {
       url: response.config?.url,
@@ -197,6 +227,12 @@ api.interceptors.response.use(
     return response
   },
   async error => {
+    // Check if this is an HTML error that was caught by our interceptor
+    if (error.isHtmlResponse) {
+      console.error('HTML response error (intercepted):', error.message);
+      return Promise.reject(error);
+    }
+    
     console.debug('API error intercepted:', {
       url: error.config?.url,
       method: error.config?.method,

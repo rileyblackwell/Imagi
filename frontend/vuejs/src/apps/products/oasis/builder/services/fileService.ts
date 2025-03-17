@@ -24,15 +24,63 @@ export const FileService = {
     console.debug('File API - getting project files:', { projectId })
     
     try {
-      // Build a list of files by using directory structure
-      // First, get all files from templates folder
-      const templateFiles = await this.getDirectoryFiles(projectId, 'templates')
+      // Try to get all files from the consolidated API endpoint first (backward compatibility)
+      try {
+        const response = await api.get(`/api/v1/builder/builder/${projectId}/directories/`)
+        
+        // Check if response is HTML instead of JSON
+        const contentType = response.headers['content-type'] || '';
+        if (contentType.includes('text/html') || 
+            (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
+          console.error('Received HTML response instead of JSON:', {
+            contentType,
+            dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
+          });
+          throw new Error('Invalid response format: received HTML instead of JSON');
+        }
+        
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          console.debug('File API - retrieved files using directories endpoint:', response.data.length)
+          return response.data || []
+        }
+      } catch (dirError) {
+        console.warn('File API - directories endpoint failed, trying separate endpoints:', dirError)
+      }
       
-      // Then get all files from static/css folder
-      const cssFiles = await this.getDirectoryFiles(projectId, 'static/css')
+      // If the directories endpoint failed or returned empty, try the new separate endpoints
+      console.debug('File API - trying separate template and static endpoints')
+      
+      // Get project details to check if the project exists and is accessible
+      const detailsResponse = await api.get(`/api/v1/builder/builder/${projectId}/details/`)
+      
+      // Check if details response is HTML
+      const detailsContentType = detailsResponse.headers['content-type'] || '';
+      if (detailsContentType.includes('text/html') || 
+          (typeof detailsResponse.data === 'string' && detailsResponse.data.trim().startsWith('<!DOCTYPE'))) {
+        console.error('Received HTML response for details endpoint:', {
+          contentType: detailsContentType,
+          dataStart: typeof detailsResponse.data === 'string' ? detailsResponse.data.substring(0, 50) : 'not a string'
+        });
+        throw new Error('Invalid response format: received HTML instead of JSON');
+      }
+      
+      if (!detailsResponse.data) {
+        throw new Error('Project not found or not initialized')
+      }
+      
+      // Get templates
+      const templatesResponse = await api.get(`/api/v1/builder/builder/${projectId}/templates/`)
+      const templateFiles = templatesResponse.data || []
+      
+      // Get static files
+      const staticResponse = await api.get(`/api/v1/builder/builder/${projectId}/static/`)
+      const staticFiles = staticResponse.data || []
       
       // Combine the results
-      return [...templateFiles, ...cssFiles]
+      const allFiles = [...templateFiles, ...staticFiles]
+      console.debug('File API - retrieved files using separate endpoints:', allFiles.length)
+      
+      return allFiles
     } catch (error: any) {
       console.error('File API - getProjectFiles error:', error)
       
@@ -55,66 +103,12 @@ export const FileService = {
     console.debug('File API - getting directory files:', { projectId, directory })
     
     try {
-      // Create a directory structure manually
-      // This is a temporary solution until we have a better API
-      if (directory === 'templates') {
-        // Get all HTML files from content endpoint
-        const templatesStructure = [
-          { path: 'templates/index.html', type: 'html' as EditorLanguage },
-          { path: 'templates/base.html', type: 'html' as EditorLanguage }
-        ]
-        
-        // For each file, get the content and other details
-        const files: ProjectFile[] = []
-        for (const template of templatesStructure) {
-          try {
-            const content = await this.getFileContent(projectId, template.path)
-            const fileName = template.path.split('/').pop() || ''
-            files.push({
-              id: `${projectId}-${template.path}`,
-              name: fileName,
-              path: template.path,
-              type: template.type,
-              content: content,
-              lastModified: new Date().toISOString()
-            })
-          } catch (error) {
-            // Skip if file doesn't exist
-            console.warn(`File ${template.path} not found, skipping`)
-          }
-        }
-        
-        return files
-      } else if (directory === 'static/css') {
-        // Get all CSS files
-        const cssStructure = [
-          { path: 'static/css/styles.css', type: 'css' as EditorLanguage }
-        ]
-        
-        // For each file, get the content and other details
-        const files: ProjectFile[] = []
-        for (const css of cssStructure) {
-          try {
-            const content = await this.getFileContent(projectId, css.path)
-            const fileName = css.path.split('/').pop() || ''
-            files.push({
-              id: `${projectId}-${css.path}`,
-              name: fileName,
-              path: css.path,
-              type: css.type,
-              content: content,
-              lastModified: new Date().toISOString()
-            })
-          } catch (error) {
-            // Skip if file doesn't exist
-            console.warn(`File ${css.path} not found, skipping`)
-          }
-        }
-        
-        return files
-      }
+      // Get all files from the API
+      const response = await api.get(`/api/v1/builder/builder/${projectId}/directories/`)
+      const allFiles = response.data || []
       
-      return []
+      // Filter files by directory
+      return allFiles.filter((file: ProjectFile) => file.path.startsWith(directory))
     } catch (error: any) {
       console.error('File API - getDirectoryFiles error:', error)
       throw error
@@ -400,4 +394,4 @@ export const FileService = {
   }
 }
 
-export default FileService 
+export default FileService

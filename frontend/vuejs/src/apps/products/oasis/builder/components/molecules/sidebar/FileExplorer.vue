@@ -7,7 +7,15 @@
           <i class="fas fa-folder-open text-primary-400 mr-1.5"></i>
           <span>Project Files</span>
         </h3>
-        <!-- Remove the add file button per requirement -->
+        <!-- Add file button now visible for better UX -->
+        <button 
+          @click="toggleNewFileForm" 
+          class="text-xs rounded-md px-2 py-1 bg-primary-500 hover:bg-primary-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+          title="Create new file"
+        >
+          <i class="fas fa-plus mr-1"></i> 
+          <span>New</span>
+        </button>
       </div>
 
       <!-- New File Form - Enhanced -->
@@ -19,121 +27,88 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div 
-          class="mb-4 bg-dark-800/80 p-3 rounded-lg border border-dark-700/70 shadow-xl"
-        >
-          <form @submit.prevent="handleCreateFile" class="space-y-3">
-            <div class="text-xs font-medium text-gray-300 mb-1 flex items-center">
-              <i class="fas fa-file-plus text-primary-400 mr-1.5"></i>
-              <span>Create New File</span>
-            </div>
-            <input
-              v-model="newFileName"
-              type="text"
-              class="w-full py-1.5 px-2 text-sm bg-dark-900 border border-dark-700 rounded-lg focus:border-primary-500 focus:ring-primary-500"
-              placeholder="Enter filename (e.g., about.html)"
-              required
-            />
-            <div class="text-xs text-gray-400 italic" v-if="newFileName">
-              <span v-if="getFileExtension">Will be added to <span class="text-primary-300 font-medium">{{ getTargetDirectory }}</span></span>
-              <span v-else>Please include a file extension (.html, .css, etc.)</span>
-            </div>
-            <div class="flex justify-end space-x-2">
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-                @click="cancelNewFile"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="px-3 py-1.5 text-xs bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center"
-                :disabled="!isValidFileName"
-                :class="{'opacity-50 cursor-not-allowed': !isValidFileName}"
-              >
-                <i class="fas fa-plus-circle mr-1"></i>
-                Create
-              </button>
-            </div>
-          </form>
+        <div v-if="showNewForm" class="mb-4 p-3 bg-dark-800/70 rounded-lg border border-dark-700/50 space-y-2">
+          <h3 class="text-xs font-medium text-gray-300">Create New File</h3>
+          
+          <input
+            v-model="newFileName"
+            type="text"
+            placeholder="filename.ext"
+            class="w-full text-xs bg-dark-950 border border-dark-700 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            @keydown.enter="createFile"
+          />
+          
+          <p class="text-xxs text-gray-500">
+            Examples: templates/page.html, static/css/style.css
+          </p>
+          
+          <div class="flex justify-end space-x-2">
+            <button
+              @click="toggleNewFileForm"
+              class="text-xs rounded-md px-2 py-1 text-gray-400 hover:text-white transition-colors focus:outline-none"
+            >
+              Cancel
+            </button>
+            <button
+              @click="createFile"
+              :disabled="!isValidFileName"
+              class="text-xs rounded-md px-2 py-1 bg-primary-500 disabled:bg-gray-700 disabled:text-gray-500 hover:bg-primary-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+            >
+              Create
+            </button>
+          </div>
         </div>
       </Transition>
 
-      <!-- Directory Sections with Improved Visuals -->
+      <!-- Directory Structure - More dynamic implementation -->
       <div>
-        <!-- Templates Section -->
+        <!-- Group files by directory -->
         <div 
+          v-for="(dirFiles, dirName) in filesByDirectory"
+          :key="dirName"
           class="mb-4 p-2 bg-dark-850/60 rounded-lg border border-dark-700/30"
-          :class="{'border-primary-500/30 bg-primary-900/10': currentDirectory === 'templates'}"
+          :class="{'border-primary-500/30 bg-primary-900/10': currentDirectory === dirName}"
         >
           <div 
             class="flex items-center text-xs py-1.5 px-2.5 rounded-md transition-colors cursor-pointer mb-2"
             :class="[
-              currentDirectory === 'templates' 
+              currentDirectory === dirName 
                 ? 'bg-primary-500/20 text-white' 
                 : 'text-primary-300 hover:bg-dark-800/80'
             ]"
-            @click="selectDirectory('templates')"
+            @click="selectDirectory(dirName)"
           >
-            <i class="fas fa-folder-open text-primary-400 mr-2 w-4 text-center"></i>
-            <span class="font-medium">Templates</span>
+            <i 
+              class="fas fa-folder-open mr-2 w-4 text-center"
+              :class="getDirectoryIconClass(dirName)"
+            ></i>
+            <span class="font-medium">{{ formatDirectoryName(dirName) }}</span>
             <span class="ml-auto text-xxs bg-dark-700/80 text-primary-300 py-0.5 px-1.5 rounded-full">
-              {{ filteredFilesByDir('templates').length }}
+              {{ dirFiles.length }}
             </span>
           </div>
           
-          <!-- Template Files List -->
-          <div v-if="currentDirectory === 'templates'" class="space-y-1 pl-2">
+          <!-- Files List -->
+          <div v-if="currentDirectory === dirName" class="space-y-1 pl-2">
             <FileTreeItem
-              v-for="file in filteredFilesByDir('templates')"
+              v-for="file in dirFiles"
               :key="file.path"
               :file="file"
               :is-selected="selectedFile?.path === file.path"
               @select="handleFileSelect"
               @delete="handleFileDelete"
             />
-            <div v-if="filteredFilesByDir('templates').length === 0" class="text-center text-xxs text-gray-500 py-2">
-              <div><i class="fas fa-info-circle"></i> No template files</div>
+            <div v-if="dirFiles.length === 0" class="text-center text-xxs text-gray-500 py-2">
+              <div><i class="fas fa-info-circle"></i> No files in this directory</div>
             </div>
           </div>
         </div>
         
-        <!-- Styles Section -->
-        <div 
-          class="mb-4 p-2 bg-dark-850/60 rounded-lg border border-dark-700/30"
-          :class="{'border-primary-500/30 bg-primary-900/10': currentDirectory === 'static/css'}"
-        >
-          <div 
-            class="flex items-center text-xs py-1.5 px-2.5 rounded-md transition-colors cursor-pointer mb-2"
-            :class="[
-              currentDirectory === 'static/css' 
-                ? 'bg-primary-500/20 text-white' 
-                : 'text-primary-300 hover:bg-dark-800/80'
-            ]"
-            @click="selectDirectory('static/css')"
-          >
-            <i class="fas fa-folder-open text-blue-400 mr-2 w-4 text-center"></i>
-            <span class="font-medium">Styles</span>
-            <span class="ml-auto text-xxs bg-dark-700/80 text-primary-300 py-0.5 px-1.5 rounded-full">
-              {{ filteredFilesByDir('static/css').length }}
-            </span>
-          </div>
-          
-          <!-- CSS Files List -->
-          <div v-if="currentDirectory === 'static/css'" class="space-y-1 pl-2">
-            <FileTreeItem
-              v-for="file in filteredFilesByDir('static/css')"
-              :key="file.path"
-              :file="file"
-              :is-selected="selectedFile?.path === file.path"
-              @select="handleFileSelect"
-              @delete="handleFileDelete"
-            />
-            <div v-if="filteredFilesByDir('static/css').length === 0" class="text-center text-xxs text-gray-500 py-2">
-              <div><i class="fas fa-info-circle"></i> No CSS files</div>
-            </div>
-          </div>
+        <!-- No files message -->
+        <div v-if="Object.keys(filesByDirectory).length === 0" class="text-center text-sm text-gray-500 py-4">
+          <div><i class="fas fa-info-circle text-primary-400 mb-2 text-xl"></i></div>
+          <div>No project files found</div>
+          <div class="text-xs mt-1">Click 'New' to create your first file</div>
         </div>
       </div>
     </div>
@@ -163,28 +138,58 @@ const emit = defineEmits<{
 // Local state
 const showNewForm = ref(props.showNewForm || false)
 const newFileName = ref('')
-const currentDirectory = ref<string>('templates') // Default to templates
+const currentDirectory = ref<string>('') // Default empty, will be set to first directory with files
 
-// Computed
-const sortedFiles = computed(() => {
-  return [...props.files].sort((a, b) => {
-    // Group files by directory
-    const aDir = a.path.split('/')[0]
-    const bDir = b.path.split('/')[0]
+// Group files by directory
+const filesByDirectory = computed(() => {
+  const result: Record<string, ProjectFile[]> = {}
+  
+  props.files.forEach(file => {
+    // Extract directory from file path
+    let dir = file.path.split('/')[0]
     
-    if (aDir !== bDir) {
-      // Sort templates first, then static files
-      if (aDir === 'templates') return -1
-      if (bDir === 'templates') return 1
+    // Handle special case for static/css
+    if (file.path.startsWith('static/css/')) {
+      dir = 'static/css'
     }
     
-    // Sort by filename within same directory
-    return a.path.localeCompare(b.path)
+    // Create array if it doesn't exist
+    if (!result[dir]) {
+      result[dir] = []
+    }
+    
+    result[dir].push(file)
   })
+  
+  // Set current directory to first one if not set
+  if (!currentDirectory.value && Object.keys(result).length > 0) {
+    currentDirectory.value = Object.keys(result)[0]
+  }
+  
+  return result
 })
 
+// Utility functions
+const formatDirectoryName = (dirName: string) => {
+  if (dirName === 'templates') return 'Templates'
+  if (dirName === 'static/css') return 'Styles (CSS)'
+  if (dirName === 'static') return 'Static Files'
+  
+  // Capitalize first letter of each word
+  return dirName.split('/').map(part => 
+    part.charAt(0).toUpperCase() + part.slice(1)
+  ).join(' / ')
+}
+
+const getDirectoryIconClass = (dirName: string) => {
+  if (dirName === 'templates') return 'text-orange-400'
+  if (dirName === 'static/css') return 'text-blue-400'
+  if (dirName === 'static') return 'text-yellow-400'
+  return 'text-primary-400' // Default
+}
+
 const isValidFileName = computed(() => {
-  return /^[\w-]+([./][\w-]+)*\.\w+$/.test(newFileName.value)
+  return /^[\w-/]+([./][\w-]+)*\.\w+$/.test(newFileName.value)
 })
 
 const getFileExtension = computed(() => {
@@ -192,105 +197,54 @@ const getFileExtension = computed(() => {
   return newFileName.value.split('.').pop()?.toLowerCase() || null
 })
 
-const getTargetDirectory = computed(() => {
-  const ext = getFileExtension.value
-  if (ext === 'html') return 'templates'
-  if (ext === 'css') return 'static/css'
-  return 'templates' // Default to templates for other types
-})
-
-// Methods for filtering files by directory
-const filteredFilesByDir = (dirPath: string) => {
-  return props.files.filter(file => file.path.startsWith(dirPath + '/'))
+// Methods
+const toggleNewFileForm = () => {
+  showNewForm.value = !showNewForm.value
+  if (!showNewForm.value) {
+    newFileName.value = ''
+  }
 }
 
-// Methods
+const selectDirectory = (dirName: string) => {
+  currentDirectory.value = dirName
+}
+
 const handleFileSelect = (file: ProjectFile) => {
   emit('selectFile', file)
 }
 
-// Enhanced file delete handler (replaces the existing one)
-const handleFileDelete = async (file: ProjectFile) => {
-  if (!file || !props.projectId) return
-  
-  // Confirm deletion
-  if (!window.confirm(`Are you sure you want to delete ${file.path}?`)) {
-    return
-  }
-  
-  try {
-    // Delete the file
-    await FileService.deleteFile(props.projectId, file.path)
-    
-    // Emit delete event to parent component to handle store updates
-    emit('deleteFile', file)
-    
-    // Show success message
-    console.log('File deleted successfully')
-  } catch (error: any) {
-    console.error('Error deleting file:', error)
-    console.error(error.message || 'Failed to delete file')
-  }
+const handleFileDelete = (file: ProjectFile) => {
+  emit('deleteFile', file)
 }
 
-const selectDirectory = (dirPath: string) => {
-  currentDirectory.value = dirPath
-  
-  // Find first file in directory or show the new file form if empty
-  const dirFile = props.files.find(f => f.path.startsWith(dirPath + '/'))
-  
-  if (dirFile) {
-    emit('selectFile', dirFile)
-  } else {
-    // Show the new file form as fallback
-    showNewForm.value = true
-    newFileName.value = dirPath === 'templates' ? 'page.html' : 'styles.css'
-  }
-}
-
-const handleCreateFile = () => {
+const createFile = () => {
   if (!isValidFileName.value) return
   
-  // Determine file type
+  // Determine file type from extension
+  const ext = getFileExtension.value
   let fileType = 'text'
-  const fileExtension = newFileName.value.split('.').pop() || ''
   
-  if (fileExtension === 'html') {
-    fileType = 'html'
-  } else if (fileExtension === 'css') {
-    fileType = 'css'
-  }
+  if (ext === 'html') fileType = 'html'
+  else if (ext === 'css') fileType = 'css'
+  else if (ext === 'js') fileType = 'javascript'
   
-  // Determine correct path - ensure templates or static/css prefix
+  // Ensure directory exists in path
   let filePath = newFileName.value
-  if (!filePath.startsWith('templates/') && !filePath.startsWith('static/css/')) {
-    if (fileExtension === 'html') {
-      filePath = `templates/${filePath}`
-    } else if (fileExtension === 'css') {
-      filePath = `static/css/${filePath}`
+  if (!filePath.includes('/')) {
+    // If no directory is specified, use the current directory
+    if (currentDirectory.value) {
+      filePath = `${currentDirectory.value}/${filePath}`
     }
   }
-  
-  console.log('Creating file:', { name: filePath, type: fileType })
   
   emit('createFile', {
     name: filePath,
     type: fileType
   })
   
-  // Also update the current directory based on the file type
-  if (fileExtension === 'html') {
-    currentDirectory.value = 'templates'
-  } else if (fileExtension === 'css') {
-    currentDirectory.value = 'static/css'
-  }
-  
-  cancelNewFile()
-}
-
-const cancelNewFile = () => {
-  showNewForm.value = false
+  // Reset form
   newFileName.value = ''
+  showNewForm.value = false
 }
 </script>
 

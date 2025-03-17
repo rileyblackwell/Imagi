@@ -67,7 +67,10 @@ class FileService:
                 
             files = []
             
-            for root, _, filenames in os.walk(project_path):
+            for root, dirs, filenames in os.walk(project_path):
+                # Skip hidden directories
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                
                 for filename in filenames:
                     full_path = os.path.join(root, filename)
                     rel_path = os.path.relpath(full_path, project_path)
@@ -76,13 +79,15 @@ class FileService:
                     if any(part.startswith('.') for part in rel_path.split(os.sep)):
                         continue
                     
-                    # Only include HTML templates and CSS files
+                    # Get file extension
                     file_extension = os.path.splitext(filename)[1].lower()
-                    if file_extension not in ['.html', '.css']:
-                        continue
-                        
-                    # Skip files outside templates or static directories
-                    if not ('templates' in rel_path or ('static' in rel_path and file_extension == '.css')):
+                    
+                    # Focus on relevant project files - adjust these filters based on your application needs
+                    # Include more file types commonly used in Django templates and frontend
+                    relevant_extensions = ['.html', '.css', '.js', '.py', '.json', '.md', '.txt']
+                    
+                    # Skip only if the file has an extension and it's not in our list
+                    if file_extension and file_extension not in relevant_extensions:
                         continue
                     
                     # Get file stats
@@ -100,6 +105,7 @@ class FileService:
                         'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
                     })
             
+            # Sort files by path
             return sorted(files, key=lambda x: x['path'])
         except Exception as e:
             logger.error(f"Error listing files: {str(e)}")

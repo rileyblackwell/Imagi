@@ -529,6 +529,18 @@ export const ProjectService = {
         const response = await api.get(cleanPath, {
           params: fullData ? { full_data: true } : {}
         })
+
+        // Check if response is HTML instead of JSON
+        const contentType = response.headers['content-type'] || '';
+        if (contentType.includes('text/html') || 
+            (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
+          console.error('Received HTML response instead of JSON:', {
+            url: cleanPath,
+            contentType,
+            dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
+          });
+          throw new Error('Invalid response format: received HTML instead of JSON');
+        }
         
         console.debug(`Project API - getProject response from ${cleanPath}:`, {
           status: response.status,
@@ -541,7 +553,8 @@ export const ProjectService = {
         console.warn(`API request failed for project detail path ${path}:`, {
           status: error.response?.status,
           statusText: error.response?.statusText,
-          data: error.response?.data
+          data: error.response?.data,
+          message: error.message
         })
         
         // If it's a 401/403 error, no need to try other paths
@@ -563,15 +576,30 @@ export const ProjectService = {
         
         const response = await axios.get(absolutePath, {
           headers: api.defaults.headers.common,
-          params: fullData ? { full_data: true } : {}
+          params: fullData ? { full_data: true } : {},
+          // Set validateStatus to prevent axios from rejecting non-2xx responses
+          validateStatus: (status) => status < 500
         })
         
+        // Log the content type and check if response is HTML
+        const contentType = response.headers['content-type'] || '';
         console.debug('Direct axios call response:', {
           status: response.status,
-          data: response.data
+          contentType,
+          dataType: typeof response.data,
+          dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
         })
+
+        // Check if response is HTML instead of JSON
+        if (contentType.includes('text/html') || 
+            (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
+          console.error('Received HTML response instead of JSON');
+          continue; // Skip this endpoint and try the next one
+        }
         
-        return response.data
+        if (response.status >= 200 && response.status < 300) {
+          return response.data;
+        }
       } catch (directError: any) {
         console.error(`Direct axios call to ${baseEndpoint} failed:`, directError)
       }
@@ -655,7 +683,7 @@ export const ProjectService = {
     
     // Redirect to FileService
     const { FileService } = await import('./fileService')
-    return FileService.getProjectFiles(projectId)
+    return FileService.getProjectFiles(projectId) as unknown as ProjectFile[]
   },
 
   /**
@@ -671,7 +699,7 @@ export const ProjectService = {
     
     // Redirect to FileService
     const { FileService } = await import('./fileService')
-    return FileService.getFile(projectId, filePath)
+    return FileService.getFile(projectId, filePath) as unknown as ProjectFile
   },
 
   /**
@@ -692,7 +720,7 @@ export const ProjectService = {
     
     // Redirect to FileService
     const { FileService } = await import('./fileService')
-    return FileService.createFile(projectId, filePath, content)
+    return FileService.createFile(projectId, filePath, content) as unknown as ProjectFile
   },
 
   /**
@@ -728,7 +756,7 @@ export const ProjectService = {
     
     // Redirect to FileService
     const { FileService } = await import('./fileService')
-    return FileService.updateFileContent(projectId, filePath, content)
+    return FileService.updateFileContent(projectId, filePath, content) as unknown as ProjectFile
   },
 
   /**
@@ -744,7 +772,8 @@ export const ProjectService = {
     
     // Redirect to FileService
     const { FileService } = await import('./fileService')
-    return FileService.deleteFile(projectId, filePath)
+    await FileService.deleteFile(projectId, filePath)
+    // No return value needed since this method returns void
   }
 }
 

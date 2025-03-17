@@ -33,6 +33,7 @@ from apps.Products.Oasis.ProjectManager.models import Project as PMProject
 from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound
+from ..services.project_service import ProjectService
 
 logger = logging.getLogger(__name__)
 
@@ -334,7 +335,7 @@ class CreateFileView(APIView):
                     {'error': 'File path or name is required'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-                
+            
             # Create file using the Builder's FileService
             file_service = FileService(project=project)
             
@@ -352,6 +353,30 @@ class CreateFileView(APIView):
                         file_data['type'] = 'html'
                     elif ext == '.css':
                         file_data['type'] = 'css'
+                    elif ext == '.js':
+                        file_data['type'] = 'javascript'
+                    elif ext == '.py':
+                        file_data['type'] = 'python'
+                    elif ext == '.json':
+                        file_data['type'] = 'json'
+                    elif ext == '.md':
+                        file_data['type'] = 'markdown'
+                    else:
+                        file_data['type'] = 'text'
+                
+                # Ensure parent directories exist
+                import os
+                file_path = file_data.get('path')
+                dir_path = os.path.dirname(file_path)
+                
+                if dir_path:
+                    try:
+                        # Create all necessary parent directories
+                        logger.info(f"Creating directory structure for {file_path}: {dir_path}")
+                        os.makedirs(os.path.join(project.project_path, dir_path), exist_ok=True)
+                    except Exception as dir_error:
+                        logger.error(f"Error creating directory structure: {str(dir_error)}")
+                        # Continue anyway as the file creation might still succeed
             
             result = file_service.create_file(file_data)
             return Response(result, status=status.HTTP_201_CREATED)
@@ -400,7 +425,7 @@ class DeleteFileView(APIView):
 
 @method_decorator(never_cache, name='dispatch')
 class DirectoryView(APIView):
-    """Create a directory in a project."""
+    """Get all files in a project."""
     permission_classes = [IsAuthenticated]
 
     def get_project(self, project_id):
@@ -410,7 +435,8 @@ class DirectoryView(APIView):
         except PMProject.DoesNotExist:
             raise NotFound('Project not found')
 
-    def post(self, request, project_id):
+    def get(self, request, project_id):
+        """Get all files in a project directory structure."""
         try:
             # Get project from ProjectManager
             project = self.get_project(project_id)
@@ -422,27 +448,148 @@ class DirectoryView(APIView):
                     {'error': 'Project path not found. The project may not be properly initialized.'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-                
-            # Validate request data
-            directory_path = request.data.get('path')
             
-            if not directory_path:
-                return Response(
-                    {'error': 'Directory path is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-                
-            # Create directory
-            import os
-            directory_full_path = os.path.join(project.project_path, directory_path)
-            os.makedirs(directory_full_path, exist_ok=True)
+            # Use ProjectService to get all files
+            project_service = ProjectService(user=request.user, project=project)
             
-            return Response(
-                {'success': True, 'message': f'Directory {directory_path} created successfully'},
-                status=status.HTTP_201_CREATED
-            )
+            # Initialize project files if needed
+            project_service.initialize_project_files()
+            
+            # Get template and static files
+            template_files = project_service.list_template_files()
+            static_files = project_service.list_static_files()
+            
+            # Combine the results
+            all_files = template_files + static_files
+            
+            # Log result for debugging
+            logger.info(f"Found {len(all_files)} files for project {project.id}")
+            
+            return Response(all_files, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"Error creating directory: {str(e)}")
+            logger.error(f"Error getting project files: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class TemplateFilesView(APIView):
+    """Get template files for a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def get(self, request, project_id):
+        """Get all template files for a project."""
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Use ProjectService to get template files
+            project_service = ProjectService(user=request.user, project=project)
+            
+            # Initialize project files if needed
+            project_service.initialize_project_files()
+            
+            # Get template files
+            template_files = project_service.list_template_files()
+            
+            # Log result
+            logger.info(f"Found {len(template_files)} template files for project {project.id}")
+            
+            return Response(template_files, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting template files: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class StaticFilesView(APIView):
+    """Get static files for a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def get(self, request, project_id):
+        """Get all static files for a project."""
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Check if project path exists
+            if not project.project_path:
+                logger.error(f"Project path not found for project: {project.id}")
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Use ProjectService to get static files
+            project_service = ProjectService(user=request.user, project=project)
+            
+            # Initialize project files if needed
+            project_service.initialize_project_files()
+            
+            # Get static files
+            static_files = project_service.list_static_files()
+            
+            # Log result
+            logger.info(f"Found {len(static_files)} static files for project {project.id}")
+            
+            return Response(static_files, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting static files: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class ProjectDetailsView(APIView):
+    """Get project details including file counts."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def get(self, request, project_id):
+        """Get detailed information about a project."""
+        try:
+            # Get project from ProjectManager
+            project = self.get_project(project_id)
+            
+            # Use ProjectService to get project details
+            project_service = ProjectService(user=request.user, project=project)
+            project_details = project_service.get_project_details()
+            
+            return Response(project_details, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting project details: {str(e)}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -482,12 +629,26 @@ class FileUndoView(APIView):
                     {'error': 'Cannot determine file type - no extension found'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            
+            # First check if the file exists using ProjectService
+            project_service = ProjectService(user=request.user, project=project)
+            
+            # Initialize project files if needed (in case directories don't exist)
+            project_service.initialize_project_files()
                 
             # Call the appropriate service to handle the undo
             project_management_service = ProjectManagementService(request.user)
             
             # Call undo_file_changes with the specific file path
             result = project_management_service.undo_file_changes(project, file_path)
+            
+            # After a successful undo, refresh the file list
+            if result.get('success', False):
+                # Also update the file content with the undone version
+                file_service = FileService(project=project)
+                if 'content' in result:
+                    # Overwrite the file with the undone content
+                    file_service.update_file_content(file_path, result['content'])
             
             return Response(result)
         except Exception as e:

@@ -620,6 +620,11 @@ const handleUndo = async () => {
 
 const handleFileDelete = async (file: ProjectFile) => {
   try {
+    // Confirm deletion with the user
+    if (!confirm(`Are you sure you want to delete ${file.path}?`)) {
+      return;
+    }
+    
     store.setProcessing(true);
     
     // Get the project ID
@@ -645,6 +650,7 @@ const handleFileDelete = async (file: ProjectFile) => {
     
     notify({ type: 'success', message: `File ${file.path} deleted successfully` });
   } catch (err: any) {
+    console.error('Error deleting file:', err);
     notify({ 
       type: 'error', 
       message: err.message || `Failed to delete file ${file.path}` 
@@ -967,7 +973,7 @@ const initializeWorkspace = async (isNewProject: boolean = false) => {
     store.setProcessing(true)
     
     // Extract project ID from route parameters
-    const routeProjectId = route.params.id as string
+    const routeProjectId = route.params.projectId as string
     if (routeProjectId) {
       projectId.value = routeProjectId
       store.projectId = routeProjectId
@@ -975,30 +981,79 @@ const initializeWorkspace = async (isNewProject: boolean = false) => {
     
     // Load project data
     if (projectId.value) {
-      const project = await ProjectService.getProject(projectId.value)
-      if (project) {
-        // Set current project in the project store
-        projectStore.currentProject = project
-        
-        // Load project files
+      // Get project details first to ensure we have basic info like name
+      try {
+        // Try to get project details from the enhanced project-details endpoint
+        const response = await api.get(`/api/v1/builder/builder/${projectId.value}/details/`)
+        if (response.data) {
+          const projectDetails = response.data
+          
+          if (projectDetails) {
+            // Update project store with details
+            projectStore.currentProject = {
+              id: projectDetails.id,
+              name: projectDetails.name,
+              description: projectDetails.description || '',
+              created_at: projectDetails.created_at,
+              updated_at: projectDetails.updated_at,
+              is_active: true
+            }
+            console.debug('Project details loaded from API:', projectDetails)
+          }
+        }
+      } catch (detailsError) {
+        console.warn('Error getting project details, falling back to getProject:', detailsError)
+      }
+      
+      // If we couldn't get project details from the new endpoint, fall back to the old method
+      if (!projectStore.currentProject) {
+        try {
+          const project = await ProjectService.getProject(projectId.value)
+          if (project) {
+            // Set current project in the project store
+            projectStore.currentProject = project
+          }
+        } catch (projectError) {
+          console.error('Failed to get project after fallback:', projectError)
+          
+          // Set a generic project to avoid UI breaking
+          projectStore.currentProject = {
+            id: projectId.value,
+            name: 'Project',
+            description: 'Loading failed',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_active: true
+          }
+          
+          // Show error message to user
+          store.setError('Failed to load project details. Please refresh or try again later.')
+        }
+      }
+      
+      // Load project files using the enhanced FileService (will try both new and old endpoints)
+      try {
         const files = await FileService.getProjectFiles(projectId.value)
         if (files && Array.isArray(files)) {
           // Use a functional update to ensure type compatibility
           store.$patch((state) => {
             state.files = files as any // Type assertion to fix compatibility
           })
+          console.debug(`Loaded ${files.length} project files`)
+        } else {
+          console.warn('No project files loaded or files is not an array')
         }
-        
-        // Load available models
-        const models = await loadModels()
-        if (models && Array.isArray(models) && models.length > 0) {
-          // Set default model if none selected
-          if (!store.selectedModelId) {
-            handleModelSelect(models[0].id)
-          }
+      } catch (filesError) {
+        console.error('Error loading project files:', filesError)
+      }
+      
+      // Load available models
+      const models = await loadModels()
+      if (models && Array.isArray(models) && models.length > 0) {
+        // Set default model if none selected
+        if (!store.selectedModelId) {
+          handleModelSelect(models[0].id)
         }
-      } else {
-        throw new Error('Project not found')
       }
     } else {
       throw new Error('No project ID specified')
@@ -1037,7 +1092,7 @@ const initializeWorkspace = async (isNewProject: boolean = false) => {
 // Initialize workspace on component mount
 onMounted(async () => {
   // Extract project ID from route parameters
-  const routeProjectId = route.params.id as string
+  const routeProjectId = route.params.projectId as string
   const isNewProject = route.query.new === 'true'
   
   if (routeProjectId) {

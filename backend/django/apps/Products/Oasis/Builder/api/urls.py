@@ -18,6 +18,11 @@ urlpatterns = [
     # Directory management endpoints
     path('builder/<int:project_id>/directories/', views.DirectoryView.as_view(), name='api-directories'),
     
+    # New endpoints for separate file type management
+    path('builder/<int:project_id>/templates/', views.TemplateFilesView.as_view(), name='api-templates'),
+    path('builder/<int:project_id>/static/', views.StaticFilesView.as_view(), name='api-static'),
+    path('builder/<int:project_id>/details/', views.ProjectDetailsView.as_view(), name='api-project-details'),
+    
     # Model selection endpoint
     path('models/', views.AIModelsView.as_view(), name='api-ai-models'),
 ]
