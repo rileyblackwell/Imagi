@@ -221,7 +221,7 @@ class ChatAgentService(BaseAgentService):
             )
             
             # Get conversation history
-            from .agent_service import build_conversation_history
+            from ..services.agent_service import build_conversation_history
             history = build_conversation_history(conversation)
             
             # Process chat interaction
@@ -264,92 +264,56 @@ class ChatAgentService(BaseAgentService):
 
     def process_conversation(self, user_input, model, user, conversation_id=None, project_path=None):
         """
-        Process a chat conversation with the AI model.
-        
-        This method:
-        1. Creates or retrieves an existing conversation
-        2. Builds the conversation history including system prompt and project files
-        3. Sends the conversation to the AI model
-        4. Stores the response in the database
-        5. Returns a success response with the AI's reply
+        Process a conversation without creating new conversation objects.
+        This method serves as an API endpoint entry point.
         
         Args:
             user_input (str): The user's message
-            model (str): The AI model to use (e.g., 'claude-3-5-sonnet-20241022', 'gpt-4o')
-            user (User): The Django user making the request
-            conversation_id (int, optional): ID of an existing conversation
-            project_path (str, optional): Path to the project files
+            model (str): The AI model to use
+            user: The Django user object
+            conversation_id (int, optional): The ID of an existing conversation
+            project_path (str, optional): Path to the project directory
             
         Returns:
-            dict: Response with status and message data
+            dict: The result of the operation, including success status and response
         """
-        try:
-            # Get or create conversation
-            conversation = None
-            if conversation_id:
-                try:
-                    conversation = AgentConversation.objects.get(id=conversation_id, user=user)
-                except AgentConversation.DoesNotExist:
-                    conversation = None
+        return self.handle_chat_request(
+            user_input=user_input,
+            model=model,
+            user=user,
+            project_path=project_path,
+            conversation_id=conversation_id
+        )
+        
+    def build_conversation_history(self, conversation):
+        """
+        Builds a formatted conversation history for the AI model.
+        Returns a list of messages in the format expected by the AI APIs.
+        
+        Args:
+            conversation: The AgentConversation object
             
-            if not conversation:
-                # Determine provider based on model name
-                provider = 'anthropic' if 'claude' in model else 'openai'
-                
-                # Create new conversation
-                conversation = AgentConversation.objects.create(
-                    user=user,
-                    model_name=model,
-                    provider=provider
-                )
-                
-                # Create initial system prompt
-                SystemPrompt.objects.create(
-                    conversation=conversation,
-                    content=self.get_system_prompt()['content']
-                )
-            
-            # Create user message
-            user_message = AgentMessage.objects.create(
-                conversation=conversation,
-                role='user',
-                content=user_input
-            )
-            
-            # Build conversation history
-            conversation_history = self.build_conversation_history(conversation)
-            
-            # Add project files to conversation if provided
-            if project_path:
-                conversation_history = self.build_chat_conversation_history(project_path, conversation_history)
-            
-            # Process with appropriate model
-            if 'claude' in model:
-                response_content = self.process_with_anthropic(conversation_history, model)
-            else:
-                response_content = self.process_with_openai(conversation_history, model)
-            
-            # Create assistant message
-            assistant_message = AgentMessage.objects.create(
-                conversation=conversation,
-                role='assistant',
-                content=response_content
-            )
-            
-            # Return success response
-            return {
-                'success': True,
-                'conversation_id': conversation.id,
-                'response': response_content,
-                'timestamp': assistant_message.created_at.isoformat()
-            }
-            
-        except Exception as e:
-            # Log the error (you can use more sophisticated logging)
-            print(f"Error in chat conversation: {str(e)}")
-            
-            # Return error response
-            return {
-                'success': False,
-                'error': str(e)
-            } 
+        Returns:
+            list: A list of message dictionaries with 'role' and 'content' keys
+        """
+        messages = []
+        
+        # Add system prompt if it exists
+        if hasattr(conversation, 'system_prompt'):
+            messages.append({
+                "role": "system",
+                "content": conversation.system_prompt.content
+            })
+        
+        # Add conversation history
+        history_messages = AgentMessage.objects.filter(
+            conversation=conversation
+        ).order_by('created_at')
+        
+        for msg in history_messages:
+            messages.append({
+                "role": msg.role,
+                "content": msg.content
+            })
+        
+        return messages 

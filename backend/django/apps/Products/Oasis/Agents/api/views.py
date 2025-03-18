@@ -155,7 +155,7 @@ def chat(request):
         user_input = request.data.get('message')
         model = request.data.get('model', 'claude-3-5-sonnet-20241022')
         conversation_id = request.data.get('conversation_id')
-        project_path = request.data.get('project_path')
+        project_id = request.data.get('project_id')
         
         # Validate required fields
         if not user_input:
@@ -164,12 +164,12 @@ def chat(request):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Delegate to the chat agent service
-        result = chat_agent.process_conversation(
+        result = chat_agent.handle_chat_request(
             user_input=user_input,
             model=model,
             user=request.user,
             conversation_id=conversation_id,
-            project_path=project_path
+            project_path=project_id
         )
         
         # Process result

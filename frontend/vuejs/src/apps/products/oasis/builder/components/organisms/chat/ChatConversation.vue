@@ -6,8 +6,8 @@
         <div
           v-for="(message, index) in messages"
           :key="index"
-          class="py-6 px-4 md:px-8 lg:px-12"
           v-if="message && message.role && message.content"
+          class="py-6 px-4 md:px-8 lg:px-12"
           :class="[
             message.role === 'assistant' ? 'bg-dark-900' : 'bg-dark-950'
           ]"
@@ -110,7 +110,7 @@
 <script setup lang="ts">
 import { marked } from 'marked'
 import DOMPurify from 'isomorphic-dompurify'
-import type { AIMessage } from '@/apps/products/oasis/builder/types'
+import type { AIMessage } from '@/apps/products/oasis/builder/types/api'
 
 const props = defineProps<{
   messages: AIMessage[]

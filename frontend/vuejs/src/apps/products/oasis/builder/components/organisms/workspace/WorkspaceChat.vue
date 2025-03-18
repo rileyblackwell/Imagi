@@ -29,7 +29,7 @@
     <div class="flex-1 overflow-auto px-4 py-2">
       <div class="max-w-4xl mx-auto">
         <ChatConversation 
-          :messages="messages" 
+          :messages="validatedMessages" 
           @use-example="$emit('use-example', $event)"
           @apply-code="handleApplyCode"
         />
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineProps, defineEmits } from 'vue'
+import { ref, watch, defineProps, defineEmits, computed } from 'vue'
 import { ChatConversation } from '../../organisms/chat'
 import { ChatInputArea } from '../../molecules'
 import { ModeIndicator } from '../../molecules/display'
@@ -121,6 +121,19 @@ const props = defineProps<{
   promptExamples: Array<{title: string, text: string}> | null
   modelValue: string
 }>()
+
+// Ensure all messages have required properties
+const validatedMessages = computed(() => {
+  return props.messages.map(message => {
+    // Ensure each message has at least role, content, and timestamp
+    return {
+      role: message.role || 'user',
+      content: message.content || '',
+      timestamp: message.timestamp || Date.now(),
+      code: message.code || undefined
+    };
+  });
+});
 
 // Emits
 const emit = defineEmits([

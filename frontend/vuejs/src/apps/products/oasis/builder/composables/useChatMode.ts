@@ -46,7 +46,19 @@ export function useChatMode() {
       })
 
       // Add assistant response to conversation
-      if (response) {
+      if (response && response.messages && response.messages.length >= 2) {
+        // The backend should return both the user message and assistant message
+        // Extract the assistant message (second element)
+        const assistantMessage = response.messages[1];
+        
+        store.addMessage({
+          role: 'assistant',
+          content: assistantMessage.content || response.response,
+          timestamp: assistantMessage.timestamp || new Date().toISOString(),
+          code: assistantMessage.code
+        })
+      } else if (response && response.response) {
+        // Fallback if messages array is not properly structured
         store.addMessage({
           role: 'assistant',
           content: response.response,

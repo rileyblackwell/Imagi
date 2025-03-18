@@ -207,7 +207,7 @@ export const AgentService = {
       const payload = {
         message: data.prompt,
         model: data.model,
-        project_path: projectId,
+        project_id: projectId,
         conversation_id: storedConversationId || undefined
       }
       
@@ -260,27 +260,21 @@ export const AgentService = {
       const agentConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
       const stylesheetConversationId = localStorage.getItem(`stylesheet_conversation_${projectId}`)
       
-      // Clear conversations if they exist
+      // Just clear local storage items without calling the API
       if (chatConversationId) {
-        await api.post('/products/oasis/agents/clear-conversation/', {
-          conversation_id: chatConversationId
-        })
         localStorage.removeItem(`chat_conversation_${projectId}`)
       }
       
       if (agentConversationId) {
-        await api.post('/products/oasis/agents/clear-conversation/', {
-          conversation_id: agentConversationId
-        })
         localStorage.removeItem(`agent_conversation_${projectId}`)
       }
       
       if (stylesheetConversationId) {
-        await api.post('/products/oasis/agents/clear-conversation/', {
-          conversation_id: stylesheetConversationId
-        })
         localStorage.removeItem(`stylesheet_conversation_${projectId}`)
       }
+      
+      // Return a resolved promise
+      return Promise.resolve()
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -299,8 +293,8 @@ export const AgentService = {
     try {
       // Use the file-specific undo endpoint if a file path is provided
       const endpoint = filePath 
-        ? `/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`
-        : `/api/v1/builder/builder/${projectId}/undo/`;
+        ? `/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`
+        : `/api/v1/builder/${projectId}/undo/`;
       
       const response = await api.post(endpoint);
       return response.data;
@@ -337,7 +331,7 @@ export const AgentService = {
         conversation_id: storedConversationId || undefined
       }
       
-      // Use the build_stylesheet endpoint from agents/api
+      // Use the stylesheet endpoint
       const response = await api.post('/api/v1/agents/build/stylesheet/', payload)
       
       // Store the conversation ID for future requests
@@ -361,10 +355,8 @@ export const AgentService = {
   // Preview project - migrated from BuilderService
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      const response = await api.post(`/api/v1/builder/builder/${projectId}/preview/`)
-      return {
-        previewUrl: response.data.preview_url || response.data.previewUrl
-      }
+      const response = await api.post(`/api/v1/builder/${projectId}/preview/`)
+      return response.data
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -373,10 +365,8 @@ export const AgentService = {
   // Deploy project - migrated from BuilderService
   async deployProject(projectId: string, options: { environment: string }): Promise<{ deploymentUrl: string }> {
     try {
-      const response = await api.post(`/api/v1/builder/builder/${projectId}/deploy/`, options)
-      return {
-        deploymentUrl: response.data.deployment_url || response.data.deploymentUrl
-      }
+      const response = await api.post(`/api/v1/builder/${projectId}/deploy/`, options)
+      return response.data
     } catch (error) {
       throw handleAPIError(error)
     }
@@ -389,7 +379,7 @@ export const AgentService = {
 
     try {
       console.log(`Requesting project initialization for project ${projectId}`)
-      const response = await api.post(`/api/v1/builder/builder/${projectId}/initialize/`)
+      const response = await api.post(`/api/v1/builder/${projectId}/initialize/`)
       console.log('Project initialization response:', response.data)
       
       // Return success or the actual data if available

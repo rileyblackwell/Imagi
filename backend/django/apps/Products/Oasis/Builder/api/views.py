@@ -20,14 +20,12 @@ from .serializers import (
 )
 from ..services.file_service import FileService
 from ..services.models_service import ModelsService
-from ..services.conversation_service import ConversationService
-from ..services.preview_service import PreviewService
-from ..services.ai_service import AIService
-from ..services.oasis_service import (
-    process_builder_mode_input_service,
-    undo_last_action_service,
-    process_chat_mode_input_service
+from apps.Products.Oasis.Agents.services import (
+    process_builder_mode_input,
+    process_chat_mode_input,
+    undo_last_action_service
 )
+from ..services.preview_service import PreviewService
 from apps.Products.Oasis.ProjectManager.models import Project as PMProject
 from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
@@ -96,8 +94,8 @@ class GenerateCodeView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Process the prompt using AI service
-            ai_service = AIService()
+            # Process the prompt using models service
+            models_service = ModelsService()
             
             # If file_path is provided, get the file content
             file_content = None
@@ -109,7 +107,7 @@ class GenerateCodeView(APIView):
                     logger.error(f"Error getting file content: {str(e)}")
             
             # Generate code
-            response = ai_service.generate_code(project, prompt, model, file_content)
+            response = models_service.generate_code(project, prompt, model, file_content)
             
             return Response(response)
         except Exception as e:
@@ -196,16 +194,6 @@ class FileContentView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ConversationListView(generics.ListAPIView):
-    """List conversations for a project."""
-    serializer_class = ConversationSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        project_name = self.kwargs['project_name']
-        conversation_service = ConversationService(self.request.user)
-        return conversation_service.list_conversations(project_name)
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def process_input(request):
@@ -222,11 +210,11 @@ def process_input(request):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         if mode == 'chat':
-            response = process_chat_mode_input_service(
+            response = process_chat_mode_input(
                 user_input, model, request.user
             )
         else:
-            response = process_builder_mode_input_service(
+            response = process_builder_mode_input(
                 user_input, model, file_name, request.user
             )
         
@@ -265,39 +253,6 @@ def undo_last_action(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def clear_conversation(request):
-    """Clear all messages in a conversation."""
-    try:
-        conversation_id = request.data.get('conversation_id')
-        if not conversation_id:
-            return Response({
-                'error': 'Missing conversation_id'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        conversation_service = ConversationService(request.user)
-        result = conversation_service.clear_conversation(conversation_id)
-        return Response(result)
-        
-    except Exception as e:
-        logger.error(f"Error clearing conversation: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class PageView(generics.RetrieveAPIView):
-    """Retrieve a specific page and its messages."""
-    serializer_class = PageSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        conversation_id = self.kwargs.get('conversation_id')
-        filename = self.kwargs.get('filename')
-        
-        conversation_service = ConversationService(self.request.user)
-        return conversation_service.get_page(conversation_id, filename)
 
 @method_decorator(never_cache, name='dispatch')
 class PreviewView(APIView):

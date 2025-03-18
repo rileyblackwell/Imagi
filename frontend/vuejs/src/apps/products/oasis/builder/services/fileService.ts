@@ -26,7 +26,7 @@ export const FileService = {
     try {
       // Try to get all files from the consolidated API endpoint first (backward compatibility)
       try {
-        const response = await api.get(`/api/v1/builder/builder/${projectId}/directories/`)
+        const response = await api.get(`/api/v1/builder/${projectId}/directories/`)
         
         // Check if response is HTML instead of JSON
         const contentType = response.headers['content-type'] || '';
@@ -50,341 +50,171 @@ export const FileService = {
       // If the directories endpoint failed or returned empty, try the new separate endpoints
       console.debug('File API - trying separate template and static endpoints')
       
-      // Get project details to check if the project exists and is accessible
-      const detailsResponse = await api.get(`/api/v1/builder/builder/${projectId}/details/`)
+      const detailsResponse = await api.get(`/api/v1/builder/${projectId}/details/`)
       
-      // Check if details response is HTML
-      const detailsContentType = detailsResponse.headers['content-type'] || '';
-      if (detailsContentType.includes('text/html') || 
-          (typeof detailsResponse.data === 'string' && detailsResponse.data.trim().startsWith('<!DOCTYPE'))) {
-        console.error('Received HTML response for details endpoint:', {
-          contentType: detailsContentType,
-          dataStart: typeof detailsResponse.data === 'string' ? detailsResponse.data.substring(0, 50) : 'not a string'
-        });
-        throw new Error('Invalid response format: received HTML instead of JSON');
+      if (detailsResponse.data && detailsResponse.data.file_counts) {
+        console.log('File API - project details retrieved:', detailsResponse.data)
       }
       
-      if (!detailsResponse.data) {
-        throw new Error('Project not found or not initialized')
-      }
+      // Get templates first
+      const templatesResponse = await api.get(`/api/v1/builder/${projectId}/templates/`)
+      const templates = templatesResponse.data || []
       
-      // Get templates
-      const templatesResponse = await api.get(`/api/v1/builder/builder/${projectId}/templates/`)
-      const templateFiles = templatesResponse.data || []
-      
-      // Get static files
-      const staticResponse = await api.get(`/api/v1/builder/builder/${projectId}/static/`)
+      // Then get static files
+      const staticResponse = await api.get(`/api/v1/builder/${projectId}/static/`)
       const staticFiles = staticResponse.data || []
       
-      // Combine the results
-      const allFiles = [...templateFiles, ...staticFiles]
-      console.debug('File API - retrieved files using separate endpoints:', allFiles.length)
+      // Combine results
+      const combinedFiles = [...templates, ...staticFiles]
       
-      return allFiles
-    } catch (error: any) {
-      console.error('File API - getProjectFiles error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('Project not found or not initialized')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to access project files')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to access this project')
-      }
-      
+      console.debug('File API - retrieved files using separate endpoints:', combinedFiles.length)
+      return combinedFiles
+    } catch (error) {
+      console.error('File API - error getting project files:', error)
       throw error
     }
   },
   
   /**
-   * Get files from a specific directory
+   * Get files in a specific directory
    */
   async getDirectoryFiles(projectId: string, directory: string): Promise<ProjectFile[]> {
     console.debug('File API - getting directory files:', { projectId, directory })
     
     try {
-      // Get all files from the API
-      const response = await api.get(`/api/v1/builder/builder/${projectId}/directories/`)
-      const allFiles = response.data || []
+      const response = await api.get(`/api/v1/builder/${projectId}/directories/`)
+      
+      if (!response.data || !Array.isArray(response.data)) {
+        return []
+      }
       
       // Filter files by directory
-      return allFiles.filter((file: ProjectFile) => file.path.startsWith(directory))
-    } catch (error: any) {
-      console.error('File API - getDirectoryFiles error:', error)
+      return response.data.filter(file => {
+        // Check if the file is in the requested directory
+        // This handles both files directly in the directory and in subdirectories
+        return file.path.startsWith(directory)
+      })
+    } catch (error) {
+      console.error('File API - error getting directory files:', error)
       throw error
     }
   },
-
+  
   /**
-   * Get a file by path
+   * Get a specific file by path
    */
   async getFile(projectId: string, filePath: string): Promise<ProjectFile> {
     console.debug('File API - getting file:', { projectId, filePath })
     
     try {
-      // Get the file content using the content endpoint
-      const content = await this.getFileContent(projectId, filePath)
+      // Get all files and find the one we want
+      const files = await this.getProjectFiles(projectId)
+      const file = files.find(f => f.path === filePath)
       
-      // Determine file type from extension
-      const fileExtension = filePath.split('.').pop() || ''
-      const fileName = filePath.split('/').pop() || ''
-      let fileType: EditorLanguage = 'html'
-      
-      if (fileExtension === 'html') {
-        fileType = 'html'
-      } else if (fileExtension === 'css') {
-        fileType = 'css'
-      } else if (fileExtension === 'js' || fileExtension === 'javascript') {
-        fileType = 'javascript'
-      } else if (fileExtension === 'ts' || fileExtension === 'typescript') {
-        fileType = 'typescript'
-      } else if (fileExtension === 'py') {
-        fileType = 'python'
-      } else if (fileExtension === 'vue') {
-        fileType = 'vue'
+      if (!file) {
+        throw new Error(`File not found: ${filePath}`)
       }
       
-      // Return file details
-      return {
-        id: `${projectId}-${filePath}`,
-        name: fileName,
-        path: filePath,
-        type: fileType,
-        content: content,
-        lastModified: new Date().toISOString()
-      }
-    } catch (error: any) {
-      console.error('File API - getFile error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to access this file')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to access this file')
-      }
-      
+      return file
+    } catch (error) {
+      console.error('File API - error getting file:', error)
       throw error
     }
   },
-
+  
   /**
-   * Get file content
+   * Get file content by path
    */
   async getFileContent(projectId: string, filePath: string): Promise<string> {
     console.debug('File API - getting file content:', { projectId, filePath })
     
     try {
-      const response = await api.get(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`)
-      return response.data.content || ''
-    } catch (error: any) {
-      console.error('File API - getFileContent error:', error)
+      const response = await api.get(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`)
       
-      if (error.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to access this file')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to access this file')
+      // Check if response is HTML instead of JSON
+      const contentType = response.headers['content-type'] || '';
+      if (contentType.includes('text/html') || 
+          (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
+        console.error('Received HTML response instead of JSON:', {
+          contentType,
+          dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
+        });
+        throw new Error('Invalid response format: received HTML instead of JSON');
       }
       
+      return response.data?.content || ''
+    } catch (error) {
+      console.error('File API - error getting file content:', error)
       throw error
     }
   },
-
+  
   /**
    * Update file content
    */
   async updateFileContent(projectId: string, filePath: string, content: string): Promise<ProjectFile> {
-    console.debug('File API - updating file content:', { projectId, filePath })
+    console.debug('File API - updating file content:', { projectId, filePath, contentLength: content.length })
     
     try {
-      // First, check if the file exists by trying to get its content
+      // Check if the file exists
       try {
-        await this.getFileContent(projectId, filePath)
-      } catch (error) {
-        // If the file doesn't exist, create it
+        await this.getFile(projectId, filePath)
+      } catch (fileError) {
+        console.warn('File not found, creating it instead:', fileError)
         return this.createFile(projectId, filePath, content)
       }
       
-      // Create a temporary file with the new content
-      const tempFilePath = `${filePath}.new`
-      await this.createFile(projectId, tempFilePath, content)
+      const response = await api.post(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
+        content
+      })
       
-      // Delete the original file
-      await this.deleteFile(projectId, filePath)
-      
-      // Rename the temporary file to the original name
-      const newFile = await this.createFile(projectId, filePath, content)
-      
-      // Delete the temporary file
-      try {
-        await this.deleteFile(projectId, tempFilePath)
-      } catch (error) {
-        // Ignore errors here
-        console.warn(`Could not delete temporary file ${tempFilePath}`)
-      }
-      
-      return newFile
-    } catch (error: any) {
-      console.error('File API - updateFileContent error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to update this file')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to update this file')
-      }
-      
+      return response.data
+    } catch (error) {
+      console.error('File API - error updating file content:', error)
       throw error
     }
   },
-
+  
   /**
    * Create a new file
    */
   async createFile(projectId: string, filePath: string, content: string = ''): Promise<ProjectFile> {
-    console.debug('File API - creating file:', { projectId, filePath })
+    console.debug('File API - creating file:', { projectId, filePath, contentLength: content.length })
     
     try {
-      // Generate file details from path
-      const fileExtension = filePath.split('.').pop() || ''
-      const fileName = filePath.split('/').pop() || ''
-      let fileType: EditorLanguage = 'html'
+      const response = await api.post(`/api/v1/builder/${projectId}/files/create/`, {
+        path: filePath,
+        content
+      })
       
-      if (fileExtension === 'html') {
-        fileType = 'html'
-      } else if (fileExtension === 'css') {
-        fileType = 'css'
-      } else if (fileExtension === 'js' || fileExtension === 'javascript') {
-        fileType = 'javascript'
-      } else if (fileExtension === 'ts' || fileExtension === 'typescript') {
-        fileType = 'typescript'
-      } else if (fileExtension === 'py') {
-        fileType = 'python'
-      } else if (fileExtension === 'vue') {
-        fileType = 'vue'
-      }
-      
-      // Determine appropriate directory for file based on extension if not already specified
-      let finalPath = filePath;
-      if (!filePath.startsWith('templates/') && !filePath.startsWith('static/')) {
-        if (fileExtension === 'html') {
-          finalPath = `templates/${filePath}`
-        } else if (fileExtension === 'css') {
-          // Make sure we're not adding static/css/ to a file that already has a directory structure
-          if (filePath.includes('/')) {
-            const parts = filePath.split('/');
-            const fileName = parts.pop() || '';
-            finalPath = `static/css/${fileName}`;
-          } else {
-            finalPath = `static/css/${filePath}`;
-          }
-        } else if (['js', 'jpg', 'jpeg', 'png', 'gif', 'svg'].includes(fileExtension)) {
-          finalPath = `static/${filePath}`
-        }
-      } else if (fileExtension === 'css' && !filePath.includes('static/css/')) {
-        // If it's a CSS file but not in static/css/, move it there
-        const fileName = filePath.split('/').pop() || '';
-        finalPath = `static/css/${fileName}`;
-      }
-      
-      // Try the primary file creation endpoint first
-      try {
-        const response = await api.post(`/api/v1/builder/builder/${projectId}/files/create/`, {
-          path: finalPath,
-          name: fileName,
-          type: fileType,
-          content: content
-        })
-        
-        console.debug('File API - createFile response:', {
-          status: response.status,
-          data: response.data
-        })
-        
-        return {
-          id: `${projectId}-${finalPath}`,
-          name: fileName,
-          path: finalPath,
-          type: fileType,
-          content: content,
-          lastModified: new Date().toISOString()
-        }
-      } catch (createError: any) {
-        // If create endpoint fails, try the content endpoint as fallback
-        if (createError.response?.status === 404 || createError.response?.status === 405) {
-          console.debug('Create endpoint failed, trying content endpoint as fallback:', createError)
-          const contentResponse = await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(finalPath)}/content/`, {
-            content
-          })
-          
-          console.debug('File API - createFile fallback response:', {
-            status: contentResponse.status,
-            data: contentResponse.data
-          })
-          
-          return {
-            id: `${projectId}-${finalPath}`,
-            name: fileName,
-            path: finalPath,
-            type: fileType,
-            content: content,
-            lastModified: new Date().toISOString()
-          }
-        }
-        
-        throw createError
-      }
-    } catch (error: any) {
-      console.error('File API - createFile error:', error)
-      
-      if (error.response?.status === 409) {
-        throw new Error('File already exists')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to create files')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to create files in this project')
-      }
-      
+      return response.data
+    } catch (error) {
+      console.error('File API - error creating file:', error)
       throw error
     }
   },
 
   /**
-   * Create a directory
-   * Used by workspace for directory creation
+   * Create a new directory
    */
   async createDirectory(projectId: string, directoryPath: string): Promise<void> {
     console.debug('File API - creating directory:', { projectId, directoryPath })
     
     try {
-      const response = await api.post(
-        `/api/v1/builder/builder/${projectId}/directories/`,
-        {
-          path: directoryPath
-        }
-      )
+      // Ensure the directory path ends with a /
+      const normalizedPath = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`
       
-      console.debug('File API - createDirectory response:', {
-        status: response.status
+      // Create a placeholder file in the directory
+      const placeholderPath = `${normalizedPath}.gitkeep`
+      
+      await api.post(`/api/v1/builder/${projectId}/directories/`, {
+        path: normalizedPath
       })
-    } catch (error: any) {
-      console.error('File API - createDirectory error:', error)
       
-      if (error.response?.status === 404) {
-        throw new Error('Project not found or not initialized')
-      } else if (error.response?.status === 409) {
-        // Directory already exists, which is fine
-        console.debug('Directory already exists:', directoryPath)
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to create directories')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to create directories in this project')
-      } else {
-        throw error
-      }
+      console.debug('Directory created successfully')
+    } catch (error) {
+      console.error('File API - error creating directory:', error)
+      throw error
     }
   },
 
@@ -395,64 +225,33 @@ export const FileService = {
     console.debug('File API - deleting file:', { projectId, filePath })
     
     try {
-      // First try the correct DELETE endpoint
+      // Try DELETE method first (REST standard)
       try {
-        await api.delete(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
-        return true
-      } catch (deleteError: any) {
-        // If DELETE fails with 405, fall back to POST
-        if (deleteError.response?.status === 405) {
-          console.debug('DELETE method not allowed, falling back to POST')
-          await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
-          return true
-        }
-        throw deleteError
-      }
-    } catch (error: any) {
-      console.error('File API - deleteFile error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('File not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to delete files')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to delete files in this project')
+        await api.delete(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
+      } catch (deleteError) {
+        console.warn('DELETE method failed, trying POST method:', deleteError)
+        await api.post(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
       }
       
+      return true
+    } catch (error) {
+      console.error('File API - error deleting file:', error)
       throw error
     }
   },
-
+  
   /**
-   * Undo the last change to a specific file
+   * Undo file changes
    */
   async undoFileChanges(projectId: string, filePath: string): Promise<string> {
     console.debug('File API - undoing file changes:', { projectId, filePath })
     
     try {
-      const response = await api.post(`/api/v1/builder/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`)
+      const response = await api.post(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`)
       
-      console.debug('File API - undoFileChanges response:', {
-        status: response.status,
-        data: response.data
-      })
-      
-      if (response.data && response.data.content) {
-        return response.data.content
-      }
-      
-      return ''
-    } catch (error: any) {
-      console.error('File API - undoFileChanges error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('No previous version found for this file')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to undo changes')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to undo changes in this project')
-      }
-      
+      return response.data?.content || ''
+    } catch (error) {
+      console.error('File API - error undoing file changes:', error)
       throw error
     }
   }
