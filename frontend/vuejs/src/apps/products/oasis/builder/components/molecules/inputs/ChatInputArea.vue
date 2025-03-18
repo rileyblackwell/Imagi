@@ -1,181 +1,139 @@
 <template>
-  <div class="relative">
-    <!-- Examples section (slot) -->
-    <div v-if="showExamples && $slots.examples" class="mb-4">
-      <slot name="examples"></slot>
-    </div>
+  <div class="chat-input-wrapper">
+    <!-- Examples section if needed -->
+    <slot name="examples" v-if="showExamples"></slot>
     
-    <div class="flex items-end border border-dark-700/70 rounded-xl bg-dark-800/50 backdrop-blur-sm shadow-lg transition-all duration-200 hover:border-dark-600/70 focus-within:border-primary-500/50 focus-within:ring-1 focus-within:ring-primary-500/30">
-      <!-- Auto-expanding textarea -->
-      <textarea
-        id="user-input"
-        ref="textareaRef"
-        v-model="inputValue"
-        :placeholder="placeholder"
-        class="flex-1 bg-transparent text-white px-4 py-3 max-h-[200px] min-h-[56px] focus:outline-none resize-none overflow-y-auto rounded-l-xl"
-        :rows="rows"
-        @input="autoResize"
-        @keydown.enter.prevent="handleEnterKey"
-        :disabled="isProcessing"
-      ></textarea>
-      
-      <!-- Examples button (conditional) -->
-      <button
-        v-if="showExamples && !inputValue.trim()"
-        @click="$emit('examples')"
-        class="p-3 text-gray-400 hover:text-gray-300 transition-colors"
-        title="Show examples"
-      >
-        <i class="fas fa-lightbulb"></i>
-      </button>
-      
-      <!-- Send button -->
-      <button
-        @click="handleSubmit"
-        class="p-3 mr-2 mb-2 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-        :class="[
-          inputValue.trim() 
-            ? 'bg-primary-500 hover:bg-primary-600 active:bg-primary-700 shadow-md hover:shadow-lg' 
-            : 'bg-dark-700'
-        ]"
-        :disabled="isProcessing || !inputValue.trim()"
-        :title="isProcessing ? 'Processing...' : 'Send message'"
-      >
-        <i class="fas" :class="isProcessing ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
-      </button>
-    </div>
-    
-    <!-- Helper text -->
-    <div class="mt-2 flex justify-between items-center text-xs text-gray-500">
-      <div>
-        <slot name="mode-indicator">
-          <!-- Empty by default -->
-        </slot>
+    <div class="relative">
+      <!-- Mode indicator above input -->
+      <div class="mb-2 flex justify-between items-center">
+        <slot name="mode-indicator"></slot>
       </div>
-      <div class="flex items-center space-x-2">
-        <span class="flex items-center">
-          <kbd class="px-1.5 py-0.5 bg-dark-800 rounded text-gray-400 border border-dark-700 shadow-sm">Enter</kbd>
-          <span class="mx-1">to send</span>
-        </span>
-        <span class="flex items-center">
-          <kbd class="px-1.5 py-0.5 bg-dark-800 rounded text-gray-400 border border-dark-700 shadow-sm">Shift+Enter</kbd>
-          <span class="mx-1">for new line</span>
-        </span>
-      </div>
+      
+      <!-- Input form with iMessage/ChatGPT like design -->
+      <form @submit.prevent="handleSubmit" class="relative">
+        <div class="flex items-end space-x-2">
+          <!-- Main textarea with auto-grow functionality -->
+          <div class="flex-grow relative rounded-2xl bg-dark-800 border border-dark-700 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500/30 transition-all duration-200">
+            <textarea 
+              ref="inputRef"
+              v-model="localValue"
+              :placeholder="placeholder"
+              class="w-full bg-transparent text-white resize-none p-3 pr-12 rounded-2xl focus:outline-none max-h-60"
+              :rows="Math.min(5, rows)"
+              :disabled="isProcessing"
+              @input="autoGrow"
+              @keydown.enter.exact.prevent="handleSubmit"
+            ></textarea>
+            
+            <!-- Submit button inside the input area -->
+            <button 
+              type="submit"
+              class="absolute right-2 bottom-2 p-2 text-white bg-primary-500 hover:bg-primary-600 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="!canSubmit || isProcessing"
+              aria-label="Send message"
+            >
+              <i class="fas fa-paper-plane text-sm"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Processing indicator -->
+        <div v-if="isProcessing" class="mt-2 text-xs text-gray-400 flex items-center">
+          <i class="fas fa-circle-notch fa-spin mr-2"></i>
+          <span>AI is thinking...</span>
+        </div>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 
-const props = defineProps<{
-  modelValue: string
-  isProcessing?: boolean
-  placeholder?: string
-  focused?: boolean
-  showExamples?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
-  (e: 'submit', value: string): void
-  (e: 'examples'): void
-}>()
-
-const inputValue = ref(props.modelValue)
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const rows = ref(1)
-
-watch(() => props.modelValue, (newValue) => {
-  inputValue.value = newValue
-  nextTick(() => autoResize())
+// Props
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: ''
+  },
+  placeholder: {
+    type: String,
+    default: 'Type a message...'
+  },
+  focused: {
+    type: Boolean,
+    default: false
+  },
+  isProcessing: {
+    type: Boolean,
+    default: false
+  },
+  showExamples: {
+    type: Boolean,
+    default: false
+  }
 })
 
-watch(inputValue, (newValue) => {
+// Emits
+const emit = defineEmits(['update:modelValue', 'submit', 'examples'])
+
+// Local state
+const localValue = ref(props.modelValue)
+const rows = ref(1)
+const inputRef = ref<HTMLTextAreaElement | null>(null)
+
+// Computed properties
+const canSubmit = computed(() => localValue.value.trim().length > 0)
+
+// Watch for external changes
+watch(() => props.modelValue, (newValue) => {
+  localValue.value = newValue
+})
+
+// Update parent model
+watch(localValue, (newValue) => {
   emit('update:modelValue', newValue)
 })
 
-// Focus the input when the focused prop changes
-watch(() => props.focused, (newValue) => {
-  if (newValue && textareaRef.value) {
-    textareaRef.value.focus()
-  }
-})
-
-const autoResize = () => {
-  if (!textareaRef.value) return
-  
-  // Reset height to calculate proper scrollHeight
-  textareaRef.value.style.height = 'auto'
-  
-  // Set new height based on content
-  const newHeight = Math.min(textareaRef.value.scrollHeight, 200)
-  textareaRef.value.style.height = `${newHeight}px`
-  
-  // Update rows for accessibility
-  rows.value = Math.max(1, Math.min(10, Math.ceil(newHeight / 24)))
+// Methods
+function handleSubmit() {
+  if (!canSubmit.value || props.isProcessing) return
+  emit('submit')
+  // Don't clear the input here as the parent component should handle this
 }
 
-const handleEnterKey = (event: KeyboardEvent) => {
-  if (event.shiftKey) {
-    // Allow Shift+Enter for new line
-    const textarea = event.target as HTMLTextAreaElement
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
+function autoGrow() {
+  // Reset height to calculate properly
+  if (inputRef.value) {
+    inputRef.value.style.height = 'auto'
+    const newHeight = inputRef.value.scrollHeight
+    inputRef.value.style.height = `${newHeight}px`
     
-    inputValue.value = 
-      inputValue.value.substring(0, start) + 
-      '\n' + 
-      inputValue.value.substring(end)
-    
-    nextTick(() => {
-      textarea.selectionStart = textarea.selectionEnd = start + 1
-      autoResize()
-    })
-  } else {
-    // Regular Enter submits the form
-    handleSubmit()
+    // Calculate rows based on line height (approx 24px per line)
+    rows.value = Math.ceil(newHeight / 24)
   }
 }
 
-const handleSubmit = () => {
-  if (!inputValue.value.trim() || props.isProcessing) return
-  emit('submit', inputValue.value)
-}
-
-onMounted(() => {
-  autoResize()
-  
-  // Focus the input if focused prop is true
-  if (props.focused && textareaRef.value) {
-    textareaRef.value.focus()
+// Focus the input when the component is mounted
+onMounted(async () => {
+  if (props.focused && inputRef.value) {
+    await nextTick()
+    inputRef.value.focus()
   }
 })
 </script>
 
 <style scoped>
-textarea {
-  font-family: inherit;
-  line-height: 1.5;
-  font-size: 0.875rem;
+.chat-input-wrapper {
+  position: relative;
 }
 
-/* Hide scrollbar but allow scrolling */
-textarea::-webkit-scrollbar {
-  width: 4px;
+/* Optional styling for chat bubbles */
+.chat-bubble-user {
+  @apply bg-primary-500 text-white rounded-2xl rounded-br-sm py-2 px-4;
 }
 
-textarea::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-textarea::-webkit-scrollbar-thumb {
-  background-color: theme('colors.dark.700');
-  border-radius: 9999px;
-}
-
-textarea::-webkit-scrollbar-thumb:hover {
-  background-color: theme('colors.dark.600');
+.chat-bubble-ai {
+  @apply bg-dark-800 text-white rounded-2xl rounded-bl-sm py-2 px-4;
 }
 </style> 

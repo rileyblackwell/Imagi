@@ -95,15 +95,19 @@ class MessageResponseSerializer(serializers.Serializer):
     Serializer for API responses that include message pairs.
     
     This serializer is used for formatting responses from agent services
-    that include both a user message and an assistant message.
+    that include both a user message and an assistant message. It supports
+    both chat mode and build mode responses.
     """
     
     success = serializers.BooleanField()
     conversation_id = serializers.IntegerField()
     response = serializers.CharField()
-    user_message = AgentMessageSerializer()
-    assistant_message = AgentMessageSerializer()
+    user_message = serializers.DictField()
+    assistant_message = serializers.DictField()
+    file_path = serializers.CharField(required=False, allow_null=True)
+    file_updated = serializers.BooleanField(required=False, default=False)
     
     class Meta:
-        fields = ('success', 'conversation_id', 'response', 'user_message', 'assistant_message')
+        fields = ('success', 'conversation_id', 'response', 'user_message', 
+                  'assistant_message', 'file_path', 'file_updated')
         read_only_fields = fields 

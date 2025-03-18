@@ -24,18 +24,47 @@ export function useBuilderMode() {
       throw new Error('Project and AI Model must be selected')
     }
 
+    if (!store.selectedFile) {
+      throw new Error('Please select a file to edit')
+    }
+
     store.$patch({ isProcessing: true, error: null })
 
     try {
+      // Add user message to conversation
+      store.addMessage({
+        role: 'user',
+        content: prompt,
+        timestamp: new Date().toISOString()
+      })
+
+      // Call the agent service to generate code
       const response = await AgentService.generateCode(store.projectId, {
         prompt,
         mode: store.mode,
         model: store.selectedModel.id,
-        file_path: store.selectedFile?.path
+        file_path: store.selectedFile.path
       })
 
-      if (response.code && store.selectedFile) {
-        await updateFile(store.projectId, store.selectedFile.path, response.code)
+      // Add assistant response to conversation
+      if (response) {
+        store.addMessage({
+          role: 'assistant',
+          content: response.response || 'Generated code successfully',
+          code: response.code || '',
+          timestamp: new Date().toISOString()
+        })
+
+        // Update the file with generated code if provided
+        if (response.code && store.selectedFile) {
+          await updateFile(store.projectId, store.selectedFile.path, response.code)
+          
+          // Update the selected file in the store
+          store.selectFile({
+            ...store.selectedFile,
+            content: response.code
+          })
+        }
       }
 
       return response

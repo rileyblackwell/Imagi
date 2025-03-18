@@ -1,10 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
-import {
-  BuilderDashboard,
-  BuilderWorkspace,
-  Projects,
-  NewProjectPage
-} from '../components/pages'
+import BuilderDashboard from '../views/BuilderDashboard.vue'
+import BuilderWorkspace from '../views/BuilderWorkspace.vue'
+import Projects from '../views/Projects.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -28,15 +25,6 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       title: 'Projects'
-    }
-  },
-  {
-    path: '/products/oasis/builder/new',
-    name: 'builder-new-project',
-    component: NewProjectPage,
-    meta: {
-      requiresAuth: true,
-      title: 'New Project'
     }
   },
   {

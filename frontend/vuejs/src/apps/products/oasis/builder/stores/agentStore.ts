@@ -43,9 +43,7 @@ export const useAgentStore = defineStore('agent', {
 
   actions: {
     setProjectId(id: string | null) {
-      console.log('setProjectId action called', { id, currentProjectId: this.projectId })
       this.projectId = id
-      console.log('Project ID updated in store', this.projectId)
     },
 
     setMode(mode: BuilderMode) {
@@ -74,12 +72,9 @@ export const useAgentStore = defineStore('agent', {
     },
 
     selectModel(modelId: string) {
-      console.log('selectModel action called', { modelId, currentModelId: this.selectedModelId })
-      
       const model = this.availableModels.find(m => m.id === modelId)
       if (model) {
         this.selectedModelId = modelId
-        console.log('Model selected in store', this.selectedModelId)
       } else {
         console.warn('Model not found in available models', { modelId, availableModels: this.availableModels })
       }

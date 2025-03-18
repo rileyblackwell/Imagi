@@ -26,6 +26,7 @@ export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  code?: string;
 }
 
 export interface AIGenerationResponse {

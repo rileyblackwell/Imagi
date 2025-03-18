@@ -31,16 +31,26 @@ export function useChatMode() {
         throw new Error('No project selected')
       }
 
+      // Add user message to conversation
+      store.addMessage({
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString()
+      })
+
+      // Call the agent service
       const response = await AgentService.processChat(store.projectId, {
         prompt: message,
         model: store.selectedModel.id,
         mode: store.mode
       })
 
-      // Add messages to conversation history
-      if (response.messages) {
-        store.$patch({ 
-          conversation: [...store.conversation, ...response.messages] 
+      // Add assistant response to conversation
+      if (response) {
+        store.addMessage({
+          role: 'assistant',
+          content: response.response,
+          timestamp: new Date().toISOString()
         })
       }
 

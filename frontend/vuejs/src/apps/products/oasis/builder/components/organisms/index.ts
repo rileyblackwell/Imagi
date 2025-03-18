@@ -1,4 +1,7 @@
-// Remove NewProjectCard export since the file doesn't exist
-export { default as ProjectList } from './projects/ProjectList.vue'
-export * from './sidebar'
-export * from './workspace'
+// Export all organism components
+export * from "./chat";
+export * from "./workspace";
+export * from "./projects";
+export * from "./preview";
+export * from "./editor";
+export * from "./sidebar"; 

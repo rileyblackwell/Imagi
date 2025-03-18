@@ -165,8 +165,8 @@ class ChatAgentService(BaseAgentService):
                 user_input=user_input,
                 model=model,
                 user=user,
-                messages=api_messages,
-                use_provided_messages=True
+                conversation_id=None,
+                project_path=project_path
             )
             
             return result
@@ -257,6 +257,98 @@ class ChatAgentService(BaseAgentService):
                 
         except Exception as e:
             print(f"Error in handle_chat_request: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def process_conversation(self, user_input, model, user, conversation_id=None, project_path=None):
+        """
+        Process a chat conversation with the AI model.
+        
+        This method:
+        1. Creates or retrieves an existing conversation
+        2. Builds the conversation history including system prompt and project files
+        3. Sends the conversation to the AI model
+        4. Stores the response in the database
+        5. Returns a success response with the AI's reply
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use (e.g., 'claude-3-5-sonnet-20241022', 'gpt-4o')
+            user (User): The Django user making the request
+            conversation_id (int, optional): ID of an existing conversation
+            project_path (str, optional): Path to the project files
+            
+        Returns:
+            dict: Response with status and message data
+        """
+        try:
+            # Get or create conversation
+            conversation = None
+            if conversation_id:
+                try:
+                    conversation = AgentConversation.objects.get(id=conversation_id, user=user)
+                except AgentConversation.DoesNotExist:
+                    conversation = None
+            
+            if not conversation:
+                # Determine provider based on model name
+                provider = 'anthropic' if 'claude' in model else 'openai'
+                
+                # Create new conversation
+                conversation = AgentConversation.objects.create(
+                    user=user,
+                    model_name=model,
+                    provider=provider
+                )
+                
+                # Create initial system prompt
+                SystemPrompt.objects.create(
+                    conversation=conversation,
+                    content=self.get_system_prompt()['content']
+                )
+            
+            # Create user message
+            user_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='user',
+                content=user_input
+            )
+            
+            # Build conversation history
+            conversation_history = self.build_conversation_history(conversation)
+            
+            # Add project files to conversation if provided
+            if project_path:
+                conversation_history = self.build_chat_conversation_history(project_path, conversation_history)
+            
+            # Process with appropriate model
+            if 'claude' in model:
+                response_content = self.process_with_anthropic(conversation_history, model)
+            else:
+                response_content = self.process_with_openai(conversation_history, model)
+            
+            # Create assistant message
+            assistant_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='assistant',
+                content=response_content
+            )
+            
+            # Return success response
+            return {
+                'success': True,
+                'conversation_id': conversation.id,
+                'response': response_content,
+                'timestamp': assistant_message.created_at.isoformat()
+            }
+            
+        except Exception as e:
+            # Log the error (you can use more sophisticated logging)
+            print(f"Error in chat conversation: {str(e)}")
+            
+            # Return error response
             return {
                 'success': False,
                 'error': str(e)
