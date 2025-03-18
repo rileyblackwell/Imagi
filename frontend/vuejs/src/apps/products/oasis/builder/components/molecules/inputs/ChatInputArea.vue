@@ -1,7 +1,7 @@
 <template>
   <div class="chat-input-wrapper">
     <!-- Examples section if needed -->
-    <slot name="examples" v-if="showExamples"></slot>
+    <slot name="examples" v-if="false"></slot>
     
     <div class="relative">
       <!-- Mode indicator above input -->

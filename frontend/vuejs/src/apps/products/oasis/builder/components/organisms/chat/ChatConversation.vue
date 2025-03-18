@@ -101,24 +101,6 @@
           <p class="text-gray-400">
             Start a conversation with your AI assistant to build your web application. You can ask questions or describe what you want to build.
           </p>
-          
-          <!-- Example Suggestions -->
-          <div class="pt-2">
-            <h4 class="text-sm font-medium text-gray-300 mb-3">Try these examples:</h4>
-            <div class="grid gap-2">
-              <button
-                v-for="(example, i) in examples"
-                :key="i"
-                class="w-full text-left p-3 rounded-lg bg-dark-800 hover:bg-dark-700 text-gray-300 text-sm border border-dark-700 hover:border-primary-500/40 transition-all duration-200"
-                @click="$emit('use-example', example)"
-              >
-                <div class="flex items-start gap-2">
-                  <span class="text-primary-400 mt-0.5"><i class="fas fa-lightbulb"></i></span>
-                  <span>"{{ example }}"</span>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -140,11 +122,7 @@ const emit = defineEmits<{
 }>()
 
 // Example prompts
-const examples = [
-  "Create a simple todo list app with Vue.js",
-  "How do I implement user authentication in my app?",
-  "Generate a responsive navigation menu component"
-]
+const examples = []
 
 // Utility functions
 const formatRole = (role: string) => {

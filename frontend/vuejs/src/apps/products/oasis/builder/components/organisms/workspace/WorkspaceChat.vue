@@ -71,7 +71,7 @@
             </div>
           </template>
           
-          <template #examples v-if="promptExamples && promptExamples.length > 0">
+          <template #examples v-if="false">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
               <button
                 v-for="example in promptExamples"

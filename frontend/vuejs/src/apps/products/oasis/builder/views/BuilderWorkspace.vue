@@ -46,7 +46,7 @@
         :selected-model-id="store.selectedModelId"
         :available-models="store.availableModels || []"
         :prompt-placeholder="promptPlaceholder"
-        :show-examples="store.conversation.length === 0"
+        :show-examples="false"
         :prompt-examples="promptExamplesComputed"
         v-model="prompt"
         @submit="handlePrompt"
@@ -113,24 +113,7 @@ const prompt = ref('')
 const navigationItems = [] // Empty array to remove sidebar navigation buttons
 
 // Project examples for different modes
-const chatExamples = [
-  {
-    title: 'Project Analysis',
-    text: 'Can you analyze my current project structure and suggest improvements?'
-  },
-  {
-    title: 'Code Explanation',
-    text: 'Can you explain how the routing works in this application?'
-  },
-  {
-    title: 'Feature Ideas',
-    text: 'What features would make this application more user-friendly?'
-  },
-  {
-    title: 'Technical Help',
-    text: 'I\'m getting an error with Vue reactivity. How can I debug this?'
-  }
-]
+const chatExamples = []
 
 // Empty build examples to remove them from the UI
 const buildExamples = []
