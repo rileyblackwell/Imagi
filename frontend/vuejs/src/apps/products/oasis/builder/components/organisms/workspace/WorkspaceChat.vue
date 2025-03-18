@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex flex-col overflow-hidden relative">
+  <div class="flex-1 flex flex-col overflow-hidden relative h-full min-h-full bg-dark-950 border border-dark-800">
     <!-- Background decorative elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <!-- Gradient effect -->
@@ -31,6 +31,7 @@
         <ChatConversation 
           :messages="messages" 
           @use-example="$emit('use-example', $event)"
+          @apply-code="handleApplyCode"
         />
       </div>
     </div>
@@ -54,12 +55,20 @@
           @examples="$emit('examples')"
         >
           <template #mode-indicator>
-            <ModeIndicator 
-              :mode="mode" 
-              :selected-file="selectedFile" 
-              :selected-model-id="selectedModelId"
-              :available-models="availableModels"
-            />
+            <div class="flex items-center justify-between w-full">
+              <ModeIndicator 
+                :mode="mode" 
+                :selected-file="selectedFile" 
+                :selected-model-id="selectedModelId"
+                :available-models="availableModels"
+              />
+              
+              <div v-if="selectedFile" class="text-xs text-primary-400 flex items-center gap-1">
+                <i class="fas fa-info-circle"></i>
+                <span v-if="mode === 'build'">Changes will be applied to {{ selectedFile.path }}</span>
+                <span v-else>Discussing file: {{ selectedFile.path }}</span>
+              </div>
+            </div>
           </template>
           
           <template #examples v-if="promptExamples && promptExamples.length > 0">
@@ -82,9 +91,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, defineProps, defineEmits } from 'vue'
 import { ChatConversation } from '../../organisms/chat'
-import { ChatInputArea, ModeIndicator } from '../../molecules'
+import { ChatInputArea } from '../../molecules'
+import { ModeIndicator } from '../../molecules/display'
 import type { AIMessage, BuilderMode } from '../../../types'
 import type { AIModel } from '../../../types/builder'
 
@@ -117,7 +127,8 @@ const emit = defineEmits([
   'update:modelValue',
   'submit',
   'examples',
-  'use-example'
+  'use-example',
+  'apply-code'
 ])
 
 // Local state
@@ -135,7 +146,12 @@ watch(localPrompt, (newValue) => {
 
 // Methods
 function handleSubmit() {
+  if (!localPrompt.value.trim()) return
   emit('submit')
+}
+
+function handleApplyCode(code: string) {
+  emit('apply-code', code)
 }
 </script>
 

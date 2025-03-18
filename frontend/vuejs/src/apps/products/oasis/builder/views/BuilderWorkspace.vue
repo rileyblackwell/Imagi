@@ -9,6 +9,7 @@
 <template>
   <BuilderLayout 
     storage-key="builderWorkspaceSidebarCollapsed"
+    :navigation-items="navigationItems"
   >
     <!-- Sidebar Content -->
     <template #sidebar-content="{ collapsed }">
@@ -29,29 +30,30 @@
         @select-file="handleFileSelect"
         @create-file="handleFileCreate"
         @delete-file="handleFileDelete"
+        @undo="handleUndo"
+        @preview="handlePreview"
       />
     </template>
 
     <!-- Main Content Area -->
-    <template #main-content>
-      <div class="flex flex-col h-full w-full bg-gray-50 dark:bg-gray-900">
-        <!-- Modern Chat UI using WorkspaceChat component -->
-        <WorkspaceChat
-          :messages="ensureValidMessages(store.conversation || [])"
-          :is-processing="store.isProcessing"
-          :mode="store.mode || 'chat'"
-          :selected-file="store.selectedFile"
-          :selected-model-id="store.selectedModelId"
-          :available-models="store.availableModels || []"
-          :prompt-placeholder="promptPlaceholder"
-          :show-examples="store.conversation.length === 0"
-          :prompt-examples="promptExamplesComputed"
-          v-model="prompt"
-          @submit="handlePrompt"
-          @use-example="handleExamplePrompt"
-        />
-      </div>
-    </template>
+    <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
+      <!-- Modern Chat UI using WorkspaceChat component -->
+      <WorkspaceChat
+        :messages="ensureValidMessages(store.conversation || [])"
+        :is-processing="store.isProcessing"
+        :mode="store.mode || 'chat'"
+        :selected-file="store.selectedFile"
+        :selected-model-id="store.selectedModelId"
+        :available-models="store.availableModels || []"
+        :prompt-placeholder="promptPlaceholder"
+        :show-examples="store.conversation.length === 0"
+        :prompt-examples="promptExamplesComputed"
+        v-model="prompt"
+        @submit="handlePrompt"
+        @use-example="handleExamplePrompt"
+        @apply-code="handleApplyCode"
+      />
+    </div>
   </BuilderLayout>
 </template>
 
@@ -87,7 +89,8 @@ const projectId = ref<string>('')
 const { 
   generateCodeFromPrompt, 
   createFile, 
-  loadModels
+  loadModels,
+  applyCode 
 } = useBuilderMode()
 const { sendMessage } = useChatMode()
 
@@ -105,6 +108,9 @@ const fileTypes = {
 // Local state
 const currentEditorMode = ref<EditorMode>('split')
 const prompt = ref('')
+
+// Navigation items for sidebar
+const navigationItems = [] // Empty array to remove sidebar navigation buttons
 
 // Project examples for different modes
 const chatExamples = [
@@ -126,24 +132,8 @@ const chatExamples = [
   }
 ]
 
-const buildExamples = [
-  {
-    title: 'Add Feature',
-    text: 'Add a toggle switch component that can be used to enable/disable features'
-  },
-  {
-    title: 'Fix Layout',
-    text: 'Fix the responsive layout so it works better on mobile devices'
-  },
-  {
-    title: 'Improve Style',
-    text: 'Make this component look more modern and professional'
-  },
-  {
-    title: 'Add Functionality',
-    text: 'Add form validation to this component'
-  }
-]
+// Empty build examples to remove them from the UI
+const buildExamples = []
 
 // Computed properties
 const currentProject = computed(() => {
@@ -168,161 +158,204 @@ const promptPlaceholder = computed(() =>
 
 // Methods
 function ensureValidMessages(messages: any[]): AIMessage[] {
-  // Filter out invalid messages and ensure they have all required properties
+  if (!messages || !Array.isArray(messages)) return []
+  
   return messages
-    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+    .filter(m => m && typeof m === 'object' && m.role && m.content)
     .map(m => ({
       role: m.role,
       content: m.content,
       code: m.code || '',
-      timestamp: m.timestamp || new Date().toISOString()
-    }))
+      timestamp: m.timestamp || Date.now(),
+      id: m.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    })) as AIMessage[]
 }
 
-// Event handlers
 async function handlePrompt() {
-  if (!prompt.value || store.isProcessing) return
+  if (!prompt.value.trim()) return
   
   try {
-    const promptText = prompt.value
-    prompt.value = '' // Clear input field immediately
-    
-    if (store.mode === 'chat') {
-      // Handle chat mode
-      await sendMessage(promptText)
-    } else {
-      // Handle build mode
+    if (store.mode === 'build') {
       if (!store.selectedFile) {
-        notify({ 
-          type: 'error', 
-          message: 'Please select a file to edit' 
-        })
+        notify('Please select a file to modify', 'warning')
         return
       }
       
-      await generateCodeFromPrompt(promptText)
+      if (!store.selectedModelId) {
+        notify('Please select an AI model', 'warning')
+        return
+      }
+      
+      await generateCodeFromPrompt({
+        prompt: prompt.value,
+        file: store.selectedFile,
+        projectId: projectId.value,
+        modelId: store.selectedModelId
+      })
+    } else {
+      await sendMessage({
+        prompt: prompt.value,
+        projectId: projectId.value,
+        file: store.selectedFile,
+        modelId: store.selectedModelId
+      })
     }
-  } catch (error: any) {
-    notify({ 
-      type: 'error', 
-      message: error.message || 'Failed to process your request' 
-    })
+    
+    // Clear prompt after sending
+    prompt.value = ''
+  } catch (error) {
+    console.error('Error processing prompt:', error)
+    notify('Error processing your request. Please try again.', 'error')
   }
 }
 
-function handleExamplePrompt(examplePrompt: string) {
-  prompt.value = examplePrompt
+function handleExamplePrompt(exampleText: string) {
+  prompt.value = exampleText
   handlePrompt()
 }
 
-function handleModelSelect(modelId: string) {
-  store.selectModel(modelId)
+async function handleModelSelect(modelId: string) {
+  store.setSelectedModelId(modelId)
 }
 
-function handleModeSwitch(mode: BuilderMode) {
+async function handleModeSwitch(mode: BuilderMode) {
   store.setMode(mode)
 }
 
 async function handleFileSelect(file: ProjectFile) {
-  try {
-    store.selectFile(file)
-  } catch (error: any) {
-    notify({ 
-      type: 'error', 
-      message: error.message || 'Failed to select file'
-    })
-  }
+  store.setSelectedFile(file)
 }
 
-async function handleFileCreate(data: { name: string, type: string, content?: string }) {
+async function handleFileCreate(data: { name: string; type: string; content?: string }) {
   try {
-    const newFile = await createFile(data.name, data.type, data.content || '')
-    
-    if (newFile) {
-      // Select the newly created file
-      store.selectFile(newFile)
-    }
-  } catch (error: any) {
-    notify({ 
-      type: 'error', 
-      message: error.message || 'Failed to create file'
+    await createFile({
+      projectId: projectId.value,
+      ...data
     })
+    
+    // Refresh file list after creating a new file
+    await loadProjectFiles()
+    
+    notify(`File ${data.name} created successfully`, 'success')
+  } catch (error) {
+    console.error('Error creating file:', error)
+    notify('Error creating file. Please try again.', 'error')
   }
 }
 
 async function handleFileDelete(file: ProjectFile) {
   try {
-    await FileService.deleteFile(projectId.value, file.path)
+    await FileService.deleteFile(projectId.value, file.id || file.path)
     
-    // Refresh files
-    const files = await FileService.getProjectFiles(projectId.value)
-    // Fix the type issue by using the functional update pattern
-    store.$patch((state) => {
-      state.files = files as any // Type assertion for compatibility
-    })
+    // Remove file from store
+    store.removeFile(file)
     
-    // Deselect file if it was selected
-    if (store.selectedFile?.path === file.path) {
-      store.selectFile(null)
+    // If the deleted file was selected, clear selection
+    if (store.selectedFile && store.selectedFile.path === file.path) {
+      store.setSelectedFile(null)
     }
     
-    notify({ 
-      type: 'success', 
-      message: `File ${file.path} deleted successfully`
+    notify(`File ${file.path} deleted successfully`, 'success')
+  } catch (error) {
+    console.error('Error deleting file:', error)
+    notify('Error deleting file. Please try again.', 'error')
+  }
+}
+
+async function handleApplyCode(code: string) {
+  if (!store.selectedFile) {
+    notify('Please select a file to apply the changes', 'warning')
+    return
+  }
+  
+  try {
+    await applyCode({
+      code,
+      file: store.selectedFile,
+      projectId: projectId.value
     })
-  } catch (error: any) {
-    notify({ 
-      type: 'error', 
-      message: error.message || 'Failed to delete file'
-    })
+    
+    notify('Code changes applied successfully', 'success')
+  } catch (error) {
+    console.error('Error applying code:', error)
+    notify('Error applying code changes. Please try again.', 'error')
+  }
+}
+
+async function handleUndo() {
+  // Implement undo functionality
+  notify('Undo feature coming soon', 'info')
+}
+
+async function handlePreview() {
+  // Implement preview functionality
+  notify('Preview feature coming soon', 'info')
+}
+
+// Helper function to load project files
+async function loadProjectFiles() {
+  try {
+    const files = await FileService.getProjectFiles(projectId.value)
+    if (Array.isArray(files)) {
+      // Directly update the store with the files array
+      store.$patch({
+        files: files
+      })
+      // Or use setFiles if available
+      if (typeof store.setFiles === 'function') {
+        store.setFiles(files)
+      }
+    } else {
+      console.error('Project files data is not an array:', files)
+    }
+  } catch (error) {
+    console.error('Error loading project files:', error)
+    notify('Error loading project files', 'error')
   }
 }
 
 // Lifecycle hooks
 onMounted(async () => {
   // Get project ID from route params
-  projectId.value = route.params.projectId as string
-  
-  if (!projectId.value) {
-    notify({ 
-      type: 'error', 
-      message: 'No project ID provided'
-    })
-    return
-  }
-  
-  // Set project ID in store
-  store.setProjectId(projectId.value)
+  projectId.value = String(route.params.projectId)
   
   try {
-    // Load models
-    await loadModels()
-    
     // Load project data
     await projectStore.fetchProject(projectId.value)
     
-    // Load project files
-    const files = await FileService.getProjectFiles(projectId.value)
-    // Fix the type issue by using the functional update pattern
-    store.$patch((state) => {
-      state.files = files as any // Type assertion for compatibility
-    })
+    // Set project ID in store if needed
+    if (typeof store.setProjectId === 'function') {
+      store.setProjectId(projectId.value)
+    }
     
-    // Initialize with default mode
+    // Load project files using dedicated function
+    await loadProjectFiles()
+    
+    // Load available AI models
+    await loadModels()
+      
+    // Set default model if not already set
+    if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
+      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-5-sonnet-20241022') || store.availableModels[0]
+      if (defaultModel) {
+        store.setSelectedModelId(defaultModel.id)
+      }
+    }
+    
+    // Initialize mode if not set
     if (!store.mode) {
       store.setMode('chat')
     }
-  } catch (error: any) {
-    notify({ 
-      type: 'error', 
-      message: error.message || 'Failed to load project data'
-    })
+  } catch (error) {
+    console.error('Error initializing workspace:', error)
+    notify('Error loading project. Please try again.', 'error')
   }
 })
 
-// Clean up when component is destroyed
 onBeforeUnmount(() => {
-  // No cleanup needed since we removed the editor
+  // Clean up resources
+  store.clearConversation()
+  store.setSelectedFile(null)
 })
 </script>
 

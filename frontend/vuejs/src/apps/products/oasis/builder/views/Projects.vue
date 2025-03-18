@@ -248,21 +248,33 @@ function openProject(project) {
   if (!project.id) {
     showNotification({
       type: 'error',
-      message: 'Project ID is missing or invalid'
+      message: 'Invalid project ID'
     });
     return;
   }
-  
+
+  // Convert ID to string to ensure consistent typing
   const projectId = String(project.id);
   
-  // Navigate to workspace with proper ID
+  // Navigate to the workspace with the project ID
   router.push({
     name: 'builder-workspace',
     params: { projectId }
   });
 }
 
-onMounted(fetchProjects);
+onMounted(async () => {
+  // Initialize projects on mount
+  try {
+    await fetchProjects();
+  } catch (err) {
+    console.error('Failed to fetch projects on mount:', err);
+    showNotification({
+      type: 'error',
+      message: 'Failed to load projects. Please try again.'
+    });
+  }
+});
 </script>
 
 <style scoped>

@@ -1,12 +1,13 @@
 <template>
   <div class="h-full flex flex-col">
     <!-- Messages Container -->
-    <div class="flex-1 overflow-y-auto">
-      <template v-if="messages.length > 0">
+    <div class="flex-1 overflow-y-auto h-full">
+      <template v-if="messages && messages.length > 0">
         <div
           v-for="(message, index) in messages"
           :key="index"
           class="py-6 px-4 md:px-8 lg:px-12"
+          v-if="message && message.role && message.content"
           :class="[
             message.role === 'assistant' ? 'bg-dark-900' : 'bg-dark-950'
           ]"
@@ -14,7 +15,7 @@
           <div class="max-w-3xl mx-auto flex items-start gap-4">
             <!-- Avatar -->
             <div 
-              class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+              class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
               :class="[
                 message.role === 'assistant' 
                   ? 'bg-primary-500/20 text-primary-400'
@@ -30,8 +31,11 @@
             <!-- Message Content -->
             <div class="flex-1 space-y-3">
               <!-- Role Label -->
-              <div class="text-sm font-medium text-gray-400">
-                {{ formatRole(message.role) }}
+              <div class="text-sm font-medium flex items-center gap-2 text-gray-400">
+                <span>{{ formatRole(message.role) }}</span>
+                <span v-if="message.timestamp" class="text-xs text-gray-500">
+                  {{ formatTimestamp(message.timestamp) }}
+                </span>
               </div>
 
               <!-- Content -->
@@ -40,47 +44,78 @@
                 v-html="formatMessage(message.content)"
               />
 
-              <!-- Actions -->
-              <div v-if="message.role === 'assistant' && message.code" class="flex items-center space-x-2 mt-4">
-                <button
-                  class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors"
-                  @click="$emit('apply-code', message.code)"
-                >
-                  <i class="fas fa-code mr-1.5" />
-                  Apply Changes
-                </button>
-                <button
-                  class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-dark-800 text-gray-400 hover:bg-dark-700 transition-colors"
-                  @click="copyToClipboard(message.code)"
-                >
-                  <i class="fas fa-copy mr-1.5" />
-                  Copy Code
-                </button>
+              <!-- Code Block with Actions -->
+              <div v-if="message.role === 'assistant' && message.code" class="mt-4 border border-dark-700 rounded-lg overflow-hidden">
+                <!-- Code Header -->
+                <div class="px-4 py-2 bg-dark-800 flex items-center justify-between border-b border-dark-700">
+                  <span class="text-sm font-medium text-gray-300">
+                    <i class="fas fa-code mr-2"></i>
+                    Generated Code
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <button 
+                      class="p-1.5 text-gray-400 hover:text-white transition-colors"
+                      @click="copyToClipboard(message.code)"
+                      title="Copy to clipboard"
+                    >
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Code Content -->
+                <pre class="p-4 bg-dark-850 overflow-x-auto text-sm">
+                  <code>{{ message.code }}</code>
+                </pre>
+                
+                <!-- Code Actions -->
+                <div class="px-4 py-2 bg-dark-800 border-t border-dark-700">
+                  <button
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors"
+                    @click="$emit('apply-code', message.code)"
+                  >
+                    <i class="fas fa-magic mr-1.5"></i>
+                    Apply Changes
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </template>
 
-      <!-- Empty State -->
+      <!-- Empty State with AI Chat Illustration -->
       <div v-else class="h-full flex items-center justify-center">
-        <div class="text-center space-y-4 max-w-md px-4">
-          <div class="text-5xl text-gray-600 mb-6">
-            <i class="fas fa-robot" />
+        <div class="text-center space-y-6 max-w-md px-4">
+          <!-- AI Assistant Illustration -->
+          <div class="relative mx-auto w-24 h-24">
+            <div class="absolute inset-0 bg-primary-500/20 rounded-full animate-pulse"></div>
+            <div class="relative flex items-center justify-center w-full h-full">
+              <i class="fas fa-robot text-5xl text-primary-400"></i>
+            </div>
           </div>
-          <h3 class="text-xl font-medium text-gray-300">
+          
+          <h3 class="text-xl font-medium text-gray-200">
             Welcome to Imagi Oasis
           </h3>
           <p class="text-gray-400">
             Start a conversation with your AI assistant to build your web application. You can ask questions or describe what you want to build.
           </p>
-          <div class="pt-4">
-            <div v-for="(example, i) in examples" :key="i" class="mb-2">
+          
+          <!-- Example Suggestions -->
+          <div class="pt-2">
+            <h4 class="text-sm font-medium text-gray-300 mb-3">Try these examples:</h4>
+            <div class="grid gap-2">
               <button
-                class="w-full text-left p-3 rounded-lg bg-dark-800 hover:bg-dark-700 text-gray-300 text-sm transition-colors"
+                v-for="(example, i) in examples"
+                :key="i"
+                class="w-full text-left p-3 rounded-lg bg-dark-800 hover:bg-dark-700 text-gray-300 text-sm border border-dark-700 hover:border-primary-500/40 transition-all duration-200"
                 @click="$emit('use-example', example)"
               >
-                "{{ example }}"
+                <div class="flex items-start gap-2">
+                  <span class="text-primary-400 mt-0.5"><i class="fas fa-lightbulb"></i></span>
+                  <span>"{{ example }}"</span>
+                </div>
               </button>
             </div>
           </div>
@@ -121,23 +156,41 @@ const formatRole = (role: string) => {
   return roles[role] || role
 }
 
-const formatMessage = (content: string) => {
-  // Configure marked options
-  marked.setOptions({
-    gfm: true,
-    breaks: true,
-  })
+const formatTimestamp = (timestamp: string | number) => {
+  if (!timestamp) return ''
+  
+  try {
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp)
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } catch (e) {
+    return ''
+  }
+}
 
-  // Parse markdown and sanitize HTML
-  const parsedContent = marked.parse(content) as string
+const formatMessage = (content: string) => {
+  if (!content) return ''
   
-  // Add syntax highlighting classes to code blocks
-  const highlightedContent = parsedContent.replace(
-    /<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g,
-    '<pre class="language-$1"><code>$2</code></pre>'
-  );
-  
-  return DOMPurify.sanitize(highlightedContent)
+  try {
+    // Configure marked options
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+    })
+
+    // Parse markdown and sanitize HTML
+    const parsedContent = marked.parse(content) as string
+    
+    // Add syntax highlighting classes to code blocks
+    const highlightedContent = parsedContent.replace(
+      /<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g,
+      '<pre class="language-$1"><code>$2</code></pre>'
+    );
+    
+    return DOMPurify.sanitize(highlightedContent)
+  } catch (error) {
+    console.error('Error formatting message:', error)
+    return String(content) // Fallback to raw content
+  }
 }
 
 const copyToClipboard = async (text: string) => {

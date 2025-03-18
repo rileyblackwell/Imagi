@@ -211,8 +211,15 @@ export const AgentService = {
         conversation_id: storedConversationId || undefined
       }
       
-      // Use the chat endpoint from agents/api
+      // Use the chat endpoint from agents/api - ensure the path is correct
       const response = await api.post('/api/v1/agents/chat/', payload)
+      
+      // Log successful response 
+      console.log('Chat API response:', {
+        status: response.status,
+        conversation_id: response.data.conversation_id,
+        has_response: !!response.data.response
+      })
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
@@ -226,7 +233,22 @@ export const AgentService = {
           response.data.assistant_message
         ]
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Chat API error:', error)
+      
+      // Log more detailed error information
+      if (error.response) {
+        // The request was made and the server responded with an error status
+        console.error('Response error data:', error.response.data)
+        console.error('Response status:', error.response.status)
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received from server')
+      } else {
+        // Something happened in setting up the request
+        console.error('Request setup error:', error.message)
+      }
+      
       throw handleAPIError(error)
     }
   },

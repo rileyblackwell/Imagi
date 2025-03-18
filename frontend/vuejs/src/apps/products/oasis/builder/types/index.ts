@@ -39,7 +39,7 @@ export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   code?: string;
-  timestamp: number;
+  timestamp: string | number;
   id?: string;
 }
 

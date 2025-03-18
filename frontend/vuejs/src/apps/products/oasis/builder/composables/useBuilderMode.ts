@@ -4,13 +4,34 @@ import { AgentService, ModelService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 // Use types from builder.ts since that's what the store uses
-import type { AIModel } from '../types/index'
-import type { ProjectFile } from '../types/builder'
+import type { AIModel, ProjectFile } from '../types/builder'
 import { notify } from '@/shared/utils/notifications'
+import type { EditorLanguage } from '@/shared/types/editor'
 
 interface CodeChange {
   file_path: string
   content: string
+}
+
+interface GenerateCodeOptions {
+  prompt: string
+  file: ProjectFile
+  projectId: string
+  modelId: string
+}
+
+interface CreateFileOptions {
+  name: string
+  type: string
+  content?: string
+  projectId: string
+  path?: string
+}
+
+interface ApplyCodeOptions {
+  code: string
+  file: ProjectFile
+  projectId: string
 }
 
 export function useBuilderMode() {
@@ -19,13 +40,35 @@ export function useBuilderMode() {
   // Use the agent store if available, otherwise fallback to builder store
   const store = agentStore
 
-  const generateCodeFromPrompt = async (prompt: string) => {
-    if (!store.projectId || !store.selectedModel) {
-      throw new Error('Project and AI Model must be selected')
+  const generateCodeFromPrompt = async (options: GenerateCodeOptions | string) => {
+    let prompt: string;
+    let file: ProjectFile | null = null;
+    let projectId: string | null = null;
+    let modelId: string | null = null;
+
+    // Handle both new options object and legacy string argument
+    if (typeof options === 'string') {
+      prompt = options;
+      file = store.selectedFile;
+      projectId = store.projectId;
+      modelId = store.selectedModelId;
+    } else {
+      prompt = options.prompt;
+      file = options.file;
+      projectId = options.projectId;
+      modelId = options.modelId;
     }
 
-    if (!store.selectedFile) {
+    if (!projectId) {
+      throw new Error('Project ID must be provided')
+    }
+
+    if (!file) {
       throw new Error('Please select a file to edit')
+    }
+
+    if (!modelId) {
+      throw new Error('AI Model must be selected')
     }
 
     store.$patch({ isProcessing: true, error: null })
@@ -39,11 +82,11 @@ export function useBuilderMode() {
       })
 
       // Call the agent service to generate code
-      const response = await AgentService.generateCode(store.projectId, {
+      const response = await AgentService.generateCode(projectId, {
         prompt,
         mode: store.mode,
-        model: store.selectedModel.id,
-        file_path: store.selectedFile.path
+        model: modelId,
+        file_path: file.path
       })
 
       // Add assistant response to conversation
@@ -56,12 +99,12 @@ export function useBuilderMode() {
         })
 
         // Update the file with generated code if provided
-        if (response.code && store.selectedFile) {
-          await updateFile(store.projectId, store.selectedFile.path, response.code)
+        if (response.code) {
+          await updateFile(projectId, file.path, response.code)
           
           // Update the selected file in the store
-          store.selectFile({
-            ...store.selectedFile,
+          store.setSelectedFile({
+            ...file,
             content: response.code
           })
         }
@@ -78,8 +121,6 @@ export function useBuilderMode() {
   }
 
   const updateFile = async (projectId: string, filePath: string, content: string) => {
-    if (!store.selectedFile) return
-
     try {
       await ProjectService.updateFileContent(projectId, filePath, content)
       store.$patch({ unsavedChanges: false })
@@ -96,7 +137,7 @@ export function useBuilderMode() {
 
     try {
       const fileData = await ProjectService.getFile(store.projectId, file.path)
-      store.selectFile({
+      store.setSelectedFile({
         ...file,
         content: fileData.content
       })
@@ -106,12 +147,30 @@ export function useBuilderMode() {
     }
   }
 
-  const createFile = async (name: string, type: string, content = '', projectId?: string, path?: string): Promise<ProjectFile | null> => {
+  const createFile = async (options: CreateFileOptions | string, typeOrOptions?: string, content = '') => {
     try {
-      const targetProjectId = projectId || store.projectId
+      let name: string;
+      let type: string;
+      let fileContent: string = '';
+      let projectId: string | null = null;
+      let path: string | undefined;
+
+      // Handle both new options object and legacy arguments
+      if (typeof options === 'object') {
+        name = options.name;
+        type = options.type;
+        fileContent = options.content || '';
+        projectId = options.projectId;
+        path = options.path;
+      } else {
+        name = options;
+        type = typeOrOptions || '';
+        fileContent = content;
+        projectId = store.projectId;
+      }
       
-      if (!targetProjectId) {
-        notify({ type: 'error', message: 'No project selected' })
+      if (!projectId) {
+        notify({ message: 'No project selected', type: 'error' })
         return null
       }
       
@@ -119,51 +178,35 @@ export function useBuilderMode() {
       
       // Normalize file path
       let filePath = path || name
-      let fileName = name
       
-      // If a file path was provided, use it for file creation
-      if (path) {
-        filePath = path
-      } else {
-        // Add extension if needed based on type
-        if (!fileName.includes('.') && !['html', 'css', 'js', 'py', 'json', 'txt'].includes(type)) {
-          filePath = `${fileName}.${type}`
-        } else {
-          filePath = fileName
-        }
+      // If no explicit path was provided, add extension based on type
+      if (!path && !filePath.includes('.') && !['html', 'css', 'js', 'py', 'json', 'txt'].includes(type)) {
+        filePath = `${name}.${type}`
       }
       
       // Create file via FileService 
-      const fileServiceResult = await FileService.createFile(targetProjectId, filePath || fileName, content)
+      const fileServiceResult = await FileService.createFile(projectId, filePath, fileContent)
       
       // Convert the result to the ProjectFile format expected by the store
       const newFile: ProjectFile = {
         path: fileServiceResult.path,
-        type: fileServiceResult.type as any, // Type casting to handle potential incompatibility
-        content: content,
+        type: (fileServiceResult.type || type) as EditorLanguage,
+        content: fileContent,
         lastModified: fileServiceResult.lastModified || new Date().toISOString()
       }
       
       // Add file to store
       if (newFile) {
-        // Refresh project files from server to get the most up-to-date list
-        const updatedFiles = await FileService.getProjectFiles(targetProjectId)
+        // Add or update the file in the store
+        store.addFile(newFile)
         
-        // Update store with newest files
-        store.$patch((state) => {
-          state.files = updatedFiles as any;
-        });
-        
-        notify({ type: 'success', message: `File ${fileName} created successfully` })
         return newFile
       }
       
       return null
     } catch (error: any) {
-      notify({ 
-        type: 'error', 
-        message: error.message || `Failed to create file ${name}` 
-      })
+      console.error('Failed to create file:', error)
+      notify({ message: 'Failed to create file', type: 'error' })
       return null
     } finally {
       store.setProcessing(false)
@@ -182,7 +225,7 @@ export function useBuilderMode() {
       // Refresh file content if needed
       if (store.selectedFile && (!filePath || store.selectedFile.path === filePath)) {
         const fileData = await ProjectService.getFile(store.projectId, store.selectedFile.path)
-        store.selectFile({
+        store.setSelectedFile({
           ...store.selectedFile,
           content: fileData.content
         })
@@ -198,106 +241,73 @@ export function useBuilderMode() {
     }
   }
 
-  // Simplified loadModels function that only uses frontend data
+  // Load models from the backend or use default models
   const loadModels = async () => {
     try {
-      // Get default models from the ModelService
+      // Get default models from ModelService
       const defaultModels = ModelService.getDefaultModels()
       
       // Update store with models
-      try {
-        store.setModels(defaultModels)
-      } catch (storeError) {
-        // Fallback: directly update the store state if the action fails
-        store.$patch({ availableModels: defaultModels })
-      }
-      
-      // Set a default selected model if none is selected
-      if (!store.selectedModelId && defaultModels.length > 0) {
+      if (defaultModels.length > 0) {
         try {
-          store.selectModel(defaultModels[0].id)
+          store.setModels(defaultModels)
         } catch (storeError) {
-          // Fallback: directly update the store state if the action fails
-          store.$patch({ selectedModelId: defaultModels[0].id })
+          // Fallback: directly update the store state
+          store.$patch({ availableModels: defaultModels })
         }
       }
-      
-      // Force a store update to ensure reactivity
-      store.$patch({})
       
       return { success: true }
     } catch (err) {
       console.error('Failed to initialize models', err)
-      return { success: true }
+      return { success: false }
     }
   }
 
-  const getCodeSuggestions = async (filePath: string) => {
-    if (!store.projectId) {
-      throw new Error('No project selected')
+  // Apply code to a file
+  const applyCode = async (options: ApplyCodeOptions) => {
+    const { code, file, projectId } = options;
+    
+    if (!projectId) {
+      throw new Error('Project ID must be provided');
     }
-
-    store.$patch({ isProcessing: true, error: null })
-
+    
+    if (!file) {
+      throw new Error('File information must be provided');
+    }
+    
+    if (!code) {
+      throw new Error('Code content must be provided');
+    }
+    
+    store.setProcessing(true);
+    
     try {
-      // Instead of using a direct axios call to a non-existent endpoint,
-      // we should use the AgentService to generate code suggestions
-      // This could use the build/template endpoint with a specific mode
-      const response = await AgentService.generateCode(store.projectId, {
-        prompt: `Please suggest improvements or alternatives for the code in ${filePath}`,
-        mode: 'suggest',
-        model: store.selectedModel?.id || 'claude-3-5-sonnet-20241022',
-        file_path: filePath
-      })
+      // Update the file with the code
+      await updateFile(projectId, file.path, code);
       
-      return response.code ? [response.code] : []
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to get code suggestions'
-      store.$patch({ error })
-      throw err
-    } finally {
-      store.$patch({ isProcessing: false })
-    }
-  }
-
-  const applyCodeChanges = async (changes: CodeChange) => {
-    if (!store.projectId) {
-      throw new Error('No project selected')
-    }
-
-    store.$patch({ isProcessing: true, error: null })
-
-    try {
-      // Instead of using a direct axios call to a non-existent endpoint,
-      // we should update the file using ProjectService
-      await ProjectService.updateFileContent(
-        store.projectId, 
-        changes.file_path, 
-        changes.content
-      )
+      // Update the file in the store
+      store.updateFile({
+        ...file,
+        content: code
+      });
       
-      return { success: true }
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to apply code changes'
-      store.$patch({ error })
-      throw err
+      return true;
+    } catch (error) {
+      console.error('Error applying code:', error);
+      throw error;
     } finally {
-      store.$patch({ isProcessing: false })
+      store.setProcessing(false);
     }
   }
 
   return {
-    mode: computed(() => store.mode),
-    selectedFile: computed(() => store.selectedFile),
-    isProcessing: computed(() => store.isProcessing),
-    error: computed(() => store.error),
     generateCodeFromPrompt,
     updateFile,
     selectFile,
     createFile,
     undoLastAction,
     loadModels,
-    getCodeSuggestions,
-    applyCodeChanges
+    applyCode
   }
 }

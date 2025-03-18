@@ -25,7 +25,7 @@ export interface APIDetailResponse<T> {
 export interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: string;
+  timestamp: string | number;
   code?: string;
 }
 

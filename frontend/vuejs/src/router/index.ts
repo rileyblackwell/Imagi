@@ -22,19 +22,6 @@ const routes: RouteRecordRaw[] = [
     name: 'not-found',
     component: () => import('@/shared/components/pages/NotFound.vue')
   },
-  {
-    path: '/products/oasis/builder/projects',
-    name: 'builder-dashboard',
-    component: () => import('@/apps/products/oasis/builder/views/BuilderDashboard.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/products/oasis/builder/workspace/:projectId',
-    name: 'builder-workspace',
-    component: () => import('@/apps/products/oasis/builder/views/BuilderWorkspace.vue'),
-    props: true,
-    meta: { requiresAuth: true }
-  },
   // Payment system routes - explicitly defined for clarity
   {
     path: '/payments/success',

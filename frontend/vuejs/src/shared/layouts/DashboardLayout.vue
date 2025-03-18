@@ -88,7 +88,7 @@
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 relative mt-16 bg-gradient-to-b from-dark-950 to-dark-900">
+        <main class="flex-1 flex flex-col relative mt-16 bg-gradient-to-b from-dark-950 to-dark-900 overflow-hidden">
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 

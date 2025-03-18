@@ -47,11 +47,8 @@ export const useAgentStore = defineStore('agent', {
     },
 
     setMode(mode: BuilderMode) {
-      console.log('setMode action called', { mode, currentMode: this.mode })
-      
       if (this.canSwitchMode) {
         this.mode = mode
-        console.log('Mode updated in store', this.mode)
         
         // Clear conversation when switching to build mode
         if (mode === 'build') {
@@ -71,17 +68,26 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    selectModel(modelId: string) {
+    setSelectedModelId(modelId: string) {
       const model = this.availableModels.find(m => m.id === modelId)
       if (model) {
         this.selectedModelId = modelId
       } else {
-        console.warn('Model not found in available models', { modelId, availableModels: this.availableModels })
+        // Just use the model ID as-is if not found in available models
+        this.selectedModelId = modelId
       }
+    },
+
+    selectModel(modelId: string) {
+      this.setSelectedModelId(modelId)
     },
 
     addMessage(message: AIMessage) {
       this.conversation.push(message)
+    },
+
+    clearConversation() {
+      this.conversation = []
     },
 
     selectFile(file: ProjectFile | null) {
@@ -92,6 +98,47 @@ export const useAgentStore = defineStore('agent', {
       }
       this.selectedFile = file
       this.unsavedChanges = false
+    },
+
+    setSelectedFile(file: ProjectFile | null) {
+      this.selectedFile = file
+      this.unsavedChanges = false
+    },
+
+    // Files management
+    setFiles(files: ProjectFile[]) {
+      if (Array.isArray(files)) {
+        this.files = [...files]
+      } else {
+        console.error('Files is not an array:', files)
+        this.files = []
+      }
+    },
+
+    addFile(file: ProjectFile) {
+      // Check if file already exists by path
+      const existingIndex = this.files.findIndex(f => f.path === file.path)
+      if (existingIndex >= 0) {
+        // Update existing file
+        this.files[existingIndex] = file
+      } else {
+        // Add new file
+        this.files.push(file)
+      }
+    },
+
+    removeFile(file: ProjectFile) {
+      const index = this.files.findIndex(f => f.path === file.path)
+      if (index >= 0) {
+        this.files.splice(index, 1)
+      }
+    },
+
+    updateFile(file: ProjectFile) {
+      const index = this.files.findIndex(f => f.path === file.path)
+      if (index >= 0) {
+        this.files[index] = { ...this.files[index], ...file }
+      }
     },
 
     setUnsavedChanges(value: boolean) {
