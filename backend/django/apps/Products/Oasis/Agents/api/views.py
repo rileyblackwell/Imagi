@@ -33,37 +33,58 @@ def build_template(request):
     """
     try:
         # Extract request data
-        prompt = request.data.get('prompt')
+        message = request.data.get('message')
         model = request.data.get('model', 'claude-3-5-sonnet-20241022')
         project_id = request.data.get('project_id')
-        file_name = request.data.get('file_name', 'index.html')
+        file_path = request.data.get('file_path', 'index.html')
+        conversation_id = request.data.get('conversation_id')
         
-        if not prompt:
+        if not message:
             return Response({
-                'error': 'Prompt is required'
+                'error': 'Message is required'
             }, status=status.HTTP_400_BAD_REQUEST)
             
         # Initialize the agent service
         template_agent = TemplateAgentService()
             
         # Log request
-        logger.info(f"Template request: prompt={prompt}, model={model}, file_name={file_name}")
+        logger.info(f"Template request: message={message}, model={model}, file_path={file_path}")
         
         # Process the template request
         result = template_agent.process_template(
-            prompt=prompt,
+            prompt=message,
             model=model,
             user=request.user,
             project_id=project_id,
-            file_name=file_name
+            file_name=file_path,
+            conversation_id=conversation_id
         )
         
         if result.get('success'):
-            return Response({
+            # Format the response to match the frontend's expected format
+            template_content = result.get('template', '')
+            current_time = result.get('timestamp', '')
+            
+            # Create response object that matches CodeGenerationResponse
+            response_data = {
                 'success': True,
-                'template': result.get('template'),
-                'file_name': result.get('file_name')
-            })
+                'code': template_content,  # This is the generated code the frontend expects
+                'response': f"I've generated the HTML template based on your requirements. Here's the code:",
+                'conversation_id': result.get('conversation_id'),
+                'user_message': {
+                    'role': 'user',
+                    'content': message,
+                    'timestamp': current_time
+                },
+                'assistant_message': {
+                    'role': 'assistant',
+                    'content': f"I've generated the HTML template based on your requirements. Here's the code:",
+                    'code': template_content,
+                    'timestamp': current_time
+                }
+            }
+            
+            return Response(response_data)
         else:
             return Response({
                 'success': False,
@@ -88,39 +109,58 @@ def build_stylesheet(request):
     """
     try:
         # Extract request data
-        prompt = request.data.get('prompt')
+        message = request.data.get('message')
         model = request.data.get('model', 'claude-3-5-sonnet-20241022')
         project_id = request.data.get('project_id')
-        template_path = request.data.get('template_path')
-        file_name = request.data.get('file_name', 'styles.css')
+        file_path = request.data.get('file_path', 'static/css/styles.css')
+        conversation_id = request.data.get('conversation_id')
         
-        if not prompt:
+        if not message:
             return Response({
-                'error': 'Prompt is required'
+                'error': 'Message is required'
             }, status=status.HTTP_400_BAD_REQUEST)
             
         # Initialize the agent service
         stylesheet_agent = StylesheetAgentService()
             
         # Log request
-        logger.info(f"Stylesheet request: prompt={prompt}, model={model}, file_name={file_name}")
+        logger.info(f"Stylesheet request: message={message}, model={model}, file_path={file_path}")
         
         # Process the stylesheet request
         result = stylesheet_agent.process_stylesheet(
-            prompt=prompt,
+            prompt=message,
             model=model,
             user=request.user,
             project_id=project_id,
-            template_path=template_path,
-            file_name=file_name
+            file_path=file_path,
+            conversation_id=conversation_id
         )
         
         if result.get('success'):
-            return Response({
+            # Format the response to match the frontend's expected format
+            stylesheet_content = result.get('stylesheet', '')
+            current_time = result.get('timestamp', '')
+            
+            # Create response object that matches CodeGenerationResponse
+            response_data = {
                 'success': True,
-                'stylesheet': result.get('stylesheet'),
-                'file_name': result.get('file_name')
-            })
+                'code': stylesheet_content,  # This is the generated code the frontend expects
+                'response': f"I've created the CSS stylesheet based on your requirements. Here's the code:",
+                'conversation_id': result.get('conversation_id'),
+                'user_message': {
+                    'role': 'user',
+                    'content': message,
+                    'timestamp': current_time
+                },
+                'assistant_message': {
+                    'role': 'assistant',
+                    'content': f"I've created the CSS stylesheet based on your requirements. Here's the code:",
+                    'code': stylesheet_content,
+                    'timestamp': current_time
+                }
+            }
+            
+            return Response(response_data)
         else:
             return Response({
                 'success': False,

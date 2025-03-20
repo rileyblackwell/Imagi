@@ -37,7 +37,7 @@ export function useChatMode() {
       }
 
       // Debug: Log conversation state before adding message
-      console.log('Chat conversation before user message:', [...store.conversation])
+      // console.log('Chat conversation before user message:', [...store.conversation])
 
       // Add user message to conversation
       const userMessage = {
@@ -49,14 +49,14 @@ export function useChatMode() {
       store.addMessage(userMessage);
       
       // Debug: Log conversation state after adding user message
-      console.log('Chat conversation after user message:', [...store.conversation])
+      // console.log('Chat conversation after user message:', [...store.conversation])
 
       // Call the agent service
-      console.log('Sending chat request to backend with params:', {
-        prompt: params.prompt,
-        modelId: params.modelId,
-        projectId: params.projectId
-      })
+      // console.log('Sending chat request to backend with params:', {
+      //   prompt: params.prompt,
+      //   modelId: params.modelId,
+      //   projectId: params.projectId
+      // })
       
       const response = await AgentService.processChat(params.projectId, {
         prompt: params.prompt,
@@ -65,7 +65,7 @@ export function useChatMode() {
       })
 
       // Debug: Log the response from the backend
-      console.log('Received chat response from backend:', response)
+      // console.log('Received chat response from backend:', response)
 
       // Make sure we have a valid response
       if (response && response.response) {
@@ -77,11 +77,11 @@ export function useChatMode() {
           code: response.messages && response.messages[1] && response.messages[1].code
         };
         
-        console.log('Adding assistant message to conversation:', assistantMessage)
+        // console.log('Adding assistant message to conversation:', assistantMessage)
         store.addMessage(assistantMessage);
         
         // Debug: Log conversation state after adding assistant message
-        console.log('Chat conversation after assistant message:', [...store.conversation])
+        // console.log('Chat conversation after assistant message:', [...store.conversation])
       } else {
         console.error('Invalid response format:', response);
       }

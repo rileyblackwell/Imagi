@@ -7,70 +7,96 @@
   3. Selected AI model
 -->
 <template>
-  <div class="mode-indicator flex items-center gap-2 text-xs text-gray-400">
-    <!-- Mode Indicator -->
-    <div class="flex items-center gap-1.5">
-      <div 
-        class="w-2 h-2 rounded-full"
+  <div class="flex items-center space-x-2 py-1 px-2 bg-dark-850/80 rounded-lg">
+    <!-- Mode indicator -->
+    <div class="flex items-center">
+      <div
         :class="[
-          mode === 'chat' ? 'bg-emerald-500' : 'bg-blue-500'
+          'flex items-center justify-center w-7 h-7 rounded-full mr-2',
+          mode === 'chat' ? 'bg-violet-500/20 text-violet-400' : 'bg-emerald-500/20 text-emerald-400'
         ]"
-      ></div>
-      <span class="font-medium">
-        {{ mode === 'chat' ? 'Chat Mode' : 'Build Mode' }}
-      </span>
+      >
+        <i :class="[mode === 'chat' ? 'fas fa-comment-alt' : 'fas fa-code']"></i>
+      </div>
+      <div>
+        <div class="text-xs text-gray-400">Mode:</div>
+        <div class="text-sm font-medium" :class="[
+          mode === 'chat' ? 'text-violet-400' : 'text-emerald-400'
+        ]">
+          {{ mode === 'chat' ? 'Chat' : 'Build' }}
+          <span v-if="mode === 'build' && selectedFile" class="text-xs ml-1">
+            ({{ fileTypeLabel }})
+          </span>
+        </div>
+      </div>
     </div>
-    
-    <!-- File Indicator (Only in build mode) -->
-    <template v-if="mode === 'build' && selectedFile">
-      <span class="text-gray-500">|</span>
-      <div class="flex items-center gap-1">
-        <i class="fas fa-file-code text-gray-500"></i>
-        <span class="truncate max-w-[150px]">{{ selectedFile.path }}</span>
+
+    <!-- Model information -->
+    <div v-if="selectedModelId" class="flex items-center border-l border-dark-700 pl-3 ml-1">
+      <div
+        class="flex items-center justify-center w-7 h-7 rounded-full mr-2 bg-primary-500/20 text-primary-400"
+      >
+        <i class="fas fa-robot"></i>
       </div>
-    </template>
-    
-    <!-- Model Indicator -->
-    <template v-if="selectedModelId">
-      <span class="text-gray-500">|</span>
-      <div class="flex items-center gap-1">
-        <i class="fas fa-microchip text-gray-500"></i>
-        <span>{{ modelName }}</span>
+      <div>
+        <div class="text-xs text-gray-400">Model:</div>
+        <div class="text-sm font-medium text-primary-400">
+          {{ selectedModelName }}
+        </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BuilderMode } from '../../../types'
 import type { AIModel } from '../../../types/builder'
 
-// Define a compatible type that matches the file interface
 interface SelectedFile {
   path: string;
   type: string;
   content: string;
   lastModified?: string;
-  id?: string;
-  name?: string;
 }
 
-// Props
 const props = defineProps<{
-  mode: BuilderMode
-  selectedFile: SelectedFile | null
-  selectedModelId: string | null
-  availableModels: AIModel[]
-}>()
+  mode: string;
+  selectedModelId: string | null;
+  selectedFile: SelectedFile | null;
+  availableModels: AIModel[];
+}>();
 
-// Computed properties
-const modelName = computed(() => {
-  if (!props.selectedModelId || !props.availableModels?.length) return 'AI Model'
+// Get the selected model name based on the ID
+const selectedModelName = computed(() => {
+  if (!props.selectedModelId) return 'None';
   
-  const model = props.availableModels.find(m => m.id === props.selectedModelId)
-  return model?.name || 'AI Model'
-})
+  const model = props.availableModels.find(m => m.id === props.selectedModelId);
+  return model ? model.name : props.selectedModelId;
+});
+
+// Determine file type label
+const fileTypeLabel = computed(() => {
+  if (!props.selectedFile) return '';
+  
+  const fileName = props.selectedFile.path;
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  const fileTypeMap: Record<string, string> = {
+    'html': 'HTML Template',
+    'htm': 'HTML Template',
+    'django-html': 'Django Template',
+    'jinja': 'Template',
+    'css': 'CSS Stylesheet',
+    'scss': 'SCSS Stylesheet',
+    'js': 'JavaScript',
+    'ts': 'TypeScript',
+    'json': 'JSON',
+    'md': 'Markdown',
+    'py': 'Python'
+  };
+  
+  return fileTypeMap[extension] || extension.toUpperCase();
+});
 </script>
 
 <style scoped>

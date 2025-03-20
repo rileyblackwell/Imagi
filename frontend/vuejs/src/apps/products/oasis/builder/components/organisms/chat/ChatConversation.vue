@@ -141,12 +141,12 @@ onUpdated(() => {
 
 // Debug: Log messages when they change
 watch(() => props.messages, (newMessages) => {
-  console.log('ChatConversation: Messages updated:', newMessages)
+  // console.log('ChatConversation: Messages updated:', newMessages)
 }, { immediate: true, deep: true })
 
 // Mount debugging
 onMounted(() => {
-  console.log('ChatConversation: Component mounted, initial messages:', props.messages)
+  // console.log('ChatConversation: Component mounted, initial messages:', props.messages)
 })
 
 function scrollToBottom() {
@@ -181,11 +181,11 @@ const formatTimestamp = (timestamp: string | number) => {
 
 const formatMessage = (content: string | any) => {
   if (!content) {
-    console.log('formatMessage: Empty content received');
+    // console.log('formatMessage: Empty content received');
     return '';
   }
   
-  console.log('formatMessage: Processing content:', typeof content, content);
+  // console.log('formatMessage: Processing content:', typeof content, content);
   
   try {
     // If content is an object, extract the text content
@@ -193,7 +193,7 @@ const formatMessage = (content: string | any) => {
       (content.content || JSON.stringify(content)) : 
       content;
     
-    console.log('formatMessage: Extracted text content:', textContent);
+    // console.log('formatMessage: Extracted text content:', textContent);
     
     // Configure marked options
     marked.setOptions({
@@ -203,7 +203,7 @@ const formatMessage = (content: string | any) => {
 
     // Parse markdown and sanitize HTML
     const parsedContent = marked.parse(textContent) as string;
-    console.log('formatMessage: Parsed markdown content:', parsedContent.substring(0, 100) + '...');
+    // console.log('formatMessage: Parsed markdown content:', parsedContent.substring(0, 100) + '...');
     
     // Add syntax highlighting classes to code blocks
     const highlightedContent = parsedContent.replace(
@@ -212,7 +212,7 @@ const formatMessage = (content: string | any) => {
     );
     
     const sanitizedContent = DOMPurify.sanitize(highlightedContent);
-    console.log('formatMessage: Final sanitized content:', sanitizedContent.substring(0, 100) + '...');
+    // console.log('formatMessage: Final sanitized content:', sanitizedContent.substring(0, 100) + '...');
     
     return sanitizedContent;
   } catch (error) {

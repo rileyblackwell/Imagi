@@ -425,3 +425,59 @@ class TemplateAgentService(BaseAgentService):
                 'success': False,
                 'error': str(e)
             }
+
+    def process_template(self, prompt, model, user, project_id=None, file_name=None, conversation_id=None):
+        """
+        Process a template generation request.
+        
+        Args:
+            prompt (str): The user's prompt describing the template
+            model (str): The AI model to use (e.g., 'claude-3-5-sonnet-20241022')
+            user: The Django user object
+            project_id (str, optional): The project ID
+            file_name (str, optional): The target file name
+            conversation_id (str, optional): The ID of an existing conversation
+            
+        Returns:
+            dict: A dictionary containing the result, including the generated template
+        """
+        try:
+            # Set the file path for the template
+            file_path = file_name
+            
+            # Call the existing method to handle the template request
+            result = self.handle_template_request(
+                user_input=prompt,
+                model=model,
+                user=user,
+                file_path=file_path,
+                conversation_id=conversation_id
+            )
+            
+            # Extract the generated content and return it in the expected format
+            if result.get('success'):
+                template_content = result.get('response', '')
+                
+                # Clean up the template content if needed
+                cleaned_template = self.fix_template_issues(template_content, file_path)
+                
+                # Return the result with all needed fields
+                return {
+                    'success': True,
+                    'template': cleaned_template,
+                    'file_name': file_path,
+                    'conversation_id': result.get('conversation_id'),
+                    'timestamp': result.get('timestamp')
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Template generation failed')
+                }
+                
+        except Exception as e:
+            print(f"Error in process_template: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }

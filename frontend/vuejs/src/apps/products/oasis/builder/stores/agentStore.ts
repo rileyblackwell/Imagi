@@ -83,7 +83,7 @@ export const useAgentStore = defineStore('agent', {
     },
 
     addMessage(message: AIMessage) {
-      console.log('AgentStore: Adding message to conversation:', message)
+      // console.log('AgentStore: Adding message to conversation:', message)
       
       // Ensure message has valid properties
       const validMessage = {
@@ -99,7 +99,7 @@ export const useAgentStore = defineStore('agent', {
       }
       
       this.conversation.push(validMessage)
-      console.log('AgentStore: Conversation after adding message:', [...this.conversation])
+      // console.log('AgentStore: Conversation after adding message:', [...this.conversation])
     },
 
     clearConversation() {

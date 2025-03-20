@@ -259,3 +259,67 @@ class StylesheetAgentService(BaseAgentService):
                 'success': False,
                 'error': str(e)
             } 
+
+    def process_stylesheet(self, prompt, model, user, project_id=None, file_path=None, conversation_id=None):
+        """
+        Process a stylesheet generation request.
+        
+        Args:
+            prompt (str): The user's prompt describing the desired stylesheet
+            model (str): The AI model to use (e.g., 'claude-3-5-sonnet-20241022')
+            user: The Django user object
+            project_id (str, optional): The project ID
+            file_path (str, optional): The target file path
+            conversation_id (str, optional): The ID of an existing conversation
+            
+        Returns:
+            dict: A dictionary containing the result, including the generated stylesheet
+        """
+        try:
+            # Set default file path if not provided
+            if not file_path:
+                file_path = 'static/css/styles.css'
+            
+            # Call the existing method to handle the stylesheet request
+            result = self.handle_stylesheet_request(
+                user_input=prompt,
+                model=model,
+                user=user,
+                file_path=file_path,
+                conversation_id=conversation_id
+            )
+            
+            # Extract the generated content and return it in the expected format
+            if result.get('success'):
+                stylesheet_content = result.get('response', '')
+                
+                # Validate and clean the CSS content
+                try:
+                    # Parse CSS to validate it 
+                    css_parser = cssutils.parseString(stylesheet_content)
+                    # Converting back to string ensures proper formatting
+                    validated_stylesheet = css_parser.cssText.decode('utf-8')
+                except:
+                    # If parsing fails, use the original stylesheet
+                    validated_stylesheet = stylesheet_content
+                
+                # Return the result with all needed fields
+                return {
+                    'success': True,
+                    'stylesheet': validated_stylesheet,
+                    'file_name': file_path,
+                    'conversation_id': result.get('conversation_id'),
+                    'timestamp': result.get('timestamp')
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Stylesheet generation failed')
+                }
+                
+        except Exception as e:
+            print(f"Error in process_stylesheet: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            } 

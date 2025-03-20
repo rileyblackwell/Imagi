@@ -205,21 +205,8 @@ export const AgentService = {
         mode: data.mode || 'chat'
       }
       
-      console.log('AgentService: Sending chat request with payload:', payload)
-      
       // Use the chat endpoint from agents/api - ensure the path is correct
       const response = await api.post('/api/v1/agents/chat/', payload)
-      
-      // Full response logging for debugging
-      console.log('AgentService: Full chat API response:', response.data)
-      
-      // Log successful response 
-      console.log('AgentService: Chat API response status:', {
-        status: response.status,
-        conversation_id: response.data.conversation_id,
-        has_response: !!response.data.response,
-        response_length: response.data.response ? response.data.response.length : 0
-      })
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
@@ -255,11 +242,6 @@ export const AgentService = {
         code: response.data.code || null
       };
       
-      console.log('AgentService: Created formatted messages:', {
-        userMessage,
-        assistantMessage
-      })
-
       // Process and return the response data in the expected format
       return {
         response: assistantResponse,

@@ -126,21 +126,21 @@ const props = defineProps<{
 
 // Ensure all messages have required properties
 const validatedMessages = computed(() => {
-  console.log('WorkspaceChat: Validating incoming messages:', props.messages)
+  // console.log('WorkspaceChat: Validating incoming messages:', props.messages)
   
   if (!props.messages || !Array.isArray(props.messages) || props.messages.length === 0) {
-    console.log('WorkspaceChat: No valid messages array received or empty array')
+    // console.log('WorkspaceChat: No valid messages array received or empty array')
     return []
   }
   
   const processed = props.messages.map(message => {
-    console.log('WorkspaceChat: Processing message:', message)
+    // console.log('WorkspaceChat: Processing message:', message)
     
     // Ensure each message has valid content
     let content = message.content
     if (content && typeof content === 'string' && content.includes('…')) {
       // Fix truncated content (caused by console logging)
-      console.log('WorkspaceChat: Found truncated content, using original')
+      // console.log('WorkspaceChat: Found truncated content, using original')
       content = message.content
     }
     
@@ -154,7 +154,7 @@ const validatedMessages = computed(() => {
     };
   });
   
-  console.log('WorkspaceChat: Validated messages result:', processed)
+  // console.log('WorkspaceChat: Validated messages result:', processed)
   return processed;
 });
 

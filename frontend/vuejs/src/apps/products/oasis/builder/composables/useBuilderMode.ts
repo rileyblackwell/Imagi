@@ -81,13 +81,39 @@ export function useBuilderMode() {
         timestamp: new Date().toISOString()
       })
 
-      // Call the agent service to generate code
-      const response = await AgentService.generateCode(projectId, {
-        prompt,
-        mode: store.mode,
-        model: modelId,
-        file_path: file.path
-      })
+      // Determine file type to use appropriate API endpoint
+      const fileExtension = file.path.split('.').pop()?.toLowerCase() || '';
+      
+      console.log(`Builder mode: Processing ${file.path} with extension ${fileExtension}`);
+      
+      let response;
+      
+      // Call the appropriate service method based on file type
+      if (fileExtension === 'css') {
+        console.log('Builder mode: Using stylesheet endpoint for CSS file');
+        response = await AgentService.generateStylesheet(projectId, {
+          prompt,
+          model: modelId,
+          file_path: file.path
+        });
+      } else if (['html', 'htm', 'django-html', 'jinja', 'tpl'].includes(fileExtension)) {
+        console.log('Builder mode: Using template endpoint for HTML file');
+        response = await AgentService.generateCode(projectId, {
+          prompt,
+          mode: store.mode,
+          model: modelId,
+          file_path: file.path
+        });
+      } else {
+        // For other file types, use the general code generation endpoint
+        console.log(`Builder mode: Using general code endpoint for ${fileExtension} file`);
+        response = await AgentService.generateCode(projectId, {
+          prompt,
+          mode: store.mode,
+          model: modelId,
+          file_path: file.path
+        });
+      }
 
       // Add assistant response to conversation
       if (response) {

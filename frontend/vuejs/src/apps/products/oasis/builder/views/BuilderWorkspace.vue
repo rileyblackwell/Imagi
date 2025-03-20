@@ -147,10 +147,10 @@ const promptPlaceholder = computed(() =>
 
 // Methods
 function ensureValidMessages(messages: any[]): AIMessage[] {
-  console.log('BuilderWorkspace: Ensuring valid messages, received:', messages)
+  // console.log('BuilderWorkspace: Ensuring valid messages, received:', messages)
   
   if (!messages || !Array.isArray(messages)) {
-    console.log('BuilderWorkspace: No valid messages array received')
+    // console.log('BuilderWorkspace: No valid messages array received')
     return []
   }
   
@@ -162,7 +162,7 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
       
       // If content ends with ellipsis from console.log truncation, use the original
       if (typeof content === 'string' && content.includes('…')) {
-        console.log('BuilderWorkspace: Found truncated content in message, working with full content');
+        // console.log('BuilderWorkspace: Found truncated content in message, working with full content');
       }
       
       // Generate a new id if not present to force proper rendering
@@ -177,7 +177,7 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
       };
     }) as AIMessage[];
   
-  console.log('BuilderWorkspace: Processed valid messages:', validMessages)
+  // console.log('BuilderWorkspace: Processed valid messages:', validMessages)
   return validMessages
 }
 
