@@ -224,6 +224,9 @@ def chat(request):
         
         # Process result
         if result.get('success'):
+            # Log the result for debugging
+            print(f"Chat API success - Response data preview: {result['response'][:100]}")
+            
             # Prepare the response data with user and assistant messages
             response_data = {
                 'success': True,
@@ -240,6 +243,8 @@ def chat(request):
                     'timestamp': result.get('timestamp')
                 }
             }
+            
+            print(f"Chat API sending response with: conversation_id={result['conversation_id']}, response_length={len(result['response'])}")
             
             serializer = MessageResponseSerializer(response_data)
             return Response(serializer.data)

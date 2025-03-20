@@ -5,14 +5,12 @@ This module provides a specialized agent service for chat-based interactions,
 allowing users to have natural language conversations about their web applications.
 """
 
-import json
 import logging
 import os
 import datetime
 from dotenv import load_dotenv
 from .agent_service import BaseAgentService
 from ..models import AgentConversation, SystemPrompt, AgentMessage
-from django.shortcuts import get_object_or_404
 import openai
 import anthropic
 from apps.Payments.services import PaymentService

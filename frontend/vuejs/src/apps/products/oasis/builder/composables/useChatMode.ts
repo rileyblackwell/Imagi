@@ -4,7 +4,7 @@ import { AgentService } from '../services/agentService'
 import axios from 'axios'
 
 interface ConversationMessage {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'system'
   content: string
   code?: string
   timestamp: string
@@ -36,38 +36,54 @@ export function useChatMode() {
         throw new Error('No project selected')
       }
 
+      // Debug: Log conversation state before adding message
+      console.log('Chat conversation before user message:', [...store.conversation])
+
       // Add user message to conversation
-      store.addMessage({
-        role: 'user',
+      const userMessage = {
+        role: 'user' as const,
         content: params.prompt,
         timestamp: new Date().toISOString()
-      })
+      };
+      
+      store.addMessage(userMessage);
+      
+      // Debug: Log conversation state after adding user message
+      console.log('Chat conversation after user message:', [...store.conversation])
 
       // Call the agent service
+      console.log('Sending chat request to backend with params:', {
+        prompt: params.prompt,
+        modelId: params.modelId,
+        projectId: params.projectId
+      })
+      
       const response = await AgentService.processChat(params.projectId, {
         prompt: params.prompt,
         model: params.modelId,
         mode: store.mode
       })
 
-      // Add assistant response to conversation
-      if (response && response.messages && response.messages.length >= 2) {
-        // Extract the assistant message (second element)
-        const assistantMessage = response.messages[1];
-        
-        store.addMessage({
-          role: 'assistant',
-          content: assistantMessage.content || response.response,
-          timestamp: assistantMessage.timestamp || new Date().toISOString(),
-          code: assistantMessage.code
-        })
-      } else if (response && response.response) {
-        // Fallback if messages array is not properly structured
-        store.addMessage({
-          role: 'assistant',
+      // Debug: Log the response from the backend
+      console.log('Received chat response from backend:', response)
+
+      // Make sure we have a valid response
+      if (response && response.response) {
+        // Add assistant response to conversation
+        const assistantMessage = {
+          role: 'assistant' as const,
           content: response.response,
-          timestamp: new Date().toISOString()
-        })
+          timestamp: new Date().toISOString(),
+          code: response.messages && response.messages[1] && response.messages[1].code
+        };
+        
+        console.log('Adding assistant message to conversation:', assistantMessage)
+        store.addMessage(assistantMessage);
+        
+        // Debug: Log conversation state after adding assistant message
+        console.log('Chat conversation after assistant message:', [...store.conversation])
+      } else {
+        console.error('Invalid response format:', response);
       }
 
       return response

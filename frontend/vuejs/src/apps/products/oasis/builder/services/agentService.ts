@@ -205,14 +205,20 @@ export const AgentService = {
         mode: data.mode || 'chat'
       }
       
+      console.log('AgentService: Sending chat request with payload:', payload)
+      
       // Use the chat endpoint from agents/api - ensure the path is correct
       const response = await api.post('/api/v1/agents/chat/', payload)
       
+      // Full response logging for debugging
+      console.log('AgentService: Full chat API response:', response.data)
+      
       // Log successful response 
-      console.log('Chat API response:', {
+      console.log('AgentService: Chat API response status:', {
         status: response.status,
         conversation_id: response.data.conversation_id,
-        has_response: !!response.data.response
+        has_response: !!response.data.response,
+        response_length: response.data.response ? response.data.response.length : 0
       })
       
       // Store the conversation ID for future requests
@@ -220,13 +226,44 @@ export const AgentService = {
         localStorage.setItem(`chat_conversation_${projectId}`, response.data.conversation_id)
       }
 
+      // Create properly formatted user and assistant messages
+      const userMessage = {
+        role: 'user',
+        content: data.prompt,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Extract assistant response, ensuring it's not empty
+      const assistantResponse = response.data.response || '';
+      
+      if (!assistantResponse) {
+        console.warn('AgentService: Empty assistant response received from API')
+      }
+      
+      // Additional validation for response format
+      let validatedResponse = assistantResponse;
+      // If not a string, convert to string
+      if (typeof validatedResponse !== 'string') {
+        console.warn('AgentService: Non-string response received:', validatedResponse);
+        validatedResponse = JSON.stringify(validatedResponse);
+      }
+      
+      const assistantMessage = {
+        role: 'assistant',
+        content: validatedResponse,
+        timestamp: new Date().toISOString(),
+        code: response.data.code || null
+      };
+      
+      console.log('AgentService: Created formatted messages:', {
+        userMessage,
+        assistantMessage
+      })
+
       // Process and return the response data in the expected format
       return {
-        response: response.data.response,
-        messages: [
-          response.data.user_message,
-          response.data.assistant_message
-        ]
+        response: assistantResponse,
+        messages: [userMessage, assistantMessage]
       }
     } catch (error: any) {
       console.error('Chat API error:', error)

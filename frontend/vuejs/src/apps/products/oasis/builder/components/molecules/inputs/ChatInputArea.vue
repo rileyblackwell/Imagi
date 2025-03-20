@@ -1,40 +1,39 @@
 <template>
   <div class="chat-input-wrapper">
     <!-- Examples section if needed -->
-    <slot name="examples" v-if="false"></slot>
+    <slot name="examples" v-if="showExamples"></slot>
     
     <div class="relative">
       <!-- Mode indicator above input -->
-      <div class="mb-2 flex justify-between items-center">
+      <div class="mb-3 flex justify-between items-center">
         <slot name="mode-indicator"></slot>
       </div>
       
-      <!-- Input form with iMessage/ChatGPT like design -->
+      <!-- Input form with improved design -->
       <form @submit.prevent="handleSubmit" class="relative">
-        <div class="flex items-end space-x-2">
-          <!-- Main textarea with auto-grow functionality -->
+        <div class="relative rounded-xl bg-dark-800/90 border transition-all duration-200 shadow-lg"
+          :class="[
+            isTyping || isFocused 
+              ? 'border-primary-500/50 ring-2 ring-primary-500/10' 
+              : 'border-dark-700/80 hover:border-dark-600/80'
+          ]"
+        >
+          <!-- Typing indicator dots when processing -->
           <div 
-            class="flex-grow relative rounded-2xl bg-dark-800 border transition-all duration-200"
-            :class="[
-              isTyping || isFocused 
-                ? 'border-primary-500/70 ring-2 ring-primary-500/20' 
-                : 'border-dark-700 hover:border-dark-600'
-            ]"
+            v-if="isProcessing" 
+            class="absolute left-5 top-1/2 -translate-y-1/2 flex items-center space-x-1.5"
           >
-            <!-- Typing indicator dots when processing -->
-            <div 
-              v-if="isProcessing" 
-              class="absolute left-4 top-3.5 flex items-center space-x-1"
-            >
-              <div v-for="i in 3" :key="i" class="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-70 animate-pulse" :style="{ animationDelay: `${i * 150}ms` }"></div>
-            </div>
-            
+            <div v-for="i in 3" :key="i" class="w-2 h-2 rounded-full bg-primary-500 opacity-80 animate-typing-pulse" :style="{ animationDelay: `${i * 150}ms` }"></div>
+          </div>
+          
+          <div class="relative">
             <textarea 
               ref="inputRef"
               v-model="localValue"
               :placeholder="isProcessing ? 'AI is thinking...' : placeholder"
-              class="w-full bg-transparent text-white resize-none p-3 pr-12 rounded-2xl focus:outline-none max-h-60 transition-all"
-              :rows="Math.min(5, rows)"
+              class="w-full bg-transparent text-white resize-none p-4 pr-14 rounded-xl focus:outline-none transition-all"
+              :class="{'min-h-[60px]': rows <= 1, 'max-h-60 overflow-y-auto': rows > 1}"
+              :style="{'height': textareaHeight}"
               :disabled="isProcessing"
               @input="autoGrow"
               @keydown="handleKeydown"
@@ -42,14 +41,14 @@
               @blur="isFocused = false"
             ></textarea>
             
-            <!-- Submit button inside the input area -->
+            <!-- Submit button with improved design -->
             <button 
               type="submit"
-              class="absolute right-3 bottom-3 p-2 text-white rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              class="absolute right-3 bottom-3 p-2.5 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               :class="[
                 canSubmit && !isProcessing 
-                  ? 'bg-primary-500 hover:bg-primary-600 scale-100' 
-                  : 'bg-gray-500 scale-95'
+                  ? 'bg-primary-500 hover:bg-primary-600 scale-100 shadow-md' 
+                  : 'bg-gray-600 scale-95'
               ]"
               :disabled="!canSubmit || isProcessing"
               aria-label="Send message"
@@ -60,11 +59,11 @@
         </div>
         
         <!-- Keyboard shortcuts hint -->
-        <div class="mt-2 flex justify-end">
-          <div class="text-xs text-gray-500 flex items-center">
-            <span>Press <kbd class="px-1.5 py-0.5 bg-dark-800 rounded border border-dark-700 text-gray-400 mx-1">Enter</kbd> to send</span>
+        <div class="mt-2.5 flex justify-end">
+          <div class="text-xs text-gray-500 flex items-center opacity-70 hover:opacity-100 transition-opacity">
+            <span>Press <kbd class="px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/80 text-gray-400 mx-1">Enter</kbd> to send</span>
             <span class="mx-2">•</span>
-            <span>Use <kbd class="px-1.5 py-0.5 bg-dark-800 rounded border border-dark-700 text-gray-400 mx-1">Shift</kbd> + <kbd class="px-1.5 py-0.5 bg-dark-800 rounded border border-dark-700 text-gray-400 mx-1">Enter</kbd> for new line</span>
+            <span>Use <kbd class="px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/80 text-gray-400 mx-1">Shift</kbd> + <kbd class="px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/80 text-gray-400 mx-1">Enter</kbd> for new line</span>
           </div>
         </div>
       </form>
@@ -105,6 +104,7 @@ const emit = defineEmits(['update:modelValue', 'submit', 'examples'])
 // Local state
 const localValue = ref(props.modelValue)
 const rows = ref(1)
+const textareaHeight = ref('60px')
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 const isFocused = ref(props.focused)
 const isTyping = ref(false)
@@ -116,6 +116,7 @@ const canSubmit = computed(() => localValue.value.trim().length > 0)
 // Watch for external changes
 watch(() => props.modelValue, (newValue) => {
   localValue.value = newValue
+  nextTick(() => autoGrow())
 })
 
 // Update parent model
@@ -150,21 +151,39 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 function autoGrow() {
+  if (!inputRef.value) return
+  
+  // Store the current scroll position
+  const scrollPos = window.scrollY
+  
   // Reset height to calculate properly
-  if (inputRef.value) {
-    inputRef.value.style.height = 'auto'
-    const newHeight = inputRef.value.scrollHeight
-    inputRef.value.style.height = `${newHeight}px`
-    
-    // Calculate rows based on line height (approx 24px per line)
-    rows.value = Math.ceil(newHeight / 24)
-  }
+  inputRef.value.style.height = 'auto'
+  
+  // Get the scroll height (content height)
+  const scrollHeight = inputRef.value.scrollHeight
+  
+  // Set the new height with proper constraints
+  const minHeight = 60
+  const maxHeight = 200
+  const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight)
+  
+  // Update the height
+  textareaHeight.value = `${newHeight}px`
+  inputRef.value.style.height = textareaHeight.value
+  
+  // Calculate rows based on line height (approx 24px per line)
+  rows.value = Math.ceil(scrollHeight / 24)
+  
+  // Restore scroll position
+  window.scrollTo(0, scrollPos)
 }
 
 // Focus the input when the component is mounted
 onMounted(async () => {
+  await nextTick()
+  autoGrow()
+  
   if (props.focused && inputRef.value) {
-    await nextTick()
     inputRef.value.focus()
   }
 })
@@ -186,6 +205,7 @@ onBeforeUnmount(() => {
 textarea {
   scrollbar-width: thin;
   scrollbar-color: theme('colors.dark.700') transparent;
+  transition: height 0.15s ease;
 }
 
 textarea::-webkit-scrollbar {
@@ -202,12 +222,12 @@ textarea::-webkit-scrollbar-thumb {
 }
 
 /* Animated typing indicator */
-@keyframes pulse {
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+@keyframes typing-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1); }
 }
 
-.animate-pulse {
-  animation: pulse 1.5s ease-in-out infinite;
+.animate-typing-pulse {
+  animation: typing-pulse 1.5s ease-in-out infinite;
 }
 </style> 

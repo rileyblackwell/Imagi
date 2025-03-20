@@ -83,7 +83,23 @@ export const useAgentStore = defineStore('agent', {
     },
 
     addMessage(message: AIMessage) {
-      this.conversation.push(message)
+      console.log('AgentStore: Adding message to conversation:', message)
+      
+      // Ensure message has valid properties
+      const validMessage = {
+        ...message,
+        role: message.role || 'user',
+        content: message.content || '',
+        timestamp: message.timestamp || new Date().toISOString()
+      }
+      
+      // Check for truncated content with ellipsis that might come from console logs
+      if (validMessage.content && validMessage.content.includes('…')) {
+        console.warn('AgentStore: Message content contains truncation characters (…)')
+      }
+      
+      this.conversation.push(validMessage)
+      console.log('AgentStore: Conversation after adding message:', [...this.conversation])
     },
 
     clearConversation() {

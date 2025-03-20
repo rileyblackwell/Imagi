@@ -26,20 +26,22 @@
     </div>
 
     <!-- Chat Conversation Area -->
-    <div class="flex-1 overflow-auto px-4 py-2">
-      <div class="max-w-4xl mx-auto">
-        <ChatConversation 
-          :messages="validatedMessages" 
-          @use-example="$emit('use-example', $event)"
-          @apply-code="handleApplyCode"
-        />
+    <div class="flex-1 overflow-hidden relative">
+      <div class="absolute inset-0 p-2">
+        <div class="max-w-4xl mx-auto h-full relative z-20">
+          <ChatConversation 
+            :messages="validatedMessages" 
+            @use-example="$emit('use-example', $event)"
+            @apply-code="handleApplyCode"
+          />
+        </div>
       </div>
     </div>
 
     <!-- AI Input Area -->
     <div 
-      class="shrink-0 p-4 border-t border-dark-700/50 bg-dark-900/80 backdrop-blur-md shadow-lg relative"
-      :class="{'opacity-50 pointer-events-none': isProcessing}"
+      class="shrink-0 p-4 border-t border-dark-700/50 bg-dark-900/80 backdrop-blur-md shadow-lg relative z-10"
+      :class="{'opacity-60 pointer-events-none': isProcessing}"
     >
       <!-- Gradient header line -->
       <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary-500/30 to-transparent"></div>
@@ -124,15 +126,36 @@ const props = defineProps<{
 
 // Ensure all messages have required properties
 const validatedMessages = computed(() => {
-  return props.messages.map(message => {
+  console.log('WorkspaceChat: Validating incoming messages:', props.messages)
+  
+  if (!props.messages || !Array.isArray(props.messages) || props.messages.length === 0) {
+    console.log('WorkspaceChat: No valid messages array received or empty array')
+    return []
+  }
+  
+  const processed = props.messages.map(message => {
+    console.log('WorkspaceChat: Processing message:', message)
+    
+    // Ensure each message has valid content
+    let content = message.content
+    if (content && typeof content === 'string' && content.includes('…')) {
+      // Fix truncated content (caused by console logging)
+      console.log('WorkspaceChat: Found truncated content, using original')
+      content = message.content
+    }
+    
     // Ensure each message has at least role, content, and timestamp
     return {
       role: message.role || 'user',
-      content: message.content || '',
+      content: content || '',
       timestamp: message.timestamp || Date.now(),
-      code: message.code || undefined
+      code: message.code || undefined,
+      id: message.id || `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
   });
+  
+  console.log('WorkspaceChat: Validated messages result:', processed)
+  return processed;
 });
 
 // Emits
@@ -193,5 +216,35 @@ function handleApplyCode(code: string) {
 
 .animate-float-slow-reverse {
   animation: float-slow-reverse 25s ease-in-out infinite;
+}
+
+/* Smooth transitions for chat UI */
+.flex-1 {
+  transition: height 0.3s ease-in-out;
+}
+
+/* Smooth fade-in for new messages */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Improve scrollbar styles */
+.overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.dark.700') transparent;
+}
+
+.overflow-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background-color: theme('colors.dark.700');
+  border-radius: 9999px;
 }
 </style> 
