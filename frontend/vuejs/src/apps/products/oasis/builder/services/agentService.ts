@@ -188,15 +188,8 @@ export const AgentService = {
     response: string;
     messages: any[];
   }> {
-    // Check rate limits before making request
-    await this.checkRateLimit(data.model)
-    
-    // Validate message length
-    const config = this.getConfig({ id: data.model } as AIModel)
-    const estimatedTokens = this.estimateTokens(data.prompt)
-    
-    if (estimatedTokens > config.maxTokens) {
-      throw new Error(`Message is too long for selected model. Please reduce length or choose a different model.`)
+    if (!projectId) {
+      throw new Error('Project ID is required')
     }
 
     try {
@@ -208,7 +201,8 @@ export const AgentService = {
         message: data.prompt,
         model: data.model,
         project_id: projectId,
-        conversation_id: storedConversationId || undefined
+        conversation_id: storedConversationId || undefined,
+        mode: data.mode || 'chat'
       }
       
       // Use the chat endpoint from agents/api - ensure the path is correct
@@ -225,7 +219,8 @@ export const AgentService = {
       if (response.data.conversation_id) {
         localStorage.setItem(`chat_conversation_${projectId}`, response.data.conversation_id)
       }
-      
+
+      // Process and return the response data in the expected format
       return {
         response: response.data.response,
         messages: [

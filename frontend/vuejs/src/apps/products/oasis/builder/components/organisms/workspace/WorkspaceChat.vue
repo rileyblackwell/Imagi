@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineProps, defineEmits, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ChatConversation } from '../../organisms/chat'
 import { ChatInputArea } from '../../molecules'
 import { ModeIndicator } from '../../molecules/display'

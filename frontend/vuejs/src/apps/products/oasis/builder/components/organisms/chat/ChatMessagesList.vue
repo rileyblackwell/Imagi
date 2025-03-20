@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, onUpdated, nextTick, ref } from 'vue';
+import { onUpdated, nextTick, ref } from 'vue';
 import type { AIMessage } from '../../../types';
 
 const props = defineProps<{

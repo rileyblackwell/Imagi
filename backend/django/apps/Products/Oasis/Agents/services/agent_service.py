@@ -39,8 +39,8 @@ anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 # Add model costs constants
 MODEL_COSTS = {
-    'claude-3-5-sonnet-20241022': 0.10,  # $0.10 per request
-    'gpt-4': 0.10,  # $0.10 per request
+    'claude-3-5-sonnet-20241022': 0.04,  # $0.10 per request
+    'gpt-4': 0.04,  # $0.10 per request
     'gpt-4-mini': 0.005  # $0.005 per request
 }
 
@@ -829,8 +829,7 @@ When generating code, focus on:
             user: The Django user object
             system_prompt_content (str, optional): Content for a new system prompt
             **kwargs: Additional arguments for specialized processing
-            
-        Returns:
+                    Returns:
             dict: The result of the operation, including success status and response
         """
         try:

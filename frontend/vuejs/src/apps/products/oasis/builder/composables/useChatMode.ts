@@ -19,35 +19,39 @@ export function useChatMode() {
   const credits = ref<number | null>(null)
   const conversationHistory = ref<ConversationMessage[]>([])
 
-  const sendMessage = async (message: string) => {
-    if (!store.selectedModel) {
+  const sendMessage = async (params: {
+    prompt: string;
+    projectId: string;
+    file?: any;
+    modelId: string;
+  }) => {
+    if (!params.modelId) {
       throw new Error('Please select an AI model first')
     }
 
     store.$patch({ isProcessing: true, error: null })
 
     try {
-      if (!store.projectId) {
+      if (!params.projectId) {
         throw new Error('No project selected')
       }
 
       // Add user message to conversation
       store.addMessage({
         role: 'user',
-        content: message,
+        content: params.prompt,
         timestamp: new Date().toISOString()
       })
 
       // Call the agent service
-      const response = await AgentService.processChat(store.projectId, {
-        prompt: message,
-        model: store.selectedModel.id,
+      const response = await AgentService.processChat(params.projectId, {
+        prompt: params.prompt,
+        model: params.modelId,
         mode: store.mode
       })
 
       // Add assistant response to conversation
       if (response && response.messages && response.messages.length >= 2) {
-        // The backend should return both the user message and assistant message
         // Extract the assistant message (second element)
         const assistantMessage = response.messages[1];
         

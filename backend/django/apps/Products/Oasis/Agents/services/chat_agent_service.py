@@ -5,14 +5,23 @@ This module provides a specialized agent service for chat-based interactions,
 allowing users to have natural language conversations about their web applications.
 """
 
+import json
+import logging
+import os
+import datetime
 from dotenv import load_dotenv
 from .agent_service import BaseAgentService
 from ..models import AgentConversation, SystemPrompt, AgentMessage
 from django.shortcuts import get_object_or_404
-import os
+import openai
+import anthropic
+from apps.Payments.services import PaymentService
 
 # Load environment variables from .env
 load_dotenv()
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class ChatAgentService(BaseAgentService):
     """
@@ -21,6 +30,30 @@ class ChatAgentService(BaseAgentService):
     This service handles natural language conversations with users about their
     web applications, providing explanations, suggestions, and guidance.
     """
+    
+    def __init__(self):
+        """Initialize the chat agent service with API keys"""
+        super().__init__()
+        self.openai_api_key = os.getenv("OPENAI_KEY")
+        self.anthropic_api_key = os.getenv("ANTHROPIC_KEY")
+        
+        # Initialize clients only if keys are available
+        self.openai_client = None
+        self.anthropic_client = None
+        
+        if self.openai_api_key:
+            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
+        
+        if self.anthropic_api_key:
+            self.anthropic_client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            
+        self.payment_service = PaymentService()
+        
+        # Log warning if API keys are missing
+        if not self.openai_api_key:
+            logger.warning("OpenAI API key not found. OpenAI models will not be available.")
+        if not self.anthropic_api_key:
+            logger.warning("Anthropic API key not found. Anthropic models will not be available.")
     
     def get_system_prompt(self):
         """
@@ -49,13 +82,221 @@ class ChatAgentService(BaseAgentService):
                 "5. Focus on modern web design principles and best practices.\n\n"
                 
                 "Remember:\n"
-                "- You can see all project files in the conversation history.\n"
-                "- Users may switch between different files during the conversation.\n"
-                "- Your goal is to help users create professional, modern web applications.\n"
-                "- Always maintain a helpful, professional tone."
+                "- You don't need to prefix your responses with 'As a web development assistant' or similar phrases.\n"
+                "- Give direct, practical advice rather than general platitudes.\n"
+                "- If you're not sure about something, say so rather than making up information.\n"
+                "- Use markdown for formatting when it enhances clarity.\n"
             )
         }
 
+    def get_model_info(self, model_id):
+        """
+        Get information about the selected model.
+        
+        Args:
+            model_id (str): The ID of the model to use
+            
+        Returns:
+            dict: Information about the model including provider, name, and cost
+        """
+        model_costs = {
+            # OpenAI models
+            'gpt-4': {'provider': 'openai', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00006},
+            'gpt-4o': {'provider': 'openai', 'cost_per_token': 0.00002, 'output_cost_per_token': 0.00004},
+            'gpt-4o-mini': {'provider': 'openai', 'cost_per_token': 0.00001, 'output_cost_per_token': 0.00002},
+            
+            # Anthropic models
+            'claude-2': {'provider': 'anthropic', 'cost_per_token': 0.00002, 'output_cost_per_token': 0.00006},
+            'claude-3-5-sonnet-20241022': {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015}
+        }
+        
+        return model_costs.get(model_id, {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015})
+    
+    def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None):
+        """
+        Process a chat message and generate a response.
+        
+        Args:
+            user_input (str): The user's message
+            model_id (str): The ID of the model to use
+            user (User): The Django user making the request
+            conversation_id (str, optional): The ID of an existing conversation
+            project_path (str, optional): The project path for context
+            
+        Returns:
+            dict: The result of processing the message including the response and metadata
+        """
+        try:
+            # Get model information
+            model_info = self.get_model_info(model_id)
+            provider = model_info['provider']
+            
+            # Check if required API client is available
+            if provider == 'openai' and not self.openai_client:
+                return {
+                    'success': False,
+                    'error': 'OpenAI API key not configured. Please contact support.'
+                }
+            elif provider == 'anthropic' and not self.anthropic_client:
+                return {
+                    'success': False,
+                    'error': 'Anthropic API key not configured. Please contact support.'
+                }
+            
+            # Get or create conversation
+            if conversation_id:
+                try:
+                    conversation = AgentConversation.objects.get(id=conversation_id, user=user)
+                except AgentConversation.DoesNotExist:
+                    return {
+                        'success': False,
+                        'error': 'Conversation not found'
+                    }
+            else:
+                conversation = AgentConversation.objects.create(
+                    user=user,
+                    model_name=model_id
+                )
+                
+                # Create system prompt for new conversation
+                system_prompt = self.get_system_prompt()
+                SystemPrompt.objects.create(
+                    conversation=conversation,
+                    content=system_prompt['content']
+                )
+            
+            # Add user message to conversation
+            timestamp = datetime.datetime.now().isoformat()
+            user_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='user',
+                content=user_input
+            )
+            
+            # Get conversation history
+            system_prompt_obj = SystemPrompt.objects.filter(conversation=conversation).first()
+            messages = []
+            
+            # Add system prompt if it exists
+            if system_prompt_obj:
+                messages.append({"role": "system", "content": system_prompt_obj.content})
+            
+            # Add previous messages from this conversation
+            previous_messages = AgentMessage.objects.filter(conversation=conversation).order_by('created_at')
+            for msg in previous_messages:
+                messages.append({"role": msg.role, "content": msg.content})
+            
+            # Generate response based on provider
+            if provider == 'openai':
+                response_content = self._generate_openai_response(messages, model_id)
+            else:  # default to anthropic
+                response_content = self._generate_anthropic_response(messages, model_id)
+            
+            # Save assistant response to database
+            assistant_message = AgentMessage.objects.create(
+                conversation=conversation,
+                role='assistant',
+                content=response_content
+            )
+            
+            # Calculate and charge for token usage
+            estimated_input_tokens = len(' '.join([msg['content'] for msg in messages])) // 4
+            estimated_output_tokens = len(response_content) // 4
+            
+            total_cost = (
+                estimated_input_tokens * model_info['cost_per_token'] +
+                estimated_output_tokens * model_info['output_cost_per_token']
+            )
+            
+            # Charge the user for the request
+            try:
+                self.payment_service.charge_tokens(user, total_cost)
+            except Exception as payment_error:
+                logger.error(f"Payment error (continuing anyway): {str(payment_error)}")
+            
+            # Log token usage
+            logger.info(f"Token usage: input={estimated_input_tokens}, output={estimated_output_tokens}, cost=${total_cost:.6f}")
+            
+            # Return the result
+            return {
+                'success': True,
+                'conversation_id': str(conversation.id),
+                'response': response_content,
+                'timestamp': timestamp
+            }
+            
+        except Exception as e:
+            logger.error(f"Error processing chat message: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    def _generate_openai_response(self, messages, model_id):
+        """
+        Generate a response using OpenAI's API.
+        
+        Args:
+            messages (list): List of message dictionaries
+            model_id (str): The ID of the OpenAI model to use
+            
+        Returns:
+            str: The generated response text
+        """
+        try:
+            response = self.openai_client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                temperature=0.7,
+                max_tokens=2048
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"OpenAI API error: {str(e)}")
+            raise
+    
+    def _generate_anthropic_response(self, messages, model_id):
+        """
+        Generate a response using Anthropic's API.
+        
+        Args:
+            messages (list): List of message dictionaries
+            model_id (str): The ID of the Anthropic model to use
+            
+        Returns:
+            str: The generated response text
+        """
+        try:
+            # Convert messages to Anthropic format
+            system_content = None
+            anthropic_messages = []
+            
+            for message in messages:
+                if message['role'] == 'system':
+                    system_content = message['content']
+                else:
+                    anthropic_messages.append({
+                        'role': message['role'],
+                        'content': message['content']
+                    })
+            
+            # Create the message with Anthropic's API
+            response = self.anthropic_client.messages.create(
+                model=model_id,
+                messages=anthropic_messages,
+                system=system_content,
+                max_tokens=2048,
+                temperature=0.7
+            )
+            
+            return response.content[0].text
+            
+        except Exception as e:
+            logger.error(f"Anthropic API error: {str(e)}")
+            raise
+            
     def validate_response(self, content):
         """
         Validate chat response.
@@ -67,253 +308,4 @@ class ChatAgentService(BaseAgentService):
         Returns:
             tuple: (is_valid, error_message)
         """
-        return True, None
-
-    def build_chat_conversation_history(self, project_path, messages):
-        """
-        Build a complete conversation history including all project files.
-        
-        Args:
-            project_path (str): Path to the project directory
-            messages (list): Existing conversation messages
-            
-        Returns:
-            list: A list of message dictionaries with 'role' and 'content' keys
-        """
-        api_messages = []
-        
-        # 1. Add system prompt
-        api_messages.append(self.get_system_prompt())
-        
-        # 2. Add all project files
-        if project_path:
-            templates_dir = os.path.join(project_path, 'templates')
-            css_dir = os.path.join(project_path, 'static', 'css')
-            
-            # Add HTML files
-            if os.path.exists(templates_dir):
-                html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
-                html_files.sort()
-                
-                # Ensure base.html is first, followed by index.html
-                if 'base.html' in html_files:
-                    html_files.remove('base.html')
-                    html_files.insert(0, 'base.html')
-                if 'index.html' in html_files:
-                    html_files.remove('index.html')
-                    html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
-                
-                for filename in html_files:
-                    file_path = os.path.join(templates_dir, filename)
-                    try:
-                        with open(file_path, 'r') as f:
-                            content = f.read()
-                            api_messages.append({
-                                "role": "assistant",
-                                "content": f"[File: {filename}]\n{content}"
-                            })
-                    except FileNotFoundError:
-                        continue
-            
-            # Add CSS file
-            css_path = os.path.join(css_dir, 'styles.css')
-            if os.path.exists(css_path):
-                try:
-                    with open(css_path, 'r') as f:
-                        content = f.read()
-                        api_messages.append({
-                            "role": "assistant",
-                            "content": f"[File: styles.css]\n{content}"
-                        })
-                except FileNotFoundError:
-                    pass
-        
-        # 3. Add conversation history
-        api_messages.extend(messages)
-        
-        return api_messages
-
-    def process_chat(self, user_input, model, user, project_path, conversation_history=None):
-        """
-        Process a chat interaction with complete project context.
-        
-        Args:
-            user_input (str): The user's message
-            model (str): The AI model to use
-            user: The Django user object
-            project_path (str): Path to the project directory
-            conversation_history (list, optional): Existing conversation messages
-            
-        Returns:
-            dict: The result of the operation, including success status and response
-        """
-        try:
-            # Build complete conversation history
-            api_messages = self.build_chat_conversation_history(
-                project_path,
-                conversation_history or []
-            )
-            
-            # Add current user message
-            api_messages.append({
-                "role": "user",
-                "content": user_input
-            })
-            
-            # Make API call with complete context
-            result = self.process_conversation(
-                user_input=user_input,
-                model=model,
-                user=user,
-                conversation_id=None,
-                project_path=project_path
-            )
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error in process_chat: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-
-    def handle_chat_request(self, user_input, model, user, project_path, conversation_id=None):
-        """
-        Handle a complete chat request, including conversation management.
-        
-        Args:
-            user_input (str): The user's message
-            model (str): The AI model to use
-            user: The Django user object
-            project_path (str): The path to the project directory
-            conversation_id (int, optional): The ID of an existing conversation
-            
-        Returns:
-            dict: The result of the operation, including success status and response
-        """
-        try:
-            # Get or create conversation
-            if conversation_id:
-                conversation = get_object_or_404(
-                    AgentConversation,
-                    id=conversation_id,
-                    user=user
-                )
-            else:
-                conversation = AgentConversation.objects.create(
-                    user=user,
-                    model_name=model,
-                    provider='anthropic' if model.startswith('claude') else 'openai'
-                )
-                # Create initial system prompt
-                system_prompt = self.get_system_prompt()
-                SystemPrompt.objects.create(
-                    conversation=conversation,
-                    content=system_prompt['content']
-                )
-            
-            # Save user message
-            user_message = AgentMessage.objects.create(
-                conversation=conversation,
-                role='user',
-                content=user_input
-            )
-            
-            # Get conversation history
-            from ..services.agent_service import build_conversation_history
-            history = build_conversation_history(conversation)
-            
-            # Process chat interaction
-            result = self.process_chat(
-                user_input=user_input,
-                model=model,
-                user=user,
-                project_path=project_path,
-                conversation_history=history
-            )
-            
-            if result.get('success'):
-                # Save assistant response
-                assistant_message = AgentMessage.objects.create(
-                    conversation=conversation,
-                    role='assistant',
-                    content=result['response']
-                )
-                
-                return {
-                    'success': True,
-                    'conversation_id': conversation.id,
-                    'response': result['response'],
-                    'user_message': user_message,
-                    'assistant_message': assistant_message
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': result.get('error', 'Unknown error'),
-                    'response': result.get('response')
-                }
-                
-        except Exception as e:
-            print(f"Error in handle_chat_request: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-
-    def process_conversation(self, user_input, model, user, conversation_id=None, project_path=None):
-        """
-        Process a conversation without creating new conversation objects.
-        This method serves as an API endpoint entry point.
-        
-        Args:
-            user_input (str): The user's message
-            model (str): The AI model to use
-            user: The Django user object
-            conversation_id (int, optional): The ID of an existing conversation
-            project_path (str, optional): Path to the project directory
-            
-        Returns:
-            dict: The result of the operation, including success status and response
-        """
-        return self.handle_chat_request(
-            user_input=user_input,
-            model=model,
-            user=user,
-            project_path=project_path,
-            conversation_id=conversation_id
-        )
-        
-    def build_conversation_history(self, conversation):
-        """
-        Builds a formatted conversation history for the AI model.
-        Returns a list of messages in the format expected by the AI APIs.
-        
-        Args:
-            conversation: The AgentConversation object
-            
-        Returns:
-            list: A list of message dictionaries with 'role' and 'content' keys
-        """
-        messages = []
-        
-        # Add system prompt if it exists
-        if hasattr(conversation, 'system_prompt'):
-            messages.append({
-                "role": "system",
-                "content": conversation.system_prompt.content
-            })
-        
-        # Add conversation history
-        history_messages = AgentMessage.objects.filter(
-            conversation=conversation
-        ).order_by('created_at')
-        
-        for msg in history_messages:
-            messages.append({
-                "role": msg.role,
-                "content": msg.content
-            })
-        
-        return messages 
+        return True, None 

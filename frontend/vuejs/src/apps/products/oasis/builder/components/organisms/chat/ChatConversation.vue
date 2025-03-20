@@ -3,15 +3,14 @@
     <!-- Messages Container -->
     <div class="flex-1 overflow-y-auto h-full">
       <template v-if="messages && messages.length > 0">
-        <div
-          v-for="(message, index) in messages"
-          :key="index"
-          v-if="message && message.role && message.content"
-          class="py-6 px-4 md:px-8 lg:px-12"
-          :class="[
-            message.role === 'assistant' ? 'bg-dark-900' : 'bg-dark-950'
-          ]"
-        >
+        <template v-for="(message, index) in messages" :key="index">
+          <div
+            v-if="message && message.role && message.content"
+            class="py-6 px-4 md:px-8 lg:px-12"
+            :class="[
+              message.role === 'assistant' ? 'bg-dark-900' : 'bg-dark-950'
+            ]"
+          >
           <div class="max-w-3xl mx-auto flex items-start gap-4">
             <!-- Avatar -->
             <div 
@@ -81,7 +80,8 @@
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </template>
       </template>
 
       <!-- Empty State with AI Chat Illustration -->
@@ -145,10 +145,15 @@ const formatTimestamp = (timestamp: string | number) => {
   }
 }
 
-const formatMessage = (content: string) => {
+const formatMessage = (content: string | any) => {
   if (!content) return ''
   
   try {
+    // If content is an object, extract the text content
+    const textContent = typeof content === 'object' ? 
+      (content.content || JSON.stringify(content)) : 
+      content
+    
     // Configure marked options
     marked.setOptions({
       gfm: true,
@@ -156,7 +161,7 @@ const formatMessage = (content: string) => {
     })
 
     // Parse markdown and sanitize HTML
-    const parsedContent = marked.parse(content) as string
+    const parsedContent = marked.parse(textContent) as string
     
     // Add syntax highlighting classes to code blocks
     const highlightedContent = parsedContent.replace(
@@ -167,7 +172,10 @@ const formatMessage = (content: string) => {
     return DOMPurify.sanitize(highlightedContent)
   } catch (error) {
     console.error('Error formatting message:', error)
-    return String(content) // Fallback to raw content
+    // Return string representation of content as fallback
+    return typeof content === 'object' ? 
+      (content.content || JSON.stringify(content)) : 
+      String(content)
   }
 }
 

@@ -7,7 +7,10 @@ This module provides specialized AI agent services for different types of conten
 - StylesheetAgentService: For CSS stylesheet generation
 """
 
-# Export the agent services
+# Export the base agent service for extension
+from .agent_service import BaseAgentService
+
+# Export the specialized agent services
 from .chat_agent_service import ChatAgentService
 from .template_agent_service import TemplateAgentService
 from .stylesheet_agent_service import StylesheetAgentService
@@ -41,7 +44,10 @@ def undo_last_action_service(*args, **kwargs):
     return {"success": False, "error": "Service not implemented"}
 
 __all__ = [
-    # Agent services
+    # Base agent service
+    'BaseAgentService',
+    
+    # Specialized agent services
     'ChatAgentService',
     'TemplateAgentService',
     'StylesheetAgentService',
