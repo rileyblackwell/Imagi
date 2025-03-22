@@ -11,12 +11,8 @@ from rest_framework.views import APIView
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 
-from ..models import Conversation
 from .serializers import (
     ProjectSerializer,
-    ConversationSerializer,
-    PageSerializer,
-    MessageSerializer
 )
 from ..services.file_service import FileService
 from ..services.models_service import ModelsService
@@ -31,6 +27,7 @@ from apps.Products.Oasis.ProjectManager.services.project_management_service impo
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound
 from ..services.project_service import ProjectService
+from apps.Products.Oasis.Agents.services.template_agent_service import TemplateAgentService
 
 logger = logging.getLogger(__name__)
 
@@ -379,7 +376,33 @@ class CreateFileView(APIView):
                         logger.error(f"Error creating directory structure: {str(dir_error)}")
                         # Continue anyway as the file creation might still succeed
             
+            # Create the file
             result = file_service.create_file(file_data)
+            
+            # If this is an HTML template file in the templates directory, create a corresponding view and URL
+            file_path = result.get('path', '')
+            file_type = result.get('type', '')
+            
+            if file_type == 'html' or (file_path.startswith('templates/') and file_path.endswith('.html')):
+                try:
+                    # Extract just the filename from the path for the template_name
+                    template_name = os.path.basename(file_path)
+                    
+                    # Clean any 'templates/' prefix from the template name
+                    if template_name.startswith('templates/'):
+                        template_name = template_name.replace('templates/', '')
+                        
+                    logger.info(f"Creating view and URL for template: {template_name}")
+                    
+                    template_agent = TemplateAgentService()
+                    template_agent.create_view_and_url(project.id, template_name, request.user)
+                    result['view_created'] = True
+                except Exception as view_error:
+                    logger.error(f"Error creating view for template: {str(view_error)}")
+                    # Don't fail the entire request if view creation fails
+                    result['view_created'] = False
+                    result['view_error'] = str(view_error)
+            
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error creating file: {str(e)}")
@@ -663,6 +686,54 @@ class FileUndoView(APIView):
             return Response(result)
         except Exception as e:
             logger.error(f"Error undoing file changes: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class AnalyzeTemplateView(APIView):
+    """Analyze template content and structure."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request):
+        try:
+            # Get template content from request
+            template_content = request.data.get('template_content', '')
+            template_name = request.data.get('template_name', 'template.html')
+            
+            if not template_content:
+                return Response(
+                    {'error': 'Template content is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Use the TemplateAgentService to analyze the template
+            template_agent = TemplateAgentService()
+            template_agent.current_template_name = template_name
+            
+            # Validate the template syntax
+            is_valid, error_message = template_agent.validate_response(template_content)
+            
+            response_data = {
+                'is_valid': is_valid,
+                'template_name': template_name
+            }
+            
+            if not is_valid:
+                response_data['error'] = error_message
+            
+            return Response(response_data)
+            
+        except Exception as e:
+            logger.error(f"Error analyzing template: {str(e)}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -258,13 +258,17 @@ class FileService:
             # Generate a unique ID for the file
             file_id = str(uuid.uuid4())
             
+            # Determine if this is an HTML template file
+            is_template = file_type == 'html' or (file_path.startswith('templates/') and file_path.endswith('.html'))
+            
             return {
                 'id': file_id,
                 'name': os.path.basename(file_path),
                 'path': file_path,
                 'content': content,
                 'type': file_type or self._get_file_type(file_path),
-                'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
+                'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                'is_template': is_template
             }
         except Exception as e:
             logger.error(f"Error creating file: {str(e)}")

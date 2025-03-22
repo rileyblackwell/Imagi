@@ -10,6 +10,7 @@ import re
 from .agent_service import BaseAgentService
 from ..models import AgentConversation, SystemPrompt, AgentMessage
 from django.shortcuts import get_object_or_404
+import os
 
 # Load environment variables from .env
 load_dotenv()
@@ -512,15 +513,47 @@ class TemplateAgentService(BaseAgentService):
             # Import necessary services
             from apps.Products.Oasis.ProjectManager.models import Project
             from apps.Products.Oasis.Builder.services.file_service import FileService
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            logger.info(f"Creating view and URL for template: {template_name} in project {project_id}")
             
             # Get the project
             try:
                 project = Project.objects.get(id=project_id, user=user)
             except Project.DoesNotExist:
-                print(f"Project {project_id} not found for user {user.username}")
+                logger.error(f"Project {project_id} not found for user {user.username}")
                 return False
                 
             file_service = FileService(project=project)
+            
+            # Determine project package directory - same location as settings.py
+            # First get the project folder name from path
+            project_dir = project.project_path
+            
+            # Get the project name from directory structure - last part of the path
+            project_name = os.path.basename(project_dir)
+            
+            # For Django projects, there will be a nested directory with the same name
+            # This directory contains settings.py, urls.py, etc.
+            project_package_dir = os.path.join(project_dir, project_name)
+            logger.info(f"Project package directory: {project_package_dir}")
+            
+            # Verify the project package directory exists
+            if not os.path.exists(project_package_dir):
+                logger.error(f"Project package directory not found: {project_package_dir}")
+                # Try to find it by scanning for settings.py
+                for root, dirs, files in os.walk(project_dir):
+                    if 'settings.py' in files:
+                        project_package_dir = root
+                        logger.info(f"Found settings.py in {project_package_dir}")
+                        break
+                else:
+                    logger.error("Could not find project package directory containing settings.py")
+                    return False
+            
+            # First clean up any duplicate views and URL patterns
+            self.cleanup_duplicate_views_and_urls(project_id, user)
             
             # Extract view name from template name (remove .html extension)
             template_base_name = template_name.replace('.html', '')
@@ -531,44 +564,54 @@ class TemplateAgentService(BaseAgentService):
             # Generate view function
             view_code = self._generate_view_code(template_base_name)
             
-            # Update or create views.py
-            views_path = 'views.py'
+            # Update or create views.py in the project package directory
+            views_path = os.path.join(project_package_dir, 'views.py')
+            views_rel_path = os.path.relpath(views_path, project_dir)
+            
             try:
                 # Try to read existing views.py
-                existing_views = file_service.get_file_content(views_path, project_id)
+                with open(views_path, 'r') as f:
+                    existing_views = f.read()
                 
                 # Check if view already exists
                 if f"def {view_name}(request)" in existing_views:
-                    print(f"View {view_name} already exists, skipping")
+                    logger.info(f"View {view_name} already exists, skipping")
                 else:
                     # Append the new view
                     updated_views = existing_views + "\n\n" + view_code
-                    file_service.update_file(views_path, updated_views, project_id)
-                    print(f"Added {view_name} view to existing views.py")
-            except Exception as e:
+                    with open(views_path, 'w') as f:
+                        f.write(updated_views)
+                    logger.info(f"Added {view_name} view to existing views.py")
+            except FileNotFoundError:
                 # File doesn't exist, create it
+                logger.info(f"Creating new views.py file with {view_name} view")
                 views_initial = f"""from django.shortcuts import render
 
 {view_code}
 """
-                file_service.create_file({
-                    'path': views_path,
-                    'content': views_initial,
-                    'type': 'python'
-                }, project_id)
-                print(f"Created new views.py with {view_name} view")
+                with open(views_path, 'w') as f:
+                    f.write(views_initial)
+                logger.info(f"Created new views.py at {views_path}")
+            except Exception as e:
+                logger.error(f"Error updating views.py: {str(e)}")
+                return False
                 
-            # Update or create urls.py
-            urls_path = 'urls.py'
+            # Update or create urls.py in the project package directory
+            urls_path = os.path.join(project_package_dir, 'urls.py')
+            urls_rel_path = os.path.relpath(urls_path, project_dir)
             url_pattern = self._generate_url_pattern(view_name, template_base_name)
             
             try:
                 # Try to read existing urls.py
-                existing_urls = file_service.get_file_content(urls_path, project_id)
+                with open(urls_path, 'r') as f:
+                    existing_urls = f.read()
+                
+                # Ensure views is properly imported
+                existing_urls = self._ensure_views_import_in_urls(existing_urls)
                 
                 # Check if URL pattern already exists
                 if f"path('{'' if view_name == 'index' else view_name + '/'}" in existing_urls:
-                    print(f"URL pattern for {view_name} already exists, skipping")
+                    logger.info(f"URL pattern for {view_name} already exists, skipping")
                 else:
                     # Add the new URL pattern before the closing bracket
                     if 'urlpatterns = [' in existing_urls:
@@ -582,40 +625,49 @@ class TemplateAgentService(BaseAgentService):
                             existing_urls[start_index:]
                         )
                         
-                        file_service.update_file(urls_path, updated_urls, project_id)
-                        print(f"Added URL pattern for {view_name} to existing urls.py")
+                        with open(urls_path, 'w') as f:
+                            f.write(updated_urls)
+                        logger.info(f"Added URL pattern for {view_name} to existing urls.py")
                     else:
                         # If urlpatterns isn't found in the expected format, append the whole pattern
                         updated_urls = existing_urls + "\n\n" + f"urlpatterns = [\n    {url_pattern}\n]"
-                        file_service.update_file(urls_path, updated_urls, project_id)
-                        print(f"Added URL pattern for {view_name} to existing urls.py with new urlpatterns")
-            except Exception as e:
+                        with open(urls_path, 'w') as f:
+                            f.write(updated_urls)
+                        logger.info(f"Added URL pattern for {view_name} to existing urls.py with new urlpatterns")
+            except FileNotFoundError:
                 # File doesn't exist, create it
-                urls_initial = f"""from django.urls import path
+                logger.info(f"Creating new urls.py file with {view_name} URL pattern")
+                urls_initial = f"""from django.contrib import admin
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
     {url_pattern}
 ]
 
-# Serve static and media files during development
+# Add static/media handling in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    if hasattr(settings, 'MEDIA_URL'):
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 """
-                file_service.create_file({
-                    'path': urls_path,
-                    'content': urls_initial,
-                    'type': 'python'
-                }, project_id)
-                print(f"Created new urls.py with pattern for {view_name}")
+                with open(urls_path, 'w') as f:
+                    f.write(urls_initial)
+                logger.info(f"Created new urls.py at {urls_path}")
+            except Exception as e:
+                logger.error(f"Error updating urls.py: {str(e)}")
+                return False
                 
+            logger.info(f"Successfully created view and URL for {template_name}")
             return True
                 
         except Exception as e:
-            print(f"Error creating view and URL for {template_name}: {str(e)}")
+            logger.error(f"Error creating view and URL for {template_name}: {str(e)}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
             return False
             
     def _generate_view_code(self, template_base_name):
@@ -628,6 +680,10 @@ if settings.DEBUG:
         Returns:
             str: Python code for the view function
         """
+        # Clean the template_base_name to remove any 'templates/' prefix
+        if template_base_name.startswith('templates/'):
+            template_base_name = template_base_name.replace('templates/', '')
+            
         view_name = 'index' if template_base_name == 'index' else template_base_name
         return f"""def {view_name}(request):
     \"\"\"
@@ -646,8 +702,177 @@ if settings.DEBUG:
         Returns:
             str: URL pattern code
         """
+        # Clean template_base_name to remove any 'templates/' prefix
+        if template_base_name.startswith('templates/'):
+            template_base_name = template_base_name.replace('templates/', '')
+            
+        # Clean view_name as well to remove any 'templates/' prefix
+        if view_name.startswith('templates/'):
+            view_name = view_name.replace('templates/', '')
+        
         # For index, use the root URL; for others, use the template name as the URL
         if view_name == 'index':
             return f"path('', views.{view_name}, name='{view_name}'),"
         else:
             return f"path('{view_name}/', views.{view_name}, name='{view_name}'),"
+
+    def _ensure_views_import_in_urls(self, urls_content):
+        """
+        Ensure that the views module is properly imported in the urls.py file.
+        
+        Args:
+            urls_content (str): The current content of the urls.py file
+            
+        Returns:
+            str: Updated urls.py content with proper views import
+        """
+        # Check if views is imported
+        if "from . import views" not in urls_content and "from .views import" not in urls_content:
+            # Add the import statement after other imports
+            if "import" in urls_content:
+                lines = urls_content.split('\n')
+                import_lines = [i for i, line in enumerate(lines) if 'import' in line]
+                last_import_line = max(import_lines)
+                lines.insert(last_import_line + 1, "from . import views")
+                return '\n'.join(lines)
+            else:
+                # If there are no import statements, add it at the top
+                return "from . import views\n\n" + urls_content
+                
+        return urls_content
+        
+    def cleanup_duplicate_views_and_urls(self, project_id, user):
+        """
+        Clean up duplicate views and URL patterns that contain 'templates/' prefix.
+        
+        Args:
+            project_id (str): The project ID
+            user: The Django user object
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            import logging
+            import os
+            import re
+            
+            logger = logging.getLogger(__name__)
+            logger.info(f"Cleaning up duplicate views and URL patterns in project {project_id}")
+            
+            # Get the project
+            try:
+                project = Project.objects.get(id=project_id, user=user)
+            except Project.DoesNotExist:
+                logger.error(f"Project {project_id} not found for user {user.username}")
+                return False
+                
+            # Determine project package directory - same location as settings.py
+            project_dir = project.project_path
+            project_name = os.path.basename(project_dir)
+            project_package_dir = os.path.join(project_dir, project_name)
+            
+            # Verify the project package directory exists
+            if not os.path.exists(project_package_dir):
+                logger.error(f"Project package directory not found: {project_package_dir}")
+                # Try to find it by scanning for settings.py
+                for root, dirs, files in os.walk(project_dir):
+                    if 'settings.py' in files:
+                        project_package_dir = root
+                        logger.info(f"Found settings.py in {project_package_dir}")
+                        break
+                else:
+                    logger.error("Could not find project package directory containing settings.py")
+                    return False
+            
+            # Check views.py
+            views_path = os.path.join(project_package_dir, 'views.py')
+            if os.path.exists(views_path):
+                try:
+                    with open(views_path, 'r') as f:
+                        views_content = f.read()
+                    
+                    # Find duplicate views with 'templates/' prefix
+                    # Look for patterns like: def templates/about(request): or def templates_about(request):
+                    duplicate_view_pattern = r'def\s+(templates[/_]([a-zA-Z0-9_]+))\s*\(request\):'
+                    matches = re.finditer(duplicate_view_pattern, views_content)
+                    
+                    for match in matches:
+                        full_match = match.group(0)  # The entire match
+                        duplicate_view_name = match.group(1)  # The view name with templates/ prefix
+                        clean_view_name = match.group(2)  # The clean view name without templates/ prefix
+                        
+                        # Check if the clean version of the view already exists
+                        clean_view_pattern = rf'def\s+{clean_view_name}\s*\(request\):'
+                        if re.search(clean_view_pattern, views_content):
+                            # Remove the duplicate view function entirely
+                            # Find the start and end of the function
+                            function_start = views_content.find(full_match)
+                            if function_start >= 0:
+                                # Look for the next function definition or end of file
+                                next_function = re.search(r'def\s+[a-zA-Z0-9_]+\s*\(request\):', views_content[function_start + len(full_match):])
+                                if next_function:
+                                    function_end = function_start + len(full_match) + next_function.start()
+                                else:
+                                    function_end = len(views_content)
+                                
+                                # Remove the entire function
+                                views_content = views_content[:function_start] + views_content[function_end:]
+                                logger.info(f"Removed duplicate view function: {duplicate_view_name}")
+                    
+                    # Write the updated content back to the file
+                    with open(views_path, 'w') as f:
+                        f.write(views_content)
+                    
+                except Exception as e:
+                    logger.error(f"Error cleaning up views.py: {str(e)}")
+                    
+            # Check urls.py
+            urls_path = os.path.join(project_package_dir, 'urls.py')
+            if os.path.exists(urls_path):
+                try:
+                    with open(urls_path, 'r') as f:
+                        urls_content = f.read()
+                    
+                    # Find duplicate URL patterns with 'templates/' prefix
+                    # Look for patterns like: path('templates/about/', views.templates_about, name='templates_about'),
+                    duplicate_url_pattern = r"path\(['\"]templates/([a-zA-Z0-9_]+)/['\"]\s*,\s*views\.templates[/_]\1\s*,\s*name=['\"]templates[/_]\1['\"]\s*\),?"
+                    
+                    # Also look for patterns without the 'templates/' prefix in the URL but with it in the view name
+                    alternate_url_pattern = r"path\(['\"]([a-zA-Z0-9_]+)/['\"]\s*,\s*views\.templates[/_]\1\s*,\s*name=['\"]templates[/_]\1['\"]\s*\),?"
+                    
+                    # Combine the patterns
+                    patterns = [duplicate_url_pattern, alternate_url_pattern]
+                    
+                    for pattern in patterns:
+                        matches = re.finditer(pattern, urls_content)
+                        for match in matches:
+                            full_match = match.group(0)  # The entire URL pattern
+                            clean_name = match.group(1)  # The clean name without templates/ prefix
+                            
+                            # Check if the clean version of the URL pattern already exists
+                            clean_url_pattern = rf"path\(['\"]({clean_name}/)?['\"]\s*,\s*views\.{clean_name}\s*,"
+                            if re.search(clean_url_pattern, urls_content):
+                                # Remove the duplicate URL pattern
+                                urls_content = urls_content.replace(full_match, "")
+                                logger.info(f"Removed duplicate URL pattern for: {clean_name}")
+                    
+                    # Clean up any double commas or other syntax issues
+                    urls_content = re.sub(r',\s*,', ',', urls_content)
+                    
+                    # Write the updated content back to the file
+                    with open(urls_path, 'w') as f:
+                        f.write(urls_content)
+                    
+                except Exception as e:
+                    logger.error(f"Error cleaning up urls.py: {str(e)}")
+            
+            logger.info(f"Successfully cleaned up duplicate views and URL patterns in project {project_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up duplicate views and URL patterns: {str(e)}")
+            import traceback
+            logger.error(f"Stack trace: {traceback.format_exc()}")
+            return False
