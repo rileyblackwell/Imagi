@@ -132,6 +132,18 @@
       </template>
     </div>
     
+    <!-- Creator Mode Help -->
+    <div v-if="mode === 'chat' && !isCollapsed" class="text-white text-xs p-4 bg-gray-800 rounded-md mb-4">
+      <p>Create HTML templates and CSS stylesheets for your Django project using plain language instructions.</p>
+      <p class="mt-2">Examples:</p>
+      <ul class="list-disc pl-4 mt-1 space-y-1">
+        <li>"Create a modern landing page with a hero section, features grid, and contact form."</li>
+        <li>"Design a minimalist about page with team section."</li>
+        <li>"Make a clean contact form page with address and map."</li>
+      </ul>
+      <p class="mt-2 text-green-400">✓ Django views and URL patterns will be automatically created for your templates!</p>
+    </div>
+    
     <!-- Action Buttons -->
     <div v-if="!isCollapsed" class="sticky bottom-0 left-0 right-0 p-4 mt-auto border-t border-dark-700/50 bg-dark-800/30 backdrop-blur-sm">
       <div class="flex justify-between items-center">

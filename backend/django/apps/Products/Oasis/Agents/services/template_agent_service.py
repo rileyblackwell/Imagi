@@ -46,6 +46,11 @@ class TemplateAgentService(BaseAgentService):
                 "2. Never include plain text, explanations, non-Django HTML comments, links (e.g., <a> tags), or images (e.g., <img> tags) in your responses.\n"
                 "3. Work interactively with the user by interpreting their natural language messages to refine templates and meet their needs.\n\n"
                 
+                "Template naming conventions:\n"
+                "- For a home/landing page, use 'index.html' which will be accessible at the root URL ('/').\n"
+                "- For other pages, name them accordingly (e.g., 'about.html' for an about page, accessible at '/about/').\n"
+                "- When you create a template, the system will AUTOMATICALLY generate the corresponding Django view function and URL pattern.\n\n"
+                
                 "Key requirements for template generation:\n"
                 "1. **TEMPLATE STRUCTURE**:\n"
                 "   - For non-base templates, ALWAYS start with {% extends 'base.html' %} as the FIRST line.\n"
@@ -81,6 +86,11 @@ class TemplateAgentService(BaseAgentService):
                 "         console.log('{{ item }}');\n"
                 "       {% endfor %}\n"
                 "     </script>\n\n"
+                
+                "7. **AUTO-GENERATED VIEWS AND URLS**:\n"
+                "   - When you create a template named 'index.html', a view function named 'index' will be created automatically.\n"
+                "   - For templates like 'about.html', a view function named 'about' will be created automatically.\n"
+                "   - URL patterns will be automatically created to match template names (e.g., '/about/' for 'about.html').\n\n"
                 
                 "EXAMPLE TEMPLATE:\n"
                 "{% extends 'base.html' %}\n"
@@ -461,6 +471,10 @@ class TemplateAgentService(BaseAgentService):
                 # Clean up the template content if needed
                 cleaned_template = self.fix_template_issues(template_content, file_path)
                 
+                # Now that we have a successful template, generate corresponding view and URL
+                if project_id and file_name:
+                    self.create_view_and_url(project_id, file_name, user)
+                
                 # Return the result with all needed fields
                 return {
                     'success': True,
@@ -481,3 +495,159 @@ class TemplateAgentService(BaseAgentService):
                 'success': False,
                 'error': str(e)
             }
+            
+    def create_view_and_url(self, project_id, template_name, user):
+        """
+        Create corresponding Django view and URL pattern for a template.
+        
+        Args:
+            project_id (str): The project ID
+            template_name (str): The name of the template file (e.g., 'about.html')
+            user: The Django user object
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Import necessary services
+            from apps.Products.Oasis.ProjectManager.models import Project
+            from apps.Products.Oasis.Builder.services.file_service import FileService
+            
+            # Get the project
+            try:
+                project = Project.objects.get(id=project_id, user=user)
+            except Project.DoesNotExist:
+                print(f"Project {project_id} not found for user {user.username}")
+                return False
+                
+            file_service = FileService(project=project)
+            
+            # Extract view name from template name (remove .html extension)
+            template_base_name = template_name.replace('.html', '')
+            
+            # Handle the root/index template differently
+            view_name = 'index' if template_base_name == 'index' else template_base_name
+            
+            # Generate view function
+            view_code = self._generate_view_code(template_base_name)
+            
+            # Update or create views.py
+            views_path = 'views.py'
+            try:
+                # Try to read existing views.py
+                existing_views = file_service.get_file_content(views_path, project_id)
+                
+                # Check if view already exists
+                if f"def {view_name}(request)" in existing_views:
+                    print(f"View {view_name} already exists, skipping")
+                else:
+                    # Append the new view
+                    updated_views = existing_views + "\n\n" + view_code
+                    file_service.update_file(views_path, updated_views, project_id)
+                    print(f"Added {view_name} view to existing views.py")
+            except Exception as e:
+                # File doesn't exist, create it
+                views_initial = f"""from django.shortcuts import render
+
+{view_code}
+"""
+                file_service.create_file({
+                    'path': views_path,
+                    'content': views_initial,
+                    'type': 'python'
+                }, project_id)
+                print(f"Created new views.py with {view_name} view")
+                
+            # Update or create urls.py
+            urls_path = 'urls.py'
+            url_pattern = self._generate_url_pattern(view_name, template_base_name)
+            
+            try:
+                # Try to read existing urls.py
+                existing_urls = file_service.get_file_content(urls_path, project_id)
+                
+                # Check if URL pattern already exists
+                if f"path('{'' if view_name == 'index' else view_name + '/'}" in existing_urls:
+                    print(f"URL pattern for {view_name} already exists, skipping")
+                else:
+                    # Add the new URL pattern before the closing bracket
+                    if 'urlpatterns = [' in existing_urls:
+                        # Find the position after the opening bracket of urlpatterns
+                        start_index = existing_urls.find('urlpatterns = [') + len('urlpatterns = [')
+                        
+                        # Insert the new URL pattern
+                        updated_urls = (
+                            existing_urls[:start_index] + 
+                            "\n    " + url_pattern + 
+                            existing_urls[start_index:]
+                        )
+                        
+                        file_service.update_file(urls_path, updated_urls, project_id)
+                        print(f"Added URL pattern for {view_name} to existing urls.py")
+                    else:
+                        # If urlpatterns isn't found in the expected format, append the whole pattern
+                        updated_urls = existing_urls + "\n\n" + f"urlpatterns = [\n    {url_pattern}\n]"
+                        file_service.update_file(urls_path, updated_urls, project_id)
+                        print(f"Added URL pattern for {view_name} to existing urls.py with new urlpatterns")
+            except Exception as e:
+                # File doesn't exist, create it
+                urls_initial = f"""from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+from . import views
+
+urlpatterns = [
+    {url_pattern}
+]
+
+# Serve static and media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+"""
+                file_service.create_file({
+                    'path': urls_path,
+                    'content': urls_initial,
+                    'type': 'python'
+                }, project_id)
+                print(f"Created new urls.py with pattern for {view_name}")
+                
+            return True
+                
+        except Exception as e:
+            print(f"Error creating view and URL for {template_name}: {str(e)}")
+            return False
+            
+    def _generate_view_code(self, template_base_name):
+        """
+        Generate code for a Django view function.
+        
+        Args:
+            template_base_name (str): The base name of the template (without .html)
+            
+        Returns:
+            str: Python code for the view function
+        """
+        view_name = 'index' if template_base_name == 'index' else template_base_name
+        return f"""def {view_name}(request):
+    \"\"\"
+    Render the {template_base_name} page.
+    \"\"\"
+    return render(request, '{template_base_name}.html')"""
+    
+    def _generate_url_pattern(self, view_name, template_base_name):
+        """
+        Generate a URL pattern for a view.
+        
+        Args:
+            view_name (str): The name of the view function
+            template_base_name (str): The base name of the template
+            
+        Returns:
+            str: URL pattern code
+        """
+        # For index, use the root URL; for others, use the template name as the URL
+        if view_name == 'index':
+            return f"path('', views.{view_name}, name='{view_name}'),"
+        else:
+            return f"path('{view_name}/', views.{view_name}, name='{view_name}'),"

@@ -340,33 +340,74 @@ export const AgentService = {
       // Get conversation ID from localStorage
       const storedConversationId = localStorage.getItem(`stylesheet_conversation_${projectId}`)
       
+      // Ensure project ID is a string
+      const sanitizedProjectId = String(projectId)
+      
       // Prepare request payload
       const payload = {
         message: data.prompt,
         model: data.model,
-        project_id: projectId,
+        project_id: sanitizedProjectId,
         file_path: data.file_path,
         conversation_id: storedConversationId || undefined
       }
+      
+      console.log('[DEBUG] Stylesheet request payload:', JSON.stringify(payload, null, 2))
       
       // Use the stylesheet endpoint
       const response = await api.post('/api/v1/agents/build/stylesheet/', payload)
       
       // Store the conversation ID for future requests
-      if (response.data.conversation_id) {
+      if (response.data && response.data.conversation_id) {
         localStorage.setItem(`stylesheet_conversation_${projectId}`, response.data.conversation_id)
       }
       
+      console.log('[DEBUG] Stylesheet response:', JSON.stringify(response.data, null, 2))
+      
+      // Create a proper response object matching the expected format
+      // Handle various response formats from the server
       return {
         success: true,
-        code: response.data.code || response.data.response,
+        code: response.data.stylesheet || response.data.code || response.data.response || '',
         response: response.data.response || "Generated stylesheet successfully",
-        messages: [
-          response.data.user_message,
-          response.data.assistant_message
-        ]
+        messages: Array.isArray(response.data.messages) ? response.data.messages : 
+          (response.data.user_message && response.data.assistant_message 
+            ? [response.data.user_message, response.data.assistant_message]
+            : [])
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[ERROR] Stylesheet generation error:', error)
+      
+      // Log detailed error information
+      if (error.response) {
+        console.error('[ERROR] API error details:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        })
+        
+        // If the server returned data with a stylesheet despite the error, use it
+        if (error.response.data && (error.response.data.stylesheet || error.response.data.code)) {
+          console.log('[INFO] Using stylesheet from error response')
+          return {
+            success: true,
+            code: error.response.data.stylesheet || error.response.data.code,
+            response: error.response.data.response || "Generated stylesheet with warnings",
+            messages: []
+          }
+        }
+        
+        // If there's a specific error message from the server, show it
+        if (error.response.data && error.response.data.error) {
+          console.error('[ERROR] Server error message:', error.response.data.error)
+        }
+      } else if (error.request) {
+        console.error('[ERROR] No response received:', error.request)
+      } else {
+        console.error('[ERROR] Request setup error:', error.message)
+      }
+      
       throw handleAPIError(error)
     }
   },
