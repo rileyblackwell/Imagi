@@ -374,9 +374,18 @@ export const AgentService = {
   // Preview project - migrated from BuilderService
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/preview/`)
-      return response.data
+      console.log('Generating preview for project:', projectId)
+      const response = await api.get(`/api/v1/builder/${projectId}/preview/`)
+      
+      if (!response.data || !response.data.preview_url) {
+        throw new Error('Invalid response from preview API')
+      }
+      
+      return {
+        previewUrl: response.data.preview_url
+      }
     } catch (error) {
+      console.error('Error generating preview:', error)
       throw handleAPIError(error)
     }
   },

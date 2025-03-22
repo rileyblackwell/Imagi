@@ -273,7 +273,14 @@ class PreviewView(APIView):
             preview_service = PreviewService(project)
             result = preview_service.start_preview()
             
-            return Response(result)
+            # Ensure the response includes preview_url field
+            response_data = {
+                'success': result.get('success', False),
+                'preview_url': result.get('preview_url'),
+                'message': result.get('message', 'Preview server operation completed')
+            }
+            
+            return Response(response_data)
         except Exception as e:
             logger.error(f"Error starting preview server: {str(e)}")
             return Response({

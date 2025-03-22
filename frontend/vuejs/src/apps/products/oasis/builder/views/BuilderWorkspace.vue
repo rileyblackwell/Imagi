@@ -303,8 +303,26 @@ async function handleUndo() {
 }
 
 async function handlePreview() {
-  // Implement preview functionality
-  notify({ type: 'info', message: 'Preview feature coming soon' })
+  try {
+    if (!projectId.value) {
+      notify({ type: 'warning', message: 'Project ID is required' })
+      return
+    }
+
+    notify({ type: 'info', message: 'Starting preview server...' })
+    const response = await AgentService.generatePreview(projectId.value)
+    
+    if (response && response.previewUrl) {
+      // Open the preview URL in a new tab
+      window.open(response.previewUrl, '_blank')
+      notify({ type: 'success', message: 'Preview server started successfully' })
+    } else {
+      notify({ type: 'error', message: 'Failed to start preview server' })
+    }
+  } catch (error) {
+    console.error('Error starting preview server:', error)
+    notify({ type: 'error', message: 'Error starting preview server. Please try again.' })
+  }
 }
 
 // Helper function to load project files
