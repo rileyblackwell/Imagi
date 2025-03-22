@@ -85,6 +85,12 @@ class ProjectCreationService:
                 project_path  # Destination directory
             ], check=True)
             
+            # Create views.py in the project directory alongside settings.py
+            project_dir = os.path.join(project_path, unique_name)
+            views_path = os.path.join(project_dir, 'views.py')
+            with open(views_path, 'w') as f:
+                f.write(self._generate_basic_project_views_content())
+            
             # Create necessary directories
             os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
             os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
@@ -549,6 +555,21 @@ urlpatterns = [
 ]
 """
 
+    def _generate_basic_project_views_content(self):
+        """Generate content for a basic project views.py file"""
+        return """from django.shortcuts import render
+from django.http import HttpResponse
+from django.views.generic import TemplateView
+
+def home(request):
+    \"\"\"Home page view.\"\"\"
+    return render(request, 'index.html')
+
+class HomeView(TemplateView):
+    \"\"\"Class-based home page view.\"\"\"
+    template_name = 'index.html'
+"""
+
     def _generate_basic_manage_py(self, project_name):
         """Generate a minimal Django manage.py file"""
         return f"""#!/usr/bin/env python
@@ -756,6 +777,13 @@ REST_FRAMEWORK = {{
                 with open(urls_path, 'w') as f:
                     f.write(self._generate_basic_project_urls())
                 logger.info(f"Created urls.py at {urls_path}")
+                
+            # Create a minimal views.py if it doesn't exist
+            views_path = os.path.join(project_package_dir, 'views.py')
+            if not os.path.exists(views_path):
+                with open(views_path, 'w') as f:
+                    f.write(self._generate_basic_project_views_content())
+                logger.info(f"Created views.py at {views_path}")
                 
             logger.info(f"Basic project structure ensured for {project_name}")
             return True
