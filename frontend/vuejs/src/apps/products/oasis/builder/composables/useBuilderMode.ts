@@ -148,7 +148,7 @@ export function useBuilderMode() {
 
   const updateFile = async (projectId: string, filePath: string, content: string) => {
     try {
-      await ProjectService.updateFileContent(projectId, filePath, content)
+      await FileService.updateFileContent(projectId, filePath, content)
       store.$patch({ unsavedChanges: false })
     } catch (err) {
       store.$patch({ error: 'Failed to save file changes' })

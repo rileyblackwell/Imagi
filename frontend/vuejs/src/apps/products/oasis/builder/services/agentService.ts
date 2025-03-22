@@ -155,7 +155,9 @@ export const AgentService = {
       const payload = {
         message: data.prompt,
         model: modelId,
+        project_id: projectId,
         file_path: data.file_path,
+        mode: data.mode,
         conversation_id: storedConversationId || undefined
       }
       
@@ -169,7 +171,8 @@ export const AgentService = {
       
       return {
         success: true,
-        code: response.data.response,
+        code: response.data.code || response.data.response,
+        response: response.data.response || "Generated code successfully",
         messages: [
           response.data.user_message,
           response.data.assistant_message
@@ -341,6 +344,7 @@ export const AgentService = {
       const payload = {
         message: data.prompt,
         model: data.model,
+        project_id: projectId,
         file_path: data.file_path,
         conversation_id: storedConversationId || undefined
       }
@@ -355,7 +359,8 @@ export const AgentService = {
       
       return {
         success: true,
-        code: response.data.response,
+        code: response.data.code || response.data.response,
+        response: response.data.response || "Generated stylesheet successfully",
         messages: [
           response.data.user_message,
           response.data.assistant_message
