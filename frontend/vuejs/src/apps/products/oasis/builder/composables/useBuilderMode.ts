@@ -1,17 +1,12 @@
-import { computed } from 'vue'
 import { useAgentStore } from '../stores/agentStore'
 import { AgentService, ModelService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 // Use types from builder.ts since that's what the store uses
-import type { AIModel, ProjectFile } from '../types/builder'
+import type { ProjectFile } from '../types/builder'
 import { notify } from '@/shared/utils/notifications'
 import type { EditorLanguage } from '@/shared/types/editor'
 
-interface CodeChange {
-  file_path: string
-  content: string
-}
 
 interface GenerateCodeOptions {
   prompt: string
@@ -84,20 +79,16 @@ export function useBuilderMode() {
       // Determine file type to use appropriate API endpoint
       const fileExtension = file.path.split('.').pop()?.toLowerCase() || '';
       
-      console.log(`Builder mode: Processing ${file.path} with extension ${fileExtension}`);
-      
+      // Call the appropriate service method based on file type
       let response;
       
-      // Call the appropriate service method based on file type
       if (fileExtension === 'css') {
-        console.log('Builder mode: Using stylesheet endpoint for CSS file');
         response = await AgentService.generateStylesheet(projectId, {
           prompt,
           model: modelId,
           file_path: file.path
         });
       } else if (['html', 'htm', 'django-html', 'jinja', 'tpl'].includes(fileExtension)) {
-        console.log('Builder mode: Using template endpoint for HTML file');
         response = await AgentService.generateCode(projectId, {
           prompt,
           mode: store.mode,
@@ -106,7 +97,6 @@ export function useBuilderMode() {
         });
       } else {
         // For other file types, use the general code generation endpoint
-        console.log(`Builder mode: Using general code endpoint for ${fileExtension} file`);
         response = await AgentService.generateCode(projectId, {
           prompt,
           mode: store.mode,

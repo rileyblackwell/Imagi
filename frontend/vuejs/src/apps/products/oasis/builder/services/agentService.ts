@@ -19,24 +19,6 @@ interface ModelConfig {
 }
 
 const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'gpt-4': {
-    maxTokens: 8192,
-    rateLimits: {
-      tokensPerMinute: 40000,
-      requestsPerMinute: 200
-    },
-    contextWindow: 8192,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  },
-  'claude-2': {
-    maxTokens: 100000,
-    rateLimits: {
-      tokensPerMinute: 100000,
-      requestsPerMinute: 300
-    },
-    contextWindow: 100000,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  },
   'claude-3-5-sonnet-20241022': {
     maxTokens: 200000,
     rateLimits: {
@@ -361,8 +343,6 @@ export const AgentService = {
         conversation_id: storedConversationId || undefined
       }
       
-      console.log('[DEBUG] Stylesheet request payload:', JSON.stringify(payload, null, 2))
-      
       // Use the stylesheet endpoint
       const response = await api.post('/api/v1/agents/build/stylesheet/', payload)
       
@@ -370,8 +350,6 @@ export const AgentService = {
       if (response.data && response.data.conversation_id) {
         localStorage.setItem(`stylesheet_conversation_${projectId}`, response.data.conversation_id)
       }
-      
-      console.log('[DEBUG] Stylesheet response:', JSON.stringify(response.data, null, 2))
       
       // Create a proper response object matching the expected format
       // Handle various response formats from the server
@@ -398,7 +376,6 @@ export const AgentService = {
         
         // If the server returned data with a stylesheet despite the error, use it
         if (error.response.data && (error.response.data.stylesheet || error.response.data.code)) {
-          console.log('[INFO] Using stylesheet from error response')
           return {
             success: true,
             code: error.response.data.stylesheet || error.response.data.code,
@@ -424,7 +401,6 @@ export const AgentService = {
   // Preview project - migrated from BuilderService
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      console.log('Generating preview for project:', projectId)
       const response = await api.get(`/api/v1/builder/${projectId}/preview/`)
       
       if (!response.data || !response.data.preview_url) {
@@ -456,9 +432,7 @@ export const AgentService = {
     }
 
     try {
-      console.log(`Requesting project initialization for project ${projectId}`)
       const response = await api.post(`/api/v1/builder/${projectId}/initialize/`)
-      console.log('Project initialization response:', response.data)
       
       // Return success or the actual data if available
       return response.data?.success !== undefined 
@@ -467,7 +441,6 @@ export const AgentService = {
     } catch (error: any) {
       // If we get a 409 status, it means the project is already initialized
       if (error.response?.status === 409) {
-        console.log('Project is already initialized')
         return { success: true }
       }
 
@@ -476,7 +449,6 @@ export const AgentService = {
       // For 404 errors, we will treat this as "not yet created" and return success: false
       // rather than throwing an error, as the project might still be in the creation process
       if (error.response?.status === 404) {
-        console.warn('Project not found during initialization check - it might still be creating')
         return { success: false }
       }
       
