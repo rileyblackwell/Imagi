@@ -10,12 +10,16 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.http import StreamingHttpResponse
+import json
+
 
 from .serializers import AgentMessageSerializer, MessageResponseSerializer
 # Import models
 from ..models import AgentConversation, AgentMessage
 # Import services when needed, not at module level
 from ..services import ChatAgentService, TemplateAgentService, StylesheetAgentService
+from ..services.agent_service import build_conversation_history
 
 logger = logging.getLogger(__name__)
 
@@ -373,13 +377,13 @@ def chat(request):
     - project_id: The project ID (required)
     - conversation_id: The conversation ID (optional)
     - mode: The chat mode (optional, defaults to 'chat')
+    - current_file: The current file being edited or discussed (optional)
+    - stream: Boolean to enable streaming responses (optional, OpenAI models only)
     
     Returns:
-    - success: Boolean indicating success or failure
-    - conversation_id: The ID of the conversation
-    - response: The AI assistant's response
-    - user_message: Details of the user's message
-    - assistant_message: Details of the assistant's response
+    - For regular requests: JSON response with assistant's message
+    - For streaming requests: Server-sent events stream with real-time chunks of the response
+    - For GET requests: Conversation history
     """
     if request.method == 'GET':
         conversation_id = request.GET.get('conversation_id')
@@ -411,6 +415,8 @@ def chat(request):
     project_id = request.data.get('project_id')
     conversation_id = request.data.get('conversation_id')
     mode = request.data.get('mode', 'chat')
+    current_file = request.data.get('current_file')
+    stream = request.data.get('stream', False)
     
     # Validate required fields
     if not user_input:
@@ -431,29 +437,153 @@ def chat(request):
             'error': 'Project ID is required'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    logger.info(f"Chat request: message={user_input}, model={model_id}, project_id={project_id}")
+    # Check if streaming is requested but unsupported (non-OpenAI model)
+    if stream and 'gpt' not in model_id:
+        return Response({
+            'success': False,
+            'error': 'Streaming is only supported for OpenAI models'
+        }, status=status.HTTP_400_BAD_REQUEST)
     
+    logger.info(f"Chat request: message={user_input}, model={model_id}, project_id={project_id}, stream={stream}")
+    
+    # Get chat service
+    chat_service = ChatAgentService()
+    
+    # Get project path from project_id
+    project_path = None
     try:
-        # Get chat service
-        chat_service = ChatAgentService()
-        
-        # Get project path from project_id
-        project_path = None
+        from apps.Products.Oasis.ProjectManager.models import Project
+        project = Project.objects.get(id=project_id, user=request.user)
+        project_path = project.project_path
+        logger.info(f"Using project path: {project_path}")
+    except Exception as e:
+        logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+    
+    # Create or get conversation
+    if conversation_id:
         try:
-            from apps.Products.Oasis.ProjectManager.models import Project
-            project = Project.objects.get(id=project_id, user=request.user)
-            project_path = project.project_path
-            logger.info(f"Using project path: {project_path}")
-        except Exception as e:
-            logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+            conversation = AgentConversation.objects.get(id=conversation_id, user=request.user)
+        except AgentConversation.DoesNotExist:
+            conversation = AgentConversation.objects.create(
+                user=request.user,
+                title=f"Conversation {user_input[:30]}...",
+                model=model_id
+            )
+    else:
+        conversation = AgentConversation.objects.create(
+            user=request.user,
+            title=f"Conversation {user_input[:30]}...",
+            model=model_id
+        )
         
+    # Store user message
+    user_message = AgentMessage.objects.create(
+        conversation=conversation,
+        role='user',
+        content=user_input
+    )
+    
+    # Check and deduct credits
+    credits_check = chat_service.check_user_credits(request.user, model_id)
+    if not credits_check.get('has_credits', False):
+        return Response({
+            'success': False,
+            'error': credits_check.get('error', 'Not enough credits')
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    chat_service.deduct_credits(request.user, model_id)
+    
+    # For streaming response
+    if stream:
+        # Prepare conversation history
+        conversation_history = build_conversation_history(
+            conversation, 
+            project_path=project_path,
+            current_file=current_file
+        )
+        
+        # Prepare messages for API
+        api_messages = []
+        
+        # Add system prompt
+        system_prompt = chat_service.get_system_prompt()
+        if system_prompt:
+            api_messages.append({"role": "system", "content": system_prompt})
+        
+        # Add conversation history
+        for msg in conversation_history:
+            api_messages.append({"role": msg["role"], "content": msg["content"]})
+        
+        def stream_response():
+            """
+            Generator function for streaming the OpenAI response.
+            """
+            # Complete response for saving to database
+            full_response = ""
+            
+            try:
+                # This is using the openai client from ChatAgentService
+                stream = chat_service.openai_client.chat.completions.create(
+                    model=model_id,
+                    messages=api_messages,
+                    temperature=0.7,
+                    max_tokens=4096,
+                    stream=True
+                )
+                
+                # Send event: conversation_id
+                data = json.dumps({"event": "conversation_id", "data": str(conversation.id)})
+                yield f"data: {data}\n\n"
+                
+                # Stream the chunks
+                for chunk in stream:
+                    content = chunk.choices[0].delta.content
+                    if content is not None:
+                        # Update full response
+                        full_response += content
+                        
+                        # Send content chunk
+                        data = json.dumps({"event": "content", "data": content})
+                        yield f"data: {data}\n\n"
+                
+                # Store assistant response
+                AgentMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=full_response
+                )
+                
+                # Send event: done
+                data = json.dumps({"event": "done", "data": None})
+                yield f"data: {data}\n\n"
+                
+            except Exception as e:
+                logger.error(f"Error in streaming response: {str(e)}")
+                # Send error event
+                data = json.dumps({"event": "error", "data": str(e)})
+                yield f"data: {data}\n\n"
+        
+        response = StreamingHttpResponse(
+            stream_response(),
+            content_type='text/event-stream'
+        )
+        
+        # Add required SSE headers
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'  # For Nginx
+        
+        return response
+    
+    # For non-streaming response
+    try:        
         # Process chat message
         result = chat_service.process_message(
             user_input=user_input,
             model_id=model_id,
             user=request.user,
-            conversation_id=conversation_id,
-            project_path=project_path
+            conversation_id=str(conversation.id),  # Ensure we pass the conversation id
+            project_path=project_path,
+            current_file=current_file
         )
         
         # Process result

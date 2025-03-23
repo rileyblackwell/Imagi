@@ -102,6 +102,19 @@ export const useAgentStore = defineStore('agent', {
       // console.log('AgentStore: Conversation after adding message:', [...this.conversation])
     },
 
+    updateLastAssistantMessage(content: string) {
+      const lastMessageIndex = this.conversation.length - 1
+      if (lastMessageIndex >= 0 && this.conversation[lastMessageIndex].role === 'assistant') {
+        this.conversation[lastMessageIndex].content = content
+      }
+    },
+
+    removeLastMessage() {
+      if (this.conversation.length > 0) {
+        this.conversation.pop()
+      }
+    },
+
     clearConversation() {
       this.conversation = []
     },

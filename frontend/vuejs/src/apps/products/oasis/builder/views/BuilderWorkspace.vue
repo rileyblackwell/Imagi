@@ -121,20 +121,13 @@ interface PromptExample {
   text: string;
 }
 
-const chatExamples: PromptExample[] = []
-const buildExamples: PromptExample[] = []
-
 // Computed properties
 const currentProject = computed(() => {
   return projectStore.currentProject || null
 })
 
 const promptExamplesComputed = computed(() => {
-  if (store.mode === 'chat') {
-    return chatExamples
-  } else {
-    return buildExamples
-  }
+  return [] // Return empty array for examples
 })
 
 const promptPlaceholder = computed(() => 
@@ -147,10 +140,7 @@ const promptPlaceholder = computed(() =>
 
 // Methods
 function ensureValidMessages(messages: any[]): AIMessage[] {
-  // console.log('BuilderWorkspace: Ensuring valid messages, received:', messages)
-  
   if (!messages || !Array.isArray(messages)) {
-    // console.log('BuilderWorkspace: No valid messages array received')
     return []
   }
   
@@ -159,11 +149,6 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
     .map(m => {
       // Ensure content is a valid string
       let content = m.content || '';
-      
-      // If content ends with ellipsis from console.log truncation, use the original
-      if (typeof content === 'string' && content.includes('…')) {
-        // console.log('BuilderWorkspace: Found truncated content in message, working with full content');
-      }
       
       // Generate a new id if not present to force proper rendering
       const messageId = m.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -177,7 +162,6 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
       };
     }) as AIMessage[];
   
-  // console.log('BuilderWorkspace: Processed valid messages:', validMessages)
   return validMessages
 }
 
@@ -212,7 +196,7 @@ async function handlePrompt() {
         prompt: prompt.value,
         projectId: projectId.value,
         file: store.selectedFile,
-        modelId: store.selectedModelId
+        model: store.selectedModelId
       })
     }
     

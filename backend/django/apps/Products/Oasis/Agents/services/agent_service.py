@@ -214,7 +214,7 @@ def delete_conversation(user, conversation_id):
         logger.error(f"Error deleting conversation: {str(e)}")
         return {"success": False, "error": str(e)}
 
-def build_conversation_history(conversation, project_path=None):
+def build_conversation_history(conversation, project_path=None, current_file=None):
     """
     Builds a formatted conversation history for the AI model.
     Returns a list of messages in the format expected by the AI APIs.
@@ -222,6 +222,7 @@ def build_conversation_history(conversation, project_path=None):
     Args:
         conversation: The AgentConversation object
         project_path (str, optional): Path to the project directory to include template and CSS files
+        current_file (dict, optional): Current file being edited or chatted about with keys: path, content, type
         
     Returns:
         list: A list of message dictionaries with 'role' and 'content' keys
@@ -237,6 +238,13 @@ def build_conversation_history(conversation, project_path=None):
                 "role": "system",
                 "content": system_prompt.content
             })
+    
+    # Add current file if provided - give this priority
+    if current_file and current_file.get('path') and current_file.get('content'):
+        messages.append({
+            "role": "system",
+            "content": f"CURRENTLY WORKING WITH FILE: {current_file.get('path')}\n\nCONTENT:\n{current_file.get('content')}"
+        })
     
     # Include project files if project_path is provided
     if project_path:
@@ -872,50 +880,62 @@ When generating code, focus on:
     
     def process_conversation(self, user_input, model, user, system_prompt_content=None, **kwargs):
         """
-        Process a conversation with an AI agent.
+        Process a conversation message and generate a response.
         
         Args:
             user_input (str): The user's message
-            model (str): The AI model to use
-            user: The Django user object
-            system_prompt_content (str, optional): Content for a new system prompt
-            **kwargs: Additional arguments for specialized processing
-                    Returns:
-            dict: The result of the operation, including success status and response
+            model (str): The ID of the model to use
+            user (User): The Django user making the request
+            system_prompt_content (str, optional): Custom system prompt
+            **kwargs: Additional arguments
+                - conversation_id (str, optional): ID of an existing conversation
+                - project_path (str, optional): Path to project files
+                - api_messages (list, optional): Pre-formatted messages to use
+                - use_provided_messages (bool, optional): Whether to use provided messages
+                - current_file (dict, optional): Current file being edited or chatted about
+            
+        Returns:
+            dict: The result of processing the message
         """
         try:
             # Get or create conversation
-            if system_prompt_content:
+            conversation_id = kwargs.get('conversation_id')
+            if conversation_id:
+                try:
+                    conversation = AgentConversation.objects.get(id=conversation_id, user=user)
+                except AgentConversation.DoesNotExist:
+                    return {
+                        'success': False,
+                        'error': 'Conversation not found'
+                    }
+            else:
                 conversation = AgentConversation.objects.create(
                     user=user,
                     model_name=model
                 )
-                SystemPrompt.objects.create(
-                    conversation=conversation,
-                    content=system_prompt_content
-                )
-            else:
-                conversation = kwargs.get('conversation')
-                
-                if not conversation:
-                    conversation = AgentConversation.objects.filter(
-                        user=user
-                    ).order_by('-created_at').first()
+            
+            # Get API messages
+            api_messages = kwargs.get('api_messages', [])
+            
+            # Add/update system prompt if provided
+            if system_prompt_content:
+                system_prompt = SystemPrompt.objects.filter(conversation=conversation).first()
+                if system_prompt:
+                    system_prompt.content = system_prompt_content
+                    system_prompt.save()
+                else:
+                    SystemPrompt.objects.create(
+                        conversation=conversation,
+                        content=system_prompt_content
+                    )
                     
-                    if not conversation:
-                        return {
-                            'success': False,
-                            'error': 'no_active_conversation'
-                        }
-
-            # Use provided messages if available, otherwise build them
-            api_messages = kwargs.get('messages', [])
             if not kwargs.get('use_provided_messages', False):
                 # Get project path for context
                 project_path = kwargs.get('project_path')
+                current_file = kwargs.get('current_file')
                 
                 # Build conversation history including system prompt, project files, and messages
-                api_messages = build_conversation_history(conversation, project_path)
+                api_messages = build_conversation_history(conversation, project_path, current_file)
             
             # Add the user's message
             api_messages.append({

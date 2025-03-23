@@ -2,13 +2,18 @@
   <div class="h-full flex flex-col relative z-10">
     <!-- Messages Container -->
     <div ref="messagesContainer" class="flex-1 overflow-y-auto h-full px-4 py-4 pb-2 absolute inset-0">
-      <!-- Debug message count display (enabled for troubleshooting) -->
-      <div v-if="messages && messages.length > 0" class="mb-4 p-2 bg-dark-700 rounded text-xs sticky top-0 z-10 shadow-md">
-        <p>Debug: {{ messages.length }} messages in chat</p>
-        <p v-for="(message, i) in messages" :key="i" class="mt-1">
-          Message {{ i + 1 }}: {{ message.role }} - {{ message.content ? message.content.substring(0, 30) : 'Empty' }}...
-        </p>
-      </div>
+      <!-- If no messages, show empty state -->
+      <template v-if="!messages || messages.length === 0">
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center p-6 rounded-lg bg-dark-800/40 backdrop-blur-sm max-w-lg">
+            <div class="text-gray-400 mb-4">
+              <i class="fas fa-comments text-4xl"></i>
+            </div>
+            <h3 class="text-white text-xl font-medium mb-2">Start a New Conversation</h3>
+            <p class="text-gray-400 mb-4">Ask questions about your project or get help with your code.</p>
+          </div>
+        </div>
+      </template>
       
       <template v-if="messages && messages.length > 0">
         <div class="space-y-6 max-w-3xl mx-auto">
@@ -83,26 +88,6 @@
           </template>
         </div>
       </template>
-
-      <!-- Empty State with AI Chat Illustration -->
-      <div v-else class="h-full flex items-center justify-center">
-        <div class="text-center space-y-6 max-w-md px-4">
-          <!-- AI Assistant Illustration -->
-          <div class="relative mx-auto w-24 h-24">
-            <div class="absolute inset-0 bg-primary-500/20 rounded-full animate-pulse"></div>
-            <div class="relative flex items-center justify-center w-full h-full">
-              <i class="fas fa-robot text-5xl text-primary-400"></i>
-            </div>
-          </div>
-          
-          <h3 class="text-xl font-medium text-gray-200">
-            Welcome to Imagi Oasis
-          </h3>
-          <p class="text-gray-400">
-            Start a conversation with your AI assistant to build your web application. You can ask questions or describe what you want to build.
-          </p>
-        </div>
-      </div>
     </div>
   </div>
 </template>

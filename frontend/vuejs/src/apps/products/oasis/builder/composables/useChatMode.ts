@@ -18,54 +18,138 @@ export function useChatMode() {
   
   const credits = ref<number | null>(null)
   const conversationHistory = ref<ConversationMessage[]>([])
+  const isStreamingSupported = ref(true)
 
   const sendMessage = async (params: {
-    prompt: string;
-    projectId: string;
-    file?: any;
-    modelId: string;
+    prompt: string
+    projectId: string
+    file?: any
+    mode?: string
+    model?: string
+    modelId?: string
   }) => {
-    if (!params.modelId) {
-      throw new Error('Please select an AI model first')
+    const { prompt, projectId, file, mode = 'chat' } = params
+    
+    // Get model identifier from either model or modelId parameter
+    const modelIdentifier = params.model || params.modelId || '';
+    
+    // Validate required parameters
+    if (!modelIdentifier) {
+      throw new Error('Model identifier is required')
     }
 
-    store.$patch({ isProcessing: true, error: null })
+    // Reset error state
+    store.$patch({ error: null, isProcessing: true })
+
+    // Add user message to conversation
+    const userMessage = {
+      role: 'user' as const,
+      content: prompt,
+      timestamp: new Date().toISOString()
+    }
+    store.addMessage(userMessage)
 
     try {
-      if (!params.projectId) {
-        throw new Error('No project selected')
+      // Check if model is an OpenAI model and streaming is supported
+      const useStreaming = isStreamingSupported.value && modelIdentifier.includes('gpt')
+      
+      if (useStreaming) {
+        // Create a placeholder message for the assistant
+        const tempAssistantMessage = {
+          role: 'assistant' as const,
+          content: '',
+          timestamp: new Date().toISOString()
+        }
+        
+        // Add empty message that we'll update with streaming content
+        store.addMessage(tempAssistantMessage)
+        
+        let streamingContent = ''
+        let conversationId: string | null = null
+        
+        try {
+          await AgentService.processChatStream(
+            projectId,
+            {
+              prompt,
+              model: modelIdentifier,
+              mode,
+              file
+            },
+            // On each chunk
+            (chunk) => {
+              streamingContent += chunk
+              store.updateLastAssistantMessage(streamingContent)
+            },
+            // On conversation ID
+            (id) => {
+              conversationId = id
+            },
+            // On done
+            () => {
+              // Nothing extra to do here as message is already updated
+            },
+            // On error
+            (error) => {
+              // If there's an error in streaming, we'll fall back to non-streaming
+              console.error('Error in streaming, falling back to regular API:', error)
+              isStreamingSupported.value = false
+              
+              // Remove the temporary message
+              store.removeLastMessage()
+              
+              // Call regular method
+              AgentService.processChat(projectId, {
+                prompt,
+                model: modelIdentifier,
+                mode,
+                file
+              }).then(response => {
+                if (response && response.response) {
+                  const assistantMessage = {
+                    role: 'assistant' as const,
+                    content: response.response,
+                    timestamp: new Date().toISOString(),
+                    code: response.messages && response.messages[1] && response.messages[1].code
+                  }
+                  store.addMessage(assistantMessage)
+                }
+              })
+            }
+          )
+          
+          // Return expected response format to maintain compatibility
+          return {
+            response: streamingContent,
+            messages: [
+              userMessage,
+              {
+                role: 'assistant',
+                content: streamingContent,
+                timestamp: new Date().toISOString()
+              }
+            ],
+            conversation_id: conversationId
+          }
+        } catch (streamingError) {
+          // If streaming fails completely, fall back to regular API
+          isStreamingSupported.value = false
+          
+          // Remove the placeholder message
+          store.removeLastMessage()
+          
+          // Continue to regular API call below
+          console.warn('Streaming not supported, falling back to regular API')
+        }
       }
-
-      // Debug: Log conversation state before adding message
-      // console.log('Chat conversation before user message:', [...store.conversation])
-
-      // Add user message to conversation
-      const userMessage = {
-        role: 'user' as const,
-        content: params.prompt,
-        timestamp: new Date().toISOString()
-      };
       
-      store.addMessage(userMessage);
-      
-      // Debug: Log conversation state after adding user message
-      // console.log('Chat conversation after user message:', [...store.conversation])
-
-      // Call the agent service
-      // console.log('Sending chat request to backend with params:', {
-      //   prompt: params.prompt,
-      //   modelId: params.modelId,
-      //   projectId: params.projectId
-      // })
-      
-      const response = await AgentService.processChat(params.projectId, {
-        prompt: params.prompt,
-        model: params.modelId,
-        mode: store.mode
+      // Use regular API if streaming is not supported or failed
+      const response = await AgentService.processChat(projectId, {
+        prompt,
+        model: modelIdentifier,
+        mode,
+        file
       })
-
-      // Debug: Log the response from the backend
-      // console.log('Received chat response from backend:', response)
 
       // Make sure we have a valid response
       if (response && response.response) {
@@ -77,11 +161,7 @@ export function useChatMode() {
           code: response.messages && response.messages[1] && response.messages[1].code
         };
         
-        // console.log('Adding assistant message to conversation:', assistantMessage)
         store.addMessage(assistantMessage);
-        
-        // Debug: Log conversation state after adding assistant message
-        // console.log('Chat conversation after assistant message:', [...store.conversation])
       } else {
         console.error('Invalid response format:', response);
       }

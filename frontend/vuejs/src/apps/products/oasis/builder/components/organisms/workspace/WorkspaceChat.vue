@@ -52,7 +52,7 @@
           :placeholder="promptPlaceholder"
           :focused="true"
           :is-processing="isProcessing"
-          :show-examples="showExamples"
+          :show-examples="false"
           @submit="handleSubmit"
           @examples="$emit('examples')"
         >
@@ -70,20 +70,6 @@
                 <span v-if="mode === 'build'">Changes will be applied to {{ selectedFile.path }}</span>
                 <span v-else>Discussing file: {{ selectedFile.path }}</span>
               </div>
-            </div>
-          </template>
-          
-          <template #examples v-if="false">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
-              <button
-                v-for="example in promptExamples"
-                :key="example.text"
-                class="text-left p-3 bg-dark-800/60 hover:bg-dark-800/90 rounded-md border border-dark-700/50 hover:border-primary-500/40 text-gray-300 transition-all duration-200 backdrop-blur-sm hover:shadow-md"
-                @click="$emit('use-example', example.text)"
-              >
-                <p class="font-medium text-white">{{ example.title }}</p>
-                <p class="text-sm text-gray-400 mt-1 line-clamp-2">{{ example.text }}</p>
-              </button>
             </div>
           </template>
         </ChatInputArea>
@@ -126,23 +112,13 @@ const props = defineProps<{
 
 // Ensure all messages have required properties
 const validatedMessages = computed(() => {
-  // console.log('WorkspaceChat: Validating incoming messages:', props.messages)
-  
   if (!props.messages || !Array.isArray(props.messages) || props.messages.length === 0) {
-    // console.log('WorkspaceChat: No valid messages array received or empty array')
     return []
   }
   
   const processed = props.messages.map(message => {
-    // console.log('WorkspaceChat: Processing message:', message)
-    
     // Ensure each message has valid content
     let content = message.content
-    if (content && typeof content === 'string' && content.includes('…')) {
-      // Fix truncated content (caused by console logging)
-      // console.log('WorkspaceChat: Found truncated content, using original')
-      content = message.content
-    }
     
     // Ensure each message has at least role, content, and timestamp
     return {
@@ -154,7 +130,6 @@ const validatedMessages = computed(() => {
     };
   });
   
-  // console.log('WorkspaceChat: Validated messages result:', processed)
   return processed;
 });
 

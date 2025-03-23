@@ -111,7 +111,7 @@ class ChatAgentService(BaseAgentService):
         
         return model_costs.get(model_id, {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015})
     
-    def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None):
+    def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None):
         """
         Process a chat message and generate a response.
         
@@ -121,6 +121,7 @@ class ChatAgentService(BaseAgentService):
             user (User): The Django user making the request
             conversation_id (str, optional): The ID of an existing conversation
             project_path (str, optional): The project path for context
+            current_file (dict, optional): Current file being edited or chatted about
             
         Returns:
             dict: The result of processing the message including the response and metadata
@@ -173,7 +174,7 @@ class ChatAgentService(BaseAgentService):
             )
             
             # Get conversation history including project files
-            messages = build_conversation_history(conversation, project_path)
+            messages = build_conversation_history(conversation, project_path, current_file)
             
             # Add current user message
             messages.append({"role": "user", "content": user_input})
@@ -247,6 +248,32 @@ class ChatAgentService(BaseAgentService):
             
         except Exception as e:
             logger.error(f"OpenAI API error: {str(e)}")
+            raise
+    
+    def _generate_openai_stream(self, messages, model_id):
+        """
+        Generate a streaming response using OpenAI's API.
+        
+        Args:
+            messages (list): List of message dictionaries
+            model_id (str): The ID of the OpenAI model to use
+            
+        Returns:
+            generator: A generator that yields response chunks
+        """
+        try:
+            stream = self.openai_client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                temperature=0.7,
+                max_tokens=2048,
+                stream=True
+            )
+            
+            return stream
+            
+        except Exception as e:
+            logger.error(f"OpenAI streaming API error: {str(e)}")
             raise
     
     def _generate_anthropic_response(self, messages, model_id):

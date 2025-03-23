@@ -1,5 +1,6 @@
 import api from './api'
 import { handleAPIError } from '../utils/errors'
+import { API_CONFIG } from './api'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
@@ -169,6 +170,7 @@ export const AgentService = {
     prompt: string;
     model: string;
     mode?: string;
+    file?: any;
   }): Promise<{
     response: string;
     messages: any[];
@@ -182,12 +184,32 @@ export const AgentService = {
       const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
       
       // Prepare request payload
-      const payload = {
+      const payload: {
+        message: string;
+        model: string;
+        project_id: string;
+        conversation_id?: string;
+        mode: string;
+        current_file?: {
+          path: string;
+          content: string;
+          type: string;
+        }
+      } = {
         message: data.prompt,
         model: data.model,
         project_id: projectId,
         conversation_id: storedConversationId || undefined,
         mode: data.mode || 'chat'
+      }
+      
+      // Add the current file if it exists
+      if (data.file) {
+        payload.current_file = {
+          path: data.file.path,
+          content: data.file.content,
+          type: data.file.type
+        }
       }
       
       // Use the chat endpoint from agents/api - ensure the path is correct
@@ -249,6 +271,131 @@ export const AgentService = {
       }
       
       throw handleAPIError(error)
+    }
+  },
+
+  async processChatStream(
+    projectId: string,
+    data: {
+      prompt: string;
+      model: string;
+      mode?: string;
+      file?: any;
+    },
+    onChunk: (chunk: string) => void,
+    onConversationId: (id: string) => void,
+    onDone: () => void,
+    onError: (error: string) => void
+  ): Promise<void> {
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    try {
+      // Only continue if the model is an OpenAI model
+      if (!data.model.includes('gpt')) {
+        throw new Error('Streaming is only supported for OpenAI models')
+      }
+
+      // Get conversation ID from localStorage
+      const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
+      
+      // Prepare request payload
+      const payload: {
+        message: string;
+        model: string;
+        project_id: string;
+        conversation_id?: string;
+        mode: string;
+        stream: boolean;
+        current_file?: {
+          path: string;
+          content: string;
+          type: string;
+        }
+      } = {
+        message: data.prompt,
+        model: data.model,
+        project_id: projectId,
+        conversation_id: storedConversationId || undefined,
+        mode: data.mode || 'chat',
+        stream: true
+      }
+      
+      // Add the current file if it exists
+      if (data.file) {
+        payload.current_file = {
+          path: data.file.path,
+          content: data.file.content,
+          type: data.file.type
+        }
+      }
+
+      // Create event source for SSE
+      const body = JSON.stringify(payload)
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/agents/chat/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        },
+        body
+      })
+
+      // Check if the response is ok
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to stream response')
+      }
+
+      // Create reader to read the streaming response
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('Failed to create reader for streaming response')
+      }
+
+      // Read the stream
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      // Process chunks
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        // Decode the chunk
+        const chunk = decoder.decode(value, { stream: true })
+        buffer += chunk
+
+        // Process the buffer line by line
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || '' // Keep the last (potentially incomplete) line in the buffer
+
+        for (const line of lines) {
+          if (line.trim() && line.startsWith('data:')) {
+            try {
+              const eventData = JSON.parse(line.substring(5).trim())
+              
+              // Handle different event types
+              if (eventData.event === 'content') {
+                onChunk(eventData.data)
+              } else if (eventData.event === 'conversation_id') {
+                localStorage.setItem(`chat_conversation_${projectId}`, eventData.data)
+                onConversationId(eventData.data)
+              } else if (eventData.event === 'error') {
+                onError(eventData.data)
+              } else if (eventData.event === 'done') {
+                onDone()
+              }
+            } catch (e) {
+              console.error('Error parsing SSE event:', e)
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Chat streaming API error:', error)
+      onError(error.message || 'An error occurred while streaming the response')
     }
   },
 

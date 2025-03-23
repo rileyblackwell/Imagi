@@ -132,41 +132,37 @@
       </template>
     </div>
     
-    <!-- Creator Mode Help -->
-    <div v-if="mode === 'chat' && !isCollapsed" class="text-white text-xs p-4 bg-gray-800 rounded-md mb-4">
-      <p>Create HTML templates and CSS stylesheets for your Django project using plain language instructions.</p>
-      <p class="mt-2">Examples:</p>
-      <ul class="list-disc pl-4 mt-1 space-y-1">
-        <li>"Create a modern landing page with a hero section, features grid, and contact form."</li>
-        <li>"Design a minimalist about page with team section."</li>
-        <li>"Make a clean contact form page with address and map."</li>
-      </ul>
-      <p class="mt-2 text-green-400">✓ Django views and URL patterns will be automatically created for your templates!</p>
-    </div>
-    
     <!-- Action Buttons -->
-    <div v-if="!isCollapsed" class="sticky bottom-0 left-0 right-0 p-4 mt-auto border-t border-dark-700/50 bg-dark-800/30 backdrop-blur-sm">
-      <div class="flex justify-between items-center">
-        <button 
-          @click="$emit('undo')"
-          class="px-3 py-2 bg-dark-800/80 hover:bg-dark-700/80 text-gray-300 rounded-lg text-sm transition-colors flex items-center border border-dark-700/50"
-          :disabled="isLoading"
-          :class="{'opacity-50 cursor-not-allowed': isLoading}"
-        >
-          <i class="fas fa-undo mr-2"></i>
-          <span>Undo</span>
-        </button>
-        
-        <button 
-          @click="$emit('preview')"
-          class="px-3 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-300 rounded-lg text-sm transition-colors flex items-center border border-primary-500/20"
-          :disabled="isLoading"
-          :class="{'opacity-50 cursor-not-allowed': isLoading}"
-        >
-          <i class="fas fa-eye mr-2"></i>
-          <span>Preview</span>
-        </button>
-      </div>
+    <div :class="{'p-4': !isCollapsed, 'px-2 py-3': isCollapsed}" class="flex justify-between border-t border-dark-700/50">
+      <!-- Undo button -->
+      <button
+        v-if="!isCollapsed"
+        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02]"
+        title="Undo Last Action"
+        :disabled="isLoading"
+        @click="$emit('undo')"
+      >
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/30 to-primary-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+        <div class="relative flex items-center">
+          <i class="fas fa-undo mr-2 text-primary-400 group-hover:text-primary-300 transition-colors"></i>
+          <span class="text-white text-sm font-medium">Undo</span>
+        </div>
+      </button>
+      
+      <!-- Preview button -->
+      <button
+        v-if="!isCollapsed"
+        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02]"
+        title="Preview Project"
+        :disabled="isLoading"
+        @click="$emit('preview')"
+      >
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+        <div class="relative flex items-center">
+          <i class="fas fa-eye mr-2 text-primary-400 group-hover:text-primary-300 transition-colors"></i>
+          <span class="text-white text-sm font-medium">Preview</span>
+        </div>
+      </button>
     </div>
   </div>
 </template>
@@ -284,6 +280,11 @@ const modeOptions = computed(() => ([
   { id: 'chat', icon: 'fa-comments', label: 'Chat Mode' },
   { id: 'build', icon: 'fa-code', label: 'Build Mode' }
 ]))
+
+// Function to toggle the new file form visibility
+const toggleNewFileForm = () => {
+  showNewFileFormValue.value = !showNewFileFormValue.value
+}
 </script>
 
 <style scoped>
