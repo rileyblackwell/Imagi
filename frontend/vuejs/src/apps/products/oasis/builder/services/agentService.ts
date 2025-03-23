@@ -307,16 +307,25 @@ export const AgentService = {
   },
 
   async undoAction(projectId: string, filePath?: string): Promise<UndoResponse> {
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+    
+    if (!filePath) {
+      throw new Error('File path is required for undo action')
+    }
+
     try {
-      // Use the file-specific undo endpoint if a file path is provided
-      const endpoint = filePath 
-        ? `/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`
-        : `/api/v1/builder/${projectId}/undo/`;
+      // Use the new undo-interaction endpoint
+      const response = await api.post(`/api/v1/builder/${projectId}/files/${filePath}/undo-interaction/`)
       
-      const response = await api.post(endpoint);
-      return response.data;
+      return {
+        success: response.data.success,
+        message: response.data.message || 'Successfully undid the last AI interaction',
+        details: response.data.details || {}
+      }
     } catch (error) {
-      throw handleAPIError(error);
+      throw handleAPIError(error)
     }
   },
 

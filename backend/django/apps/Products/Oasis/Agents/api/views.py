@@ -48,7 +48,7 @@ def build_template(request):
         template_agent = TemplateAgentService()
             
         # Log request
-        logger.info(f"Template request: message={message}, model={model}, file_path={file_path}")
+        logger.info(f"Template request: message={message}, model={model}, file_path={file_path}, project_id={project_id}")
         
         # Process the template request
         result = template_agent.process_template(
@@ -437,13 +437,23 @@ def chat(request):
         # Get chat service
         chat_service = ChatAgentService()
         
+        # Get project path from project_id
+        project_path = None
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.get(id=project_id, user=request.user)
+            project_path = project.project_path
+            logger.info(f"Using project path: {project_path}")
+        except Exception as e:
+            logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+        
         # Process chat message
         result = chat_service.process_message(
             user_input=user_input,
             model_id=model_id,
             user=request.user,
             conversation_id=conversation_id,
-            project_path=project_id
+            project_path=project_path
         )
         
         # Process result

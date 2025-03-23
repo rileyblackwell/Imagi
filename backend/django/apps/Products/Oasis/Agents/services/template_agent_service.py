@@ -7,6 +7,7 @@ allowing users to create and modify templates through natural language instructi
 
 from dotenv import load_dotenv
 import re
+import logging
 from .agent_service import BaseAgentService
 from ..models import AgentConversation, SystemPrompt, AgentMessage
 from django.shortcuts import get_object_or_404
@@ -14,6 +15,9 @@ import os
 
 # Load environment variables from .env
 load_dotenv()
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class TemplateAgentService(BaseAgentService):
     """
@@ -354,7 +358,7 @@ class TemplateAgentService(BaseAgentService):
             print(f"Error in process_message: {str(e)}")
             raise e
 
-    def handle_template_request(self, user_input, model, user, file_path, conversation_id=None):
+    def handle_template_request(self, user_input, model, user, file_path, conversation_id=None, project_id=None):
         """
         Handle a complete template generation request, including conversation management.
         
@@ -364,6 +368,7 @@ class TemplateAgentService(BaseAgentService):
             user: The Django user object
             file_path (str): The path to the template file
             conversation_id (int, optional): The ID of an existing conversation
+            project_id (str, optional): The ID of the project
             
         Returns:
             dict: The result of the operation, including success status and response
@@ -399,13 +404,24 @@ class TemplateAgentService(BaseAgentService):
                 content=user_input
             )
             
-            # Process template generation
+            # Get project path if project_id is provided
+            project_path = None
+            if project_id:
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                except Exception as e:
+                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+            
+            # Process template generation with project context
             result = self.process_conversation(
                 user_input=user_input,
                 model=model,
                 user=user,
                 file_name=file_path,
-                conversation=conversation
+                conversation=conversation,
+                project_path=project_path
             )
             
             if result.get('success'):
@@ -462,7 +478,8 @@ class TemplateAgentService(BaseAgentService):
                 model=model,
                 user=user,
                 file_path=file_path,
-                conversation_id=conversation_id
+                conversation_id=conversation_id,
+                project_id=project_id
             )
             
             # Extract the generated content and return it in the expected format

@@ -298,8 +298,61 @@ async function handleApplyCode(code: string) {
 }
 
 async function handleUndo() {
-  // Implement undo functionality
-  notify({ type: 'info', message: 'Undo feature coming soon' })
+  if (!store.selectedFile) {
+    notify({ type: 'warning', message: 'Please select a file to undo changes' })
+    return
+  }
+  
+  try {
+    store.setProcessing(true)
+    
+    const result = await AgentService.undoAction(
+      projectId.value,
+      store.selectedFile.path
+    )
+    
+    if (result.success) {
+      // Refresh the file content after undo
+      const updatedContent = await FileService.getFileContent(
+        projectId.value, 
+        store.selectedFile.path
+      )
+      
+      // Update the file in the store
+      if (store.selectedFile) {
+        store.setSelectedFile({
+          ...store.selectedFile,
+          content: updatedContent
+        })
+      }
+      
+      // Remove the last two messages from the conversation (user and assistant)
+      if (store.conversation.length >= 2) {
+        // Create a new array with all but the last two messages
+        const newConversation = store.conversation.slice(0, -2)
+        // Use $patch to update the conversation state
+        store.$patch({ conversation: newConversation })
+      }
+      
+      notify({ 
+        type: 'success', 
+        message: result.message || 'Successfully undid the last AI interaction'
+      })
+    } else {
+      notify({ 
+        type: 'error', 
+        message: result.message || 'Failed to undo the last AI interaction'
+      })
+    }
+  } catch (error) {
+    console.error('Error undoing last interaction:', error)
+    notify({ 
+      type: 'error', 
+      message: 'Error undoing the last AI interaction. Please try again.'
+    })
+  } finally {
+    store.setProcessing(false)
+  }
 }
 
 async function handlePreview() {

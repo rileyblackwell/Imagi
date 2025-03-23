@@ -188,7 +188,7 @@ class StylesheetAgentService(BaseAgentService):
             # Be forgiving - return true even if validation fails
             return True, None
 
-    def handle_stylesheet_request(self, user_input, model, user, file_path, conversation_id=None):
+    def handle_stylesheet_request(self, user_input, model, user, file_path, conversation_id=None, project_id=None):
         """
         Handle a complete stylesheet generation request, including conversation management.
         
@@ -198,6 +198,7 @@ class StylesheetAgentService(BaseAgentService):
             user: The Django user object
             file_path (str): The path to the stylesheet file
             conversation_id (int, optional): The ID of an existing conversation
+            project_id (str, optional): The ID of the project
             
         Returns:
             dict: The result of the operation, including success status and response
@@ -245,6 +246,17 @@ class StylesheetAgentService(BaseAgentService):
             )
             logger.info(f"[DEBUG] Saved user message, ID: {user_message.id}")
             
+            # Get project path if project_id is provided
+            project_path = None
+            if project_id:
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                    logger.info(f"[DEBUG] Using project path: {project_path}")
+                except Exception as e:
+                    logger.warning(f"[WARNING] Could not get project path from project_id {project_id}: {str(e)}")
+            
             # Process stylesheet generation
             logger.info(f"[DEBUG] Calling process_conversation")
             result = self.process_conversation(
@@ -252,7 +264,8 @@ class StylesheetAgentService(BaseAgentService):
                 model=model,
                 user=user,
                 file_name=file_path,
-                conversation=conversation
+                conversation=conversation,
+                project_path=project_path
             )
             
             logger.info(f"[DEBUG] process_conversation result: success={result.get('success', False)}")
@@ -460,7 +473,8 @@ class StylesheetAgentService(BaseAgentService):
                 model=model,
                 user=user,
                 file_path=file_path,
-                conversation_id=conversation_id
+                conversation_id=conversation_id,
+                project_id=project_id
             )
             
             # Extract the generated content and return it in the expected format

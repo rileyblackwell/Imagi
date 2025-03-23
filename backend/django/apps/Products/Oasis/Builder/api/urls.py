@@ -3,12 +3,12 @@ URL patterns for the Builder app API.
 """
 
 from django.urls import path
-from . import views
+
 from .views import (
-    AnalyzeTemplateView, AIModelsView, CreateFileView, DeleteFileView,
-    DirectoryView, FileContentView, FileUndoView, GenerateCodeView,
-    PreviewView, ProjectDetailsView, ProjectListCreateView,
-    ProjectDetailView, StaticFilesView, TemplateFilesView
+   AIModelsView, CreateFileView, DeleteFileView,
+    DirectoryView, FileContentView, FileUndoView, 
+    PreviewView, ProjectDetailsView, 
+    StaticFilesView, TemplateFilesView, UndoLastInteractionView
 )
 
 urlpatterns = [
@@ -31,4 +31,7 @@ urlpatterns = [
     
     # Model selection endpoint
     path('models/', AIModelsView.as_view(), name='api-ai-models'),
+    
+    # Undo last AI interaction
+    path('<int:project_id>/files/<path:file_path>/undo-interaction/', UndoLastInteractionView.as_view(), name='api-undo-interaction'),
 ]

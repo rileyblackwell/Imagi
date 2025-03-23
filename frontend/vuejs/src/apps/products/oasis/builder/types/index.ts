@@ -74,6 +74,11 @@ export interface UndoResponse {
     file: string;
     content: string;
   }[];
+  details?: {
+    removed_user_message?: string;
+    removed_assistant_message?: string;
+    [key: string]: any;
+  };
 }
 
 /**

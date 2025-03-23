@@ -14,6 +14,7 @@ from ..models import AgentConversation, SystemPrompt, AgentMessage
 import openai
 import anthropic
 from apps.Payments.services import PaymentService
+from apps.Products.Oasis.Agents.services.agent_service import build_conversation_history
 
 # Load environment variables from .env
 load_dotenv()
@@ -171,18 +172,11 @@ class ChatAgentService(BaseAgentService):
                 content=user_input
             )
             
-            # Get conversation history
-            system_prompt_obj = SystemPrompt.objects.filter(conversation=conversation).first()
-            messages = []
+            # Get conversation history including project files
+            messages = build_conversation_history(conversation, project_path)
             
-            # Add system prompt if it exists
-            if system_prompt_obj:
-                messages.append({"role": "system", "content": system_prompt_obj.content})
-            
-            # Add previous messages from this conversation
-            previous_messages = AgentMessage.objects.filter(conversation=conversation).order_by('created_at')
-            for msg in previous_messages:
-                messages.append({"role": msg.role, "content": msg.content})
+            # Add current user message
+            messages.append({"role": "user", "content": user_input})
             
             # Generate response based on provider
             if provider == 'openai':

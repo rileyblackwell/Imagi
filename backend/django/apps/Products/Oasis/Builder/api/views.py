@@ -28,6 +28,7 @@ from apps.Products.Oasis.ProjectManager.services.project_creation_service import
 from rest_framework.exceptions import NotFound
 from ..services.project_service import ProjectService
 from apps.Products.Oasis.Agents.services.template_agent_service import TemplateAgentService
+from ..services.undo_service import UndoService
 
 logger = logging.getLogger(__name__)
 
@@ -736,5 +737,65 @@ class AnalyzeTemplateView(APIView):
             logger.error(f"Error analyzing template: {str(e)}")
             return Response(
                 {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class UndoLastInteractionView(APIView):
+    """Undo the last AI interaction for a specific file."""
+    permission_classes = [IsAuthenticated]
+    
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+    
+    def post(self, request, project_id, file_path):
+        """
+        Undo the last AI interaction for a specific file.
+        
+        This endpoint removes the last user prompt and AI response for the specified file,
+        effectively reverting the file back to its previous state.
+        """
+        try:
+            # Get the project
+            project = self.get_project(project_id)
+            
+            # Initialize the undo service
+            undo_service = UndoService(project=project)
+            
+            # Perform the undo operation
+            result = undo_service.undo_last_interaction(
+                user=request.user,
+                project_id=project_id,
+                file_path=file_path
+            )
+            
+            if result.get('success'):
+                return Response(
+                    {
+                        'success': True,
+                        'message': result.get('message', 'Successfully undid the last AI interaction.'),
+                        'details': result.get('details', {})
+                    },
+                    status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {
+                        'success': False,
+                        'error': result.get('error', 'Failed to undo the last AI interaction.')
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+        except Exception as e:
+            logger.error(f"Error undoing last interaction: {str(e)}")
+            return Response(
+                {
+                    'success': False,
+                    'error': f"Failed to undo the last interaction: {str(e)}"
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

@@ -214,13 +214,14 @@ def delete_conversation(user, conversation_id):
         logger.error(f"Error deleting conversation: {str(e)}")
         return {"success": False, "error": str(e)}
 
-def build_conversation_history(conversation):
+def build_conversation_history(conversation, project_path=None):
     """
     Builds a formatted conversation history for the AI model.
     Returns a list of messages in the format expected by the AI APIs.
     
     Args:
         conversation: The AgentConversation object
+        project_path (str, optional): Path to the project directory to include template and CSS files
         
     Returns:
         list: A list of message dictionaries with 'role' and 'content' keys
@@ -228,11 +229,61 @@ def build_conversation_history(conversation):
     messages = []
     
     # Add system prompt if it exists
+    system_prompt = None
     if hasattr(conversation, 'system_prompt'):
-        messages.append({
-            "role": "system",
-            "content": conversation.system_prompt.content
-        })
+        system_prompt = SystemPrompt.objects.filter(conversation=conversation).first()
+        if system_prompt:
+            messages.append({
+                "role": "system",
+                "content": system_prompt.content
+            })
+    
+    # Include project files if project_path is provided
+    if project_path:
+        templates_dir = os.path.join(project_path, 'templates')
+        css_dir = os.path.join(project_path, 'static', 'css')
+        
+        # Add HTML files
+        if os.path.exists(templates_dir):
+            html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
+            html_files.sort()
+            
+            # Ensure base.html is first, followed by index.html for better context
+            if 'base.html' in html_files:
+                html_files.remove('base.html')
+                html_files.insert(0, 'base.html')
+            if 'index.html' in html_files:
+                html_files.remove('index.html')
+                html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
+            
+            for filename in html_files:
+                file_path = os.path.join(templates_dir, filename)
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                        messages.append({
+                            "role": "assistant",
+                            "content": f"[File: {filename}]\n{content}"
+                        })
+                except FileNotFoundError:
+                    logger.warning(f"File not found: {filename}")
+                    continue
+        
+        # Add CSS files
+        if os.path.exists(css_dir):
+            css_files = [f for f in os.listdir(css_dir) if f.endswith('.css')]
+            for filename in css_files:
+                css_path = os.path.join(css_dir, filename)
+                try:
+                    with open(css_path, 'r') as f:
+                        content = f.read()
+                        messages.append({
+                            "role": "assistant",
+                            "content": f"[File: {filename}]\n{content}"
+                        })
+                except FileNotFoundError:
+                    logger.warning(f"File not found: {filename}")
+                    continue
     
     # Add conversation history
     history_messages = AgentMessage.objects.filter(
@@ -860,75 +911,13 @@ When generating code, focus on:
             # Use provided messages if available, otherwise build them
             api_messages = kwargs.get('messages', [])
             if not kwargs.get('use_provided_messages', False):
-                api_messages = []
-                
-                # 1. Add system prompt (from the specific agent service)
-                system_prompt = self.get_system_prompt()
-                print("\n=== SYSTEM PROMPT ===")
-                print(system_prompt['content'])
-                api_messages.append(system_prompt)
-                
-                # 2. Add project files if available
+                # Get project path for context
                 project_path = kwargs.get('project_path')
-                if project_path:
-                    print("\n=== PROJECT FILES ===")
-                    templates_dir = os.path.join(project_path, 'templates')
-                    css_dir = os.path.join(project_path, 'static', 'css')
-                    
-                    # Add HTML files
-                    if os.path.exists(templates_dir):
-                        html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
-                        html_files.sort()
-                        
-                        # Ensure base.html is first, followed by index.html
-                        if 'base.html' in html_files:
-                            html_files.remove('base.html')
-                            html_files.insert(0, 'base.html')
-                        if 'index.html' in html_files:
-                            html_files.remove('index.html')
-                            html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
-                        
-                        for filename in html_files:
-                            print(f"Adding file: {filename}")
-                            file_path = os.path.join(templates_dir, filename)
-                            try:
-                                with open(file_path, 'r') as f:
-                                    content = f.read()
-                                    api_messages.append({
-                                        "role": "assistant",
-                                        "content": f"[File: {filename}]\n{content}"
-                                    })
-                            except FileNotFoundError:
-                                print(f"File not found: {filename}")
-                                continue
-                    
-                    # Add CSS file
-                    css_path = os.path.join(css_dir, 'styles.css')
-                    if os.path.exists(css_path):
-                        print("Adding file: styles.css")
-                        try:
-                            with open(css_path, 'r') as f:
-                                content = f.read()
-                                api_messages.append({
-                                    "role": "assistant",
-                                    "content": f"[File: styles.css]\n{content}"
-                                })
-                        except FileNotFoundError:
-                            print("File not found: styles.css")
-                            pass
                 
-                # 3. Add conversation history
-                history_messages = AgentMessage.objects.filter(
-                    conversation=conversation
-                ).order_by('created_at')
-                
-                for msg in history_messages:
-                    api_messages.append({
-                        "role": msg.role,
-                        "content": msg.content
-                    })
+                # Build conversation history including system prompt, project files, and messages
+                api_messages = build_conversation_history(conversation, project_path)
             
-            # 4. Add the user's message
+            # Add the user's message
             api_messages.append({
                 "role": "user",
                 "content": user_input
@@ -985,8 +974,9 @@ When generating code, focus on:
                 'response': response_content,
                 'conversation_id': conversation.id
             }
+            
         except Exception as e:
-            logger.error(f"Error processing conversation: {str(e)}")
+            logger.error(f"Error in process_conversation: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
