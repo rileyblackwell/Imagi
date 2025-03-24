@@ -39,7 +39,7 @@ anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 # Add model costs constants
 MODEL_COSTS = {
-    'claude-3-5-sonnet-20241022': 0.04,  # $0.10 per request
+    'claude-3-7-sonnet-20250219': 0.04,  # $0.10 per request
     'gpt-4': 0.04,  # $0.10 per request
     'gpt-4-mini': 0.005  # $0.005 per request
 }
@@ -748,7 +748,7 @@ class BaseAgentService(ABC):
                 'error': str(e)
             }
     
-    def generate_content(self, prompt, model='claude-3-5-sonnet-20241022', system_prompt=None, file_path=None):
+    def generate_content(self, prompt, model='claude-3-7-sonnet-20250219', system_prompt=None, file_path=None):
         """
         Generate content using the specified AI model.
         

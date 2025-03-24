@@ -65,7 +65,7 @@ import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
-import { useChatMode } from '../composables/useChatMode'
+import useChatMode from '../composables/useChatMode'
 import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
@@ -169,42 +169,81 @@ async function handlePrompt() {
   if (!prompt.value.trim()) return
   
   try {
+    if (!store.selectedModelId) {
+      notify({ type: 'warning', message: 'Please select an AI model' })
+      return
+    }
+    
+    // Check if we have a project ID
+    if (!projectId.value) {
+      notify({ type: 'warning', message: 'Invalid project ID' })
+      return
+    }
+    
+    // For build mode, file selection is required
+    if (store.mode === 'build' && !store.selectedFile) {
+      notify({ type: 'warning', message: 'Please select a file to modify' })
+      return
+    }
+    
+    // Get user auth status before making request
+    const isUserAuthenticated = await useAuthStore().validateAuth()
+    if (!isUserAuthenticated) {
+      notify({ 
+        type: 'error', 
+        message: 'Authentication error. Please log in again.' 
+      })
+      return
+    }
+    
     if (store.mode === 'build') {
       if (!store.selectedFile) {
         notify({ type: 'warning', message: 'Please select a file to modify' })
         return
       }
       
-      if (!store.selectedModelId) {
-        notify({ type: 'warning', message: 'Please select an AI model' })
-        return
-      }
+      // Show loading notification
+      notify({ type: 'info', message: 'Generating code...' })
       
       await generateCodeFromPrompt({
         prompt: prompt.value,
         file: store.selectedFile,
         projectId: projectId.value,
-        modelId: store.selectedModelId
+        modelId: store.selectedModelId,
+        mode: 'build'
       })
-    } else {
-      if (!store.selectedModelId) {
-        notify({ type: 'warning', message: 'Please select an AI model' })
-        return
-      }
       
-      await sendMessage({
-        prompt: prompt.value,
-        projectId: projectId.value,
-        file: store.selectedFile,
-        model: store.selectedModelId
-      })
+      // Show success notification
+      notify({ type: 'success', message: 'Code generated successfully' })
+    } else {
+      // Show loading notification for chat
+      notify({ type: 'info', message: 'Connecting with AI...' })
+      
+      // Streaming will be used automatically for supported models (OpenAI/Claude)
+      await sendMessage(
+        prompt.value,
+        store.selectedModelId,
+        projectId.value,
+        {
+          mode: 'chat',
+          currentFile: store.selectedFile
+        }
+      )
+      
+      // No need for success notification as the message will be displayed in the chat
     }
     
     // Clear prompt after sending
     prompt.value = ''
   } catch (error) {
     console.error('Error processing prompt:', error)
-    notify({ type: 'error', message: 'Error processing your request. Please try again.' })
+    
+    // Show specific error message if available
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Error processing your request. Please try again.';
+      
+    notify({ type: 'error', message: errorMessage })
   }
 }
 
@@ -405,7 +444,7 @@ onMounted(async () => {
       
     // Set default model if not already set
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-5-sonnet-20241022') || store.availableModels[0]
+      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') || store.availableModels[0]
       if (defaultModel) {
         store.setSelectedModelId(defaultModel.id)
       }

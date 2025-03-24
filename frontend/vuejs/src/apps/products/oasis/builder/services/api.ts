@@ -189,7 +189,9 @@ api.interceptors.response.use(
         !contentType.includes('application/json')) {
       
       // If response data is a string and starts with DOCTYPE, it's likely an HTML error page
-      if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
+      if (typeof response.data === 'string' && 
+          (response.data.trim().startsWith('<!DOCTYPE') || 
+           response.data.trim().startsWith('<html'))) {
         console.error('Received HTML response instead of JSON:', {
           url: response.config?.url,
           method: response.config?.method,
@@ -233,6 +235,27 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
+    // Check if the error response contains HTML
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      if (typeof data === 'string' && 
+          (data.includes('<!DOCTYPE') || data.includes('<html') || data.includes('<body>'))) {
+        console.error('HTML error response detected:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response.status,
+          preview: data.substring(0, 150) + '...'
+        });
+        
+        // Override the error details with more useful information
+        error.response.data = {
+          detail: 'The server returned an HTML error page. This typically indicates a server problem.',
+          message: 'Server error - received HTML instead of JSON',
+          htmlDetected: true
+        };
+      }
+    }
+    
     console.debug('API error intercepted:', {
       url: error.config?.url,
       method: error.config?.method,
@@ -274,10 +297,20 @@ api.interceptors.response.use(
       if (!token) {
         console.debug('No valid token for unauthorized request')
       }
+      
+      // Trigger auth refresh event that other components can listen for
+      window.dispatchEvent(new CustomEvent('auth:refresh-needed'));
     } else if (error.response?.status === 403) {
       console.error('Permission denied:', error.response.data)
     } else if (error.response?.status === 404) {
       console.error('Resource not found:', error.response.data)
+    } else if (error.response?.status >= 500) {
+      console.error('Server error:', {
+        status: error.response.status,
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.response.data
+      })
     }
     return Promise.reject(handleAPIError(error))
   }

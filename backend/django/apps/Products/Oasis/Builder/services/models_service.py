@@ -14,8 +14,8 @@ class ModelsService:
         """Get a list of all available AI models."""
         models = [
             {
-                'id': 'claude-3-5-sonnet-20241022',
-                'name': 'Claude 3.5 Sonnet',
+                'id': 'claude-3-7-sonnet-20250219',
+                'name': 'Claude 3.7 Sonnet',
                 'provider': 'anthropic',
                 'type': 'anthropic',
                 'description': 'Anthropic | High-performance model for complex tasks',

@@ -195,7 +195,7 @@ const getModelTypeClass = (model: AIModel): string => {
 
 const getModelTypeIcon = (model: AIModel): string => {
   // Special cases for high-tier models to use brain icon
-  if (model.id === 'claude-3-5-sonnet-20241022' || model.id === 'gpt-4o') {
+  if (model.id === 'claude-3-7-sonnet-20250219' || model.id === 'gpt-4o') {
     return 'fa-brain';
   }
   

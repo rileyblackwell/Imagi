@@ -29,7 +29,7 @@ def process_chat_mode_input(*args, **kwargs):
 
 def check_user_credits(*args, **kwargs):
     """Placeholder for check_user_credits function."""
-    return True
+    return (True, 0.0)
 
 def deduct_credits(*args, **kwargs):
     """Placeholder for deduct_credits function."""

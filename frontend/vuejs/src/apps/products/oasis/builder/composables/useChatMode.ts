@@ -1,243 +1,291 @@
-import { computed, ref } from 'vue'
-import { useAgentStore } from '../stores/agentStore'
+import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { AgentService } from '../services/agentService'
-import axios from 'axios'
+import { v4 as uuidv4 } from 'uuid'
+import { useAuthStore } from '@/shared/stores/auth'
 
-interface ConversationMessage {
-  role: 'user' | 'assistant' | 'system'
+interface Message {
+  id: string
+  role: string
   content: string
-  code?: string
   timestamp: string
+  isStreaming?: boolean
 }
 
-export function useChatMode() {
-  // Support both old and new store for backward compatibility
-  const agentStore = useAgentStore()
-  // Use the agent store if available, otherwise fallback to builder store
-  const store = agentStore
+interface Conversation {
+  id: string
+  messages: Message[]
+}
+
+export default function useChatMode() {
+  const route = useRoute()
+  const conversation = ref<Conversation | null>(null)
+  const error = ref<string | null>(null)
+  const isProcessing = ref(false)
+  const streamingSupported = ref(true)
   
-  const credits = ref<number | null>(null)
-  const conversationHistory = ref<ConversationMessage[]>([])
-  const isStreamingSupported = ref(true)
-
-  const sendMessage = async (params: {
-    prompt: string
-    projectId: string
-    file?: any
-    mode?: string
-    model?: string
-    modelId?: string
-  }) => {
-    const { prompt, projectId, file, mode = 'chat' } = params
-    
-    // Get model identifier from either model or modelId parameter
-    const modelIdentifier = params.model || params.modelId || '';
-    
-    // Validate required parameters
-    if (!modelIdentifier) {
-      throw new Error('Model identifier is required')
+  const createConversation = (id: string): Conversation => {
+    return {
+      id,
+      messages: []
     }
-
-    // Reset error state
-    store.$patch({ error: null, isProcessing: true })
-
-    // Add user message to conversation
-    const userMessage = {
-      role: 'user' as const,
-      content: prompt,
-      timestamp: new Date().toISOString()
-    }
-    store.addMessage(userMessage)
-
+  }
+  
+  const fallbackToRegularApiCall = async (
+    message: string,
+    modelId: string,
+    projectId: string,
+    options: {
+      conversationId?: string,
+      mode?: string,
+      currentFile?: any
+    } = {}
+  ) => {
     try {
-      // Check if model is an OpenAI model and streaming is supported
-      const useStreaming = isStreamingSupported.value && modelIdentifier.includes('gpt')
+      isProcessing.value = true;
+      const { mode = 'chat', currentFile } = options;
       
-      if (useStreaming) {
-        // Create a placeholder message for the assistant
-        const tempAssistantMessage = {
-          role: 'assistant' as const,
-          content: '',
-          timestamp: new Date().toISOString()
-        }
-        
-        // Add empty message that we'll update with streaming content
-        store.addMessage(tempAssistantMessage)
-        
-        let streamingContent = ''
-        let conversationId: string | null = null
-        
-        try {
-          await AgentService.processChatStream(
-            projectId,
-            {
-              prompt,
-              model: modelIdentifier,
-              mode,
-              file
-            },
-            // On each chunk
-            (chunk) => {
-              streamingContent += chunk
-              store.updateLastAssistantMessage(streamingContent)
-            },
-            // On conversation ID
-            (id) => {
-              conversationId = id
-            },
-            // On done
-            () => {
-              // Nothing extra to do here as message is already updated
-            },
-            // On error
-            (error) => {
-              // If there's an error in streaming, we'll fall back to non-streaming
-              console.error('Error in streaming, falling back to regular API:', error)
-              isStreamingSupported.value = false
-              
-              // Remove the temporary message
-              store.removeLastMessage()
-              
-              // Call regular method
-              AgentService.processChat(projectId, {
-                prompt,
-                model: modelIdentifier,
-                mode,
-                file
-              }).then(response => {
-                if (response && response.response) {
-                  const assistantMessage = {
-                    role: 'assistant' as const,
-                    content: response.response,
-                    timestamp: new Date().toISOString(),
-                    code: response.messages && response.messages[1] && response.messages[1].code
-                  }
-                  store.addMessage(assistantMessage)
-                }
-              })
-            }
-          )
-          
-          // Return expected response format to maintain compatibility
-          return {
-            response: streamingContent,
-            messages: [
-              userMessage,
-              {
-                role: 'assistant',
-                content: streamingContent,
-                timestamp: new Date().toISOString()
-              }
-            ],
-            conversation_id: conversationId
-          }
-        } catch (streamingError) {
-          // If streaming fails completely, fall back to regular API
-          isStreamingSupported.value = false
-          
-          // Remove the placeholder message
-          store.removeLastMessage()
-          
-          // Continue to regular API call below
-          console.warn('Streaming not supported, falling back to regular API')
-        }
-      }
-      
-      // Use regular API if streaming is not supported or failed
-      const response = await AgentService.processChat(projectId, {
-        prompt,
-        model: modelIdentifier,
+      console.log('Using regular API call with:', { 
+        message, 
+        model: modelId, 
+        projectId,
         mode,
-        file
-      })
-
-      // Make sure we have a valid response
+        hasCurrentFile: !!currentFile
+      });
+      
+      // Match the interface expected by processChat
+      const response = await AgentService.processChat(projectId, {
+        prompt: message,
+        model: modelId,
+        mode,
+        file: currentFile
+      });
+      
       if (response && response.response) {
-        // Add assistant response to conversation
-        const assistantMessage = {
-          role: 'assistant' as const,
+        if (!conversation.value || (options.conversationId !== conversation.value.id)) {
+          // Create a new conversation with the ID from options or a new one
+          conversation.value = createConversation(options.conversationId || 'new');
+        }
+        
+        // Add assistant response
+        const assistantMessage: Message = {
+          id: uuidv4(),
+          role: 'assistant',
           content: response.response,
-          timestamp: new Date().toISOString(),
-          code: response.messages && response.messages[1] && response.messages[1].code
+          timestamp: new Date().toISOString()
         };
         
-        store.addMessage(assistantMessage);
+        conversation.value.messages.push(assistantMessage);
+        error.value = null;
       } else {
-        console.error('Invalid response format:', response);
+        error.value = 'No response received from the API';
+        console.error('Chat API error: No response received');
       }
-
-      return response
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to send message'
-      store.$patch({ error })
-      throw err
-    } finally {
-      store.$patch({ isProcessing: false })
-    }
-  }
-
-  const clearConversation = async () => {
-    try {
-      if (store.projectId) {
-        await AgentService.clearConversation(store.projectId)
-      }
-      store.$reset()
-      conversationHistory.value = []
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to clear conversation'
-      store.$patch({ error })
-      throw err
-    }
-  }
-
-  // Merged from useAI
-  const fetchConversationHistory = async (projectId: string) => {
-    store.$patch({ isProcessing: true, error: null })
-
-    try {
-      // This endpoint should match the chat endpoint in the backend
-      // Note: We're keeping the query parameter for conversation_id as this may be supported
-      // by the backend implementation, even though it wasn't explicitly in the URL pattern
-      const response = await axios.get(`/api/v1/agents/chat/?conversation_id=${projectId}`)
-      conversationHistory.value = response.data.messages || []
+    } catch (e) {
+      console.error('Error in regular chat API call:', e);
+      error.value = e instanceof Error ? e.message : 'Unknown error occurred';
       
-      // Also update the store conversation if needed
-      if (response.data.messages && Array.isArray(response.data.messages)) {
-        // Reset the store and add new messages
-        store.$reset()
-        store.$patch({ 
-          conversation: response.data.messages 
-        })
+      // If there's a conversation with a streaming message that failed, remove it
+      if (conversation.value) {
+        conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
       }
-    } catch (err) {
-      // Set error without console logging
-      const error = err instanceof Error ? err.message : 'Failed to fetch conversation history'
-      store.$patch({ error })
     } finally {
-      store.$patch({ isProcessing: false })
+      isProcessing.value = false;
     }
-  }
+  };
 
-  const fetchCredits = async () => {
-    try {
-      // The payments API endpoint should be verified separately, as it's in a different app
-      const response = await axios.get('/api/v1/payments/credits/')
-      credits.value = response.data.credits
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to fetch credits'
-      store.$patch({ error })
+  const sendMessage = async (
+    message: string,
+    modelId: string,
+    projectId: string,
+    options: {
+      conversationId?: string,
+      mode?: string,
+      currentFile?: any
+    } = {}
+  ) => {
+    // Validate project ID - default to "default-project" if not provided
+    const validProjectId = projectId || 'default-project';
+    
+    if (!message || !modelId) {
+      error.value = 'Please provide both a message and a model';
+      return;
     }
-  }
+  
+    if (isProcessing.value) {
+      error.value = 'Already processing a message';
+      return;
+    }
+
+    isProcessing.value = true;
+    error.value = null;
+
+    // Create conversation if needed
+    if (!conversation.value || (options.conversationId && options.conversationId !== conversation.value.id)) {
+      conversation.value = createConversation(options.conversationId || 'new');
+    }
+
+    // Add user message
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+    conversation.value.messages.push(userMessage);
+
+    try {
+      // Use streaming if supported
+      if (streamingSupported.value) {
+        try {
+          // Add temporary message for streaming
+          const tempMessage: Message = {
+            id: uuidv4(),
+            role: 'assistant',
+            content: '',
+            timestamp: new Date().toISOString(),
+            isStreaming: true
+          };
+          
+          if (conversation.value) {
+            conversation.value.messages.push(tempMessage);
+          }
+
+          // Process streaming response
+          const success = await AgentService.processChatStream(
+            message,
+            modelId,
+            validProjectId,
+            {
+              conversationId: options.conversationId,
+              mode: options.mode,
+              currentFile: options.currentFile,
+              callbacks: {
+                onContent: (content: string) => {
+                  if (conversation.value) {
+                    const lastMsg = conversation.value.messages[conversation.value.messages.length - 1];
+                    if (lastMsg.role === 'assistant') {
+                      lastMsg.content += content;
+                    }
+                  }
+                },
+                onConversationId: (id: string) => {
+                  if (!options.conversationId) {
+                    conversation.value = createConversation(id);
+                    conversation.value.messages.push(userMessage);
+                    conversation.value.messages.push(tempMessage);
+                  }
+                },
+                onDone: () => {
+                  // Mark as no longer streaming
+                  if (conversation.value) {
+                    const lastMsg = conversation.value.messages[conversation.value.messages.length - 1];
+                    if (lastMsg.role === 'assistant') {
+                      lastMsg.isStreaming = false;
+                    }
+                  }
+                  isProcessing.value = false;
+                },
+                onError: (errorMessage: string) => {
+                  console.warn('Streaming error:', errorMessage);
+                  error.value = errorMessage;
+                  
+                  // If we got a tuple object error, try disabling streaming for this session
+                  if (errorMessage.includes('tuple') && errorMessage.includes('attribute')) {
+                    console.warn('Disabling streaming due to tuple attribute error');
+                    streamingSupported.value = false;
+                  }
+                  
+                  // If we got an HTML response, this is likely a 500 error from Django
+                  if (errorMessage.includes('<!DOCTYPE html>') || errorMessage.includes('<html>')) {
+                    console.warn('Received HTML response instead of JSON, likely a server error');
+                    error.value = 'Server error occurred. Please try again.';
+                    streamingSupported.value = false;
+                  }
+                  
+                  // If we get a HTTP error status, handle appropriately
+                  if (errorMessage.includes('HTTP error') || errorMessage.includes('status code')) {
+                    console.warn('HTTP error during streaming');
+                    
+                    // Status 400 often means invalid request parameters
+                    if (errorMessage.includes('400')) {
+                      error.value = 'Invalid request. Please check your input and try again.';
+                    }
+                    // Status 401/403 means authentication/permission issues
+                    else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+                      error.value = 'Authentication error. Please log in again.';
+                      // Try to refresh auth token
+                      try {
+                        const authStore = useAuthStore()
+                        if (authStore) {
+                          authStore.validateAuth()
+                        }
+                      } catch (e) {
+                        console.error('Failed to refresh auth token:', e)
+                      }
+                    }
+                    // Status 500 means server error
+                    else if (errorMessage.includes('500')) {
+                      error.value = 'Server error occurred. Please try again later.';
+                    }
+                    else {
+                      error.value = `API error: ${errorMessage}`;
+                    }
+                  }
+                  
+                  // Remove the temporary message
+                  if (conversation.value) {
+                    conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
+                  }
+                  
+                  // Try again with regular API
+                  console.log('Falling back to regular API call due to streaming error');
+                  fallbackToRegularApiCall(message, modelId, validProjectId, options);
+                }
+              }
+            }
+          );
+          
+          if (!success) {
+            // If streaming setup failed, use regular API
+            if (conversation.value) {
+              // Remove temporary message first
+              conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
+            }
+            
+            await fallbackToRegularApiCall(message, modelId, validProjectId, options);
+          }
+          
+        } catch (e) {
+          console.error('Error in streaming chat:', e);
+          error.value = e instanceof Error ? e.message : 'Unknown error occurred while streaming';
+          
+          // Fallback to regular API call
+          if (conversation.value) {
+            // Remove the temporary streaming message if it exists
+            conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
+          }
+          
+          await fallbackToRegularApiCall(message, modelId, validProjectId, options);
+        }
+      } else {
+        // Use regular API for non-streaming
+        await fallbackToRegularApiCall(message, modelId, validProjectId, options);
+      }
+    } catch (e) {
+      console.error('Error in sendMessage:', e);
+      error.value = e instanceof Error ? e.message : 'Unknown error occurred';
+    } finally {
+      isProcessing.value = false;
+    }
+  };
 
   return {
-    conversation: computed(() => store.conversation),
-    conversationHistory: computed(() => conversationHistory.value),
-    isProcessing: computed(() => store.isProcessing),
-    error: computed(() => store.error),
-    credits: computed(() => credits.value),
-    sendMessage,
-    clearConversation,
-    fetchConversationHistory,
-    fetchCredits
+    conversation,
+    error,
+    isProcessing,
+    streamingSupported,
+    createConversation,
+    sendMessage
   }
 }

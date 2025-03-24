@@ -44,7 +44,7 @@
             <i 
               class="fas" 
               :class="[
-                selectedModel?.id === 'claude-3-5-sonnet-20241022' || selectedModel?.id === 'gpt-4o' ? 'fa-brain text-primary-400' :
+                selectedModel?.id === 'claude-3-7-sonnet-20250219' || selectedModel?.id === 'gpt-4o' ? 'fa-brain text-primary-400' :
                 selectedModel?.provider === 'anthropic' ? 'fa-diamond text-blue-400' : 
                 selectedModel?.provider === 'openai' ? 'fa-bolt text-emerald-400' : 
                 'fa-robot text-primary-400'

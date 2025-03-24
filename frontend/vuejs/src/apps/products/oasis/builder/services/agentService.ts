@@ -1,6 +1,5 @@
 import api from './api'
 import { handleAPIError } from '../utils/errors'
-import { API_CONFIG } from './api'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
@@ -20,7 +19,7 @@ interface ModelConfig {
 }
 
 const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'claude-3-5-sonnet-20241022': {
+  'claude-3-7-sonnet-20250219': {
     maxTokens: 200000,
     rateLimits: {
       tokensPerMinute: 100000,
@@ -175,51 +174,60 @@ export const AgentService = {
     response: string;
     messages: any[];
   }> {
-    if (!projectId) {
-      throw new Error('Project ID is required')
+    if (!data.prompt || !data.model || !projectId) {
+      console.error('AgentService: Missing required parameters for chat');
+      throw new Error('Missing required parameters for chat');
     }
-
+    
+    // Get conversation ID from localStorage
+    const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`);
+    
+    // Prepare request payload
+    const payload: {
+      message: string;
+      model: string;
+      project_id: string;
+      conversation_id?: string;
+      mode: string;
+      stream?: boolean;
+      current_file?: {
+        path: string;
+        type: string;
+      };
+    } = {
+      message: data.prompt,
+      model: data.model,
+      project_id: String(projectId),
+      conversation_id: storedConversationId || undefined,
+      mode: data.mode || 'chat',
+    };
+    
+    // Add current file if available - but omit content which can cause 400 errors
+    if (data.file) {
+      payload.current_file = {
+        path: data.file.path,
+        type: data.file.type
+      }
+    }
+    
     try {
-      // Get conversation ID from localStorage
-      const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
+      // Debug log the payload
+      console.log('Chat API payload:', JSON.stringify(payload, null, 2));
       
-      // Prepare request payload
-      const payload: {
-        message: string;
-        model: string;
-        project_id: string;
-        conversation_id?: string;
-        mode: string;
-        current_file?: {
-          path: string;
-          content: string;
-          type: string;
-        }
-      } = {
-        message: data.prompt,
-        model: data.model,
-        project_id: projectId,
-        conversation_id: storedConversationId || undefined,
-        mode: data.mode || 'chat'
+      // Check for valid project_id
+      if (!payload.project_id) {
+        console.error('Missing required project_id parameter');
+        throw new Error('Project ID is required for chat API');
       }
       
-      // Add the current file if it exists
-      if (data.file) {
-        payload.current_file = {
-          path: data.file.path,
-          content: data.file.content,
-          type: data.file.type
-        }
-      }
-      
-      // Use the chat endpoint from agents/api - ensure the path is correct
+      // Use the chat endpoint from agents/api
       const response = await api.post('/api/v1/agents/chat/', payload)
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
         localStorage.setItem(`chat_conversation_${projectId}`, response.data.conversation_id)
       }
-
+      
       // Create properly formatted user and assistant messages
       const userMessage = {
         role: 'user',
@@ -249,56 +257,77 @@ export const AgentService = {
         code: response.data.code || null
       };
       
-      // Process and return the response data in the expected format
       return {
-        response: assistantResponse,
+        response: validatedResponse,
         messages: [userMessage, assistantMessage]
-      }
+      };
     } catch (error: any) {
-      console.error('Chat API error:', error)
+      // Log the error for debugging
+      console.error('Chat API error:', error);
       
-      // Log more detailed error information
-      if (error.response) {
-        // The request was made and the server responded with an error status
-        console.error('Response error data:', error.response.data)
-        console.error('Response status:', error.response.status)
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('No response received from server')
-      } else {
-        // Something happened in setting up the request
-        console.error('Request setup error:', error.message)
+      // Check if the error contains an HTML response (Django error page)
+      if (error.response && error.response.data && 
+          typeof error.response.data === 'string' && 
+          error.response.data.includes('<!DOCTYPE html>')) {
+        console.error('Received HTML error page instead of JSON response');
+        error.message = 'Server returned an HTML error page instead of JSON response';
       }
       
-      throw handleAPIError(error)
+      // Check if the error is due to authentication (401)
+      if (error.response && error.response.status === 401) {
+        console.error('Authentication error in chat request. Attempting to reauth.');
+        
+        // Force refresh the token or redirect to login if needed
+        window.dispatchEvent(new CustomEvent('auth:refresh-needed'));
+      }
+      
+      // Check if the error is a server error (500)
+      if (error.response && error.response.status === 500) {
+        console.error('Server error (500) in chat request:');
+        
+        // Try to log useful information about the error
+        if (error.response.data) {
+          console.error('Error data:', 
+            typeof error.response.data === 'string' 
+              ? error.response.data.substring(0, 200) 
+              : error.response.data);
+        }
+        
+        error.message = 'Server error (500). The request failed due to an internal server problem.';
+      }
+      
+      throw handleAPIError(error);
     }
   },
 
+  /**
+   * Process a chat message using streaming
+   * This allows for real-time response updates for OpenAI and Anthropic models
+   */
   async processChatStream(
+    message: string,
+    modelId: string,
     projectId: string,
-    data: {
-      prompt: string;
-      model: string;
+    options: {
+      conversationId?: string;
       mode?: string;
-      file?: any;
-    },
-    onChunk: (chunk: string) => void,
-    onConversationId: (id: string) => void,
-    onDone: () => void,
-    onError: (error: string) => void
-  ): Promise<void> {
-    if (!projectId) {
-      throw new Error('Project ID is required')
+      currentFile?: any;
+      callbacks: {
+        onContent: (content: string) => void;
+        onDone: () => void;
+        onError: (error: string) => void;
+        onConversationId?: (id: string) => void;
+      };
+    }
+  ): Promise<boolean> {
+    if (!message || !modelId || !projectId) {
+      options.callbacks.onError('Missing required parameters for chat');
+      return false;
     }
 
     try {
-      // Only continue if the model is an OpenAI model
-      if (!data.model.includes('gpt')) {
-        throw new Error('Streaming is only supported for OpenAI models')
-      }
-
       // Get conversation ID from localStorage
-      const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
+      const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`);
       
       // Prepare request payload
       const payload: {
@@ -310,92 +339,191 @@ export const AgentService = {
         stream: boolean;
         current_file?: {
           path: string;
-          content: string;
           type: string;
-        }
+        };
       } = {
-        message: data.prompt,
-        model: data.model,
-        project_id: projectId,
-        conversation_id: storedConversationId || undefined,
-        mode: data.mode || 'chat',
-        stream: true
+        message,
+        model: modelId,
+        project_id: String(projectId),
+        conversation_id: options.conversationId || storedConversationId || undefined,
+        mode: options.mode || 'chat',
+        stream: true // Request streaming responses
+      };
+      
+      // Add current file if available - but omit content which can cause 400 errors
+      if (options.currentFile) {
+        payload.current_file = {
+          path: options.currentFile.path,
+          type: options.currentFile.type
+        };
       }
       
-      // Add the current file if it exists
-      if (data.file) {
-        payload.current_file = {
-          path: data.file.path,
-          content: data.file.content,
-          type: data.file.type
-        }
+      // Debug log the streaming payload
+      console.log('Streaming API payload:', JSON.stringify(payload, null, 2));
+      
+      // Validate required fields
+      if (!payload.message || !payload.model || !payload.project_id) {
+        console.error('Missing required parameters for streaming chat');
+        options.callbacks.onError('Missing required parameters: message, model, or project_id');
+        return false;
       }
-
-      // Create event source for SSE
-      const body = JSON.stringify(payload)
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/agents/chat/`, {
+      
+      // Ensure project_id is a string (backend might expect string format)
+      payload.project_id = String(payload.project_id);
+      
+      // Set up EventSource for server-sent events
+      const queryParams = new URLSearchParams();
+      queryParams.append('stream', 'true');
+      
+      // Use the standard chat endpoint with streaming
+      const response = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+          'Authorization': `Token ${this.getAuthToken()}`
         },
-        body
-      })
-
-      // Check if the response is ok
+        body: JSON.stringify(payload)
+      });
+      
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to stream response')
+        // Try to extract error details from response for better debugging
+        let errorDetail = '';
+        try {
+          const errorData = await response.text();
+          console.error('Error response from server:', errorData);
+          
+          // Try to parse the error data as JSON
+          try {
+            const jsonError = JSON.parse(errorData);
+            errorDetail = jsonError.detail || jsonError.error || JSON.stringify(jsonError);
+          } catch {
+            // If not JSON, use the text directly
+            errorDetail = errorData.substring(0, 200);
+          }
+        } catch (textError) {
+          errorDetail = 'Could not read error details';
+        }
+        
+        const errorMessage = `HTTP error! status: ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
       }
-
-      // Create reader to read the streaming response
-      const reader = response.body?.getReader()
-      if (!reader) {
-        throw new Error('Failed to create reader for streaming response')
+      
+      if (!response.body) {
+        throw new Error('ReadableStream not supported');
       }
-
-      // Read the stream
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      // Process chunks
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        // Decode the chunk
-        const chunk = decoder.decode(value, { stream: true })
-        buffer += chunk
-
-        // Process the buffer line by line
-        const lines = buffer.split('\n\n')
-        buffer = lines.pop() || '' // Keep the last (potentially incomplete) line in the buffer
-
-        for (const line of lines) {
-          if (line.trim() && line.startsWith('data:')) {
-            try {
-              const eventData = JSON.parse(line.substring(5).trim())
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      
+      const processStream = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) {
+              options.callbacks.onDone();
+              break;
+            }
+            
+            // Decode the chunk and add to buffer
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process any complete Server-Sent Events
+            const lines = buffer.split('\n\n');
+            buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
+            
+            for (const line of lines) {
+              if (line.trim() === '') continue;
+              if (!line.startsWith('data: ')) continue;
               
-              // Handle different event types
-              if (eventData.event === 'content') {
-                onChunk(eventData.data)
-              } else if (eventData.event === 'conversation_id') {
-                localStorage.setItem(`chat_conversation_${projectId}`, eventData.data)
-                onConversationId(eventData.data)
-              } else if (eventData.event === 'error') {
-                onError(eventData.data)
-              } else if (eventData.event === 'done') {
-                onDone()
+              const data = line.substring(6); // Remove 'data: ' prefix
+              
+              try {
+                const parsed = JSON.parse(data);
+                
+                if (parsed.event === 'content' && parsed.data) {
+                  options.callbacks.onContent(parsed.data);
+                } else if (parsed.event === 'error' && parsed.data) {
+                  options.callbacks.onError(parsed.data);
+                  return false;
+                } else if (parsed.event === 'conversation_id' && parsed.data) {
+                  localStorage.setItem(`chat_conversation_${projectId}`, parsed.data);
+                  if (options.callbacks.onConversationId) {
+                    options.callbacks.onConversationId(parsed.data);
+                  }
+                } else if (parsed.event === 'done') {
+                  options.callbacks.onDone();
+                  return true;
+                }
+              } catch (e) {
+                console.error('Error parsing SSE data:', e, data);
               }
-            } catch (e) {
-              console.error('Error parsing SSE event:', e)
             }
           }
+          return true;
+        } catch (error) {
+          console.error('Error reading stream:', error);
+          options.callbacks.onError(error instanceof Error ? error.message : String(error));
+          return false;
         }
+      };
+      
+      return await processStream();
+    } catch (error) {
+      // Handle errors and provide details to the callback
+      const errorMessage = this.formatError(error);
+      options.callbacks.onError(errorMessage);
+      return false;
+    }
+  },
+
+  // Helper method to get auth token
+  getAuthToken(): string | null {
+    try {
+      const tokenData = localStorage.getItem('token');
+      if (!tokenData) return null;
+      
+      const parsedToken = JSON.parse(tokenData);
+      return parsedToken?.value || null;
+    } catch {
+      return null;
+    }
+  },
+
+  // Helper to format error messages
+  formatError(error: any): string {
+    if (error.response) {
+      // Server responded with error
+      if (error.response.status === 401) {
+        return '401: Unauthorized - Please log in again';
       }
-    } catch (error: any) {
-      console.error('Chat streaming API error:', error)
-      onError(error.message || 'An error occurred while streaming the response')
+      
+      // Handle bad request errors (400) with more detail
+      if (error.response.status === 400) {
+        let detail = '';
+        
+        // Try to extract useful information from response
+        if (error.response.data) {
+          if (typeof error.response.data === 'string') {
+            detail = error.response.data.substring(0, 200);
+          } else if (typeof error.response.data === 'object') {
+            // Format object data
+            detail = JSON.stringify(error.response.data);
+          }
+        }
+        
+        return `400: Bad Request - ${detail || error.response.statusText}`;
+      }
+      
+      return `Server error ${error.response.status}: ${error.response.data?.detail || error.response.statusText}`;
+    } else if (error.request) {
+      // Request made but no response
+      return 'No response received from server. Please check your connection.';
+    } else {
+      // Something else went wrong
+      return error.message || 'Unknown error occurred';
     }
   },
 

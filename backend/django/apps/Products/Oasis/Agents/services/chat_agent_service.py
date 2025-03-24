@@ -7,14 +7,12 @@ allowing users to have natural language conversations about their web applicatio
 
 import logging
 import os
-import datetime
 from dotenv import load_dotenv
 from .agent_service import BaseAgentService
-from ..models import AgentConversation, SystemPrompt, AgentMessage
 import openai
 import anthropic
 from apps.Payments.services import PaymentService
-from apps.Products.Oasis.Agents.services.agent_service import build_conversation_history
+from django.utils import timezone
 
 # Load environment variables from .env
 load_dotenv()
@@ -54,10 +52,13 @@ class ChatAgentService(BaseAgentService):
         if not self.anthropic_api_key:
             logger.warning("Anthropic API key not found. Anthropic models will not be available.")
     
-    def get_system_prompt(self):
+    def get_system_prompt(self, project_path=None):
         """
         Get the system prompt for chat interactions.
         
+        Args:
+            project_path (str, optional): The project path for context
+            
         Returns:
             dict: A message dictionary with 'role' and 'content' keys
         """
@@ -106,149 +107,104 @@ class ChatAgentService(BaseAgentService):
             
             # Anthropic models
             'claude-2': {'provider': 'anthropic', 'cost_per_token': 0.00002, 'output_cost_per_token': 0.00006},
-            'claude-3-5-sonnet-20241022': {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015}
+            'claude-3-7-sonnet-20250219': {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015}
         }
         
         return model_costs.get(model_id, {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015})
     
-    def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None):
+    def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None, is_build_mode=False):
         """
         Process a chat message and generate a response.
         
         Args:
-            user_input (str): The user's message
-            model_id (str): The ID of the model to use
-            user (User): The Django user making the request
-            conversation_id (str, optional): The ID of an existing conversation
-            project_path (str, optional): The project path for context
-            current_file (dict, optional): Current file being edited or chatted about
+            user_input (str): The user's input message
+            model_id (str): The model identifier to use
+            user (User): The user object
+            conversation_id (str, optional): The conversation ID
+            project_path (str, optional): The project path
+            current_file (str, optional): The current file
+            is_build_mode (bool, optional): Whether we're in build mode
             
         Returns:
-            dict: The result of processing the message including the response and metadata
+            dict: The response data including the AI's response
         """
         try:
-            # Get model information
-            model_info = self.get_model_info(model_id)
-            provider = model_info['provider']
+            logger.info(f"Processing message for model {model_id}")
             
-            # Check if required API client is available
-            if provider == 'openai' and not self.openai_client:
+            # Check user credits
+            has_credits, required_amount = self.check_user_credits(user, model_id, user_input)
+            
+            if not has_credits:
+                logger.warning(f"User {user.username} has insufficient credits for model {model_id}")
                 return {
                     'success': False,
-                    'error': 'OpenAI API key not configured. Please contact support.'
+                    'error': f"You need {required_amount} more credits to use this model. Please add more credits."
                 }
-            elif provider == 'anthropic' and not self.anthropic_client:
-                return {
-                    'success': False,
-                    'error': 'Anthropic API key not configured. Please contact support.'
-                }
-            
-            # Get or create conversation
+                
+            # Create or get conversation
             if conversation_id:
                 try:
-                    conversation = AgentConversation.objects.get(id=conversation_id, user=user)
-                except AgentConversation.DoesNotExist:
+                    conversation = self.get_conversation(conversation_id, user)
+                except Exception as e:
+                    logger.error(f"Error getting conversation {conversation_id}: {str(e)}")
                     return {
                         'success': False,
-                        'error': 'Conversation not found'
+                        'error': f"Error retrieving conversation: {str(e)}"
                     }
             else:
-                conversation = AgentConversation.objects.create(
-                    user=user,
-                    model_name=model_id
-                )
-                
-                # Create system prompt for new conversation
-                system_prompt = self.get_system_prompt()
-                SystemPrompt.objects.create(
-                    conversation=conversation,
-                    content=system_prompt['content']
-                )
+                system_prompt = self.get_system_prompt(project_path)
+                conversation = self.create_conversation(user, model_id, system_prompt)
             
-            # Add user message to conversation
-            timestamp = datetime.datetime.now().isoformat()
-            user_message = AgentMessage.objects.create(
-                conversation=conversation,
-                role='user',
-                content=user_input
-            )
+            # Add user message
+            self.add_user_message(conversation, user_input, user)
             
-            # Get conversation history including project files
-            messages = build_conversation_history(conversation, project_path, current_file)
+            # Build conversation history
+            messages = self.build_conversation_history(conversation, project_path, current_file)
             
-            # Add current user message
-            messages.append({"role": "user", "content": user_input})
+            # Determine the AI provider based on model ID
+            provider = 'openai' if 'gpt' in model_id else 'anthropic'
             
             # Generate response based on provider
-            if provider == 'openai':
-                response_content = self._generate_openai_response(messages, model_id)
-            else:  # default to anthropic
-                response_content = self._generate_anthropic_response(messages, model_id)
-            
-            # Save assistant response to database
-            assistant_message = AgentMessage.objects.create(
-                conversation=conversation,
-                role='assistant',
-                content=response_content
-            )
-            
-            # Calculate and charge for token usage
-            estimated_input_tokens = len(' '.join([msg['content'] for msg in messages])) // 4
-            estimated_output_tokens = len(response_content) // 4
-            
-            total_cost = (
-                estimated_input_tokens * model_info['cost_per_token'] +
-                estimated_output_tokens * model_info['output_cost_per_token']
-            )
-            
-            # Charge the user for the request
             try:
-                self.payment_service.charge_tokens(user, total_cost)
-            except Exception as payment_error:
-                logger.error(f"Payment error (continuing anyway): {str(payment_error)}")
-            
-            # Log token usage
-            logger.info(f"Token usage: input={estimated_input_tokens}, output={estimated_output_tokens}, cost=${total_cost:.6f}")
-            
-            # Return the result
-            return {
-                'success': True,
-                'conversation_id': str(conversation.id),
-                'response': response_content,
-                'timestamp': timestamp
-            }
-            
+                if provider == 'openai':
+                    response_content = self.generate_openai_response(messages, model_id)
+                else:
+                    response_content = self.generate_anthropic_response(messages, model_id)
+                    
+                # Save the assistant's response
+                self.add_assistant_message(conversation, response_content, user)
+                
+                # Deduct credits
+                try:
+                    self.deduct_credits(user, model_id, user_input)
+                except Exception as payment_error:
+                    logger.error(f"Error deducting credits: {str(payment_error)}")
+                    # Continue anyway as we already generated the response
+                
+                # Log token usage if available
+                # TODO: Implement token usage tracking
+                
+                # Return the successful response
+                return {
+                    'success': True,
+                    'conversation_id': str(conversation.id),
+                    'response': response_content,
+                    'timestamp': timezone.now().isoformat()
+                }
+                
+            except Exception as generate_error:
+                logger.error(f"Error generating response: {str(generate_error)}")
+                return {
+                    'success': False,
+                    'error': f"Error generating response: {str(generate_error)}"
+                }
+                
         except Exception as e:
-            logger.error(f"Error processing chat message: {str(e)}")
+            logger.error(f"Error in process_message: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
             }
-    
-    def _generate_openai_response(self, messages, model_id):
-        """
-        Generate a response using OpenAI's API.
-        
-        Args:
-            messages (list): List of message dictionaries
-            model_id (str): The ID of the OpenAI model to use
-            
-        Returns:
-            str: The generated response text
-        """
-        try:
-            response = self.openai_client.chat.completions.create(
-                model=model_id,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=2048
-            )
-            
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            logger.error(f"OpenAI API error: {str(e)}")
-            raise
     
     def _generate_openai_stream(self, messages, model_id):
         """
@@ -256,66 +212,81 @@ class ChatAgentService(BaseAgentService):
         
         Args:
             messages (list): List of message dictionaries
-            model_id (str): The ID of the OpenAI model to use
+            model_id (str): The model ID to use
             
         Returns:
-            generator: A generator that yields response chunks
+            generator: A streaming response generator
         """
         try:
-            stream = self.openai_client.chat.completions.create(
+            if not self.openai_client:
+                raise Exception("OpenAI client not initialized")
+                
+            # Log the call to OpenAI API
+            logger.info(f"Calling OpenAI streaming API with model {model_id}")
+            
+            # Get model configuration
+            model_config = self.get_model_info(model_id)
+            max_tokens = model_config.get('max_tokens', 4000)
+            
+            # Create the streamed completion
+            return self.openai_client.chat.completions.create(
                 model=model_id,
                 messages=messages,
+                max_tokens=max_tokens,
                 temperature=0.7,
-                max_tokens=2048,
                 stream=True
             )
-            
-            return stream
-            
         except Exception as e:
-            logger.error(f"OpenAI streaming API error: {str(e)}")
+            logger.error(f"Error in OpenAI streaming API: {str(e)}")
             raise
-    
-    def _generate_anthropic_response(self, messages, model_id):
+
+    def _generate_anthropic_stream(self, messages, model_id):
         """
-        Generate a response using Anthropic's API.
+        Generate a streaming response using Anthropic's API.
         
         Args:
             messages (list): List of message dictionaries
-            model_id (str): The ID of the Anthropic model to use
+            model_id (str): The model ID to use
             
         Returns:
-            str: The generated response text
+            generator: A streaming response generator
         """
         try:
-            # Convert messages to Anthropic format
-            system_content = None
-            anthropic_messages = []
+            if not self.anthropic_client:
+                raise Exception("Anthropic client not initialized")
+                
+            # Log the call to Anthropic API
+            logger.info(f"Calling Anthropic streaming API with model {model_id}")
             
-            for message in messages:
-                if message['role'] == 'system':
-                    system_content = message['content']
+            # Convert messages to Anthropic format
+            anthropic_messages = []
+            system_message = None
+            
+            for msg in messages:
+                if msg['role'] == 'system':
+                    system_message = msg['content']
                 else:
                     anthropic_messages.append({
-                        'role': message['role'],
-                        'content': message['content']
+                        'role': msg['role'],
+                        'content': msg['content']
                     })
             
-            # Create the message with Anthropic's API
-            response = self.anthropic_client.messages.create(
+            # Get model configuration
+            model_config = self.get_model_info(model_id)
+            max_tokens = model_config.get('max_tokens', 4000)
+            
+            # Create the streaming message
+            return self.anthropic_client.messages.create(
                 model=model_id,
+                max_tokens=max_tokens,
                 messages=anthropic_messages,
-                system=system_content,
-                max_tokens=2048,
-                temperature=0.7
+                system=system_message,
+                stream=True
             )
-            
-            return response.content[0].text
-            
         except Exception as e:
-            logger.error(f"Anthropic API error: {str(e)}")
+            logger.error(f"Error in Anthropic streaming API: {str(e)}")
             raise
-            
+    
     def validate_response(self, content):
         """
         Validate chat response.
@@ -327,4 +298,567 @@ class ChatAgentService(BaseAgentService):
         Returns:
             tuple: (is_valid, error_message)
         """
-        return True, None 
+        return True, None
+
+    def get_conversation(self, conversation_id, user):
+        """
+        Get a conversation by ID.
+        
+        Args:
+            conversation_id (str): The conversation ID
+            user (User): The user object
+            
+        Returns:
+            AgentConversation: The conversation object
+            
+        Raises:
+            Exception: If the conversation is not found
+        """
+        from ..models import AgentConversation
+        try:
+            return AgentConversation.objects.get(id=conversation_id, user=user)
+        except AgentConversation.DoesNotExist:
+            raise Exception("Conversation not found")
+    
+    def get_conversation_history(self, conversation_id, user):
+        """
+        Get the conversation history.
+        
+        Args:
+            conversation_id (str): The conversation ID
+            user (User): The user object
+            
+        Returns:
+            dict: The conversation history
+        """
+        from ..models import AgentConversation, AgentMessage
+        from ...Agents.api.serializers import AgentMessageSerializer
+        
+        conversation = self.get_conversation(conversation_id, user)
+        messages = AgentMessage.objects.filter(conversation=conversation).order_by('created_at')
+        
+        serializer = AgentMessageSerializer(messages, many=True)
+        return {
+            'success': True,
+            'conversation_id': conversation_id,
+            'messages': serializer.data
+        }
+    
+    def create_conversation(self, user, model_id, system_prompt):
+        """
+        Create a new conversation.
+        
+        Args:
+            user (User): The user object
+            model_id (str): The model identifier
+            system_prompt (dict): The system prompt dictionary containing 'content'
+            
+        Returns:
+            AgentConversation: The created conversation
+        """
+        from ..models import AgentConversation, SystemPrompt
+        
+        conversation = AgentConversation.objects.create(
+            user=user,
+            model_name=model_id
+        )
+        
+        # Add system prompt
+        SystemPrompt.objects.create(
+            conversation=conversation,
+            content=system_prompt['content']
+        )
+        
+        return conversation
+    
+    def add_user_message(self, conversation, content, user):
+        """
+        Add a user message to a conversation.
+        
+        Args:
+            conversation (AgentConversation): The conversation object
+            content (str): The message content
+            user (User): The user object
+            
+        Returns:
+            AgentMessage: The created message
+        """
+        from ..models import AgentMessage
+        
+        return AgentMessage.objects.create(
+            conversation=conversation,
+            role='user',
+            content=content
+        )
+    
+    def add_assistant_message(self, conversation, content, user):
+        """
+        Add an assistant message to a conversation.
+        
+        Args:
+            conversation (AgentConversation): The conversation object
+            content (str): The message content
+            user (User): The user object
+            
+        Returns:
+            AgentMessage: The created message
+        """
+        from ..models import AgentMessage
+        
+        return AgentMessage.objects.create(
+            conversation=conversation,
+            role='assistant',
+            content=content
+        )
+    
+    def build_conversation_history(self, conversation, project_path=None, current_file=None):
+        """
+        Build the conversation history for API requests.
+        
+        Args:
+            conversation (AgentConversation): The conversation object
+            project_path (str, optional): The project path
+            current_file (dict, optional): The current file
+            
+        Returns:
+            list: The conversation history as a list of messages
+        """
+        # Import the function from agent_service.py
+        from .agent_service import build_conversation_history
+        
+        # Use the existing function
+        return build_conversation_history(conversation, project_path, current_file)
+    
+    def generate_openai_response(self, messages, model_id):
+        """
+        Generate a response using the OpenAI API.
+        
+        Args:
+            messages (list): The conversation history
+            model_id (str): The model identifier
+            
+        Returns:
+            str: The generated response
+            
+        Raises:
+            Exception: If there is an error generating the response
+        """
+        if not self.openai_client:
+            raise Exception("OpenAI client not initialized properly")
+        
+        try:
+            response = self.openai_client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                temperature=0.7,
+            )
+            
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error generating OpenAI response: {str(e)}")
+            raise
+    
+    def generate_anthropic_response(self, messages, model_id):
+        """
+        Generate a response using the Anthropic API.
+        
+        Args:
+            messages (list): The conversation history
+            model_id (str): The model identifier
+            
+        Returns:
+            str: The generated response
+            
+        Raises:
+            Exception: If there is an error generating the response
+        """
+        if not self.anthropic_client:
+            raise Exception("Anthropic client not initialized properly")
+        
+        try:
+            # Convert messages to Anthropic format
+            system_prompt = None
+            anthropic_messages = []
+            
+            for msg in messages:
+                if msg['role'] == 'system':
+                    system_prompt = msg['content']
+                elif msg['role'] == 'user':
+                    anthropic_messages.append({
+                        'role': 'user',
+                        'content': msg['content']
+                    })
+                elif msg['role'] == 'assistant':
+                    anthropic_messages.append({
+                        'role': 'assistant',
+                        'content': msg['content']
+                    })
+            
+            response = self.anthropic_client.messages.create(
+                model=model_id,
+                messages=anthropic_messages,
+                system=system_prompt,
+                temperature=0.7,
+                max_tokens=4096
+            )
+            
+            return response.content[0].text
+        except Exception as e:
+            logger.error(f"Error generating Anthropic response: {str(e)}")
+            raise
+    
+    def process_message_stream(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None):
+        """
+        Process a chat message with a streaming response.
+        
+        Args:
+            user_input (str): The user's input message
+            model_id (str): The model identifier to use
+            user (User): The user object
+            conversation_id (str, optional): The conversation ID
+            project_path (str, optional): The project path
+            current_file (str, optional): The current file
+            
+        Returns:
+            tuple: (conversation, api_messages, error_message)
+        """
+        try:
+            logger.info(f"Processing streaming message for model {model_id}")
+            
+            # Check user credits
+            has_credits, required_amount = self.check_user_credits(user, model_id, user_input)
+            
+            if not has_credits:
+                logger.warning(f"User {user.username} has insufficient credits for model {model_id}")
+                error_message = f"You need {required_amount} more credits to use this model. Please add more credits."
+                return None, None, error_message
+                
+            # Create or get conversation
+            if conversation_id:
+                try:
+                    conversation = self.get_conversation(conversation_id, user)
+                except Exception as e:
+                    logger.error(f"Error getting conversation {conversation_id}: {str(e)}")
+                    return None, None, f"Error retrieving conversation: {str(e)}"
+            else:
+                system_prompt = self.get_system_prompt(project_path)
+                conversation = self.create_conversation(user, model_id, system_prompt)
+            
+            # Add user message
+            self.add_user_message(conversation, user_input, user)
+            
+            # Build conversation history
+            api_messages = self.build_conversation_history(conversation)
+            
+            # Deduct credits
+            try:
+                self.deduct_credits(user, model_id, user_input)
+            except Exception as e:
+                logger.error(f"Error deducting credits: {str(e)}")
+                return None, None, f"Error processing payment: {str(e)}"
+                
+            return conversation, api_messages, None
+            
+        except Exception as e:
+            logger.error(f"Error in process_message_stream: {str(e)}")
+            return None, None, str(e)
+    
+    def save_streaming_response(self, conversation, content):
+        """
+        Save a streaming response to the database.
+        
+        Args:
+            conversation: The conversation object
+            content (str): The content to save
+            
+        Returns:
+            bool: Success status
+        """
+        try:
+            from ..models import AgentMessage
+            AgentMessage.objects.create(
+                conversation=conversation,
+                role='assistant',
+                content=content
+            )
+            logger.info(f"Successfully stored streaming response (length: {len(content)})")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving streaming response to database: {str(e)}")
+            logger.exception(e)
+            return False
+
+    def get_conversation(self, conversation_id, user):
+        """
+        Get a conversation by ID.
+        
+        Args:
+            conversation_id (str): The conversation ID
+            user (User): The user object
+            
+        Returns:
+            AgentConversation: The conversation object
+            
+        Raises:
+            Exception: If the conversation is not found
+        """
+        from ..models import AgentConversation
+        try:
+            return AgentConversation.objects.get(id=conversation_id, user=user)
+        except AgentConversation.DoesNotExist:
+            raise Exception("Conversation not found")
+    
+    def get_conversation_history(self, conversation_id, user):
+        """
+        Get the conversation history.
+        
+        Args:
+            conversation_id (str): The conversation ID
+            user (User): The user object
+            
+        Returns:
+            dict: The conversation history
+        """
+        from ..models import AgentConversation, AgentMessage
+        from ...Agents.api.serializers import AgentMessageSerializer
+        
+        conversation = self.get_conversation(conversation_id, user)
+        messages = AgentMessage.objects.filter(conversation=conversation).order_by('created_at')
+        
+        serializer = AgentMessageSerializer(messages, many=True)
+        return {
+            'success': True,
+            'conversation_id': conversation_id,
+            'messages': serializer.data
+        }
+    
+    def create_conversation(self, user, model_id, system_prompt):
+        """
+        Create a new conversation.
+        
+        Args:
+            user (User): The user object
+            model_id (str): The model identifier
+            system_prompt (dict): The system prompt dictionary containing 'content'
+            
+        Returns:
+            AgentConversation: The created conversation
+        """
+        from ..models import AgentConversation, SystemPrompt
+        
+        conversation = AgentConversation.objects.create(
+            user=user,
+            model_name=model_id
+        )
+        
+        # Add system prompt
+        SystemPrompt.objects.create(
+            conversation=conversation,
+            content=system_prompt['content']
+        )
+        
+        return conversation
+    
+    def add_user_message(self, conversation, content, user):
+        """
+        Add a user message to a conversation.
+        
+        Args:
+            conversation (AgentConversation): The conversation object
+            content (str): The message content
+            user (User): The user object
+            
+        Returns:
+            AgentMessage: The created message
+        """
+        from ..models import AgentMessage
+        
+        return AgentMessage.objects.create(
+            conversation=conversation,
+            role='user',
+            content=content
+        )
+    
+    def add_assistant_message(self, conversation, content, user):
+        """
+        Add an assistant message to a conversation.
+        
+        Args:
+            conversation (AgentConversation): The conversation object
+            content (str): The message content
+            user (User): The user object
+            
+        Returns:
+            AgentMessage: The created message
+        """
+        from ..models import AgentMessage
+        
+        return AgentMessage.objects.create(
+            conversation=conversation,
+            role='assistant',
+            content=content
+        )
+    
+    def build_conversation_history(self, conversation, project_path=None, current_file=None):
+        """
+        Build the conversation history for API requests.
+        
+        Args:
+            conversation (AgentConversation): The conversation object
+            project_path (str, optional): The project path
+            current_file (dict, optional): The current file
+            
+        Returns:
+            list: The conversation history as a list of messages
+        """
+        # Import the function from agent_service.py
+        from .agent_service import build_conversation_history
+        
+        # Use the existing function
+        return build_conversation_history(conversation, project_path, current_file)
+    
+    def generate_openai_response(self, messages, model_id):
+        """
+        Generate a response using the OpenAI API.
+        
+        Args:
+            messages (list): The conversation history
+            model_id (str): The model identifier
+            
+        Returns:
+            str: The generated response
+            
+        Raises:
+            Exception: If there is an error generating the response
+        """
+        if not self.openai_client:
+            raise Exception("OpenAI client not initialized properly")
+        
+        try:
+            response = self.openai_client.chat.completions.create(
+                model=model_id,
+                messages=messages,
+                temperature=0.7,
+            )
+            
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error generating OpenAI response: {str(e)}")
+            raise
+    
+    def generate_anthropic_response(self, messages, model_id):
+        """
+        Generate a response using the Anthropic API.
+        
+        Args:
+            messages (list): The conversation history
+            model_id (str): The model identifier
+            
+        Returns:
+            str: The generated response
+            
+        Raises:
+            Exception: If there is an error generating the response
+        """
+        if not self.anthropic_client:
+            raise Exception("Anthropic client not initialized properly")
+        
+        try:
+            # Convert messages to Anthropic format
+            system_prompt = None
+            anthropic_messages = []
+            
+            for msg in messages:
+                if msg['role'] == 'system':
+                    system_prompt = msg['content']
+                elif msg['role'] == 'user':
+                    anthropic_messages.append({
+                        'role': 'user',
+                        'content': msg['content']
+                    })
+                elif msg['role'] == 'assistant':
+                    anthropic_messages.append({
+                        'role': 'assistant',
+                        'content': msg['content']
+                    })
+            
+            response = self.anthropic_client.messages.create(
+                model=model_id,
+                messages=anthropic_messages,
+                system=system_prompt,
+                temperature=0.7,
+                max_tokens=4096
+            )
+            
+            return response.content[0].text
+        except Exception as e:
+            logger.error(f"Error generating Anthropic response: {str(e)}")
+            raise
+    
+    def _generate_openai_stream(self, messages, model_id):
+        """
+        Generate a streaming response using the OpenAI API.
+        
+        Args:
+            messages (list): The conversation history
+            model_id (str): The model identifier
+            
+        Returns:
+            Generator: A stream of response chunks
+            
+        Raises:
+            Exception: If there is an error generating the response
+        """
+        if not self.openai_client:
+            raise Exception("OpenAI client not initialized properly")
+        
+        return self.openai_client.chat.completions.create(
+            model=model_id,
+            messages=messages,
+            temperature=0.7,
+            stream=True
+        )
+    
+    def _generate_anthropic_stream(self, messages, model_id):
+        """
+        Generate a streaming response using the Anthropic API.
+        
+        Args:
+            messages (list): The conversation history
+            model_id (str): The model identifier
+            
+        Returns:
+            Generator: A stream of response chunks
+            
+        Raises:
+            Exception: If there is an error generating the response
+        """
+        if not self.anthropic_client:
+            raise Exception("Anthropic client not initialized properly")
+        
+        # Convert messages to Anthropic format
+        system_prompt = None
+        anthropic_messages = []
+        
+        for msg in messages:
+            if msg['role'] == 'system':
+                system_prompt = msg['content']
+            elif msg['role'] == 'user':
+                anthropic_messages.append({
+                    'role': 'user',
+                    'content': msg['content']
+                })
+            elif msg['role'] == 'assistant':
+                anthropic_messages.append({
+                    'role': 'assistant',
+                    'content': msg['content']
+                })
+        
+        return self.anthropic_client.messages.create(
+            model=model_id,
+            messages=anthropic_messages,
+            system=system_prompt,
+            temperature=0.7,
+            max_tokens=4096,
+            stream=True
+        ) 

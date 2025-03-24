@@ -893,3 +893,71 @@ if settings.DEBUG:
             import traceback
             logger.error(f"Stack trace: {traceback.format_exc()}")
             return False
+
+    def build_template_response(self, result, message, file_path):
+        """
+        Format template generation result into a standardized response object.
+        
+        Args:
+            result (dict): The template generation result
+            message (str): The original user message
+            file_path (str): The file path for the template
+            
+        Returns:
+            dict: A formatted response object for the API
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            if result.get('success'):
+                # Format the response to match the frontend's expected format
+                template_content = result.get('template', '')
+                current_time = result.get('timestamp', '')
+                
+                # Extract template name for the success message
+                template_name = file_path.split('/')[-1] if '/' in file_path else file_path
+                base_name = template_name.replace('.html', '')
+                
+                # Create a success message that includes info about the view and URL
+                success_message = f"I've generated the {base_name} template based on your requirements."
+                
+                # Add info about auto-generated view and URL
+                if base_name == 'index':
+                    url_path = '/'
+                else:
+                    url_path = f'/{base_name}/'
+                    
+                view_url_info = f" A view function and URL pattern were automatically created. You can access this page at {url_path}"
+                
+                # Create response object that matches CodeGenerationResponse
+                response_data = {
+                    'success': True,
+                    'code': template_content,  # This is the generated code the frontend expects
+                    'response': success_message + view_url_info,
+                    'conversation_id': result.get('conversation_id'),
+                    'user_message': {
+                        'role': 'user',
+                        'content': message,
+                        'timestamp': current_time
+                    },
+                    'assistant_message': {
+                        'role': 'assistant',
+                        'content': success_message + view_url_info,
+                        'code': template_content,
+                        'timestamp': current_time
+                    }
+                }
+                
+                return response_data
+            else:
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Unknown error')
+                }
+        except Exception as e:
+            logger.error(f"Error formatting template response: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }

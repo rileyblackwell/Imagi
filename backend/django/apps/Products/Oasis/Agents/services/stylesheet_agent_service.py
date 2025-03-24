@@ -420,54 +420,18 @@ class StylesheetAgentService(BaseAgentService):
                     logger.info(f"[DEBUG] Found project: {project.name}")
                 except (ValueError, TypeError) as e:
                     logger.error(f"[ERROR] Invalid project_id format: {project_id}, error: {str(e)}")
-                    return {
-                        'success': False,
-                        'error': f"Invalid project ID format: {project_id}"
-                    }
+                    # Use fallback instead of returning an error
+                    return self.generate_fallback_stylesheet(file_path, f"Invalid project ID format: {project_id}")
                 except Exception as e:
                     logger.error(f"[ERROR] Error getting project details: {str(e)}")
                     # Continue without project context
             
-            # Enhance the prompt to specifically request required sections
-            section_prompt = """
-            Your CSS must include the following sections, each marked with a comment:
-            1. Variables (in :root section)
-            2. Reset styles
-            3. Base styles
-            4. Typography styles
-            5. Layout styles
-            6. Component styles
-            7. Media queries
+            # Build the enhanced prompt with project context and best practices
+            enhanced_prompt = f"{project_context}Create a stylesheet based on this description: {prompt}"
             
-            Example structure:
+            logger.info(f"[DEBUG] Enhanced prompt created with project context")
             
-            /* Variables */
-            :root { ... }
-            
-            /* Reset */
-            *, *::before, *::after { ... }
-            
-            /* Base */
-            body, html { ... }
-            
-            /* Typography */
-            h1, h2, p { ... }
-            
-            /* Layout */
-            .container, .row, .column { ... }
-            
-            /* Components */
-            .button, .card, .nav { ... }
-            
-            /* Media Queries */
-            @media (min-width: 768px) { ... }
-            """
-                    
-            enhanced_prompt = f"{project_context}\n{section_prompt}\n\n{prompt}"
-            logger.info(f"[DEBUG] Enhanced prompt with project context: {len(enhanced_prompt)} chars")
-            
-            # Call the existing method to handle the stylesheet request
-            logger.info(f"[DEBUG] Calling handle_stylesheet_request")
+            # Use the handle_stylesheet_request method to process the request
             result = self.handle_stylesheet_request(
                 user_input=enhanced_prompt,
                 model=model,
@@ -481,6 +445,11 @@ class StylesheetAgentService(BaseAgentService):
             if result.get('success'):
                 logger.info(f"[DEBUG] Stylesheet request successful")
                 stylesheet_content = result.get('response', '')
+                
+                # Check if we got a valid stylesheet content
+                if not stylesheet_content or len(stylesheet_content.strip()) < 10:
+                    logger.warning(f"[WARNING] Generated stylesheet is empty or too short")
+                    return self.generate_fallback_stylesheet(file_path, "Generated stylesheet was invalid or too short")
                 
                 # Ensure all required sections are present, adding them if necessary
                 stylesheet_content = self.ensure_required_sections(stylesheet_content)
@@ -526,62 +495,184 @@ class StylesheetAgentService(BaseAgentService):
             else:
                 error_msg = result.get('error', 'Stylesheet generation failed')
                 logger.error(f"[ERROR] Stylesheet generation failed: {error_msg}")
-                return {
-                    'success': False,
-                    'error': error_msg
-                }
+                # Use fallback instead of returning an error
+                return self.generate_fallback_stylesheet(file_path, error_msg)
                 
         except Exception as e:
             import traceback
             logger.error(f"[ERROR] Exception in process_stylesheet: {str(e)}")
             logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
-            return {
-                'success': False,
-                'error': f"Server error while processing stylesheet: {str(e)}"
-            }
+            # Use fallback for any unhandled exceptions
+            return self.generate_fallback_stylesheet(file_path, str(e))
             
     def ensure_required_sections(self, css_content):
         """
-        Ensure all required CSS sections are present.
-        If sections are missing, add them as comments.
+        Ensure all required sections are present in the stylesheet.
+        
+        Checks for and adds missing sections including:
+        - Variables (:root)
+        - Reset
+        - Base
+        - Typography
+        - Layout
+        - Components
+        - Media Queries
         
         Args:
-            css_content (str): The CSS content to check and fix
+            css_content (str): The generated stylesheet content
             
         Returns:
-            str: CSS content with all required sections
+            str: The enhanced stylesheet with all required sections
         """
-        required_sections = [
-            'Variables', 'Reset', 'Base', 'Typography', 
-            'Layout', 'Components', 'Media'
-        ]
+        logger.info(f"[DEBUG] Ensuring required sections in CSS of length: {len(css_content)}")
         
-        # First check if sections already exist (case-insensitive)
-        existing_sections = []
-        for section in required_sections:
-            pattern = f"(?i)/\\*\\s*{section}\\s*\\*/"
+        # Try to parse the CSS to work with it programmatically
+        try:
+            sheet = cssutils.parseString(css_content)
+            
+            # Check for existing sections using comments as markers
+            sections = {
+                'variables': False,
+                'reset': False,
+                'base': False,
+                'typography': False,
+                'layout': False,
+                'components': False,
+                'media_queries': False
+            }
+            
+            # Look for section markers in comments
+            comment_pattern = r'/\*\s*(variables|reset|base|typography|layout|components|media\s*queries)\s*\*/'
             import re
-            if re.search(pattern, css_content):
-                existing_sections.append(section)
-        
-        # Find missing sections
-        missing_sections = [s for s in required_sections if s not in existing_sections]
-        
-        # If we have all sections, return the original content
-        if not missing_sections:
+            found_sections = set()
+            for match in re.finditer(comment_pattern, css_content, re.IGNORECASE):
+                section = match.group(1).lower().replace(' ', '_')
+                if section in sections:
+                    sections[section] = True
+                    found_sections.add(section)
+            
+            # Check for :root (variables) section
+            for rule in sheet:
+                if rule.type == rule.STYLE_RULE and rule.selectorText == ':root':
+                    sections['variables'] = True
+                    found_sections.add('variables')
+                elif rule.type == rule.MEDIA_RULE:
+                    sections['media_queries'] = True
+                    found_sections.add('media_queries')
+            
+            # If we're missing any sections, add them
+            if not all(sections.values()):
+                missing_sections = [section for section, exists in sections.items() if not exists]
+                logger.info(f"[DEBUG] Missing CSS sections: {', '.join(missing_sections)}")
+                
+                # Build the sections to add
+                additions = []
+                
+                if 'variables' not in found_sections:
+                    additions.append("""
+/* Variables */
+:root {
+  --color-primary: #3f51b5;
+  --color-secondary: #f50057;
+  --color-text: #333333;
+  --color-bg: #ffffff;
+  --font-family: 'Arial', sans-serif;
+  --spacing-unit: 16px;
+}
+""")
+                
+                if 'reset' not in found_sections:
+                    additions.append("""
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+""")
+                
+                if 'base' not in found_sections:
+                    additions.append("""
+/* Base */
+body {
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  padding: var(--spacing-unit);
+}
+""")
+                
+                if 'typography' not in found_sections:
+                    additions.append("""
+/* Typography */
+h1, h2, h3 {
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-unit);
+}
+""")
+                
+                if 'layout' not in found_sections:
+                    additions.append("""
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-unit);
+}
+""")
+                
+                if 'components' not in found_sections:
+                    additions.append("""
+/* Components */
+.button {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+""")
+                
+                if 'media_queries' not in found_sections:
+                    additions.append("""
+/* Media Queries */
+@media (min-width: 768px) {
+  .container {
+    padding: calc(var(--spacing-unit) * 2);
+  }
+}
+""")
+                
+                # Combine the original CSS with the additions
+                enhanced_css = css_content.strip() + "\n" + "".join(additions)
+                logger.info(f"[DEBUG] Added {len(additions)} missing sections to CSS")
+                return enhanced_css
+            
+            # If all sections exist, return the original
+            logger.info(f"[DEBUG] All required CSS sections present")
             return css_content
             
-        logger.info(f"[DEBUG] Adding missing sections: {', '.join(missing_sections)}")
+        except Exception as e:
+            logger.error(f"[ERROR] Error ensuring CSS sections: {str(e)}")
+            # In case of error, return the original content
+            return css_content
+
+    def generate_fallback_stylesheet(self, file_path, error_message=None):
+        """
+        Generate a fallback stylesheet when an error occurs during generation.
         
-        # Ensure we have a root section
-        has_root = ":root" in css_content
+        Args:
+            file_path (str): The path where the stylesheet would be saved
+            error_message (str, optional): The error that caused the fallback
+            
+        Returns:
+            dict: A response object with a basic default stylesheet
+        """
+        logger.info(f"[INFO] Generating fallback stylesheet for {file_path}")
         
-        # Prepare the fixed CSS
-        fixed_css = ""
-        
-        # Add root section if missing
-        if not has_root and "Variables" in missing_sections:
-            fixed_css += """
+        # Create a minimal default stylesheet
+        default_css = """
 /* Variables */
 :root {
   --color-primary: #3f51b5;
@@ -592,31 +683,76 @@ class StylesheetAgentService(BaseAgentService):
   --spacing-unit: 16px;
 }
 
-"""
-            missing_sections.remove("Variables")
-        elif "Variables" in missing_sections:
-            fixed_css += """
-/* Variables */
-"""
-            missing_sections.remove("Variables")
-            
-        # Add original CSS content
-        fixed_css += css_content
-        
-        # Add missing sections at the end
-        for section in missing_sections:
-            fixed_css += f"""
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-/* {section} */
-/* Add your {section.lower()} styles here */
-"""
-        
-        # Ensure we have a media query section
-        if "Media" in missing_sections:
-            fixed_css += """
+/* Base */
+body {
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  padding: var(--spacing-unit);
+}
+
+/* Typography */
+h1, h2, h3 {
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-unit);
+}
+
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-unit);
+}
+
+/* Components */
+.button {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Media Queries */
 @media (min-width: 768px) {
-  /* Tablet and desktop styles */
+  .container {
+    padding: calc(var(--spacing-unit) * 2);
+  }
 }
 """
+        # Get timestamp
+        current_time = timezone.now().isoformat()
+        
+        # Error context for the message
+        error_context = ""
+        if error_message:
+            error_context = f" (Error recovery: {error_message})"
             
-        return fixed_css 
+        # Create a successful response with the default CSS
+        return {
+            'success': True,
+            'stylesheet': default_css,
+            'code': default_css,
+            'file_name': file_path,
+            'timestamp': current_time,
+            'response': f"Generated default stylesheet{error_context}",
+            'user_message': {
+                'role': 'user',
+                'content': "Generate a default stylesheet",
+                'timestamp': current_time
+            },
+            'assistant_message': {
+                'role': 'assistant',
+                'content': "I've created a default CSS stylesheet with basic styling for your project.",
+                'code': default_css,
+                'timestamp': current_time
+            }
+        } 

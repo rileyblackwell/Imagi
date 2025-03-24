@@ -39,7 +39,7 @@ export function handleAPIError(error: unknown): BuilderAPIError {
     }
 
     if (statusCode === 404) {
-      return new BuilderAPIError('The requested resource was not found.', statusCode, details, true)
+      return new BuilderAPIError('The requested resource was not found.', statusCode, details, false)
     }
 
     if (statusCode === 429) {
@@ -47,7 +47,37 @@ export function handleAPIError(error: unknown): BuilderAPIError {
     }
 
     if (statusCode >= 500) {
-      return new BuilderAPIError('Server error. Please try again later.', statusCode, details, false)
+      // Check if the server returned HTML instead of JSON
+      if (typeof details === 'string' && details.includes('<!DOCTYPE html>')) {
+        console.error('Server error returned HTML instead of JSON', details.substring(0, 200));
+        return new BuilderAPIError(
+          'Server error occurred. The API returned an error page instead of proper JSON response.',
+          statusCode,
+          { htmlResponse: true },
+          false
+        )
+      }
+      
+      // Try to extract useful information from the server error
+      let errorMessage = 'Server error. Please try again later.';
+      
+      // If there's a detailed error message, use it
+      if (details && details.error) {
+        errorMessage = `Server error: ${details.error}`;
+      } else if (details && details.message) {
+        errorMessage = `Server error: ${details.message}`;
+      } else if (details && details.detail) {
+        errorMessage = `Server error: ${details.detail}`;
+      }
+      
+      // Log the full error details for debugging
+      console.error('Server error details:', {
+        status: statusCode,
+        message: axiosError.message,
+        data: details
+      });
+      
+      return new BuilderAPIError(errorMessage, statusCode, details, false)
     }
 
     return new BuilderAPIError(

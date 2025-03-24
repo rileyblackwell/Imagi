@@ -13,6 +13,7 @@ interface GenerateCodeOptions {
   file: ProjectFile
   projectId: string
   modelId: string
+  mode?: string
 }
 
 interface CreateFileOptions {
@@ -40,6 +41,7 @@ export function useBuilderMode() {
     let file: ProjectFile | null = null;
     let projectId: string | null = null;
     let modelId: string | null = null;
+    let mode: string = 'build'; // Default mode is build
 
     // Handle both new options object and legacy string argument
     if (typeof options === 'string') {
@@ -52,6 +54,7 @@ export function useBuilderMode() {
       file = options.file;
       projectId = options.projectId;
       modelId = options.modelId;
+      mode = options.mode || 'build'; // Use provided mode or default to build
     }
 
     if (!projectId) {
@@ -91,7 +94,7 @@ export function useBuilderMode() {
       } else if (['html', 'htm', 'django-html', 'jinja', 'tpl'].includes(fileExtension)) {
         response = await AgentService.generateCode(projectId, {
           prompt,
-          mode: store.mode,
+          mode: mode,
           model: modelId,
           file_path: file.path
         });
@@ -99,7 +102,7 @@ export function useBuilderMode() {
         // For other file types, use the general code generation endpoint
         response = await AgentService.generateCode(projectId, {
           prompt,
-          mode: store.mode,
+          mode: mode,
           model: modelId,
           file_path: file.path
         });
@@ -107,12 +110,23 @@ export function useBuilderMode() {
 
       // Add assistant response to conversation
       if (response) {
-        store.addMessage({
-          role: 'assistant',
-          content: response.response || 'Generated code successfully',
-          code: response.code || '',
-          timestamp: new Date().toISOString()
-        })
+        // For build mode, create a more user-friendly message without showing the actual code
+        if (mode === 'build') {
+          store.addMessage({
+            role: 'assistant',
+            content: `I've updated the file "${file.path}" based on your requirements.`,
+            // Don't include the code in the message for build mode
+            timestamp: new Date().toISOString()
+          })
+        } else {
+          // For other modes, include the code
+          store.addMessage({
+            role: 'assistant',
+            content: response.response || 'Generated code successfully',
+            code: response.code || '',
+            timestamp: new Date().toISOString()
+          })
+        }
 
         // Update the file with generated code if provided
         if (response.code) {
@@ -123,6 +137,14 @@ export function useBuilderMode() {
             ...file,
             content: response.code
           })
+          
+          // Show a success notification specifically for build mode
+          if (mode === 'build') {
+            notify({ 
+              type: 'success', 
+              message: `File "${file.path}" has been updated successfully.`
+            })
+          }
         }
       }
 

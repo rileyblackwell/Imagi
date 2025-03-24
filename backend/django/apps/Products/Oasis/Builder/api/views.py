@@ -198,7 +198,7 @@ def process_input(request):
     """Handle file generation requests."""
     try:
         user_input = request.data.get('user_input')
-        model = request.data.get('model', 'claude-3-5-sonnet-20241022')
+        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
         file_name = request.data.get('file')
         mode = request.data.get('mode', 'build')
         

@@ -174,7 +174,7 @@ class BuilderServiceTests(TestCase):
         
         response = process_builder_mode_input(
             user_input="Create a simple landing page",
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-7-sonnet-20250219",
             file_name="index.html",
             user=self.user
         )
@@ -246,7 +246,7 @@ class BuilderIntegrationTests(TestCase):
             reverse('builder:process_input'),
             {
                 'user_input': 'Create a simple landing page',
-                'model': 'claude-3-5-sonnet-20241022',
+                'model': 'claude-3-7-sonnet-20250219',
                 'file': 'index.html',
                 'mode': 'build'
             }

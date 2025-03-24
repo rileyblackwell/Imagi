@@ -8,7 +8,7 @@ class AgentConversation(models.Model):
     model_name = models.CharField(max_length=50, choices=[
         ('gpt-4o', 'GPT-4o'),
         ('gpt-4o-mini', 'GPT-4o Mini'),
-        ('claude-3-5-sonnet-20241022', 'Claude 3.5 Sonnet'),
+        ('claude-3-7-sonnet-20250219', 'Claude 3.7 Sonnet'),
     ])
     provider = models.CharField(max_length=20, choices=[
         ('openai', 'OpenAI'),
