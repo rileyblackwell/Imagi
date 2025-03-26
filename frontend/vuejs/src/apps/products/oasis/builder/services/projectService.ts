@@ -1,8 +1,7 @@
 import axios from 'axios'
 import api from './api'
-import { handleAPIError } from '../utils/errors'
 import type { Project, ProjectFile } from '../types/components'
-import { normalizeProject } from '../types/components'
+
 
 // Define API path constants
 const API_PATHS = {
