@@ -7,6 +7,7 @@ import type {
 } from '../types/builder'
 import { AI_MODELS } from '../types/builder'
 import { usePaymentsStore } from '@/apps/payments/store'
+import axios from 'axios'
 
 // Model configuration types and constants from ModelService
 interface ModelConfig {
@@ -323,29 +324,32 @@ export const AgentService = {
   async processChatStream(
     message: string,
     modelId: string,
-    projectId: string,
+    projectId: string | number,
     options: {
       conversationId?: string;
       mode?: string;
       currentFile?: any;
       callbacks: {
         onContent: (content: string) => void;
+        onConversationId?: (id: string) => void;
         onDone: () => void;
         onError: (error: string) => void;
-        onConversationId?: (id: string) => void;
       };
     }
   ): Promise<boolean> {
-    if (!message || !modelId || !projectId) {
-      options.callbacks.onError('Missing required parameters for chat');
-      return false;
-    }
-
     try {
-      // Get conversation ID from localStorage
+      const api = axios.create({
+        baseURL: `${import.meta.env.VITE_API_URL || ''}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      });
+      
+      // Try to get stored conversation ID
       const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`);
       
-      // Prepare request payload
+      // Prepare payload for the API
       const payload: {
         message: string;
         model: string;
@@ -413,7 +417,29 @@ export const AgentService = {
           // Try to parse the error data as JSON
           try {
             const jsonError = JSON.parse(errorData);
-            errorDetail = jsonError.detail || jsonError.error || JSON.stringify(jsonError);
+            if (jsonError.detail) {
+              errorDetail = jsonError.detail;
+            } else if (jsonError.error) {
+              errorDetail = jsonError.error;
+            } else if (jsonError.message) {
+              errorDetail = jsonError.message;
+            } else {
+              errorDetail = JSON.stringify(jsonError);
+            }
+            
+            // Check if it's a credit-related error
+            if (response.status === 402 || 
+                errorDetail.includes('insufficient credit') || 
+                errorDetail.includes('need more credit')) {
+              
+              // Format credit error nicely
+              const amountMatch = errorDetail.match(/\$?([0-9.]+)/);
+              if (amountMatch) {
+                errorDetail = `Insufficient credits: You need $${amountMatch[1]} more to use ${modelId}. Please add more credits.`;
+              } else {
+                errorDetail = `Insufficient credits to use ${modelId}. Please add more credits.`;
+              }
+            }
           } catch {
             // If not JSON, use the text directly
             errorDetail = errorData.substring(0, 200);
@@ -424,11 +450,13 @@ export const AgentService = {
         
         const errorMessage = `HTTP error! status: ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`;
         console.error(errorMessage);
-        throw new Error(errorMessage);
+        options.callbacks.onError(errorMessage);
+        return false;
       }
       
       if (!response.body) {
-        throw new Error('ReadableStream not supported');
+        options.callbacks.onError('ReadableStream not supported');
+        return false;
       }
       
       const reader = response.body.getReader();
@@ -473,7 +501,19 @@ export const AgentService = {
                 if (parsed.event === 'content' && parsed.data) {
                   options.callbacks.onContent(parsed.data);
                 } else if (parsed.event === 'error' && parsed.data) {
-                  options.callbacks.onError(parsed.data);
+                  // Enhanced error handling for improved UX
+                  let errorMsg = parsed.data;
+                  
+                  // Check for specific error types
+                  if (parsed.data.includes('insufficient credit') || parsed.data.includes('need more credit')) {
+                    // Credit-related errors
+                    const amountMatch = parsed.data.match(/\$?([0-9.]+)/);
+                    if (amountMatch) {
+                      errorMsg = `Insufficient credits: You need $${amountMatch[1]} more to use ${modelId}. Please add more credits.`;
+                    }
+                  }
+                  
+                  options.callbacks.onError(errorMsg);
                   return false;
                 } else if (parsed.event === 'conversation_id' && parsed.data) {
                   localStorage.setItem(`chat_conversation_${projectId}`, parsed.data);
@@ -495,6 +535,7 @@ export const AgentService = {
                 }
               } catch (e) {
                 console.error('Error parsing SSE data:', e, data);
+                options.callbacks.onError(`Error parsing server response: ${e instanceof Error ? e.message : String(e)}`);
               }
             }
           }

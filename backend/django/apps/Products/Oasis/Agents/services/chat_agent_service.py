@@ -161,14 +161,31 @@ class ChatAgentService(BaseAgentService):
         try:
             logger.info(f"Processing message for model {model_id}")
             
+            # Get model configuration to know cost
+            model_config = self.get_model_info(model_id)
+            
             # Check user credits
             has_credits, required_amount = self.check_user_credits(user, model_id, user_input)
             
             if not has_credits:
-                logger.warning(f"User {user.username} has insufficient credits for model {model_id}")
+                # Get current balance
+                current_balance = 0
+                try:
+                    current_balance = self.payment_service.get_user_balance(user)
+                except Exception as balance_error:
+                    logger.error(f"Error getting user balance: {str(balance_error)}")
+                
+                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${required_amount}")
+                
+                # Calculate how much more is needed
+                needed_amount = required_amount - current_balance if current_balance < required_amount else 0
+                
                 return {
                     'success': False,
-                    'error': f"You need {required_amount} more credits to use this model. Please add more credits."
+                    'error': f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits.",
+                    'error_type': 'insufficient_credits',
+                    'required_credits': required_amount,
+                    'current_balance': current_balance
                 }
                 
             # Create or get conversation
@@ -206,7 +223,13 @@ class ChatAgentService(BaseAgentService):
                 
                 # Deduct credits
                 try:
-                    self.deduct_credits(user, model_id)
+                    deduction_success = self.deduct_credits(user, model_id)
+                    if not deduction_success:
+                        logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}")
+                        return {
+                            'success': False,
+                            'error': "Failed to process payment. Please try again."
+                        }
                 except Exception as payment_error:
                     logger.error(f"Error deducting credits: {str(payment_error)}")
                     # Continue anyway as we already generated the response
@@ -555,12 +578,27 @@ class ChatAgentService(BaseAgentService):
         try:
             logger.info(f"Processing streaming message for model {model_id}")
             
+            # Get model configuration to know cost
+            model_config = self.get_model_info(model_id)
+            
             # Check user credits
             has_credits, required_amount = self.check_user_credits(user, model_id, user_input)
             
             if not has_credits:
-                logger.warning(f"User {user.username} has insufficient credits for model {model_id}")
-                error_message = f"You need {required_amount} more credits to use this model. Please add more credits."
+                # Get current balance
+                current_balance = 0
+                try:
+                    current_balance = self.payment_service.get_user_balance(user)
+                except Exception as balance_error:
+                    logger.error(f"Error getting user balance: {str(balance_error)}")
+                
+                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${required_amount}")
+                
+                # Calculate how much more is needed
+                needed_amount = required_amount - current_balance if current_balance < required_amount else 0
+                error_message = f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits."
+                
+                # Return a clear error message
                 return None, None, error_message
                 
             # Create or get conversation
@@ -582,7 +620,10 @@ class ChatAgentService(BaseAgentService):
             
             # Deduct credits
             try:
-                self.deduct_credits(user, model_id)
+                deduction_success = self.deduct_credits(user, model_id)
+                if not deduction_success:
+                    logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}")
+                    return None, None, "Failed to process payment. Please try again."
             except Exception as e:
                 logger.error(f"Error deducting credits: {str(e)}")
                 return None, None, f"Error processing payment: {str(e)}"
