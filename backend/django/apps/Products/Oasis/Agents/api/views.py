@@ -13,12 +13,75 @@ from rest_framework.response import Response
 from django.http import StreamingHttpResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
+import traceback
 
 # Import services when needed, not at module level
 from ..services import ChatAgentService, TemplateAgentService, StylesheetAgentService
 
 
 logger = logging.getLogger(__name__)
+
+# Helper function to create error responses that are properly rendered
+def create_error_response(error, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):
+    """
+    Create a properly rendered error response with CORS headers.
+    This solves the ContentNotRenderedError issue when middleware tries to access response.content.
+    
+    Args:
+        error: Exception object or error string
+        status_code: HTTP status code to return
+        
+    Returns:
+        Pre-rendered Response object with CORS headers
+    """
+    from rest_framework.response import Response
+    from rest_framework.renderers import JSONRenderer
+    
+    # Create response object
+    error_message = str(error)
+    response = Response(
+        {'error': error_message}, 
+        status=status_code
+    )
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    # Ensure the renderer is set
+    if not hasattr(response, 'accepted_renderer') or not response.accepted_renderer:
+        response.accepted_renderer = JSONRenderer()
+    
+    response.accepted_media_type = getattr(response, 'accepted_media_type', 'application/json')
+    response.renderer_context = getattr(response, 'renderer_context', {})
+    
+    # Explicitly render the response
+    try:
+        response.render()
+    except Exception as e:
+        # If rendering fails, create a basic response that will definitely work
+        logger.error(f"Error rendering response: {str(e)}")
+        from django.http import HttpResponse
+        return HttpResponse(
+            content=json.dumps({'error': error_message}),
+            content_type='application/json',
+            status=status_code
+        )
+    
+    return response
+
+# Additional function to ensure CORS headers are set on any response object
+def add_cors_headers(response):
+    """
+    Add CORS headers to any response object.
+    This is a helper function to ensure all responses have CORS headers.
+    """
+    # Allow specific origins or all origins in development
+    response["Access-Control-Allow-Origin"] = "http://localhost:5174"
+    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Requested-With, x-csrftoken, x-api-client"
+    response["Access-Control-Allow-Credentials"] = "true"
+    response["Access-Control-Max-Age"] = "86400"  # 24 hours
+    return response
 
 # Add CORS preflight handler function
 @api_view(['OPTIONS'])
@@ -29,11 +92,7 @@ def cors_preflight(request):
     This function returns an empty response with appropriate CORS headers.
     """
     response = Response()
-    response["Access-Control-Allow-Origin"] = "*"
-    response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
-    response["Access-Control-Max-Age"] = "86400"  # 24 hours
-    return response
+    return add_cors_headers(response)
 
 # Remove chat_agent initialization at module level
 # chat_agent = ChatAgentService()
@@ -142,7 +201,6 @@ def build_stylesheet(request):
         return Response(result)
             
     except Exception as e:
-        import traceback
         logger.error(f"[ERROR] Unhandled exception in build_stylesheet view: {str(e)}")
         logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
         
@@ -189,11 +247,16 @@ def chat(request):
     """
     # Handle OPTIONS requests for CORS
     if request.method == 'OPTIONS':
-        return cors_preflight(request)
+        response = cors_preflight(request)
+        # Ensure streaming-related headers are set for OPTIONS requests
+        response['Cache-Control'] = 'no-cache'
+        response['Connection'] = 'keep-alive'
+        response['X-Accel-Buffering'] = 'no'
+        return response
         
     # Check authentication
     if not request.user.is_authenticated:
-        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+        return create_error_response('Authentication required', status.HTTP_401_UNAUTHORIZED)
     
     # Log the API call with more details for debugging
     logger.info(f"Chat API called by {request.user.username} with method {request.method}")
@@ -227,15 +290,17 @@ def chat(request):
         # Check for conversation_id
         conversation_id = request.query_params.get('conversation_id')
         if not conversation_id:
-            return Response({'error': 'conversation_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return create_error_response('conversation_id is required', status.HTTP_400_BAD_REQUEST)
         
         try:
             # Get conversation history
             conversation_data = chat_service.get_conversation_history(conversation_id, request.user)
-            return Response(conversation_data)
+            response = Response(conversation_data)
+            return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Error retrieving conversation: {str(e)}")
-            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+            response = Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+            return add_cors_headers(response)
     
     # POST request - send message to AI
     elif request.method == 'POST':
@@ -266,15 +331,8 @@ def chat(request):
             logger.error("Missing required parameter: project_id")
             
         if missing_fields:
-            return Response({
-                'error': f"Missing required parameters: {', '.join(missing_fields)}",
-                'required_fields': ['message', 'model', 'project_id'],
-                'provided_fields': {k: v is not None for k, v in {
-                    'message': user_input,
-                    'model': model_id,
-                    'project_id': project_id
-                }.items()}
-            }, status=status.HTTP_400_BAD_REQUEST)
+            error_msg = f"Missing required parameters: {', '.join(missing_fields)}"
+            return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
         
         # Log model cost for this request
         from ..services.agent_service import MODEL_COSTS
@@ -310,9 +368,8 @@ def chat(request):
                 logger.error(f"Insufficient credits for {request.user.username}. " 
                            f"Has: ${user_balance}, Needs: ${model_cost}, "
                            f"Missing: ${needed_amount}")
-                return Response({
-                    'error': f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits."
-                }, status=status.HTTP_400_BAD_REQUEST)
+                error_msg = f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits."
+                return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
             else:
                 # If difference is negligible, proceed
                 logger.info(f"Negligible credit difference (${needed_amount:.5f}), allowing request to proceed")
@@ -322,15 +379,21 @@ def chat(request):
         # Validate current_file format if provided
         if current_file and not isinstance(current_file, dict):
             logger.error(f"Invalid current_file format: {current_file}")
-            return Response({'error': 'current_file must be a dictionary with path, content, and type'}, 
-                            status=status.HTTP_400_BAD_REQUEST)
+            return create_error_response('current_file must be a dictionary with path, content, and type', 
+                        status.HTTP_400_BAD_REQUEST)
         
         # Check current_file has required fields if provided
         if current_file and isinstance(current_file, dict):
-            if not all(key in current_file for key in ['path', 'content', 'type']):
-                logger.error(f"Missing required fields in current_file: {current_file.keys()}")
-                return Response({'error': 'current_file must contain path, content, and type fields'}, 
-                                status=status.HTTP_400_BAD_REQUEST)
+            required_fields = ['path', 'type']
+            missing_required = [field for field in required_fields if field not in current_file]
+            if missing_required:
+                logger.error(f"Missing required fields in current_file: {missing_required}")
+                return create_error_response(f"current_file must contain {', '.join(required_fields)} fields", 
+                            status.HTTP_400_BAD_REQUEST)
+            
+            # If content is not provided, we'll fetch it later if needed
+            if 'content' not in current_file:
+                logger.info(f"current_file missing content field, will be fetched as needed")
         
         # Determine if we're in build mode
         is_build_mode = mode == 'build'
@@ -345,157 +408,200 @@ def chat(request):
         
         # Stream response if requested and supported
         if stream and not is_build_mode:
-            conversation, api_messages, error_message = chat_service.process_message_stream(
-                user_input, 
-                model_id, 
-                request.user,
-                conversation_id,
-                project_id,
-                current_file
-            )
-            
-            # Check for errors in preparation
-            if error_message:
-                logger.error(f"Error preparing streaming response: {error_message}")
-                return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Define stream_response function before using it
-            def stream_response():
-                """
-                Generator function for streaming the AI response.
-                """
-                # Complete response for saving to database
-                full_response = ""
+            try:
+                conversation, api_messages, error_message = chat_service.process_message_stream(
+                    user_input, 
+                    model_id, 
+                    request.user,
+                    conversation_id,
+                    project_id,
+                    current_file
+                )
                 
-                try:
-                    # Log the streaming attempt
-                    logger.info(f"Starting streaming response with model {model_id} for user {request.user.username}")
-                    
-                    # Send event: conversation_id
-                    data = json.dumps({"event": "conversation_id", "data": str(conversation.id)})
-                    yield f"data: {data}\n\n"
+                # Check for errors in preparation
+                if error_message:
+                    logger.error(f"Error preparing streaming response: {error_message}")
+                    # Return a streaming response with error
+                    response = StreamingHttpResponse(
+                        (f"data: {json.dumps({'event': 'error', 'data': error_message})}\n\n" for _ in range(1)),
+                        content_type='text/event-stream'
+                    )
+                    # Add CORS headers
+                    response = add_cors_headers(response)
+                    response['Cache-Control'] = 'no-cache'
+                    response['Connection'] = 'keep-alive'
+                    response['X-Accel-Buffering'] = 'no'
+                    return response
+                
+                # Define stream_response function before using it
+                def stream_response():
+                    """
+                    Generator function for streaming the AI response.
+                    """
+                    # Complete response for saving to database
+                    full_response = ""
                     
                     try:
-                        if 'gpt' in model_id:
-                            try:
-                                # Check if OpenAI client is available
-                                if not chat_service.openai_client:
-                                    raise ValueError("OpenAI client not initialized properly")
-                                    
-                                # Special logging for gpt-4o-mini
-                                if model_id == 'gpt-4o-mini':
-                                    logger.info(f"Preparing to stream gpt-4o-mini response for user {request.user.username} with actual cost ${model_cost}")
-                                
-                                # Use the service method instead of direct client call
-                                stream = chat_service._generate_openai_stream(api_messages, model_id)
-                                
-                                # Stream the chunks
-                                for chunk in stream:
-                                    content = chunk.choices[0].delta.content
-                                    if content is not None:
-                                        # Update full response
-                                        full_response += content
-                                        
-                                        # Send content chunk
-                                        data = json.dumps({"event": "content", "data": content})
-                                        yield f"data: {data}\n\n"
-                            except Exception as openai_error:
-                                logger.error(f"OpenAI streaming error: {str(openai_error)}")
-                                logger.exception(openai_error)  # Log full traceback
-                                error_msg = str(openai_error)
-                                if len(error_msg) > 200:  # Trim very long error messages
-                                    error_msg = error_msg[:200] + "..."
-                                data = json.dumps({"event": "error", "data": error_msg})
-                                yield f"data: {data}\n\n"
-                                raise
+                        # Log the streaming attempt
+                        logger.info(f"Starting streaming response with model {model_id} for user {request.user.username}")
                         
-                        elif 'claude' in model_id:
-                            # Use Anthropic's streaming API
-                            try:
-                                # Check if Anthropic client is available
-                                if not chat_service.anthropic_client:
-                                    raise ValueError("Anthropic client not initialized properly")
-                                
-                                stream = chat_service._generate_anthropic_stream(api_messages, model_id)
-                                
-                                # Process the stream
-                                with stream as response:
-                                    for text in response.text_stream:
-                                        # Update full response
-                                        full_response += text
-                                        
-                                        # Send content chunk
-                                        data = json.dumps({"event": "content", "data": text})
-                                        yield f"data: {data}\n\n"
-                            except Exception as claude_error:
-                                logger.error(f"Claude streaming error: {str(claude_error)}")
-                                logger.exception(claude_error)  # Log full traceback
-                                error_msg = str(claude_error)
-                                if len(error_msg) > 200:  # Trim very long error messages
-                                    error_msg = error_msg[:200] + "..."
-                                data = json.dumps({"event": "error", "data": error_msg})
-                                yield f"data: {data}\n\n"
-                                raise
-                        else:
-                            # Unsupported model
-                            error_msg = f"Model {model_id} is not supported for streaming"
-                            logger.error(error_msg)
-                            data = json.dumps({"event": "error", "data": error_msg})
-                            yield f"data: {data}\n\n"
-                            raise ValueError(error_msg)
-                    except AttributeError as attr_error:
-                        # Special handling for tuple attribute errors which are common in the streaming code
-                        if "tuple" in str(attr_error) and "has no attribute" in str(attr_error):
-                            logger.error(f"Tuple attribute error in streaming: {str(attr_error)}")
-                            error_msg = "Server streaming error: tuple attribute error. Please use non-streaming mode."
-                            data = json.dumps({"event": "error", "data": error_msg})
-                            yield f"data: {data}\n\n"
-                            raise
-                        else:
-                            # Re-raise other attribute errors
-                            raise
-                    
-                    # Store assistant response only if we have content
-                    if full_response:
-                        chat_service.save_streaming_response(conversation, full_response)
-                    else:
-                        logger.warning("Empty response from streaming API")
-                        data = json.dumps({"event": "error", "data": "Empty response from API"})
+                        # Send event: conversation_id
+                        data = json.dumps({"event": "conversation_id", "data": str(conversation.id)})
                         yield f"data: {data}\n\n"
-                    
-                    # Send event: done
-                    data = json.dumps({"event": "done", "data": None})
-                    yield f"data: {data}\n\n"
-                    
-                except Exception as e:
-                    logger.error(f"Error in streaming response: {str(e)}")
-                    logger.exception(e)  # Log the full stack trace
-                    
-                    # Try to provide a helpful error message
-                    error_msg = str(e)
-                    if "tuple" in error_msg and "object has no attribute" in error_msg:
-                        error_msg = "Internal server error with message format. Please try again with non-streaming mode."
-                    elif len(error_msg) > 200:  # Trim very long error messages
-                        error_msg = error_msg[:200] + "..."
                         
-                    # Send error event
-                    data = json.dumps({"event": "error", "data": error_msg})
-                    yield f"data: {data}\n\n"
+                        try:
+                            if 'gpt' in model_id:
+                                try:
+                                    # Check if OpenAI client is available
+                                    if not chat_service.openai_client:
+                                        raise ValueError("OpenAI client not initialized properly")
+                                    
+                                    # Special logging for gpt-4o-mini
+                                    if model_id == 'gpt-4o-mini':
+                                        logger.info(f"Preparing to stream gpt-4o-mini response for user {request.user.username} with actual cost ${model_cost}")
+                                    
+                                    # Use the service method instead of direct client call
+                                    stream = chat_service._generate_openai_stream(api_messages, model_id)
+                                    
+                                    # Stream the chunks
+                                    for chunk in stream:
+                                        content = chunk.choices[0].delta.content
+                                        if content is not None:
+                                            # Update full response
+                                            full_response += content
+                                            
+                                            # Send content chunk
+                                            data = json.dumps({"event": "content", "data": content})
+                                            yield f"data: {data}\n\n"
+                                except Exception as openai_error:
+                                    logger.error(f"OpenAI streaming error: {str(openai_error)}")
+                                    logger.exception(openai_error)  # Log full traceback
+                                    error_msg = str(openai_error)
+                                    if len(error_msg) > 200:  # Trim very long error messages
+                                        error_msg = error_msg[:200] + "..."
+                                    data = json.dumps({"event": "error", "data": error_msg})
+                                    yield f"data: {data}\n\n"
+                                    raise
+                            
+                            elif 'claude' in model_id:
+                                # Use Anthropic's streaming API
+                                try:
+                                    # Check if Anthropic client is available
+                                    if not chat_service.anthropic_client:
+                                        raise ValueError("Anthropic client not initialized properly")
+                                    
+                                    logger.info(f"Starting claude streaming with model: {model_id}")
+                                    # Get the stream object with proper error handling
+                                    try:
+                                        stream = chat_service._generate_anthropic_stream(api_messages, model_id)
+                                    except Exception as client_error:
+                                        logger.error(f"Failed to create Anthropic stream: {str(client_error)}")
+                                        error_msg = f"Failed to initialize Claude stream: {str(client_error)}"
+                                        data = json.dumps({"event": "error", "data": error_msg})
+                                        yield f"data: {data}\n\n"
+                                        return
+                                    
+                                    # Process the stream
+                                    logger.info("Processing Claude stream")
+                                    text_content = ""
+                                    try:
+                                        with stream as response:
+                                            for text in response.text_stream:
+                                                # Update full response
+                                                full_response += text
+                                                text_content += text
+                                                
+                                                # Send content chunk
+                                                data = json.dumps({"event": "content", "data": text})
+                                                yield f"data: {data}\n\n"
+                                    except Exception as stream_error:
+                                        logger.error(f"Error in Claude stream processing: {str(stream_error)}")
+                                        if not text_content:  # No text was streamed
+                                            error_msg = f"Claude streaming error: {str(stream_error)}"
+                                            data = json.dumps({"event": "error", "data": error_msg})
+                                            yield f"data: {data}\n\n"
+                                        raise
+                                except Exception as claude_error:
+                                    logger.error(f"Claude streaming error: {str(claude_error)}")
+                                    logger.exception(claude_error)  # Log full traceback
+                                    error_msg = str(claude_error)
+                                    if len(error_msg) > 200:  # Trim very long error messages
+                                        error_msg = error_msg[:200] + "..."
+                                    data = json.dumps({"event": "error", "data": error_msg})
+                                    yield f"data: {data}\n\n"
+                                    raise
+                            else:
+                                # Unsupported model
+                                error_msg = f"Model {model_id} is not supported for streaming"
+                                logger.error(error_msg)
+                                data = json.dumps({"event": "error", "data": error_msg})
+                                yield f"data: {data}\n\n"
+                                raise ValueError(error_msg)
+                        except AttributeError as attr_error:
+                            # Special handling for tuple attribute errors which are common in the streaming code
+                            if "tuple" in str(attr_error) and "has no attribute" in str(attr_error):
+                                logger.error(f"Tuple attribute error in streaming: {str(attr_error)}")
+                                error_msg = "Server streaming error: tuple attribute error. Please use non-streaming mode."
+                                data = json.dumps({"event": "error", "data": error_msg})
+                                yield f"data: {data}\n\n"
+                                raise
+                            else:
+                                # Re-raise other attribute errors
+                                raise
+                        
+                        # Store assistant response only if we have content
+                        if full_response:
+                            chat_service.save_streaming_response(conversation, full_response)
+                        else:
+                            logger.warning("Empty response from streaming API")
+                            data = json.dumps({"event": "error", "data": "Empty response from API"})
+                            yield f"data: {data}\n\n"
+                        
+                        # Send event: done
+                        data = json.dumps({"event": "done", "data": None})
+                        yield f"data: {data}\n\n"
+                        
+                    except Exception as e:
+                        logger.error(f"Error in stream_response generator: {str(e)}")
+                        logger.exception(e)  # Log full stack trace
+                        
+                        # The generator cannot return a response directly, so we need to raise an exception
+                        # that can be caught by the outer try/except block
+                        raise RuntimeError(f"Stream generator error: {str(e)}")
+                        
+                        # Stop the generator
+                        return
+                
+                # Start streaming response
+                try:
+                    # Create the response first
+                    response = StreamingHttpResponse(
+                        stream_response(),
+                        content_type='text/event-stream'
+                    )
+                    
+                    # Explicitly add CORS and other required headers
+                    response["Cache-Control"] = "no-cache"
+                    response["Connection"] = "keep-alive"
+                    response["X-Accel-Buffering"] = "no"  # Disable Nginx buffering
+                    
+                    # Add CORS headers explicitly here
+                    response["Access-Control-Allow-Origin"] = "http://localhost:5174"
+                    response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+                    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, x-csrftoken, x-api-client"
+                    response["Access-Control-Allow-Credentials"] = "true"
+                    response["X-Stream-Debug"] = "True"  # Debug header
+                    
+                    return response
+                except Exception as e:
+                    logger.error(f"Error creating streaming response: {str(e)}")
+                    # Use the helper function to create a properly rendered error response
+                    return create_error_response(e)
             
-            # Start streaming response
-            return StreamingHttpResponse(
-                stream_response(),
-                content_type='text/event-stream',
-                headers={
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive',
-                    'X-Accel-Buffering': 'no',  # Disable Nginx buffering
-                    'Access-Control-Allow-Origin': '*',  # CORS headers
-                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-                    'Access-Control-Allow-Credentials': 'true',
-                }
-            )
+            except Exception as e:
+                logger.error(f"Error in streaming setup: {str(e)}")
+                # Use the helper function to create a properly rendered error response
+                return create_error_response(e)
         
         # Use regular API for non-streaming requests
         else:
@@ -514,4 +620,4 @@ def chat(request):
                 return Response(response_data)
             except Exception as e:
                 logger.error(f"Error processing chat message: {str(e)}")
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+                return create_error_response(e) 

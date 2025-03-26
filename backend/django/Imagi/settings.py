@@ -60,8 +60,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'debug_toolbar.middleware.DebugToolbarMiddleware',  # Add this as first middleware
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Must be first to handle CORS properly
+    'apps.Auth.middleware.CORSErrorMiddleware',  # Add our custom CORS error middleware
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -207,8 +208,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-# Allow all origins for easier development
-CORS_ALLOW_ALL_ORIGINS = True
+# Set to False when using specific origins with credentials
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -229,6 +230,15 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-api-client',
+]
+
+# Add CORS_EXPOSE_HEADERS to allow clients to access these headers
+CORS_EXPOSE_HEADERS = [
+    'access-control-allow-origin',
+    'access-control-allow-credentials',
+    'cache-control',
+    'connection',
 ]
 
 # CSRF settings
@@ -271,8 +281,12 @@ if DEBUG:
     SECURE_SSL_REDIRECT = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
-    CORS_ORIGIN_ALLOW_ALL = False
+    
+    # Make sure CORS is configured properly for development
+    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOW_CREDENTIALS = True
+    CORS_EXPOSE_HEADERS = ['Access-Control-Allow-Origin']
+    
     SECURE_HSTS_SECONDS = 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
     SECURE_HSTS_PRELOAD = False
@@ -292,49 +306,6 @@ if DEBUG:
         '127.0.0.1',
         'localhost',
     ]
-    
-    # Development settings
-    CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = [
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ]
-    CORS_ALLOW_CREDENTIALS = True
-    CSRF_TRUSTED_ORIGINS = [
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ]
-    CORS_ALLOW_METHODS = [
-        'DELETE',
-        'GET',
-        'OPTIONS',
-        'PATCH',
-        'POST',
-        'PUT',
-    ]
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-    ]
-else:
-    # Production settings
-    DEBUG = False
-    ALLOWED_HOSTS = ['your-production-domain.com']
-    CORS_ALLOWED_ORIGINS = ['https://your-production-domain.com']
-    CSRF_TRUSTED_ORIGINS = ['https://your-production-domain.com']
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
 
 # Debug toolbar settings
 INTERNAL_IPS = [

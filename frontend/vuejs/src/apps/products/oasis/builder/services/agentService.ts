@@ -298,87 +298,88 @@ export const AgentService = {
       currentFile?: any;
     }
   ): Promise<boolean> {
+    // Construct payload for streaming API
+    const payload = {
+      message,
+      model: modelId,
+      project_id: projectId,
+      conversation_id: options.conversationId,
+      mode: options.mode || 'chat',
+      stream: true,
+      current_file: options.currentFile
+    }
+    
+    // Debug log the streaming API payload
+    console.log('Streaming API payload:', JSON.stringify(payload, null, 2));
+    
+    // Validate required fields
+    if (!payload.message || !payload.model || !payload.project_id) {
+      console.error('Missing required parameters for streaming chat');
+      options.callbacks.onError('Missing required parameters: message, model, or project_id');
+      return false;
+    }
+    
+    // Ensure project_id is a string (backend might expect string format)
+    payload.project_id = String(payload.project_id);
+    
+    // Use the standard chat endpoint with streaming
     try {
-      // Refresh balance before making the request to ensure we have the latest
-      try {
-        const paymentsStore = getPaymentsStore();
-        await paymentsStore.fetchBalance(false); // silent refresh
-      } catch (err) {
-        console.warn('Failed to refresh balance before streaming request:', err);
-      }
-      
-      const api = axios.create({
-        baseURL: `${import.meta.env.VITE_API_URL || ''}`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        }
-      });
-      
-      // Try to get stored conversation ID
-      const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`);
-      
-      // Prepare payload for the API
-      const payload: {
-        message: string;
-        model: string;
-        project_id: string;
-        conversation_id?: string;
-        mode: string;
-        stream: boolean;
-        current_file?: {
-          path: string;
-          type: string;
-          content: string;
-        };
-      } = {
-        message,
-        model: modelId,
-        project_id: String(projectId),
-        conversation_id: options.conversationId || storedConversationId || undefined,
-        mode: options.mode || 'chat',
-        stream: true // Request streaming responses
-      };
-      
-      // Add current file if available - but omit content which can cause 400 errors
-      if (options.currentFile) {
-        payload.current_file = {
-          path: options.currentFile.path,
-          type: options.currentFile.type,
-          content: options.currentFile.content || ''
-        };
-      }
-      
-      // Debug log the streaming payload
-      console.log('Streaming API payload:', JSON.stringify(payload, null, 2));
-      
-      // Validate required fields
-      if (!payload.message || !payload.model || !payload.project_id) {
-        console.error('Missing required parameters for streaming chat');
-        options.callbacks.onError('Missing required parameters: message, model, or project_id');
-        return false;
-      }
-      
-      // Ensure project_id is a string (backend might expect string format)
-      payload.project_id = String(payload.project_id);
-      
-      // Set up EventSource for server-sent events
-      const queryParams = new URLSearchParams();
-      queryParams.append('stream', 'true');
-      
-      // Use the standard chat endpoint with streaming
+      console.log('Starting fetch to chat API endpoint...');
+      // Updated fetch configuration for better CORS compatibility
       const response = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Token ${this.getAuthToken()}`
+          'Authorization': `Token ${this.getAuthToken()}`,
+          'Accept': 'text/event-stream, application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-API-Client': 'Imagi-Frontend-Vue'
         },
         body: JSON.stringify(payload),
         mode: 'cors',
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-cache',
+        redirect: 'follow'
+      });
+      
+      // Log response headers for debugging
+      console.log('Response status:', response.status);
+      console.log('Response headers:', {
+        'content-type': response.headers.get('content-type'),
+        'cors': response.headers.get('access-control-allow-origin'),
+        'cache-control': response.headers.get('cache-control')
       });
       
       if (!response.ok) {
+        // Handle 500 Internal Server Error specifically - may be a CORS issue
+        if (response.status === 500) {
+          console.error('Server returned 500 error - trying alternative request method');
+          try {
+            // Try sending the request again with different options that might bypass CORS issues
+            const altResponse = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${this.getAuthToken()}`,
+                'Accept': '*/*' // Accept any content type
+              },
+              body: JSON.stringify(payload),
+              mode: 'cors',
+              credentials: 'same-origin', // Try same-origin instead
+              cache: 'no-cache'
+            });
+            
+            if (altResponse.ok) {
+              console.log('Alternative request method successful!');
+              return this.handleStreamResponse(altResponse, options.callbacks);
+            } else {
+              console.error('Alternative request method also failed:', altResponse.status);
+            }
+          } catch (retryError) {
+            console.error('Alternative request method failed with exception:', retryError);
+          }
+        }
+        
         // Try to extract error details from response for better debugging
         let errorDetail = '';
         try {
@@ -480,6 +481,43 @@ export const AgentService = {
           }
         } catch (textError) {
           errorDetail = 'Could not read error details';
+          console.error('Error reading response text:', textError);
+        }
+        
+        // Check specifically for CORS errors
+        if (response.status === 0 || response.type === 'opaque' || 
+            (errorDetail && errorDetail.includes('CORS'))) {
+          console.error('Detected CORS error');
+          errorDetail = 'CORS error: Please check that the API server is running and configured correctly for cross-origin requests';
+            
+          // Retry with credentials: 'same-origin' (as a fallback mechanism)
+          try {
+            console.log('Retrying without CORS credentials...');
+            const retryResponse = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Token ${this.getAuthToken()}`,
+                'Accept': 'text/event-stream, application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-API-Client': 'Imagi-Frontend-Vue'
+              },
+              body: JSON.stringify(payload),
+              mode: 'cors',
+              credentials: 'same-origin', // Try with same-origin instead
+              cache: 'no-cache'
+            });
+              
+            if (retryResponse.ok) {
+              console.log('Retry succeeded!');
+              // Continue with the retry response
+              return this.handleStreamResponse(retryResponse, options.callbacks);
+            } else {
+              console.error('Retry also failed:', retryResponse.status);
+            }
+          } catch (retryError) {
+            console.error('Retry attempt failed:', retryError);
+          }
         }
         
         const errorMessage = `HTTP error! status: ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`;
@@ -502,99 +540,103 @@ export const AgentService = {
         return false;
       }
       
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      
-      const processStream = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            
-            if (done) {
-              options.callbacks.onDone();
-              
-              // Refresh the user's balance after successful API call
-              try {
-                const paymentsStore = getPaymentsStore();
-                paymentsStore.fetchBalance(false); // silent refresh
-              } catch (err) {
-                console.warn('Failed to refresh balance after streaming:', err);
-              }
-              
-              break;
-            }
-            
-            // Decode the chunk and add to buffer
-            buffer += decoder.decode(value, { stream: true });
-            
-            // Process any complete Server-Sent Events
-            const lines = buffer.split('\n\n');
-            buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
-            
-            for (const line of lines) {
-              if (line.trim() === '') continue;
-              if (!line.startsWith('data: ')) continue;
-              
-              const data = line.substring(6); // Remove 'data: ' prefix
-              
-              try {
-                const parsed = JSON.parse(data);
-                
-                if (parsed.event === 'content' && parsed.data) {
-                  options.callbacks.onContent(parsed.data);
-                } else if (parsed.event === 'error' && parsed.data) {
-                  // Enhanced error handling for improved UX
-                  let errorMsg = parsed.data;
-                  
-                  // Check for specific error types
-                  if (parsed.data.includes('insufficient credit') || parsed.data.includes('need more credit')) {
-                    // Credit-related errors
-                    const amountMatch = parsed.data.match(/\$?([0-9.]+)/);
-                    if (amountMatch) {
-                      errorMsg = `Insufficient credits: You need $${amountMatch[1]} more to use ${modelId}. Please add more credits.`;
-                    }
-                  }
-                  
-                  options.callbacks.onError(errorMsg);
-                  return false;
-                } else if (parsed.event === 'conversation_id' && parsed.data) {
-                  localStorage.setItem(`chat_conversation_${projectId}`, parsed.data);
-                  if (options.callbacks.onConversationId) {
-                    options.callbacks.onConversationId(parsed.data);
-                  }
-                } else if (parsed.event === 'done') {
-                  options.callbacks.onDone();
-                  
-                  // Refresh the user's balance after successful API call
-                  try {
-                    const paymentsStore = getPaymentsStore();
-                    paymentsStore.fetchBalance(false); // silent refresh
-                  } catch (err) {
-                    console.warn('Failed to refresh balance after streaming:', err);
-                  }
-                  
-                  return true;
-                }
-              } catch (e) {
-                console.error('Error parsing SSE data:', e, data);
-                options.callbacks.onError(`Error parsing server response: ${e instanceof Error ? e.message : String(e)}`);
-              }
-            }
+      return this.handleStreamResponse(response, options.callbacks);
+    } catch (error: any) {
+      console.error('Error in processChatStream:', error);
+      options.callbacks.onError(`Network error: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  },
+
+  // Helper method to handle stream response
+  async handleStreamResponse(response: Response, callbacks: any): Promise<boolean> {
+    if (!response.body) {
+      callbacks.onError('ReadableStream not supported in browser');
+      return false;
+    }
+    
+    // Check if the server returned JSON instead of a stream
+    // This happens when there's an error and middleware transforms the response
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      console.log('Received JSON response instead of stream, likely an error');
+      try {
+        const errorData = await response.json();
+        const errorMessage = errorData.error || JSON.stringify(errorData);
+        console.error('Server returned JSON error:', errorData);
+        callbacks.onError(errorMessage);
+        return false;
+      } catch (e) {
+        console.error('Failed to parse JSON error:', e);
+        callbacks.onError('Unknown server error (invalid JSON response)');
+        return false;
+      }
+    }
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          callbacks.onDone();
+          
+          // Refresh the user's balance after successful API call
+          try {
+            const paymentsStore = getPaymentsStore();
+            paymentsStore.fetchBalance(false); // silent refresh
+          } catch (err) {
+            console.warn('Failed to refresh balance after streaming:', err);
           }
-          return true;
-        } catch (error) {
-          console.error('Error reading stream:', error);
-          options.callbacks.onError(error instanceof Error ? error.message : String(error));
-          return false;
+          
+          break;
         }
-      };
+        
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process any complete Server-Sent Events
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
+        
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+          
+          const data = line.substring(6); // Remove 'data: ' prefix
+          
+          try {
+            const parsed = JSON.parse(data);
+            
+            if (parsed.event === 'content' && parsed.data) {
+              callbacks.onContent(parsed.data);
+            } else if (parsed.event === 'error' && parsed.data) {
+              // Enhanced error handling for improved UX
+              console.error('Server error event:', parsed.data);
+              callbacks.onError(parsed.data);
+            } else if (parsed.event === 'conversation_id' && parsed.data) {
+              if (callbacks.onConversationId) {
+                callbacks.onConversationId(parsed.data);
+              }
+            } else if (parsed.event === 'done') {
+              // No need to explicitly call onDone here as it will be called when the stream is done
+            } else {
+              console.warn('Unknown event type:', parsed.event, parsed.data);
+            }
+          } catch (parseError: any) {
+            console.error('Error parsing SSE data:', parseError, 'Raw data:', data);
+            callbacks.onError(`Error parsing server response: ${parseError.message}`);
+          }
+        }
+      }
       
-      return await processStream();
-    } catch (error) {
-      // Handle errors and provide details to the callback
-      const errorMessage = this.formatError(error);
-      options.callbacks.onError(errorMessage);
+      return true;
+    } catch (streamError: any) {
+      console.error('Stream reading error:', streamError);
+      callbacks.onError(`Error reading response stream: ${streamError.message}`);
       return false;
     }
   },

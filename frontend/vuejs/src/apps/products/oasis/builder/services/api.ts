@@ -74,7 +74,11 @@ function getAuthTokenFromCookie() {
 const api: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   withCredentials: true,
-  headers: API_CONFIG.DEFAULT_HEADERS,
+  headers: {
+    ...API_CONFIG.DEFAULT_HEADERS,
+    'X-Requested-With': 'XMLHttpRequest',
+    'X-API-Client': 'Imagi-Frontend-Vue'
+  },
   timeout: API_CONFIG.TIMEOUT
 })
 
