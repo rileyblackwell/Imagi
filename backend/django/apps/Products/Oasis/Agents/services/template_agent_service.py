@@ -459,7 +459,7 @@ class TemplateAgentService(BaseAgentService):
         
         Args:
             prompt (str): The user's prompt describing the template
-            model (str): The AI model to use (e.g., 'claude-3-5-sonnet-20241022')
+            model (str): The AI model to use (e.g., 'claude-3-7-sonnet-20250219')
             user: The Django user object
             project_id (str, optional): The project ID
             file_name (str, optional): The target file name

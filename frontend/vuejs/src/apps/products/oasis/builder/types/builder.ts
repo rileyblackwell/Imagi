@@ -85,18 +85,6 @@ export const AI_MODELS: AIModel[] = [
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     costPerRequest: 0.005
-  },
-  {
-    id: 'claude-3-5-sonnet-20240620',
-    name: 'Claude 3.5 Sonnet',
-    provider: 'anthropic',
-    type: 'anthropic',
-    context_window: 200000,
-    features: ['chat', 'code', 'analysis'],
-    description: 'Anthropic | Fast and accurate for daily tasks',
-    capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 200000,
-    costPerRequest: 0.03
   }
 ]
 

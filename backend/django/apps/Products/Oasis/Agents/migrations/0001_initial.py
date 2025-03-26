@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('model_name', models.CharField(choices=[('gpt-4o', 'GPT-4o'), ('gpt-4o-mini', 'GPT-4o Mini'), ('claude-3-5-sonnet-20241022', 'Claude 3.5 Sonnet')], max_length=50)),
+                ('model_name', models.CharField(choices=[('gpt-4o', 'GPT-4o'), ('gpt-4o-mini', 'GPT-4o Mini'), ('claude-3-7-sonnet-20250219', 'Claude 3.7 Sonnet')], max_length=50)),
                 ('provider', models.CharField(choices=[('openai', 'OpenAI'), ('anthropic', 'Anthropic')], default='anthropic', max_length=20)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='agent_conversations', to=settings.AUTH_USER_MODEL)),
             ],

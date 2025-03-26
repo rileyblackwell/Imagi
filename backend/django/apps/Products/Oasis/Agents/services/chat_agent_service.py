@@ -112,6 +112,36 @@ class ChatAgentService(BaseAgentService):
         
         return model_costs.get(model_id, {'provider': 'anthropic', 'cost_per_token': 0.00003, 'output_cost_per_token': 0.00015})
     
+    def check_user_credits(self, user, model, user_input=None):
+        """
+        Check if user has enough balance for the selected model.
+        
+        Args:
+            user: The Django user object
+            model (str): The AI model to use
+            user_input (str, optional): The user input message
+            
+        Returns:
+            tuple: (has_credits, required_amount)
+        """
+        # Call the parent class method with just user and model
+        return super().check_user_credits(user, model)
+    
+    def deduct_credits(self, user, model, user_input=None):
+        """
+        Deduct amount from user's account based on model used.
+        
+        Args:
+            user: The Django user object
+            model (str): The AI model to use
+            user_input (str, optional): The user input message
+            
+        Returns:
+            bool: Success status
+        """
+        # Call the parent class method with just user and model
+        return super().deduct_credits(user, model)
+    
     def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None, is_build_mode=False):
         """
         Process a chat message and generate a response.
@@ -176,7 +206,7 @@ class ChatAgentService(BaseAgentService):
                 
                 # Deduct credits
                 try:
-                    self.deduct_credits(user, model_id, user_input)
+                    self.deduct_credits(user, model_id)
                 except Exception as payment_error:
                     logger.error(f"Error deducting credits: {str(payment_error)}")
                     # Continue anyway as we already generated the response
@@ -552,7 +582,7 @@ class ChatAgentService(BaseAgentService):
             
             # Deduct credits
             try:
-                self.deduct_credits(user, model_id, user_input)
+                self.deduct_credits(user, model_id)
             except Exception as e:
                 logger.error(f"Error deducting credits: {str(e)}")
                 return None, None, f"Error processing payment: {str(e)}"
