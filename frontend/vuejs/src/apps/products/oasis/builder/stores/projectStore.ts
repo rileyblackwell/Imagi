@@ -3,10 +3,10 @@ import { ref, computed, watch } from 'vue'
 import { ProjectService } from '../services/projectService'
 import { AgentService } from '../services/agentService'
 import api from '../services/api'
-import type { Project } from '../types/project'
-import { normalizeProject } from '../types/project'
+import type { Project } from '../types/components'
+import { normalizeProject } from '../types/components'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
-import type { AIModel } from '../types/builder'
+import type { AIModel } from '../types/services'
 import { useAuthStore } from '@/shared/stores/auth'
 
 /**
@@ -679,50 +679,6 @@ export const useProjectStore = defineStore('builder', () => {
     return currentProject.value
   }
 
-  async function fetchProjectFiles(projectId: string) {
-    try {
-      const files = await ProjectService.getProjectFiles(projectId)
-      // Process and store the files
-      return files
-    } catch (error) {
-      // Handle error
-      throw error
-    }
-  }
-
-  async function createFile(projectId: string, filePath: string, content: string) {
-    try {
-      const file = await ProjectService.createFile(projectId, filePath, content)
-      // Process and update store
-      return file
-    } catch (error) {
-      // Handle error
-      throw error
-    }
-  }
-
-  async function updateFileContent(projectId: string, filePath: string, content: string) {
-    try {
-      const file = await ProjectService.updateFileContent(projectId, filePath, content)
-      // Process and update store
-      return file
-    } catch (error) {
-      // Handle error
-      throw error
-    }
-  }
-
-  async function deleteFile(projectId: string, filePath: string) {
-    try {
-      await ProjectService.deleteFile(projectId, filePath)
-      // Update store
-      return true
-    } catch (error) {
-      // Handle error
-      throw error
-    }
-  }
-
   // Utility functions
   
   function handleError(err: any, defaultMessage: string) {
@@ -820,10 +776,6 @@ export const useProjectStore = defineStore('builder', () => {
     fetchProject,
     setSelectedModel,
     fetchAvailableModels,
-    fetchProjectFiles,
-    createFile,
-    updateFileContent,
-    deleteFile,
     refreshProjectData
   }
 })

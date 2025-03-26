@@ -2,33 +2,10 @@ import { useAgentStore } from '../stores/agentStore'
 import { AgentService, ModelService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
-// Use types from builder.ts since that's what the store uses
-import type { ProjectFile } from '../types/builder'
+import type { ProjectFile } from '../types/components'
+import type { GenerateCodeOptions, CreateFileOptions, ApplyCodeOptions } from '../types/composables'
 import { notify } from '@/shared/utils/notifications'
 import type { EditorLanguage } from '@/shared/types/editor'
-
-
-interface GenerateCodeOptions {
-  prompt: string
-  file: ProjectFile
-  projectId: string
-  modelId: string
-  mode?: string
-}
-
-interface CreateFileOptions {
-  name: string
-  type: string
-  content?: string
-  projectId: string
-  path?: string
-}
-
-interface ApplyCodeOptions {
-  code: string
-  file: ProjectFile
-  projectId: string
-}
 
 export function useBuilderMode() {
   // Support both old and new store for backward compatibility

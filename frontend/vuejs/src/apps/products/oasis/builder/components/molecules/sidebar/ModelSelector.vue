@@ -117,8 +117,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
 import { ModelService } from '../../../services/agentService'
-import { AI_MODELS } from '../../../types/builder'
-import type { AIModel } from '../../../types/builder'
+import { AI_MODELS } from '../../../types/services'
+import type { AIModel } from '../../../types/services'
 
 const props = defineProps<{
   modelId: string | null

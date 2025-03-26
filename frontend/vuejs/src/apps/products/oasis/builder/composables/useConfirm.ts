@@ -1,12 +1,5 @@
 import { ref } from 'vue'
-
-interface ConfirmOptions {
-  title?: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  type?: 'info' | 'warning' | 'danger' | 'success';
-}
+import type { ConfirmOptions } from '../types/composables'
 
 export function useConfirm() {
   /**

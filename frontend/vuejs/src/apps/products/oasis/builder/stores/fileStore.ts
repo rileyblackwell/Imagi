@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { FileService } from '../services/fileService'
 import { useAuthStore } from '@/shared/stores/auth'
-import type { ProjectFile } from '../types/builder'
+import type { ProjectFile } from '../types/components'
 
 /**
  * File Store

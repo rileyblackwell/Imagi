@@ -1,5 +1,8 @@
 import axios from 'axios'
 import api from './api'
+import { handleAPIError } from '../utils/errors'
+import type { Project, ProjectFile } from '../types/components'
+import { normalizeProject } from '../types/components'
 
 // Define API path constants
 const API_PATHS = {
@@ -14,8 +17,6 @@ const CACHE_KEYS = {
   PROJECT_PREFIX: 'imagi_project_'
 }
 
-import type { Project } from '../types/project'
-import type { ProjectFile } from '../types/builder'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 
 /**

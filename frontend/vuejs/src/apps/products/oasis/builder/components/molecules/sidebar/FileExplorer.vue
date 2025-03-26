@@ -117,7 +117,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ProjectFile } from '../../../types/builder'
+import type { ProjectFile } from '../../../types/components'
 import FileTreeItem from '../../atoms/navigation/FileTreeItem.vue'
 import { FileService } from '../../../services/fileService'
 

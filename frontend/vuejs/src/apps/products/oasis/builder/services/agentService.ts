@@ -3,52 +3,12 @@ import { handleAPIError } from '../utils/errors'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
-  UndoResponse 
-} from '../types/builder'
-import { AI_MODELS } from '../types/builder'
+  UndoResponse,
+  ModelConfig
+} from '../types/services'
+import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 import { usePaymentsStore } from '@/apps/payments/store'
 import axios from 'axios'
-
-// Model configuration types and constants from ModelService
-interface ModelConfig {
-  maxTokens: number
-  rateLimits: {
-    tokensPerMinute: number
-    requestsPerMinute: number
-  }
-  contextWindow: number
-  capabilities: string[]
-}
-
-const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'claude-3-7-sonnet-20250219': {
-    maxTokens: 200000,
-    rateLimits: {
-      tokensPerMinute: 100000,
-      requestsPerMinute: 300
-    },
-    contextWindow: 200000,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  },
-  'gpt-4o': {
-    maxTokens: 128000,
-    rateLimits: {
-      tokensPerMinute: 60000,
-      requestsPerMinute: 250
-    },
-    contextWindow: 128000,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  },
-  'gpt-4o-mini': {
-    maxTokens: 128000,
-    rateLimits: {
-      tokensPerMinute: 80000,
-      requestsPerMinute: 350
-    },
-    contextWindow: 128000,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  }
-}
 
 // Static variables for rate limiting
 let requestCounts: Map<string, number> = new Map()

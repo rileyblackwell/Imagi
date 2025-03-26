@@ -96,7 +96,7 @@
 import { marked } from 'marked'
 import DOMPurify from 'isomorphic-dompurify'
 import { ref, onUpdated, nextTick, watch, onMounted } from 'vue'
-import type { AIMessage } from '@/apps/products/oasis/builder/types/api'
+import type { AIMessage } from '@/apps/products/oasis/builder/types/services'
 
 const props = defineProps<{
   messages: AIMessage[]

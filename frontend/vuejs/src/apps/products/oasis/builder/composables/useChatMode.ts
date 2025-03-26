@@ -4,19 +4,7 @@ import { AgentService } from '../services/agentService'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuthStore } from '@/shared/stores/auth'
 import { notify } from '@/shared/utils'
-
-interface Message {
-  id: string
-  role: string
-  content: string
-  timestamp: string
-  isStreaming?: boolean
-}
-
-interface Conversation {
-  id: string
-  messages: Message[]
-}
+import type { Message, Conversation } from '../types/composables'
 
 export default function useChatMode() {
   const route = useRoute()

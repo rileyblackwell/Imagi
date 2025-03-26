@@ -124,12 +124,7 @@
 </template>
 
 <script setup lang="ts">
-interface Project {
-  id: string | number;
-  name: string;
-  updated_at: string;
-  version?: string;
-}
+import type { Project } from '../../../types/components'
 
 const props = defineProps<{
   project?: Project;

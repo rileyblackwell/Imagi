@@ -144,17 +144,13 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import ProjectCard from '@/apps/products/oasis/builder/components/molecules/cards/ProjectCard.vue'
+import ProjectCard from '../../molecules/cards/ProjectCard.vue'
+import SearchInput from '../../atoms/inputs/SearchInput.vue'
 import { ActionButton } from '@/shared/components/atoms'
-import type { Project } from '@/shared/types'
+import type { Project } from '../../../types/components'
+import type { ProjectListProps } from '../../../types/components'
 
-interface Props {
-  projects: Project[]
-  isLoading: boolean
-  error: string
-}
-
-const props = defineProps<Props>()
+const props = defineProps<ProjectListProps>()
 
 // Local state
 const searchQuery = ref('')

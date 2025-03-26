@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BuilderMode } from '../../../types/builder'
+import type { BuilderMode } from '../../../types/components'
 
 const props = defineProps<{
   mode: BuilderMode

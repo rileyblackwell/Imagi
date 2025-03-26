@@ -88,7 +88,7 @@ import { WorkspaceChat } from '../components/organisms/workspace'
 
 // Utils
 import { notify } from '@/shared/utils'
-import type { ProjectFile, EditorMode, BuilderMode } from '../types/builder'
+import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
 
 const route = useRoute()

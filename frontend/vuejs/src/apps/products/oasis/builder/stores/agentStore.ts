@@ -1,20 +1,9 @@
 import { defineStore } from 'pinia'
-import type { AIModel, BuilderMode, ProjectFile } from '../types/builder'
-import type { AIMessage } from '../types/api'
+import type { AIModel } from '../types/services'
+import type { AIMessage } from '../types/services'
+import type { AgentState } from '../types/stores'
+import type { BuilderMode, ProjectFile } from '../types/components'
 import { FileService } from '../services/fileService'
-
-interface AgentState {
-  projectId: string | null
-  mode: BuilderMode
-  selectedModelId: string | null
-  availableModels: AIModel[]
-  conversation: AIMessage[]
-  selectedFile: ProjectFile | null
-  files: ProjectFile[]
-  unsavedChanges: boolean
-  isProcessing: boolean
-  error: string | null
-}
 
 export const useAgentStore = defineStore('agent', {
   state: (): AgentState => ({

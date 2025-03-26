@@ -9,13 +9,7 @@
 
 <script setup lang="ts">
 // defineProps and defineEmits are compiler macros and don't need to be imported
-
-interface Project {
-  id: string | number;
-  name: string;
-  description?: string;
-  created_at: string;
-}
+import type { Project } from '../../../types/components'
 
 defineProps<{
   project: Project

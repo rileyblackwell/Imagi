@@ -173,14 +173,14 @@ import ModelSelector from '@/apps/products/oasis/builder/components/molecules/si
 import ModeSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModeSelector.vue'
 import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
 import { ActionButton, IconButton } from '@/apps/products/oasis/builder/components'
-import { AI_MODELS } from '@/apps/products/oasis/builder/types/builder'
+import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
 import type { 
   AIModel, 
   BuilderMode,
   ProjectFile,
   EditorMode,
   ProjectType
-} from '@/apps/products/oasis/builder/types/builder'
+} from '@/apps/products/oasis/builder/types'
 
 // Local state
 const showNewFileFormValue = ref(false)

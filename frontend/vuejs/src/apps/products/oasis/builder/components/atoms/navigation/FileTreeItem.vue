@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ProjectFile } from '../../../types/builder'
+import type { ProjectFile } from '../../../types/components'
 
 const props = defineProps<{
   file: ProjectFile

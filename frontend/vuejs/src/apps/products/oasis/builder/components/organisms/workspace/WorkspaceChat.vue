@@ -83,18 +83,9 @@ import { ref, watch, computed } from 'vue'
 import { ChatConversation } from '../../organisms/chat'
 import { ChatInputArea } from '../../molecules'
 import { ModeIndicator } from '../../molecules/display'
-import type { AIMessage, BuilderMode } from '../../../types'
-import type { AIModel } from '../../../types/builder'
-
-// Define a compatible type that matches both versions
-interface SelectedFile {
-  path: string;
-  type: string;
-  content?: string;  // Make content optional to match ProjectFile
-  lastModified?: string;
-  id?: string;
-  name?: string;
-}
+import type { BuilderMode } from '../../../types/components'
+import type { AIModel, AIMessage } from '../../../types/services'
+import type { SelectedFile } from '../../../types/components'
 
 // Props
 const props = defineProps<{
