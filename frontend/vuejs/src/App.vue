@@ -12,10 +12,12 @@
 <script setup lang="ts">
 import { NotificationToast } from '@/shared/components/atoms';
 import { useAuthStore } from '@/shared/stores/auth';
+import { useBalanceStore } from '@/shared/stores/balance';
 import { onMounted, onBeforeUnmount, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
+const balanceStore = useBalanceStore();
 const router = useRouter();
 const isNavigating = ref(false);
 
@@ -72,6 +74,11 @@ onMounted(async () => {
     // Initialize auth state on app mount
     await authStore.initAuth();
     
+    // Initialize balance store after auth is initialized
+    if (authStore.isAuthenticated) {
+      await balanceStore.initBalance();
+    }
+    
     // Add event listeners for browser navigation
     window.addEventListener('popstate', handlePopState);
     
@@ -84,6 +91,15 @@ onMounted(async () => {
     });
   } catch (error) {
     // Handle error silently
+  }
+});
+
+// Watch for changes in authentication state to initialize/reset balance
+watch(() => authStore.isAuthenticated, (isAuthenticated) => {
+  if (isAuthenticated) {
+    balanceStore.initBalance();
+  } else {
+    balanceStore.resetBalance();
   }
 });
 

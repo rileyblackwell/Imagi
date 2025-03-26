@@ -1,25 +1,20 @@
-// Re-export the payments store for easier importing
-export { default as usePaymentsStore } from './payments'
-export * from './payments'
-
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
-import { useBalanceStore } from '@/shared/stores/balance'
+import { useBalanceStore as useGlobalBalanceStore } from '@/shared/stores/balance'
 import type { 
   PaymentHistoryItem, 
-  PaymentProcessRequest, 
   PaymentProcessResponse,
   CreditPackage,
   Transaction
 } from '../types'
 
 /**
- * Payments module store for handling payment-specific processes
- * This store manages local payment state for processing payments 
- * while delegating global balance state management to the root balance store
+ * Payments module balance store for handling payment-specific operations
+ * This store delegates global balance state management to the shared balance store
+ * while providing payment-specific functionality
  */
-export const usePaymentsModuleStore = defineStore('payments-module', () => {
+export const useModuleBalanceStore = defineStore('payments-module-balance', () => {
   // Local state for payment processes
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -30,11 +25,12 @@ export const usePaymentsModuleStore = defineStore('payments-module', () => {
   const isPackagesLoading = ref(false)
   
   // Get global balance store
-  const balanceStore = useBalanceStore()
+  const globalBalanceStore = useGlobalBalanceStore()
   
   // Computed properties
-  const balance = computed(() => balanceStore.balance)
-  const lastUpdated = computed(() => balanceStore.lastUpdated)
+  const balance = computed(() => globalBalanceStore.balance)
+  const lastUpdated = computed(() => globalBalanceStore.lastUpdated)
+  const formattedBalance = computed(() => globalBalanceStore.formattedBalance)
   
   // Actions
   /**
@@ -88,7 +84,7 @@ export const usePaymentsModuleStore = defineStore('payments-module', () => {
       
       // Update global balance if payment was successful
       if (response.data.success && response.data.new_balance !== undefined) {
-        balanceStore.updateBalance(response.data.new_balance)
+        globalBalanceStore.updateBalance(response.data.new_balance)
       }
       
       return response.data
@@ -104,7 +100,7 @@ export const usePaymentsModuleStore = defineStore('payments-module', () => {
    * Wrapper for global balance fetch
    */
   const fetchBalance = async (): Promise<void> => {
-    return balanceStore.fetchBalance()
+    return globalBalanceStore.fetchBalance()
   }
   
   return {
@@ -120,6 +116,7 @@ export const usePaymentsModuleStore = defineStore('payments-module', () => {
     // Computed properties that expose global state
     balance,
     lastUpdated,
+    formattedBalance,
     
     // Actions
     fetchPackages,

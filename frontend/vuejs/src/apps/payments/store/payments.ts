@@ -8,6 +8,7 @@ import type {
   CreditPackage,
   Transaction
 } from '../types'
+import { useBalanceStore } from '@/shared/stores/balance'
 
 // Constants
 const BALANCE_REFRESH_INTERVAL = 60000; // 60 seconds
@@ -42,39 +43,44 @@ export const usePaymentsStore = defineStore('payments', {
   actions: {
     // Initialize balance and auto-refresh
     async initializePayments(): Promise<void> {
-      await this.fetchBalance();
-      this.startBalanceAutoRefresh();
+      // Use the global balance store for managing balance
+      const balanceStore = useBalanceStore();
+      await balanceStore.fetchBalance();
+      
+      // Sync local state with global state
+      this.balance = balanceStore.balance;
+      this.userCredits = balanceStore.balance;
+      this.lastUpdated = balanceStore.lastUpdated;
+      
+      // Use the global balance store's auto-refresh
+      balanceStore.startAutoRefresh(BALANCE_REFRESH_INTERVAL);
+      
+      // Fetch other payment-specific data
+      await this.fetchTransactions();
+      await this.fetchPackages();
     },
     
     // Start auto-refresh of balance
     startBalanceAutoRefresh(): void {
-      if (this.balanceRefreshTimer) {
-        clearInterval(this.balanceRefreshTimer);
-      }
-      
-      if (this.isAutoRefreshEnabled) {
-        this.balanceRefreshTimer = setInterval(() => {
-          this.fetchBalance(false); // silent refresh
-        }, BALANCE_REFRESH_INTERVAL);
-      }
+      // Delegate to global balance store
+      const balanceStore = useBalanceStore();
+      balanceStore.startAutoRefresh(BALANCE_REFRESH_INTERVAL);
     },
     
     // Stop auto-refresh
     stopBalanceAutoRefresh(): void {
-      if (this.balanceRefreshTimer) {
-        clearInterval(this.balanceRefreshTimer);
-        this.balanceRefreshTimer = null;
-      }
+      // Delegate to global balance store
+      const balanceStore = useBalanceStore();
+      balanceStore.stopAutoRefresh();
     },
     
     // Toggle auto-refresh setting
     toggleAutoRefresh(enabled: boolean): void {
       this.isAutoRefreshEnabled = enabled;
-      if (enabled) {
-        this.startBalanceAutoRefresh();
-      } else {
-        this.stopBalanceAutoRefresh();
-      }
+      
+      // Delegate to global balance store
+      const balanceStore = useBalanceStore();
+      balanceStore.toggleAutoRefresh(enabled);
     },
     
     // Fetch user's current balance
@@ -85,10 +91,14 @@ export const usePaymentsStore = defineStore('payments', {
       this.error = null;
       
       try {
-        const response = await axios.get<{ balance: number }>('/api/v1/payments/balance/')
-        this.balance = response.data.balance;
-        this.userCredits = response.data.balance; // Keep them in sync
-        this.lastUpdated = new Date();
+        // Use global balance store
+        const balanceStore = useBalanceStore();
+        await balanceStore.fetchBalance(false); // Don't show loading in global store
+        
+        // Sync local state with global state
+        this.balance = balanceStore.balance;
+        this.userCredits = balanceStore.balance;
+        this.lastUpdated = balanceStore.lastUpdated;
       } catch (error: any) {
         this.error = error.response?.data?.message || 'Failed to fetch balance';
         console.error('Failed to fetch balance:', error);
@@ -144,12 +154,14 @@ export const usePaymentsStore = defineStore('payments', {
           saveCard
         });
         
-        // Update balance after successful payment
-        this.balance = response.data.new_balance;
-        
-        // Update user credits
-        if (response.data.credits_added) {
-          this.userCredits = response.data.new_balance; // Update for consistency
+        // Update global balance store
+        const balanceStore = useBalanceStore();
+        if (response.data.new_balance !== undefined) {
+          balanceStore.updateBalance(response.data.new_balance);
+          
+          // Sync local state with global state
+          this.balance = response.data.new_balance;
+          this.userCredits = response.data.new_balance;
           this.lastUpdated = new Date();
         }
         
