@@ -193,6 +193,7 @@ export const AgentService = {
       current_file?: {
         path: string;
         type: string;
+        content: string;
       };
     } = {
       message: data.prompt,
@@ -206,7 +207,8 @@ export const AgentService = {
     if (data.file) {
       payload.current_file = {
         path: data.file.path,
-        type: data.file.type
+        type: data.file.type,
+        content: data.file.content || ''
       }
     }
     
@@ -340,6 +342,7 @@ export const AgentService = {
         current_file?: {
           path: string;
           type: string;
+          content: string;
         };
       } = {
         message,
@@ -354,7 +357,8 @@ export const AgentService = {
       if (options.currentFile) {
         payload.current_file = {
           path: options.currentFile.path,
-          type: options.currentFile.type
+          type: options.currentFile.type,
+          content: options.currentFile.content || ''
         };
       }
       

@@ -13,8 +13,23 @@
 <script setup lang="ts">
 import { DashboardLayout } from '@/shared/layouts'
 
-defineProps<{
-  storageKey?: string,
-  navigationItems?: any[]
-}>()
+// Define NavigationItem type inline since it's not exported
+interface NavigationItem {
+  name: string
+  to: string
+  icon?: string
+  exact?: boolean
+  children?: NavigationItem[]
+}
+
+defineProps({
+  storageKey: {
+    type: String,
+    default: undefined
+  },
+  navigationItems: {
+    type: Array as () => NavigationItem[],
+    default: () => []
+  }
+})
 </script>

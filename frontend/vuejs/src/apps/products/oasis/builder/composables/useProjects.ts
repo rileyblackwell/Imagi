@@ -1,17 +1,19 @@
 import { ref, computed } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useBuilderMode } from './useBuilderMode'
+import { useAgentStore } from '../stores/agentStore'
 
 export const useProjects = () => {
   const store = useProjectStore()
-  const { selectedFile, updateFile, createFile } = useBuilderMode()
+  const agentStore = useAgentStore()
+  const builderMode = useBuilderMode()
 
   // Handle file changes with proper error handling and optimistic updates
   const handleFileUpdate = async (content: string) => {
-    if (!selectedFile.value || !store.currentProject?.id) return
+    if (!agentStore.selectedFile || !store.currentProject?.id) return
 
     try {
-      await updateFile(String(store.currentProject.id), selectedFile.value.path, content)
+      await builderMode.updateFile(String(store.currentProject.id), agentStore.selectedFile.path, content)
     } catch (err) {
       throw err
     }
@@ -29,7 +31,7 @@ export const useProjects = () => {
     }
 
     try {
-      const newFile = await createFile(name, type)
+      const newFile = await builderMode.createFile(name, type)
       return newFile
     } catch (err) {
       console.error('File creation failed:', err)

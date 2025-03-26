@@ -12,41 +12,51 @@ export interface ProjectType {
 export interface AIModel {
   id: string
   name: string
-  provider?: 'openai' | 'anthropic'
-  type?: 'openai' | 'anthropic'
+  provider: 'openai' | 'anthropic' | 'google' | 'local'
+  context_window: number
+  features: ('chat' | 'code' | 'analysis')[]
+  default?: boolean
   description: string
-  capabilities: string[]
-  maxTokens: number
   costPerRequest: number
-  disabled?: boolean
+  capabilities?: string[]
+  maxTokens?: number
+  type?: 'openai' | 'anthropic'
 }
 
 export interface ProjectFile {
   path: string
   type: EditorLanguage
-  content: string
+  content?: string
   lastModified?: string
 }
 
 export interface CodeGenerationResponse {
-  code?: string;
-  response?: string;
-  messages?: Array<{
-    role: 'user' | 'assistant';
-    content: string;
-  }>;
-  success: boolean;
+  success: boolean
+  code: string
+  response: string
+  messages: any[]
 }
 
-export type BuilderMode = 'chat' | 'build'
+export type BuilderMode = 'build' | 'chat'
+
 export type EditorMode = 'split' | 'editor' | 'preview'
 
+export interface UndoResponse {
+  success: boolean
+  message: string
+  details?: any
+}
+
+// List of standard models 
 export const AI_MODELS: AIModel[] = [
   {
     id: 'claude-3-7-sonnet-20250219',
     name: 'Claude 3.7 Sonnet',
     provider: 'anthropic',
     type: 'anthropic',
+    context_window: 200000,
+    features: ['chat', 'code', 'analysis'],
+    default: true,
     description: 'Anthropic | High-performance model for complex tasks',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 200000,
@@ -57,6 +67,8 @@ export const AI_MODELS: AIModel[] = [
     name: 'GPT-4o',
     provider: 'openai',
     type: 'openai',
+    context_window: 128000,
+    features: ['chat', 'code', 'analysis'],
     description: 'OpenAI | Powerful reasoning and creative capability',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
@@ -67,10 +79,24 @@ export const AI_MODELS: AIModel[] = [
     name: 'GPT-4o Mini',
     provider: 'openai',
     type: 'openai',
+    context_window: 128000,
+    features: ['chat', 'code', 'analysis'],
     description: 'OpenAI | Fast and cost-effective performance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     costPerRequest: 0.005
+  },
+  {
+    id: 'claude-3-5-sonnet-20240620',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'anthropic',
+    type: 'anthropic',
+    context_window: 200000,
+    features: ['chat', 'code', 'analysis'],
+    description: 'Anthropic | Fast and accurate for daily tasks',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 200000,
+    costPerRequest: 0.03
   }
 ]
 
@@ -89,4 +115,3 @@ export interface BuilderState {
 // Re-export types from other files
 export type { APIResponse } from './index'
 export type { ProjectData } from './project'
-export type { UndoResponse } from './index'

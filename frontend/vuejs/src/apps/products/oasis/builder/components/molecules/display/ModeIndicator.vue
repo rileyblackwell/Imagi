@@ -55,8 +55,10 @@ import type { AIModel } from '../../../types/builder'
 interface SelectedFile {
   path: string;
   type: string;
-  content: string;
+  content?: string;
   lastModified?: string;
+  id?: string;
+  name?: string;
 }
 
 const props = defineProps<{

@@ -1,5 +1,8 @@
 export * from './builder'  // Export everything from builder.ts
 
+// Import shared EditorLanguage type to avoid conflicts
+import type { EditorLanguage as SharedEditorLanguage } from '@/shared/types/editor'
+
 export interface Project {
   id: string;
   name: string;
@@ -53,7 +56,8 @@ export interface CodeGenerationResponse {
 
 // Builder Types
 export type EditorMode = 'split' | 'editor' | 'preview';
-export type EditorLanguage = 'javascript' | 'typescript' | 'python' | 'vue' | 'html' | 'css';
+// Re-export the shared EditorLanguage instead of redefining
+export type EditorLanguage = SharedEditorLanguage;
 
 export interface ProjectFile {
   id: string;

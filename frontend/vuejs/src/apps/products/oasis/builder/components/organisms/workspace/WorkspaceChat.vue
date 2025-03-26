@@ -90,7 +90,7 @@ import type { AIModel } from '../../../types/builder'
 interface SelectedFile {
   path: string;
   type: string;
-  content: string;
+  content?: string;  // Make content optional to match ProjectFile
   lastModified?: string;
   id?: string;
   name?: string;
