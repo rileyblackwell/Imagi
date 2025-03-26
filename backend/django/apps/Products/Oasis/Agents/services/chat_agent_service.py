@@ -164,29 +164,44 @@ class ChatAgentService(BaseAgentService):
             # Get model configuration to know cost
             model_config = self.get_model_info(model_id)
             
-            # Check user credits
-            has_credits, required_amount = self.check_user_credits(user, model_id, user_input)
+            # Get the actual model cost from MODEL_COSTS to ensure consistency
+            from .agent_service import MODEL_COSTS
+            actual_cost = MODEL_COSTS.get(model_id, 0.04)
             
-            if not has_credits:
-                # Get current balance
-                current_balance = 0
-                try:
-                    current_balance = self.payment_service.get_user_balance(user)
-                except Exception as balance_error:
-                    logger.error(f"Error getting user balance: {str(balance_error)}")
-                
-                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${required_amount}")
-                
+            # Force correct cost for gpt-4o-mini
+            if model_id == 'gpt-4o-mini':
+                actual_cost = 0.005
+            
+            logger.info(f"Using model {model_id} with cost ${actual_cost}")
+            
+            # Get current balance using CreditService directly
+            from apps.Payments.services.credit_service import CreditService
+            credit_service = CreditService()
+            current_balance = credit_service.get_balance(user)
+            logger.info(f"User {user.username} has a balance of ${current_balance}")
+            
+            # Check if user has enough credits
+            epsilon = 0.0001  # Small value to handle floating point precision
+            if current_balance + epsilon < actual_cost:
                 # Calculate how much more is needed
-                needed_amount = required_amount - current_balance if current_balance < required_amount else 0
+                needed_amount = max(0, actual_cost - current_balance)
+                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${actual_cost}")
                 
-                return {
-                    'success': False,
-                    'error': f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits.",
-                    'error_type': 'insufficient_credits',
-                    'required_credits': required_amount,
-                    'current_balance': current_balance
-                }
+                # Only show error if there's actually a meaningful difference
+                if needed_amount < 0.001:
+                    # If the difference is negligible, proceed as if they have enough credits
+                    logger.info(f"Negligible credit difference (${needed_amount:.5f}), allowing request to proceed")
+                    # Continue with processing
+                else:
+                    return {
+                        'success': False,
+                        'error': f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits.",
+                        'error_type': 'insufficient_credits',
+                        'required_credits': actual_cost,
+                        'current_balance': current_balance
+                    }
+            else:
+                logger.info(f"User {user.username} has sufficient credits: ${current_balance} for model {model_id} (cost: ${actual_cost})")
                 
             # Create or get conversation
             if conversation_id:
@@ -221,18 +236,22 @@ class ChatAgentService(BaseAgentService):
                 # Save the assistant's response
                 self.add_assistant_message(conversation, response_content, user)
                 
-                # Deduct credits
+                # Deduct credits using CreditService directly for consistency
                 try:
-                    deduction_success = self.deduct_credits(user, model_id)
-                    if not deduction_success:
-                        logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}")
+                    result = credit_service.deduct_credits(user, actual_cost, f"Used {model_id} for chat")
+                    if not result.get('success', False):
+                        logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}: {result.get('error')}")
                         return {
                             'success': False,
-                            'error': "Failed to process payment. Please try again."
+                            'error': result.get('error', "Failed to process payment. Please try again.")
                         }
-                except Exception as payment_error:
-                    logger.error(f"Error deducting credits: {str(payment_error)}")
-                    # Continue anyway as we already generated the response
+                    logger.info(f"Successfully deducted ${actual_cost} from user {user.username}. New balance: ${result.get('new_balance')}")
+                except Exception as e:
+                    logger.error(f"Error deducting credits: {str(e)}")
+                    return {
+                        'success': False,
+                        'error': f"Error processing payment: {str(e)}"
+                    }
                 
                 # Log token usage if available
                 # TODO: Implement token usage tracking
@@ -277,16 +296,12 @@ class ChatAgentService(BaseAgentService):
             # Log the call to OpenAI API
             logger.info(f"Calling OpenAI streaming API with model {model_id}")
             
-            # Get model configuration
-            model_config = self.get_model_info(model_id)
-            max_tokens = model_config.get('max_tokens', 4000)
-            
-            # Create the streamed completion
+            # Create the streamed completion with correct parameters according to OpenAI docs
             return self.openai_client.chat.completions.create(
                 model=model_id,
                 messages=messages,
-                max_tokens=max_tokens,
                 temperature=0.7,
+                max_tokens=4000,
                 stream=True
             )
         except Exception as e:
@@ -312,8 +327,8 @@ class ChatAgentService(BaseAgentService):
             logger.info(f"Calling Anthropic streaming API with model {model_id}")
             
             # Convert messages to Anthropic format
-            anthropic_messages = []
             system_message = None
+            anthropic_messages = []
             
             for msg in messages:
                 if msg['role'] == 'system':
@@ -324,16 +339,13 @@ class ChatAgentService(BaseAgentService):
                         'content': msg['content']
                     })
             
-            # Get model configuration
-            model_config = self.get_model_info(model_id)
-            max_tokens = model_config.get('max_tokens', 4000)
-            
-            # Create the streaming message
+            # Create the streaming message with correct parameters according to Anthropic docs
             return self.anthropic_client.messages.create(
                 model=model_id,
-                max_tokens=max_tokens,
+                max_tokens=4000,
                 messages=anthropic_messages,
                 system=system_message,
+                temperature=0.7,
                 stream=True
             )
         except Exception as e:
@@ -570,7 +582,7 @@ class ChatAgentService(BaseAgentService):
             user (User): The user object
             conversation_id (str, optional): The conversation ID
             project_path (str, optional): The project path
-            current_file (str, optional): The current file
+            current_file (dict, optional): The current file
             
         Returns:
             tuple: (conversation, api_messages, error_message)
@@ -578,28 +590,39 @@ class ChatAgentService(BaseAgentService):
         try:
             logger.info(f"Processing streaming message for model {model_id}")
             
-            # Get model configuration to know cost
-            model_config = self.get_model_info(model_id)
+            # Get the actual model cost from MODEL_COSTS to ensure consistency
+            from .agent_service import MODEL_COSTS
+            actual_cost = MODEL_COSTS.get(model_id, 0.04)
             
-            # Check user credits
-            has_credits, required_amount = self.check_user_credits(user, model_id, user_input)
+            # Force correct cost for gpt-4o-mini
+            if model_id == 'gpt-4o-mini':
+                actual_cost = 0.005
             
-            if not has_credits:
-                # Get current balance
-                current_balance = 0
-                try:
-                    current_balance = self.payment_service.get_user_balance(user)
-                except Exception as balance_error:
-                    logger.error(f"Error getting user balance: {str(balance_error)}")
-                
-                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${required_amount}")
-                
+            logger.info(f"Using model {model_id} with cost ${actual_cost}")
+            
+            # Get current balance using CreditService directly
+            from apps.Payments.services.credit_service import CreditService
+            credit_service = CreditService()
+            current_balance = credit_service.get_balance(user)
+            logger.info(f"User {user.username} has a balance of ${current_balance}")
+            
+            # Check if user has enough credits
+            epsilon = 0.0001  # Small value to handle floating point precision
+            if current_balance + epsilon < actual_cost:
                 # Calculate how much more is needed
-                needed_amount = required_amount - current_balance if current_balance < required_amount else 0
-                error_message = f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits."
+                needed_amount = max(0, actual_cost - current_balance)
+                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${actual_cost}")
                 
-                # Return a clear error message
-                return None, None, error_message
+                # Only show error if there's actually a meaningful difference (greater than 0.001)
+                if needed_amount > 0.001:
+                    error_message = f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits."
+                    # Return a clear error message
+                    return None, None, error_message
+                else:
+                    # If the difference is negligible, proceed as if they have enough credits
+                    logger.info(f"Negligible credit difference (${needed_amount:.5f}), allowing request to proceed")
+            else:
+                logger.info(f"User {user.username} has sufficient credits: ${current_balance} for model {model_id} (cost: ${actual_cost})")
                 
             # Create or get conversation
             if conversation_id:
@@ -615,15 +638,16 @@ class ChatAgentService(BaseAgentService):
             # Add user message
             self.add_user_message(conversation, user_input, user)
             
-            # Build conversation history
-            api_messages = self.build_conversation_history(conversation)
+            # Build conversation history with project_path and current_file
+            api_messages = self.build_conversation_history(conversation, project_path, current_file)
             
-            # Deduct credits
+            # Deduct credits using CreditService directly for consistency
             try:
-                deduction_success = self.deduct_credits(user, model_id)
-                if not deduction_success:
-                    logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}")
-                    return None, None, "Failed to process payment. Please try again."
+                result = credit_service.deduct_credits(user, actual_cost, f"Used {model_id} for chat")
+                if not result.get('success', False):
+                    logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}: {result.get('error')}")
+                    return None, None, result.get('error', "Failed to process payment. Please try again.")
+                logger.info(f"Successfully deducted ${actual_cost} from user {user.username}. New balance: ${result.get('new_balance')}")
             except Exception as e:
                 logger.error(f"Error deducting credits: {str(e)}")
                 return None, None, f"Error processing payment: {str(e)}"

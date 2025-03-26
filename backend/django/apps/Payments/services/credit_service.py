@@ -92,8 +92,9 @@ class CreditService:
                         'error': 'No credit balance found'
                     }
                 
-                # Check if user has sufficient credits
-                if float(balance.balance) < amount:
+                # Check if user has sufficient credits with epsilon for floating point precision
+                epsilon = 0.0001
+                if float(balance.balance) + epsilon < amount:
                     return {
                         'success': False,
                         'error': 'Insufficient credits',
@@ -141,7 +142,9 @@ class CreditService:
         try:
             current_balance = self.get_balance(user)
             
-            has_sufficient = current_balance >= required_credits
+            # Add a small epsilon to handle floating point comparison
+            epsilon = 0.0001
+            has_sufficient = current_balance + epsilon >= required_credits
             
             result = {
                 'success': True,

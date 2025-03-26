@@ -39,9 +39,9 @@ anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
 
 # Add model costs constants
 MODEL_COSTS = {
-    'claude-3-7-sonnet-20250219': 0.04,  # $0.10 per request
-    'gpt-4': 0.04,  # $0.10 per request
-    'gpt-4-mini': 0.005  # $0.005 per request
+    'claude-3-7-sonnet-20250219': 0.04,  # $0.04 per request
+    'gpt-4o': 0.04,  # $0.04 per request
+    'gpt-4o-mini': 0.005  # $0.005 per request - explicitly set to avoid any rounding issues
 }
 
 # Credit Management Functions
@@ -58,14 +58,16 @@ def check_user_credits(user, model):
     """
     try:
         profile = user.profile
-        required_amount = MODEL_COSTS.get(model, 0.10)
+        required_amount = MODEL_COSTS.get(model, 0.04)  # Default to $0.04 instead of $0.10
         
-        if profile.balance < required_amount:
+        # Use a small epsilon value to handle floating-point precision issues
+        epsilon = 0.0001
+        if profile.balance + epsilon < required_amount:
             return False, required_amount
         return True, required_amount
     except Exception as e:
         logger.error(f"Error checking user balance: {str(e)}")
-        return False, 0.10
+        return False, 0.04  # Default to $0.04 instead of $0.10
 
 def deduct_credits(user, model):
     """
@@ -80,7 +82,11 @@ def deduct_credits(user, model):
     """
     try:
         profile = user.profile
-        amount_to_deduct = MODEL_COSTS.get(model, 0.10)
+        amount_to_deduct = MODEL_COSTS.get(model, 0.04)  # Use consistent default of $0.04
+        
+        # Log the amount being deducted for debugging
+        logger.info(f"Deducting {amount_to_deduct} credits for model {model} from user {user.username}")
+        
         profile.balance = F('balance') - amount_to_deduct
         profile.save(update_fields=['balance'])
         
@@ -823,8 +829,8 @@ class BaseAgentService(ABC):
         try:
             # Map model names to actual OpenAI models
             model_mapping = {
-                'gpt-4o': 'gpt-4',
-                'gpt-4o-mini': 'gpt-4-turbo-preview'
+                'gpt-4o': 'gpt-4o',
+                'gpt-4o-mini': 'gpt-4o-mini'
             }
             openai_model = model_mapping.get(model, model)
             

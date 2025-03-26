@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { AgentService } from '../services/agentService'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useBalanceStore } from '@/shared/stores/balance'
 import { notify } from '@/shared/utils'
 import type { Message, Conversation } from '../types/composables'
 
@@ -30,6 +31,9 @@ export default function useChatMode() {
       currentFile?: any
     } = {}
   ) => {
+    // Get balance store for refreshing credits
+    const balanceStore = useBalanceStore()
+    
     // Validate project ID - default to "default-project" if not provided
     const validProjectId = projectId || 'default-project';
     
@@ -59,6 +63,9 @@ export default function useChatMode() {
       timestamp: new Date().toISOString()
     };
     conversation.value.messages.push(userMessage);
+    
+    // Immediately fetch balance before request to get current value
+    await balanceStore.fetchBalance(false)
 
     try {
       // Add temporary message for streaming
@@ -108,6 +115,9 @@ export default function useChatMode() {
                 }
               }
               isProcessing.value = false;
+              
+              // After completion, refresh balance to reflect the usage cost
+              balanceStore.fetchBalance(false)
             },
             onError: (errorMessage: string) => {
               // Remove the temporary message
@@ -118,7 +128,7 @@ export default function useChatMode() {
               // Format and handle specific types of errors for better UX
               if (errorMessage.includes('need more credits')) {
                 // Extract needed amount from error message if possible
-                const match = errorMessage.match(/need\s+([0-9.]+)\s+more\s+credits/i);
+                const match = errorMessage.match(/need\s+\$?([0-9.]+)\s+more/i);
                 const amount = match ? match[1] : '0.00';
                 
                 const formattedError = `Insufficient credits: You need $${amount} more to use ${modelId}. Please add more credits.`;
@@ -128,6 +138,9 @@ export default function useChatMode() {
                   message: formattedError,
                   duration: 7000
                 });
+                
+                // Refresh balance after error to ensure it's current
+                balanceStore.fetchBalance(false)
               } 
               else if (errorMessage.includes('insufficient_credits') || errorMessage.includes('Insufficient credits')) {
                 error.value = `Insufficient credits to use ${modelId}. Please add more credits.`;
@@ -136,6 +149,9 @@ export default function useChatMode() {
                   message: `Insufficient credits to use ${modelId}. Please add more credits.`,
                   duration: 7000
                 });
+                
+                // Refresh balance after error to ensure it's current
+                balanceStore.fetchBalance(false)
               }
               else if (errorMessage.includes('401') || errorMessage.includes('403')) {
                 error.value = 'Authentication error. Please log in again.';

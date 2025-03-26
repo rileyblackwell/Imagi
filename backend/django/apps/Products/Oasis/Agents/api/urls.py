@@ -10,7 +10,5 @@ urlpatterns = [
 
     path('build/stylesheet/', views.build_stylesheet, name='build_stylesheet'),
 
-    path('build/application/', views.build_application, name='build_application'),
-
     path('chat/', views.chat, name='chat'),
 ] 
