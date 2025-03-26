@@ -7,57 +7,62 @@
   3. Editing project files through AI assistance
 -->
 <template>
-  <BuilderLayout 
-    storage-key="builderWorkspaceSidebarCollapsed"
-    :navigation-items="navigationItems"
-  >
-    <!-- Sidebar Content -->
-    <template #sidebar-content="{ collapsed }">
-      <BuilderSidebar
-        :current-project="currentProject"
-        :models="store.availableModels || []"
-        :model-id="store.selectedModelId || null"
-        :selected-file="store.selectedFile || null"
-        :files="store.files || []"
-        :file-types="fileTypes"
-        :is-loading="store.isProcessing || false"
-        :mode="store.mode || 'chat'"
-        :current-editor-mode="currentEditorMode"
-        :is-collapsed="collapsed"
-        :project-id="projectId || ''"
-        @update:model-id="handleModelSelect"
-        @update:mode="handleModeSwitch"
-        @select-file="handleFileSelect"
-        @create-file="handleFileCreate"
-        @delete-file="handleFileDelete"
-        @undo="handleUndo"
-        @preview="handlePreview"
-      />
-    </template>
-
-    <!-- Main Content Area -->
-    <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
-      <!-- Modern Chat UI using WorkspaceChat component -->
-      <div class="flex-1 flex flex-col h-full overflow-hidden">
-        <WorkspaceChat
-          :messages="ensureValidMessages(store.conversation || [])"
-          :is-processing="store.isProcessing"
+  <div>
+    <!-- Fixed position credit balance display -->
+    <CreditBalanceDisplay />
+    
+    <BuilderLayout 
+      storage-key="builderWorkspaceSidebarCollapsed"
+      :navigation-items="navigationItems"
+    >
+      <!-- Sidebar Content -->
+      <template #sidebar-content="{ collapsed }">
+        <BuilderSidebar
+          :current-project="currentProject"
+          :models="store.availableModels || []"
+          :model-id="store.selectedModelId || null"
+          :selected-file="store.selectedFile || null"
+          :files="store.files || []"
+          :file-types="fileTypes"
+          :is-loading="store.isProcessing || false"
           :mode="store.mode || 'chat'"
-          :selected-file="store.selectedFile"
-          :selected-model-id="store.selectedModelId"
-          :available-models="store.availableModels || []"
-          :prompt-placeholder="promptPlaceholder"
-          :show-examples="false"
-          :prompt-examples="promptExamplesComputed"
-          v-model="prompt"
-          @submit="handlePrompt"
-          @use-example="handleExamplePrompt"
-          @apply-code="handleApplyCode"
-          style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
+          :current-editor-mode="currentEditorMode"
+          :is-collapsed="collapsed"
+          :project-id="projectId || ''"
+          @update:model-id="handleModelSelect"
+          @update:mode="handleModeSwitch"
+          @select-file="handleFileSelect"
+          @create-file="handleFileCreate"
+          @delete-file="handleFileDelete"
+          @undo="handleUndo"
+          @preview="handlePreview"
         />
+      </template>
+
+      <!-- Main Content Area -->
+      <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
+        <!-- Modern Chat UI using WorkspaceChat component -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden">
+          <WorkspaceChat
+            :messages="ensureValidMessages(store.conversation || [])"
+            :is-processing="store.isProcessing"
+            :mode="store.mode || 'chat'"
+            :selected-file="store.selectedFile"
+            :selected-model-id="store.selectedModelId"
+            :available-models="store.availableModels || []"
+            :prompt-placeholder="promptPlaceholder"
+            :show-examples="false"
+            :prompt-examples="promptExamplesComputed"
+            v-model="prompt"
+            @submit="handlePrompt"
+            @use-example="handleExamplePrompt"
+            @apply-code="handleApplyCode"
+            style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
+          />
+        </div>
       </div>
-    </div>
-  </BuilderLayout>
+    </BuilderLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -71,10 +76,12 @@ import { AgentService } from '../services/agentService'
 import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 import { useAuthStore } from '@/shared/stores/auth'
+import { usePaymentsStore } from '@/apps/payments/store'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
+import { CreditBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
 import { WorkspaceChat } from '../components/organisms/workspace'
@@ -174,6 +181,9 @@ async function handlePrompt() {
       return
     }
     
+    // Get payments store for updating balance
+    const paymentsStore = usePaymentsStore()
+    
     // Check if we have a project ID
     if (!projectId.value) {
       notify({ type: 'warning', message: 'Invalid project ID' })
@@ -231,6 +241,13 @@ async function handlePrompt() {
       )
       
       // No need for success notification as the message will be displayed in the chat
+    }
+    
+    // Manually refresh the balance after completion
+    try {
+      await paymentsStore.fetchBalance(false) // silent refresh
+    } catch (err) {
+      console.warn('Failed to refresh balance after prompt:', err)
     }
     
     // Clear prompt after sending

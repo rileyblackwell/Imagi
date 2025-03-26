@@ -3,6 +3,11 @@
     <template #sidebar-content="{ isSidebarCollapsed }">
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed"></slot>
     </template>
+    
+    <!-- Pass through any navbar-right content from parent -->
+    <template #navbar-right>
+      <slot name="navbar-right"></slot>
+    </template>
 
     <div class="flex flex-col h-full w-full">
       <slot></slot>

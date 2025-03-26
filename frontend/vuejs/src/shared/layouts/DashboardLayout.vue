@@ -85,6 +85,12 @@
           <template #left>
             <!-- Navbar left section -->
           </template>
+          <template #right>
+            <!-- Pass through the navbar-right slot with proper spacing -->
+            <div class="flex items-center justify-end pe-4">
+              <slot name="navbar-right"></slot>
+            </div>
+          </template>
         </BaseNavbar>
 
         <!-- Main content area -->

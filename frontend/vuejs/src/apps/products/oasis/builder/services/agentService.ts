@@ -6,6 +6,7 @@ import type {
   UndoResponse 
 } from '../types/builder'
 import { AI_MODELS } from '../types/builder'
+import { usePaymentsStore } from '@/apps/payments/store'
 
 // Model configuration types and constants from ModelService
 interface ModelConfig {
@@ -52,6 +53,11 @@ const MODEL_CONFIGS: Record<string, ModelConfig> = {
 let requestCounts: Map<string, number> = new Map()
 let lastResetTime: number = Date.now()
 const RESET_INTERVAL = 60000 // 1 minute
+
+function getPaymentsStore() {
+  // Get the payments store using function to avoid SSR issues
+  return usePaymentsStore()
+}
 
 /**
  * Service for handling agent workspace and AI-related API calls
@@ -259,6 +265,14 @@ export const AgentService = {
         code: response.data.code || null
       };
       
+      // Refresh the user's balance after successful API call
+      try {
+        const paymentsStore = getPaymentsStore();
+        paymentsStore.fetchBalance(false); // silent refresh
+      } catch (err) {
+        console.warn('Failed to refresh balance:', err);
+      }
+      
       return {
         response: validatedResponse,
         messages: [userMessage, assistantMessage]
@@ -428,6 +442,15 @@ export const AgentService = {
             
             if (done) {
               options.callbacks.onDone();
+              
+              // Refresh the user's balance after successful API call
+              try {
+                const paymentsStore = getPaymentsStore();
+                paymentsStore.fetchBalance(false); // silent refresh
+              } catch (err) {
+                console.warn('Failed to refresh balance after streaming:', err);
+              }
+              
               break;
             }
             
@@ -459,6 +482,15 @@ export const AgentService = {
                   }
                 } else if (parsed.event === 'done') {
                   options.callbacks.onDone();
+                  
+                  // Refresh the user's balance after successful API call
+                  try {
+                    const paymentsStore = getPaymentsStore();
+                    paymentsStore.fetchBalance(false); // silent refresh
+                  } catch (err) {
+                    console.warn('Failed to refresh balance after streaming:', err);
+                  }
+                  
                   return true;
                 }
               } catch (e) {
