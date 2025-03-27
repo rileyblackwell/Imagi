@@ -5,34 +5,38 @@
     
     <div class="relative">
       <!-- Mode indicator above input -->
-      <div class="mb-3 flex justify-between items-center">
+      <div class="mb-3.5 flex justify-between items-center">
         <slot name="mode-indicator"></slot>
       </div>
       
       <!-- Input form with improved design -->
       <form @submit.prevent="handleSubmit" class="relative">
-        <div class="relative rounded-xl bg-dark-800/90 border transition-all duration-200 shadow-lg"
+        <div class="relative rounded-2xl bg-dark-850/90 border transition-all duration-200 shadow-md"
           :class="[
             isTyping || isFocused 
-              ? 'border-primary-500/50 ring-2 ring-primary-500/10' 
-              : 'border-dark-700/80 hover:border-dark-600/80'
+              ? 'border-primary-500/50 ring-2 ring-primary-500/20' 
+              : 'border-dark-700/60 hover:border-dark-600/70'
           ]"
         >
           <!-- Typing indicator dots when processing -->
           <div 
             v-if="isProcessing" 
-            class="absolute left-5 top-1/2 -translate-y-1/2 flex items-center space-x-1.5"
+            class="absolute left-5 top-1/2 -translate-y-1/2 flex items-center space-x-1.5 z-10"
           >
-            <div v-for="i in 3" :key="i" class="w-2 h-2 rounded-full bg-primary-500 opacity-80 animate-typing-pulse" :style="{ animationDelay: `${i * 150}ms` }"></div>
+            <div v-for="i in 3" :key="i" class="w-2 h-2 rounded-full bg-primary-400 opacity-80 animate-typing-pulse" 
+              :style="{ animationDelay: `${i * 150}ms` }"></div>
           </div>
           
-          <div class="relative">
+          <!-- Subtle gradient overlay for input area -->
+          <div class="absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent to-dark-900/20 pointer-events-none z-0"></div>
+          
+          <div class="relative z-10">
             <textarea 
               ref="inputRef"
               v-model="localValue"
               :placeholder="isProcessing ? 'AI is thinking...' : placeholder"
-              class="w-full bg-transparent text-white resize-none p-4 pr-14 rounded-xl focus:outline-none transition-all"
-              :class="{'min-h-[60px]': rows <= 1, 'max-h-60 overflow-y-auto': rows > 1}"
+              class="w-full bg-transparent text-white resize-none p-4 pr-14 rounded-2xl focus:outline-none transition-all"
+              :class="{'min-h-[56px]': rows <= 1, 'max-h-56 overflow-y-auto': rows > 1}"
               :style="{'height': textareaHeight}"
               :disabled="isProcessing"
               @input="autoGrow"
@@ -41,29 +45,36 @@
               @blur="isFocused = false"
             ></textarea>
             
-            <!-- Submit button with improved design -->
+            <!-- Submit button with improved design and animation -->
             <button 
               type="submit"
               class="absolute right-3 bottom-3 p-2.5 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               :class="[
                 canSubmit && !isProcessing 
                   ? 'bg-primary-500 hover:bg-primary-600 scale-100 shadow-md' 
-                  : 'bg-gray-600 scale-95'
+                  : 'bg-gray-600/70 scale-95'
               ]"
               :disabled="!canSubmit || isProcessing"
               aria-label="Send message"
             >
-              <i class="fas fa-paper-plane text-sm"></i>
+              <i 
+                class="fas fa-paper-plane text-sm transition-transform"
+                :class="{'hover:translate-x-0.5': canSubmit && !isProcessing}"
+              ></i>
             </button>
           </div>
         </div>
         
-        <!-- Keyboard shortcuts hint -->
-        <div class="mt-2.5 flex justify-end">
-          <div class="text-xs text-gray-500 flex items-center opacity-70 hover:opacity-100 transition-opacity">
-            <span>Press <kbd class="px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/80 text-gray-400 mx-1">Enter</kbd> to send</span>
-            <span class="mx-2">•</span>
-            <span>Use <kbd class="px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/80 text-gray-400 mx-1">Shift</kbd> + <kbd class="px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/80 text-gray-400 mx-1">Enter</kbd> for new line</span>
+        <!-- Keyboard shortcuts hint with improved styling -->
+        <div class="mt-2 flex justify-end">
+          <div class="text-xs text-gray-500/80 flex items-center gap-2 bg-dark-900/30 px-2.5 py-1 rounded-md backdrop-blur-sm">
+            <span class="flex items-center">
+              <kbd class="mx-1 px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/70 text-gray-400 shadow-sm font-sans text-[10px]">Enter</kbd> to send
+            </span>
+            <span class="text-gray-600/50">•</span>
+            <span class="flex items-center">
+              <kbd class="mx-1 px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/70 text-gray-400 shadow-sm font-sans text-[10px]">Shift+Enter</kbd> for new line
+            </span>
           </div>
         </div>
       </form>
@@ -119,7 +130,7 @@ watch(() => props.modelValue, (newValue) => {
   nextTick(() => autoGrow())
 })
 
-// Update parent model
+// Update parent model and handle typing indicator
 watch(localValue, (newValue) => {
   emit('update:modelValue', newValue)
   
@@ -138,13 +149,18 @@ watch(localValue, (newValue) => {
 // Methods
 function handleSubmit() {
   if (!canSubmit.value || props.isProcessing) return
-  emit('submit')
+  
+  // Emit submit with timestamp
+  emit('submit', {
+    timestamp: new Date().toISOString()
+  })
+  
   // Don't clear the input here as the parent component should handle this
 }
 
 function handleKeydown(event: KeyboardEvent) {
   // Submit on Enter without Shift
-  if (event.key === 'Enter' && !event.shiftKey) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.ctrlKey) {
     event.preventDefault()
     handleSubmit()
   }
@@ -229,5 +245,21 @@ textarea::-webkit-scrollbar-thumb {
 
 .animate-typing-pulse {
   animation: typing-pulse 1.5s ease-in-out infinite;
+}
+
+/* Hover animation for send button */
+.hover-animate {
+  transition: transform 0.3s ease;
+}
+
+button:hover .hover-animate {
+  transform: translateX(1px) translateY(-1px) scale(1.05);
+}
+
+/* Better styling for the kbd elements */
+kbd {
+  display: inline-block;
+  line-height: 1;
+  font-weight: 500;
 }
 </style> 

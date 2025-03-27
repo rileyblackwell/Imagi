@@ -161,6 +161,10 @@ const recentProjects = computed(() => {
   
   return [...props.projects]
     .sort((a, b) => {
+      // Handle cases where updated_at might be undefined
+      if (!a.updated_at) return 1;  // If a's date is missing, b comes first
+      if (!b.updated_at) return -1; // If b's date is missing, a comes first
+      
       const dateA = new Date(a.updated_at).getTime()
       const dateB = new Date(b.updated_at).getTime()
       return dateB - dateA
@@ -179,6 +183,10 @@ const filteredProjects = computed(() => {
       project.name.toLowerCase().startsWith(query)
     )
     .sort((a, b) => {
+      // Handle cases where updated_at might be undefined
+      if (!a.updated_at) return 1;  // If a's date is missing, b comes first
+      if (!b.updated_at) return -1; // If b's date is missing, a comes first
+      
       const dateA = new Date(a.updated_at).getTime()
       const dateB = new Date(b.updated_at).getTime()
       return dateB - dateA

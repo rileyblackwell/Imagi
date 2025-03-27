@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
@@ -77,6 +77,7 @@ import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentsStore } from '@/apps/payments/store'
+import { useBalanceStore } from '@/shared/stores/balance'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
@@ -90,6 +91,15 @@ import { WorkspaceChat } from '../components/organisms/workspace'
 import { notify } from '@/shared/utils'
 import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
+
+// Debounce utility function for balance refresh
+const debounce = (fn: Function, delay: number) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+};
 
 const route = useRoute()
 const router = useRouter()
@@ -172,7 +182,7 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
   return validMessages
 }
 
-async function handlePrompt() {
+async function handlePrompt(eventData?: { timestamp: string }) {
   if (!prompt.value.trim()) return
   
   try {
@@ -181,14 +191,28 @@ async function handlePrompt() {
       return
     }
     
+    const timestamp = eventData?.timestamp || new Date().toISOString()
+    
     // Get payments store for updating balance
     const paymentsStore = usePaymentsStore()
+    const balanceStore = useBalanceStore()
+    
+    // Mark that a transaction is about to happen to ensure fresh balance data
+    balanceStore.beginTransaction()
     
     // Check if we have a project ID
     if (!projectId.value) {
       notify({ type: 'warning', message: 'Invalid project ID' })
       return
     }
+    
+    // Add the user message to the conversation immediately
+    store.conversation.push({
+      role: 'user',
+      content: prompt.value,
+      timestamp: timestamp,
+      id: `user-${Date.now()}`
+    })
     
     // For build mode, file selection is required
     if (store.mode === 'build' && !store.selectedFile) {
@@ -243,11 +267,13 @@ async function handlePrompt() {
       // No need for success notification as the message will be displayed in the chat
     }
     
-    // Manually refresh the balance after completion
+    // Fetch the updated balance immediately after AI usage
+    // This ensures the credits display shows the correct amount
     try {
-      await paymentsStore.fetchBalance(false) // silent refresh
+      // Force update of balance after AI model usage
+      await paymentsStore.fetchBalance(false, true)
     } catch (err) {
-      console.warn('Failed to refresh balance after prompt:', err)
+      console.warn('Failed to refresh balance after AI usage:', err)
     }
     
     // Clear prompt after sending
@@ -274,11 +300,53 @@ async function handleModelSelect(modelId: string) {
 }
 
 async function handleModeSwitch(mode: BuilderMode) {
+  const previousMode = store.mode
+  
+  // Update the mode in the store
   store.setMode(mode)
+  
+  // If switching from chat to build and no file is selected
+  if (previousMode === 'chat' && mode === 'build' && !store.selectedFile && store.files.length > 0) {
+    // Auto-select the first file when switching to build mode
+    store.selectFile(store.files[0])
+    notify({ type: 'info', message: `Auto-selected file: ${store.files[0].path}` })
+  }
+  
+  // If we're switching modes but keeping the conversation,
+  // add a system message to indicate the mode change
+  if (previousMode !== mode && store.conversation.length > 0) {
+    store.conversation.push({
+      role: 'system',
+      content: `Switched to ${mode} mode${store.selectedFile ? ` for file: ${store.selectedFile.path}` : ''}`,
+      timestamp: new Date().toISOString(),
+      id: `system-${Date.now()}`
+    })
+  }
 }
 
 async function handleFileSelect(file: ProjectFile) {
-  store.setSelectedFile(file)
+  if (store.selectedFile?.path !== file.path) {
+    // Add system message about file change to maintain context
+    store.conversation.push({
+      role: 'system',
+      content: `Switched to file: ${file.path}`,
+      timestamp: new Date().toISOString(),
+      id: `system-file-${Date.now()}`
+    })
+    
+    // Use the improved selectFile method to maintain chat context
+    store.selectFile(file)
+    
+    // Don't clear conversation when changing files
+    // The system now adds context messages indicating file changes
+    // This allows the AI to maintain context across file changes
+    // and provides a more cohesive chat experience
+    
+    // Update the mode indicator UI by forcing a re-render
+    // This is needed because the selectedFile reference might not change
+    // if the file content is the same, but we still want the UI to update
+    await nextTick()
+  }
 }
 
 async function handleFileCreate(data: { name: string; type: string; content?: string }) {
@@ -421,6 +489,12 @@ async function handlePreview() {
 // Helper function to load project files
 async function loadProjectFiles() {
   try {
+    // Avoid duplicate calls by checking if project files are already loaded
+    if (store.files && store.files.length > 0) {
+      console.debug('Using existing files from store, skipping API call')
+      return store.files
+    }
+    
     const files = await FileService.getProjectFiles(projectId.value)
     if (Array.isArray(files)) {
       // Use the setFiles method to avoid type issues with $patch
@@ -430,12 +504,15 @@ async function loadProjectFiles() {
       } else {
         console.error('setFiles method not available on store')
       }
+      return files
     } else {
       console.error('Project files data is not an array:', files)
+      return []
     }
   } catch (error) {
     console.error('Error loading project files:', error)
     notify({ type: 'error', message: 'Error loading project files' })
+    return []
   }
 }
 
@@ -445,35 +522,80 @@ onMounted(async () => {
   projectId.value = String(route.params.projectId)
   
   try {
-    // Load project data
-    await projectStore.fetchProject(projectId.value)
+    // Get stores for easier access
+    const paymentsStore = usePaymentsStore();
+    const authStore = useAuthStore();
     
-    // Set project ID in store if needed
-    if (typeof store.setProjectId === 'function') {
-      store.setProjectId(projectId.value)
-    }
+    // Create a shared request cache to prevent duplicate calls
+    const requestCache = new Map<string, Promise<any>>();
     
-    // Load project files using dedicated function
-    await loadProjectFiles()
-    
-    // Load available AI models
-    await loadModels()
-      
-    // Set default model if not already set
-    if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') || store.availableModels[0]
-      if (defaultModel) {
-        store.setSelectedModelId(defaultModel.id)
+    // Helper function to deduplicate API calls
+    const executeOnce = async (key: string, apiCall: () => Promise<any>) => {
+      // Check if this API call is already in progress
+      if (requestCache.has(key)) {
+        console.debug(`Using existing API call promise for: ${key}`);
+        return requestCache.get(key);
       }
-    }
+      
+      // Start a new API call and track it
+      const promise = apiCall();
+      requestCache.set(key, promise);
+      
+      try {
+        // Execute the API call and return its result
+        return await promise;
+      } finally {
+        // Remove the API call from tracking after completion
+        setTimeout(() => {
+          requestCache.delete(key);
+        }, 100); // Short delay to prevent race conditions
+      }
+    };
     
-    // Initialize mode if not set
-    if (!store.mode) {
-      store.setMode('chat')
+    // First, verify authentication only once
+    await executeOnce('verifyAuth', () => authStore.validateAuth());
+    
+    // Critical request - project must be loaded first and only once
+    const project = await executeOnce('fetchProject', () => {
+      // Directly return the API call result, don't wrap in another promise
+      return projectStore.fetchProject(projectId.value);
+    });
+    
+    // Set project ID in store only after project data is loaded
+    if (project && typeof store.setProjectId === 'function') {
+      store.setProjectId(projectId.value);
+      
+      // Now load models and files in sequence - files depend on project data
+      // IMPORTANT: We DON'T use Promise.all here to prevent race conditions
+      // between file fetching and the project data
+      await executeOnce('loadModels', loadModels);
+      await executeOnce('loadProjectFiles', loadProjectFiles);
+      
+      // Only fetch balance once at startup, with no auto-refresh
+      // Make sure it doesn't block the UI
+      executeOnce('fetchBalance', () => paymentsStore.fetchBalance(false, false))
+        .catch(err => console.error('Error fetching balance:', err));
+      
+      // Set default model if not already set
+      if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
+        const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+          || store.availableModels[0];
+        if (defaultModel) {
+          store.setSelectedModelId(defaultModel.id);
+        }
+      }
+      
+      // Initialize mode if not set
+      if (!store.mode) {
+        store.setMode('chat');
+      }
+    } else {
+      console.error('Failed to load project or set project ID');
+      notify({ type: 'error', message: 'Error loading project' });
     }
   } catch (error) {
-    console.error('Error initializing workspace:', error)
-    notify({ type: 'error', message: 'Error loading project. Please try again.' })
+    console.error('Error initializing workspace:', error);
+    notify({ type: 'error', message: 'Error loading project. Please try again.' });
   }
 })
 

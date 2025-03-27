@@ -76,8 +76,38 @@ const setupAxiosInterceptors = () => {
 
   // Add response interceptor
   axios.interceptors.response.use(
-    response => response,
+    response => {
+      // Add CORS debugging - log successful responses
+      // console.log('API Response:', {
+      //   url: response.config.url,
+      //   status: response.status,
+      //   headers: response.headers,
+      //   data: response.data
+      // });
+      return response;
+    },
     async error => {
+      // Enhanced CORS debugging - log detailed error information
+      // if (error.response) {
+      //   console.error('API Error Response:', {
+      //     url: error.config?.url,
+      //     status: error.response.status,
+      //     statusText: error.response.statusText,
+      //     headers: error.response.headers,
+      //     data: error.response.data,
+      //     method: error.config?.method,
+      //     requestHeaders: error.config?.headers
+      //   });
+      // } else {
+      //   console.error('Network Error (No Response):', {
+      //     url: error.config?.url,
+      //     method: error.config?.method,
+      //     message: error.message,
+      //     code: error.code,
+      //     requestHeaders: error.config?.headers
+      //   });
+      // }
+      
       // Handle request timeout
       if (error.code === 'ECONNABORTED') {
         console.error('Request timed out:', error.config?.url)

@@ -44,13 +44,15 @@ export default defineComponent({
   methods: {
     loadStripeJs() {
       if (window.Stripe) {
-        console.log('Stripe already loaded')
-        return Promise.resolve(window.Stripe)
+        // console.log('Stripe already loaded')
+        this.stripeLoading = true
+        this.stripe = window.Stripe(this.stripePublicKey)
+        return Promise.resolve()
       }
       
       if (this.stripeLoading) {
-        console.log('Stripe loading in progress')
-        return
+        // console.log('Stripe loading in progress')
+        return Promise.resolve()
       }
       
       this.stripeLoading = true
@@ -61,16 +63,13 @@ export default defineComponent({
         script.async = true
         script.onload = () => {
           this.stripeLoading = false
-          console.log('Stripe.js loaded successfully')
-          if (window.Stripe) {
-            resolve(window.Stripe)
-          } else {
-            reject(new Error('Stripe.js loaded but window.Stripe is not available'))
-          }
+          // console.log('Stripe.js loaded successfully')
+          this.stripe = window.Stripe(this.stripePublicKey)
+          resolve()
         }
         script.onerror = (error) => {
           this.stripeLoading = false
-          console.error('Failed to load Stripe.js:', error)
+          // console.error('Failed to load Stripe.js:', error)
           reject(error)
         }
         

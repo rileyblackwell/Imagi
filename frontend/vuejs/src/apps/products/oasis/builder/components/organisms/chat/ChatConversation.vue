@@ -5,87 +5,155 @@
       <!-- If no messages, show empty state -->
       <template v-if="!messages || messages.length === 0">
         <div class="h-full flex items-center justify-center">
-          <div class="text-center p-6 rounded-lg bg-dark-800/40 backdrop-blur-sm max-w-lg">
-            <div class="text-gray-400 mb-4">
-              <i class="fas fa-comments text-4xl"></i>
+          <div class="text-center p-6 max-w-md">
+            <div class="mb-6 mx-auto w-16 h-16 bg-dark-800/60 rounded-full flex items-center justify-center">
+              <i class="fas fa-comments text-primary-400 text-2xl"></i>
             </div>
-            <h3 class="text-white text-xl font-medium mb-2">Start a New Conversation</h3>
-            <p class="text-gray-400 mb-4">Ask questions about your project or get help with your code.</p>
+            <h3 class="text-white text-xl font-medium mb-2">Start a Conversation</h3>
+            <p class="text-gray-400 mb-6">Ask questions about your project, get help with code, or generate new features.</p>
+            <div class="space-y-3 text-left">
+              <div class="p-3 rounded-lg bg-dark-800/40 border border-dark-700/30 text-sm text-gray-300">
+                <div class="font-medium mb-1 text-primary-400">Example:</div>
+                <p>"Can you explain how the file upload component works?"</p>
+              </div>
+              <div class="p-3 rounded-lg bg-dark-800/40 border border-dark-700/30 text-sm text-gray-300">
+                <div class="font-medium mb-1 text-primary-400">Example:</div>
+                <p>"Add client-side form validation to the contact form"</p>
+              </div>
+            </div>
           </div>
         </div>
       </template>
       
       <template v-if="messages && messages.length > 0">
-        <div class="space-y-6 max-w-3xl mx-auto">
-          <template v-for="(message, index) in messages" :key="`msg-${message.timestamp}-${index}`">
+        <div class="space-y-6 max-w-3xl mx-auto pb-4">
+          <template v-for="(message, index) in messages" :key="`msg-${message.id || index}`">
             <!-- User Message -->
-            <div v-if="message.role === 'user'" class="flex justify-end gap-3 items-end mb-6 animate-message-in">
+            <div v-if="message.role === 'user'" class="flex justify-end gap-2 items-end mb-4 animate-message-in">
               <!-- User Message Bubble -->
-              <div class="max-w-[80%] bg-primary-500 text-white px-4 py-3 rounded-2xl rounded-br-sm shadow-lg">
+              <div class="max-w-[75%] bg-primary-500 text-white px-4 py-2.5 rounded-2xl rounded-br-md shadow-sm">
                 <p class="whitespace-pre-wrap break-words text-sm">{{ message.content }}</p>
+                <div class="text-right mt-1">
+                  <span class="text-[9px] opacity-70">{{ formatTimestamp(message.timestamp) }}</span>
+                </div>
               </div>
               
-              <!-- User Avatar -->
-              <div class="shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-md">
-                <i class="fas fa-user text-sm"></i>
+              <!-- User Avatar - Only show on first message or after AI response -->
+              <div 
+                v-if="index === 0 || (index > 0 && messages[index-1].role !== 'user')"
+                class="shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-sm"
+              >
+                <i class="fas fa-user text-xs"></i>
               </div>
+              <!-- Empty space placeholder when avatar is hidden -->
+              <div v-else class="w-8"></div>
             </div>
             
             <!-- Assistant Message -->
-            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-3 items-end mb-6 animate-message-in">
-              <!-- AI Avatar -->
-              <div class="shrink-0 w-8 h-8 bg-violet-500 rounded-full flex items-center justify-center text-white shadow-md">
-                <i class="fas fa-robot text-sm"></i>
+            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-2 items-start mb-4 animate-message-in">
+              <!-- AI Avatar - Only show on first message or after user/system response -->
+              <div 
+                v-if="index === 0 || (index > 0 && messages[index-1].role !== 'assistant')"
+                class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm mt-1"
+              >
+                <i class="fas fa-robot text-xs"></i>
               </div>
+              <!-- Empty space placeholder when avatar is hidden -->
+              <div v-else class="w-8"></div>
               
               <!-- Assistant Message Bubble -->
-              <div class="max-w-[80%] bg-dark-800 text-gray-100 px-4 py-3 rounded-2xl rounded-bl-sm shadow-lg">
-                <!-- Content -->
-                <div 
-                  class="prose prose-invert max-w-none"
-                  v-if="message.content && message.content.trim().length > 0"
-                  v-html="formatMessage(message.content)"
-                />
-                <div v-else class="text-gray-400 italic">
-                  [Empty response]
-                </div>
-                
-                <!-- Code Block with Actions -->
-                <div v-if="message.code" class="mt-4 border border-dark-700 rounded-lg overflow-hidden shadow-sm">
-                  <!-- Code Header -->
-                  <div class="px-3 py-1.5 bg-dark-850 flex items-center justify-between border-b border-dark-700">
-                    <span class="text-xs font-medium text-gray-300">
-                      <i class="fas fa-code mr-1.5"></i>
-                      Generated Code
-                    </span>
-                    <button 
-                      class="p-1 text-xs text-gray-400 hover:text-white transition-colors"
-                      @click="copyToClipboard(message.code)"
-                      title="Copy to clipboard"
-                    >
-                      <i class="fas fa-copy"></i>
-                    </button>
+              <div class="max-w-[75%]">
+                <!-- Message container with ChatGPT-like styling -->
+                <div class="bg-dark-850 text-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-md shadow-sm">
+                  <!-- Content with better markdown rendering -->
+                  <div 
+                    class="prose prose-invert max-w-none prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3"
+                    v-if="message.content && message.content.trim().length > 0"
+                    v-html="formatMessage(message.content)"
+                  />
+                  <div v-else class="text-gray-400 italic">
+                    [Empty response]
                   </div>
                   
-                  <!-- Code Content -->
-                  <pre class="p-3 bg-dark-900 overflow-x-auto text-xs">
+                  <!-- Timestamp -->
+                  <div class="text-left mt-1">
+                    <span class="text-[9px] text-gray-500">{{ formatTimestamp(message.timestamp) }}</span>
+                  </div>
+                </div>
+                
+                <!-- Code Block with improved modern styling -->
+                <div v-if="message.code" class="mt-3 border border-dark-800 rounded-lg overflow-hidden shadow-sm bg-dark-900">
+                  <!-- Code Header -->
+                  <div class="px-4 py-2 bg-dark-900 flex items-center justify-between border-b border-dark-800">
+                    <span class="text-xs font-medium text-gray-300 flex items-center">
+                      <i class="fas fa-code mr-2"></i>
+                      Generated Code
+                    </span>
+                    <div class="flex gap-2">
+                      <button 
+                        class="p-1.5 text-xs text-gray-400 hover:text-primary-400 transition-colors rounded bg-dark-800/70 hover:bg-dark-800"
+                        @click="copyToClipboard(message.code)"
+                        title="Copy to clipboard"
+                      >
+                        <i class="fas fa-copy mr-1"></i>
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Code Content with improved styling -->
+                  <pre class="p-4 bg-dark-900 overflow-x-auto text-sm language-code">
                     <code>{{ message.code }}</code>
                   </pre>
                   
                   <!-- Code Actions -->
-                  <div class="px-3 py-1.5 bg-dark-850 border-t border-dark-700">
+                  <div class="px-4 py-2.5 bg-dark-900 border-t border-dark-800 flex justify-between items-center">
                     <button
-                      class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-primary-500/20 text-primary-400 hover:bg-primary-500/30 transition-colors"
+                      class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-sm"
                       @click="$emit('apply-code', message.code)"
                     >
                       <i class="fas fa-magic mr-1.5"></i>
                       Apply Changes
                     </button>
+                    
+                    <!-- Additional helper text -->
+                    <span class="text-xs text-gray-500">Apply to current file</span>
                   </div>
                 </div>
               </div>
             </div>
+            
+            <!-- System Message - More subtle iMessage-like info bubble -->
+            <div v-else-if="message.role === 'system'" class="flex justify-center my-3 animate-fade-in">
+              <div class="bg-dark-900/60 text-gray-400 px-3 py-1.5 rounded-full text-xs shadow-sm border border-dark-800/30 flex items-center backdrop-blur-sm">
+                <div class="mr-1.5 text-blue-400">
+                  <i class="fas text-xs" :class="getSystemMessageIcon(message.content)"></i>
+                </div>
+                <span class="text-gray-400">{{ message.content }}</span>
+              </div>
+            </div>
+            
+            <!-- Other message types (if needed) -->
+            <div v-else class="flex justify-center mb-4 animate-message-in">
+              <div class="max-w-[90%] bg-dark-800/70 text-gray-400 px-4 py-2 rounded-full text-xs shadow-sm border border-dark-700/50">
+                <span>{{ message.content }}</span>
+              </div>
+            </div>
           </template>
+          
+          <!-- "AI is typing" indicator that appears at the bottom of messages when processing -->
+          <div v-if="isTyping" class="flex justify-start gap-2 items-start animate-fade-in">
+            <div class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm">
+              <i class="fas fa-robot text-xs"></i>
+            </div>
+            <div class="bg-dark-850 text-gray-100 px-4 py-3 rounded-2xl rounded-tl-md shadow-sm">
+              <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </div>
@@ -107,15 +175,16 @@ const emit = defineEmits<{
   (e: 'use-example', example: string): void
 }>()
 
-// Ref for the message container to enable auto-scrolling
+// Refs and reactive state
 const messagesContainer = ref<HTMLElement | null>(null)
+const isTyping = ref(false)
 
 // Auto-scroll to bottom when messages change
 watch(() => props.messages.length, () => {
   nextTick(() => {
     scrollToBottom()
   })
-})
+}, { immediate: true })
 
 // Also scroll on component update
 onUpdated(() => {
@@ -124,35 +193,44 @@ onUpdated(() => {
   })
 })
 
-// Debug: Log messages when they change
-watch(() => props.messages, (newMessages) => {
-  // console.log('ChatConversation: Messages updated:', newMessages)
+// Monitor message changes for content changes too (not just length)
+watch(() => JSON.stringify(props.messages), () => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+}, { deep: true })
+
+// When the last message is from the user and there's no AI response yet, show typing indicator
+watch(() => props.messages, (messages) => {
+  if (messages.length > 0) {
+    const lastMessage = messages[messages.length - 1]
+    // If the last message is from the user and doesn't have isStreaming property set to false
+    // This assumes a response is on the way
+    isTyping.value = lastMessage.role === 'user' && !lastMessage.isStreaming === false
+  } else {
+    isTyping.value = false
+  }
 }, { immediate: true, deep: true })
 
-// Mount debugging
+// Initial scroll when component is mounted
 onMounted(() => {
-  // console.log('ChatConversation: Component mounted, initial messages:', props.messages)
+  nextTick(() => {
+    scrollToBottom()
+  })
 })
 
 function scrollToBottom() {
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    const container = messagesContainer.value
+    // Force scroll to bottom with animation
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth'
+    })
   }
 }
-
-// Example prompts
-const examples = []
 
 // Utility functions
-const formatRole = (role: string) => {
-  const roles: Record<string, string> = {
-    'user': 'You',
-    'assistant': 'AI Assistant',
-    'system': 'System'
-  }
-  return roles[role] || role
-}
-
 const formatTimestamp = (timestamp: string | number) => {
   if (!timestamp) return ''
   
@@ -166,19 +244,14 @@ const formatTimestamp = (timestamp: string | number) => {
 
 const formatMessage = (content: string | any) => {
   if (!content) {
-    // console.log('formatMessage: Empty content received');
     return '';
   }
-  
-  // console.log('formatMessage: Processing content:', typeof content, content);
   
   try {
     // If content is an object, extract the text content
     const textContent = typeof content === 'object' ? 
       (content.content || JSON.stringify(content)) : 
       content;
-    
-    // console.log('formatMessage: Extracted text content:', textContent);
     
     // Configure marked options
     marked.setOptions({
@@ -188,7 +261,6 @@ const formatMessage = (content: string | any) => {
 
     // Parse markdown and sanitize HTML
     const parsedContent = marked.parse(textContent) as string;
-    // console.log('formatMessage: Parsed markdown content:', parsedContent.substring(0, 100) + '...');
     
     // Add syntax highlighting classes to code blocks
     const highlightedContent = parsedContent.replace(
@@ -197,8 +269,6 @@ const formatMessage = (content: string | any) => {
     );
     
     const sanitizedContent = DOMPurify.sanitize(highlightedContent);
-    // console.log('formatMessage: Final sanitized content:', sanitizedContent.substring(0, 100) + '...');
-    
     return sanitizedContent;
   } catch (error) {
     console.error('Error formatting message:', error);
@@ -215,6 +285,22 @@ const copyToClipboard = async (text: string) => {
     // Could add a notification here
   } catch (err) {
     console.error('Failed to copy text: ', err)
+  }
+}
+
+const getSystemMessageIcon = (content: string) => {
+  if (content.includes('file')) {
+    return 'fa-file-code';
+  } else if (content.includes('mode')) {
+    return 'fa-exchange-alt';
+  } else if (content.includes('build')) {
+    return 'fa-hammer';
+  } else if (content.includes('error')) {
+    return 'fa-exclamation-triangle';
+  } else if (content.includes('success')) {
+    return 'fa-check-circle';
+  } else {
+    return 'fa-info-circle';
   }
 }
 </script>
@@ -264,12 +350,27 @@ const copyToClipboard = async (text: string) => {
 
 /* Message animation */
 @keyframes message-in {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-message-in {
-  animation: message-in 0.3s ease-out forwards;
+  animation: message-in 0.25s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
 }
 
 /* Hide scrollbar but allow scrolling */
@@ -289,5 +390,53 @@ const copyToClipboard = async (text: string) => {
 .overflow-y-auto::-webkit-scrollbar-thumb {
   background-color: theme('colors.dark.700');
   border-radius: 9999px;
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  margin: 0 0.25rem;
+}
+
+.typing-indicator span {
+  height: 7px;
+  width: 7px;
+  background: #9ca3af;
+  display: block;
+  border-radius: 50%;
+  opacity: 0.4;
+  margin: 0 1px;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 100% {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* Code styling */
+.language-code {
+  color: theme('colors.gray.300');
+  background-color: theme('colors.dark.900');
+  line-height: 1.5;
 }
 </style> 

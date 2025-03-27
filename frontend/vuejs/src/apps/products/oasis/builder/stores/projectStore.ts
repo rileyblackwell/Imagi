@@ -9,6 +9,11 @@ import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { AIModel } from '../types/services'
 import { useAuthStore } from '@/shared/stores/auth'
 
+// Create static request tracker outside the store to prevent duplicate calls across component instances
+let globalProjectListRequest: Promise<any> | null = null;
+let globalProjectListRequestExpiry = 0;
+const PROJECT_LIST_CACHE_DURATION = 60000; // 1 minute
+
 /**
  * Project Store
  * 
@@ -36,6 +41,15 @@ export const useProjectStore = defineStore('builder', () => {
   const selectedModel = ref<string | null>(null)
   const isLoading = ref(false)
   const isAuthenticated = ref(false)
+  
+  // Track project fetch caching to prevent duplicate calls
+  const projectFetchPromises = ref<Map<string, Promise<Project | null>>>(new Map())
+  const lastProjectFetch = ref<Map<string, number>>(new Map())
+  const PROJECT_CACHE_DURATION = 5000 // 5 seconds
+  
+  // Use for tracking global fetch operations
+  const currentFetchPromise = ref<Promise<any> | null>(null)
+  const DEBOUNCE_DURATION = 250 // 250ms to prevent duplicate calls
   
   // Get global auth store
   const globalAuthStore = useAuthStore()
@@ -217,6 +231,32 @@ export const useProjectStore = defineStore('builder', () => {
     // Reduced cache duration from 5 minutes to 30 seconds to prevent stale data
     const CACHE_DURATION = 30 * 1000
     
+    // Check if there's a global in-flight project list request
+    // This ensures deduplication across all component instances
+    const now = Date.now()
+    if (!force && globalProjectListRequest && now < globalProjectListRequestExpiry) {
+      console.debug('Using global in-flight projects fetch request')
+      try {
+        const result = await globalProjectListRequest
+        // Only update state if it's empty
+        if (!projects.value.length && Array.isArray(result)) {
+          updateProjects(result)
+          initialized.value = true
+          lastFetch.value = new Date()
+        }
+        return projects.value
+      } catch (err) {
+        console.error('Error from reused global request:', err)
+        // Continue with a new request if the shared one failed
+      }
+    }
+    
+    // Debounce requests to prevent duplicate calls on refresh/navigation
+    if (currentFetchPromise.value && !force) {
+      console.debug('Using in-flight projects fetch request from current store')
+      return currentFetchPromise.value
+    }
+    
     console.debug('Fetching projects:', {
       force,
       initialized: initialized.value,
@@ -244,95 +284,118 @@ export const useProjectStore = defineStore('builder', () => {
       return projects.value
     }
 
-    setLoading(true)
-    error.value = null
-    
-    try {
-      // Verify token before making API calls
-      const isValid = await verifyToken()
-      if (!isValid) {
-        throw new Error('Authentication token is invalid or expired')
-      }
+    // Create a new fetch promise and store it
+    const fetchPromise = (async () => {
+      setLoading(true)
+      error.value = null
+      
+      try {
+        // Verify token before making API calls
+        const isValid = await verifyToken()
+        if (!isValid) {
+          throw new Error('Authentication token is invalid or expired')
+        }
 
-      console.debug('Fetching projects from API')
-      const projectsData = await ProjectService.getProjects()
-      
-      if (!projectsData || !Array.isArray(projectsData)) {
-        throw new Error('Invalid response from server')
-      }
-      
-      console.debug(`Fetched ${projectsData.length} projects from API`)
-      
-      // Get list of recently deleted project IDs
-      let deletedProjectIds: string[] = []
-      try {
-        deletedProjectIds = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-      } catch (e) {
-        console.warn('Failed to parse deleted projects from localStorage:', e)
-      }
-      
-      // Filter out recently deleted projects from the fetched data
-      const filteredProjects = projectsData.filter(project => {
-        // Skip projects that are in the deleted list
-        if (project && project.id && deletedProjectIds.includes(String(project.id))) {
-          console.debug(`Filtering out deleted project: ${project.id}`)
-          return false
+        console.debug('Fetching projects from API')
+        const projectsData = await ProjectService.getProjects()
+        
+        if (!projectsData || !Array.isArray(projectsData)) {
+          throw new Error('Invalid response from server')
         }
-        return true
-      })
-      
-      console.debug(`After filtering deleted projects: ${filteredProjects.length} projects remaining`)
-      
-      // Update projects in store
-      updateProjects(filteredProjects)
-      initialized.value = true
-      lastFetch.value = new Date()
-      
-      // Clean up old deleted project IDs (older than 1 hour)
-      try {
-        const ONE_HOUR = 60 * 60 * 1000
-        const now = Date.now()
-        const deletedProjectsWithTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
         
-        // Keep track of which projects to remove from the deleted list
-        const projectsToRemove: string[] = []
+        console.debug(`Fetched ${projectsData.length} projects from API`)
         
-        for (const projectId of deletedProjectIds) {
-          const timestamp = deletedProjectsWithTimestamp[projectId]
-          if (timestamp && (now - timestamp) > ONE_HOUR) {
-            projectsToRemove.push(projectId)
-          } else if (!timestamp) {
-            // Add timestamp for projects that don't have one yet
-            deletedProjectsWithTimestamp[projectId] = now
+        // Get list of recently deleted project IDs
+        let deletedProjectIds: string[] = []
+        try {
+          deletedProjectIds = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+        } catch (e) {
+          console.warn('Failed to parse deleted projects from localStorage:', e)
+        }
+        
+        // Filter out recently deleted projects from the fetched data
+        const filteredProjects = projectsData.filter(project => {
+          // Skip projects that are in the deleted list
+          if (project && project.id && deletedProjectIds.includes(String(project.id))) {
+            console.debug(`Filtering out deleted project: ${project.id}`)
+            return false
           }
-        }
+          return true
+        })
         
-        // Remove expired deleted projects
-        if (projectsToRemove.length > 0) {
-          const updatedDeletedProjects = deletedProjectIds.filter(id => !projectsToRemove.includes(id))
-          localStorage.setItem('deletedProjects', JSON.stringify(updatedDeletedProjects))
+        console.debug(`After filtering deleted projects: ${filteredProjects.length} projects remaining`)
+        
+        // Update projects in store
+        updateProjects(filteredProjects)
+        initialized.value = true
+        lastFetch.value = new Date()
+        
+        // Clean up old deleted project IDs (older than 1 hour)
+        try {
+          const ONE_HOUR = 60 * 60 * 1000
+          const now = Date.now()
+          const deletedProjectsWithTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
           
-          // Also update the timestamps
-          for (const projectId of projectsToRemove) {
-            delete deletedProjectsWithTimestamp[projectId]
+          // Keep track of which projects to remove from the deleted list
+          const projectsToRemove: string[] = []
+          
+          for (const projectId of deletedProjectIds) {
+            const timestamp = deletedProjectsWithTimestamp[projectId]
+            if (timestamp && (now - timestamp) > ONE_HOUR) {
+              projectsToRemove.push(projectId)
+            } else if (!timestamp) {
+              // Add timestamp for projects that don't have one yet
+              deletedProjectsWithTimestamp[projectId] = now
+            }
           }
           
-          localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsWithTimestamp))
-        } else {
-          // Just update the timestamps
-          localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsWithTimestamp))
+          // Remove expired deleted projects
+          if (projectsToRemove.length > 0) {
+            const updatedDeletedProjects = deletedProjectIds.filter(id => !projectsToRemove.includes(id))
+            localStorage.setItem('deletedProjects', JSON.stringify(updatedDeletedProjects))
+            
+            // Also update the timestamps
+            for (const projectId of projectsToRemove) {
+              delete deletedProjectsWithTimestamp[projectId]
+            }
+            
+            localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsWithTimestamp))
+          } else {
+            // Just update the timestamps
+            localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsWithTimestamp))
+          }
+        } catch (e) {
+          console.warn('Failed to clean up old deleted project IDs:', e)
         }
-      } catch (e) {
-        console.warn('Failed to clean up old deleted project IDs:', e)
+        
+        return filteredProjects
+      } catch (err: any) {
+        handleError(err, 'Failed to fetch projects')
+        return []
+      } finally {
+        setLoading(false)
+        
+        // Clear the current fetch promise after a short delay
+        // This prevents multiple simultaneous requests but allows new requests after a delay
+        setTimeout(() => {
+          if (currentFetchPromise.value === fetchPromise) {
+            currentFetchPromise.value = null
+          }
+          
+          // Also clear the global request reference if it matches this one
+          if (globalProjectListRequest === fetchPromise) {
+            globalProjectListRequest = null
+          }
+        }, DEBOUNCE_DURATION)
       }
-      
-      return projects.value
-    } catch (err: any) {
-      handleError(err, 'Failed to fetch projects')
-      return []
-    } finally {
-      setLoading(false)
-    }
+    })()
+    
+    // Store the promise for deduplication (both locally and globally)
+    currentFetchPromise.value = fetchPromise
+    globalProjectListRequest = fetchPromise
+    globalProjectListRequestExpiry = Date.now() + 2000 // Set expiry for 2 seconds
+    
+    return fetchPromise
   }
 
   /**
@@ -629,54 +692,105 @@ export const useProjectStore = defineStore('builder', () => {
       return null
     }
     
-    loading.value = true
-    let error = null
-    let project = null
-    
-    try {
-      // For new projects, implement a retry strategy with backoff
-      if (isNewProject) {
-        let attempts = 0
-        const maxAttempts = 3
-        const baseDelay = 1000 // 1 second
-        
-        while (attempts < maxAttempts) {
-          try {
-            console.log(`ProjectStore: Attempt ${attempts + 1}/${maxAttempts} to fetch new project ${projectId}`)
-            project = await ProjectService.getProject(projectId, true)
-            break // Success, exit the retry loop
-          } catch (err) {
-            attempts++
-            
-            if (attempts >= maxAttempts) {
-              console.error(`ProjectStore: Failed to fetch new project after ${maxAttempts} attempts`)
-              throw err
-            }
-            
-            // Exponential backoff
-            const delay = baseDelay * Math.pow(2, attempts - 1)
-            console.log(`ProjectStore: Retrying in ${delay}ms...`)
-            await new Promise(resolve => setTimeout(resolve, delay))
-          }
-        }
-      } else {
-        // Normal fetch for existing projects
-        project = await ProjectService.getProject(projectId)
-      }
-      
-      if (project) {
-        currentProject.value = normalizeProject(project)
-        error = null
-      }
-    } catch (err) {
-      console.error('ProjectStore: Error fetching project', err)
-      error = err
-      throw err
-    } finally {
-      loading.value = false
+    // Check if there's an existing in-progress fetch for this project
+    if (projectFetchPromises.value.has(projectId)) {
+      console.debug(`ProjectStore: Reusing existing fetch promise for project ${projectId}`)
+      return projectFetchPromises.value.get(projectId)!
     }
     
-    return currentProject.value
+    // Check cache for recent fetches to avoid duplicate calls
+    const now = Date.now()
+    const lastFetchTime = lastProjectFetch.value.get(projectId) || 0
+    const shouldUseCache = 
+      !isNewProject && 
+      now - lastFetchTime < PROJECT_CACHE_DURATION && 
+      currentProject.value?.id === projectId
+    
+    if (shouldUseCache) {
+      console.debug(`ProjectStore: Using cached project data for ${projectId}`)
+      return currentProject.value
+    }
+    
+    // Check if project is already in the projectsMap - this prevents unnecessary API calls
+    // when a project was already fetched as part of the projects list
+    const existingProject = projectsMap.value.get(projectId)
+    if (existingProject && !isNewProject) {
+      console.debug(`ProjectStore: Using project from projectsMap for ${projectId}`)
+      currentProject.value = existingProject
+      // Update cache timestamp for future reference
+      lastProjectFetch.value.set(projectId, now)
+      return existingProject
+    }
+    
+    loading.value = true
+    
+    // Create a new promise for this fetch operation
+    const fetchPromise = (async () => {
+      let error = null
+      let project = null
+      
+      try {
+        // For new projects, implement a retry strategy with backoff
+        if (isNewProject) {
+          let attempts = 0
+          const maxAttempts = 3
+          const baseDelay = 1000 // 1 second
+          
+          while (attempts < maxAttempts) {
+            try {
+              console.log(`ProjectStore: Attempt ${attempts + 1}/${maxAttempts} to fetch new project ${projectId}`)
+              project = await ProjectService.getProject(projectId, true)
+              break // Success, exit the retry loop
+            } catch (err) {
+              attempts++
+              
+              if (attempts >= maxAttempts) {
+                console.error(`ProjectStore: Failed to fetch new project after ${maxAttempts} attempts`)
+                throw err
+              }
+              
+              // Exponential backoff
+              const delay = baseDelay * Math.pow(2, attempts - 1)
+              console.log(`ProjectStore: Retrying in ${delay}ms...`)
+              await new Promise(resolve => setTimeout(resolve, delay))
+            }
+          }
+        } else {
+          // Normal fetch for existing projects
+          project = await ProjectService.getProject(projectId)
+        }
+        
+        if (project) {
+          const normalizedProject = normalizeProject(project)
+          currentProject.value = normalizedProject
+          
+          // Also update the project in projectsMap for future reference
+          projectsMap.value.set(projectId, normalizedProject)
+          
+          error = null
+          
+          // Update cache timestamp
+          lastProjectFetch.value.set(projectId, now)
+        }
+      } catch (err) {
+        console.error('ProjectStore: Error fetching project', err)
+        error = err
+        throw err
+      } finally {
+        loading.value = false
+        // Remove the promise from the cache when it completes
+        setTimeout(() => {
+          projectFetchPromises.value.delete(projectId)
+        }, 0)
+      }
+      
+      return currentProject.value
+    })()
+    
+    // Store the promise in the cache
+    projectFetchPromises.value.set(projectId, fetchPromise)
+    
+    return fetchPromise
   }
 
   // Utility functions

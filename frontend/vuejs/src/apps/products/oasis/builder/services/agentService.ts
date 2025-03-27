@@ -10,11 +10,22 @@ import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 import { usePaymentsStore } from '@/apps/payments/store'
 import { notify } from '@/shared/utils'
 import axios from 'axios'
+import { ref } from 'vue'
 
 // Static variables for rate limiting
 let requestCounts: Map<string, number> = new Map()
 let lastResetTime: number = Date.now()
 const RESET_INTERVAL = 60000 // 1 minute
+
+// Define the ChatPayload interface
+interface ChatPayload {
+  message: string;
+  model: string;
+  project_id: string;
+  conversation_id?: string;
+  mode?: string;
+  current_file?: any;
+}
 
 function getPaymentsStore() {
   // Get the payments store using function to avoid SSR issues
@@ -181,9 +192,6 @@ export const AgentService = {
     }
     
     try {
-      // Debug log the payload
-      console.log('Chat API payload:', JSON.stringify(payload, null, 2));
-      
       // Check for valid project_id
       if (!payload.project_id) {
         console.error('Missing required project_id parameter');
@@ -206,20 +214,28 @@ export const AgentService = {
       };
       
       // Extract assistant response, ensuring it's not empty
-      const assistantResponse = response.data.response || '';
+      let assistantResponse = response.data.response || '';
       
-      if (!assistantResponse) {
-        console.warn('AgentService: Empty assistant response received from API')
+      // Handle potential null response
+      if (assistantResponse === null) {
+        console.warn('AgentService: Null assistant response received from API');
+        assistantResponse = '';
       }
       
-      // Additional validation for response format
+      // Additional validation and normalization for response format
       let validatedResponse = assistantResponse;
-      // If not a string, convert to string
-      if (typeof validatedResponse !== 'string') {
-        console.warn('AgentService: Non-string response received:', validatedResponse);
-        validatedResponse = JSON.stringify(validatedResponse);
+      
+      // If response is an object (possible with some model responses), convert to string
+      if (typeof validatedResponse === 'object') {
+        console.warn('AgentService: Object response received:', validatedResponse);
+        try {
+          validatedResponse = JSON.stringify(validatedResponse);
+        } catch (e) {
+          validatedResponse = String(validatedResponse);
+        }
       }
       
+      // Create the assistant message with complete data
       const assistantMessage = {
         role: 'assistant',
         content: validatedResponse,
@@ -242,6 +258,13 @@ export const AgentService = {
     } catch (error: any) {
       // Log the error for debugging
       console.error('Chat API error:', error);
+      
+      // Improved error handling
+      if (error.response?.status === 400) {
+        // Parse specific error details for 400 Bad Request
+        const errorDetail = error.response.data?.error || 'Bad request';
+        throw new Error(`API Error: ${errorDetail}`);
+      }
       
       // Check if the error contains an HTML response (Django error page)
       if (error.response && error.response.data && 
@@ -279,366 +302,119 @@ export const AgentService = {
   },
 
   /**
-   * Process a chat message using streaming
-   * This allows for real-time response updates for OpenAI and Anthropic models
+   * Process a chat message with a simulated typing effect
+   * This simulates streaming but uses the regular chat API
    */
-  async processChatStream(
-    message: string,
-    modelId: string,
-    projectId: string,
-    options: {
-      callbacks: {
-        onContent: (content: string) => void;
-        onError: (error: string) => void;
-        onDone: () => void;
-        onConversationId?: (id: string) => void;
-      };
-      mode?: string;
-      conversationId?: string;
-      currentFile?: any;
-    }
-  ): Promise<boolean> {
-    // Construct payload for streaming API
-    const payload = {
-      message,
-      model: modelId,
-      project_id: projectId,
-      conversation_id: options.conversationId,
-      mode: options.mode || 'chat',
-      stream: true,
-      current_file: options.currentFile
-    }
-    
-    // Debug log the streaming API payload
-    console.log('Streaming API payload:', JSON.stringify(payload, null, 2));
-    
-    // Validate required fields
-    if (!payload.message || !payload.model || !payload.project_id) {
-      console.error('Missing required parameters for streaming chat');
-      options.callbacks.onError('Missing required parameters: message, model, or project_id');
-      return false;
-    }
-    
-    // Ensure project_id is a string (backend might expect string format)
-    payload.project_id = String(payload.project_id);
-    
-    // Use the standard chat endpoint with streaming
+  async processChatWithTypingEffect(
+    payload: ChatPayload,
+    onChunk: (chunk: string) => void,
+    onError: (error: string) => void,
+    onDone: () => void,
+    onConversationId?: (id: string) => void
+  ): Promise<void> {
     try {
-      console.log('Starting fetch to chat API endpoint...');
-      // Updated fetch configuration for better CORS compatibility
-      const response = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${this.getAuthToken()}`,
-          'Accept': 'text/event-stream, application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-API-Client': 'Imagi-Frontend-Vue'
-        },
-        body: JSON.stringify(payload),
-        mode: 'cors',
-        credentials: 'include',
-        cache: 'no-cache',
-        redirect: 'follow'
-      });
+      // console.log('Starting chat request with typing effect simulation...');
       
-      // Log response headers for debugging
-      console.log('Response status:', response.status);
-      console.log('Response headers:', {
-        'content-type': response.headers.get('content-type'),
-        'cors': response.headers.get('access-control-allow-origin'),
-        'cache-control': response.headers.get('cache-control')
-      });
+      // Enhanced logging for debugging
+      // console.log('Chat API Request:', {
+      //   payload: { 
+      //     ...payload, 
+      //     message: payload.message.length > 50 ? payload.message.substring(0, 50) + '...' : payload.message 
+      //   }
+      // });
       
-      if (!response.ok) {
-        // Handle 500 Internal Server Error specifically - may be a CORS issue
-        if (response.status === 500) {
-          console.error('Server returned 500 error - trying alternative request method');
-          try {
-            // Try sending the request again with different options that might bypass CORS issues
-            const altResponse = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${this.getAuthToken()}`,
-                'Accept': '*/*' // Accept any content type
-              },
-              body: JSON.stringify(payload),
-              mode: 'cors',
-              credentials: 'same-origin', // Try same-origin instead
-              cache: 'no-cache'
-            });
-            
-            if (altResponse.ok) {
-              console.log('Alternative request method successful!');
-              return this.handleStreamResponse(altResponse, options.callbacks);
-            } else {
-              console.error('Alternative request method also failed:', altResponse.status);
-            }
-          } catch (retryError) {
-            console.error('Alternative request method failed with exception:', retryError);
-          }
+      // Process the message with regular chat API
+      const chatResponse = await this.processChat(
+        payload.project_id,
+        {
+          prompt: payload.message,
+          model: payload.model,
+          mode: payload.mode,
+          file: payload.current_file
         }
-        
-        // Try to extract error details from response for better debugging
-        let errorDetail = '';
-        try {
-          const errorData = await response.text();
-          console.error('Error response from server:', errorData);
-          
-          // Try to parse the error data as JSON
-          try {
-            const jsonError = JSON.parse(errorData);
-            if (jsonError.detail) {
-              errorDetail = jsonError.detail;
-            } else if (jsonError.error) {
-              errorDetail = jsonError.error;
-            } else if (jsonError.message) {
-              errorDetail = jsonError.message;
-            } else {
-              errorDetail = JSON.stringify(jsonError);
-            }
-            
-            // Check if it's a credit-related error
-            if (response.status === 402 || 
-                errorDetail.includes('insufficient credit') || 
-                errorDetail.includes('need more credit')) {
-              
-              // Check if this is a small rounding error (amount less than $0.01)
-              const amountMatch = errorDetail.match(/\$([0-9.]+)/);
-              let neededAmount = 0;
-              
-              if (amountMatch) {
-                neededAmount = parseFloat(amountMatch[1]);
-                
-                // If it's a very small amount (less than 1 cent), this might be a rounding error
-                if (neededAmount < 0.01) {
-                  // Log the error but let's try to continue - the server might reject it though
-                  console.warn(`Very small credit shortage ($${neededAmount}), likely a rounding error. Notifying user but continuing...`);
-                  
-                  // For gpt-4o-mini specifically, check if this is the common $0.04 vs $0.005 error
-                  if (modelId === 'gpt-4o-mini' && 
-                      (Math.abs(neededAmount - 0.04) < 0.001 || 
-                       Math.abs(neededAmount - 0.035) < 0.001)) {
-                    console.warn('Detected the specific gpt-4o-mini pricing error ($0.04 vs $0.005)');
-                    
-                    // Tell the user what's happening
-                    notify({ 
-                      type: 'warning', 
-                      message: 'Known issue with gpt-4o-mini pricing. Please try again - it may work on a second attempt.',
-                      duration: 5000
-                    });
-                    
-                    // Refresh the balance to get the most current value
-                    try {
-                      const paymentsStore = getPaymentsStore();
-                      await paymentsStore.fetchBalance(false);
-                      
-                      // Try to make the request again immediately but with a small pause
-                      setTimeout(() => {
-                        notify({ 
-                          type: 'info', 
-                          message: 'Retrying the request automatically...',
-                          duration: 3000
-                        });
-                        
-                        // Retry the request - we'll need to return early from this function and call it again
-                        // This isn't ideal but provides a better user experience than an error
-                      }, 1000);
-                    } catch (e) {
-                      console.error('Failed to refresh balance after pricing error:', e);
-                    }
-                  } else {
-                    // Just notify the user but don't treat it as a fatal error
-                    notify({ 
-                      type: 'warning', 
-                      message: `Detected small balance discrepancy ($${neededAmount.toFixed(3)}). Trying to continue...`,
-                      duration: 3000
-                    });
-                    
-                    // Try to refresh the balance to get the most current value
-                    try {
-                      const paymentsStore = getPaymentsStore();
-                      await paymentsStore.fetchBalance(false);
-                    } catch (e) {
-                      console.error('Failed to refresh balance after rounding error:', e);
-                    }
-                  }
-                  
-                  // Note: The server will still likely reject this request,
-                  // but we're improving the UX by providing a better error message
-                }
-                
-                // Format credit error nicely
-                errorDetail = `Insufficient credits: You need $${neededAmount.toFixed(2)} more to use ${modelId}. Please add more credits.`;
-              } else {
-                errorDetail = `Insufficient credits to use ${modelId}. Please add more credits.`;
-              }
-            }
-          } catch {
-            // If not JSON, use the text directly
-            errorDetail = errorData.substring(0, 200);
-          }
-        } catch (textError) {
-          errorDetail = 'Could not read error details';
-          console.error('Error reading response text:', textError);
+      );
+      
+      // Extract the response text
+      const responseText = chatResponse.response;
+      
+      // If we have a conversation ID and callback, use it
+      if (chatResponse.messages[0] && payload.conversation_id) {
+        if (onConversationId) {
+          onConversationId(payload.conversation_id);
         }
-        
-        // Check specifically for CORS errors
-        if (response.status === 0 || response.type === 'opaque' || 
-            (errorDetail && errorDetail.includes('CORS'))) {
-          console.error('Detected CORS error');
-          errorDetail = 'CORS error: Please check that the API server is running and configured correctly for cross-origin requests';
-            
-          // Retry with credentials: 'same-origin' (as a fallback mechanism)
-          try {
-            console.log('Retrying without CORS credentials...');
-            const retryResponse = await fetch(`${api.defaults.baseURL}/api/v1/agents/chat/`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${this.getAuthToken()}`,
-                'Accept': 'text/event-stream, application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-API-Client': 'Imagi-Frontend-Vue'
-              },
-              body: JSON.stringify(payload),
-              mode: 'cors',
-              credentials: 'same-origin', // Try with same-origin instead
-              cache: 'no-cache'
-            });
-              
-            if (retryResponse.ok) {
-              console.log('Retry succeeded!');
-              // Continue with the retry response
-              return this.handleStreamResponse(retryResponse, options.callbacks);
-            } else {
-              console.error('Retry also failed:', retryResponse.status);
-            }
-          } catch (retryError) {
-            console.error('Retry attempt failed:', retryError);
-          }
-        }
-        
-        const errorMessage = `HTTP error! status: ${response.status}${errorDetail ? ` - ${errorDetail}` : ''}`;
-        console.error(errorMessage);
-        options.callbacks.onError(errorMessage);
-        
-        // Always refresh balance after an error to ensure user sees current value
-        try {
-          const paymentsStore = getPaymentsStore();
-          await paymentsStore.fetchBalance(false); // silent refresh
-        } catch (err) {
-          console.warn('Failed to refresh balance after error:', err);
-        }
-        
-        return false;
       }
       
-      if (!response.body) {
-        options.callbacks.onError('ReadableStream not supported');
-        return false;
-      }
+      // Simulate typing effect by chunking the response
+      await this.simulateTypingEffect(responseText, onChunk);
       
-      return this.handleStreamResponse(response, options.callbacks);
+      // Call onDone when complete
+      onDone();
     } catch (error: any) {
-      console.error('Error in processChatStream:', error);
-      options.callbacks.onError(`Network error: ${error.message || 'Unknown error'}`);
-      return false;
+      console.error('Error in processChatWithTypingEffect:', error);
+      onError(`Error: ${error.message || 'Unknown error'}`);
+    }
+  },
+  
+  /**
+   * Simulates a typing effect by chunking a string over time
+   */
+  async simulateTypingEffect(
+    text: string, 
+    onChunk: (chunk: string) => void
+  ): Promise<void> {
+    if (!text) return;
+    
+    // Configuration for typing simulation
+    const avgCharsPerSecond = 40; // Adjust for slower/faster typing
+    const minChunkSize = 1;
+    const maxChunkSize = 5;
+    const variability = 0.3; // Randomness in timing (0-1)
+    
+    // Calculate base delay between chunks
+    const baseDelayMs = 1000 / avgCharsPerSecond;
+    
+    // Process the text in small chunks to simulate typing
+    let processedLength = 0;
+    
+    while (processedLength < text.length) {
+      // Determine chunk size with some randomness
+      const remainingChars = text.length - processedLength;
+      const maxPossibleChunk = Math.min(maxChunkSize, remainingChars);
+      const chunkSize = Math.max(
+        minChunkSize, 
+        Math.floor(Math.random() * (maxPossibleChunk - minChunkSize + 1)) + minChunkSize
+      );
+      
+      // Extract the next chunk
+      const chunk = text.substr(processedLength, chunkSize);
+      processedLength += chunkSize;
+      
+      // Send the chunk
+      onChunk(chunk);
+      
+      // Add natural variability to typing speed
+      const delayVariability = 1 + (Math.random() * 2 * variability - variability);
+      const delay = baseDelayMs * chunkSize * delayVariability;
+      
+      // Add a longer pause at natural breakpoints (periods, commas, etc.)
+      const lastChar = chunk.charAt(chunk.length - 1);
+      const isPunctuation = ['.', '!', '?', ',', ';', ':'].includes(lastChar);
+      const breakpointMultiplier = isPunctuation ? (lastChar === '.' ? 5 : 2) : 1;
+      
+      // Wait before next chunk
+      await new Promise(resolve => setTimeout(resolve, delay * breakpointMultiplier));
     }
   },
 
-  // Helper method to handle stream response
-  async handleStreamResponse(response: Response, callbacks: any): Promise<boolean> {
-    if (!response.body) {
-      callbacks.onError('ReadableStream not supported in browser');
-      return false;
-    }
-    
-    // Check if the server returned JSON instead of a stream
-    // This happens when there's an error and middleware transforms the response
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      console.log('Received JSON response instead of stream, likely an error');
-      try {
-        const errorData = await response.json();
-        const errorMessage = errorData.error || JSON.stringify(errorData);
-        console.error('Server returned JSON error:', errorData);
-        callbacks.onError(errorMessage);
-        return false;
-      } catch (e) {
-        console.error('Failed to parse JSON error:', e);
-        callbacks.onError('Unknown server error (invalid JSON response)');
-        return false;
-      }
-    }
-    
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-    
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          callbacks.onDone();
-          
-          // Refresh the user's balance after successful API call
-          try {
-            const paymentsStore = getPaymentsStore();
-            paymentsStore.fetchBalance(false); // silent refresh
-          } catch (err) {
-            console.warn('Failed to refresh balance after streaming:', err);
-          }
-          
-          break;
-        }
-        
-        // Decode the chunk and add to buffer
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process any complete Server-Sent Events
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
-        
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-          
-          const data = line.substring(6); // Remove 'data: ' prefix
-          
-          try {
-            const parsed = JSON.parse(data);
-            
-            if (parsed.event === 'content' && parsed.data) {
-              callbacks.onContent(parsed.data);
-            } else if (parsed.event === 'error' && parsed.data) {
-              // Enhanced error handling for improved UX
-              console.error('Server error event:', parsed.data);
-              callbacks.onError(parsed.data);
-            } else if (parsed.event === 'conversation_id' && parsed.data) {
-              if (callbacks.onConversationId) {
-                callbacks.onConversationId(parsed.data);
-              }
-            } else if (parsed.event === 'done') {
-              // No need to explicitly call onDone here as it will be called when the stream is done
-            } else {
-              console.warn('Unknown event type:', parsed.event, parsed.data);
-            }
-          } catch (parseError: any) {
-            console.error('Error parsing SSE data:', parseError, 'Raw data:', data);
-            callbacks.onError(`Error parsing server response: ${parseError.message}`);
-          }
-        }
-      }
-      
-      return true;
-    } catch (streamError: any) {
-      console.error('Stream reading error:', streamError);
-      callbacks.onError(`Error reading response stream: ${streamError.message}`);
-      return false;
-    }
+  // Replace processChatStream with the new function that uses typing effect
+  async processChatStream(
+    payload: ChatPayload,
+    onChunk: (chunk: string) => void,
+    onError: (error: string) => void,
+    onDone: () => void,
+    onConversationId?: (id: string) => void
+  ): Promise<void> {
+    return this.processChatWithTypingEffect(payload, onChunk, onError, onDone, onConversationId);
   },
 
   // Helper method to get auth token

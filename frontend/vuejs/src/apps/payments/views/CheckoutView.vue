@@ -178,8 +178,6 @@ const processPayment = async (paymentData: any) => {
     // Set local loading state
     processingPayment.value = true
     
-    console.log('Processing payment with data:', paymentData)
-    
     // Actually call the backend API to process the payment
     const response = await store.processPayment({
       amount: paymentData.amount,

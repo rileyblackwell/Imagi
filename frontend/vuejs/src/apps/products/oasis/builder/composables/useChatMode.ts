@@ -81,135 +81,153 @@ export default function useChatMode() {
         conversation.value.messages.push(tempMessage);
       }
 
+      // Prepare payload for streaming request
+      const chatPayload: {
+        message: string;
+        model: string;
+        project_id: string;
+        conversation_id?: string;
+        mode: string;
+        current_file?: any;
+        provider?: string;
+      } = {
+        message: message,
+        model: modelId,
+        project_id: validProjectId,
+        conversation_id: options.conversationId,
+        mode: options.mode || 'chat',
+        current_file: options.currentFile
+      };
+
+      // Check if it's an OpenAI or Anthropic model and add provider info
+      // This helps the backend identify the correct provider to use
+      if (modelId.includes('gpt')) {
+        chatPayload['provider'] = 'openai';
+      } else if (modelId.includes('claude')) {
+        chatPayload['provider'] = 'anthropic';
+      }
+
       // Process streaming response
-      const success = await AgentService.processChatStream(
-        message,
-        modelId,
-        validProjectId,
-        {
-          conversationId: options.conversationId,
-          mode: options.mode,
-          currentFile: options.currentFile,
-          callbacks: {
-            onContent: (content: string) => {
-              if (conversation.value) {
-                const lastMsg = conversation.value.messages[conversation.value.messages.length - 1];
-                if (lastMsg.role === 'assistant') {
-                  lastMsg.content += content;
-                }
-              }
-            },
-            onConversationId: (id: string) => {
-              if (!options.conversationId) {
-                conversation.value = createConversation(id);
-                conversation.value.messages.push(userMessage);
-                conversation.value.messages.push(tempMessage);
-              }
-            },
-            onDone: () => {
-              // Mark as no longer streaming
-              if (conversation.value) {
-                const lastMsg = conversation.value.messages[conversation.value.messages.length - 1];
-                if (lastMsg.role === 'assistant') {
-                  lastMsg.isStreaming = false;
-                }
-              }
-              isProcessing.value = false;
-              
-              // After completion, refresh balance to reflect the usage cost
-              balanceStore.fetchBalance(false)
-            },
-            onError: (errorMessage: string) => {
-              // Remove the temporary message
-              if (conversation.value) {
-                conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
-              }
-              
-              // Format and handle specific types of errors for better UX
-              if (errorMessage.includes('need more credits')) {
-                // Extract needed amount from error message if possible
-                const match = errorMessage.match(/need\s+\$?([0-9.]+)\s+more/i);
-                const amount = match ? match[1] : '0.00';
-                
-                const formattedError = `Insufficient credits: You need $${amount} more to use ${modelId}. Please add more credits.`;
-                error.value = formattedError;
-                notify({ 
-                  type: 'error', 
-                  message: formattedError,
-                  duration: 7000
-                });
-                
-                // Refresh balance after error to ensure it's current
-                balanceStore.fetchBalance(false)
-              } 
-              else if (errorMessage.includes('insufficient_credits') || errorMessage.includes('Insufficient credits')) {
-                error.value = `Insufficient credits to use ${modelId}. Please add more credits.`;
-                notify({ 
-                  type: 'error', 
-                  message: `Insufficient credits to use ${modelId}. Please add more credits.`,
-                  duration: 7000
-                });
-                
-                // Refresh balance after error to ensure it's current
-                balanceStore.fetchBalance(false)
-              }
-              else if (errorMessage.includes('401') || errorMessage.includes('403')) {
-                error.value = 'Authentication error. Please log in again.';
-                // Try to refresh auth token
-                try {
-                  const authStore = useAuthStore();
-                  if (authStore) {
-                    authStore.validateAuth();
-                  }
-                } catch (e) {
-                  console.error('Failed to refresh auth token:', e);
-                }
-                
-                notify({ 
-                  type: 'error', 
-                  message: 'Authentication error. Please log in again.',
-                  duration: 5000
-                });
-              }
-              else if (errorMessage.includes('500')) {
-                error.value = 'Server error occurred. Please try again later.';
-                notify({ 
-                  type: 'error', 
-                  message: 'Server error occurred. Please try again later.',
-                  duration: 5000
-                });
-              }
-              else {
-                // Default error case
-                error.value = errorMessage;
-                notify({ 
-                  type: 'error', 
-                  message: 'Error: ' + errorMessage,
-                  duration: 5000
-                });
-              }
-              
-              isProcessing.value = false;
+      await AgentService.processChatStream(
+        chatPayload,
+        // onChunk callback
+        (content: string) => {
+          if (conversation.value) {
+            const lastMsg = conversation.value.messages[conversation.value.messages.length - 1];
+            if (lastMsg.role === 'assistant') {
+              // Ensure content is always a string before appending
+              lastMsg.content += content ? String(content) : '';
             }
+          }
+        },
+        // onError callback
+        (errorMessage: string) => {
+          // Remove the temporary message
+          if (conversation.value) {
+            conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
+          }
+          
+          // Format and handle specific types of errors for better UX
+          if (errorMessage.includes('need more credits')) {
+            // Extract needed amount from error message if possible
+            const match = errorMessage.match(/need\s+\$?([0-9.]+)\s+more/i);
+            const amount = match ? match[1] : '0.00';
+            
+            const formattedError = `Insufficient credits: You need $${amount} more to use ${modelId}. Please add more credits.`;
+            error.value = formattedError;
+            notify({ 
+              type: 'error', 
+              message: formattedError,
+              duration: 7000
+            });
+            
+            // Refresh balance after error to ensure it's current
+            balanceStore.fetchBalance(false)
+          } 
+          else if (errorMessage.includes('insufficient_credits') || errorMessage.includes('Insufficient credits')) {
+            error.value = `Insufficient credits to use ${modelId}. Please add more credits.`;
+            notify({ 
+              type: 'error', 
+              message: `Insufficient credits to use ${modelId}. Please add more credits.`,
+              duration: 7000
+            });
+            
+            // Refresh balance after error to ensure it's current
+            balanceStore.fetchBalance(false)
+          }
+          else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+            error.value = 'Authentication error. Please log in again.';
+            // Try to refresh auth token
+            try {
+              const authStore = useAuthStore();
+              if (authStore) {
+                authStore.validateAuth();
+              }
+            } catch (e) {
+              console.error('Failed to refresh auth token:', e);
+            }
+            
+            notify({ 
+              type: 'error', 
+              message: 'Authentication error. Please log in again.',
+              duration: 5000
+            });
+          }
+          else if (errorMessage.includes('500')) {
+            error.value = 'Server error occurred. Please try again later.';
+            notify({ 
+              type: 'error', 
+              message: 'Server error occurred. Please try again later.',
+              duration: 5000
+            });
+          }
+          else {
+            // Default error case
+            error.value = errorMessage;
+            notify({ 
+              type: 'error', 
+              message: 'Error: ' + errorMessage,
+              duration: 5000
+            });
+          }
+          
+          isProcessing.value = false;
+        },
+        // onDone callback
+        () => {
+          // Mark as no longer streaming
+          if (conversation.value) {
+            const lastMsg = conversation.value.messages[conversation.value.messages.length - 1];
+            if (lastMsg.role === 'assistant') {
+              lastMsg.isStreaming = false;
+              
+              // Ensure message content is valid before finishing
+              if (lastMsg.content === null || lastMsg.content === undefined) {
+                lastMsg.content = '';
+              }
+              if (typeof lastMsg.content === 'object') {
+                try {
+                  lastMsg.content = JSON.stringify(lastMsg.content);
+                } catch (e) {
+                  lastMsg.content = String(lastMsg.content);
+                }
+              }
+            }
+          }
+          isProcessing.value = false;
+          
+          // After completion, refresh balance to reflect the usage cost
+          balanceStore.fetchBalance(false)
+        },
+        // onConversationId callback
+        (id: string) => {
+          if (!options.conversationId) {
+            conversation.value = createConversation(id);
+            conversation.value.messages.push(userMessage);
+            conversation.value.messages.push(tempMessage);
           }
         }
       );
-      
-      if (!success) {
-        // If streaming failed, remove the temporary message and handle error
-        if (conversation.value) {
-          conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
-        }
-        
-        if (!error.value) {
-          error.value = 'Failed to process your message. Please try again.';
-          notify({ 
-            type: 'error', 
-            message: 'Failed to process your message. Please try again.',
-            duration: 5000
-          });
-        }
-      }
     } catch (e) {
       console.error('Error in chat:', e);
       error.value = e instanceof Error ? e.message : 'Unknown error occurred';

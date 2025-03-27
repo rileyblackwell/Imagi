@@ -23,17 +23,17 @@ const isNavigating = ref(false);
 
 // Handle back/forward navigation events
 const handlePopState = async (event: PopStateEvent) => {
-  console.log('Navigation event detected (popstate)');
+  // console.log('Navigation event detected (popstate)');
   isNavigating.value = true;
   
-  // If we have a token in localStorage but auth state says we're not authenticated,
-  // restore the auth state without making an API call
   try {
+    // If we have a token in localStorage but auth state says we're not authenticated,
+    // restore the auth state without making an API call
     const tokenData = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
     if (tokenData && userData && !authStore.isAuthenticated) {
-      console.log('Restoring auth state from localStorage during navigation');
+      // console.log('Restoring auth state from localStorage during navigation');
       const token = JSON.parse(tokenData)?.value;
       const user = JSON.parse(userData);
       

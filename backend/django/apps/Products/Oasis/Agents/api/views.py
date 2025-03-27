@@ -10,10 +10,15 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.http import StreamingHttpResponse
+from django.http import StreamingHttpResponse, HttpResponse
 import json
 from django.views.decorators.csrf import csrf_exempt
 import traceback
+from django.conf import settings
+from openai import OpenAI
+
+# Import negotiation class from the dedicated module
+from .negotiation import StreamingContentNegotiation
 
 # Import services when needed, not at module level
 from ..services import ChatAgentService, TemplateAgentService, StylesheetAgentService
@@ -238,7 +243,7 @@ def chat(request):
     
     POST: Send a message to the AI agent and get a response.
     Required parameters: message (str), model (str), project_id (str)
-    Optional parameters: conversation_id (str), mode (str), current_file (dict), stream (bool)
+    Optional parameters: conversation_id (str), mode (str), current_file (dict)
     
     GET: Retrieve conversation history.
     Required parameter: conversation_id (str)
@@ -247,11 +252,13 @@ def chat(request):
     """
     # Handle OPTIONS requests for CORS
     if request.method == 'OPTIONS':
+        logger.info(f"OPTIONS request received with headers: {dict(request.headers)}")
         response = cors_preflight(request)
-        # Ensure streaming-related headers are set for OPTIONS requests
+        # Ensure proper headers are set for OPTIONS requests
         response['Cache-Control'] = 'no-cache'
-        response['Connection'] = 'keep-alive'
-        response['X-Accel-Buffering'] = 'no'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken, X-API-Client, Accept'
+        response['Access-Control-Max-Age'] = '86400'  # 24 hours
+        logger.info(f"OPTIONS response headers: {dict(response.items())}")
         return response
         
     # Check authentication
@@ -261,22 +268,10 @@ def chat(request):
     # Log the API call with more details for debugging
     logger.info(f"Chat API called by {request.user.username} with method {request.method}")
     logger.info(f"Request headers: {dict(request.headers)}")
-    logger.info(f"CORS details: Origin: {request.headers.get('Origin')}, Method: {request.method}")
-    
-    # Debug: Log user balance
-    try:
-        from apps.Payments.services.credit_service import CreditService
-        from ..services.agent_service import MODEL_COSTS
-        credit_service = CreditService()
-        user_balance = credit_service.get_balance(request.user)
-        logger.info(f"Current user balance for {request.user.username}: ${user_balance}")
-    except Exception as balance_error:
-        logger.error(f"Error retrieving user balance: {str(balance_error)}")
     
     # Debug: Log the full request data
     logger.debug(f"Request data: {request.data}")
     logger.debug(f"Request query params: {request.query_params}")
-    logger.debug(f"Request headers: {request.headers}")
     
     # Create service instance
     chat_service = ChatAgentService()
@@ -313,7 +308,6 @@ def chat(request):
         conversation_id = request.data.get('conversation_id')
         mode = request.data.get('mode', 'chat')  # Default to chat mode
         current_file = request.data.get('current_file')
-        stream = request.data.get('stream', False)
         
         # Debug logging
         logger.debug(f"Chat request data: {request.data}")
@@ -399,225 +393,30 @@ def chat(request):
         is_build_mode = mode == 'build'
         
         # Log details of the request
-        logger.info(f"Chat request: model={model_id}, user={request.user.username}, stream={stream}, mode={mode}")
+        logger.info(f"Chat request: model={model_id}, user={request.user.username}, mode={mode}")
         
-        # In build mode, always use non-streaming API
-        if is_build_mode:
-            logger.info("Build mode detected, using non-streaming API")
-            stream = False
-        
-        # Stream response if requested and supported
-        if stream and not is_build_mode:
-            try:
-                conversation, api_messages, error_message = chat_service.process_message_stream(
-                    user_input, 
-                    model_id, 
-                    request.user,
-                    conversation_id,
-                    project_id,
-                    current_file
-                )
-                
-                # Check for errors in preparation
-                if error_message:
-                    logger.error(f"Error preparing streaming response: {error_message}")
-                    # Return a streaming response with error
-                    response = StreamingHttpResponse(
-                        (f"data: {json.dumps({'event': 'error', 'data': error_message})}\n\n" for _ in range(1)),
-                        content_type='text/event-stream'
-                    )
-                    # Add CORS headers
-                    response = add_cors_headers(response)
-                    response['Cache-Control'] = 'no-cache'
-                    response['Connection'] = 'keep-alive'
-                    response['X-Accel-Buffering'] = 'no'
-                    return response
-                
-                # Define stream_response function before using it
-                def stream_response():
-                    """
-                    Generator function for streaming the AI response.
-                    """
-                    # Complete response for saving to database
-                    full_response = ""
-                    
-                    try:
-                        # Log the streaming attempt
-                        logger.info(f"Starting streaming response with model {model_id} for user {request.user.username}")
-                        
-                        # Send event: conversation_id
-                        data = json.dumps({"event": "conversation_id", "data": str(conversation.id)})
-                        yield f"data: {data}\n\n"
-                        
-                        try:
-                            if 'gpt' in model_id:
-                                try:
-                                    # Check if OpenAI client is available
-                                    if not chat_service.openai_client:
-                                        raise ValueError("OpenAI client not initialized properly")
-                                    
-                                    # Special logging for gpt-4o-mini
-                                    if model_id == 'gpt-4o-mini':
-                                        logger.info(f"Preparing to stream gpt-4o-mini response for user {request.user.username} with actual cost ${model_cost}")
-                                    
-                                    # Use the service method instead of direct client call
-                                    stream = chat_service._generate_openai_stream(api_messages, model_id)
-                                    
-                                    # Stream the chunks
-                                    for chunk in stream:
-                                        content = chunk.choices[0].delta.content
-                                        if content is not None:
-                                            # Update full response
-                                            full_response += content
-                                            
-                                            # Send content chunk
-                                            data = json.dumps({"event": "content", "data": content})
-                                            yield f"data: {data}\n\n"
-                                except Exception as openai_error:
-                                    logger.error(f"OpenAI streaming error: {str(openai_error)}")
-                                    logger.exception(openai_error)  # Log full traceback
-                                    error_msg = str(openai_error)
-                                    if len(error_msg) > 200:  # Trim very long error messages
-                                        error_msg = error_msg[:200] + "..."
-                                    data = json.dumps({"event": "error", "data": error_msg})
-                                    yield f"data: {data}\n\n"
-                                    raise
-                            
-                            elif 'claude' in model_id:
-                                # Use Anthropic's streaming API
-                                try:
-                                    # Check if Anthropic client is available
-                                    if not chat_service.anthropic_client:
-                                        raise ValueError("Anthropic client not initialized properly")
-                                    
-                                    logger.info(f"Starting claude streaming with model: {model_id}")
-                                    # Get the stream object with proper error handling
-                                    try:
-                                        stream = chat_service._generate_anthropic_stream(api_messages, model_id)
-                                    except Exception as client_error:
-                                        logger.error(f"Failed to create Anthropic stream: {str(client_error)}")
-                                        error_msg = f"Failed to initialize Claude stream: {str(client_error)}"
-                                        data = json.dumps({"event": "error", "data": error_msg})
-                                        yield f"data: {data}\n\n"
-                                        return
-                                    
-                                    # Process the stream
-                                    logger.info("Processing Claude stream")
-                                    text_content = ""
-                                    try:
-                                        with stream as response:
-                                            for text in response.text_stream:
-                                                # Update full response
-                                                full_response += text
-                                                text_content += text
-                                                
-                                                # Send content chunk
-                                                data = json.dumps({"event": "content", "data": text})
-                                                yield f"data: {data}\n\n"
-                                    except Exception as stream_error:
-                                        logger.error(f"Error in Claude stream processing: {str(stream_error)}")
-                                        if not text_content:  # No text was streamed
-                                            error_msg = f"Claude streaming error: {str(stream_error)}"
-                                            data = json.dumps({"event": "error", "data": error_msg})
-                                            yield f"data: {data}\n\n"
-                                        raise
-                                except Exception as claude_error:
-                                    logger.error(f"Claude streaming error: {str(claude_error)}")
-                                    logger.exception(claude_error)  # Log full traceback
-                                    error_msg = str(claude_error)
-                                    if len(error_msg) > 200:  # Trim very long error messages
-                                        error_msg = error_msg[:200] + "..."
-                                    data = json.dumps({"event": "error", "data": error_msg})
-                                    yield f"data: {data}\n\n"
-                                    raise
-                            else:
-                                # Unsupported model
-                                error_msg = f"Model {model_id} is not supported for streaming"
-                                logger.error(error_msg)
-                                data = json.dumps({"event": "error", "data": error_msg})
-                                yield f"data: {data}\n\n"
-                                raise ValueError(error_msg)
-                        except AttributeError as attr_error:
-                            # Special handling for tuple attribute errors which are common in the streaming code
-                            if "tuple" in str(attr_error) and "has no attribute" in str(attr_error):
-                                logger.error(f"Tuple attribute error in streaming: {str(attr_error)}")
-                                error_msg = "Server streaming error: tuple attribute error. Please use non-streaming mode."
-                                data = json.dumps({"event": "error", "data": error_msg})
-                                yield f"data: {data}\n\n"
-                                raise
-                            else:
-                                # Re-raise other attribute errors
-                                raise
-                        
-                        # Store assistant response only if we have content
-                        if full_response:
-                            chat_service.save_streaming_response(conversation, full_response)
-                        else:
-                            logger.warning("Empty response from streaming API")
-                            data = json.dumps({"event": "error", "data": "Empty response from API"})
-                            yield f"data: {data}\n\n"
-                        
-                        # Send event: done
-                        data = json.dumps({"event": "done", "data": None})
-                        yield f"data: {data}\n\n"
-                        
-                    except Exception as e:
-                        logger.error(f"Error in stream_response generator: {str(e)}")
-                        logger.exception(e)  # Log full stack trace
-                        
-                        # The generator cannot return a response directly, so we need to raise an exception
-                        # that can be caught by the outer try/except block
-                        raise RuntimeError(f"Stream generator error: {str(e)}")
-                        
-                        # Stop the generator
-                        return
-                
-                # Start streaming response
-                try:
-                    # Create the response first
-                    response = StreamingHttpResponse(
-                        stream_response(),
-                        content_type='text/event-stream'
-                    )
-                    
-                    # Explicitly add CORS and other required headers
-                    response["Cache-Control"] = "no-cache"
-                    response["Connection"] = "keep-alive"
-                    response["X-Accel-Buffering"] = "no"  # Disable Nginx buffering
-                    
-                    # Add CORS headers explicitly here
-                    response["Access-Control-Allow-Origin"] = "http://localhost:5174"
-                    response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
-                    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, x-csrftoken, x-api-client"
-                    response["Access-Control-Allow-Credentials"] = "true"
-                    response["X-Stream-Debug"] = "True"  # Debug header
-                    
-                    return response
-                except Exception as e:
-                    logger.error(f"Error creating streaming response: {str(e)}")
-                    # Use the helper function to create a properly rendered error response
-                    return create_error_response(e)
+        try:
+            # Process message using service
+            response_data = chat_service.process_message(
+                user_input, 
+                model_id, 
+                request.user,
+                conversation_id,
+                project_id,
+                current_file,
+                is_build_mode
+            )
             
-            except Exception as e:
-                logger.error(f"Error in streaming setup: {str(e)}")
-                # Use the helper function to create a properly rendered error response
-                return create_error_response(e)
+            # Add CORS headers to response
+            response = Response(response_data)
+            return add_cors_headers(response)
+        except Exception as e:
+            logger.error(f"Error processing chat message: {str(e)}")
+            return create_error_response(e)
         
-        # Use regular API for non-streaming requests
-        else:
-            try:
-                # Process message using service
-                response_data = chat_service.process_message(
-                    user_input, 
-                    model_id, 
-                    request.user,
-                    conversation_id,
-                    project_id,
-                    current_file,
-                    is_build_mode
-                )
-                
-                return Response(response_data)
-            except Exception as e:
-                logger.error(f"Error processing chat message: {str(e)}")
-                return create_error_response(e) 
+    # This should never happen, but just in case
+    return create_error_response('Method not allowed', status.HTTP_405_METHOD_NOT_ALLOWED)
+
+# Remove streaming-related functions
+# The code below this point will be updated in future PRs
+# to handle more AI agent integrations 

@@ -114,19 +114,51 @@ export const useAgentStore = defineStore('agent', {
           return
         }
       }
-      this.selectedFile = file
-      this.unsavedChanges = false
+      
+      // Keep track of the previously selected file path for comparison
+      const previousFilePath = this.selectedFile?.path;
+      
+      // Update the selected file
+      this.selectedFile = file;
+      this.unsavedChanges = false;
+      
+      // If we're switching to a new file but staying in the same conversation,
+      // we want to add a system message indicating the file change
+      if (file && previousFilePath && previousFilePath !== file.path && this.conversation.length > 0) {
+        // Add a system message to indicate file change for context
+        this.conversation.push({
+          role: 'system',
+          content: `Switched to file: ${file.path}`,
+          timestamp: new Date().toISOString(),
+          id: `system-${Date.now()}`
+        });
+      }
     },
 
     setSelectedFile(file: ProjectFile | null) {
-      this.selectedFile = file
-      this.unsavedChanges = false
+      this.selectedFile = file;
+      this.unsavedChanges = false;
     },
 
-    // Files management
+    // Files management with improved conversation linking
     setFiles(files: ProjectFile[]) {
       if (Array.isArray(files)) {
-        this.files = [...files]
+        this.files = [...files];
+        
+        // If we have a selected file, make sure it still exists in the updated files list
+        if (this.selectedFile) {
+          const stillExists = this.files.some(f => f.path === this.selectedFile?.path);
+          if (!stillExists) {
+            // The file was removed, select null and add a system message
+            this.selectedFile = null;
+            this.conversation.push({
+              role: 'system',
+              content: 'The previously selected file is no longer available.',
+              timestamp: new Date().toISOString(),
+              id: `system-${Date.now()}`
+            });
+          }
+        }
       } else {
         console.error('Files is not an array:', files)
         this.files = []
@@ -208,6 +240,18 @@ export const useAgentStore = defineStore('agent', {
       } finally {
         this.isProcessing = false
       }
+    },
+
+    addBuildConfirmation(fileInfo: { path: string, status: 'success' | 'error', message?: string }) {
+      // Add a system message about the build result
+      this.conversation.push({
+        role: 'system',
+        content: fileInfo.status === 'success' 
+          ? `Build successful for ${fileInfo.path}` 
+          : `Build failed for ${fileInfo.path}${fileInfo.message ? ': ' + fileInfo.message : ''}`,
+        timestamp: new Date().toISOString(),
+        id: `system-build-${Date.now()}`
+      })
     }
   }
 }) 

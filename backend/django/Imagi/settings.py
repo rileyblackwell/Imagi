@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first to handle CORS properly
     'apps.Auth.middleware.CORSErrorMiddleware',  # Add our custom CORS error middleware
+    'apps.Auth.middleware.APIRequestLoggingMiddleware',  # Add our API request logging middleware
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line for static files
@@ -189,6 +190,19 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser'
     ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'apps.Products.Oasis.Agents.api.negotiation.StreamingContentNegotiation',
+    # Add acceptable MIME types for streaming
+    'ACCEPTED_MEDIA_TYPES': [
+        'application/json',
+        'text/html',
+        'text/event-stream',  # Add this for SSE streaming
+        'multipart/form-data',
+        'application/x-www-form-urlencoded',
+    ],
 }
 
 # JWT settings
@@ -231,6 +245,8 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
     'x-api-client',
+    'x-accept-override',
+    'x-force-content-type',
 ]
 
 # Add CORS_EXPOSE_HEADERS to allow clients to access these headers
@@ -240,6 +256,9 @@ CORS_EXPOSE_HEADERS = [
     'cache-control',
     'connection',
 ]
+
+# Add additional CORS configuration
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = [
@@ -283,9 +302,17 @@ if DEBUG:
     SESSION_COOKIE_SECURE = False
     
     # Make sure CORS is configured properly for development
-    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_ALL_ORIGINS = False  # Keep this False to use the explicit list
     CORS_ALLOW_CREDENTIALS = True
-    CORS_EXPOSE_HEADERS = ['Access-Control-Allow-Origin']
+    
+    # Expose Access-Control-Allow-Origin header in the response
+    CORS_EXPOSE_HEADERS = [
+        'Access-Control-Allow-Origin',
+        'Access-Control-Allow-Credentials',
+        'Access-Control-Allow-Headers',
+        'Access-Control-Allow-Methods',
+        'Access-Control-Max-Age',
+    ]
     
     SECURE_HSTS_SECONDS = 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
@@ -394,3 +421,68 @@ ACCOUNT_ADAPTER = 'apps.Auth.adapters.CustomAccountAdapter'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
 ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
+
+# API Keys for AI services
+OPENAI_KEY = os.getenv('OPENAI_KEY')
+ANTHROPIC_KEY = os.getenv('ANTHROPIC_KEY')
+
+# Ensure API keys are set for production
+if not DEBUG:
+    if not OPENAI_KEY:
+        raise ValueError("OPENAI_KEY is not set in the environment variables.")
+    if not ANTHROPIC_KEY:
+        raise ValueError("ANTHROPIC_KEY is not set in the environment variables.")
+
+# Logging configuration to filter CORSErrorMiddleware logs
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '{asctime} {levelname} {message}',
+            'style': '{',
+        },
+        'verbose': {
+            'format': '{asctime} {levelname} {module} {message}',
+            'style': '{',
+        },
+        'api_calls': {
+            'format': '[API] {asctime} | {request.method} {request.path} → Status: {status_code} ({duration})',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'api_console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'api_calls',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Only show warnings and errors
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['api_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps.Auth.middleware': {
+            'handlers': [],  # No handlers = no output
+            'level': 'ERROR',  # Only show errors
+            'propagate': False,
+        },
+    },
+}

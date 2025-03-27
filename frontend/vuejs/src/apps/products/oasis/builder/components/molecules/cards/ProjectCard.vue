@@ -139,7 +139,9 @@ const emit = defineEmits<{
   (e: 'submit'): void;
 }>();
 
-function formatDate(date: string) {
+function formatDate(date?: string) {
+  if (!date) return 'No date available';
+  
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',

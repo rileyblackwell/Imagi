@@ -1,78 +1,78 @@
 <template>
   <div class="flex-1 flex flex-col overflow-hidden relative h-full min-h-full bg-dark-950 border border-dark-800">
-    <!-- Background decorative elements -->
+    <!-- Updated background elements for iMessage/ChatGPT-like appearance -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <!-- Gradient effect -->
+      <!-- Clean gradient background -->
       <div class="absolute inset-0 bg-gradient-to-br from-dark-900 to-dark-950"></div>
       
-      <!-- Animated orbs -->
-      <div class="absolute top-[10%] right-[5%] w-96 h-96 bg-primary-600/10 rounded-full filter blur-3xl opacity-30 animate-float-slow"></div>
-      <div class="absolute bottom-[20%] left-[10%] w-64 h-64 bg-violet-600/10 rounded-full filter blur-2xl opacity-20 animate-float-slow-reverse"></div>
+      <!-- Subtle highlight at top -->
+      <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary-600/5 to-transparent"></div>
       
-      <!-- Grid pattern overlay -->
-      <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+      <!-- Very subtle accent elements -->
+      <div class="absolute top-[15%] right-[10%] w-64 h-64 bg-primary-600/3 rounded-full filter blur-3xl"></div>
+      <div class="absolute bottom-[25%] left-[8%] w-56 h-56 bg-violet-600/3 rounded-full filter blur-3xl"></div>
     </div>
 
-    <!-- Loading Overlay -->
+    <!-- Loading Overlay with improved animation -->
     <div 
       v-if="isProcessing"
-      class="absolute inset-0 bg-dark-950/70 backdrop-blur-sm flex items-center justify-center z-50"
+      class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300"
     >
-      <div class="text-center">
-        <div class="inline-block w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mb-4"></div>
+      <div class="text-center p-6 rounded-xl bg-dark-900/70 backdrop-blur-md border border-dark-800/50 shadow-xl">
+        <div class="inline-block w-14 h-14 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin mb-4"></div>
         <p class="text-lg text-white font-medium">Processing...</p>
-        <p class="text-sm text-gray-400 mt-1">The AI is working on your request</p>
+        <p class="text-sm text-gray-400 mt-1">The AI is crafting a response</p>
       </div>
     </div>
 
-    <!-- Chat Conversation Area -->
-    <div class="flex-1 overflow-hidden relative">
-      <div class="absolute inset-0 p-2">
-        <div class="max-w-4xl mx-auto h-full relative z-20">
-          <ChatConversation 
-            :messages="validatedMessages" 
-            @use-example="$emit('use-example', $event)"
-            @apply-code="handleApplyCode"
-          />
+    <!-- Main Flex Area Reorganized to have chat first, then input -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Chat Conversation Area (Main Content) -->
+      <div class="flex-1 overflow-auto relative">
+        <div class="p-4 h-full">
+          <div class="max-w-4xl mx-auto h-full relative z-20">
+            <ChatConversation 
+              :messages="validatedMessages" 
+              @use-example="$emit('use-example', $event)"
+              @apply-code="handleApplyCode"
+            />
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- AI Input Area -->
-    <div 
-      class="shrink-0 p-4 border-t border-dark-700/50 bg-dark-900/80 backdrop-blur-md shadow-lg relative z-10"
-      :class="{'opacity-60 pointer-events-none': isProcessing}"
-    >
-      <!-- Gradient header line -->
-      <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary-500/30 to-transparent"></div>
-      
-      <div class="max-w-4xl mx-auto">
-        <ChatInputArea
-          v-model="localPrompt"
-          :placeholder="promptPlaceholder"
-          :focused="true"
-          :is-processing="isProcessing"
-          :show-examples="false"
-          @submit="handleSubmit"
-          @examples="$emit('examples')"
-        >
-          <template #mode-indicator>
-            <div class="flex items-center justify-between w-full">
-              <ModeIndicator 
-                :mode="mode" 
-                :selected-file="selectedFile" 
-                :selected-model-id="selectedModelId"
-                :available-models="availableModels"
-              />
-              
-              <div v-if="selectedFile" class="text-xs text-primary-400 flex items-center gap-1">
-                <i class="fas fa-info-circle"></i>
-                <span v-if="mode === 'build'">Changes will be applied to {{ selectedFile.path }}</span>
-                <span v-else>Discussing file: {{ selectedFile.path }}</span>
-              </div>
-            </div>
-          </template>
-        </ChatInputArea>
+      <!-- AI Input Area (Now at the bottom) -->
+      <div 
+        class="shrink-0 p-4 border-t border-dark-700/30 bg-dark-900/95 backdrop-blur-md shadow-lg relative z-10"
+        :class="{'opacity-80 pointer-events-none filter blur-sm': isProcessing}"
+      >
+        <!-- Subtle gradient header line -->
+        <div class="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary-500/30 to-transparent"></div>
+        
+        <!-- Mode Indicator above the chat input -->
+        <div class="max-w-4xl mx-auto mb-4">
+          <ModeIndicator 
+            :mode="mode" 
+            :selected-file="selectedFile" 
+            :selected-model-id="selectedModelId"
+            :available-models="availableModels"
+          />
+        </div>
+        
+        <div class="max-w-4xl mx-auto">
+          <ChatInputArea
+            v-model="localPrompt"
+            :placeholder="promptPlaceholder"
+            :focused="true"
+            :is-processing="isProcessing"
+            :show-examples="false"
+            @submit="handleSubmit"
+            @examples="$emit('examples')"
+          >
+            <template #mode-indicator>
+              <!-- Empty mode indicator slot since we moved it outside -->
+            </template>
+          </ChatInputArea>
+        </div>
       </div>
     </div>
   </div>
@@ -110,6 +110,20 @@ const validatedMessages = computed(() => {
   const processed = props.messages.map(message => {
     // Ensure each message has valid content
     let content = message.content
+    
+    // Handle potential null or undefined content
+    if (content === null || content === undefined) {
+      content = '';
+    }
+    
+    // If content is an object rather than a string (can happen with some API responses)
+    if (typeof content === 'object') {
+      try {
+        content = JSON.stringify(content);
+      } catch (e) {
+        content = String(content);
+      }
+    }
     
     // Ensure each message has at least role, content, and timestamp
     return {
@@ -158,14 +172,7 @@ function handleApplyCode(code: string) {
 </script>
 
 <style scoped>
-/* Background grid pattern */
-.bg-grid-pattern {
-  background-image: linear-gradient(to right, theme('colors.dark.800') 1px, transparent 1px),
-                    linear-gradient(to bottom, theme('colors.dark.800') 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-/* Animation for floating orbs */
+/* Animation for subtle floating elements */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0) translateX(0); }
   50% { transform: translateY(-20px) translateX(10px); }
@@ -176,12 +183,21 @@ function handleApplyCode(code: string) {
   50% { transform: translateY(20px) translateX(-10px); }
 }
 
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
 .animate-float-slow {
-  animation: float-slow 20s ease-in-out infinite;
+  animation: float-slow 25s ease-in-out infinite;
 }
 
 .animate-float-slow-reverse {
-  animation: float-slow-reverse 25s ease-in-out infinite;
+  animation: float-slow-reverse 30s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
 }
 
 /* Smooth transitions for chat UI */
@@ -189,13 +205,7 @@ function handleApplyCode(code: string) {
   transition: height 0.3s ease-in-out;
 }
 
-/* Smooth fade-in for new messages */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Improve scrollbar styles */
+/* Improved scrollbar styles */
 .overflow-auto {
   scrollbar-width: thin;
   scrollbar-color: theme('colors.dark.700') transparent;
@@ -212,5 +222,44 @@ function handleApplyCode(code: string) {
 .overflow-auto::-webkit-scrollbar-thumb {
   background-color: theme('colors.dark.700');
   border-radius: 9999px;
+}
+
+/* Ensure chat area expands properly */
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Transition effect for message appearance */
+@keyframes message-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ensure the chat container takes full height */
+.h-full {
+  height: 100%;
+  min-height: 0; /* This is important for flex children to respect parent height */
+}
+
+/* Fix for overflow issues in chat area */
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+/* Make sure the main container expands properly */
+.flex-1 {
+  flex: 1 1 0%;
+  min-height: 0; /* Important for Firefox */
 }
 </style> 

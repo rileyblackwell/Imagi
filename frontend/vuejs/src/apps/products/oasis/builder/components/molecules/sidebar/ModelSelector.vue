@@ -266,7 +266,8 @@ watch(() => displayModels.value, async (models) => {
 }, { immediate: true })
 
 // Add this function to the script section
-const formatPrice = (price: number): string => {
+const formatPrice = (price?: number): string => {
+  if (price === undefined || price === null) return '0.00';
   // Show fewer decimal places for larger prices
   return price >= 0.01 ? price.toFixed(2) : price.toFixed(3);
 }

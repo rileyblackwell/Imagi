@@ -51,4 +51,7 @@ export interface PaymentStoreState {
   packages: CreditPackage[];
   balanceRefreshTimer: ReturnType<typeof setInterval> | null;
   isAutoRefreshEnabled: boolean;
+  lastTransactionsFetch: number;
+  isTransactionsFetching: boolean;
+  lastPackagesFetch: number;
 } 

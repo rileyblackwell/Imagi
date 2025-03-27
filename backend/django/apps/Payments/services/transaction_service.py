@@ -172,7 +172,7 @@ class TransactionService:
             if not include_inactive:
                 query['is_active'] = True
                 
-            return list(CreditPackage.objects.filter(**query).order_by('price'))
+            return list(CreditPackage.objects.filter(**query).order_by('amount'))
             
         except Exception as e:
             logger.error(f"Error getting credit packages: {str(e)}")

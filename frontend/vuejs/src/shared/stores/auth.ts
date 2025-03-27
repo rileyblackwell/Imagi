@@ -19,6 +19,9 @@ const safeJSONParse = <T>(jsonString: string | null, fallback: T): T => {
   }
 }
 
+// Set cache duration for auth init calls to prevent duplicates
+const AUTH_CACHE_DURATION = 30000; // 30 seconds
+
 /**
  * Global authentication store for managing user sessions across the application
  */
@@ -31,6 +34,7 @@ export const useAuthStore = defineStore('global-auth', () => {
   const initialized = ref(false)
   const loading = ref(false)
   const lastInitTime = ref<number>(0)
+  const pendingAuthCheck = ref<Promise<boolean> | null>(null)
   
   // Watch for changes to authentication state and sync with localStorage
   watch(() => isAuthenticated.value, (newValue) => {
@@ -119,7 +123,7 @@ export const useAuthStore = defineStore('global-auth', () => {
   const initAuth = async () => {
     // Don't re-initialize too frequently to avoid unnecessary API calls
     const now = Date.now()
-    if (initialized.value && (now - lastInitTime.value) < 5000) {
+    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
       // If token exists, make sure authentication state is set properly
       if (token.value && !isAuthenticated.value) {
         isAuthenticated.value = true
@@ -128,30 +132,140 @@ export const useAuthStore = defineStore('global-auth', () => {
       return
     }
     
-    lastInitTime.value = now
+    // If there's already a pending auth check, return that promise
+    if (pendingAuthCheck.value) {
+      return pendingAuthCheck.value
+    }
     
-    try {
-      loading.value = true
-      
-      // Check if we have a token in localStorage
-      const storedToken = getStoredToken()
-      const storedUser = getStoredUser()
-      
-      if (!storedToken) {
-        // No token found, ensure we're in a clean state
+    // Create a new auth check promise
+    const authCheckPromise = (async () => {
+      try {
+        loading.value = true
+        
+        // Check if we have a token in localStorage
+        const storedToken = getStoredToken()
+        const storedUser = getStoredUser()
+        
+        if (!storedToken) {
+          // No token found, ensure we're in a clean state
+          await clearAuth()
+          loading.value = false
+          initialized.value = true
+          lastInitTime.value = now
+          return false
+        }
+        
+        // We have a token, set it in axios headers
+        token.value = storedToken
+        user.value = storedUser
+        axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`
+        
+        try {
+          // Check auth status with backend
+          const response = await axios.get('/api/v1/auth/init/')
+          
+          if (response.data.isAuthenticated) {
+            // Update user data from server
+            user.value = response.data.user
+            isAuthenticated.value = true
+            
+            // Update stored user data
+            localStorage.setItem('user', JSON.stringify(response.data.user))
+            lastInitTime.value = now
+            return true
+          } else {
+            // Session invalid on server
+            await clearAuth()
+            return false
+          }
+        } catch (error) {
+          console.error('Failed to validate auth with server:', error)
+          // Keep the token for now, but mark as not authenticated
+          // This allows components to handle auth errors gracefully
+          isAuthenticated.value = false
+          return false
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth:', error)
         await clearAuth()
+        return false
+      } finally {
         loading.value = false
         initialized.value = true
-        return
+        // Clear the pending auth check
+        setTimeout(() => {
+          pendingAuthCheck.value = null
+        }, 0)
       }
-      
-      // We have a token, set it in axios headers
-      token.value = storedToken
-      user.value = storedUser
-      axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`
-      
+    })()
+    
+    // Store the promise for reuse during concurrent calls
+    pendingAuthCheck.value = authCheckPromise
+    return authCheckPromise
+  }
+
+  // Method to check auth status without side effects
+  const checkAuth = async (): Promise<boolean> => {
+    // Use cached value if available and recent
+    const now = Date.now()
+    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
+      return isAuthenticated.value
+    }
+    
+    // If there's a pending auth check, return that promise
+    if (pendingAuthCheck.value) {
+      return pendingAuthCheck.value
+    }
+    
+    if (!token.value) return false
+    
+    // Create a new auth check promise
+    const authCheckPromise = (async () => {
       try {
-        // Check auth status with backend
+        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
+        const response = await axios.get('/api/v1/auth/init/')
+        const authStatus = !!response.data.isAuthenticated
+        
+        // Update the last check time
+        lastInitTime.value = now
+        return authStatus
+      } catch {
+        return false
+      } finally {
+        // Clear the pending auth check
+        setTimeout(() => {
+          pendingAuthCheck.value = null
+        }, 0)
+      }
+    })()
+    
+    // Store the promise for reuse during concurrent calls
+    pendingAuthCheck.value = authCheckPromise
+    return authCheckPromise
+  }
+
+  const validateAuth = async () => {
+    // Use cached value if available and recent
+    const now = Date.now()
+    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
+      return isAuthenticated.value
+    }
+    
+    // If there's a pending auth check, return that promise
+    if (pendingAuthCheck.value) {
+      return pendingAuthCheck.value
+    }
+    
+    // Create a new auth check promise
+    const authCheckPromise = (async () => {
+      try {
+        loading.value = true
+        
+        if (!token.value) {
+          return false
+        }
+        
+        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
         const response = await axios.get('/api/v1/auth/init/')
         
         if (response.data.isAuthenticated) {
@@ -161,68 +275,28 @@ export const useAuthStore = defineStore('global-auth', () => {
           
           // Update stored user data
           localStorage.setItem('user', JSON.stringify(response.data.user))
+          lastInitTime.value = now
+          return true
         } else {
-          // Session invalid on server
           await clearAuth()
+          return false
         }
       } catch (error) {
-        console.error('Failed to validate auth with server:', error)
-        // Keep the token for now, but mark as not authenticated
-        // This allows components to handle auth errors gracefully
-        isAuthenticated.value = false
-      }
-    } catch (error) {
-      console.error('Failed to initialize auth:', error)
-      await clearAuth()
-    } finally {
-      loading.value = false
-      initialized.value = true
-    }
-  }
-
-  // Method to check auth status without side effects
-  const checkAuth = async (): Promise<boolean> => {
-    if (!token.value) return false
-    
-    try {
-      axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-      const response = await axios.get('/api/v1/auth/init/')
-      return !!response.data.isAuthenticated
-    } catch {
-      return false
-    }
-  }
-
-  const validateAuth = async () => {
-    try {
-      loading.value = true
-      
-      if (!token.value) {
-        return false
-      }
-      
-      axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-      const response = await axios.get('/api/v1/auth/init/')
-      
-      if (response.data.isAuthenticated) {
-        // Update user data from server
-        user.value = response.data.user
-        isAuthenticated.value = true
-        
-        // Update stored user data
-        localStorage.setItem('user', JSON.stringify(response.data.user))
-        return true
-      } else {
+        console.error('Auth validation error:', error)
         await clearAuth()
         return false
+      } finally {
+        loading.value = false
+        // Clear the pending auth check
+        setTimeout(() => {
+          pendingAuthCheck.value = null
+        }, 0)
       }
-    } catch (error) {
-      console.error('Auth validation error:', error)
-      await clearAuth()
-      return false
-    } finally {
-      loading.value = false
-    }
+    })()
+    
+    // Store the promise for reuse during concurrent calls
+    pendingAuthCheck.value = authCheckPromise
+    return authCheckPromise
   }
 
   const clearAuth = async () => {

@@ -7,16 +7,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { usePaymentsStore } from '@/apps/payments/store';
 
 const paymentsStore = usePaymentsStore();
 const isLoading = ref(false);
+const refreshIntervalId = ref(null);
 
 // Format the balance
 const formattedBalance = computed(() => {
-  return `$${paymentsStore.balance.toFixed(2)}`;
+  return formatBalance(paymentsStore.balance || 0);
 });
+
+// Format number with commas for thousands
+function formatBalance(balance: number): string {
+  return balance.toLocaleString();
+}
 
 // Format last updated time
 const lastUpdatedText = computed(() => {
@@ -24,22 +30,43 @@ const lastUpdatedText = computed(() => {
   return new Date(paymentsStore.lastUpdated).toLocaleString();
 });
 
-// Initialize on component mount
-onMounted(async () => {
-  isLoading.value = true;
-  try {
-    // Initialize and enable auto-refresh
-    await paymentsStore.initializePayments();
-    paymentsStore.toggleAutoRefresh(true);
-  } finally {
-    isLoading.value = false;
+// Function to fetch balance
+async function fetchBalance(showLoading = true) {
+  if (showLoading) {
+    isLoading.value = true;
   }
-});
+  
+  try {
+    // Fetch without auto-refresh, only get current balance
+    await paymentsStore.fetchBalance(false, false);
+  } catch (error) {
+    console.error('Error fetching balance:', error);
+  } finally {
+    if (showLoading) {
+      isLoading.value = false;
+    }
+  }
+}
 
-// Clean up - but don't stop auto-refresh as it might be used elsewhere
-onUnmounted(() => {
-  // Keep auto-refresh running for other components
-});
+// Initialize on component mount
+onMounted(() => {
+  // Only fetch balance once at startup - no automatic refreshing
+  if (refreshIntervalId.value) {
+    clearInterval(refreshIntervalId.value)
+    refreshIntervalId.value = null
+  }
+  
+  // Initial balance fetch without showing loading state
+  fetchBalance(false)
+})
+
+onBeforeUnmount(() => {
+  // Clean up any interval
+  if (refreshIntervalId.value) {
+    clearInterval(refreshIntervalId.value)
+    refreshIntervalId.value = null
+  }
+})
 </script>
 
 <style scoped>

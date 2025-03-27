@@ -12,6 +12,7 @@ import { useBalanceStore } from '@/shared/stores/balance'
 
 // Constants
 const BALANCE_REFRESH_INTERVAL = 60000; // 60 seconds
+const TRANSACTIONS_CACHE_TIMEOUT = 5000; // 5 seconds
 
 export const usePaymentsStore = defineStore('payments', {
   state: (): PaymentStoreState => ({
@@ -25,7 +26,10 @@ export const usePaymentsStore = defineStore('payments', {
     transactions: [],
     packages: [],
     balanceRefreshTimer: null,
-    isAutoRefreshEnabled: true
+    isAutoRefreshEnabled: false, // Disable auto-refresh by default
+    lastTransactionsFetch: 0,
+    isTransactionsFetching: false,
+    lastPackagesFetch: 0
   }),
   
   getters: {
@@ -45,15 +49,15 @@ export const usePaymentsStore = defineStore('payments', {
     async initializePayments(): Promise<void> {
       // Use the global balance store for managing balance
       const balanceStore = useBalanceStore();
-      await balanceStore.fetchBalance();
+      await balanceStore.initBalance(); // Initialize only once at startup
       
       // Sync local state with global state
       this.balance = balanceStore.balance;
       this.userCredits = balanceStore.balance;
       this.lastUpdated = balanceStore.lastUpdated;
       
-      // Use the global balance store's auto-refresh
-      balanceStore.startAutoRefresh(BALANCE_REFRESH_INTERVAL);
+      // Don't auto-refresh balance - only fetch when needed
+      balanceStore.stopAutoRefresh();
       
       // Fetch other payment-specific data
       await this.fetchTransactions();
@@ -84,7 +88,7 @@ export const usePaymentsStore = defineStore('payments', {
     },
     
     // Fetch user's current balance
-    async fetchBalance(showLoading: boolean = true): Promise<void> {
+    async fetchBalance(showLoading: boolean = true, force: boolean = false): Promise<void> {
       if (showLoading) {
         this.isLoading = true;
       }
@@ -93,7 +97,7 @@ export const usePaymentsStore = defineStore('payments', {
       try {
         // Use global balance store
         const balanceStore = useBalanceStore();
-        await balanceStore.fetchBalance(false); // Don't show loading in global store
+        await balanceStore.fetchBalance(false, force); // Only force refresh when explicitly requested
         
         // Sync local state with global state
         this.balance = balanceStore.balance;
@@ -111,7 +115,7 @@ export const usePaymentsStore = defineStore('payments', {
     
     // This method is kept for backward compatibility
     async fetchUserCredits(): Promise<void> {
-      return this.fetchBalance();
+      return this.fetchBalance(true, false);
     },
     
     // Fetch user's payment history
@@ -130,15 +134,33 @@ export const usePaymentsStore = defineStore('payments', {
     
     // Fetch all transactions
     async fetchTransactions(): Promise<void> {
+      // Check if we have a recent fetch within cache timeout
+      const now = Date.now();
+      if (
+        this.lastTransactionsFetch > 0 && 
+        now - this.lastTransactionsFetch < TRANSACTIONS_CACHE_TIMEOUT &&
+        this.transactions.length > 0
+      ) {
+        return;
+      }
+      
+      // If already fetching, don't duplicate the request
+      if (this.isTransactionsFetching) {
+        return;
+      }
+      
       this.isHistoryLoading = true;
+      this.isTransactionsFetching = true;
       
       try {
         const response = await axios.get<{ transactions: Transaction[] }>('/api/v1/payments/transactions/')
         this.transactions = response.data.transactions;
+        this.lastTransactionsFetch = now;
       } catch (error) {
         console.error('Failed to fetch transactions:', error);
       } finally {
         this.isHistoryLoading = false;
+        this.isTransactionsFetching = false;
       }
     },
     
@@ -148,6 +170,10 @@ export const usePaymentsStore = defineStore('payments', {
       this.error = null;
       
       try {
+        // Mark that a transaction is in progress in the balance store
+        const balanceStore = useBalanceStore();
+        balanceStore.beginTransaction();
+        
         const response = await axios.post<PaymentProcessResponse>('/api/v1/payments/process/', {
           amount,
           paymentMethodId,
@@ -155,7 +181,6 @@ export const usePaymentsStore = defineStore('payments', {
         });
         
         // Update global balance store
-        const balanceStore = useBalanceStore();
         if (response.data.new_balance !== undefined) {
           balanceStore.updateBalance(response.data.new_balance);
           
@@ -182,6 +207,16 @@ export const usePaymentsStore = defineStore('payments', {
     
     // Fetch available credit packages
     async fetchPackages(): Promise<void> {
+      // Use simple object-level caching with a 5-second timeout
+      const now = Date.now();
+      if (
+        this.lastPackagesFetch > 0 && 
+        now - this.lastPackagesFetch < TRANSACTIONS_CACHE_TIMEOUT &&
+        this.packages.length > 0
+      ) {
+        return;
+      }
+      
       this.isLoading = true;
       this.error = null;
       
@@ -192,6 +227,7 @@ export const usePaymentsStore = defineStore('payments', {
           ...pkg,
           description: pkg.description || 'Credit package' // Provide default description if missing
         }));
+        this.lastPackagesFetch = now;
       } catch (error: any) {
         this.error = error.response?.data?.message || 'Failed to fetch packages';
         console.error('Failed to fetch credit packages:', error);
