@@ -1,35 +1,47 @@
 <template>
   <div class="h-full flex flex-col relative z-10">
     <!-- Messages Container -->
-    <div ref="messagesContainer" class="flex-1 overflow-y-auto h-full px-4 py-4 pb-2 absolute inset-0">
-      <!-- If no messages, show empty state -->
-      <template v-if="!messages || messages.length === 0">
-        <div class="h-full flex items-center justify-center">
-          <div class="text-center p-6 max-w-md">
-            <div class="mb-6 mx-auto w-16 h-16 bg-dark-800/60 rounded-full flex items-center justify-center">
-              <i class="fas fa-comments text-primary-400 text-2xl"></i>
+    <div ref="messagesContainer" class="flex-grow overflow-y-auto p-4 space-y-4" :class="{ 'justify-end': true }">
+      <!-- Empty state - Mode specific messages -->
+      <div v-if="!messages.length" class="h-full flex flex-col items-center justify-center px-8 py-12 text-center">
+        <div class="max-w-lg">
+          <div class="mb-6">
+            <div class="w-16 h-16 mx-auto bg-primary-500/20 text-primary-400 rounded-full flex items-center justify-center mb-4">
+              <i :class="[mode === 'chat' ? 'fas fa-comment-dots text-2xl' : 'fas fa-code-branch text-2xl']"></i>
             </div>
-            <h3 class="text-white text-xl font-medium mb-2">Start a Conversation</h3>
-            <p class="text-gray-400 mb-6">Ask questions about your project, get help with code, or generate new features.</p>
-            <div class="space-y-3 text-left">
-              <div class="p-3 rounded-lg bg-dark-800/40 border border-dark-700/30 text-sm text-gray-300">
-                <div class="font-medium mb-1 text-primary-400">Example:</div>
-                <p>"Can you explain how the file upload component works?"</p>
-              </div>
-              <div class="p-3 rounded-lg bg-dark-800/40 border border-dark-700/30 text-sm text-gray-300">
-                <div class="font-medium mb-1 text-primary-400">Example:</div>
-                <p>"Add client-side form validation to the contact form"</p>
+            <h3 class="text-xl font-medium text-white mb-2">
+              {{ mode === 'chat' ? 'Start a conversation' : 'Build your application' }}
+            </h3>
+            <p class="text-gray-400 mb-6">
+              {{ mode === 'chat' 
+                 ? 'Ask me anything about your project, coding questions, or get help with a specific task.' 
+                 : 'Tell me what you want to build, and I\'ll help you create it step by step.' }}
+            </p>
+          </div>
+
+          <div class="bg-dark-800/60 backdrop-blur rounded-xl p-5 border border-dark-700">
+            <h4 class="text-sm font-medium text-gray-300 mb-3">
+              {{ mode === 'chat' ? 'Example questions:' : 'Example build commands:' }}
+            </h4>
+            <div class="space-y-2">
+              <div 
+                v-for="(example, index) in (mode === 'chat' ? chatExamples : buildExamples)" 
+                :key="index"
+                class="bg-dark-700/50 px-3 py-2 rounded-lg text-sm text-gray-300 cursor-pointer hover:bg-dark-700 transition-colors"
+                @click="$emit('useExample', example)"
+              >
+                "{{ example }}"
               </div>
             </div>
           </div>
         </div>
-      </template>
+      </div>
       
       <template v-if="messages && messages.length > 0">
         <div class="space-y-6 max-w-3xl mx-auto pb-4">
           <template v-for="(message, index) in messages" :key="`msg-${message.id || index}`">
             <!-- User Message -->
-            <div v-if="message.role === 'user'" class="flex justify-end gap-2 items-end mb-4 animate-message-in">
+            <div v-if="message.role === 'user'" class="flex justify-end gap-2 items-end mb-4 animate-message-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
               <!-- User Message Bubble -->
               <div class="max-w-[75%] bg-primary-500 text-white px-4 py-2.5 rounded-2xl rounded-br-md shadow-sm">
                 <p class="whitespace-pre-wrap break-words text-sm">{{ message.content }}</p>
@@ -50,7 +62,7 @@
             </div>
             
             <!-- Assistant Message -->
-            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-2 items-start mb-4 animate-message-in">
+            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-2 items-start mb-4 animate-message-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
               <!-- AI Avatar - Only show on first message or after user/system response -->
               <div 
                 v-if="index === 0 || (index > 0 && messages[index-1].role !== 'assistant')"
@@ -124,7 +136,7 @@
             </div>
             
             <!-- System Message - More subtle iMessage-like info bubble -->
-            <div v-else-if="message.role === 'system'" class="flex justify-center my-3 animate-fade-in">
+            <div v-else-if="message.role === 'system'" class="flex justify-center my-3 animate-fade-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
               <div class="bg-dark-900/60 text-gray-400 px-3 py-1.5 rounded-full text-xs shadow-sm border border-dark-800/30 flex items-center backdrop-blur-sm">
                 <div class="mr-1.5 text-blue-400">
                   <i class="fas text-xs" :class="getSystemMessageIcon(message.content)"></i>
@@ -134,7 +146,7 @@
             </div>
             
             <!-- Other message types (if needed) -->
-            <div v-else class="flex justify-center mb-4 animate-message-in">
+            <div v-else class="flex justify-center mb-4 animate-message-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
               <div class="max-w-[90%] bg-dark-800/70 text-gray-400 px-4 py-2 rounded-full text-xs shadow-sm border border-dark-700/50">
                 <span>{{ message.content }}</span>
               </div>
@@ -142,7 +154,7 @@
           </template>
           
           <!-- "AI is typing" indicator that appears at the bottom of messages when processing -->
-          <div v-if="isTyping" class="flex justify-start gap-2 items-start animate-fade-in">
+          <div v-if="isTyping" class="flex justify-start gap-2 items-start animate-fade-in" :style="{ 'animation-delay': `${messages.length * 0.05}s` }">
             <div class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm">
               <i class="fas fa-robot text-xs"></i>
             </div>
@@ -163,8 +175,9 @@
 <script setup lang="ts">
 import { marked } from 'marked'
 import DOMPurify from 'isomorphic-dompurify'
-import { ref, onUpdated, nextTick, watch, onMounted } from 'vue'
+import { ref, onUpdated, nextTick, watch, onMounted, computed } from 'vue'
 import type { AIMessage } from '@/apps/products/oasis/builder/types/services'
+import { useAgentStore } from '../../../stores/agentStore'
 
 const props = defineProps<{
   messages: AIMessage[]
@@ -303,6 +316,25 @@ const getSystemMessageIcon = (content: string) => {
     return 'fa-info-circle';
   }
 }
+
+// Get current mode from agent store
+const agentStore = useAgentStore()
+const mode = computed(() => agentStore.mode)
+
+// Examples for different modes
+const chatExamples = [
+  "How do I implement user authentication?",
+  "What's the best way to optimize database queries?",
+  "Can you explain how this code works?",
+  "What are the best practices for responsive design?"
+]
+
+const buildExamples = [
+  "Create a login form with email and password fields",
+  "Build a responsive dashboard with user statistics",
+  "Generate an API endpoint for user registration",
+  "Create a database schema for a blog application"
+]
 </script>
 
 <style scoped>

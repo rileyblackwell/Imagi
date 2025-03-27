@@ -8,8 +8,8 @@
 -->
 <template>
   <div>
-    <!-- Fixed position credit balance display -->
-    <CreditBalanceDisplay />
+    <!-- Fixed position account balance display -->
+    <AccountBalanceDisplay />
     
     <BuilderLayout 
       storage-key="builderWorkspaceSidebarCollapsed"
@@ -82,7 +82,7 @@ import { useBalanceStore } from '@/shared/stores/balance'
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
-import { CreditBalanceDisplay } from '../components/molecules'
+import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
 import { WorkspaceChat } from '../components/organisms/workspace'
@@ -161,7 +161,23 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
     return []
   }
   
-  const validMessages = messages
+  // Filter out system messages related to file switching in all modes
+  const filteredMessages = messages.filter(m => {
+    // Remove all system messages related to file switching
+    if (m && m.role === 'system') {
+      // Filter out messages about file switching, mode switching or file availability
+      if (m.content && (
+        m.content.includes('Switched to file:') || 
+        m.content.includes('Switched to build mode') ||
+        m.content.includes('previously selected file')
+      )) {
+        return false;
+      }
+    }
+    return true;
+  });
+  
+  const validMessages = filteredMessages
     .filter(m => m && typeof m === 'object' && m.role)
     .map(m => {
       // Ensure content is a valid string
@@ -253,18 +269,58 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       // Show loading notification for chat
       notify({ type: 'info', message: 'Connecting with AI...' })
       
-      // Streaming will be used automatically for supported models (OpenAI/Claude)
-      await sendMessage(
-        prompt.value,
-        store.selectedModelId,
-        projectId.value,
-        {
-          mode: 'chat',
-          currentFile: store.selectedFile
-        }
-      )
+      // Add temporary assistant message to show typing
+      const assistantMessageId = `assistant-${Date.now()}`
+      const assistantMessage = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        id: assistantMessageId,
+        isStreaming: true
+      }
       
-      // No need for success notification as the message will be displayed in the chat
+      // Add temporary message to show loading
+      store.conversation.push(assistantMessage)
+      
+      try {
+        // Call the AI service
+        const response = await AgentService.processChat(
+          projectId.value,
+          {
+            prompt: prompt.value,
+            model: store.selectedModelId,
+            mode: 'chat',
+            file: store.selectedFile
+          }
+        )
+        
+        // Find and update the temporary message with the actual response
+        const messageIndex = store.conversation.findIndex(msg => msg.id === assistantMessageId)
+        
+        if (messageIndex !== -1) {
+          // Update the message in place
+          store.conversation[messageIndex] = {
+            role: 'assistant',
+            content: response.response,
+            timestamp: new Date().toISOString(),
+            id: assistantMessageId,
+            code: response.messages[1]?.code || null
+          }
+        } else {
+          // If temporary message wasn't found, add the response as a new message
+          store.conversation.push({
+            role: 'assistant',
+            content: response.response,
+            timestamp: new Date().toISOString(),
+            id: `assistant-response-${Date.now()}`,
+            code: response.messages[1]?.code || null
+          })
+        }
+      } catch (chatError) {
+        // Remove the temporary message if there was an error
+        store.conversation = store.conversation.filter(msg => msg.id !== assistantMessageId)
+        throw chatError
+      }
     }
     
     // Fetch the updated balance immediately after AI usage
@@ -312,9 +368,9 @@ async function handleModeSwitch(mode: BuilderMode) {
     notify({ type: 'info', message: `Auto-selected file: ${store.files[0].path}` })
   }
   
-  // If we're switching modes but keeping the conversation,
-  // add a system message to indicate the mode change
-  if (previousMode !== mode && store.conversation.length > 0) {
+  // Only add system messages about mode changes if the new mode is chat mode
+  // This prevents system messages from appearing in build mode
+  if (mode === 'chat' && previousMode !== mode && store.conversation.length > 0) {
     store.conversation.push({
       role: 'system',
       content: `Switched to ${mode} mode${store.selectedFile ? ` for file: ${store.selectedFile.path}` : ''}`,
@@ -326,21 +382,11 @@ async function handleModeSwitch(mode: BuilderMode) {
 
 async function handleFileSelect(file: ProjectFile) {
   if (store.selectedFile?.path !== file.path) {
-    // Add system message about file change to maintain context
-    store.conversation.push({
-      role: 'system',
-      content: `Switched to file: ${file.path}`,
-      timestamp: new Date().toISOString(),
-      id: `system-file-${Date.now()}`
-    })
+    // Remove system messages about file changes completely
+    // No longer add file switch notifications to the conversation
     
     // Use the improved selectFile method to maintain chat context
     store.selectFile(file)
-    
-    // Don't clear conversation when changing files
-    // The system now adds context messages indicating file changes
-    // This allows the AI to maintain context across file changes
-    // and provides a more cohesive chat experience
     
     // Update the mode indicator UI by forcing a re-render
     // This is needed because the selectedFile reference might not change

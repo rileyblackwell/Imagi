@@ -107,7 +107,22 @@ const validatedMessages = computed(() => {
     return []
   }
   
-  const processed = props.messages.map(message => {
+  // First filter out system messages related to file switching if not in chat mode
+  const filteredMessages = props.messages.filter(message => {
+    // If we're in build mode, filter out system messages about file switching
+    if (props.mode !== 'chat' && message.role === 'system') {
+      // Filter out messages about file switching or mode switching
+      if (message.content && (
+        message.content.includes('Switched to file:') || 
+        message.content.includes('Switched to build mode')
+      )) {
+        return false;
+      }
+    }
+    return true;
+  });
+  
+  const processed = filteredMessages.map(message => {
     // Ensure each message has valid content
     let content = message.content
     

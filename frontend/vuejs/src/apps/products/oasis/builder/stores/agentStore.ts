@@ -122,17 +122,8 @@ export const useAgentStore = defineStore('agent', {
       this.selectedFile = file;
       this.unsavedChanges = false;
       
-      // If we're switching to a new file but staying in the same conversation,
-      // we want to add a system message indicating the file change
-      if (file && previousFilePath && previousFilePath !== file.path && this.conversation.length > 0) {
-        // Add a system message to indicate file change for context
-        this.conversation.push({
-          role: 'system',
-          content: `Switched to file: ${file.path}`,
-          timestamp: new Date().toISOString(),
-          id: `system-${Date.now()}`
-        });
-      }
+      // No longer add system messages about file switches
+      // This keeps the conversation cleaner and removes the "Switched to file" messages
     },
 
     setSelectedFile(file: ProjectFile | null) {
@@ -149,14 +140,9 @@ export const useAgentStore = defineStore('agent', {
         if (this.selectedFile) {
           const stillExists = this.files.some(f => f.path === this.selectedFile?.path);
           if (!stillExists) {
-            // The file was removed, select null and add a system message
+            // The file was removed, select null but don't add a system message
             this.selectedFile = null;
-            this.conversation.push({
-              role: 'system',
-              content: 'The previously selected file is no longer available.',
-              timestamp: new Date().toISOString(),
-              id: `system-${Date.now()}`
-            });
+            // No longer add system messages about file availability
           }
         }
       } else {

@@ -8,23 +8,7 @@
 -->
 <template>
   <div class="space-y-3">
-    <!-- Header -->
-    <div class="flex items-center">
-      <div class="mr-3">
-        <div class="w-10 h-10 bg-primary-500/20 rounded-full flex items-center justify-center">
-          <i class="fas fa-comments text-primary-400"></i>
-        </div>
-      </div>
-      <div>
-        <h2 class="text-base font-medium text-white">Conversation History</h2>
-        <p class="text-xs text-gray-400">
-          <span v-if="selectedFile">File: {{ getFilename(selectedFile.path) }}</span>
-          <span v-else>General Chat</span>
-        </p>
-      </div>
-    </div>
-    
-    <!-- Indicators -->
+    <!-- Indicators - Removed the "Conversation History" and file path header -->
     <div class="flex items-center gap-3 py-2 px-4 bg-dark-850/90 backdrop-blur-sm rounded-lg border border-dark-700/60 shadow-md">
       <!-- Mode indicator with enhanced styling -->
       <div class="flex items-center">
