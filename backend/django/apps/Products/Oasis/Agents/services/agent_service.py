@@ -372,17 +372,29 @@ def get_conversation_summary(conversation):
 
 class BaseAgentService(ABC):
     """
-    Abstract base class for specialized agent services.
+    Base class for all agent services.
     
-    This class provides common functionality for all agent services and defines
-    the interface that specialized services must implement. It should not be
-    instantiated directly.
+    This abstract class provides common functionality for agent services,
+    such as conversation management, credit management, and prompt generation.
     """
     
     def __init__(self):
-        """Initialize the agent service with API clients."""
-        self.openai_client = openai_client
-        self.anthropic_client = anthropic_client
+        """Initialize the agent service."""
+        # Initialize API clients
+        self.openai_client = OpenAI(api_key=openai_key)
+        self.anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
+        
+        # Set default project files list
+        self.project_files = []
+        
+        # Log initialization
+        logger.debug(f"Initialized {self.__class__.__name__}")
+        
+        # Check if API keys are available
+        if not openai_key:
+            logger.warning("OpenAI API key not found - OpenAI features will not work properly")
+        if not anthropic_key:
+            logger.warning("Anthropic API key not found - Claude features will not work properly")
     
     @abstractmethod
     def get_system_prompt(self):

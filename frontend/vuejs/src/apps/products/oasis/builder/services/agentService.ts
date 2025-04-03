@@ -8,9 +8,7 @@ import type {
 } from '../types/services'
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 import { usePaymentsStore } from '@/apps/payments/store'
-import { notify } from '@/shared/utils'
-import axios from 'axios'
-import { ref } from 'vue'
+import { FileService } from '@/apps/products/oasis/builder/services/fileService'
 
 // Static variables for rate limiting
 let requestCounts: Map<string, number> = new Map()
@@ -108,19 +106,54 @@ export const AgentService = {
       throw new Error(`Prompt is too long for selected model. Please reduce length or choose a different model.`)
     }
 
+    // Validate project ID
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
     try {
+      // Show in-progress message
+      const { notify } = await import('@/shared/utils');
+      notify({ type: 'info', message: 'Generating code and updating file...' });
+      
       // Get conversation ID from localStorage
       const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
       
-      // Prepare request payload
+      // Get all project files
+      const files = await FileService.getProjectFiles(projectId);
+      
+      // Ensure file_path has a value and proper format
+      let filePath = data.file_path || 'templates/index.html';
+      
+      // For HTML files, make sure they are in the templates directory
+      if (filePath.endsWith('.html') && !filePath.startsWith('templates/')) {
+        filePath = `templates/${filePath.replace(/^\//, '')}`;
+      }
+      
+      // Prepare request payload with all required fields
       const payload = {
         message: data.prompt,
         model: modelId,
-        project_id: projectId,
-        file_path: data.file_path,
-        mode: data.mode,
-        conversation_id: storedConversationId || undefined
+        project_id: String(projectId), // Ensure project_id is a string
+        file_path: filePath,
+        mode: data.mode || 'build', // Default to build mode if not specified
+        conversation_id: storedConversationId || undefined,
+        project_files: files.map(file => ({
+          path: file.path,
+          type: file.type,
+          content: file.content || ''
+        }))
       }
+      
+      console.log('Sending template request with payload:', {
+        message_length: payload.message.length,
+        model: payload.model,
+        project_id: payload.project_id,
+        file_path: payload.file_path,
+        mode: payload.mode,
+        conversation_id: payload.conversation_id ? 'defined' : 'undefined',
+        project_files_count: payload.project_files.length
+      });
       
       // Use the build_template endpoint from agents/api
       const response = await api.post('/api/v1/agents/build/template/', payload)
@@ -128,6 +161,33 @@ export const AgentService = {
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
         localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id)
+      }
+      
+      // Show success notification
+      if (response.data.success) {
+        if (response.data.warning) {
+          // Success but with warnings
+          notify({ 
+            type: 'warning', 
+            message: `Generated code with warning: ${response.data.warning}`
+          });
+        } else {
+          // Complete success
+          notify({ 
+            type: 'success', 
+            message: `Successfully updated file: ${payload.file_path}`
+          });
+        }
+        
+        // Refresh file list to show updated file
+        setTimeout(async () => {
+          try {
+            // Force refresh by getting fresh file list
+            await FileService.getProjectFiles(projectId);
+          } catch (err) {
+            console.warn('Error refreshing file list:', err);
+          }
+        }, 500);
       }
       
       return {
@@ -139,7 +199,11 @@ export const AgentService = {
           response.data.assistant_message
         ]
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Show error notification
+      const { notify } = await import('@/shared/utils');
+      notify({ type: 'error', message: `Error generating code: ${error.message || 'Unknown error'}` });
+      
       throw handleAPIError(error)
     }
   },
@@ -161,6 +225,9 @@ export const AgentService = {
     // Get conversation ID from localStorage
     const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`);
     
+    // Get all project files
+    const files = await FileService.getProjectFiles(projectId);
+    
     // Prepare request payload
     const payload: {
       message: string;
@@ -174,15 +241,25 @@ export const AgentService = {
         type: string;
         content: string;
       };
+      project_files?: Array<{
+        path: string;
+        type: string;
+        content: string;
+      }>;
     } = {
       message: data.prompt,
       model: data.model,
       project_id: String(projectId),
       conversation_id: storedConversationId || undefined,
       mode: data.mode || 'chat',
+      project_files: files.map(file => ({
+        path: file.path,
+        type: file.type,
+        content: file.content || ''
+      }))
     };
     
-    // Add current file if available - but omit content which can cause 400 errors
+    // Add current file if available
     if (data.file) {
       payload.current_file = {
         path: data.file.path,
@@ -678,4 +755,4 @@ export const ModelService = {
   canGenerateCode: AgentService.canGenerateCode,
   estimateTokens: AgentService.estimateTokens,
   getDefaultModels: AgentService.getDefaultModels
-} 
+}

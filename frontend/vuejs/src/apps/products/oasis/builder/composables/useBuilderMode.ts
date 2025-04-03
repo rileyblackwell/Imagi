@@ -35,103 +35,105 @@ export function useBuilderMode() {
     }
 
     if (!projectId) {
+      const { notify } = await import('@/shared/utils');
+      notify({ type: 'error', message: 'No project selected. Please select or create a project first.' });
       throw new Error('Project ID must be provided')
     }
 
     if (!file) {
+      const { notify } = await import('@/shared/utils');
+      notify({ type: 'error', message: 'No file selected. Please select or create a file first.' });
       throw new Error('Please select a file to edit')
     }
 
     if (!modelId) {
+      const { notify } = await import('@/shared/utils');
+      notify({ type: 'error', message: 'No AI model selected. Please select a model first.' });
       throw new Error('AI Model must be selected')
     }
 
     store.$patch({ isProcessing: true, error: null })
 
     try {
-      // Add user message to conversation
+      // Set processing state
+      store.setProcessing(true)
+      
+      // Get model by ID for validation
+      const model = store.availableModels.find(m => m.id === modelId)
+      if (!model) {
+        throw new Error(`Model not found: ${modelId}`)
+      }
+      
+      // Prepare required data for code generation
+      const codeGenData = {
+        prompt,
+        model: modelId,
+        mode,
+        file_path: file?.path
+      }
+      
+      // Log the request parameters (sanitized)
+      console.info('Generating code with parameters:', {
+        prompt: prompt.substring(0, 50) + '...',
+        modelId,
+        mode,
+        filePath: file?.path,
+        projectId
+      })
+      
+      // Generate code using AI
+      const response = await AgentService.generateCode(projectId, codeGenData)
+      
+      // Add user message to conversation immediately
       store.addMessage({
         role: 'user',
         content: prompt,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
-
-      // Determine file type to use appropriate API endpoint
-      const fileExtension = file.path.split('.').pop()?.toLowerCase() || '';
       
-      // Call the appropriate service method based on file type
-      let response;
+      // Add assistant message to conversation
+      store.addMessage({
+        role: 'assistant',
+        content: response.response,
+        code: response.code,
+        timestamp: new Date().toISOString(),
+      })
       
-      if (fileExtension === 'css') {
-        response = await AgentService.generateStylesheet(projectId, {
-          prompt,
-          model: modelId,
-          file_path: file.path
-        });
-      } else if (['html', 'htm', 'django-html', 'jinja', 'tpl'].includes(fileExtension)) {
-        response = await AgentService.generateCode(projectId, {
-          prompt,
-          mode: mode,
-          model: modelId,
-          file_path: file.path
-        });
-      } else {
-        // For other file types, use the general code generation endpoint
-        response = await AgentService.generateCode(projectId, {
-          prompt,
-          mode: mode,
-          model: modelId,
-          file_path: file.path
-        });
-      }
-
-      // Add assistant response to conversation
-      if (response) {
-        // For build mode, create a more user-friendly message without showing the actual code
-        if (mode === 'build') {
-          store.addMessage({
-            role: 'assistant',
-            content: `I've updated the file "${file.path}" based on your requirements.`,
-            // Don't include the code in the message for build mode
-            timestamp: new Date().toISOString()
-          })
-        } else {
-          // For other modes, include the code
-          store.addMessage({
-            role: 'assistant',
-            content: response.response || 'Generated code successfully',
-            code: response.code || '',
-            timestamp: new Date().toISOString()
-          })
-        }
-
-        // Update the file with generated code if provided
-        if (response.code) {
-          await updateFile(projectId, file.path, response.code)
+      if (file) {
+        // Refresh the file content to show latest version
+        try {
+          const updatedFile = await FileService.getFile(projectId, file.path)
           
-          // Update the selected file in the store
-          store.setSelectedFile({
+          // Update the file in the store
+          store.updateFile({
             ...file,
-            content: response.code
+            content: updatedFile.content
           })
           
-          // Show a success notification specifically for build mode
-          if (mode === 'build') {
-            notify({ 
-              type: 'success', 
-              message: `File "${file.path}" has been updated successfully.`
-            })
-          }
+          // Update the selected file
+          store.selectFile(updatedFile)
+          
+          console.log(`File ${file.path} updated successfully`)
+        } catch (refreshError) {
+          console.error('Error refreshing file content:', refreshError)
+          // Still proceed with the operation even if refresh fails
         }
       }
 
-      return response
-    } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to generate code'
-      store.$patch({ error })
-      throw err
+      // Don't return the response as void return type is expected
+    } catch (error) {
+      console.error('Error generating code:', error)
+      
+      // If this is a user-facing error (like API error), wrap it to make it clearer
+      if (error instanceof Error) {
+        throw new Error(`BuilderAPIError: ${error.message}`)
+      }
+      
+      // Otherwise rethrow
+      throw error
     } finally {
-      store.$patch({ isProcessing: false })
+      // Reset processing state
+      store.setProcessing(false)
     }
   }
 

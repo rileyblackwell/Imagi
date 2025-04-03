@@ -189,53 +189,36 @@ class FileService:
     def create_file(self, file_data, project_id=None):
         """Create a new file."""
         try:
+            # Get the project path
             project_path = self.get_project_path(project_id)
             
-            # Validate file data
-            name = file_data.get('name', '')
-            file_type = file_data.get('type', '')
-            content = file_data.get('content', '')
-            path = file_data.get('path', '')
-            
-            # If a path is provided, use that directly
-            if path:
-                file_path = path
-            else:
+            # Extract file data
+            if isinstance(file_data, dict):
+                # Handle new format with detailed file info
+                name = file_data.get('name', '')
+                content = file_data.get('content', '')
+                file_type = file_data.get('type', '')
+                
                 if not name:
-                    raise ValidationError('File name is required')
+                    raise ValueError("File name is required")
                 
-                # Determine file extension based on type
-                if file_type == 'python':
-                    ext = '.py'
-                elif file_type == 'html':
-                    ext = '.html'
-                elif file_type == 'css':
-                    ext = '.css'
-                elif file_type == 'javascript':
-                    ext = '.js'
-                elif file_type == 'json':
-                    ext = '.json'
-                elif file_type == 'markdown':
-                    ext = '.md'
+                # Check if this is a relative path or just a filename
+                if '/' in name:
+                    # This is a relative path - use as is
+                    file_path = name
                 else:
-                    ext = ''
-                
-                # Add extension if it's not already part of the name
-                if ext and not name.endswith(ext):
-                    name = f"{name}{ext}"
-                
-                # Determine directory based on file type if not already specified
-                if not any(name.startswith(prefix) for prefix in ['templates/', 'static/']):
-                    if file_type == 'html':
-                        file_path = f"templates/{name}"
-                    elif file_type == 'css':
-                        file_path = f"static/css/{name}"
-                    elif file_type == 'javascript':
-                        file_path = f"static/{name}"
+                    # Determine directory based on file type if not already specified
+                    if not any(name.startswith(prefix) for prefix in ['templates/', 'static/']):
+                        if file_type == 'html':
+                            file_path = f"templates/{name}"
+                        elif file_type == 'css':
+                            file_path = f"static/css/{name}"
+                        elif file_type == 'javascript':
+                            file_path = f"static/{name}"
+                        else:
+                            file_path = name
                     else:
                         file_path = name
-                else:
-                    file_path = name
                     
                     # Ensure CSS files are always in static/css/
                     if file_type == 'css' and not file_path.startswith('static/css/'):

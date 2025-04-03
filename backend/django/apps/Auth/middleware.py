@@ -198,11 +198,10 @@ class APIRequestLoggingMiddleware:
         
         # Log the request with method, path, status code, and duration
         api_logger.info(
-            f"{request.method} {request.path}",
+            f"{request.method} {request.path} - {duration:.2f}ms",
             extra={
                 'request': request,
-                'status_code': response.status_code,
-                'duration': f"{duration:.2f}ms"
+                'status_code': response.status_code
             }
         )
         

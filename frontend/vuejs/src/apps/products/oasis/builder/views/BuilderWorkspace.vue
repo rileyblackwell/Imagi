@@ -224,7 +224,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     
     // Add the user message to the conversation immediately
     store.conversation.push({
-      role: 'user',
+      role: 'user' as const,
       content: prompt.value,
       timestamp: timestamp,
       id: `user-${Date.now()}`
@@ -247,6 +247,12 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     }
     
     if (store.mode === 'build') {
+      // Check for missing required values
+      if (!projectId.value) {
+        notify({ type: 'error', message: 'No project selected. Please select or create a project first.' })
+        return
+      }
+      
       if (!store.selectedFile) {
         notify({ type: 'warning', message: 'Please select a file to modify' })
         return
@@ -258,8 +264,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       await generateCodeFromPrompt({
         prompt: prompt.value,
         file: store.selectedFile,
-        projectId: projectId.value,
-        modelId: store.selectedModelId,
+        projectId: projectId.value, // This is guaranteed to be non-null at this point
+        modelId: store.selectedModelId as string, // Type assertion since we checked it's not null above
         mode: 'build'
       })
       
@@ -272,7 +278,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       // Add temporary assistant message to show typing
       const assistantMessageId = `assistant-${Date.now()}`
       const assistantMessage = {
-        role: 'assistant',
+        role: 'assistant' as const,
         content: '',
         timestamp: new Date().toISOString(),
         id: assistantMessageId,
@@ -285,7 +291,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       try {
         // Call the AI service
         const response = await AgentService.processChat(
-          projectId.value,
+          projectId.value as string, // Type assertion since we checked it's not null above
           {
             prompt: prompt.value,
             model: store.selectedModelId,
@@ -327,7 +333,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     // This ensures the credits display shows the correct amount
     try {
       // Force update of balance after AI model usage
-      await paymentsStore.fetchBalance(false, true)
+      await usePaymentsStore().fetchBalance(false, true)
     } catch (err) {
       console.warn('Failed to refresh balance after AI usage:', err)
     }

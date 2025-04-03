@@ -447,7 +447,7 @@ LOGGING = {
             'style': '{',
         },
         'api_calls': {
-            'format': '[API] {asctime} | {request.method} {request.path} → Status: {status_code} ({duration})',
+            'format': '[API] {asctime} | {request.method} {request.path} → Status: {status_code}',
             'style': '{',
         },
     },

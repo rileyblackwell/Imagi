@@ -12,6 +12,7 @@ from .agent_service import BaseAgentService
 from ..models import AgentConversation, SystemPrompt, AgentMessage
 from django.shortcuts import get_object_or_404
 import os
+from django.utils import timezone
 
 # Load environment variables from .env
 load_dotenv()
@@ -317,22 +318,29 @@ class TemplateAgentService(BaseAgentService):
         # Make API call based on provider and model
         try:
             if provider == 'anthropic' or model.startswith('claude'):
+                # Verify anthropic client is available
+                if not hasattr(self, 'anthropic_client') or self.anthropic_client is None:
+                    logger.error("Anthropic client not available - check API key configuration")
+                    raise ValueError("Anthropic client not initialized - check API key configuration")
+                
+                # Get the system message content for Claude
+                system_content = ""
+                for msg in api_messages:
+                    if msg['role'] == 'system':
+                        system_content += msg['content'] + "\n\n"
+                
                 # Extract messages for Claude (excluding system messages)
                 claude_messages = [
                     msg for msg in api_messages 
                     if msg["role"] != "system"
                 ]
                 
-                # Get system content
-                system_content = next(
-                    (msg["content"] for msg in api_messages if msg["role"] == "system"),
-                    self.get_system_prompt()["content"]
-                )
-                
+                # Make the API call
+                logger.info(f"Calling Anthropic API with model {model} for template generation")
                 completion = self.anthropic_client.messages.create(
                     model=model,
                     max_tokens=2048,
-                    system=system_content,
+                    system=system_content.strip(),
                     messages=claude_messages
                 )
                 
@@ -341,7 +349,13 @@ class TemplateAgentService(BaseAgentService):
                 else:
                     raise ValueError("Empty response from Claude API")
             else:
-                # Use OpenAI for all other models
+                # Verify OpenAI client is available
+                if not hasattr(self, 'openai_client') or self.openai_client is None:
+                    logger.error("OpenAI client not available - check API key configuration")
+                    raise ValueError("OpenAI client not initialized - check API key configuration")
+                
+                # Make the API call
+                logger.info(f"Calling OpenAI API with model {model} for template generation")
                 completion = self.openai_client.chat.completions.create(
                     model=model,
                     messages=api_messages
@@ -355,8 +369,8 @@ class TemplateAgentService(BaseAgentService):
             return response
             
         except Exception as e:
-            print(f"Error in process_message: {str(e)}")
-            raise e
+            logger.error(f"Error in process_message: {str(e)}")
+            raise
 
     def handle_template_request(self, user_input, model, user, file_path, conversation_id=None, project_id=None):
         """
@@ -458,57 +472,215 @@ class TemplateAgentService(BaseAgentService):
         Process a template generation request.
         
         Args:
-            prompt (str): The user's prompt describing the template
-            model (str): The AI model to use (e.g., 'claude-3-7-sonnet-20250219')
-            user: The Django user object
+            prompt (str): The user's prompt
+            model (str): The model to use
+            user (User): The user object
             project_id (str, optional): The project ID
-            file_name (str, optional): The target file name
-            conversation_id (str, optional): The ID of an existing conversation
+            file_name (str, optional): The file name
+            conversation_id (str, optional): The conversation ID
             
         Returns:
-            dict: A dictionary containing the result, including the generated template
+            dict: The response data
         """
         try:
-            # Set the file path for the template
-            file_path = file_name
+            # Get or create conversation
+            conversation = None
+            if conversation_id:
+                conversation = self.get_conversation(conversation_id, user)
             
-            # Call the existing method to handle the template request
-            result = self.handle_template_request(
-                user_input=prompt,
-                model=model,
-                user=user,
-                file_path=file_path,
-                conversation_id=conversation_id,
-                project_id=project_id
-            )
+            if not conversation:
+                # Get system prompt
+                system_prompt = self.get_system_prompt()
+                conversation = self.create_conversation(user, model, system_prompt)
             
-            # Extract the generated content and return it in the expected format
-            if result.get('success'):
-                template_content = result.get('response', '')
+            # Log the function call with all parameters for debugging
+            logger.info(f"process_template called with: prompt={prompt[:50]}..., model={model}, " 
+                       f"user_id={user.id}, project_id={project_id}, file_name={file_name}, " 
+                       f"conversation_id={conversation_id}")
+            
+            # Add user message to conversation
+            self.add_user_message(conversation, prompt, user)
+            
+            # Build conversation history with project context
+            api_messages = self.build_conversation_history(conversation)
+            
+            # Get project path if project_id is provided
+            project_path = None
+            if project_id:
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                    logger.info(f"Found project path: {project_path}")
+                except Exception as e:
+                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+                    return {
+                        'success': False,
+                        'error': f"Project not found or inaccessible: {str(e)}",
+                    }
+            
+            # Add project files context if available
+            if hasattr(self, 'project_files') and self.project_files:
+                logger.info(f"Adding {len(self.project_files)} project files to context")
+                project_files_context = "\n\nProject Files:\n"
+                for file in self.project_files:
+                    file_path = file.get('path', 'unknown')
+                    file_type = file.get('type', 'unknown')
+                    content = file.get('content', '')
+                    if len(content) > 1000:
+                        content_preview = content[:1000] + "... (truncated)"
+                    else:
+                        content_preview = content
+                    project_files_context += f"\nFile: {file_path}\nType: {file_type}\nContent:\n{content_preview}\n"
+                api_messages.append({
+                    'role': 'system',
+                    'content': project_files_context
+                })
+            
+            # Add current file context if available
+            if file_name:
+                current_file_context = f"\n\nCurrent File: {file_name}\n"
+                current_file_context += f"You are creating or editing the file: {file_name}\n"
+                current_file_context += f"Focus your generation on producing ONLY the content for this file."
+                api_messages.append({
+                    'role': 'system',
+                    'content': current_file_context
+                })
+            
+            # Generate the response using the appropriate model
+            try:
+                logger.info(f"Generating response with model: {model}")
+                if 'claude' in model:
+                    # Verify anthropic client is available
+                    if not hasattr(self, 'anthropic_client') or self.anthropic_client is None:
+                        logger.error("Anthropic client not available - check API key configuration")
+                        return {
+                            'success': False,
+                            'error': "Anthropic client not initialized - check API key configuration",
+                        }
+                    
+                    # Get the system message content for Claude
+                    system_content = ""
+                    for msg in api_messages:
+                        if msg['role'] == 'system':
+                            system_content += msg['content'] + "\n\n"
+                    
+                    # Filter out system messages for Claude API
+                    claude_messages = [msg for msg in api_messages if msg['role'] != 'system']
+                    
+                    # Make the API call
+                    completion = self.anthropic_client.messages.create(
+                        model=model,
+                        max_tokens=4096,
+                        temperature=0.7,
+                        system=system_content.strip(),
+                        messages=claude_messages
+                    )
+                    response_content = completion.content[0].text
+                elif 'gpt' in model:
+                    # Verify OpenAI client is available
+                    if not hasattr(self, 'openai_client') or self.openai_client is None:
+                        logger.error("OpenAI client not available - check API key configuration")
+                        return {
+                            'success': False,
+                            'error': "OpenAI client not initialized - check API key configuration",
+                        }
+                    
+                    # Make the API call
+                    completion = self.openai_client.chat.completions.create(
+                        model=model,
+                        messages=api_messages,
+                        temperature=0.7,
+                        max_tokens=4096
+                    )
+                    response_content = completion.choices[0].message.content
+                else:
+                    raise ValueError(f"Unsupported model: {model}")
                 
-                # Clean up the template content if needed
-                cleaned_template = self.fix_template_issues(template_content, file_path)
-                
-                # Now that we have a successful template, generate corresponding view and URL
-                if project_id and file_name:
-                    self.create_view_and_url(project_id, file_name, user)
-                
-                # Return the result with all needed fields
-                return {
-                    'success': True,
-                    'template': cleaned_template,
-                    'file_name': file_path,
-                    'conversation_id': result.get('conversation_id'),
-                    'timestamp': result.get('timestamp')
-                }
-            else:
+                logger.info(f"Generated response length: {len(response_content)}")
+            except Exception as model_error:
+                logger.error(f"Error generating response: {str(model_error)}")
                 return {
                     'success': False,
-                    'error': result.get('error', 'Template generation failed')
+                    'error': f"Error generating template: {str(model_error)}",
+                    'response': None
                 }
-                
+            
+            # Validate the response
+            is_valid, error = self.validate_response(response_content)
+            if not is_valid:
+                logger.warning(f"Response validation failed: {error}")
+                return {
+                    'success': False,
+                    'error': error,
+                    'response': response_content
+                }
+            
+            # Store the assistant response
+            self.add_assistant_message(conversation, response_content, user)
+            
+            # Try to save the file if project_id and file_name are provided
+            if project_id and file_name and project_path:
+                try:
+                    logger.info(f"Attempting to save file {file_name} to project {project_id}")
+                    from apps.Products.Oasis.Builder.services.file_service import FileService
+                    file_service = FileService(user=user)
+                    
+                    # Determine file type based on extension
+                    if file_name.endswith('.html'):
+                        file_type = 'html'
+                    elif file_name.endswith('.css'):
+                        file_type = 'css'
+                    elif file_name.endswith('.js'):
+                        file_type = 'javascript'
+                    else:
+                        file_type = 'text'
+                    
+                    # Prepare file data
+                    file_data = {
+                        'name': file_name,
+                        'content': response_content,
+                        'type': file_type
+                    }
+                    
+                    # Create or update the file
+                    file_result = file_service.create_file(file_data, project_id)
+                    logger.info(f"File saved successfully: {file_result['path']}")
+                    
+                    # Include file information in the response
+                    return {
+                        'success': True,
+                        'conversation_id': str(conversation.id),
+                        'response': response_content,
+                        'timestamp': timezone.now().isoformat(),
+                        'file': {
+                            'path': file_result['path'],
+                            'type': file_result['type']
+                        }
+                    }
+                except Exception as file_error:
+                    logger.error(f"Error saving file: {str(file_error)}")
+                    # Return success for the AI generation but include warning about file saving
+                    return {
+                        'success': True,
+                        'conversation_id': str(conversation.id),
+                        'response': response_content,
+                        'timestamp': timezone.now().isoformat(),
+                        'warning': f"File generated but could not be saved: {str(file_error)}"
+                    }
+            
+            # Return the successful response
+            return {
+                'success': True,
+                'conversation_id': str(conversation.id),
+                'response': response_content,
+                'timestamp': timezone.now().isoformat()
+            }
+            
         except Exception as e:
-            print(f"Error in process_template: {str(e)}")
+            logger.error(f"Error in process_template: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {
                 'success': False,
                 'error': str(e)
@@ -960,4 +1132,43 @@ if settings.DEBUG:
             return {
                 'success': False,
                 'error': str(e)
+            }
+
+    def validate_project_access(self, project_id, user):
+        """
+        Validate that a project exists and the user has access to it.
+        
+        Args:
+            project_id (str): The ID of the project
+            user (User): The Django user object
+            
+        Returns:
+            tuple: (project, error_response)
+            - project: The Project object if validation succeeds, None otherwise
+            - error_response: Error dict if validation fails, None otherwise
+        """
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.get(id=project_id, user=user)
+            
+            if not project.project_path:
+                logger.error(f"Project {project_id} has no valid project path")
+                return None, {
+                    'success': False,
+                    'error': 'Project path not found. The project may not be properly initialized.'
+                }
+                
+            return project, None
+            
+        except Project.DoesNotExist:
+            logger.error(f"Project {project_id} not found for user {user.username}")
+            return None, {
+                'success': False,
+                'error': 'Project not found or you do not have access to it'
+            }
+        except Exception as e:
+            logger.error(f"Error verifying project: {str(e)}")
+            return None, {
+                'success': False,
+                'error': f'Error accessing project: {str(e)}'
             }
