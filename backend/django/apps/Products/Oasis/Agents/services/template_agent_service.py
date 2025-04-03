@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 import re
 import logging
 from .agent_service import BaseAgentService
-from ..models import AgentConversation, SystemPrompt, AgentMessage
 from django.shortcuts import get_object_or_404
 import os
 from django.utils import timezone
@@ -32,7 +31,6 @@ class TemplateAgentService(BaseAgentService):
         """Initialize the template agent service."""
         super().__init__()
         self.current_template_name = None
-        self.project_files = []
 
     def get_system_prompt(self):
         """
@@ -271,108 +269,6 @@ class TemplateAgentService(BaseAgentService):
         
         return result
         
-    def process_message(self, user_input, model, **kwargs):
-        """
-        Process a message from the API endpoint.
-        This method is used by the API endpoint to process messages without creating a conversation.
-        
-        Args:
-            user_input (str): The user's message
-            model (str): The AI model to use
-            **kwargs: Additional arguments for template generation
-            
-        Returns:
-            str: The generated template content
-        """
-        conversation_history = kwargs.get('conversation_history', [])
-        provider = kwargs.get('provider', 'anthropic')
-        file_name = kwargs.get('file_name')
-        
-        # Store the current template name for validation
-        self.current_template_name = file_name
-        
-        # Prepare messages for the API call
-        api_messages = []
-        
-        # Add system prompt
-        system_prompt = self.get_system_prompt()
-        api_messages.append(system_prompt)
-        
-        # Add conversation history
-        for msg in conversation_history:
-            api_messages.append(msg)
-        
-        # Add current task context if file_name is provided
-        if file_name:
-            context_msg = {
-                "role": "system",
-                "content": f"\n=== CURRENT TASK ===\nYou are working on: {file_name}"
-            }
-            api_messages.append(context_msg)
-        
-        # Add user message
-        api_messages.append({
-            "role": "user",
-            "content": user_input
-        })
-        
-        # Make API call based on provider and model
-        try:
-            if provider == 'anthropic' or model.startswith('claude'):
-                # Verify anthropic client is available
-                if not hasattr(self, 'anthropic_client') or self.anthropic_client is None:
-                    logger.error("Anthropic client not available - check API key configuration")
-                    raise ValueError("Anthropic client not initialized - check API key configuration")
-                
-                # Get the system message content for Claude
-                system_content = ""
-                for msg in api_messages:
-                    if msg['role'] == 'system':
-                        system_content += msg['content'] + "\n\n"
-                
-                # Extract messages for Claude (excluding system messages)
-                claude_messages = [
-                    msg for msg in api_messages 
-                    if msg["role"] != "system"
-                ]
-                
-                # Make the API call
-                logger.info(f"Calling Anthropic API with model {model} for template generation")
-                completion = self.anthropic_client.messages.create(
-                    model=model,
-                    max_tokens=2048,
-                    system=system_content.strip(),
-                    messages=claude_messages
-                )
-                
-                if completion.content:
-                    response = completion.content[0].text
-                else:
-                    raise ValueError("Empty response from Claude API")
-            else:
-                # Verify OpenAI client is available
-                if not hasattr(self, 'openai_client') or self.openai_client is None:
-                    logger.error("OpenAI client not available - check API key configuration")
-                    raise ValueError("OpenAI client not initialized - check API key configuration")
-                
-                # Make the API call
-                logger.info(f"Calling OpenAI API with model {model} for template generation")
-                completion = self.openai_client.chat.completions.create(
-                    model=model,
-                    messages=api_messages
-                )
-                response = completion.choices[0].message.content
-            
-            # Fix any template issues if file_name is provided
-            if file_name:
-                response = self.fix_template_issues(response, file_name)
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error in process_message: {str(e)}")
-            raise
-
     def handle_template_request(self, user_input, model, user, file_path, conversation_id=None, project_id=None):
         """
         Handle a complete template generation request, including conversation management.
@@ -392,330 +288,84 @@ class TemplateAgentService(BaseAgentService):
             # Store the current template name for validation
             self.current_template_name = file_path.split('/')[-1] if file_path else None
             
-            # Get or create conversation
-            if conversation_id:
-                conversation = get_object_or_404(
-                    AgentConversation,
-                    id=conversation_id,
-                    user=user
-                )
-            else:
-                conversation = AgentConversation.objects.create(
-                    user=user,
-                    model_name=model,
-                    provider='anthropic' if model.startswith('claude') else 'openai'
-                )
-                # Create initial system prompt
-                system_prompt = self.get_system_prompt()
-                SystemPrompt.objects.create(
-                    conversation=conversation,
-                    content=system_prompt['content']
-                )
-            
-            # Save user message
-            user_message = AgentMessage.objects.create(
-                conversation=conversation,
-                role='user',
-                content=user_input
-            )
-            
-            # Get project path if project_id is provided
-            project_path = None
-            if project_id:
-                try:
-                    from apps.Products.Oasis.ProjectManager.models import Project
-                    project = Project.objects.get(id=project_id, user=user)
-                    project_path = project.project_path
-                except Exception as e:
-                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
-            
-            # Process template generation with project context
+            # Process the conversation
             result = self.process_conversation(
                 user_input=user_input,
                 model=model,
                 user=user,
-                file_name=file_path,
-                conversation=conversation,
-                project_path=project_path
+                conversation_id=conversation_id,
+                project_id=project_id,
+                template_name=self.current_template_name,
+                file_path=file_path
             )
             
-            if result.get('success'):
-                # Save assistant response
-                assistant_message = AgentMessage.objects.create(
-                    conversation=conversation,
-                    role='assistant',
-                    content=result['response']
-                )
-                
-                return {
-                    'success': True,
-                    'conversation_id': conversation.id,
-                    'response': result['response'],
-                    'user_message': user_message,
-                    'assistant_message': assistant_message
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': result.get('error', 'Unknown error'),
-                    'response': result.get('response')
-                }
-                
-        except Exception as e:
-            print(f"Error in handle_template_request: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-
-    def process_template(self, prompt, model, user, project_id=None, file_name=None, conversation_id=None):
-        """
-        Process a template generation request.
-        
-        Args:
-            prompt (str): The user's prompt
-            model (str): The model to use
-            user (User): The user object
-            project_id (str, optional): The project ID
-            file_name (str, optional): The file name
-            conversation_id (str, optional): The conversation ID
-            
-        Returns:
-            dict: The response data
-        """
-        try:
-            # Store the current template name for validation
-            self.current_template_name = file_name.split('/')[-1] if file_name else None
-            
-            # Get or create conversation
-            conversation = None
-            if conversation_id:
-                conversation = self.get_conversation(conversation_id, user)
-            
-            if not conversation:
-                # Get system prompt
-                system_prompt = self.get_system_prompt()
-                conversation = self.create_conversation(user, model, system_prompt)
-            
-            # Log the function call with parameters for debugging
-            logger.info(f"process_template called with: model={model}, file_name={file_name}")
-            
-            # Add user message to conversation
-            self.add_user_message(conversation, prompt, user)
-            
-            # Build conversation history with project context
-            api_messages = self.build_conversation_history(conversation)
-            
-            # Get project path if project_id is provided
-            project_path = None
-            if project_id:
+            # If the operation was successful, try to create view and url
+            if result.get('success') and project_id and self.current_template_name:
                 try:
-                    from apps.Products.Oasis.ProjectManager.models import Project
-                    project = Project.objects.get(id=project_id, user=user)
-                    project_path = project.project_path
-                    logger.info(f"Found project path: {project_path}")
+                    view_url_result = self.create_view_and_url(project_id, self.current_template_name, user)
+                    if view_url_result.get('success'):
+                        result['view_url_created'] = True
                 except Exception as e:
-                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
-                    return {
-                        'success': False,
-                        'error': f"Project not found or inaccessible: {str(e)}",
-                    }
+                    logger.error(f"Error creating view and URL: {str(e)}")
+                    result['view_url_created'] = False
+                    result['view_url_error'] = str(e)
             
-            # Add project files context if available
-            if self.project_files:
-                logger.info(f"Adding {len(self.project_files)} project files to context")
-                project_files_context = "\n\nProject Files:\n"
-                for file in self.project_files:
-                    file_path = file.get('path', 'unknown')
-                    file_type = file.get('type', 'unknown')
-                    content = file.get('content', '')
-                    if len(content) > 1000:
-                        content_preview = content[:1000] + "... (truncated)"
-                    else:
-                        content_preview = content
-                    project_files_context += f"\nFile: {file_path}\nType: {file_type}\nContent:\n{content_preview}\n"
-                api_messages.append({
-                    'role': 'system',
-                    'content': project_files_context
-                })
-            
-            # Add current file context if available
-            if file_name:
-                current_file_context = f"\n\nCurrent File: {file_name}\n"
-                current_file_context += f"You are creating or editing the file: {file_name}\n"
-                current_file_context += f"Focus your generation on producing ONLY the content for this file."
-                api_messages.append({
-                    'role': 'system',
-                    'content': current_file_context
-                })
-            
-            # Generate the response using the appropriate model
-            try:
-                logger.info(f"Generating response with model: {model}")
-                if 'claude' in model:
-                    # Verify anthropic client is available
-                    if not hasattr(self, 'anthropic_client') or self.anthropic_client is None:
-                        logger.error("Anthropic client not available - check API key configuration")
-                        return {
-                            'success': False,
-                            'error': "Anthropic client not initialized - check API key configuration",
-                        }
-                    
-                    # Get the system message content for Claude
-                    system_content = ""
-                    for msg in api_messages:
-                        if msg['role'] == 'system':
-                            system_content += msg['content'] + "\n\n"
-                    
-                    # Filter out system messages for Claude API
-                    claude_messages = [msg for msg in api_messages if msg['role'] != 'system']
-                    
-                    # Make the API call
-                    completion = self.anthropic_client.messages.create(
-                        model=model,
-                        max_tokens=4096,
-                        temperature=0.7,
-                        system=system_content.strip(),
-                        messages=claude_messages
-                    )
-                    response_content = completion.content[0].text
-                elif 'gpt' in model:
-                    # Verify OpenAI client is available
-                    if not hasattr(self, 'openai_client') or self.openai_client is None:
-                        logger.error("OpenAI client not available - check API key configuration")
-                        return {
-                            'success': False,
-                            'error': "OpenAI client not initialized - check API key configuration",
-                        }
-                    
-                    # Make the API call
-                    completion = self.openai_client.chat.completions.create(
-                        model=model,
-                        messages=api_messages,
-                        temperature=0.7,
-                        max_tokens=4096
-                    )
-                    response_content = completion.choices[0].message.content
-                else:
-                    raise ValueError(f"Unsupported model: {model}")
-                
-                logger.info(f"Generated response length: {len(response_content)}")
-            except Exception as model_error:
-                logger.error(f"Error generating response: {str(model_error)}")
-                return {
-                    'success': False,
-                    'error': f"Error generating template: {str(model_error)}",
-                    'response': None
-                }
-            
-            # Fix any template issues
-            response_content = self.fix_template_issues(response_content, self.current_template_name)
-            
-            # Validate the response
-            is_valid, error = self.validate_response(response_content)
-            if not is_valid:
-                logger.warning(f"Response validation failed: {error}")
-                return {
-                    'success': False,
-                    'error': error,
-                    'response': response_content
-                }
-            
-            # Store the assistant response
-            self.add_assistant_message(conversation, response_content, user)
-            
-            # Try to save the file if project_id and file_name are provided
-            if project_id and file_name and project_path:
-                try:
-                    logger.info(f"Attempting to save file {file_name} to project {project_id}")
-                    from apps.Products.Oasis.Builder.services.file_service import FileService
-                    file_service = FileService(user=user)
-                    
-                    # Prepare file data
-                    file_data = {
-                        'name': file_name,
-                        'content': response_content,
-                        'type': 'html'
-                    }
-                    
-                    # Create or update the file
-                    file_result = file_service.create_file(file_data, project_id)
-                    logger.info(f"File saved successfully: {file_result['path']}")
-                    
-                    # Create corresponding view and URL
-                    self.create_view_and_url(project_id, self.current_template_name, user)
-                    
-                    # Return success response with file information
-                    return {
-                        'success': True,
-                        'conversation_id': str(conversation.id),
-                        'response': response_content,
-                        'timestamp': timezone.now().isoformat(),
-                        'file': {
-                            'path': file_result['path'],
-                            'type': file_result['type']
-                        },
-                        'user_message': {
-                            'role': 'user',
-                            'content': prompt,
-                            'timestamp': timezone.now().isoformat()
-                        },
-                        'assistant_message': {
-                            'role': 'assistant',
-                            'content': f"Successfully created {file_name}",
-                            'code': response_content,
-                            'timestamp': timezone.now().isoformat()
-                        }
-                    }
-                except Exception as file_error:
-                    logger.error(f"Error saving file: {str(file_error)}")
-                    return {
-                        'success': True,
-                        'conversation_id': str(conversation.id),
-                        'response': response_content,
-                        'timestamp': timezone.now().isoformat(),
-                        'warning': f"File generated but could not be saved: {str(file_error)}",
-                        'user_message': {
-                            'role': 'user',
-                            'content': prompt,
-                            'timestamp': timezone.now().isoformat()
-                        },
-                        'assistant_message': {
-                            'role': 'assistant',
-                            'content': f"Generated template but encountered an error saving it",
-                            'code': response_content,
-                            'timestamp': timezone.now().isoformat()
-                        }
-                    }
-            
-            # Return the successful response
-            return {
-                'success': True,
-                'conversation_id': str(conversation.id),
-                'response': response_content,
-                'timestamp': timezone.now().isoformat(),
-                'user_message': {
-                    'role': 'user',
-                    'content': prompt,
-                    'timestamp': timezone.now().isoformat()
-                },
-                'assistant_message': {
-                    'role': 'assistant',
-                    'content': "Successfully created template",
-                    'code': response_content,
-                    'timestamp': timezone.now().isoformat()
-                }
-            }
+            return result
             
         except Exception as e:
-            logger.error(f"Error in process_template: {str(e)}")
+            logger.error(f"Error in handle_template_request: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return {
                 'success': False,
                 'error': str(e)
             }
+    
+    def process_template(self, prompt, model, user, project_id=None, file_name=None, conversation_id=None):
+        """
+        Process a template generation request.
+        
+        Args:
+            prompt (str): The user's prompt
+            model (str): The AI model to use
+            user: The Django user object
+            project_id (str, optional): The ID of the project
+            file_name (str, optional): The name of the template file
+            conversation_id (int, optional): The ID of an existing conversation
             
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
+        # Store the current template name for validation
+        self.current_template_name = file_name
+        
+        # Determine file path
+        file_path = None
+        if project_id and file_name:
+            try:
+                from apps.Products.Oasis.ProjectManager.models import Project
+                project = Project.objects.get(id=project_id, user=user)
+                file_path = os.path.join(project.project_path, 'templates', file_name)
+            except Exception as e:
+                logger.warning(f"Could not determine file path: {str(e)}")
+                
+        # Get response from conversation
+        response = self.handle_template_request(
+            user_input=prompt,
+            model=model,
+            user=user,
+            file_path=file_path,
+            conversation_id=conversation_id,
+            project_id=project_id
+        )
+        
+        # Enhance response with file info
+        if response.get('success') and file_name:
+            response['file_name'] = file_name
+            response['file_path'] = file_path
+        
+        return response
+
     def create_view_and_url(self, project_id, template_name, user):
         """
         Create corresponding Django view and URL pattern for a template.
