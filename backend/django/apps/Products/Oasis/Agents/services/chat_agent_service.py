@@ -142,7 +142,7 @@ class ChatAgentService(BaseAgentService):
         # Call the parent class method with just user and model
         return super().deduct_credits(user, model)
     
-    def process_message(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None, is_build_mode=False):
+    def process_message(self, user_input, model_id, user, conversation_id=None, project_id=None, current_file=None, is_build_mode=False):
         """
         Process a chat message and generate a response.
         
@@ -151,7 +151,7 @@ class ChatAgentService(BaseAgentService):
             model_id (str): The model identifier to use
             user (User): The user object
             conversation_id (str, optional): The conversation ID
-            project_path (str, optional): The project path
+            project_id (str, optional): The project ID
             current_file (dict, optional): The current file
             is_build_mode (bool, optional): Whether we're in build mode
             
@@ -160,10 +160,11 @@ class ChatAgentService(BaseAgentService):
         """
         try:
             # Check user credits before proceeding
-            if not self.check_user_credits(user, model_id, user_input):
+            has_credits, error = self.check_model_credits(user, model_id)
+            if not has_credits:
                 return {
                     'success': False,
-                    'error': 'Insufficient credits'
+                    'error': error['error'] if isinstance(error, dict) and 'error' in error else 'Insufficient credits'
                 }
             
             # Get or create conversation
@@ -173,7 +174,7 @@ class ChatAgentService(BaseAgentService):
             
             if not conversation:
                 # Get appropriate system prompt based on mode
-                system_prompt = self.get_system_prompt(project_path)
+                system_prompt = self.get_system_prompt()
                 if is_build_mode:
                     from .template_agent_service import TemplateAgentService
                     template_agent = TemplateAgentService()
@@ -184,6 +185,17 @@ class ChatAgentService(BaseAgentService):
             # Add user message to conversation
             self.add_user_message(conversation, user_input, user)
             
+            # Get project path from project_id if provided
+            project_path = None
+            if project_id:
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                    logger.info(f"Found project path: {project_path}")
+                except Exception as e:
+                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+            
             # Build conversation history with project context
             api_messages = self.build_conversation_history(
                 conversation,
@@ -192,26 +204,71 @@ class ChatAgentService(BaseAgentService):
             )
             
             # Add project files context if available
-            if current_file and hasattr(current_file, 'project_files'):
+            if hasattr(self, 'project_files') and self.project_files:
+                logger.info(f"Adding {len(self.project_files)} project files to context")
                 project_files_context = "\n\nProject Files:\n"
-                for file in current_file.project_files:
-                    project_files_context += f"\nFile: {file['path']}\nType: {file['type']}\nContent:\n{file['content']}\n"
+                for file in self.project_files:
+                    file_path = file.get('path', 'unknown')
+                    file_type = file.get('type', 'unknown')
+                    content = file.get('content', '')
+                    if len(content) > 1000:
+                        content_preview = content[:1000] + "... (truncated)"
+                    else:
+                        content_preview = content
+                    project_files_context += f"\nFile: {file_path}\nType: {file_type}\nContent:\n{content_preview}\n"
                 api_messages.append({
                     'role': 'system',
                     'content': project_files_context
                 })
             
+            # Add current file information if available
+            if current_file:
+                current_file_context = f"\n\nCURRENTLY EDITING FILE: {current_file.get('path')}\n"
+                if current_file.get('content'):
+                    current_file_context += f"\nCurrent Content:\n{current_file.get('content')}\n"
+                api_messages.append({
+                    'role': 'system',
+                    'content': current_file_context
+                })
+            
             # Generate the response using the appropriate model
             if 'claude' in model_id:
+                # Verify anthropic client is available
+                if not hasattr(self, 'anthropic_client') or self.anthropic_client is None:
+                    logger.error("Anthropic client not available - check API key configuration")
+                    return {
+                        'success': False,
+                        'error': "Anthropic client not initialized - check API key configuration",
+                    }
+                
+                # Get the system message content for Claude
+                system_content = ""
+                for msg in api_messages:
+                    if msg['role'] == 'system':
+                        system_content += msg['content'] + "\n\n"
+                
+                # Filter out system messages for Claude API
+                claude_messages = [msg for msg in api_messages if msg['role'] != 'system']
+                
+                # Make the API call
                 completion = self.anthropic_client.messages.create(
                     model=model_id,
                     max_tokens=4096,
                     temperature=0.7,
-                    system=api_messages[0]['content'] if api_messages[0]['role'] == 'system' else "",
-                    messages=[msg for msg in api_messages if msg['role'] != 'system']
+                    system=system_content.strip(),
+                    messages=claude_messages
                 )
                 response_content = completion.content[0].text
             elif 'gpt' in model_id:
+                # Verify OpenAI client is available
+                if not hasattr(self, 'openai_client') or self.openai_client is None:
+                    logger.error("OpenAI client not available - check API key configuration")
+                    return {
+                        'success': False,
+                        'error': "OpenAI client not initialized - check API key configuration",
+                    }
+                
+                # Make the API call
                 completion = self.openai_client.chat.completions.create(
                     model=model_id,
                     messages=api_messages,
@@ -235,7 +292,7 @@ class ChatAgentService(BaseAgentService):
             self.add_assistant_message(conversation, response_content, user)
             
             # Deduct credits after successful response
-            self.deduct_credits(user, model_id, user_input)
+            self.deduct_credits(user, model_id)
             
             # Return the successful response
             return {
@@ -247,84 +304,12 @@ class ChatAgentService(BaseAgentService):
             
         except Exception as e:
             logger.error(f"Error in process_message: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {
                 'success': False,
                 'error': str(e)
             }
-    
-    def _generate_openai_stream(self, messages, model_id):
-        """
-        Generate a streaming response using OpenAI's API.
-        
-        Args:
-            messages (list): List of message dictionaries
-            model_id (str): The model ID to use
-            
-        Returns:
-            generator: A streaming response generator
-        """
-        try:
-            if not self.openai_client:
-                raise Exception("OpenAI client not initialized")
-                
-            # Log the call to OpenAI API
-            logger.info(f"Calling OpenAI streaming API with model {model_id}")
-            
-            # Create the streamed completion with correct parameters according to OpenAI docs
-            return self.openai_client.chat.completions.create(
-                model=model_id,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=4000,
-                stream=True
-            )
-        except Exception as e:
-            logger.error(f"Error in OpenAI streaming API: {str(e)}")
-            raise
-
-    def _generate_anthropic_stream(self, messages, model_id):
-        """
-        Generate a streaming response using Anthropic's API.
-        
-        Args:
-            messages (list): List of message dictionaries
-            model_id (str): The model ID to use
-            
-        Returns:
-            generator: A streaming response generator
-        """
-        try:
-            if not self.anthropic_client:
-                raise Exception("Anthropic client not initialized")
-                
-            # Log the call to Anthropic API
-            logger.info(f"Calling Anthropic streaming API with model {model_id}")
-            
-            # Convert messages to Anthropic format
-            system_message = None
-            anthropic_messages = []
-            
-            for msg in messages:
-                if msg['role'] == 'system':
-                    system_message = msg['content']
-                else:
-                    anthropic_messages.append({
-                        'role': msg['role'],
-                        'content': msg['content']
-                    })
-            
-            # Create the streaming message with correct parameters according to Anthropic docs
-            return self.anthropic_client.messages.create(
-                model=model_id,
-                max_tokens=4000,
-                messages=anthropic_messages,
-                system=system_message,
-                temperature=0.7,
-                stream=True
-            )
-        except Exception as e:
-            logger.error(f"Error in Anthropic streaming API: {str(e)}")
-            raise
     
     def validate_response(self, content):
         """
@@ -468,195 +453,6 @@ class ChatAgentService(BaseAgentService):
         # Use the existing function
         return build_conversation_history(conversation, project_path, current_file)
     
-    def generate_openai_response(self, messages, model_id):
-        """
-        Generate a response using the OpenAI API.
-        
-        Args:
-            messages (list): The conversation history
-            model_id (str): The model identifier
-            
-        Returns:
-            str: The generated response
-            
-        Raises:
-            Exception: If there is an error generating the response
-        """
-        if not self.openai_client:
-            raise Exception("OpenAI client not initialized properly")
-        
-        try:
-            response = self.openai_client.chat.completions.create(
-                model=model_id,
-                messages=messages,
-                temperature=0.7,
-            )
-            
-            return response.choices[0].message.content
-        except Exception as e:
-            logger.error(f"Error generating OpenAI response: {str(e)}")
-            raise
-    
-    def generate_anthropic_response(self, messages, model_id):
-        """
-        Generate a response using the Anthropic API.
-        
-        Args:
-            messages (list): The conversation history
-            model_id (str): The model identifier
-            
-        Returns:
-            str: The generated response
-            
-        Raises:
-            Exception: If there is an error generating the response
-        """
-        if not self.anthropic_client:
-            raise Exception("Anthropic client not initialized properly")
-        
-        try:
-            # Convert messages to Anthropic format
-            system_prompt = None
-            anthropic_messages = []
-            
-            for msg in messages:
-                if msg['role'] == 'system':
-                    system_prompt = msg['content']
-                elif msg['role'] == 'user':
-                    anthropic_messages.append({
-                        'role': 'user',
-                        'content': msg['content']
-                    })
-                elif msg['role'] == 'assistant':
-                    anthropic_messages.append({
-                        'role': 'assistant',
-                        'content': msg['content']
-                    })
-            
-            response = self.anthropic_client.messages.create(
-                model=model_id,
-                messages=anthropic_messages,
-                system=system_prompt,
-                temperature=0.7,
-                max_tokens=4096
-            )
-            
-            return response.content[0].text
-        except Exception as e:
-            logger.error(f"Error generating Anthropic response: {str(e)}")
-            raise
-    
-    def process_message_stream(self, user_input, model_id, user, conversation_id=None, project_path=None, current_file=None):
-        """
-        Process a chat message with a streaming response.
-        
-        Args:
-            user_input (str): The user's input message
-            model_id (str): The model identifier to use
-            user (User): The user object
-            conversation_id (str, optional): The conversation ID
-            project_path (str, optional): The project path
-            current_file (dict, optional): The current file
-            
-        Returns:
-            tuple: (conversation, api_messages, error_message)
-        """
-        try:
-            logger.info(f"Processing streaming message for model {model_id}")
-            
-            # Get the actual model cost from MODEL_COSTS to ensure consistency
-            from .agent_service import MODEL_COSTS
-            actual_cost = MODEL_COSTS.get(model_id, 0.04)
-            
-            # Force correct cost for gpt-4o-mini
-            if model_id == 'gpt-4o-mini':
-                actual_cost = 0.005
-            
-            logger.info(f"Using model {model_id} with cost ${actual_cost}")
-            
-            # Get current balance using CreditService directly
-            from apps.Payments.services.credit_service import CreditService
-            credit_service = CreditService()
-            current_balance = credit_service.get_balance(user)
-            logger.info(f"User {user.username} has a balance of ${current_balance}")
-            
-            # Check if user has enough credits
-            epsilon = 0.0001  # Small value to handle floating point precision
-            if current_balance + epsilon < actual_cost:
-                # Calculate how much more is needed
-                needed_amount = max(0, actual_cost - current_balance)
-                logger.warning(f"User {user.username} has insufficient credits for model {model_id}. Has ${current_balance}, needs ${actual_cost}")
-                
-                # Only show error if there's actually a meaningful difference (greater than 0.001)
-                if needed_amount > 0.001:
-                    error_message = f"Insufficient credits: You need ${needed_amount:.2f} more to use {model_id}. Please add more credits."
-                    # Return a clear error message
-                    return None, None, error_message
-                else:
-                    # If the difference is negligible, proceed as if they have enough credits
-                    logger.info(f"Negligible credit difference (${needed_amount:.5f}), allowing request to proceed")
-            else:
-                logger.info(f"User {user.username} has sufficient credits: ${current_balance} for model {model_id} (cost: ${actual_cost})")
-                
-            # Create or get conversation
-            if conversation_id:
-                try:
-                    conversation = self.get_conversation(conversation_id, user)
-                except Exception as e:
-                    logger.error(f"Error getting conversation {conversation_id}: {str(e)}")
-                    return None, None, f"Error retrieving conversation: {str(e)}"
-            else:
-                system_prompt = self.get_system_prompt(project_path)
-                conversation = self.create_conversation(user, model_id, system_prompt)
-            
-            # Add user message
-            self.add_user_message(conversation, user_input, user)
-            
-            # Build conversation history with project_path and current_file
-            api_messages = self.build_conversation_history(conversation, project_path, current_file)
-            
-            # Deduct credits using CreditService directly for consistency
-            try:
-                result = credit_service.deduct_credits(user, actual_cost, f"Used {model_id} for chat")
-                if not result.get('success', False):
-                    logger.error(f"Failed to deduct credits for user {user.username} and model {model_id}: {result.get('error')}")
-                    return None, None, result.get('error', "Failed to process payment. Please try again.")
-                logger.info(f"Successfully deducted ${actual_cost} from user {user.username}. New balance: ${result.get('new_balance')}")
-            except Exception as e:
-                logger.error(f"Error deducting credits: {str(e)}")
-                return None, None, f"Error processing payment: {str(e)}"
-                
-            return conversation, api_messages, None
-            
-        except Exception as e:
-            logger.error(f"Error in process_message_stream: {str(e)}")
-            return None, None, str(e)
-    
-    def save_streaming_response(self, conversation, content):
-        """
-        Save a streaming response to the database.
-        
-        Args:
-            conversation: The conversation object
-            content (str): The content to save
-            
-        Returns:
-            bool: Success status
-        """
-        try:
-            from ..models import AgentMessage
-            AgentMessage.objects.create(
-                conversation=conversation,
-                role='assistant',
-                content=content
-            )
-            logger.info(f"Successfully stored streaming response (length: {len(content)})")
-            return True
-        except Exception as e:
-            logger.error(f"Error saving streaming response to database: {str(e)}")
-            logger.exception(e)
-            return False
-
     def check_model_credits(self, user, model_id):
         """
         Check if user has enough credits for the selected model.

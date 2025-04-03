@@ -30,6 +30,11 @@ class StylesheetAgentService(BaseAgentService):
     based on user instructions, ensuring they follow best practices and proper structure.
     """
     
+    def __init__(self):
+        """Initialize the stylesheet agent service."""
+        super().__init__()
+        self.project_files = []
+    
     def get_system_prompt(self):
         """
         Get the system prompt for CSS stylesheet generation.
@@ -135,56 +140,22 @@ class StylesheetAgentService(BaseAgentService):
         try:
             # Check if content is empty
             if not content or not content.strip():
-                logger.error("[ERROR] CSS content is empty")
+                logger.error("CSS content is empty")
                 return False, "CSS content is empty"
             
             # Parse CSS to check for syntax errors
             try:
                 sheet = cssutils.parseString(content)
-                logger.info("[INFO] CSS parsed successfully")
+                logger.info("CSS parsed successfully")
             except Exception as e:
-                logger.warning(f"[WARNING] CSS parsing error: {str(e)}")
+                logger.warning(f"CSS parsing error: {str(e)}")
                 # Return true anyway, we'll just use the raw content
                 return True, None
             
-            # Less strict validation - log warnings but return valid
-            has_rules = False
-            has_root = False
-            has_media_query = False
-            
-            for rule in sheet:
-                if rule.type == rule.STYLE_RULE:
-                    has_rules = True
-                    if rule.selectorText == ':root':
-                        has_root = True
-                elif rule.type == rule.MEDIA_RULE:
-                    has_media_query = True
-            
-            # Log validation results
-            if has_rules:
-                logger.info("[INFO] CSS contains style rules")
-            else:
-                logger.warning("[WARNING] No CSS rules found in the content, but continuing anyway")
-            
-            # Everything is a warning, not an error
-            warnings = []
-            
-            if not has_root:
-                warnings.append("Missing :root section with CSS variables")
-            
-            if not has_media_query:
-                warnings.append("Missing media queries for responsive design")
-            
-            # Log warnings but still return valid
-            if warnings:
-                warning_message = "; ".join(warnings)
-                logger.warning(f"[WARNING] CSS validation warnings: {warning_message}")
-            
-            # Always return valid
             return True, None
             
         except Exception as e:
-            logger.error(f"[ERROR] Unexpected error in CSS validation: {str(e)}")
+            logger.error(f"Unexpected error in CSS validation: {str(e)}")
             # Be forgiving - return true even if validation fails
             return True, None
 
@@ -392,131 +363,249 @@ class StylesheetAgentService(BaseAgentService):
             dict: A dictionary containing the result, including the generated stylesheet
         """
         try:
-            # Debug log all input parameters
-            logger.info(f"[DEBUG] process_stylesheet called with: model={model}, project_id={project_id}, file_path={file_path}, user={user.username}")
+            # Log basic info
+            logger.info(f"process_stylesheet called with: model={model}, file_path={file_path}")
             
             # Set default file path if not provided
             if not file_path:
                 file_path = 'static/css/styles.css'
-                logger.info(f"[DEBUG] Using default file_path: {file_path}")
-                
-            # Ensure we have project_id
-            if not project_id:
-                logger.warning(f"[WARNING] No project_id provided for stylesheet generation")
+                logger.info(f"Using default file_path: {file_path}")
             
-            # Add project context to the prompt if project_id is provided
-            project_context = ""
+            # Get or create conversation
+            conversation = None
+            if conversation_id:
+                conversation = self.get_conversation(conversation_id, user)
+            
+            if not conversation:
+                # Get system prompt
+                system_prompt = self.get_system_prompt()
+                conversation = self.create_conversation(user, model, system_prompt)
+            
+            # Add user message to conversation
+            self.add_user_message(conversation, prompt, user)
+            
+            # Build conversation history with project context
+            api_messages = self.build_conversation_history(conversation)
+            
+            # Get project path if project_id is provided
+            project_path = None
             if project_id:
-                # Optional: Get project details to provide more context
                 try:
                     from apps.Products.Oasis.ProjectManager.models import Project
-                    
-                    # Convert project_id to integer if it's a string
-                    project_id_int = int(project_id) if isinstance(project_id, str) else project_id
-                    
-                    logger.info(f"[DEBUG] Looking up project with ID: {project_id_int}")
-                    project = Project.objects.get(id=project_id_int)
-                    project_context = f"You are creating a stylesheet for project '{project.name}' (ID: {project_id}).\n"
-                    logger.info(f"[DEBUG] Found project: {project.name}")
-                except (ValueError, TypeError) as e:
-                    logger.error(f"[ERROR] Invalid project_id format: {project_id}, error: {str(e)}")
-                    # Use fallback instead of returning an error
-                    return self.generate_fallback_stylesheet(file_path, f"Invalid project ID format: {project_id}")
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                    logger.info(f"Found project path: {project_path}")
                 except Exception as e:
-                    logger.error(f"[ERROR] Error getting project details: {str(e)}")
-                    # Continue without project context
-            
-            # Build the enhanced prompt with project context and best practices
-            enhanced_prompt = f"{project_context}Create a stylesheet based on this description: {prompt}"
-            
-            logger.info(f"[DEBUG] Enhanced prompt created with project context")
-            
-            # Use the handle_stylesheet_request method to process the request
-            result = self.handle_stylesheet_request(
-                user_input=enhanced_prompt,
-                model=model,
-                user=user,
-                file_path=file_path,
-                conversation_id=conversation_id,
-                project_id=project_id
-            )
-            
-            # Extract the generated content and return it in the expected format
-            if result.get('success'):
-                logger.info(f"[DEBUG] Stylesheet request successful")
-                stylesheet_content = result.get('response', '')
-                
-                # Check if we got a valid stylesheet content
-                if not stylesheet_content or len(stylesheet_content.strip()) < 10:
-                    logger.warning(f"[WARNING] Generated stylesheet is empty or too short")
-                    return self.generate_fallback_stylesheet(file_path, "Generated stylesheet was invalid or too short")
-                
-                # Ensure all required sections are present, adding them if necessary
-                stylesheet_content = self.ensure_required_sections(stylesheet_content)
-                
-                # Validate and clean the CSS content
-                try:
-                    # Parse CSS to validate it 
-                    logger.info(f"[DEBUG] Validating CSS content of length: {len(stylesheet_content)}")
-                    css_parser = cssutils.parseString(stylesheet_content)
-                    # Converting back to string ensures proper formatting
-                    validated_stylesheet = css_parser.cssText.decode('utf-8')
-                    logger.info(f"[DEBUG] CSS validation successful")
-                except Exception as css_error:
-                    logger.error(f"[ERROR] CSS validation error: {str(css_error)}")
-                    # If parsing fails, use the original stylesheet
-                    validated_stylesheet = stylesheet_content
-                
-                # Get timestamp
-                current_time = timezone.now().isoformat()
-                
-                # Return the result with all needed fields
-                logger.info(f"[DEBUG] Returning successful stylesheet response")
-                return {
-                    'success': True,
-                    'stylesheet': validated_stylesheet,
-                    'code': validated_stylesheet,  # Add code field for frontend compatibility
-                    'file_name': file_path,
-                    'conversation_id': result.get('conversation_id'),
-                    'timestamp': current_time,
-                    'response': "Generated stylesheet successfully",
-                    'user_message': {
-                        'role': 'user',
-                        'content': prompt,
-                        'timestamp': current_time
-                    },
-                    'assistant_message': {
-                        'role': 'assistant',
-                        'content': "I've created the CSS stylesheet based on your requirements. Here's the code:",
-                        'code': validated_stylesheet,
-                        'timestamp': current_time
+                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
+                    return {
+                        'success': False,
+                        'error': f"Project not found or inaccessible: {str(e)}",
                     }
-                }
-            else:
-                error_msg = result.get('error', 'Stylesheet generation failed')
-                logger.error(f"[ERROR] Stylesheet generation failed: {error_msg}")
-                # Use fallback instead of returning an error
-                return self.generate_fallback_stylesheet(file_path, error_msg)
+            
+            # Add project files context if available
+            if self.project_files:
+                logger.info(f"Adding {len(self.project_files)} project files to context")
+                project_files_context = "\n\nProject Files:\n"
+                for file in self.project_files:
+                    file_path = file.get('path', 'unknown')
+                    file_type = file.get('type', 'unknown')
+                    content = file.get('content', '')
+                    if len(content) > 1000:
+                        content_preview = content[:1000] + "... (truncated)"
+                    else:
+                        content_preview = content
+                    project_files_context += f"\nFile: {file_path}\nType: {file_type}\nContent:\n{content_preview}\n"
+                api_messages.append({
+                    'role': 'system',
+                    'content': project_files_context
+                })
+            
+            # Add current file context if available
+            if file_path:
+                current_file_context = f"\n\nCurrent File: {file_path}\n"
+                current_file_context += f"You are creating or editing the file: {file_path}\n"
+                current_file_context += f"Focus your generation on producing ONLY valid CSS content for this file."
+                api_messages.append({
+                    'role': 'system',
+                    'content': current_file_context
+                })
+            
+            # Generate the response using the appropriate model
+            try:
+                logger.info(f"Generating response with model: {model}")
+                if 'claude' in model:
+                    # Verify anthropic client is available
+                    if not hasattr(self, 'anthropic_client') or self.anthropic_client is None:
+                        logger.error("Anthropic client not available - check API key configuration")
+                        return {
+                            'success': False,
+                            'error': "Anthropic client not initialized - check API key configuration",
+                        }
+                    
+                    # Get the system message content for Claude
+                    system_content = ""
+                    for msg in api_messages:
+                        if msg['role'] == 'system':
+                            system_content += msg['content'] + "\n\n"
+                    
+                    # Filter out system messages for Claude API
+                    claude_messages = [msg for msg in api_messages if msg['role'] != 'system']
+                    
+                    # Make the API call
+                    completion = self.anthropic_client.messages.create(
+                        model=model,
+                        max_tokens=4096,
+                        temperature=0.7,
+                        system=system_content.strip(),
+                        messages=claude_messages
+                    )
+                    response_content = completion.content[0].text
+                elif 'gpt' in model:
+                    # Verify OpenAI client is available
+                    if not hasattr(self, 'openai_client') or self.openai_client is None:
+                        logger.error("OpenAI client not available - check API key configuration")
+                        return {
+                            'success': False,
+                            'error': "OpenAI client not initialized - check API key configuration",
+                        }
+                    
+                    # Make the API call
+                    completion = self.openai_client.chat.completions.create(
+                        model=model,
+                        messages=api_messages,
+                        temperature=0.7,
+                        max_tokens=4096
+                    )
+                    response_content = completion.choices[0].message.content
+                else:
+                    raise ValueError(f"Unsupported model: {model}")
                 
+                logger.info(f"Generated response length: {len(response_content)}")
+            except Exception as model_error:
+                logger.error(f"Error generating response: {str(model_error)}")
+                return {
+                    'success': False,
+                    'error': f"Error generating stylesheet: {str(model_error)}",
+                    'response': None
+                }
+            
+            # Extract CSS from the response
+            css_content = self.extract_css_from_response(response_content)
+            
+            # Ensure all required sections are present
+            css_content = self.ensure_required_sections(css_content)
+            
+            # Validate the CSS
+            is_valid, error = self.validate_response(css_content)
+            if not is_valid:
+                logger.warning(f"CSS validation failed: {error}")
+                return {
+                    'success': False,
+                    'error': error,
+                    'response': css_content
+                }
+            
+            # Store the assistant response
+            self.add_assistant_message(conversation, css_content, user)
+            
+            # Try to save the file if project_id and file_path are provided
+            if project_id and file_path and project_path:
+                try:
+                    logger.info(f"Attempting to save file {file_path} to project {project_id}")
+                    from apps.Products.Oasis.Builder.services.file_service import FileService
+                    file_service = FileService(user=user)
+                    
+                    # Prepare file data
+                    file_data = {
+                        'name': file_path,
+                        'content': css_content,
+                        'type': 'css'
+                    }
+                    
+                    # Create or update the file
+                    file_result = file_service.create_file(file_data, project_id)
+                    logger.info(f"File saved successfully: {file_result['path']}")
+                    
+                    # Return success response with file information
+                    return {
+                        'success': True,
+                        'conversation_id': str(conversation.id),
+                        'stylesheet': css_content,
+                        'code': css_content,
+                        'response': f"Successfully created {file_path}",
+                        'timestamp': timezone.now().isoformat(),
+                        'file': {
+                            'path': file_result['path'],
+                            'type': file_result['type']
+                        },
+                        'user_message': {
+                            'role': 'user',
+                            'content': prompt,
+                            'timestamp': timezone.now().isoformat()
+                        },
+                        'assistant_message': {
+                            'role': 'assistant',
+                            'content': f"Successfully created {file_path}",
+                            'code': css_content,
+                            'timestamp': timezone.now().isoformat()
+                        }
+                    }
+                except Exception as file_error:
+                    logger.error(f"Error saving file: {str(file_error)}")
+                    return {
+                        'success': True,
+                        'conversation_id': str(conversation.id),
+                        'stylesheet': css_content,
+                        'code': css_content,
+                        'response': css_content,
+                        'timestamp': timezone.now().isoformat(),
+                        'warning': f"File generated but could not be saved: {str(file_error)}",
+                        'user_message': {
+                            'role': 'user',
+                            'content': prompt,
+                            'timestamp': timezone.now().isoformat()
+                        },
+                        'assistant_message': {
+                            'role': 'assistant',
+                            'content': f"Generated stylesheet but encountered an error saving it",
+                            'code': css_content,
+                            'timestamp': timezone.now().isoformat()
+                        }
+                    }
+            
+            # Return the successful response
+            return {
+                'success': True,
+                'conversation_id': str(conversation.id),
+                'stylesheet': css_content,
+                'code': css_content,
+                'response': "Successfully created stylesheet",
+                'timestamp': timezone.now().isoformat(),
+                'user_message': {
+                    'role': 'user',
+                    'content': prompt,
+                    'timestamp': timezone.now().isoformat()
+                },
+                'assistant_message': {
+                    'role': 'assistant',
+                    'content': "Successfully created stylesheet",
+                    'code': css_content,
+                    'timestamp': timezone.now().isoformat()
+                }
+            }
+            
         except Exception as e:
+            logger.error(f"Error in process_stylesheet: {str(e)}")
             import traceback
-            logger.error(f"[ERROR] Exception in process_stylesheet: {str(e)}")
-            logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
-            # Use fallback for any unhandled exceptions
-            return self.generate_fallback_stylesheet(file_path, str(e))
+            logger.error(traceback.format_exc())
+            return {
+                'success': False,
+                'error': str(e)
+            }
             
     def ensure_required_sections(self, css_content):
         """
         Ensure all required sections are present in the stylesheet.
-        
-        Checks for and adds missing sections including:
-        - Variables (:root)
-        - Reset
-        - Base
-        - Typography
-        - Layout
-        - Components
-        - Media Queries
         
         Args:
             css_content (str): The generated stylesheet content
@@ -524,7 +613,7 @@ class StylesheetAgentService(BaseAgentService):
         Returns:
             str: The enhanced stylesheet with all required sections
         """
-        logger.info(f"[DEBUG] Ensuring required sections in CSS of length: {len(css_content)}")
+        logger.info(f"Ensuring required sections in CSS of length: {len(css_content)}")
         
         # Try to parse the CSS to work with it programmatically
         try:
@@ -535,14 +624,11 @@ class StylesheetAgentService(BaseAgentService):
                 'variables': False,
                 'reset': False,
                 'base': False,
-                'typography': False,
-                'layout': False,
-                'components': False,
                 'media_queries': False
             }
             
             # Look for section markers in comments
-            comment_pattern = r'/\*\s*(variables|reset|base|typography|layout|components|media\s*queries)\s*\*/'
+            comment_pattern = r'/\*\s*(variables|reset|base|media\s*queries)\s*\*/'
             import re
             found_sections = set()
             for match in re.finditer(comment_pattern, css_content, re.IGNORECASE):
@@ -551,7 +637,7 @@ class StylesheetAgentService(BaseAgentService):
                     sections[section] = True
                     found_sections.add(section)
             
-            # Check for :root (variables) section
+            # Check for :root (variables) section and media queries
             for rule in sheet:
                 if rule.type == rule.STYLE_RULE and rule.selectorText == ':root':
                     sections['variables'] = True
@@ -563,7 +649,7 @@ class StylesheetAgentService(BaseAgentService):
             # If we're missing any sections, add them
             if not all(sections.values()):
                 missing_sections = [section for section, exists in sections.items() if not exists]
-                logger.info(f"[DEBUG] Missing CSS sections: {', '.join(missing_sections)}")
+                logger.info(f"Missing CSS sections: {', '.join(missing_sections)}")
                 
                 # Build the sections to add
                 additions = []
@@ -602,38 +688,6 @@ body {
 }
 """)
                 
-                if 'typography' not in found_sections:
-                    additions.append("""
-/* Typography */
-h1, h2, h3 {
-  color: var(--color-primary);
-  margin-bottom: var(--spacing-unit);
-}
-""")
-                
-                if 'layout' not in found_sections:
-                    additions.append("""
-/* Layout */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--spacing-unit);
-}
-""")
-                
-                if 'components' not in found_sections:
-                    additions.append("""
-/* Components */
-.button {
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-""")
-                
                 if 'media_queries' not in found_sections:
                     additions.append("""
 /* Media Queries */
@@ -646,113 +700,51 @@ h1, h2, h3 {
                 
                 # Combine the original CSS with the additions
                 enhanced_css = css_content.strip() + "\n" + "".join(additions)
-                logger.info(f"[DEBUG] Added {len(additions)} missing sections to CSS")
+                logger.info(f"Added {len(additions)} missing sections to CSS")
                 return enhanced_css
             
             # If all sections exist, return the original
-            logger.info(f"[DEBUG] All required CSS sections present")
+            logger.info("All required CSS sections present")
             return css_content
             
         except Exception as e:
-            logger.error(f"[ERROR] Error ensuring CSS sections: {str(e)}")
+            logger.error(f"Error ensuring CSS sections: {str(e)}")
             # In case of error, return the original content
             return css_content
 
-    def generate_fallback_stylesheet(self, file_path, error_message=None):
+    def validate_project_access(self, project_id, user):
         """
-        Generate a fallback stylesheet when an error occurs during generation.
+        Validate that a project exists and the user has access to it.
         
         Args:
-            file_path (str): The path where the stylesheet would be saved
-            error_message (str, optional): The error that caused the fallback
+            project_id (str): The ID of the project
+            user (User): The Django user object
             
         Returns:
-            dict: A response object with a basic default stylesheet
+            tuple: (project, error_response)
         """
-        logger.info(f"[INFO] Generating fallback stylesheet for {file_path}")
-        
-        # Create a minimal default stylesheet
-        default_css = """
-/* Variables */
-:root {
-  --color-primary: #3f51b5;
-  --color-secondary: #f50057;
-  --color-text: #333333;
-  --color-bg: #ffffff;
-  --font-family: 'Arial', sans-serif;
-  --spacing-unit: 16px;
-}
-
-/* Reset */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* Base */
-body {
-  font-family: var(--font-family);
-  color: var(--color-text);
-  background-color: var(--color-bg);
-  padding: var(--spacing-unit);
-}
-
-/* Typography */
-h1, h2, h3 {
-  color: var(--color-primary);
-  margin-bottom: var(--spacing-unit);
-}
-
-/* Layout */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--spacing-unit);
-}
-
-/* Components */
-.button {
-  background-color: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-/* Media Queries */
-@media (min-width: 768px) {
-  .container {
-    padding: calc(var(--spacing-unit) * 2);
-  }
-}
-"""
-        # Get timestamp
-        current_time = timezone.now().isoformat()
-        
-        # Error context for the message
-        error_context = ""
-        if error_message:
-            error_context = f" (Error recovery: {error_message})"
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.get(id=project_id, user=user)
             
-        # Create a successful response with the default CSS
-        return {
-            'success': True,
-            'stylesheet': default_css,
-            'code': default_css,
-            'file_name': file_path,
-            'timestamp': current_time,
-            'response': f"Generated default stylesheet{error_context}",
-            'user_message': {
-                'role': 'user',
-                'content': "Generate a default stylesheet",
-                'timestamp': current_time
-            },
-            'assistant_message': {
-                'role': 'assistant',
-                'content': "I've created a default CSS stylesheet with basic styling for your project.",
-                'code': default_css,
-                'timestamp': current_time
+            if not project.project_path:
+                logger.error(f"Project {project_id} has no valid project path")
+                return None, {
+                    'success': False,
+                    'error': 'Project path not found. The project may not be properly initialized.'
+                }
+                
+            return project, None
+            
+        except Project.DoesNotExist:
+            logger.error(f"Project {project_id} not found for user {user.username}")
+            return None, {
+                'success': False,
+                'error': 'Project not found or you do not have access to it'
             }
-        } 
+        except Exception as e:
+            logger.error(f"Error verifying project: {str(e)}")
+            return None, {
+                'success': False,
+                'error': f'Error accessing project: {str(e)}'
+            } 
