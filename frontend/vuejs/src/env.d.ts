@@ -13,7 +13,6 @@ interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string
   readonly VITE_APP_VERSION: string
   readonly VITE_APP_ENV: string
-  readonly VITE_OPENAI_API_KEY: string
   // more env variables...
 }
 
