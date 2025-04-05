@@ -9,10 +9,12 @@ from dotenv import load_dotenv
 import cssutils
 import logging
 from .agent_service import BaseAgentService
-from ..models import AgentConversation, SystemPrompt, AgentMessage
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import re
+import os
+from django.shortcuts import get_object_or_404
+from functools import lru_cache
+import hashlib
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -35,6 +37,9 @@ class StylesheetAgentService(BaseAgentService):
         """Initialize the stylesheet agent service."""
         super().__init__()
         self.project_files = []
+        self.current_file_path = None
+        # Initialize an in-memory cache to store common CSS components
+        self._css_component_cache = {}
     
     def get_system_prompt(self):
         """
@@ -126,7 +131,25 @@ class StylesheetAgentService(BaseAgentService):
         Returns:
             str: Additional context for the system prompt
         """
-        return "You are creating/editing styles.css for the project"
+        # If additional_context is provided directly in kwargs, use it
+        if 'additional_context' in kwargs and kwargs['additional_context']:
+            return kwargs['additional_context']
+            
+        # Otherwise build the context based on file_path and other parameters
+        context_parts = []
+        
+        # Add file path context
+        file_path = kwargs.get('file_path') or self.current_file_path
+        if file_path:
+            context_parts.append(f"You are creating/editing the CSS file: {file_path}")
+        else:
+            context_parts.append("You are creating/editing styles.css for the project")
+            
+        # Add project files context if available
+        if self.project_files:
+            context_parts.append(f"The project contains {len(self.project_files)} files for context")
+            
+        return "\n".join(context_parts)
     
     def validate_response(self, content):
         """
@@ -178,14 +201,60 @@ class StylesheetAgentService(BaseAgentService):
         try:
             logger.info(f"StylesheetAgentService handling request for file: {file_path}")
             
-            # Process the conversation using the parent class method
+            # Check cache first if the input is relatively simple (less than 100 chars)
+            # This helps with repeated simple requests
+            if len(user_input) < 100:
+                cache_key = self._generate_cache_key(user_input, file_path, model)
+                cached_result = self._get_cached_result(cache_key)
+                if cached_result:
+                    logger.info(f"Using cached stylesheet result for {file_path}")
+                    return cached_result
+            
+            # Store the current file path for context
+            self.current_file_path = file_path
+            
+            # Get project path for context if project_id is provided
+            project_path = None
+            if project_id:
+                try:
+                    # Import here to avoid circular imports
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                    
+                    # Load project files for context if not already loaded
+                    if not self.project_files and project_path:
+                        self.load_project_files(project_path)
+                except Exception as e:
+                    logger.warning(f"Could not get project path: {str(e)}")
+            
+            # Prepare current file data for the API
+            current_file = None
+            if file_path and project_path:
+                try:
+                    full_path = os.path.join(project_path, file_path)
+                    if os.path.exists(full_path):
+                        with open(full_path, 'r') as f:
+                            file_content = f.read()
+                            current_file = {
+                                'path': file_path,
+                                'content': file_content,
+                                'type': 'css'
+                            }
+                except Exception as e:
+                    logger.warning(f"Could not read file {file_path}: {str(e)}")
+            
+            # Process the conversation using the parent class method with additional context
             result = self.process_conversation(
                 user_input=user_input,
                 model=model,
                 user=user,
                 conversation_id=conversation_id,
                 project_id=project_id,
-                file_path=file_path
+                project_path=project_path,
+                current_file=current_file,
+                file_path=file_path,
+                project_files=self.project_files
             )
             
             # Extract CSS content if successful
@@ -193,6 +262,11 @@ class StylesheetAgentService(BaseAgentService):
                 css_content = self.extract_css_from_response(result['response'])
                 enhanced_css = self.ensure_required_sections(css_content)
                 result['response'] = enhanced_css
+                
+                # Cache the result for future similar requests
+                if len(user_input) < 100:
+                    cache_key = self._generate_cache_key(user_input, file_path, model)
+                    self._cache_result(cache_key, result)
             
             return result
             
@@ -204,6 +278,54 @@ class StylesheetAgentService(BaseAgentService):
                 'success': False,
                 'error': str(e)
             }
+
+    def _generate_cache_key(self, user_input, file_path, model):
+        """
+        Generate a cache key for storing stylesheet results.
+        
+        Args:
+            user_input (str): The user's prompt
+            file_path (str): The path to the stylesheet file
+            model (str): The AI model used
+            
+        Returns:
+            str: A unique cache key
+        """
+        # Create a hash of the inputs to use as a cache key
+        key_str = f"{user_input}:{file_path}:{model}"
+        return hashlib.md5(key_str.encode()).hexdigest()
+    
+    def _get_cached_result(self, cache_key):
+        """
+        Get a cached stylesheet result if available.
+        
+        Args:
+            cache_key (str): The cache key to look up
+            
+        Returns:
+            dict or None: The cached result or None if not found
+        """
+        return self._css_component_cache.get(cache_key)
+    
+    def _cache_result(self, cache_key, result):
+        """
+        Cache a stylesheet result for future use.
+        
+        Args:
+            cache_key (str): The cache key to store under
+            result (dict): The result to cache
+            
+        Returns:
+            None
+        """
+        # Limit cache size to avoid memory issues
+        if len(self._css_component_cache) > 100:
+            # Clear the oldest 20% of entries
+            keys_to_remove = list(self._css_component_cache.keys())[:20]
+            for key in keys_to_remove:
+                del self._css_component_cache[key]
+        
+        self._css_component_cache[cache_key] = result
 
     def extract_css_from_response(self, response):
         """
@@ -254,64 +376,17 @@ class StylesheetAgentService(BaseAgentService):
         
         return '\n'.join(lines[css_start:css_end])
 
-    def process_stylesheet(self, prompt, model, user, project_id=None, file_path=None, conversation_id=None):
+    # Apply LRU cache to this method for better performance
+    @lru_cache(maxsize=32)
+    def get_default_css_sections(self):
         """
-        Process a stylesheet generation request.
+        Get default CSS sections for the stylesheet.
         
-        Args:
-            prompt (str): The user's prompt
-            model (str): The AI model to use
-            user: The Django user object
-            project_id (str, optional): The ID of the project
-            file_path (str, optional): The path to the stylesheet file
-            conversation_id (int, optional): The ID of an existing conversation
-            
         Returns:
-            dict: The result of the operation, including success status and response
+            dict: A dictionary of default CSS sections
         """
-        try:
-            # Process the stylesheet using the handle_stylesheet_request method
-            result = self.handle_stylesheet_request(
-                user_input=prompt,
-                model=model,
-                user=user,
-                file_path=file_path,
-                conversation_id=conversation_id,
-                project_id=project_id
-            )
-            
-            # Enhance the response with file information
-            if result.get('success') and file_path:
-                result['file_path'] = file_path
-                
-                # Add timestamp to the result
-                result['timestamp'] = timezone.now().isoformat()
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error in process_stylesheet: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return {
-                'success': False,
-                'error': str(e)
-            }
-
-    def ensure_required_sections(self, css_content):
-        """
-        Ensure the CSS content has all the required sections.
-        
-        Args:
-            css_content (str): The CSS content to enhance
-            
-        Returns:
-            str: The enhanced CSS content
-        """
-        # Check if :root section exists
-        if ':root' not in css_content:
-            # Add :root section with common variables
-            root_section = """
+        return {
+            "root": """
 :root {
   /* Color Variables */
   --color-primary: #6366f1;
@@ -337,30 +412,15 @@ class StylesheetAgentService(BaseAgentService):
   --border-radius: 4px;
   --border-color: #e5e7eb;
 }
-"""
-            css_content = root_section + css_content
-        
-        # Check if reset section exists
-        if '*::before' not in css_content and '*::after' not in css_content:
-            # Add basic reset
-            reset_section = """
+""",
+            "reset": """
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
-"""
-            # Find position to insert (after :root section)
-            root_end = css_content.find('}', css_content.find(':root'))
-            if root_end > -1:
-                css_content = css_content[:root_end+1] + reset_section + css_content[root_end+1:]
-            else:
-                css_content = reset_section + css_content
-        
-        # Check if body styles exist
-        if 'body {' not in css_content:
-            # Add basic body styles
-            body_section = """
+""",
+            "body": """
 body {
   font-family: var(--font-family);
   color: var(--color-text);
@@ -369,14 +429,280 @@ body {
   font-size: var(--font-size-base);
 }
 """
+        }
+
+    def process_stylesheet(self, prompt, model, user, project_id=None, file_path=None, conversation_id=None):
+        """
+        Process a stylesheet generation request.
+        
+        Args:
+            prompt (str): The user's prompt
+            model (str): The AI model to use
+            user: The Django user object
+            project_id (str, optional): The ID of the project
+            file_path (str, optional): The path to the stylesheet file
+            conversation_id (int, optional): The ID of an existing conversation
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
+        try:
+            # Verify the project exists and user has access to it
+            if project_id:
+                project, error = self.validate_project_access(project_id, user)
+                if error:
+                    return error
+            
+            # Use a performance optimization: for very simple requests, we might be able
+            # to generate a response without calling the AI
+            if prompt.lower() in ["generate basic styles", "create default stylesheet", "basic css"]:
+                logger.info("Using predefined basic stylesheet template")
+                css_sections = self.get_default_css_sections()
+                result = {
+                    'success': True,
+                    'response': css_sections["root"] + css_sections["reset"] + css_sections["body"],
+                    'file_path': file_path,
+                    'timestamp': timezone.now().isoformat(),
+                    'was_predefined': True
+                }
+                
+                # Save the generated CSS to the file
+                if project_id and file_path:
+                    try:
+                        # Import file service to handle file operations
+                        from apps.Products.Oasis.Builder.services.file_service import FileService
+                        
+                        # Save the CSS content to the specified file
+                        file_result = FileService.update_file_content(
+                            project_id=project_id,
+                            file_path=file_path,
+                            content=result['response'],
+                            user=user
+                        )
+                        
+                        logger.info(f"CSS content saved to {file_path} successfully")
+                        
+                        # Add file info to the result
+                        result['file_saved'] = True
+                        result['file_info'] = file_result
+                    except Exception as e:
+                        logger.error(f"Error saving CSS file: {str(e)}")
+                        result['file_saved'] = False
+                        result['file_error'] = str(e)
+                
+                return result
+            
+            # Process the stylesheet using the handle_stylesheet_request method
+            result = self.handle_stylesheet_request(
+                user_input=prompt,
+                model=model,
+                user=user,
+                file_path=file_path,
+                conversation_id=conversation_id,
+                project_id=project_id
+            )
+            
+            # Enhance the response with file information
+            if result.get('success') and file_path:
+                result['file_path'] = file_path
+                
+                # Add timestamp to the result
+                result['timestamp'] = timezone.now().isoformat()
+                
+                # Save the generated CSS to the file
+                if project_id and result.get('response'):
+                    try:
+                        # Import file service to handle file operations
+                        from apps.Products.Oasis.Builder.services.file_service import FileService
+                        
+                        # Save the CSS content to the specified file
+                        file_result = FileService.update_file_content(
+                            project_id=project_id,
+                            file_path=file_path,
+                            content=result['response'],
+                            user=user
+                        )
+                        
+                        logger.info(f"CSS content saved to {file_path} successfully")
+                        
+                        # Add file info to the result
+                        result['file_saved'] = True
+                        result['file_info'] = file_result
+                    except Exception as e:
+                        logger.error(f"Error saving CSS file: {str(e)}")
+                        result['file_saved'] = False
+                        result['file_error'] = str(e)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in process_stylesheet: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def load_project_files(self, project_path):
+        """
+        Load all relevant project files to provide context for stylesheet generation.
+        
+        Args:
+            project_path (str): Path to the project directory
+            
+        Returns:
+            list: List of project files with their content
+        """
+        files = []
+        
+        try:
+            if not project_path or not os.path.exists(project_path):
+                logger.warning(f"Invalid project path: {project_path}")
+                return files
+            
+            # Check for CSS files in static/css directory
+            css_dir = os.path.join(project_path, 'static', 'css')
+            if os.path.exists(css_dir):
+                for filename in os.listdir(css_dir):
+                    if filename.endswith('.css'):
+                        file_path = os.path.join(css_dir, filename)
+                        try:
+                            with open(file_path, 'r') as f:
+                                content = f.read()
+                                files.append({
+                                    'path': f'static/css/{filename}',
+                                    'content': content,
+                                    'type': 'css'
+                                })
+                        except Exception as e:
+                            logger.warning(f"Error reading CSS file {filename}: {str(e)}")
+            
+            # Check for HTML templates to provide context for styling
+            templates_dir = os.path.join(project_path, 'templates')
+            if os.path.exists(templates_dir):
+                for filename in os.listdir(templates_dir):
+                    if filename.endswith('.html'):
+                        file_path = os.path.join(templates_dir, filename)
+                        try:
+                            with open(file_path, 'r') as f:
+                                content = f.read()
+                                files.append({
+                                    'path': f'templates/{filename}',
+                                    'content': content,
+                                    'type': 'html'
+                                })
+                        except Exception as e:
+                            logger.warning(f"Error reading HTML file {filename}: {str(e)}")
+            
+            # Store the project files for later use
+            self.project_files = files
+            
+            return files
+            
+        except Exception as e:
+            logger.error(f"Error loading project files: {str(e)}")
+            return files
+
+    def ensure_required_sections(self, css_content):
+        """
+        Ensure the CSS content has all the required sections.
+        
+        Args:
+            css_content (str): The CSS content to enhance
+            
+        Returns:
+            str: The enhanced CSS content
+        """
+        # Get default CSS sections
+        css_sections = self.get_default_css_sections()
+        
+        # Check if :root section exists
+        if ':root' not in css_content:
+            # Add :root section with common variables
+            css_content = css_sections["root"] + css_content
+        
+        # Check if reset section exists
+        if '*::before' not in css_content and '*::after' not in css_content:
+            # Add basic reset
+            # Find position to insert (after :root section)
+            root_end = css_content.find('}', css_content.find(':root'))
+            if root_end > -1:
+                css_content = css_content[:root_end+1] + css_sections["reset"] + css_content[root_end+1:]
+            else:
+                css_content = css_sections["reset"] + css_content
+        
+        # Check if body styles exist
+        if 'body {' not in css_content:
+            # Add basic body styles
             # Find position to insert (after reset section)
             reset_end = css_content.find('}', css_content.find('*::after')) if '*::after' in css_content else css_content.find('}', css_content.find('box-sizing')) if 'box-sizing' in css_content else -1
             if reset_end > -1:
-                css_content = css_content[:reset_end+1] + body_section + css_content[reset_end+1:]
+                css_content = css_content[:reset_end+1] + css_sections["body"] + css_content[reset_end+1:]
             else:
-                css_content += body_section
+                css_content += css_sections["body"]
         
         return css_content
+
+    def process_conversation(self, user_input, model, user, **kwargs):
+        """
+        Process a conversation with the stylesheet agent.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            **kwargs: Additional arguments for processing
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
+        # Get project path if provided
+        project_path = kwargs.get('project_path')
+        
+        # Load project files if project path is provided and not already loaded
+        if project_path and not self.project_files:
+            self.project_files = self.load_project_files(project_path)
+        
+        # Use project_files from kwargs if provided (overrides self.project_files)
+        if kwargs.get('project_files'):
+            self.project_files = kwargs.get('project_files')
+            logger.info(f"Using {len(self.project_files)} project files provided in kwargs")
+        
+        # Add an override for file_path to use in get_additional_context
+        if kwargs.get('file_path'):
+            self.current_file_path = kwargs.get('file_path')
+        
+        # Add context about the project files to the system prompt
+        additional_context = []
+        if self.current_file_path:
+            additional_context.append(f"You are creating/editing the CSS file: {self.current_file_path}")
+        
+        if self.project_files:
+            additional_context.append(f"The project contains {len(self.project_files)} files for context")
+            # Add information about the most relevant files (HTML, CSS)
+            html_files = [f["path"] for f in self.project_files if f["path"].endswith(".html")]
+            css_files = [f["path"] for f in self.project_files if f["path"].endswith(".css") and f["path"] != self.current_file_path]
+            
+            if html_files:
+                additional_context.append(f"HTML templates: {', '.join(html_files[:5])}")
+            if css_files:
+                additional_context.append(f"Other CSS files: {', '.join(css_files[:5])}")
+        
+        # Add the additional context to kwargs
+        kwargs['additional_context'] = "\n".join(additional_context)
+        
+        # Call parent class process_conversation method
+        result = super().process_conversation(user_input, model, user, **kwargs)
+        
+        # Process the result to ensure it's valid CSS
+        if result.get('success'):
+            # Extract and enhance CSS content
+            css_content = self.extract_css_from_response(result['response'])
+            enhanced_css = self.ensure_required_sections(css_content)
+            result['response'] = enhanced_css
+        
+        return result
 
     def validate_project_access(self, project_id, user):
         """

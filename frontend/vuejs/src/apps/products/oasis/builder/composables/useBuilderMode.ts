@@ -81,8 +81,23 @@ export function useBuilderMode() {
         projectId
       })
       
-      // Generate code using AI
-      const response = await AgentService.generateCode(projectId, codeGenData)
+      // Check if this is a CSS file and use stylesheet API endpoint
+      const isCSS = file.path.endsWith('.css') || file.type === 'css';
+      
+      let response;
+      if (isCSS) {
+        // Use stylesheet-specific endpoint
+        console.info('Using stylesheet agent for CSS file');
+        response = await AgentService.generateStylesheet({
+          prompt,
+          projectId,
+          filePath: file.path,
+          model: modelId
+        });
+      } else {
+        // Use regular code generation endpoint
+        response = await AgentService.generateCode(projectId, codeGenData);
+      }
       
       // Add user message to conversation immediately
       store.addMessage({
@@ -95,7 +110,7 @@ export function useBuilderMode() {
       store.addMessage({
         role: 'assistant',
         content: response.response,
-        code: response.code,
+        code: response.code || response.response, // Use response as code if code is not available
         timestamp: new Date().toISOString(),
       })
       

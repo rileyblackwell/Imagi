@@ -3,10 +3,10 @@ URL patterns for the Agents app API.
 """
 
 from django.urls import path
-from . import views
+from .views import build_template, build_stylesheet, chat
 
 urlpatterns = [
-    path('build/template/', views.build_template, name='build_template'),
-    path('build/stylesheet/', views.build_stylesheet, name='build_stylesheet'),
-    path('chat/', views.chat, name='chat'),
+    path('build/template/', build_template, name='build_template'),
+    path('build/stylesheet/', build_stylesheet, name='build_stylesheet'),
+    path('chat/', chat, name='chat'),
 ] 

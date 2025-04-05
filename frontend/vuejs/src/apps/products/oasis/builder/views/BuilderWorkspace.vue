@@ -258,8 +258,12 @@ async function handlePrompt(eventData?: { timestamp: string }) {
         return
       }
       
+      // Determine file type for specialized handling
+      const fileExtension = store.selectedFile.path.split('.').pop()?.toLowerCase() || ''
+      const isCSS = fileExtension === 'css' || store.selectedFile.type === 'css'
+      
       // Show loading notification
-      notify({ type: 'info', message: 'Generating code...' })
+      notify({ type: 'info', message: isCSS ? 'Generating stylesheet...' : 'Generating code...' })
       
       await generateCodeFromPrompt({
         prompt: prompt.value,
@@ -270,7 +274,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       })
       
       // Show success notification
-      notify({ type: 'success', message: 'Code generated successfully' })
+      notify({ type: 'success', message: isCSS ? 'Stylesheet generated successfully' : 'Code generated successfully' })
     } else {
       // Show loading notification for chat
       notify({ type: 'info', message: 'Connecting with AI...' })

@@ -13,6 +13,7 @@ from rest_framework.response import Response
 import json
 from django.views.decorators.csrf import csrf_exempt
 import traceback
+from django.conf import settings
 
 
 # Import services when needed, not at module level
@@ -160,27 +161,47 @@ def build_template(request):
 @permission_classes([IsAuthenticated])
 def build_stylesheet(request):
     """
-    Build a CSS stylesheet based on a prompt.
-    
-    This endpoint accepts a prompt describing the desired CSS styling
-    and delegates to the stylesheet agent service to generate the code.
+    API view for building CSS stylesheets using AI.
+
+    This endpoint accepts a POST request with user prompt, model, project ID,
+    and target file path to generate a CSS stylesheet using the AI models.
+
+    Returns:
+        Response: A Django REST Framework response containing the generated CSS
     """
     try:
-        # Extract request data
-        message = request.data.get('message')
-        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
-        project_id = request.data.get('project_id')
-        file_path = request.data.get('file_path', 'static/css/styles.css')
-        conversation_id = request.data.get('conversation_id')
-        
+        data = request.data
+        message = data.get('message')
+        model = data.get('model', 'claude-3-7-sonnet-20250219')
+        project_id = data.get('project_id')
+        file_path = data.get('file_path')
+        conversation_id = data.get('conversation_id')
+        project_files = data.get('project_files', [])
+
         # Validate required fields
         if not message:
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
-            
-        # Initialize the agent service
+
+        if not project_id:
+            return create_error_response('Project ID is required', status.HTTP_400_BAD_REQUEST)
+
+        if not file_path:
+            return create_error_response('File path is required', status.HTTP_400_BAD_REQUEST)
+
+        # Initialize stylesheet agent
         stylesheet_agent = StylesheetAgentService()
-            
-        # Process the stylesheet request
+        
+        # Validate project access
+        project, error = stylesheet_agent.validate_project_access(project_id, request.user)
+        if error:
+            return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+                
+        # Add project files to the agent context if provided
+        if project_files:
+            stylesheet_agent.project_files = project_files
+            logger.info(f"Added {len(project_files)} project files to stylesheet context")
+
+        # Process the stylesheet
         result = stylesheet_agent.process_stylesheet(
             prompt=message,
             model=model,
@@ -190,34 +211,17 @@ def build_stylesheet(request):
             conversation_id=conversation_id
         )
         
-        # Return the result with CORS headers
-        response = Response(result)
-        return add_cors_headers(response)
+        # Return the result
+        if result.get('success'):
+            response = Response(result)
+            return add_cors_headers(response)
+        else:
+            return create_error_response(result.get('error', 'Unknown error'), status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
-        logger.error(f"[ERROR] Unhandled exception in build_stylesheet view: {str(e)}")
-        logger.error(f"[ERROR] Traceback: {traceback.format_exc()}")
-        
-        # Use the service's default stylesheet fallback
-        try:
-            # Initialize the agent service
-            stylesheet_agent = StylesheetAgentService()
-            
-            # Generate fallback stylesheet
-            fallback_result = stylesheet_agent.process_stylesheet(
-                prompt="Generate a minimal default stylesheet with basic styling",
-                model="claude-3-7-sonnet-20250219",
-                user=request.user,
-                file_path=file_path or 'static/css/styles.css'
-            )
-            
-            # Return the fallback result with CORS headers
-            response = Response(fallback_result)
-            return add_cors_headers(response)
-        except Exception as recovery_error:
-            logger.error(f"[ERROR] Error recovery also failed: {str(recovery_error)}")
-            # As a last resort, return the error
-            return create_error_response(f"Server error: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.error(f"Error in build_stylesheet view: {str(e)}")
+        logger.error(traceback.format_exc())
+        return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET', 'POST', 'OPTIONS'])
 @csrf_exempt

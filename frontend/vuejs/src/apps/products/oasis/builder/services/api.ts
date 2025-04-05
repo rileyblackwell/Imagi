@@ -12,7 +12,7 @@ export const API_CONFIG = {
     'Accept': 'application/json',
     'Content-Type': 'application/json'
   },
-  TIMEOUT: 30000, // 30 seconds
+  TIMEOUT: 60000, // 60 seconds (increased from 30 to handle longer AI model processing)
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000
 }
