@@ -195,8 +195,22 @@ class ChatAgentService(BaseAgentService):
                 current_file=current_file
             )
             
-            # Add timestamp to result if successful
+            # If successful, deduct credits for using the model
             if result.get('success', False):
+                # Explicitly deduct credits after successful processing
+                deduction_success = self.deduct_credits(user, model_id)
+                
+                if not deduction_success:
+                    logger.error(f"Failed to deduct credits for user {user.username} using model {model_id}")
+                    return {
+                        'success': False,
+                        'error': f"Failed to process payment for {model_id}. Please try again later."
+                    }
+                
+                # Log successful credit deduction
+                logger.info(f"Successfully deducted credits for user {user.username} using model {model_id}")
+                
+                # Add timestamp to result
                 result['timestamp'] = timezone.now().isoformat()
             
             return result
