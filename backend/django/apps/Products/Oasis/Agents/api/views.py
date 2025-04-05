@@ -245,7 +245,73 @@ def chat(request):
         return create_error_response('Authentication required', status.HTTP_401_UNAUTHORIZED)
     
     # Create service instance
-    chat_service = ChatAgentService()
+    try:
+        chat_service = ChatAgentService()
+    except Exception as service_error:
+        logger.error(f"Failed to initialize ChatAgentService: {str(service_error)}")
+        return create_error_response(f"Service initialization failed: {str(service_error)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # Helper function to check model credits
+    def check_model_credits(user, model_id):
+        """
+        Check if the user has sufficient credits for the selected model.
+        
+        Args:
+            user: The Django user object
+            model_id: The model ID to use
+            
+        Returns:
+            tuple: (has_credits, error_dict)
+        """
+        try:
+            # Import CreditBalance model directly
+            from apps.Payments.models import CreditBalance
+            
+            # Get consistent model price based on model name
+            if 'claude-3-7-sonnet' in model_id or 'gpt-4o' == model_id:
+                required_amount = 0.04  # $0.04 fixed price
+            elif 'gpt-4o-mini' in model_id:
+                required_amount = 0.005  # $0.005 fixed price
+            else:
+                # Fallback to using the service method (which uses the same logic)
+                has_credits, required_amount = chat_service.check_user_credits(user, model_id)
+                if not has_credits:
+                    return False, {
+                        'error': f"Insufficient credits: You need ${required_amount:.3f} more to use {model_id}. Please add more credits."
+                    }
+                return True, None
+            
+            # Get user's credit balance directly from the CreditBalance model
+            try:
+                credit_balance = CreditBalance.objects.get(user=user)
+                balance = float(credit_balance.balance)
+            except CreditBalance.DoesNotExist:
+                # Create a new balance record with zero balance if it doesn't exist
+                credit_balance = CreditBalance.objects.create(user=user, balance=0)
+                balance = 0.0
+            
+            # Log for debugging
+            logger.info(f"Credit check: user={user.username}, model={model_id}, balance=${balance:.3f}, required=${required_amount:.3f}")
+            
+            # Use a small epsilon value to handle floating-point precision issues
+            epsilon = 0.0001
+            if balance + epsilon < required_amount:
+                logger.warning(f"Insufficient credits for {model_id}: ${balance:.3f} available, ${required_amount:.3f} required")
+                return False, {
+                    'error': f"Insufficient credits: You need ${required_amount - balance:.3f} more to use {model_id}. Please add more credits."
+                }
+                
+            logger.info(f"Credit check passed for {model_id}: ${balance:.3f} available, ${required_amount:.3f} required")
+            return True, None
+            
+        except AttributeError as attr_error:
+            logger.error(f"AttributeError checking credits: {str(attr_error)}")
+            return False, {'error': f"Credit balance error: {str(attr_error)}. Please contact support."}
+        except Exception as e:
+            logger.error(f"Error checking credits: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False, {'error': f"Error checking credits: {str(e)}"}
     
     # GET request - retrieve conversation history
     if request.method == 'GET':
@@ -261,62 +327,114 @@ def chat(request):
             return add_cors_headers(response)
         except Exception as e:
             logger.error(f"Error retrieving conversation: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return create_error_response(str(e), status.HTTP_404_NOT_FOUND)
     
     # POST request - send message to AI
     elif request.method == 'POST':
-        # Get required fields
-        user_input = request.data.get('message')
-        model_id = request.data.get('model')
-        project_id = request.data.get('project_id')
-        
-        # Get optional fields
-        conversation_id = request.data.get('conversation_id')
-        mode = request.data.get('mode', 'chat')  # Default to chat mode
-        current_file = request.data.get('current_file')
-        
-        # Check for required fields
-        missing_fields = []
-        if not user_input:
-            missing_fields.append('message')
-        if not model_id:
-            missing_fields.append('model')
-        if not project_id:
-            missing_fields.append('project_id')
-            
-        if missing_fields:
-            error_msg = f"Missing required parameters: {', '.join(missing_fields)}"
-            return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
-        
-        # Check user credits
-        has_credits, error = chat_service.check_model_credits(request.user, model_id)
-        if not has_credits:
-            return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
-        
-        # Validate current file if provided
-        if current_file:
-            is_valid, error = chat_service.validate_current_file(current_file)
-            if not is_valid:
-                return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+        # Log request data for debugging
+        logger.info(f"Chat API request received from user {request.user.username}")
         
         try:
-            # Process message using service
-            response_data = chat_service.process_message(
-                user_input, 
-                model_id, 
-                request.user,
-                conversation_id,
-                project_id,
-                current_file,
-                mode == 'build'
-            )
+            # Get required fields
+            user_input = request.data.get('message')
+            model_id = request.data.get('model')
+            project_id = request.data.get('project_id')
             
-            # Add CORS headers to response
+            # Get optional fields
+            conversation_id = request.data.get('conversation_id')
+            mode = request.data.get('mode', 'chat')  # Default to chat mode
+            current_file = request.data.get('current_file')
+            
+            # Log request parameters (excluding sensitive content)
+            logger.info(f"Chat API parameters: model={model_id}, project_id={project_id}, " 
+                        f"conversation_id={conversation_id}, mode={mode}, "
+                        f"has_current_file={bool(current_file)}")
+            
+            # Check for required fields
+            missing_fields = []
+            if not user_input:
+                missing_fields.append('message')
+            if not model_id:
+                missing_fields.append('model')
+            if not project_id:
+                missing_fields.append('project_id')
+                
+            if missing_fields:
+                error_msg = f"Missing required parameters: {', '.join(missing_fields)}"
+                logger.warning(f"Chat API request missing fields: {error_msg}")
+                return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
+            
+            # Validate model_id format - ensure it matches an expected pattern
+            valid_model_patterns = ['claude-', 'gpt-4o']
+            if not any(pattern in model_id for pattern in valid_model_patterns):
+                error_msg = f"Invalid model ID: {model_id}. Expected format includes 'claude-' or 'gpt-4o'."
+                logger.warning(f"Invalid model ID: {model_id}")
+                return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
+            
+            # Check user credits - using the view-specific helper to prevent overcharging
+            try:
+                has_credits, error = check_model_credits(request.user, model_id)
+                if not has_credits:
+                    logger.warning(f"Insufficient credits for user {request.user.username} to use {model_id}")
+                    return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+            except Exception as credit_error:
+                logger.error(f"Error checking credits: {str(credit_error)}")
+                return create_error_response(f"Credit check error: {str(credit_error)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Validate current file if provided
+            if current_file:
+                try:
+                    is_valid, error = chat_service.validate_current_file(current_file)
+                    if not is_valid:
+                        logger.warning(f"Invalid current_file format: {error.get('error')}")
+                        return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+                except Exception as file_error:
+                    logger.error(f"Error validating current file: {str(file_error)}")
+                    return create_error_response(f"File validation error: {str(file_error)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Process message using service
+            logger.info(f"Processing chat message for user {request.user.username} with model {model_id}")
+            try:
+                response_data = chat_service.process_message(
+                    user_input, 
+                    model_id, 
+                    request.user,
+                    conversation_id,
+                    project_id,
+                    current_file,
+                    mode == 'build'
+                )
+            except Exception as process_error:
+                logger.error(f"Error in process_message: {str(process_error)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return create_error_response(f"Error processing message: {str(process_error)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            # Check for success or error
+            if not response_data.get('success', False):
+                logger.warning(f"Chat process failed: {response_data.get('error', 'Unknown error')}")
+                return create_error_response(
+                    response_data.get('error', 'Failed to process message'), 
+                    status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Add CORS headers to successful response
+            logger.info(f"Chat message processed successfully for user {request.user.username}")
             response = Response(response_data)
             return add_cors_headers(response)
+            
+        except ValueError as ve:
+            # Handle validation errors
+            logger.error(f"Validation error in chat view: {str(ve)}")
+            return create_error_response(str(ve), status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            # Handle unexpected errors
             logger.error(f"Error processing chat message: {str(e)}")
-            return create_error_response(str(e))
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return create_error_response(f"Server error processing chat message: {str(e)}")
         
     # This should never happen, but just in case
     return create_error_response('Method not allowed', status.HTTP_405_METHOD_NOT_ALLOWED)

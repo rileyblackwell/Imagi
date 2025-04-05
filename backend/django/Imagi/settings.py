@@ -194,7 +194,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
-    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'apps.Products.Oasis.Agents.api.negotiation.StreamingContentNegotiation',
+    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'apps.Products.Oasis.Agents.api.negotiation.streaming.StreamingContentNegotiation',
     # Add acceptable MIME types for streaming
     'ACCEPTED_MEDIA_TYPES': [
         'application/json',

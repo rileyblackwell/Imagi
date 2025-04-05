@@ -77,6 +77,59 @@ class ChatAgentService(BaseAgentService):
         """
         return True, None
 
+    def deduct_credits(self, user, model):
+        """
+        Deduct credits from user's account for using the selected model.
+        
+        Args:
+            user: The Django user object
+            model (str): The AI model that was used
+            
+        Returns:
+            bool: True if credits were successfully deducted, False otherwise
+        """
+        try:
+            # Get the exact cost based on the model name
+            required_amount = self.get_model_cost(model)
+            
+            # Use the payment service to charge tokens directly (amount in dollars)
+            description = f"Chat using model: {model}"
+            
+            # Access the credit balance directly instead of going through payment service
+            from apps.Payments.models import CreditBalance
+            from django.db import transaction
+            from decimal import Decimal
+            
+            # Perform the transaction with database-level locking
+            with transaction.atomic():
+                try:
+                    balance = CreditBalance.objects.select_for_update().get(user=user)
+                    
+                    # Convert to float for epsilon comparison (handling floating point precision)
+                    epsilon = 0.0001
+                    current_balance = float(balance.balance)
+                    
+                    if current_balance + epsilon < required_amount:
+                        logger.warning(f"Insufficient balance: ${current_balance:.3f} available, ${required_amount:.3f} required")
+                        return False
+                    
+                    # Update balance
+                    balance.balance = Decimal(str(float(balance.balance) - required_amount))
+                    balance.save()
+                    
+                    logger.info(f"Deducted ${required_amount:.3f} from user {user.username} for model {model}. New balance: ${float(balance.balance):.3f}")
+                    return True
+                    
+                except CreditBalance.DoesNotExist:
+                    logger.error(f"No credit balance found for user {user.username}")
+                    return False
+            
+        except Exception as e:
+            logger.error(f"Error deducting credits: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
+
     def process_message(self, user_input, model_id, user, conversation_id=None, project_id=None, current_file=None, is_build_mode=False):
         """
         Process a chat message and generate a response.
@@ -94,12 +147,25 @@ class ChatAgentService(BaseAgentService):
             dict: The response data including the AI's response
         """
         try:
+            # Get the exact model cost for logging
+            model_cost = self.get_model_cost(model_id)
+            logger.info(f"Processing message with model {model_id} (cost: ${model_cost:.3f})")
+            
             # Check user credits before proceeding
             has_credits, required_amount = self.check_user_credits(user, model_id)
             if not has_credits:
                 return {
                     'success': False,
-                    'error': f"Insufficient credits: You need ${required_amount:.2f} more to use {model_id}. Please add more credits."
+                    'error': f"Insufficient credits: You need ${required_amount:.3f} more to use {model_id}. Please add more credits."
+                }
+            
+            # Check API key availability
+            api_key_error = self.check_api_key_available(model_id)
+            if api_key_error:
+                logger.error(f"API key error: {api_key_error}")
+                return {
+                    'success': False,
+                    'error': api_key_error
                 }
             
             # Get project path from project_id if provided
@@ -176,4 +242,148 @@ class ChatAgentService(BaseAgentService):
         if 'content' not in current_file:
             logger.info(f"current_file missing content field, will be fetched as needed")
         
-        return True, None 
+        return True, None
+
+    def check_api_key_available(self, model_id):
+        """
+        Check if the required API key is available for the selected model.
+        
+        Args:
+            model_id (str): The model ID to check
+            
+        Returns:
+            str: Error message if API key is not available, None otherwise
+        """
+        try:
+            import os
+            from django.conf import settings
+            
+            # Check if model is from OpenAI or Anthropic
+            if 'gpt' in model_id:
+                openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
+                if not openai_key:
+                    return "OpenAI API key is not configured. Please set the OPENAI_KEY environment variable."
+            elif 'claude' in model_id:
+                anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
+                if not anthropic_key:
+                    return "Anthropic API key is not configured. Please set the ANTHROPIC_KEY environment variable."
+            return None
+        except Exception as e:
+            logger.error(f"Error checking API key: {str(e)}")
+            return f"Error checking API key: {str(e)}"
+
+    def get_model_cost(self, model_id):
+        """
+        Get the exact cost for a specific model.
+        
+        Args:
+            model_id (str): The model ID to get the cost for
+            
+        Returns:
+            float: The cost of the model in dollars
+        """
+        # Ensure consistent pricing logic across all methods
+        if 'claude-3-7-sonnet' in model_id or 'gpt-4o' == model_id:
+            return 0.04  # $0.04 per request
+        elif 'gpt-4o-mini' in model_id:
+            return 0.005  # $0.005 per request
+        else:
+            # Default to the defined cost in MODEL_COSTS or fallback to $0.04
+            from .agent_service import MODEL_COSTS
+            return MODEL_COSTS.get(model_id, 0.04)
+            
+    def get_conversation_history(self, conversation_id, user):
+        """
+        Get conversation history for a specific conversation.
+        
+        Args:
+            conversation_id (str): The ID of the conversation
+            user (User): The Django user object
+            
+        Returns:
+            dict: The conversation history data
+        """
+        try:
+            # Get the conversation object
+            from ..models import AgentConversation, AgentMessage
+            
+            # Make sure conversation exists and belongs to user
+            conversation = AgentConversation.objects.get(id=conversation_id, user=user)
+            
+            # Get all messages in this conversation
+            messages = AgentMessage.objects.filter(conversation=conversation).order_by('created_at')
+            
+            # Format messages for the response
+            message_list = []
+            for msg in messages:
+                message_list.append({
+                    'role': msg.role,
+                    'content': msg.content,
+                    'timestamp': msg.created_at.isoformat()
+                })
+            
+            # Return conversation data including messages and metadata
+            return {
+                'success': True,
+                'conversation_id': conversation_id,
+                'model': conversation.model_name,
+                'messages': message_list,
+                'created_at': conversation.created_at.isoformat(),
+                'updated_at': conversation.updated_at.isoformat() if hasattr(conversation, 'updated_at') else None
+            }
+        except AgentConversation.DoesNotExist:
+            logger.error(f"Conversation not found: {conversation_id}")
+            raise ValueError(f"Conversation with ID {conversation_id} not found")
+        except Exception as e:
+            logger.error(f"Error getting conversation history: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise ValueError(f"Error retrieving conversation: {str(e)}")
+
+    def check_user_credits(self, user, model):
+        """
+        Check if user has enough balance for the selected model.
+        
+        Args:
+            user: The Django user object
+            model (str): The AI model to use
+            
+        Returns:
+            tuple: (has_credits, required_amount)
+        """
+        try:
+            # Get credit balance directly from the CreditBalance model
+            from apps.Payments.models import CreditBalance
+            
+            try:
+                credit_balance = CreditBalance.objects.get(user=user)
+                balance = float(credit_balance.balance)
+            except CreditBalance.DoesNotExist:
+                # Create a new balance record with zero balance if it doesn't exist
+                credit_balance = CreditBalance.objects.create(user=user, balance=0)
+                balance = 0.0
+                
+            # Ensure consistent pricing logic matching deduct_credits:
+            # - claude-3-7-sonnet or gpt-4o: $0.04 per request
+            # - gpt-4o-mini: $0.005 per request
+            if 'claude-3-7-sonnet' in model or 'gpt-4o' == model:
+                required_amount = 0.04
+            elif 'gpt-4o-mini' in model:
+                required_amount = 0.005
+            else:
+                # Default to the defined cost in MODEL_COSTS or fallback to $0.04
+                required_amount = self.get_model_cost(model)
+            
+            # Log the required amount for debugging
+            logger.info(f"Credit check for model {model}: ${required_amount:.3f} required, user balance: ${balance:.3f}")
+            
+            # Use a small epsilon value to handle floating-point precision issues
+            epsilon = 0.0001
+            if balance + epsilon < required_amount:
+                return False, required_amount
+            return True, required_amount
+        except Exception as e:
+            logger.error(f"Error checking user balance: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False, 0.04 

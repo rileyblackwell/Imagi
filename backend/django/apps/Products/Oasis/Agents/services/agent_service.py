@@ -32,6 +32,7 @@ anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
 # Add model costs constants
 MODEL_COSTS = {
     'claude-3-7-sonnet-20250219': 0.04,  # $0.04 per request
+    'claude-3-7-sonnet': 0.04,  # $0.04 per request - adding alternate naming
     'gpt-4o': 0.04,  # $0.04 per request
     'gpt-4o-mini': 0.005  # $0.005 per request - explicitly set to avoid any rounding issues
 }
@@ -236,7 +237,20 @@ class BaseAgentService(ABC):
         """
         try:
             profile = user.profile
-            required_amount = MODEL_COSTS.get(model, 0.04)  # Default to $0.04
+            
+            # Ensure consistent pricing logic matching deduct_credits:
+            # - claude-3-7-sonnet or gpt-4o: $0.04 per request
+            # - gpt-4o-mini: $0.005 per request
+            if 'claude-3-7-sonnet' in model or 'gpt-4o' == model:
+                required_amount = 0.04
+            elif 'gpt-4o-mini' in model:
+                required_amount = 0.005
+            else:
+                # Default to the defined cost in MODEL_COSTS or fallback to $0.04
+                required_amount = MODEL_COSTS.get(model, 0.04)
+            
+            # Log the required amount for debugging
+            logger.info(f"Credit check for model {model}: ${required_amount:.3f} required, user balance: ${profile.balance:.3f}")
             
             # Use a small epsilon value to handle floating-point precision issues
             epsilon = 0.0001
@@ -441,24 +455,69 @@ class BaseAgentService(ABC):
                 # Filter out system messages for Claude API
                 claude_messages = [msg for msg in api_messages if msg['role'] != 'system']
                 
-                # Make the API call
-                completion = self.anthropic_client.messages.create(
-                    model=model,
-                    max_tokens=4096,
-                    temperature=0.7,
-                    system=system_content.strip(),
-                    messages=claude_messages
-                )
-                response_content = completion.content[0].text
+                # Add additional context to system prompt if file is being discussed
+                if current_file and current_file.get('path'):
+                    file_info = f"You are currently discussing the file: {current_file.get('path')}"
+                    system_content = f"{file_info}\n\n{system_content}"
+                
+                # Adjust system prompt to include instructions about not using streaming
+                system_content = f"{system_content}\n\nIMPORTANT: Provide complete responses at once, not streamed. The user will see a processing animation while waiting."
+                
+                # Make the API call with better error handling
+                try:
+                    completion = self.anthropic_client.messages.create(
+                        model=model,
+                        max_tokens=4096,
+                        temperature=0.7,
+                        system=system_content.strip(),
+                        messages=claude_messages
+                    )
+                    response_content = completion.content[0].text
+                except Exception as api_error:
+                    logger.error(f"Anthropic API error: {str(api_error)}")
+                    if "API key" in str(api_error):
+                        raise ValueError("The Anthropic API key is invalid or missing. Please check your ANTHROPIC_KEY environment variable.")
+                    raise
+                    
             elif 'gpt' in model:
-                # Make the API call
-                completion = self.openai_client.chat.completions.create(
-                    model=model,
-                    messages=api_messages,
-                    temperature=0.7,
-                    max_tokens=4096
-                )
-                response_content = completion.choices[0].message.content
+                # Add file context as an additional system message
+                if current_file and current_file.get('path'):
+                    file_info_msg = {
+                        "role": "system", 
+                        "content": f"You are currently discussing the file: {current_file.get('path')}"
+                    }
+                    # Insert file context as the second message (after the main system prompt)
+                    system_exists = any(msg['role'] == 'system' for msg in api_messages)
+                    if system_exists:
+                        # Find position of last system message
+                        last_system_idx = max(i for i, msg in enumerate(api_messages) 
+                                            if msg['role'] == 'system')
+                        api_messages.insert(last_system_idx + 1, file_info_msg)
+                    else:
+                        api_messages.insert(0, file_info_msg)
+                
+                # Add instruction about not using streaming
+                api_messages.insert(0, {
+                    "role": "system",
+                    "content": "IMPORTANT: Provide complete responses at once, not streamed. The user will see a processing animation while waiting."
+                })
+                
+                # Make the API call with better error handling
+                try:
+                    completion = self.openai_client.chat.completions.create(
+                        model=model,
+                        messages=api_messages,
+                        temperature=0.7,
+                        max_tokens=4096,
+                        stream=False  # Explicitly disable streaming
+                    )
+                    response_content = completion.choices[0].message.content
+                except Exception as api_error:
+                    logger.error(f"OpenAI API error: {str(api_error)}")
+                    if "API key" in str(api_error):
+                        raise ValueError("The OpenAI API key is invalid or missing. Please check your OPENAI_KEY environment variable.")
+                    raise
+                    
             else:
                 raise ValueError(f"Unsupported model: {model}")
             

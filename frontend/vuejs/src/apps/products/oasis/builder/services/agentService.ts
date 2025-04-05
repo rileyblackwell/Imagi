@@ -340,7 +340,27 @@ export const AgentService = {
       if (error.response?.status === 400) {
         // Parse specific error details for 400 Bad Request
         const errorDetail = error.response.data?.error || 'Bad request';
-        throw new Error(`API Error: ${errorDetail}`);
+        
+        // Log the detailed error for debugging
+        console.warn('Chat API 400 Bad Request details:', {
+          error: errorDetail,
+          data: error.response.data,
+          request: {
+            model: payload.model,
+            project_id: payload.project_id,
+            has_conversation_id: !!payload.conversation_id,
+            has_current_file: !!payload.current_file
+          }
+        });
+        
+        // Try to provide more specific error messages for known issues
+        if (errorDetail.includes('Insufficient credits')) {
+          throw new Error(`You don't have enough credits: ${errorDetail}`);
+        } else if (errorDetail.includes('model')) {
+          throw new Error(`Model error: ${errorDetail}`);
+        } else {
+          throw new Error(`API Error: ${errorDetail}`);
+        }
       }
       
       // Check if the error contains an HTML response (Django error page)
