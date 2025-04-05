@@ -24,7 +24,7 @@
 </template>
 
 <script>
-import { defineComponent, onMounted } from 'vue'
+import { defineComponent, onMounted, computed } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
 
 export default defineComponent({
@@ -35,6 +35,11 @@ export default defineComponent({
   data() {
     return {
       stripeLoading: false
+    }
+  },
+  computed: {
+    stripePublicKey() {
+      return import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
     }
   },
   mounted() {
