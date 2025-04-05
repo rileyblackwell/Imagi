@@ -32,21 +32,28 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 ## 📁 Project Structure
 
 ### **Frontend Apps (Vue.js)**
-- **Authentication**: Handles user login, registration, and password management.
-- **Builder**: AI-powered application generator with two modes:
-  - **Chat Mode**: Conversational interface for generating applications.
-  - **Build Mode**: Visual interface for building applications.
-- **Dashboard**: Manages user projects and settings.
-- **Editor**: Provides a code editor and file management capabilities.
-- **Preview**: Allows live preview of the application being built.
+Each app module is self-contained with:
+- Components (following Atomic Design principles)
+- Routes
+- Store
+- Services
+- Types
+- Tests
+
+The Atomic Design structure includes:
+1. **Atoms**: Basic building blocks (buttons, inputs, icons, text)
+2. **Molecules**: Simple combinations of atoms (form fields, cards, menu items)
+3. **Organisms**: Complex combinations of molecules (forms, headers, feature grids)
+4. **Templates**: Page-level components and layouts
+5. **Pages**: Specific instances of templates with logic and routing
 
 ### **Backend Apps (Django)**
-- **auth**: Manages authentication and authorization.
-- **builder**: Contains core AI generation logic and prompt handling.
-- **home**: Handles landing pages and static content.
-- **payments**: Integrates Stripe for managing API credits.
-- **agents**: Handles AI workflows and interactions.
-- **project_manager**: Manages project lifecycle (creation, updates, deletion).
+- **auth**: Manages authentication and authorization
+- **builder**: Contains core AI generation logic and prompt handling
+- **home**: Handles landing pages and static content
+- **payments**: Integrates Stripe for managing API credits
+- **agents**: Handles AI workflows and interactions
+- **project_manager**: Manages project lifecycle (creation, updates, deletion)
 
 ---
 
@@ -71,8 +78,8 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 ## 🎨 Imagi Design Principles
 
 ### **User Interface**
-- Clean, minimalist design
-- Responsive layouts
+- Clean, minimalist, modern UI inspired by Stripe, Airbnb, Apple, Twilio
+- Responsive layouts using Tailwind utility classes
 - Accessible components (**WCAG 2.1** compliance)
 - Dark/light mode support
 
@@ -111,14 +118,39 @@ Ensure the following are installed:
     cd backend/django
     pipenv install
     pipenv shell
+    ```
+
+3. **Create a .env file in the Django root directory with the following variables**:
+    ```
+    OPENAI_KEY=your_openai_api_key
+    ANTHROPIC_KEY=your_anthropic_api_key
+    SECRET_KEY=your_django_secret_key
+    STRIPE_PUBLIC_KEY=your_stripe_public_key
+    STRIPE_SECRET_KEY=your_stripe_secret_key
+    FRONTEND_URL=http://localhost:5174
+    FRONTEND_REDIRECT_ENABLED=true
+    ```
+
+4. **Run the database migrations and start the server**:
+    ```sh
     python manage.py migrate
     python manage.py runserver
     ```
 
-3. **Set up the frontend**:
+5. **Set up the frontend**:
     ```sh
     cd frontend/vuejs
     npm install
+    ```
+
+6. **Create a .env file in the Vue.js root directory with the following variables**:
+    ```
+    VITE_API_URL=http://localhost:8000
+    VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+    ```
+
+7. **Start the frontend development server**:
+    ```sh
     npm run dev
     ```
 
@@ -130,30 +162,50 @@ Ensure the following are installed:
 ```sh
 cd backend/django
 pytest
+```
+
+### **Frontend Tests**
+```sh
 cd frontend/vuejs
 npm run test
+```
 
-🤝 Contributing
-We welcome contributions! Please follow the guidelines in CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+## 🛡️ Testing Strategy
+### Frontend (Vue.js)
+- **Unit Tests**: Jest for testing Vue components
+- **E2E Tests**: Cypress for end-to-end testing
 
-📜 License
-This project is licensed under the MIT License. See the LICENSE file for details.
+### Backend (Django)
+- **Unit Tests**: pytest for testing models, views, and APIs
+- **Integration Tests**: Ensure API endpoints work as expected
 
-🌎 Connect With Us
-For updates and community discussions:
-
-Website: imagi-oasis.com
-GitHub: github.com/yourusername/imagi-oasis
-Discord: Join Our Community
-
+**Test Coverage Targets:**
+- Authentication & Authorization: 90%+
+- API Endpoints: 80%+
+- UI Components: 75%+
 
 ---
 
-### **What’s Updated?**
-✅ **Improved Readability** – Sections are clearer with structured headings.  
-✅ **Better Formatting** – Uses icons/emojis for easy navigation.  
-✅ **Additional Details** – Adds a **Connect With Us** section for future community growth.  
-✅ **More Organized Instructions** – **Installation & Setup** and **Running Tests** sections are now structured for clarity.  
+## 🔄 Deployment Considerations
+- **Local Development**: SQLite, pipenv, Vite
+- **Staging & Production**:
+  - Database: PostgreSQL
+  - API Deployment: Django on Gunicorn/Uvicorn
+  - Frontend Deployment: Vite build, hosted on CDN
+  - Future Enhancements: Docker & Kubernetes for scaling
 
-This version makes the **README** **more user-friendly and professional** while maintaining clarity and usability for **Imagi Oasis** developers. 🚀
+---
+
+## 🤝 Contributing
+We welcome contributions! Please follow the guidelines in CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+
+## 📜 License
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+## 🌎 Connect With Us
+For updates and community discussions:
+
+- Website: imagi-oasis.com
+- GitHub: github.com/yourusername/imagi-oasis
+- Discord: Join Our Community
 
