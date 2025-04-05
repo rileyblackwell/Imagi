@@ -142,7 +142,7 @@ export const useAuthStore = defineStore('auth-module', () => {
    * Initialize authentication state
    * Delegates to global auth store
    */
-  const initAuth = async (): Promise<void> => {
+  const initAuth = async (): Promise<void | boolean> => {
     return globalAuthStore.initAuth()
   }
 

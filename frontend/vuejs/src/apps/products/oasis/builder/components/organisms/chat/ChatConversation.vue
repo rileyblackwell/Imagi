@@ -28,7 +28,7 @@
                 v-for="(example, index) in (mode === 'chat' ? chatExamples : buildExamples)" 
                 :key="index"
                 class="bg-dark-700/50 px-3 py-2 rounded-lg text-sm text-gray-300 cursor-pointer hover:bg-dark-700 transition-colors"
-                @click="$emit('useExample', example)"
+                @click="$emit('use-example', example)"
               >
                 "{{ example }}"
               </div>
@@ -217,9 +217,8 @@ watch(() => JSON.stringify(props.messages), () => {
 watch(() => props.messages, (messages) => {
   if (messages.length > 0) {
     const lastMessage = messages[messages.length - 1]
-    // If the last message is from the user and doesn't have isStreaming property set to false
-    // This assumes a response is on the way
-    isTyping.value = lastMessage.role === 'user' && !lastMessage.isStreaming === false
+    // Check if the last message is from the user
+    isTyping.value = lastMessage.role === 'user'
   } else {
     isTyping.value = false
   }
