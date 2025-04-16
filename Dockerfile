@@ -21,8 +21,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     && pip install pipenv \
-    && pipenv install --system --deploy \
-    && pipenv install django-debug-toolbar --system \
+    && pipenv install --system --deploy --dev \
     && apt-get remove -y build-essential gcc \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
