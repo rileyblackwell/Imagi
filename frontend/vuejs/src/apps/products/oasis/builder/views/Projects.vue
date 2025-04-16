@@ -9,8 +9,6 @@
         <!-- Gradient orbs matching Home landing page -->
         <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
         <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
-        <!-- Grid pattern overlay -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
         <!-- Subtle noise texture -->
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
       </div>

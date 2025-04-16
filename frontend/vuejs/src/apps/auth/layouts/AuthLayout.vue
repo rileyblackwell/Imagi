@@ -16,9 +16,6 @@
         <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary-400/10 rounded-full blur-[100px]"></div>
         <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-400/10 rounded-full blur-[100px]"></div>
         
-        <!-- Grid pattern overlay -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        
         <!-- Subtle noise texture -->
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
       </div>
@@ -64,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { DefaultLayout } from '@/shared/layouts'
+import DefaultLayout from '@/shared/layouts/DefaultLayout.vue'
 import { useRoute } from 'vue-router'
 import { ImagiLogo } from '@/shared/components/molecules'
 

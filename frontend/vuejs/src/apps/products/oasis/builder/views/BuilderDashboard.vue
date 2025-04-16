@@ -21,7 +21,7 @@
       <!-- Decorative background elements matching home landing page -->
       <div class="absolute inset-0 pointer-events-none">
         <!-- Subtle pattern overlay -->
-        <div class="absolute inset-0 bg-[url('/dot-pattern.svg')] opacity-[0.03]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/5 via-dark-900 to-violet-950/5"></div>
         
         <!-- Glowing orbs - matching the style from home landing page -->
         <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px]"></div>
