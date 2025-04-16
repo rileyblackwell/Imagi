@@ -20,6 +20,8 @@
     "@fortawesome/free-brands-svg-icons": "^6.5.1",
     "@fortawesome/free-solid-svg-icons": "^6.5.1",
     "@fortawesome/vue-fontawesome": "^3.0.5",
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/vue": "^2.2.0",
     "@stripe/stripe-js": "^3.0.3",
     "@vee-validate/i18n": "^4.15.0",
     "@vee-validate/rules": "^4.15.0",

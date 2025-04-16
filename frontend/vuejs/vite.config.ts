@@ -70,29 +70,34 @@ export default defineConfig({
     chunkSizeWarningLimit: 800, // Increase chunk size warning limit
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Fix circular dependency by putting related modules in the same chunk
-          'layouts': [
-            './src/shared/layouts/index.ts',
-            './src/shared/layouts/DefaultLayout.vue',
-            './src/shared/layouts/BaseLayout.vue',
-            './src/shared/layouts/DashboardLayout.vue',
-            './src/shared/layouts/MinimalLayout.vue',
-            './src/apps/auth/layouts/AuthLayout.vue'
-          ],
-          // Fix builder services dynamic import issues
-          'builder-services': [
-            './src/apps/products/oasis/builder/services/fileService.ts',
-            './src/apps/products/oasis/builder/services/projectService.ts',
-            './src/apps/products/oasis/builder/services/agentService.ts'
-          ],
-          // Fix utils dynamic import issues
-          'shared-utils': [
-            './src/shared/utils/index.ts'
-          ],
-          // Split vendor libraries into separate chunks
-          'vendor-vue': ['vue', 'vue-router', 'pinia'],
-          'vendor-ui': ['@headlessui/vue', '@heroicons/vue'],
+        manualChunks(id) {
+          // Handle file service circular dependencies
+          if (id.includes('fileService.ts')) {
+            return 'builder-services';
+          }
+          
+          // Handle UI library chunks only if they're actually imported
+          if (id.includes('node_modules/@headlessui/vue') || 
+              id.includes('node_modules/@heroicons/vue')) {
+            return 'vendor-ui';
+          }
+          
+          // Vue ecosystem libraries
+          if (id.includes('node_modules/vue') || 
+              id.includes('node_modules/vue-router') || 
+              id.includes('node_modules/pinia')) {
+            return 'vendor-vue';
+          }
+          
+          // Shared utilities
+          if (id.includes('/shared/utils/')) {
+            return 'shared-utils';
+          }
+          
+          // Handle layouts
+          if (id.includes('/shared/layouts/') || id.includes('/apps/auth/layouts/')) {
+            return 'layouts';
+          }
         }
       }
     }
