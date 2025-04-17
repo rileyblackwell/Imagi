@@ -266,6 +266,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5174',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'https://*.railway.app',
 ]
 
 # Cookie settings
@@ -292,7 +293,7 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Only allow specific hosts
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app']
 
 # Development-specific settings
 if DEBUG:
