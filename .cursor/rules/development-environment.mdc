@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- **OS**: macOS (zsh)
+- **Package Managers**:
+  - Frontend: npm/yarn
+  - Backend: pipenv
+- **Required Tools**:
+  - Node.js >= 16.x
+  - Python >= 3.10
+  - PostgreSQL >= 14
+- **Editor Setup**:
+  - VSCode/Cursor with provided settings
+  - Tailwind CSS IntelliSense
+  - Python and Vue.js extensions
+  - npm run dev on port 5174 is already running in the terminal
+  - python manage.py runderver on port 8000 is already running in the terminal
+  
+- You can @ files here
+- You can use markdown but dont have to
