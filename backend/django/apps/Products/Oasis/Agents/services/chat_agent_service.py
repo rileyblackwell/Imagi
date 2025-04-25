@@ -110,14 +110,14 @@ class ChatAgentService(BaseAgentService):
                     current_balance = float(balance.balance)
                     
                     if current_balance + epsilon < required_amount:
-                        logger.warning(f"Insufficient balance: ${current_balance:.3f} available, ${required_amount:.3f} required")
+                        logger.warning(f"Insufficient balance: ${current_balance:.4f} available, ${required_amount:.4f} required")
                         return False
                     
                     # Update balance
                     balance.balance = Decimal(str(float(balance.balance) - required_amount))
                     balance.save()
                     
-                    logger.info(f"Deducted ${required_amount:.3f} from user {user.username} for model {model}. New balance: ${float(balance.balance):.3f}")
+                    logger.info(f"Deducted ${required_amount:.4f} from user {user.username} for model {model}. New balance: ${float(balance.balance):.4f}")
                     return True
                     
                 except CreditBalance.DoesNotExist:
@@ -149,14 +149,14 @@ class ChatAgentService(BaseAgentService):
         try:
             # Get the exact model cost for logging
             model_cost = self.get_model_cost(model_id)
-            logger.info(f"Processing message with model {model_id} (cost: ${model_cost:.3f})")
+            logger.info(f"Processing message with model {model_id} (cost: ${model_cost:.4f})")
             
             # Check user credits before proceeding
             has_credits, required_amount = self.check_user_credits(user, model_id)
             if not has_credits:
                 return {
                     'success': False,
-                    'error': f"Insufficient credits: You need ${required_amount:.3f} more to use {model_id}. Please add more credits."
+                    'error': f"Insufficient credits: You need ${required_amount:.4f} more to use {model_id}. Please add more credits."
                 }
             
             # Check API key availability
@@ -296,15 +296,25 @@ class ChatAgentService(BaseAgentService):
         Returns:
             float: The cost of the model in dollars
         """
-        # Ensure consistent pricing logic across all methods
-        if 'claude-3-7-sonnet' in model_id or 'gpt-4o' == model_id:
-            return 0.04  # $0.04 per request
-        elif 'gpt-4o-mini' in model_id:
-            return 0.005  # $0.005 per request
-        else:
-            # Default to the defined cost in MODEL_COSTS or fallback to $0.04
-            from .agent_service import MODEL_COSTS
-            return MODEL_COSTS.get(model_id, 0.04)
+        # Import MODEL_COSTS from agent_service
+        from .agent_service import MODEL_COSTS
+        
+        # Get the exact amount from MODEL_COSTS using the model ID directly
+        amount = MODEL_COSTS.get(model_id)
+        
+        # If model not found in MODEL_COSTS, use correct default based on model pattern
+        if amount is None:
+            if 'claude-3-7-sonnet' in model_id:
+                amount = 0.04
+            elif model_id == 'gpt-4o':
+                amount = 0.04
+            elif 'gpt-4o-mini' in model_id:
+                amount = 0.005
+            else:
+                # Default fallback
+                amount = 0.04
+                
+        return amount
             
     def get_conversation_history(self, conversation_id, user):
         """
@@ -376,20 +386,12 @@ class ChatAgentService(BaseAgentService):
                 # Create a new balance record with zero balance if it doesn't exist
                 credit_balance = CreditBalance.objects.create(user=user, balance=0)
                 balance = 0.0
-                
-            # Ensure consistent pricing logic matching deduct_credits:
-            # - claude-3-7-sonnet or gpt-4o: $0.04 per request
-            # - gpt-4o-mini: $0.005 per request
-            if 'claude-3-7-sonnet' in model or 'gpt-4o' == model:
-                required_amount = 0.04
-            elif 'gpt-4o-mini' in model:
-                required_amount = 0.005
-            else:
-                # Default to the defined cost in MODEL_COSTS or fallback to $0.04
-                required_amount = self.get_model_cost(model)
+            
+            # Get the exact cost for the model
+            required_amount = self.get_model_cost(model)
             
             # Log the required amount for debugging
-            logger.info(f"Credit check for model {model}: ${required_amount:.3f} required, user balance: ${balance:.3f}")
+            logger.info(f"Credit check for model {model}: ${required_amount:.4f} required, user balance: ${balance:.4f}")
             
             # Use a small epsilon value to handle floating-point precision issues
             epsilon = 0.0001

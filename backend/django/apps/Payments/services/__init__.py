@@ -33,23 +33,27 @@ class PaymentService:
         Returns:
             dict: Result of the operation
         """
-        # Convert dollar amount to credits (1 credit = $0.01)
-        credit_amount = amount * 100
-        
+        # Credits are stored in the database as the actual dollar amount
+        # No need to convert dollar amount to credits
+
         # Use a default description if none provided
         if not description:
             description = f"AI token usage: ${amount:.4f}"
         
         # First check if user has enough credits
-        check_result = self.credit_service.check_credits(user, credit_amount)
+        check_result = self.credit_service.check_credits(user, amount)
         
         if not check_result.get('has_sufficient', False):
-            # Handle insufficient credits
-            # In a real system, you might want to prevent the request or add credits automatically
-            pass
+            # Return the insufficient credits error
+            return {
+                'success': False,
+                'error': 'Insufficient credits',
+                'current_balance': check_result.get('current_balance', 0),
+                'required_credits': amount
+            }
         
-        # Deduct credits
-        return self.credit_service.deduct_credits(user, credit_amount, description)
+        # Deduct credits - pass the exact dollar amount
+        return self.credit_service.deduct_credits(user, amount, description)
 
 __all__ = [
     'StripeService',

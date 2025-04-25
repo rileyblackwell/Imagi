@@ -21,6 +21,7 @@ from abc import ABC, abstractmethod
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.db.models import F
+from apps.Payments.services import PaymentService
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,9 @@ anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
 # Add model costs constants
 MODEL_COSTS = {
     'claude-3-7-sonnet-20250219': 0.04,  # $0.04 per request
-    'claude-3-7-sonnet': 0.04,  # $0.04 per request - adding alternate naming
+    'claude-3-7-sonnet': 0.04,  # $0.04 per request
     'gpt-4o': 0.04,  # $0.04 per request
-    'gpt-4o-mini': 0.005  # $0.005 per request - explicitly set to avoid any rounding issues
+    'gpt-4o-mini': 0.005  # $0.005 per request
 }
 
 def build_conversation_history(conversation, project_path=None, current_file=None):
@@ -186,6 +187,9 @@ class BaseAgentService(ABC):
         self.openai_client = OpenAI(api_key=openai_key)
         self.anthropic_client = anthropic.Anthropic(api_key=anthropic_key)
         
+        # Initialize payment service
+        self.payment_service = PaymentService()
+        
         # Set default project files list
         self.project_files = []
         
@@ -238,19 +242,23 @@ class BaseAgentService(ABC):
         try:
             profile = user.profile
             
-            # Ensure consistent pricing logic matching deduct_credits:
-            # - claude-3-7-sonnet or gpt-4o: $0.04 per request
-            # - gpt-4o-mini: $0.005 per request
-            if 'claude-3-7-sonnet' in model or 'gpt-4o' == model:
-                required_amount = 0.04
-            elif 'gpt-4o-mini' in model:
-                required_amount = 0.005
-            else:
-                # Default to the defined cost in MODEL_COSTS or fallback to $0.04
-                required_amount = MODEL_COSTS.get(model, 0.04)
+            # Get the exact amount from MODEL_COSTS using the model ID directly
+            required_amount = MODEL_COSTS.get(model)
+            
+            # If model not found in MODEL_COSTS, use correct default based on model pattern
+            if required_amount is None:
+                if 'claude-3-7-sonnet' in model:
+                    required_amount = 0.04
+                elif model == 'gpt-4o':
+                    required_amount = 0.04
+                elif 'gpt-4o-mini' in model:
+                    required_amount = 0.005
+                else:
+                    # Default fallback
+                    required_amount = 0.04
             
             # Log the required amount for debugging
-            logger.info(f"Credit check for model {model}: ${required_amount:.3f} required, user balance: ${profile.balance:.3f}")
+            logger.info(f"Credit check for model {model}: ${required_amount:.4f} required, user balance: ${profile.balance:.4f}")
             
             # Use a small epsilon value to handle floating-point precision issues
             epsilon = 0.0001
@@ -274,10 +282,24 @@ class BaseAgentService(ABC):
         """
         try:
             profile = user.profile
-            amount_to_deduct = MODEL_COSTS.get(model, 0.04)  # Use consistent default of $0.04
+            
+            # Get the exact amount from MODEL_COSTS using the model ID directly
+            amount_to_deduct = MODEL_COSTS.get(model)
+            
+            # If model not found in MODEL_COSTS, use correct default based on model pattern
+            if amount_to_deduct is None:
+                if 'claude-3-7-sonnet' in model:
+                    amount_to_deduct = 0.04
+                elif model == 'gpt-4o':
+                    amount_to_deduct = 0.04
+                elif 'gpt-4o-mini' in model:
+                    amount_to_deduct = 0.005
+                else:
+                    # Default fallback
+                    amount_to_deduct = 0.04
             
             # Log the amount being deducted for debugging
-            logger.info(f"Deducting {amount_to_deduct} credits for model {model} from user {user.username}")
+            logger.info(f"Deducting ${amount_to_deduct:.4f} for model {model} from user {user.username}")
             
             profile.balance = F('balance') - amount_to_deduct
             profile.save(update_fields=['balance'])
@@ -430,6 +452,37 @@ class BaseAgentService(ABC):
                     }
             else:
                 conversation = self.create_conversation(user, model, self.get_system_prompt())
+            
+            # Charge the user for using AI models
+            # Determine charge amount based on model
+            amount = MODEL_COSTS.get(model)
+            
+            # If model not found in MODEL_COSTS, use correct default based on model pattern
+            if amount is None:
+                if 'claude-3-7-sonnet' in model:
+                    amount = 0.04
+                elif model == 'gpt-4o':
+                    amount = 0.04
+                elif 'gpt-4o-mini' in model:
+                    amount = 0.005
+                else:
+                    # Default fallback
+                    amount = 0.04
+            
+            # Create descriptive message for transaction
+            description = f"AI usage: {model} - ${amount:.4f}"
+            
+            # Charge the user
+            payment_result = self.payment_service.charge_tokens(user, amount, description)
+            
+            if not payment_result.get('success', False):
+                # Handle insufficient credits
+                return {
+                    'success': False,
+                    'error': payment_result.get('error', 'Insufficient credits to use this AI model'),
+                    'current_balance': payment_result.get('current_balance', 0),
+                    'required_amount': amount
+                }
             
             # Get project path for context
             project_path = kwargs.get('project_path')
