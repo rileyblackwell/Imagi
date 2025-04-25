@@ -1,6 +1,31 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
+import type { ViteDevServer } from 'vite'
+
+// Custom middleware to safely handle URI encoding issues
+function safeDecodeMiddleware(req: any, res: any, next: any) {
+  const originalUrl = req.url;
+  
+  if (!originalUrl) {
+    next();
+    return;
+  }
+  
+  try {
+    // Test if URL causes decodeURI to fail
+    decodeURI(originalUrl);
+  } catch (e) {
+    // If it fails, replace problematic characters
+    req.url = originalUrl
+      .replace(/%(?![0-9A-Fa-f]{2})/g, '%25') // Fix unescaped % signs
+      .replace(/\\/g, '/');  // Replace backslashes with forward slashes
+    
+    console.warn('Fixed malformed URI:', originalUrl, '→', req.url);
+  }
+  
+  next();
+}
 
 export default defineConfig({
   plugins: [
@@ -22,11 +47,21 @@ export default defineConfig({
         }
         return null
       }
+    },
+    // Add custom plugin to handle malformed URIs
+    {
+      name: 'fix-malformed-uris',
+      configureServer(server: ViteDevServer) {
+        server.middlewares.use(safeDecodeMiddleware);
+      }
     }
   ],
   server: {
     port: 5174,
     strictPort: true, // This will fail if port 5174 is not available
+    hmr: {
+      overlay: false, // Disable the HMR error overlay to prevent URI errors from breaking the UI
+    },
     proxy: {
       // Proxy API requests to the Django backend
       '/api': {

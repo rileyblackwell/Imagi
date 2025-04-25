@@ -240,10 +240,19 @@ class StylesheetAgentService(BaseAgentService):
                 enhanced_css = self.ensure_required_sections(css_content)
                 result['response'] = enhanced_css
                 
+                # Set code field to match the exact response
+                result['code'] = enhanced_css
+                
+                # Add flag to indicate this is build mode content (just code)
+                result['is_build_mode'] = True
+                
                 # Cache the result for future similar requests
                 if len(user_input) < 100:
                     cache_key = self._generate_cache_key(user_input, file_path, model)
                     self._cache_result(cache_key, result)
+            
+            # Add flag to ensure messages appear only once in chat feed
+            result['single_message'] = True
             
             return result
             
@@ -440,7 +449,9 @@ body {
                     'response': css_sections["root"] + css_sections["reset"] + css_sections["body"],
                     'file_path': file_path,
                     'timestamp': timezone.now().isoformat(),
-                    'was_predefined': True
+                    'was_predefined': True,
+                    'is_build_mode': True,
+                    'single_message': True
                 }
                 
                 # Save the generated CSS to the file
@@ -485,6 +496,9 @@ body {
                 
                 # Add timestamp to the result
                 result['timestamp'] = timezone.now().isoformat()
+                
+                # Set build mode flag to ensure proper UI display
+                result['is_build_mode'] = True
                 
                 # Save the generated CSS to the file
                 if project_id and result.get('response'):
@@ -678,6 +692,12 @@ body {
             css_content = self.extract_css_from_response(result['response'])
             enhanced_css = self.ensure_required_sections(css_content)
             result['response'] = enhanced_css
+            
+            # Set code field to match the exact response
+            result['code'] = enhanced_css
+            
+            # Add flag to indicate this is build mode content (just code)
+            result['is_build_mode'] = True
         
         return result
 

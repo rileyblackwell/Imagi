@@ -191,14 +191,24 @@ export const AgentService = {
         }, 500);
       }
       
+      // Handle single_message flag to prevent duplicate messages
+      const messages = [];
+      
+      // Only include the user message if single_message is not set
+      // This prevents duplicates since the user message is already added in the UI
+      if (!response.data.single_message) {
+        messages.push(response.data.user_message);
+      }
+      
+      // Always include the assistant message
+      messages.push(response.data.assistant_message);
+      
       return {
         success: true,
         code: response.data.code || response.data.response,
         response: response.data.response || "Generated code successfully",
-        messages: [
-          response.data.user_message,
-          response.data.assistant_message
-        ]
+        messages: messages,
+        single_message: response.data.single_message || false
       }
     } catch (error: any) {
       // Show error notification
@@ -647,118 +657,110 @@ export const AgentService = {
     onProgress?: (progress: { status: string; percent: number }) => void;
   }): Promise<any> {
     try {
-      // Notify user that we're generating CSS
-      notify({
-        type: 'info',
-        message: 'Please wait while we generate your stylesheet...',
-        duration: 10000, // Longer duration since generation takes time
-      });
-      
-      // Get conversation ID from localStorage if available
-      const storedConversationId = conversationId || localStorage.getItem(`stylesheet_conversation_${projectId}_${filePath}`) || undefined;
-      
-      // Start progress tracking
-      if (onProgress) {
-        onProgress({ status: 'Starting stylesheet generation', percent: 5 });
+      // Validate inputs
+      if (!prompt || !prompt.trim()) {
+        throw new Error('Prompt is required');
       }
       
-      // Get all project files to provide context to the stylesheet agent
+      if (!projectId) {
+        throw new Error('Project ID is required');
+      }
+      
+      if (!filePath) {
+        throw new Error('File path is required');
+      }
+      
+      // Get all project files for context
       const files = await FileService.getProjectFiles(projectId);
       
-      // Map files to the format expected by the API
-      const projectFiles = files.map((file) => ({
-        path: file.path,
-        type: this.getFileType(file.path),
-        content: file.content,
-      }));
-      
-      // Update progress
+      // Update progress if callback provided
       if (onProgress) {
-        onProgress({ status: 'Processing project files', percent: 20 });
+        onProgress({ status: 'Preparing stylesheet request...', percent: 10 });
       }
       
-      // Log the request details
-      console.log(`Stylesheet request: prompt length=${prompt.length}, model=${model}, projectId=${projectId}, filePath=${filePath}, files=${projectFiles.length}`);
+      // Get stored conversation ID or use provided one
+      const storedConversationId = localStorage.getItem(`stylesheet_conversation_${projectId}`) || conversationId;
       
-      // Send the request to the stylesheet agent API with increased timeout
-      const response = await api.post('/api/v1/agents/build/stylesheet/', {
+      // Prepare request payload
+      const payload = {
         message: prompt,
-        model: model,
+        model,
         project_id: projectId,
         file_path: filePath,
+        mode: 'build',
         conversation_id: storedConversationId,
-        project_files: projectFiles,
-      }, {
-        timeout: 120000, // Increase timeout to 2 minutes
-        validateStatus: (status) => status < 500, // Accept any status code below 500
-      });
+        project_files: files.filter(file => 
+          // Only include relevant files for stylesheet context
+          file.path.endsWith('.css') || 
+          file.path.endsWith('.html') ||
+          file.path === filePath
+        ).map(file => ({
+          path: file.path,
+          type: this.getFileType(file.path),
+          content: file.content || ''
+        }))
+      };
       
       // Update progress
       if (onProgress) {
-        onProgress({ status: 'Processing response', percent: 60 });
+        onProgress({ status: 'Sending request to AI...', percent: 25 });
       }
       
-      // If the stylesheet agent returned a conversation ID, store it for future requests
+      // Call the agent/build/stylesheet endpoint
+      const response = await api.post('/api/v1/agents/build/stylesheet/', payload);
+      
+      // Store conversation ID for future requests
       if (response.data.conversation_id) {
-        localStorage.setItem(`stylesheet_conversation_${projectId}_${filePath}`, response.data.conversation_id);
+        localStorage.setItem(`stylesheet_conversation_${projectId}`, response.data.conversation_id);
       }
       
-      // Handle the response
-      if (response.data.success) {
-        // Update progress
-        if (onProgress) {
-          onProgress({ status: 'Stylesheet generated successfully', percent: 100 });
-        }
-        
-        // Show success notification 
-        notify({
-          type: 'success',
-          message: 'Your CSS stylesheet has been updated successfully.',
-        });
-        
-        // Refresh files
-        setTimeout(async () => {
-          try {
-            // Force refresh by getting fresh file list
-            await FileService.getProjectFiles(projectId);
-          } catch (err) {
-            console.warn('Error refreshing file list:', err);
-          }
-        }, 500);
-        
-        // Add code property to response for Apply Changes button functionality
-        if (response.data.response) {
-          response.data.code = response.data.response;
-        }
-        
-        return response.data;
-      } else {
-        // Show error notification
-        notify({
-          type: 'error',
-          message: response.data.error || 'An error occurred while generating your stylesheet.',
-        });
-        
-        return response.data;
+      // Update progress
+      if (onProgress) {
+        onProgress({ status: 'Processing stylesheet...', percent: 75 });
       }
-    } catch (error: any) {
-      console.error('Error generating stylesheet:', error);
       
-      // Show error notification
-      notify({
-        type: 'error',
-        message: error.message || 'An error occurred while generating your stylesheet.',
+      // Check for generated CSS content
+      if (!response.data.response) {
+        throw new Error('No stylesheet content was generated');
+      }
+      
+      // Handle single_message flag to prevent duplicate messages
+      const messages = [];
+      
+      // Only include the user message if single_message is not set
+      if (!response.data.single_message) {
+        messages.push({
+          role: 'user',
+          content: prompt,
+          timestamp: new Date().toISOString(),
+          id: `user-${Date.now()}`
+        });
+      }
+      
+      // Always include the assistant message
+      messages.push({
+        role: 'assistant',
+        content: response.data.response,
+        timestamp: new Date().toISOString(),
+        id: `assistant-${Date.now()}`,
+        code: response.data.response
       });
       
-      // End progress tracking on error
+      // Final progress update
       if (onProgress) {
-        onProgress({ status: 'Error occurred', percent: 100 });
+        onProgress({ status: 'Stylesheet generated!', percent: 100 });
       }
       
       return {
-        success: false,
-        error: error.message || 'An unknown error occurred',
+        success: true,
+        response: response.data.response,
+        file_path: filePath,
+        messages: messages,
+        single_message: response.data.single_message || false
       };
+    } catch (error: any) {
+      console.error('Error generating stylesheet:', error);
+      throw handleAPIError(error);
     }
   },
   

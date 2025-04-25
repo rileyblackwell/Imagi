@@ -77,12 +77,15 @@
               <div class="max-w-[75%]">
                 <!-- Message container with ChatGPT-like styling -->
                 <div class="bg-dark-850 text-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-md shadow-sm">
-                  <!-- Content with better markdown rendering -->
+                  <!-- Content with better markdown rendering - Hide in build mode if code exists -->
                   <div 
                     class="prose prose-invert max-w-none prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3"
-                    v-if="message.content && message.content.trim().length > 0"
+                    v-if="message.content && message.content.trim().length > 0 && !(message.code && mode === 'build')"
                     v-html="formatMessage(message.content)"
                   />
+                  <div v-else-if="message.code && mode === 'build'" class="text-gray-400 italic">
+                    <!-- Skip showing content text in build mode when code is available -->
+                  </div>
                   <div v-else class="text-gray-400 italic">
                     [Empty response]
                   </div>

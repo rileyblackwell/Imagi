@@ -99,12 +99,16 @@ export function useBuilderMode() {
         response = await AgentService.generateCode(projectId, codeGenData);
       }
       
-      // Add user message to conversation immediately
-      store.addMessage({
-        role: 'user',
-        content: prompt,
-        timestamp: new Date().toISOString(),
-      })
+      // Check if we should add the user message to the conversation
+      // If single_message is true, the user message is already in the UI and shouldn't be duplicated
+      if (!response.single_message) {
+        // Add user message to conversation only if not already added (single_message flag not set)
+        store.addMessage({
+          role: 'user',
+          content: prompt,
+          timestamp: new Date().toISOString(),
+        });
+      }
       
       // Add assistant message to conversation
       store.addMessage({
@@ -112,7 +116,7 @@ export function useBuilderMode() {
         content: response.response,
         code: response.code || response.response, // Use response as code if code is not available
         timestamp: new Date().toISOString(),
-      })
+      });
       
       if (file) {
         // Refresh the file content to show latest version

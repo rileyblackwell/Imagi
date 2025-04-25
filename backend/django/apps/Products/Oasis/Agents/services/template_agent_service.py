@@ -219,7 +219,14 @@ class TemplateAgentService(BaseAgentService):
             is_valid, error_msg = self.validate_response(fixed_content)
             
             if is_valid:
+                # Set response to just the raw template code without any explanatory text
                 result['response'] = fixed_content
+                
+                # Make sure code field matches response exactly
+                result['code'] = fixed_content
+                
+                # Add a flag to indicate this is build mode content (just code)
+                result['is_build_mode'] = True
             else:
                 result['success'] = False
                 result['error'] = error_msg
@@ -268,6 +275,9 @@ class TemplateAgentService(BaseAgentService):
                     logger.error(f"Error creating view and URL: {str(e)}")
                     result['view_url_created'] = False
                     result['view_url_error'] = str(e)
+            
+            # Add flag to ensure messages appear only once in chat feed
+            result['single_message'] = True
             
             return result
             
@@ -322,6 +332,8 @@ class TemplateAgentService(BaseAgentService):
         if response.get('success') and file_name:
             response['file_name'] = file_name
             response['file_path'] = file_path
+            # Set build mode flag to ensure proper UI display
+            response['is_build_mode'] = True
         
         return response
 

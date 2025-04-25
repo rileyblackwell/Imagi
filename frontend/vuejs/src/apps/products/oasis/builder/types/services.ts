@@ -29,13 +29,15 @@ export interface AIModel {
 }
 
 /**
- * Code Generation Response
+ * Response from code generation API
  */
 export interface CodeGenerationResponse {
   success: boolean;
-  code: string;
+  code?: string;
   response: string;
   messages: any[];
+  error?: string;
+  single_message?: boolean;
 }
 
 /**

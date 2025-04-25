@@ -7,6 +7,29 @@ const API_PATHS = {
 }
 
 /**
+ * Safely encode URI components while handling invalid URI characters
+ * This function wraps encodeURIComponent with additional error handling
+ */
+function safeEncodeURIComponent(component: string): string {
+  try {
+    // First replace any potentially problematic characters
+    const safeComponent = component
+      .replace(/%/g, '_pct_')  // Replace % with _pct_
+      .replace(/\\/g, '/');    // Replace backslashes with forward slashes
+      
+    return encodeURIComponent(safeComponent);
+  } catch (error) {
+    console.error('Error encoding URI component:', error);
+    // Fall back to a simplified encoding that just handles spaces and basic special chars
+    return component
+      .replace(/%/g, '_pct_')
+      .replace(/\\/g, '/')
+      .replace(/\s+/g, '_')
+      .replace(/[&=?#+]/g, '_');
+  }
+}
+
+/**
  * File Service
  * 
  * This service handles communication with the backend API for file operations:
@@ -129,7 +152,7 @@ export const FileService = {
     console.debug('File API - getting file content:', { projectId, filePath })
     
     try {
-      const response = await api.get(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`)
+      const response = await api.get(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/`)
       
       // Check if response is HTML instead of JSON
       const contentType = response.headers['content-type'] || '';
@@ -164,7 +187,7 @@ export const FileService = {
         return this.createFile(projectId, filePath, content)
       }
       
-      const response = await api.post(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/content/`, {
+      const response = await api.post(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/`, {
         content
       })
       
@@ -227,10 +250,10 @@ export const FileService = {
     try {
       // Try DELETE method first (REST standard)
       try {
-        await api.delete(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
+        await api.delete(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`)
       } catch (deleteError) {
         console.warn('DELETE method failed, trying POST method:', deleteError)
-        await api.post(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/delete/`)
+        await api.post(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`)
       }
       
       return true
@@ -247,7 +270,7 @@ export const FileService = {
     console.debug('File API - undoing file changes:', { projectId, filePath })
     
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/files/${encodeURIComponent(filePath)}/undo/`)
+      const response = await api.post(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/undo/`)
       
       return response.data?.content || ''
     } catch (error) {
