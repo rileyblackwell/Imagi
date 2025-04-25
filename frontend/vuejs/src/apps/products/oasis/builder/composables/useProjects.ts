@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useBuilderMode } from './useBuilderMode'
 import { useAgentStore } from '../stores/agentStore'

@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { AgentService } from '../services/agentService'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuthStore } from '@/shared/stores/auth'
@@ -8,7 +7,6 @@ import { notify } from '@/shared/utils'
 import type { Message, Conversation } from '../types/composables'
 
 export default function useChatMode() {
-  const route = useRoute()
   const conversation = ref<Conversation | null>(null)
   const error = ref<string | null>(null)
   const isProcessing = ref(false)

@@ -4,27 +4,21 @@ import type {
   CodeGenerationResponse, 
   AIModel, 
   UndoResponse,
-  ModelConfig
+  ModelConfig,
+  ChatPayload,
+  ChatProcessingPayload,
+  ChatResponse,
+  GenerateStylesheetOptions,
+  CodeGenerationRequest
 } from '../types/services'
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 import { usePaymentsStore } from '@/apps/payments/store'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
-import { notify } from '@/shared/utils/notifications'
 
 // Static variables for rate limiting
 let requestCounts: Map<string, number> = new Map()
 let lastResetTime: number = Date.now()
 const RESET_INTERVAL = 60000 // 1 minute
-
-// Define the ChatPayload interface
-interface ChatPayload {
-  message: string;
-  model: string;
-  project_id: string;
-  conversation_id?: string;
-  mode?: string;
-  current_file?: any;
-}
 
 function getPaymentsStore() {
   // Get the payments store using function to avoid SSR issues
@@ -83,12 +77,7 @@ export const AgentService = {
   },
 
   // AI interaction methods - using Agents API
-  async generateCode(projectId: string, data: {
-    prompt: string;
-    mode: string;
-    model: string | null;
-    file_path?: string;
-  }): Promise<CodeGenerationResponse> {
+  async generateCode(projectId: string, data: CodeGenerationRequest): Promise<CodeGenerationResponse> {
     if (!data.model) {
       throw new Error('AI model must be selected')
     }
@@ -224,10 +213,7 @@ export const AgentService = {
     model: string;
     mode?: string;
     file?: any;
-  }): Promise<{
-    response: string;
-    messages: any[];
-  }> {
+  }): Promise<ChatResponse> {
     if (!data.prompt || !data.model || !projectId) {
       console.error('AgentService: Missing required parameters for chat');
       throw new Error('Missing required parameters for chat');
@@ -240,24 +226,7 @@ export const AgentService = {
     const files = await FileService.getProjectFiles(projectId);
     
     // Prepare request payload
-    const payload: {
-      message: string;
-      model: string;
-      project_id: string;
-      conversation_id?: string;
-      mode: string;
-      stream?: boolean;
-      current_file?: {
-        path: string;
-        type: string;
-        content: string;
-      };
-      project_files?: Array<{
-        path: string;
-        type: string;
-        content: string;
-      }>;
-    } = {
+    const payload: ChatProcessingPayload = {
       message: data.prompt,
       model: data.model,
       project_id: String(projectId),
@@ -641,22 +610,10 @@ export const AgentService = {
    * @param options - Object containing request options 
    * @returns A Promise that resolves with the API response
    */
-  async generateStylesheet({
-    prompt,
-    projectId,
-    filePath,
-    model = 'claude-3-7-sonnet-20250219',
-    conversationId,
-    onProgress
-  }: {
-    prompt: string;
-    projectId: string;
-    filePath: string;
-    model?: string;
-    conversationId?: string;
-    onProgress?: (progress: { status: string; percent: number }) => void;
-  }): Promise<any> {
+  async generateStylesheet(options: GenerateStylesheetOptions): Promise<any> {
     try {
+      const { prompt, projectId, filePath, model = 'claude-3-7-sonnet-20250219', conversationId, onProgress } = options;
+      
       // Validate inputs
       if (!prompt || !prompt.trim()) {
         throw new Error('Prompt is required');

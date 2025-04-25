@@ -73,7 +73,6 @@ import { useBuilderMode } from '../composables/useBuilderMode'
 import useChatMode from '../composables/useChatMode'
 import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
-import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentsStore } from '@/apps/payments/store'
@@ -102,7 +101,6 @@ const debounce = (fn: Function, delay: number) => {
 };
 
 const route = useRoute()
-const router = useRouter()
 const store = useAgentStore()
 const projectStore = useProjectStore()
 const projectId = ref<string>('')
@@ -131,12 +129,6 @@ const prompt = ref('')
 
 // Navigation items for sidebar
 const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
-
-// Project examples for different modes
-interface PromptExample {
-  title: string;
-  text: string;
-}
 
 // Computed properties
 const currentProject = computed(() => {

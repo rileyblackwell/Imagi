@@ -167,4 +167,68 @@ export interface AIGenerationResponse {
   messages?: AIMessage[];
   success: boolean;
   error?: string;
+}
+
+/**
+ * Chat payload for agent service
+ */
+export interface ChatPayload {
+  message: string;
+  model: string;
+  project_id: string;
+  conversation_id?: string;
+  mode?: string;
+  current_file?: any;
+}
+
+/**
+ * Chat Processing Payload with additional file properties
+ */
+export interface ChatProcessingPayload {
+  message: string;
+  model: string;
+  project_id: string;
+  conversation_id?: string;
+  mode: string;
+  stream?: boolean;
+  current_file?: {
+    path: string;
+    type: string;
+    content: string;
+  };
+  project_files?: Array<{
+    path: string;
+    type: string;
+    content: string;
+  }>;
+}
+
+/**
+ * Chat response interface
+ */
+export interface ChatResponse {
+  response: string;
+  messages: any[];
+}
+
+/**
+ * Generate stylesheet options
+ */
+export interface GenerateStylesheetOptions {
+  prompt: string;
+  projectId: string;
+  filePath: string;
+  model?: string;
+  conversationId?: string;
+  onProgress?: (progress: { status: string; percent: number }) => void;
+}
+
+/**
+ * Code generation request data
+ */
+export interface CodeGenerationRequest {
+  prompt: string;
+  mode: string;
+  model: string | null;
+  file_path?: string;
 } 

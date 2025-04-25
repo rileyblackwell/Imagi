@@ -1,4 +1,3 @@
-import { ref } from 'vue'
 import type { ConfirmOptions } from '../types/composables'
 
 export function useConfirm() {

@@ -125,7 +125,6 @@ import { useRouter } from 'vue-router'
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
-import type { Project } from '@/shared/types'
 import { normalizeProject } from '@/shared/types'
 import { ProjectList } from '@/apps/products/oasis/builder/components/organisms'
 import { ProjectCard } from '@/apps/products/oasis/builder/components/molecules'
@@ -133,13 +132,6 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { useConfirm } from '../composables/useConfirm'
 import api from '@/apps/products/oasis/builder/services/api'
 
-// Extend the NotificationOptions interface to include title
-interface ExtendedNotificationOptions {
-  title: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  duration?: number;
-}
 
 const router = useRouter()
 const projectStore = useProjectStore()
