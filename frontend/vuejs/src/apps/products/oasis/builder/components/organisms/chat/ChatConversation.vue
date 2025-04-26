@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col relative z-10">
+  <div class="h-full flex flex-col relative z-10" :class="{'mode-transition': disableAllAnimations}">
     <!-- Messages Container -->
     <div ref="messagesContainer" class="flex-grow overflow-y-auto p-4 space-y-4" :class="{ 'justify-end': true }">
       <!-- Empty state - Mode specific messages -->
@@ -208,12 +208,48 @@ const emit = defineEmits<{
 const messagesContainer = ref<HTMLElement | null>(null)
 const isTyping = ref(false)
 const previousMessageCount = ref(0)
+const previousMode = ref('')
+const disableAllAnimations = ref(false)
+
+// Get current mode from agent store
+const agentStore = useAgentStore()
+const mode = computed(() => agentStore.mode)
+
+// Track mode changes to prevent animation flashing on mode switch
+watch(() => mode.value, (newMode, oldMode) => {
+  if (newMode !== oldMode) {
+    // When mode changes, disable all animations temporarily
+    disableAllAnimations.value = true;
+    previousMessageCount.value = 9999; // Set to high number to avoid "new" messages
+    
+    // After a short delay, restore normal animation behavior
+    setTimeout(() => {
+      previousMessageCount.value = props.messages.length;
+      disableAllAnimations.value = false;
+    }, 300); // Longer delay to ensure UI has settled
+  }
+  previousMode.value = newMode;
+}, { immediate: true });
 
 // Process messages to add isNew flag for animations
 const processedMessages = computed<ProcessedMessage[]>(() => {
+  // Skip animation completely during mode transitions or when switching files
+  const isInModeTransition = previousMode.value !== mode.value;
+  
   return props.messages.map((message, index) => {
-    // Only mark messages as new if they're newly added
-    const isNew = index >= previousMessageCount.value;
+    // Check if this is a mode change message by ID
+    const isModeChangeMessage = message.id?.includes('system-mode-change-');
+    
+    // Only mark messages as new if:
+    // 1. They're newly added AND
+    // 2. Not during mode transition AND
+    // 3. Not a mode change message AND
+    // 4. Not during global animation disabled state
+    const isNew = (index >= previousMessageCount.value) 
+      && !isInModeTransition 
+      && !isModeChangeMessage
+      && !disableAllAnimations.value;
+      
     return {
       ...message,
       isNew
@@ -350,10 +386,6 @@ const getSystemMessageIcon = (content: string) => {
   }
 }
 
-// Get current mode from agent store
-const agentStore = useAgentStore()
-const mode = computed(() => agentStore.mode)
-
 // Examples for different modes
 const chatExamples = [
   "How do I implement user authentication?",
@@ -432,10 +464,12 @@ const buildExamples = [
 
 .animate-message-in {
   animation: message-in 0.25s ease-out forwards;
+  will-change: opacity, transform;
 }
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
+  will-change: opacity;
 }
 
 /* Add a no-animation class to prevent animations on existing messages */
@@ -443,6 +477,15 @@ const buildExamples = [
   animation: none !important;
   opacity: 1 !important;
   transform: translateY(0) !important;
+  transition: none !important;
+}
+
+/* Add an ultra-stable class for mode transitions */
+.mode-transition * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 /* Hide scrollbar but allow scrolling */

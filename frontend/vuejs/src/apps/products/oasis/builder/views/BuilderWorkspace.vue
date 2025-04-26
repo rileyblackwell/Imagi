@@ -420,12 +420,19 @@ async function handleModeSwitch(mode: BuilderMode) {
   // Only add system messages about mode changes if the new mode is chat mode
   // This prevents system messages from appearing in build mode
   if (mode === 'chat' && previousMode !== mode && store.conversation.length > 0) {
+    // Add system message about mode change
+    // Use a special ID format that can be detected in the ChatConversation component
+    const modeChangeId = `system-mode-change-${Date.now()}`;
+    
     store.conversation.push({
       role: 'system',
       content: `Switched to ${mode} mode${store.selectedFile ? ` for file: ${store.selectedFile.path}` : ''}`,
       timestamp: new Date().toISOString(),
-      id: `system-${Date.now()}`
+      id: modeChangeId
     })
+    
+    // Brief delay to allow UI to settle after mode change
+    await nextTick();
   }
 }
 
