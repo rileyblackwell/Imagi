@@ -214,6 +214,9 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       return
     }
     
+    // Set processing flag TRUE at the start
+    store.setProcessing(true)
+    
     // Add the user message to the conversation immediately
     store.conversation.push({
       role: 'user' as const,
@@ -271,19 +274,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       // Show loading notification for chat
       notify({ type: 'info', message: 'Connecting with AI...' })
       
-      // Add temporary assistant message to show typing
-      const assistantMessageId = `assistant-${Date.now()}`
-      const assistantMessage = {
-        role: 'assistant' as const,
-        content: '',
-        timestamp: new Date().toISOString(),
-        id: assistantMessageId,
-        isStreaming: true
-      }
-      
-      // Add temporary message to show loading
-      store.conversation.push(assistantMessage)
-      
       try {
         // Call the AI service
         const response = await AgentService.processChat(
@@ -296,28 +286,14 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           }
         )
         
-        // Find and update the temporary message with the actual response
-        const messageIndex = store.conversation.findIndex(msg => msg.id === assistantMessageId)
-        
-        if (messageIndex !== -1) {
-          // Update the message in place
-          store.conversation[messageIndex] = {
-            role: 'assistant',
-            content: response.response,
-            timestamp: new Date().toISOString(),
-            id: assistantMessageId,
-            code: response.messages[1]?.code || null
-          }
-        } else {
-          // If temporary message wasn't found, add the response as a new message
-          store.conversation.push({
-            role: 'assistant',
-            content: response.response,
-            timestamp: new Date().toISOString(),
-            id: `assistant-response-${Date.now()}`,
-            code: response.messages[1]?.code || null
-          })
-        }
+        // Add the real response message directly
+        store.conversation.push({
+          role: 'assistant',
+          content: response.response,
+          timestamp: new Date().toISOString(),
+          id: `assistant-response-${Date.now()}`,
+          code: response.messages[1]?.code || null
+        })
 
         // Aggressively update balance - Try multiple approaches to ensure balance updates
         const updateBalancePromises = [];
@@ -347,8 +323,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           .catch(err => console.warn('Error checking balance update results:', err));
           
       } catch (chatError) {
-        // Remove the temporary message if there was an error
-        store.conversation = store.conversation.filter(msg => msg.id !== assistantMessageId)
+        // No need to remove temporary message since we're not adding one anymore
         
         // Even on error, try to update the balance since credits might have been charged
         try {
@@ -392,6 +367,9 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       : 'Error processing your request. Please try again.';
       
     notify({ type: 'error', message: errorMessage })
+  } finally {
+    // Ensure processing flag is set to FALSE when everything is complete
+    store.setProcessing(false)
   }
 }
 

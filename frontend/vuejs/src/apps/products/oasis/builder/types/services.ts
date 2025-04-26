@@ -159,6 +159,8 @@ export interface AIMessage {
   timestamp: string | number;
   code?: string;
   id?: string;
+  isStreaming?: boolean;  // Flag for streaming message
+  isTyping?: boolean;     // Flag for typing animation
 }
 
 export interface AIGenerationResponse {

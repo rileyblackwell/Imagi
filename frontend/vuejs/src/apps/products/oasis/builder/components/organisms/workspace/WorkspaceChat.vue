@@ -13,9 +13,9 @@
       <div class="absolute bottom-[25%] left-[8%] w-56 h-56 bg-violet-600/3 rounded-full filter blur-3xl"></div>
     </div>
 
-    <!-- Loading Overlay with improved animation -->
+    <!-- Loading Overlay with improved animation - only show in build mode -->
     <div 
-      v-if="isProcessing"
+      v-if="isProcessing && mode === 'build'"
       class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300"
     >
       <div class="text-center p-6 rounded-xl bg-dark-900/70 backdrop-blur-md border border-dark-800/50 shadow-xl">
@@ -33,6 +33,7 @@
           <div class="max-w-4xl mx-auto h-full relative z-20">
             <ChatConversation 
               :messages="validatedMessages" 
+              :isProcessing="isProcessing"
               @use-example="$emit('use-example', $event)"
               @apply-code="handleApplyCode"
             />

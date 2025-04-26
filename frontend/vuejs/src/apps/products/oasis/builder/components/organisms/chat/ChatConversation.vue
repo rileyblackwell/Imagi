@@ -90,9 +90,7 @@
                   <div v-else-if="message.code && mode === 'build'" class="text-gray-400 italic">
                     <!-- Skip showing content text in build mode when code is available -->
                   </div>
-                  <div v-else class="text-gray-400 italic">
-                    [Empty response]
-                  </div>
+                  <!-- Empty response case removed entirely -->
                   
                   <!-- Timestamp -->
                   <div class="text-left mt-1">
@@ -164,16 +162,20 @@
             </div>
           </template>
           
-          <!-- "AI is typing" indicator that appears at the bottom of messages when processing -->
-          <div v-if="isTyping" class="flex justify-start gap-2 items-start animate-fade-in" :style="{ 'animation-delay': `${processedMessages.length * 0.05}s` }">
+          <!-- "AI is typing" indicator - shown whenever processing is happening -->
+          <div v-if="props.isProcessing" 
+            class="flex justify-start gap-2 items-start animate-fade-in mb-4"> 
             <div class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm">
               <i class="fas fa-robot text-xs"></i>
             </div>
-            <div class="bg-dark-850 text-gray-100 px-4 py-3 rounded-2xl rounded-tl-md shadow-sm">
-              <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div class="bg-dark-850 text-gray-100 px-4 py-3 rounded-2xl rounded-tl-md shadow-sm border border-dark-700/50">
+              <div class="flex items-center">
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <span class="ml-2 text-sm text-gray-300">AI is processing your request...</span>
               </div>
             </div>
           </div>
@@ -193,10 +195,12 @@ import { useAgentStore } from '../../../stores/agentStore'
 // Extended AIMessage interface to include isNew flag
 interface ProcessedMessage extends AIMessage {
   isNew?: boolean;
+  isTyping?: boolean;
 }
 
 const props = defineProps<{
   messages: AIMessage[]
+  isProcessing?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -285,12 +289,21 @@ watch(() => JSON.stringify(props.messages), () => {
 watch(() => props.messages, (messages) => {
   if (messages.length > 0) {
     const lastMessage = messages[messages.length - 1]
-    // Check if the last message is from the user
-    isTyping.value = lastMessage.role === 'user'
+    // Only show typing indicator if not currently processing
+    isTyping.value = lastMessage.role === 'user' && !props.isProcessing
   } else {
     isTyping.value = false
   }
 }, { immediate: true, deep: true })
+
+// Also watch processing state to update typing indicator
+watch(() => props.isProcessing, () => {
+  if (props.messages.length > 0) {
+    const lastMessage = props.messages[props.messages.length - 1]
+    // When processing starts, turn off normal typing indicator
+    isTyping.value = lastMessage.role === 'user' && !props.isProcessing
+  }
+})
 
 // Initial scroll when component is mounted
 onMounted(() => {
@@ -324,81 +337,63 @@ const formatTimestamp = (timestamp: string | number) => {
   }
 }
 
-const formatMessage = (content: string | any) => {
+// Helper function to format markdown content
+const formatMessage = (content: string) => {
   if (!content) {
     return '';
   }
   
   try {
-    // If content is an object, extract the text content
-    const textContent = typeof content === 'object' ? 
-      (content.content || JSON.stringify(content)) : 
-      content;
-    
     // Configure marked options
     marked.setOptions({
       gfm: true,
       breaks: true,
     });
 
-    // Parse markdown and sanitize HTML
-    const parsedContent = marked.parse(textContent) as string;
+    // Parse markdown with type assurance
+    const parsedContent = marked.parse(content).toString();
     
-    // Add syntax highlighting classes to code blocks
-    const highlightedContent = parsedContent.replace(
-      /<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g,
-      '<pre class="language-$1"><code>$2</code></pre>'
-    );
-    
-    const sanitizedContent = DOMPurify.sanitize(highlightedContent);
-    return sanitizedContent;
-  } catch (error) {
-    console.error('Error formatting message:', error);
-    // Return string representation of content as fallback
-    return typeof content === 'object' ? 
-      (content.content || JSON.stringify(content)) : 
-      String(content);
+    // Sanitize the content to prevent XSS
+    return DOMPurify.sanitize(parsedContent);
+  } catch (e) {
+    console.error('Error parsing markdown:', e)
+    return content
   }
 }
 
-const copyToClipboard = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text)
-    // Could add a notification here
-  } catch (err) {
-    console.error('Failed to copy text: ', err)
-  }
+const copyToClipboard = (code: string) => {
+  navigator.clipboard.writeText(code)
+    .then(() => {
+      // You could add a notification here
+      console.log('Code copied to clipboard')
+    })
+    .catch(err => {
+      console.error('Could not copy code:', err)
+    })
 }
 
 const getSystemMessageIcon = (content: string) => {
-  if (content.includes('file')) {
-    return 'fa-file-code';
-  } else if (content.includes('mode')) {
-    return 'fa-exchange-alt';
-  } else if (content.includes('build')) {
-    return 'fa-hammer';
-  } else if (content.includes('error')) {
-    return 'fa-exclamation-triangle';
-  } else if (content.includes('success')) {
-    return 'fa-check-circle';
-  } else {
-    return 'fa-info-circle';
-  }
+  if (content.includes('file:') || content.includes('File:')) return 'fa-file-code'
+  if (content.includes('mode')) return 'fa-exchange-alt'
+  if (content.includes('error') || content.includes('Error')) return 'fa-exclamation-triangle'
+  if (content.includes('saved') || content.includes('Saved')) return 'fa-save'
+  return 'fa-info-circle'
 }
 
-// Examples for different modes
+// Chat examples for empty state
 const chatExamples = [
-  "How do I implement user authentication?",
-  "What's the best way to optimize database queries?",
-  "Can you explain how this code works?",
-  "What are the best practices for responsive design?"
+  "Can you explain how the routing works in this project?",
+  "How can I improve the responsive design of this app?",
+  "What's the best way to implement authentication?",
+  "How should I structure the CSS for better maintainability?"
 ]
 
+// Build examples for empty state
 const buildExamples = [
-  "Create a login form with email and password fields",
-  "Build a responsive dashboard with user statistics",
-  "Generate an API endpoint for user registration",
-  "Create a database schema for a blog application"
+  "Add a dark mode toggle to the header component",
+  "Create a responsive product grid layout for the home page",
+  "Implement a form validation system using Vue's composition API",
+  "Build a notification system for user actions"
 ]
 </script>
 
@@ -515,13 +510,13 @@ const buildExamples = [
 }
 
 .typing-indicator span {
-  height: 7px;
-  width: 7px;
-  background: #9ca3af;
+  height: 8px;
+  width: 8px;
+  background: #a78bfa; /* Use a brighter violet color */
   display: block;
   border-radius: 50%;
-  opacity: 0.4;
-  margin: 0 1px;
+  opacity: 0.7;
+  margin: 0 2px;
   animation: typing 1.4s infinite ease-in-out both;
 }
 
@@ -540,11 +535,11 @@ const buildExamples = [
 @keyframes typing {
   0%, 100% {
     transform: scale(0.7);
-    opacity: 0.4;
+    opacity: 0.5;
   }
   50% {
-    transform: scale(1);
-    opacity: 0.8;
+    transform: scale(1.1);
+    opacity: 0.9;
   }
 }
 
@@ -553,5 +548,30 @@ const buildExamples = [
   color: theme('colors.gray.300');
   background-color: theme('colors.dark.900');
   line-height: 1.5;
+}
+
+/* Thinking text animation */
+.thinking-text {
+  display: inline-block;
+  position: relative;
+  font-weight: 500;
+  color: #d1d5db;
+  background: linear-gradient(90deg, rgba(146, 100, 245, 0.2), rgba(146, 100, 245, 0.05));
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.thinking-text:after {
+  content: "Thinking";
+  animation: thinking-text 2s infinite ease;
+}
+
+@keyframes thinking-text {
+  0%, 100% { content: "Thinking"; }
+  25% { content: "Thinking."; }
+  50% { content: "Thinking.."; }
+  75% { content: "Thinking..."; }
 }
 </style> 
