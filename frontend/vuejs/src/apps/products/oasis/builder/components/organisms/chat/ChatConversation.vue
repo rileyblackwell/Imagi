@@ -3,7 +3,7 @@
     <!-- Messages Container -->
     <div ref="messagesContainer" class="flex-grow overflow-y-auto p-4 space-y-4" :class="{ 'justify-end': true }">
       <!-- Empty state - Mode specific messages -->
-      <div v-if="!messages.length" class="h-full flex flex-col items-center justify-center px-8 py-12 text-center">
+      <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-8 py-12 text-center">
         <div class="max-w-lg">
           <div class="mb-6">
             <div class="w-16 h-16 mx-auto bg-primary-500/20 text-primary-400 rounded-full flex items-center justify-center mb-4">
@@ -37,11 +37,13 @@
         </div>
       </div>
       
-      <template v-if="messages && messages.length > 0">
+      <template v-if="processedMessages.length > 0">
         <div class="space-y-6 max-w-3xl mx-auto pb-4">
-          <template v-for="(message, index) in messages" :key="`msg-${message.id || index}`">
+          <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
             <!-- User Message -->
-            <div v-if="message.role === 'user'" class="flex justify-end gap-2 items-end mb-4 animate-message-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
+            <div v-if="message.role === 'user'" class="flex justify-end gap-2 items-end mb-4" 
+              :class="{ 'animate-message-in': message.isNew, 'no-animation': !message.isNew }" 
+              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <!-- User Message Bubble -->
               <div class="max-w-[75%] bg-primary-500 text-white px-4 py-2.5 rounded-2xl rounded-br-md shadow-sm">
                 <p class="whitespace-pre-wrap break-words text-sm">{{ message.content }}</p>
@@ -52,7 +54,7 @@
               
               <!-- User Avatar - Only show on first message or after AI response -->
               <div 
-                v-if="index === 0 || (index > 0 && messages[index-1].role !== 'user')"
+                v-if="index === 0 || (index > 0 && processedMessages[index-1].role !== 'user')"
                 class="shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-sm"
               >
                 <i class="fas fa-user text-xs"></i>
@@ -62,10 +64,12 @@
             </div>
             
             <!-- Assistant Message -->
-            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-2 items-start mb-4 animate-message-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
+            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-2 items-start mb-4" 
+              :class="{ 'animate-message-in': message.isNew, 'no-animation': !message.isNew }" 
+              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <!-- AI Avatar - Only show on first message or after user/system response -->
               <div 
-                v-if="index === 0 || (index > 0 && messages[index-1].role !== 'assistant')"
+                v-if="index === 0 || (index > 0 && processedMessages[index-1].role !== 'assistant')"
                 class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm mt-1"
               >
                 <i class="fas fa-robot text-xs"></i>
@@ -139,7 +143,9 @@
             </div>
             
             <!-- System Message - More subtle iMessage-like info bubble -->
-            <div v-else-if="message.role === 'system'" class="flex justify-center my-3 animate-fade-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
+            <div v-else-if="message.role === 'system'" class="flex justify-center my-3" 
+              :class="{ 'animate-fade-in': message.isNew, 'no-animation': !message.isNew }" 
+              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <div class="bg-dark-900/60 text-gray-400 px-3 py-1.5 rounded-full text-xs shadow-sm border border-dark-800/30 flex items-center backdrop-blur-sm">
                 <div class="mr-1.5 text-blue-400">
                   <i class="fas text-xs" :class="getSystemMessageIcon(message.content)"></i>
@@ -149,7 +155,9 @@
             </div>
             
             <!-- Other message types (if needed) -->
-            <div v-else class="flex justify-center mb-4 animate-message-in" :style="{ 'animation-delay': `${index * 0.05}s` }">
+            <div v-else class="flex justify-center mb-4" 
+              :class="{ 'animate-message-in': message.isNew, 'no-animation': !message.isNew }" 
+              :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <div class="max-w-[90%] bg-dark-800/70 text-gray-400 px-4 py-2 rounded-full text-xs shadow-sm border border-dark-700/50">
                 <span>{{ message.content }}</span>
               </div>
@@ -157,7 +165,7 @@
           </template>
           
           <!-- "AI is typing" indicator that appears at the bottom of messages when processing -->
-          <div v-if="isTyping" class="flex justify-start gap-2 items-start animate-fade-in" :style="{ 'animation-delay': `${messages.length * 0.05}s` }">
+          <div v-if="isTyping" class="flex justify-start gap-2 items-start animate-fade-in" :style="{ 'animation-delay': `${processedMessages.length * 0.05}s` }">
             <div class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm">
               <i class="fas fa-robot text-xs"></i>
             </div>
@@ -182,6 +190,11 @@ import { ref, onUpdated, nextTick, watch, onMounted, computed } from 'vue'
 import type { AIMessage } from '@/apps/products/oasis/builder/types/services'
 import { useAgentStore } from '../../../stores/agentStore'
 
+// Extended AIMessage interface to include isNew flag
+interface ProcessedMessage extends AIMessage {
+  isNew?: boolean;
+}
+
 const props = defineProps<{
   messages: AIMessage[]
 }>()
@@ -194,13 +207,29 @@ const emit = defineEmits<{
 // Refs and reactive state
 const messagesContainer = ref<HTMLElement | null>(null)
 const isTyping = ref(false)
+const previousMessageCount = ref(0)
 
-// Auto-scroll to bottom when messages change
-watch(() => props.messages.length, () => {
+// Process messages to add isNew flag for animations
+const processedMessages = computed<ProcessedMessage[]>(() => {
+  return props.messages.map((message, index) => {
+    // Only mark messages as new if they're newly added
+    const isNew = index >= previousMessageCount.value;
+    return {
+      ...message,
+      isNew
+    };
+  });
+});
+
+// Update previousMessageCount after rendering
+watch(() => props.messages.length, (newLength) => {
+  // Only update the animation state after rendering is complete
   nextTick(() => {
-    scrollToBottom()
-  })
-}, { immediate: true })
+    // Keep track of previous length to identify new messages
+    previousMessageCount.value = newLength;
+    scrollToBottom();
+  });
+}, { immediate: true });
 
 // Also scroll on component update
 onUpdated(() => {
@@ -230,6 +259,8 @@ watch(() => props.messages, (messages) => {
 // Initial scroll when component is mounted
 onMounted(() => {
   nextTick(() => {
+    // Initialize previous message count
+    previousMessageCount.value = props.messages.length;
     scrollToBottom()
   })
 })
@@ -405,6 +436,13 @@ const buildExamples = [
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Add a no-animation class to prevent animations on existing messages */
+.no-animation {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }
 
 /* Hide scrollbar but allow scrolling */
