@@ -4,6 +4,7 @@ Service for AI model operations in the Builder app.
 
 import logging
 from apps.Products.Oasis.Agents.services import process_builder_mode_input
+from apps.Products.Oasis.Agents.services.model_definitions import get_available_models
 
 logger = logging.getLogger(__name__)
 
@@ -12,39 +13,7 @@ class ModelsService:
     
     def get_available_models(self):
         """Get a list of all available AI models."""
-        models = [
-            {
-                'id': 'claude-3-7-sonnet-20250219',
-                'name': 'Claude 3.7 Sonnet',
-                'provider': 'anthropic',
-                'type': 'anthropic',
-                'description': 'Anthropic | High-performance model for complex tasks',
-                'capabilities': ['code_generation', 'chat', 'analysis'],
-                'maxTokens': 200000,
-                'costPerRequest': 0.04
-            },
-            {
-                'id': 'gpt-4o',
-                'name': 'GPT-4o',
-                'provider': 'openai',
-                'type': 'openai',
-                'description': 'OpenAI | Powerful reasoning and creative capability',
-                'capabilities': ['code_generation', 'chat', 'analysis'],
-                'maxTokens': 128000,
-                'costPerRequest': 0.04
-            },
-            {
-                'id': 'gpt-4o-mini',
-                'name': 'GPT-4o Mini',
-                'provider': 'openai',
-                'type': 'openai',
-                'description': 'OpenAI | Fast and cost-effective performance',
-                'capabilities': ['code_generation', 'chat', 'analysis'],
-                'maxTokens': 128000,
-                'costPerRequest': 0.005
-            }
-        ]
-        return models
+        return get_available_models()
         
     def generate_code(self, project, prompt, model, file_content=None):
         """

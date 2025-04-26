@@ -116,7 +116,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
-import { ModelService } from '../../../services/agentService'
+import { ModelService, AgentService } from '../../../services/agentService'
 import { AI_MODELS } from '../../../types/services'
 import type { AIModel } from '../../../types/services'
 
@@ -134,6 +134,7 @@ const emit = defineEmits<{
 const rateLimitWarning = ref<string | null>(null)
 const isDropdownOpen = ref(false)
 const defaultModels = ref<AIModel[]>(AI_MODELS)
+const isLoadingModels = ref(false)
 
 // Methods - defined before they're used in watchers
 const toggleDropdown = () => {
@@ -194,8 +195,8 @@ const getModelTypeClass = (model: AIModel): string => {
 }
 
 const getModelTypeIcon = (model: AIModel): string => {
-  // Special cases for high-tier models to use brain icon
-  if (model.id === 'claude-3-7-sonnet-20250219' || model.id === 'gpt-4o') {
+  // Special case for Claude 3.7 Sonnet to use brain icon
+  if (model.id === 'claude-3-7-sonnet-20250219') {
     return 'fa-brain';
   }
   
@@ -211,9 +212,26 @@ const getModelTypeIcon = (model: AIModel): string => {
   return 'fa-question';
 }
 
+// Fetch models from API on mount
+const fetchModels = async () => {
+  isLoadingModels.value = true
+  try {
+    const apiModels = await AgentService.getAvailableModels()
+    if (apiModels && apiModels.length > 0) {
+      defaultModels.value = apiModels
+    }
+  } catch (err) {
+    console.error('Error fetching models:', err)
+    // Keep using the default models
+  } finally {
+    isLoadingModels.value = false
+  }
+}
+
 // Debug on mount
 onMounted(() => {
-  // Component mounted
+  // Fetch available models from API
+  fetchModels()
 })
 
 // Watch for changes in models prop

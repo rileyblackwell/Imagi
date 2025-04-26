@@ -295,65 +295,23 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           code: response.messages[1]?.code || null
         })
 
-        // Aggressively update balance - Try multiple approaches to ensure balance updates
-        const updateBalancePromises = [];
-        
-        // 1. Get new stores to avoid stale references
-        const freshPaymentsStore = usePaymentsStore();
-        const freshBalanceStore = useBalanceStore();
-        
-        // 2. Force balance update using both stores (belt and suspenders approach)
-        updateBalancePromises.push(freshPaymentsStore.fetchBalance(false, true));
-        updateBalancePromises.push(freshBalanceStore.fetchBalance(true, true));
-        
-        // Wait for balance updates without blocking UI
-        Promise.allSettled(updateBalancePromises)
-          .then(results => {
-            // Check if any balance fetches failed and retry once more if needed
-            const allFailed = results.every(r => r.status === 'rejected');
-            if (allFailed) {
-              console.warn('Both balance update attempts failed, retrying once more');
-              // Try one more time after a short delay
-              setTimeout(() => {
-                freshBalanceStore.fetchBalance(true, true)
-                  .catch(e => console.error('Final balance update attempt failed:', e));
-              }, 1000);
-            }
-          })
-          .catch(err => console.warn('Error checking balance update results:', err));
-          
       } catch (chatError) {
-        // No need to remove temporary message since we're not adding one anymore
-        
-        // Even on error, try to update the balance since credits might have been charged
-        try {
-          const freshBalanceStore = useBalanceStore();
-          freshBalanceStore.fetchBalance(false, true)
-            .catch(err => console.warn('Failed to refresh balance after chat error:', err));
-        } catch (balanceError) {
-          console.warn('Failed to initialize balance store after chat error:', balanceError);
-        }
-        
         throw chatError
       }
     }
     
-    // Fetch the updated balance immediately after AI usage
-    // This ensures the credits display shows the correct amount
+    // Update balance exactly once after AI operation completes
     try {
-      // Force update of balance after AI model usage
-      const freshPaymentsStore = usePaymentsStore();
-      await freshPaymentsStore.fetchBalance(false, true);
-    } catch (err) {
-      console.warn('Failed to refresh balance after AI usage:', err)
+      // Get fresh store to avoid stale references
+      const balanceStore = useBalanceStore();
       
-      // Try alternative balance update as fallback
-      try {
-        const freshBalanceStore = useBalanceStore();
-        await freshBalanceStore.fetchBalance(false, true);
-      } catch (balanceError) {
-        console.error('All balance update attempts failed:', balanceError);
-      }
+      // Wait a short delay to ensure backend transaction has completed
+      setTimeout(() => {
+        balanceStore.fetchBalance(false, true)
+          .catch(err => console.warn('Error updating balance after AI operation:', err));
+      }, 1000);
+    } catch (err) {
+      console.warn('Error setting up balance update:', err);
     }
     
     // Clear prompt after sending

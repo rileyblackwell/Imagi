@@ -114,19 +114,8 @@ export const useBalanceStore = defineStore('global-balance', () => {
    * Start auto-refresh timer for balance (disabled by default)
    */
   const startAutoRefresh = (interval: number = 60000): void => {
-    // Clear any existing timer
-    if (refreshTimer.value) {
-      clearInterval(refreshTimer.value)
-    }
-    
-    // Only start if auto-refresh is enabled
-    if (isAutoRefreshEnabled.value) {
-      refreshTimer.value = setInterval(() => {
-        if (authStore.isAuthenticated) {
-          fetchBalance(false, false) // Don't show loading state for background refreshes
-        }
-      }, interval)
-    }
+    // Auto-refresh completely disabled to prevent excessive API calls
+    return;
   }
   
   /**
@@ -143,13 +132,9 @@ export const useBalanceStore = defineStore('global-balance', () => {
    * Toggle auto-refresh setting
    */
   const toggleAutoRefresh = (enabled?: boolean): void => {
-    isAutoRefreshEnabled.value = enabled !== undefined ? enabled : !isAutoRefreshEnabled.value
-    
-    if (isAutoRefreshEnabled.value) {
-      startAutoRefresh()
-    } else {
-      stopAutoRefresh()
-    }
+    // Auto-refresh completely disabled to prevent excessive API calls
+    isAutoRefreshEnabled.value = false;
+    stopAutoRefresh();
   }
   
   /**

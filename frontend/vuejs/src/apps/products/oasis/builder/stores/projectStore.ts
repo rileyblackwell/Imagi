@@ -9,8 +9,12 @@ import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
 import type { AIModel } from '../types/services'
 import { useAuthStore } from '@/shared/stores/auth'
 
+// Constants
+const DEBOUNCE_DURATION = 1000 // 1 second
+const CACHE_EXPIRY_TIME = 30 * 1000 // 30 seconds
+
 // Create static request tracker outside the store to prevent duplicate calls across component instances
-let globalProjectListRequest: Promise<any> | null = null;
+let globalProjectListRequest: Promise<Project[]> | null = null;
 let globalProjectListRequestExpiry = 0;
 const PROJECT_LIST_CACHE_DURATION = 60000; // 1 minute
 
@@ -49,7 +53,6 @@ export const useProjectStore = defineStore('builder', () => {
   
   // Use for tracking global fetch operations
   const currentFetchPromise = ref<Promise<any> | null>(null)
-  const DEBOUNCE_DURATION = 250 // 250ms to prevent duplicate calls
   
   // Get global auth store
   const globalAuthStore = useAuthStore()
@@ -223,70 +226,44 @@ export const useProjectStore = defineStore('builder', () => {
   }
 
   /**
-   * Fetch all projects for the current user
-   * Used by dashboard components to display project list
-   * This should not be called directly from workspace components
+   * Fetch projects from API
+   * May hit cache if data is fresh
+   * @param force Force fetch even if cache is fresh
    */
   async function fetchProjects(force = false) {
-    // Reduced cache duration from 5 minutes to 30 seconds to prevent stale data
-    const CACHE_DURATION = 30 * 1000
-    
-    // Check if there's a global in-flight project list request
-    // This ensures deduplication across all component instances
-    const now = Date.now()
-    if (!force && globalProjectListRequest && now < globalProjectListRequestExpiry) {
-      console.debug('Using global in-flight projects fetch request')
-      try {
-        const result = await globalProjectListRequest
-        // Only update state if it's empty
-        if (!projects.value.length && Array.isArray(result)) {
-          updateProjects(result)
-          initialized.value = true
-          lastFetch.value = new Date()
-        }
-        return projects.value
-      } catch (err) {
-        console.error('Error from reused global request:', err)
-        // Continue with a new request if the shared one failed
-      }
+    // Skip if not authenticated
+    if (!isAuthenticated.value) {
+      console.debug('Not authenticated, skipping project fetch')
+      return []
     }
     
-    // Debounce requests to prevent duplicate calls on refresh/navigation
-    if (currentFetchPromise.value && !force) {
-      console.debug('Using in-flight projects fetch request from current store')
+    // Check if we have cached data and force is false
+    if (!force && 
+        initialized.value && 
+        lastFetch.value && 
+        projects.value.length > 0 && 
+        (new Date().getTime() - lastFetch.value.getTime() < CACHE_EXPIRY_TIME)) {
+      console.debug('Using cached projects:', projects.value.length)
+      return projects.value
+    }
+    
+    // If there's already a fetch in progress, return that promise
+    if (currentFetchPromise.value) {
+      console.debug('Request already in progress, using existing promise')
       return currentFetchPromise.value
     }
     
-    console.debug('Fetching projects:', {
-      force,
-      initialized: initialized.value,
-      lastFetch: lastFetch.value,
-      projectCount: projects.value.length,
-      isAuthenticated: isAuthenticated.value,
-      cacheValid: lastFetch.value && (Date.now() - lastFetch.value.getTime()) < CACHE_DURATION
-    })
-
-    if (!isAuthenticated.value) {
-      console.debug('User not authenticated, skipping project fetch')
-      projects.value = []
-      projectsMap.value.clear()
-      return []
+    // Check if there's a global request that's still recent
+    if (globalProjectListRequest && (Date.now() < globalProjectListRequestExpiry)) {
+      console.debug('Using recent global projects request')
+      return globalProjectListRequest
     }
-
-    if (
-      !force && 
-      initialized.value && 
-      lastFetch.value && 
-      (Date.now() - lastFetch.value.getTime()) < CACHE_DURATION &&
-      projects.value.length > 0
-    ) {
-      console.debug('Using cached projects')
-      return projects.value
-    }
-
-    // Create a new fetch promise and store it
+    
+    // Start loading
+    setLoading(true)
+    
+    // Create fetch promise
     const fetchPromise = (async () => {
-      setLoading(true)
       error.value = null
       
       try {

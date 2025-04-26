@@ -175,7 +175,7 @@
                   <span></span>
                   <span></span>
                 </div>
-                <span class="ml-2 text-sm text-gray-300">AI is processing your request...</span>
+                <span class="ml-2 text-sm text-gray-300">{{ mode === 'chat' ? 'AI is thinking...' : 'Generating code...' }}</span>
               </div>
             </div>
           </div>

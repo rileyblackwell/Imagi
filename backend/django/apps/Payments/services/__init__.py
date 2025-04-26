@@ -36,9 +36,21 @@ class PaymentService:
         # Credits are stored in the database as the actual dollar amount
         # No need to convert dollar amount to credits
 
+        # Force amount to have 4 decimal precision for tiny amounts (like gpt-4o-mini at $0.005)
+        amount = float(f"{float(amount):.4f}")
+        
         # Use a default description if none provided
         if not description:
-            description = f"AI token usage: ${amount:.4f}"
+            # Use 4 decimal places for small amounts
+            if amount < 0.01:
+                description = f"AI token usage: ${amount:.4f}"
+            else:
+                description = f"AI token usage: ${amount:.2f}"
+        
+        # Add model info to log for debugging small transactions
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Charging user {user.username} ${amount:.4f} for AI usage")
         
         # First check if user has enough credits
         check_result = self.credit_service.check_credits(user, amount)
@@ -53,7 +65,10 @@ class PaymentService:
             }
         
         # Deduct credits - pass the exact dollar amount
-        return self.credit_service.deduct_credits(user, amount, description)
+        result = self.credit_service.deduct_credits(user, amount, description)
+        logger.info(f"Credit deduction result for user {user.username}: {result.get('success', False)}")
+        
+        return result
 
 __all__ = [
     'StripeService',

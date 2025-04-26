@@ -13,7 +13,6 @@ from rest_framework.response import Response
 import json
 from django.views.decorators.csrf import csrf_exempt
 import traceback
-from django.conf import settings
 
 
 # Import services when needed, not at module level
@@ -268,22 +267,18 @@ def chat(request):
             tuple: (has_credits, error_dict)
         """
         try:
+            # Log the model ID being checked
+            logger.info(f"Checking credits for model: {model_id}")
+            
+            # Import get_model_cost from model_definitions for centralized pricing
+            from ..services.model_definitions import get_model_cost
+            
             # Import CreditBalance model directly
             from apps.Payments.models import CreditBalance
             
-            # Get consistent model price based on model name
-            if 'claude-3-7-sonnet' in model_id or 'gpt-4o' == model_id:
-                required_amount = 0.04  # $0.04 fixed price
-            elif 'gpt-4o-mini' in model_id:
-                required_amount = 0.005  # $0.005 fixed price
-            else:
-                # Fallback to using the service method (which uses the same logic)
-                has_credits, required_amount = chat_service.check_user_credits(user, model_id)
-                if not has_credits:
-                    return False, {
-                        'error': f"Insufficient credits: You need ${required_amount:.3f} more to use {model_id}. Please add more credits."
-                    }
-                return True, None
+            # Get consistent model price from the centralized get_model_cost function
+            required_amount = get_model_cost(model_id)
+            logger.info(f"Model cost for {model_id}: ${required_amount}")
             
             # Get user's credit balance directly from the CreditBalance model
             try:
@@ -295,17 +290,17 @@ def chat(request):
                 balance = 0.0
             
             # Log for debugging
-            logger.info(f"Credit check: user={user.username}, model={model_id}, balance=${balance:.3f}, required=${required_amount:.3f}")
+            logger.info(f"Credit check: user={user.username}, model={model_id}, balance=${balance:.4f}, required=${required_amount:.4f}")
             
             # Use a small epsilon value to handle floating-point precision issues
             epsilon = 0.0001
             if balance + epsilon < required_amount:
-                logger.warning(f"Insufficient credits for {model_id}: ${balance:.3f} available, ${required_amount:.3f} required")
+                logger.warning(f"Insufficient credits for {model_id}: ${balance:.4f} available, ${required_amount:.4f} required")
                 return False, {
-                    'error': f"Insufficient credits: You need ${required_amount - balance:.3f} more to use {model_id}. Please add more credits."
+                    'error': f"Insufficient credits: You need ${required_amount - balance:.4f} more to use {model_id}. Please add more credits."
                 }
                 
-            logger.info(f"Credit check passed for {model_id}: ${balance:.3f} available, ${required_amount:.3f} required")
+            logger.info(f"Credit check passed for {model_id}: ${balance:.4f} available, ${required_amount:.4f} required")
             return True, None
             
         except AttributeError as attr_error:
@@ -371,9 +366,10 @@ def chat(request):
                 return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
             
             # Validate model_id format - ensure it matches an expected pattern
-            valid_model_patterns = ['claude-', 'gpt-4o']
-            if not any(pattern in model_id for pattern in valid_model_patterns):
-                error_msg = f"Invalid model ID: {model_id}. Expected format includes 'claude-' or 'gpt-4o'."
+            from ..services.model_definitions import MODELS
+            
+            if model_id not in MODELS:
+                error_msg = f"Invalid model ID: {model_id}. Expected one of: {', '.join(MODELS.keys())}"
                 logger.warning(f"Invalid model ID: {model_id}")
                 return create_error_response(error_msg, status.HTTP_400_BAD_REQUEST)
             

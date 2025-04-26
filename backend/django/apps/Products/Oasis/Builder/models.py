@@ -3,8 +3,12 @@
 from django.db import models
 from django.contrib.auth.models import User
 import logging
+from apps.Products.Oasis.Agents.services.model_definitions import MODELS
 
 logger = logging.getLogger(__name__)
+
+# Get model IDs and names from centralized model definitions
+_model_choices = [(model_id, model_data['name']) for model_id, model_data in MODELS.items()]
 
 class Conversation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="conversations")
@@ -50,3 +54,8 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.role.capitalize()} message for {self.page.filename if self.page else 'unknown page'}"
+
+
+class AIModel(models.TextChoices):
+    # Dynamically create choices from the centralized model definitions
+    __choices__ = _model_choices

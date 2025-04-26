@@ -20,8 +20,8 @@ from ..models import AgentMessage, AgentConversation, SystemPrompt
 from abc import ABC, abstractmethod
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from django.db.models import F
 from apps.Payments.services import PaymentService
+from .model_definitions import get_model_cost
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +30,11 @@ load_dotenv()
 openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
 anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
 
-# Add model costs constants
-MODEL_COSTS = {
-    'claude-3-7-sonnet-20250219': 0.04,  # $0.04 per request
-    'claude-3-7-sonnet': 0.04,  # $0.04 per request
-    'gpt-4o': 0.04,  # $0.04 per request
-    'gpt-4o-mini': 0.005  # $0.005 per request
-}
+# Define MODEL_COSTS dictionary with costs per model - imported from model_definitions.py for backward compatibility
+# New code should use get_model_cost() function instead of accessing this dictionary directly
+
+# Default model costs for unknown models based on common prefixes - imported from model_definitions.py
+# New code should use get_model_cost() function instead
 
 def build_conversation_history(conversation, project_path=None, current_file=None):
     """
@@ -228,87 +226,89 @@ class BaseAgentService(ABC):
         raise NotImplementedError("Subclasses must implement validate_response()")
     
     # Credit Management Methods
-    def check_user_credits(self, user, model):
+    def check_user_credits(self, user_id, model, completion_tokens=None):
         """
-        Check if user has enough balance for the selected model.
+        Check if the user has enough credits to use the specified model.
         
         Args:
-            user: The Django user object
-            model (str): The AI model to use
+            user_id (str): The ID of the user
+            model (str): The model to be used
+            completion_tokens (int, optional): The number of completion tokens if known
             
         Returns:
-            tuple: (has_credits, required_amount)
+            tuple: (bool, str) - Whether the user has enough credits and a message
         """
         try:
-            profile = user.profile
+            # Get the user and their credit balance
+            user = self.get_user_by_id(user_id)
             
-            # Get the exact amount from MODEL_COSTS using the model ID directly
-            required_amount = MODEL_COSTS.get(model)
+            if not user:
+                return False, "User not found"
             
-            # If model not found in MODEL_COSTS, use correct default based on model pattern
-            if required_amount is None:
-                if 'claude-3-7-sonnet' in model:
-                    required_amount = 0.04
-                elif model == 'gpt-4o':
-                    required_amount = 0.04
-                elif 'gpt-4o-mini' in model:
-                    required_amount = 0.005
-                else:
-                    # Default fallback
-                    required_amount = 0.04
+            credit_balance = user.get('credits', 0)
             
-            # Log the required amount for debugging
-            logger.info(f"Credit check for model {model}: ${required_amount:.4f} required, user balance: ${profile.balance:.4f}")
+            # Default cost for unknown models
+            model_cost = 0.04  # Default to $0.04 per request for safety
             
-            # Use a small epsilon value to handle floating-point precision issues
-            epsilon = 0.0001
-            if profile.balance + epsilon < required_amount:
-                return False, required_amount
-            return True, required_amount
+            # Get the exact cost using the centralized get_model_cost function
+            model_cost = get_model_cost(model)
+            
+            # Check if user has enough credits
+            logger.info(f"User credits: ${credit_balance}, Model cost: ${model_cost}")
+            
+            if credit_balance < model_cost:
+                msg = f"Insufficient credits. You have ${credit_balance:.3f}, but this request costs ${model_cost:.3f}."
+                logger.warning(f"User {user_id} has insufficient credits: {credit_balance} < {model_cost}")
+                return False, msg
+            
+            return True, "User has sufficient credits"
+            
         except Exception as e:
-            logger.error(f"Error checking user balance: {str(e)}")
-            return False, 0.04
-    
-    def deduct_credits(self, user, model):
+            logger.error(f"Error checking user credits: {e}")
+            return False, f"Error checking credits: {str(e)}"
+
+    def deduct_credits(self, user_id, model, completion_tokens=None):
         """
-        Deduct amount from user's account based on model used.
+        Deduct credits from a user's account based on the model used.
         
         Args:
-            user: The Django user object
-            model (str): The AI model to use
+            user_id (str): The ID of the user
+            model (str): The model that was used
+            completion_tokens (int, optional): The number of completion tokens if known
             
         Returns:
-            bool: Success status
+            bool: Whether the credits were successfully deducted
         """
         try:
-            profile = user.profile
+            # Get the user object
+            user = self.get_user_by_id(user_id)
             
-            # Get the exact amount from MODEL_COSTS using the model ID directly
-            amount_to_deduct = MODEL_COSTS.get(model)
+            if not user:
+                logger.error(f"User {user_id} not found when trying to deduct credits")
+                return False
             
-            # If model not found in MODEL_COSTS, use correct default based on model pattern
-            if amount_to_deduct is None:
-                if 'claude-3-7-sonnet' in model:
-                    amount_to_deduct = 0.04
-                elif model == 'gpt-4o':
-                    amount_to_deduct = 0.04
-                elif 'gpt-4o-mini' in model:
-                    amount_to_deduct = 0.005
-                else:
-                    # Default fallback
-                    amount_to_deduct = 0.04
+            # Get the cost of the model using the centralized get_model_cost function
+            model_cost = get_model_cost(model)  # Get centralized cost
             
-            # Log the amount being deducted for debugging
-            logger.info(f"Deducting ${amount_to_deduct:.4f} for model {model} from user {user.username}")
+            # Get current credits
+            current_credits = user.get('credits', 0)
             
-            profile.balance = F('balance') - amount_to_deduct
-            profile.save(update_fields=['balance'])
+            # Calculate new credit balance
+            new_credit_balance = current_credits - model_cost
             
-            # Refresh from database to get the new value
-            profile.refresh_from_db()
+            # Ensure balance doesn't go negative (shouldn't happen with proper checks)
+            if new_credit_balance < 0:
+                new_credit_balance = 0
+            
+            # Update user credits in the database
+            self.update_user_credits(user_id, new_credit_balance)
+            
+            logger.info(f"Credits deducted for user {user_id}: -{model_cost:.3f}, New balance: {new_credit_balance:.3f}")
+            
             return True
+            
         except Exception as e:
-            logger.error(f"Error deducting amount: {str(e)}")
+            logger.error(f"Error deducting credits: {e}")
             return False
     
     # Conversation Management Methods
@@ -435,6 +435,9 @@ class BaseAgentService(ABC):
             dict: The result of processing the message
         """
         try:
+            # Log the model ID being used
+            logger.info(f"Processing conversation with model: {model}")
+            
             # Get or create conversation
             conversation_id = kwargs.get('conversation_id')
             if conversation_id:
@@ -454,20 +457,11 @@ class BaseAgentService(ABC):
                 conversation = self.create_conversation(user, model, self.get_system_prompt())
             
             # Charge the user for using AI models
-            # Determine charge amount based on model
-            amount = MODEL_COSTS.get(model)
+            # Determine charge amount based on model using the centralized get_model_cost function
+            amount = get_model_cost(model)
             
-            # If model not found in MODEL_COSTS, use correct default based on model pattern
-            if amount is None:
-                if 'claude-3-7-sonnet' in model:
-                    amount = 0.04
-                elif model == 'gpt-4o':
-                    amount = 0.04
-                elif 'gpt-4o-mini' in model:
-                    amount = 0.005
-                else:
-                    # Default fallback
-                    amount = 0.04
+            # Log the model pricing
+            logger.info(f"Charging user {user.username} ${amount:.4f} for using model: {model}")
             
             # Create descriptive message for transaction
             description = f"AI usage: {model} - ${amount:.4f}"
@@ -477,12 +471,15 @@ class BaseAgentService(ABC):
             
             if not payment_result.get('success', False):
                 # Handle insufficient credits
+                logger.warning(f"Payment failed for user {user.username}: {payment_result.get('error')}")
                 return {
                     'success': False,
                     'error': payment_result.get('error', 'Insufficient credits to use this AI model'),
                     'current_balance': payment_result.get('current_balance', 0),
                     'required_amount': amount
                 }
+            
+            logger.info(f"Successfully charged user {user.username} ${amount:.4f} for model {model}")
             
             # Get project path for context
             project_path = kwargs.get('project_path')
@@ -557,16 +554,34 @@ class BaseAgentService(ABC):
                 
                 # Make the API call with better error handling
                 try:
+                    # Add explicit debug logging for the model being used
+                    logger.info(f"Making OpenAI API call with model ID: {model}")
+                    
+                    # For OpenAI API calls, ensure we're using the correct API format
+                    api_model = model
+                    
+                    # Map model IDs to exact required API values if necessary
+                    if model in ['gpt-4.1']:
+                        api_model = 'gpt-4.1-preview'
+                        logger.info(f"Mapped {model} to API model: {api_model}")
+                        
+                    # Log the API model being used
+                    logger.info(f"Using API model: {api_model}")
+                    
+                    # Ensure we're using the exact received model ID
                     completion = self.openai_client.chat.completions.create(
-                        model=model,
+                        model=api_model,  # Use the mapped model ID for the API
                         messages=api_messages,
                         temperature=0.7,
                         max_tokens=4096,
                         stream=False  # Explicitly disable streaming
                     )
                     response_content = completion.choices[0].message.content
+                    
+                    # Log successful completion with model
+                    logger.info(f"Successfully completed OpenAI API call with model: {model}")
                 except Exception as api_error:
-                    logger.error(f"OpenAI API error: {str(api_error)}")
+                    logger.error(f"OpenAI API error with model {model}: {str(api_error)}")
                     if "API key" in str(api_error):
                         raise ValueError("The OpenAI API key is invalid or missing. Please check your OPENAI_KEY environment variable.")
                     raise

@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 class CreditService:
     """Service for managing user credit balances."""
     
+    def __init__(self):
+        """Initialize the credit service."""
+        # Lazy import to avoid circular imports
+        from .transaction_service import TransactionService
+        self.transaction_service = TransactionService()
+    
     def get_balance(self, user) -> float:
         """
         Get a user's credit balance.
@@ -82,43 +88,69 @@ class CreditService:
         try:
             if amount <= 0:
                 raise ValueError("Amount must be positive")
-                
+            
+            # Ensure precise decimal handling for small amounts
+            amount_decimal = Decimal(str(float(amount)))
+            
+            # Log the precise amount being deducted
+            logger.info(f"Deducting credits from user {user.username}: ${float(amount):.4f} ({amount_decimal})")
+            
             with transaction.atomic():
                 try:
                     balance = CreditBalance.objects.select_for_update().get(user=user)
                 except CreditBalance.DoesNotExist:
-                    return {
-                        'success': False,
-                        'error': 'No credit balance found'
-                    }
+                    # Create a new balance if it doesn't exist
+                    balance = CreditBalance.objects.create(user=user, balance=0)
+                    
+                # Get the current balance as Decimal for precise calculation
+                current_balance = Decimal(str(float(balance.balance)))
+                logger.info(f"User {user.username} current balance: ${float(current_balance):.4f}")
                 
                 # Check if user has sufficient credits with epsilon for floating point precision
-                epsilon = 0.0001
-                if float(balance.balance) + epsilon < amount:
+                epsilon = Decimal('0.0001')
+                if current_balance + epsilon < amount_decimal:
+                    logger.warning(f"Insufficient credits: {float(current_balance):.4f} < {float(amount):.4f}")
                     return {
                         'success': False,
                         'error': 'Insufficient credits',
-                        'current_balance': float(balance.balance),
-                        'required_credits': amount
+                        'current_balance': float(current_balance),
+                        'required_credits': float(amount_decimal)
                     }
-                    
-                # Update balance
-                balance.balance = Decimal(str(float(balance.balance) - amount))
+                
+                # Calculate new balance with precise decimal arithmetic
+                new_balance = current_balance - amount_decimal
+                logger.info(f"Calculated new balance: ${float(new_balance):.4f}")
+                
+                # Update balance - ensure we use exact decimal arithmetic
+                balance.balance = new_balance
                 balance.save()
+                logger.info(f"Saved new balance for user {user.username}: ${float(balance.balance):.4f}")
                 
                 # Create usage transaction
-                if hasattr(self, 'transaction_service'):
-                    transaction_description = transaction_description or f"Used {amount} credits"
-                    self.transaction_service.create_usage_transaction(
+                if hasattr(self, 'transaction_service') and self.transaction_service:
+                    transaction_description = transaction_description or f"Used {float(amount):.4f} credits"
+                    transaction_record = self.transaction_service.create_usage_transaction(
                         user,
                         amount,
                         description=transaction_description
                     )
+                    logger.info(f"Created transaction record: {transaction_record and transaction_record.id}")
+                else:
+                    logger.warning(f"transaction_service not available in CreditService, transaction not recorded")
                 
+            # Refresh from database to get the final balance
+            try:
+                balance.refresh_from_db()
+                final_balance = float(balance.balance)
+                logger.info(f"Final balance after refresh: ${final_balance:.4f}")
+            except Exception as refresh_error:
+                logger.error(f"Error refreshing balance: {str(refresh_error)}")
+                final_balance = float(new_balance)
+            
             return {
                 'success': True,
-                'new_balance': float(balance.balance),
-                'credits_deducted': amount
+                'new_balance': final_balance,
+                'credits_deducted': float(amount)
             }
             
         except Exception as e:

@@ -13,17 +13,7 @@
       <div class="absolute bottom-[25%] left-[8%] w-56 h-56 bg-violet-600/3 rounded-full filter blur-3xl"></div>
     </div>
 
-    <!-- Loading Overlay with improved animation - only show in build mode -->
-    <div 
-      v-if="isProcessing && mode === 'build'"
-      class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300"
-    >
-      <div class="text-center p-6 rounded-xl bg-dark-900/70 backdrop-blur-md border border-dark-800/50 shadow-xl">
-        <div class="inline-block w-14 h-14 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin mb-4"></div>
-        <p class="text-lg text-white font-medium">Processing...</p>
-        <p class="text-sm text-gray-400 mt-1">The AI is crafting a response</p>
-      </div>
-    </div>
+    <!-- Loading Overlay removed - using the typing indicator for all modes now -->
 
     <!-- Main Flex Area Reorganized to have chat first, then input -->
     <div class="flex-1 flex flex-col overflow-hidden">

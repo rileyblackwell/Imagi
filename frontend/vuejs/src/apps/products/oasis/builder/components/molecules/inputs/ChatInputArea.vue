@@ -169,8 +169,9 @@ function handleKeydown(event: KeyboardEvent) {
 function autoGrow() {
   if (!inputRef.value) return
   
-  // Store the current scroll position
-  const scrollPos = window.scrollY
+  // Save current scroll positions before height changes
+  const chatContainer = document.querySelector('.overflow-y-auto')
+  const chatScrollPosition = chatContainer ? chatContainer.scrollTop : 0
   
   // Reset height to calculate properly
   inputRef.value.style.height = 'auto'
@@ -190,8 +191,12 @@ function autoGrow() {
   // Calculate rows based on line height (approx 24px per line)
   rows.value = Math.ceil(scrollHeight / 24)
   
-  // Restore scroll position
-  window.scrollTo(0, scrollPos)
+  // Restore chat container scroll position after height change (use requestAnimationFrame for better timing)
+  requestAnimationFrame(() => {
+    if (chatContainer) {
+      chatContainer.scrollTop = chatScrollPosition
+    }
+  })
 }
 
 // Focus the input when the component is mounted

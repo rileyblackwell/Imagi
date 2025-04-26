@@ -62,7 +62,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 200000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-4o': {
+  'gpt-4.1': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -71,7 +71,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 128000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-4o-mini': {
+  'gpt-4.1-nano': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 80000,
@@ -98,8 +98,8 @@ export const AI_MODELS: AIModel[] = [
     costPerRequest: 0.04
   },
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
+    id: 'gpt-4.1',
+    name: 'GPT-4.1',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
@@ -110,8 +110,8 @@ export const AI_MODELS: AIModel[] = [
     costPerRequest: 0.04
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
+    id: 'gpt-4.1-nano',
+    name: 'GPT-4.1 Nano',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
@@ -119,7 +119,7 @@ export const AI_MODELS: AIModel[] = [
     description: 'OpenAI | Fast and cost-effective performance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
-    costPerRequest: 0.005
+    costPerRequest: 0.01
   }
 ];
 

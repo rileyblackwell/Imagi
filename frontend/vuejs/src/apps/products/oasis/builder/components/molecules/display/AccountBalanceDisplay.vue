@@ -23,32 +23,63 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { usePaymentsStore } from '@/apps/payments/store';
+import { useBalanceStore } from '@/shared/stores/balance';
+import { useAgentStore } from '../../../stores/agentStore';
 
 const paymentsStore = usePaymentsStore();
+const balanceStore = useBalanceStore();
+const agentStore = useAgentStore();
 const isLoading = ref(false);
-const refreshIntervalId = ref(null);
+const refreshIntervalId = ref<number | null>(null);
 
 // Format the balance
 const formattedBalance = computed(() => {
   return formatBalance(paymentsStore.balance || 0);
 });
 
-// Format number with commas for thousands
+// Watch for changes in the agent's processing state to trigger balance refresh
+watch(() => agentStore.isProcessing, (newValue, oldValue) => {
+  // When processing changes from true to false, refresh the balance
+  if (oldValue === true && newValue === false) {
+    // Force refresh balance after AI operation completes
+    setTimeout(() => {
+      fetchBalance(false, true);
+    }, 500); // Small delay to ensure backend has processed the transaction
+  }
+});
+
+// Format number with more precision to show small changes
 function formatBalance(balance: number): string {
-  return balance.toLocaleString();
+  // Show 3 decimal places to make $0.005 changes visible
+  return balance.toLocaleString(undefined, { 
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3 
+  });
 }
 
-// Function to fetch balance
-async function fetchBalance(showLoading = true) {
+// Function to fetch balance with improved force refresh parameter
+async function fetchBalance(showLoading = true, forceRefresh = false) {
   if (showLoading) {
     isLoading.value = true;
   }
   
   try {
-    // Fetch without auto-refresh, only get current balance
-    await paymentsStore.fetchBalance(false, false);
+    // Use both stores to maximize chance of successful update
+    if (forceRefresh) {
+      // Signal that a transaction is in progress to bypass cache
+      balanceStore.beginTransaction();
+    }
+    
+    // Attempt to fetch balance from both stores
+    const fetchPromises = [
+      paymentsStore.fetchBalance(false, forceRefresh),
+      balanceStore.fetchBalance(false, forceRefresh)
+    ];
+    
+    // Wait for both to complete
+    await Promise.allSettled(fetchPromises);
   } catch (error) {
     console.error('Error fetching balance:', error);
   } finally {
@@ -60,16 +91,14 @@ async function fetchBalance(showLoading = true) {
 
 // Initialize on component mount
 onMounted(() => {
-  // Initial balance fetch without showing loading state
-  fetchBalance(false)
+  // Initial balance fetch with force refresh to ensure accuracy
+  fetchBalance(false, true);
+  
+  // Periodic refresh removed to prevent excessive API calls
 })
 
 onBeforeUnmount(() => {
-  // Clean up any interval
-  if (refreshIntervalId.value) {
-    clearInterval(refreshIntervalId.value)
-    refreshIntervalId.value = null
-  }
+  // No interval to clean up anymore
 })
 </script>
 

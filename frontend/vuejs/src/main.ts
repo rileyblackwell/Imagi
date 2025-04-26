@@ -225,33 +225,5 @@ document.addEventListener('visibilitychange', () => {
   }
 })
 
-// Add project data refresh on navigation
-// This ensures projects are always up-to-date when navigating between views
-router.beforeEach(async (to, from, next) => {
-  // Check if navigating to a project-related view
-  const projectRoutes = [
-    'builder-dashboard',
-    'builder-projects', 
-    'builder-workspace', 
-    'dashboard'
-  ]
-  
-  if (projectRoutes.includes(String(to.name))) {
-    // Get the auth store
-    const authStore = useAuthStore()
-    
-    // Only refresh projects if authenticated
-    if (authStore.isAuthenticated) {
-      // Get the project store
-      const projectStore = useProjectStore()
-      
-      // Force refresh project data when navigating to a project-related view
-      // But don't block navigation - refresh in the background
-      projectStore.fetchProjects(true).catch(error => {
-        console.error('Failed to refresh projects during navigation:', error)
-      })
-    }
-  }
-  
-  next()
-})
+// Router navigation hooks are already defined in router/index.ts
+// No need for duplicate hooks here

@@ -61,13 +61,13 @@ const props = defineProps({
     type: Array as () => PricingModel[],
     default: () => [
       { 
-        id: 'claude-3-7-sonnet-20250219', 
-        name: 'Claude 3.7 Sonnet', 
-        price: 0.04
+        id: 'gpt-4.1-nano', 
+        name: 'GPT-4.1 Nano', 
+        price: 0.01
       },
       { 
-        id: 'gpt4o', 
-        name: 'GPT-4o', 
+        id: 'gpt-4.1', 
+        name: 'GPT-4.1', 
         price: 0.04
       },
       { 

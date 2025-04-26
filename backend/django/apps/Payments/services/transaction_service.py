@@ -3,9 +3,9 @@ Service for managing payment transactions.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 from django.db.models import QuerySet
-from django.db import transaction
+from decimal import Decimal
 
 from ..models import Transaction, CreditPackage
 
@@ -45,6 +45,64 @@ class TransactionService:
         except Exception as e:
             logger.error(f"Error creating purchase transaction: {str(e)}")
             raise
+    
+    def create_usage_transaction(self, user, amount: float, description: str = None, status: str = 'completed') -> Optional[Transaction]:
+        """
+        Create a usage transaction for AI model usage.
+        
+        Args:
+            user: The user using the AI model
+            amount: The amount to deduct (positive value)
+            description: Optional transaction description
+            status: Transaction status (default: completed)
+            
+        Returns:
+            The created transaction or None if failed
+        """
+        try:
+            # Make sure the amount is positive for storage but negative for balance impact
+            positive_amount = abs(float(amount))
+            negative_amount = -positive_amount
+            
+            # Use a specific description for small transactions to make them visible
+            if not description:
+                if positive_amount < 0.01:
+                    # Special formatting for very small amounts (like gpt-4o-mini)
+                    description = f"AI model usage: {positive_amount:.4f} credits"
+                else:
+                    description = f"AI model usage: {positive_amount:.2f} credits"
+            
+            # Ensure explicit logging for tiny transactions (like gpt-4o-mini)
+            if positive_amount < 0.01:
+                logger.info(f"Creating MICRO transaction for user {user.username}: ${positive_amount:.4f}")
+            
+            # Create the transaction with a negative amount (deduction)
+            transaction = Transaction.objects.create(
+                user=user,
+                amount=Decimal(str(negative_amount)),  # Use Decimal for precision
+                transaction_type='usage',
+                status=status,
+                description=description
+            )
+            
+            # Log with explicit user ID to make tracking easier
+            logger.info(f"Created usage transaction #{transaction.id} for user {user.username} (ID: {user.id}): {description} (${positive_amount:.4f})")
+            
+            # Update the user's balance information to match the transaction
+            try:
+                from ..models import CreditBalance
+                # Get the current balance, refreshing from the database
+                balance, created = CreditBalance.objects.get_or_create(user=user)
+                # Log the balance for debugging tiny transactions
+                logger.info(f"User {user.username} balance after transaction: ${float(balance.balance):.4f}")
+            except Exception as balance_error:
+                logger.error(f"Error getting balance after transaction: {str(balance_error)}")
+            
+            return transaction
+            
+        except Exception as e:
+            logger.error(f"Error creating usage transaction: {str(e)}")
+            return None
             
     def get_transaction_by_payment_intent(self, user, payment_intent_id: str) -> Optional[Transaction]:
         """

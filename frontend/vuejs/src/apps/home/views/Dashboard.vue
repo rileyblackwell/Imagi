@@ -228,7 +228,9 @@
                             </div>
                           </div>
                           <div class="text-right">
-                            <p class="text-white font-medium">${{ typeof transaction.amount === 'number' ? transaction.amount.toFixed(2) : transaction.amount }}</p>
+                            <p class="text-white font-medium">
+                              ${{ formatTransactionAmount(transaction.amount) }}
+                            </p>
                             <p class="text-xs"
                               :class="{
                                 'text-green-400': transaction.status === 'completed',
@@ -505,6 +507,21 @@ async function fetchDashboardData() {
 onMounted(() => {
   fetchDashboardData()
 })
+
+// Add this function to the script section
+const formatTransactionAmount = (amount) => {
+  // Parse the amount if it's a string
+  const numAmount = typeof amount === 'number' ? amount : parseFloat(amount);
+  
+  // Handle small amounts with more precision
+  if (Math.abs(numAmount) < 0.01) {
+    return numAmount.toFixed(4); // Show 4 decimal places for tiny amounts
+  } else if (Math.abs(numAmount) < 0.1) {
+    return numAmount.toFixed(3); // Show 3 decimal places for small amounts
+  } else {
+    return numAmount.toFixed(2); // Show standard 2 decimal places for normal amounts
+  }
+}
 </script>
 
 <style scoped>

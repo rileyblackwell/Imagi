@@ -9,8 +9,8 @@ from .agent_service import (
     build_conversation_history,
     format_system_prompt,
     get_conversation_summary,
-    MODEL_COSTS
 )
+from .model_definitions import MODEL_COSTS
 from .template_agent_service import TemplateAgentService
 from .stylesheet_agent_service import StylesheetAgentService
 from .chat_agent_service import ChatAgentService

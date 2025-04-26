@@ -77,59 +77,6 @@ class ChatAgentService(BaseAgentService):
         """
         return True, None
 
-    def deduct_credits(self, user, model):
-        """
-        Deduct credits from user's account for using the selected model.
-        
-        Args:
-            user: The Django user object
-            model (str): The AI model that was used
-            
-        Returns:
-            bool: True if credits were successfully deducted, False otherwise
-        """
-        try:
-            # Get the exact cost based on the model name
-            required_amount = self.get_model_cost(model)
-            
-            # Use the payment service to charge tokens directly (amount in dollars)
-            description = f"Chat using model: {model}"
-            
-            # Access the credit balance directly instead of going through payment service
-            from apps.Payments.models import CreditBalance
-            from django.db import transaction
-            from decimal import Decimal
-            
-            # Perform the transaction with database-level locking
-            with transaction.atomic():
-                try:
-                    balance = CreditBalance.objects.select_for_update().get(user=user)
-                    
-                    # Convert to float for epsilon comparison (handling floating point precision)
-                    epsilon = 0.0001
-                    current_balance = float(balance.balance)
-                    
-                    if current_balance + epsilon < required_amount:
-                        logger.warning(f"Insufficient balance: ${current_balance:.4f} available, ${required_amount:.4f} required")
-                        return False
-                    
-                    # Update balance
-                    balance.balance = Decimal(str(float(balance.balance) - required_amount))
-                    balance.save()
-                    
-                    logger.info(f"Deducted ${required_amount:.4f} from user {user.username} for model {model}. New balance: ${float(balance.balance):.4f}")
-                    return True
-                    
-                except CreditBalance.DoesNotExist:
-                    logger.error(f"No credit balance found for user {user.username}")
-                    return False
-            
-        except Exception as e:
-            logger.error(f"Error deducting credits: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return False
-
     def process_message(self, user_input, model_id, user, conversation_id=None, project_id=None, current_file=None, is_build_mode=False):
         """
         Process a chat message and generate a response.
@@ -195,21 +142,8 @@ class ChatAgentService(BaseAgentService):
                 current_file=current_file
             )
             
-            # If successful, deduct credits for using the model
+            # Add timestamp to successful results
             if result.get('success', False):
-                # Explicitly deduct credits after successful processing
-                deduction_success = self.deduct_credits(user, model_id)
-                
-                if not deduction_success:
-                    logger.error(f"Failed to deduct credits for user {user.username} using model {model_id}")
-                    return {
-                        'success': False,
-                        'error': f"Failed to process payment for {model_id}. Please try again later."
-                    }
-                
-                # Log successful credit deduction
-                logger.info(f"Successfully deducted credits for user {user.username} using model {model_id}")
-                
                 # Add timestamp to result
                 result['timestamp'] = timezone.now().isoformat()
             
@@ -296,23 +230,17 @@ class ChatAgentService(BaseAgentService):
         Returns:
             float: The cost of the model in dollars
         """
-        # Import MODEL_COSTS from agent_service
-        from .agent_service import MODEL_COSTS
+        # Use the get_model_cost function from model_definitions for centralized pricing
+        from .model_definitions import get_model_cost
         
-        # Get the exact amount from MODEL_COSTS using the model ID directly
-        amount = MODEL_COSTS.get(model_id)
+        # Log the model ID for which we're calculating cost
+        logger.info(f"Calculating cost for model: {model_id}")
         
-        # If model not found in MODEL_COSTS, use correct default based on model pattern
-        if amount is None:
-            if 'claude-3-7-sonnet' in model_id:
-                amount = 0.04
-            elif model_id == 'gpt-4o':
-                amount = 0.04
-            elif 'gpt-4o-mini' in model_id:
-                amount = 0.005
-            else:
-                # Default fallback
-                amount = 0.04
+        # Get the cost from centralized function
+        amount = get_model_cost(model_id)
+        
+        # Log the final cost for debugging
+        logger.info(f"Final cost for model {model_id}: ${amount}")
                 
         return amount
             
@@ -387,16 +315,19 @@ class ChatAgentService(BaseAgentService):
                 credit_balance = CreditBalance.objects.create(user=user, balance=0)
                 balance = 0.0
             
-            # Get the exact cost for the model
-            required_amount = self.get_model_cost(model)
+            # Get the exact cost for the model with 4 decimal precision
+            required_amount = float(f"{self.get_model_cost(model):.4f}")
             
-            # Log the required amount for debugging
+            # Log the required amount for debugging with model name for tracking small amounts
             logger.info(f"Credit check for model {model}: ${required_amount:.4f} required, user balance: ${balance:.4f}")
             
             # Use a small epsilon value to handle floating-point precision issues
             epsilon = 0.0001
             if balance + epsilon < required_amount:
+                logger.warning(f"Insufficient credits for {model}: ${balance:.4f} < ${required_amount:.4f}")
                 return False, required_amount
+                
+            logger.info(f"Credit check PASSED for {model}: ${balance:.4f} >= ${required_amount:.4f}")
             return True, required_amount
         except Exception as e:
             logger.error(f"Error checking user balance: {str(e)}")

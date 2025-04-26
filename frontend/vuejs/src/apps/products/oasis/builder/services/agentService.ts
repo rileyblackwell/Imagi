@@ -14,6 +14,14 @@ import type {
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 import { usePaymentsStore } from '@/apps/payments/store'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
+import axios from 'axios'
+
+// Create a custom API instance with longer timeout
+const longTimeoutApi = axios.create({
+  baseURL: api.defaults.baseURL,
+  timeout: 90000, // 90 seconds timeout
+  headers: api.defaults.headers
+})
 
 // Static variables for rate limiting
 let requestCounts: Map<string, number> = new Map()
@@ -146,7 +154,7 @@ export const AgentService = {
       });
       
       // Use the build_template endpoint from agents/api
-      const response = await api.post('/api/v1/agents/build/template/', payload)
+      const response = await longTimeoutApi.post('/api/v1/agents/build/template/', payload)
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
@@ -571,10 +579,18 @@ export const AgentService = {
 
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      // For now, return default models
+      // Try to fetch from API
+      const response = await api.get('/api/v1/builder/models/')
+      if (response.data && Array.isArray(response.data)) {
+        // If we got a valid response, return the models from API
+        return response.data
+      }
+      // Fallback to default models if API response is invalid
       return this.getDefaultModels()
     } catch (error) {
-      throw handleAPIError(error)
+      console.warn('Error fetching models from API, using defaults:', error)
+      // Fallback to default models if API call fails
+      return this.getDefaultModels()
     }
   },
 
@@ -663,8 +679,8 @@ export const AgentService = {
         onProgress({ status: 'Sending request to AI...', percent: 25 });
       }
       
-      // Call the agent/build/stylesheet endpoint
-      const response = await api.post('/api/v1/agents/build/stylesheet/', payload);
+      // Make request with longer timeout
+      const response = await longTimeoutApi.post('/api/v1/agents/build/stylesheet/', payload);
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {
