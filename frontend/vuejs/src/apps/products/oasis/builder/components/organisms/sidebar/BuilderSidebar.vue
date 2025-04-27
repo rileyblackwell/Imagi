@@ -44,10 +44,8 @@
             <i 
               class="fas" 
               :class="[
-                selectedModel?.id === 'claude-3-7-sonnet-20250219' || selectedModel?.id === 'gpt-4o' ? 'fa-brain text-primary-400' :
-                selectedModel?.provider === 'anthropic' ? 'fa-diamond text-blue-400' : 
-                selectedModel?.provider === 'openai' ? 'fa-bolt text-emerald-400' : 
-                'fa-robot text-primary-400'
+                selectedModel?.id === 'claude-3-7-sonnet-20250219' || selectedModel?.id === 'gpt-4.1' ? 'fa-brain text-primary-400' :
+                selectedModel?.id === 'gpt-4.1-nano' ? 'fa-bolt text-warning-500' : 'fa-robot'
               ]"
             ></i>
           </button>

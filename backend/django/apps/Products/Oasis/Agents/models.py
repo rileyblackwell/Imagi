@@ -1,19 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
+from .services.model_definitions import get_model_choices, get_provider_choices, get_default_provider
 
 
 class AgentConversation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="agent_conversations")
     created_at = models.DateTimeField(auto_now_add=True)
-    model_name = models.CharField(max_length=50, choices=[
-        ('gpt-4o', 'GPT-4o'),
-        ('gpt-4o-mini', 'GPT-4o Mini'),
-        ('claude-3-7-sonnet-20250219', 'Claude 3.7 Sonnet'),
-    ])
-    provider = models.CharField(max_length=20, choices=[
-        ('openai', 'OpenAI'),
-        ('anthropic', 'Anthropic'),
-    ], default='anthropic')
+    model_name = models.CharField(max_length=50, choices=get_model_choices())
+    provider = models.CharField(max_length=20, choices=get_provider_choices(), default=get_default_provider())
     
     def __str__(self):
         return f"Agent Conversation {self.id} - {self.user.username} using {self.model_name} ({self.provider})"

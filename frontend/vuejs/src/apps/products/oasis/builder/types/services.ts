@@ -26,6 +26,8 @@ export interface AIModel {
   capabilities?: string[];
   maxTokens?: number;
   type?: 'openai' | 'anthropic';
+  backend_model?: string;
+  api_version?: 'chat' | 'messages' | 'responses'; // Different API versions: chat = OpenAI chat completions, messages = Anthropic messages, responses = OpenAI responses
 }
 
 /**
@@ -95,7 +97,8 @@ export const AI_MODELS: AIModel[] = [
     description: 'Anthropic | High-performance model for complex tasks',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 200000,
-    costPerRequest: 0.04
+    costPerRequest: 0.04,
+    api_version: 'messages'
   },
   {
     id: 'gpt-4.1',
@@ -107,7 +110,8 @@ export const AI_MODELS: AIModel[] = [
     description: 'OpenAI | Powerful reasoning and creative capability',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
-    costPerRequest: 0.04
+    costPerRequest: 0.04,
+    api_version: 'responses'
   },
   {
     id: 'gpt-4.1-nano',
@@ -119,7 +123,8 @@ export const AI_MODELS: AIModel[] = [
     description: 'OpenAI | Fast and cost-effective performance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
-    costPerRequest: 0.01
+    costPerRequest: 0.01,
+    api_version: 'responses'
   }
 ];
 

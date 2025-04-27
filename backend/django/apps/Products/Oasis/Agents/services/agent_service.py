@@ -21,7 +21,12 @@ from abc import ABC, abstractmethod
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from apps.Payments.services import PaymentService
-from .model_definitions import get_model_cost
+from .model_definitions import (
+    get_model_cost, 
+    get_model_by_id, 
+    get_api_version_from_model_id,
+    get_provider_from_model_id
+)
 
 logger = logging.getLogger(__name__)
 
@@ -494,8 +499,12 @@ class BaseAgentService(ABC):
                 "content": user_input
             })
             
+            # Determine provider and API version from model ID
+            provider = get_provider_from_model_id(model)
+            api_version = get_api_version_from_model_id(model)
+            
             # Generate the response using the appropriate model
-            if 'claude' in model:
+            if provider == 'anthropic':
                 # Get the system message content for Claude
                 system_content = ""
                 for msg in api_messages:
@@ -529,7 +538,7 @@ class BaseAgentService(ABC):
                         raise ValueError("The Anthropic API key is invalid or missing. Please check your ANTHROPIC_KEY environment variable.")
                     raise
                     
-            elif 'gpt' in model:
+            elif provider == 'openai':
                 # Add file context as an additional system message
                 if current_file and current_file.get('path'):
                     file_info_msg = {
@@ -560,30 +569,68 @@ class BaseAgentService(ABC):
                     # For OpenAI API calls, ensure we're using the correct API format
                     api_model = model
                     
-                    # Map model IDs to exact required API values if necessary
-                    if model in ['gpt-4.1']:
-                        api_model = 'gpt-4.1-preview'
-                        logger.info(f"Mapped {model} to API model: {api_model}")
-                        
+                    # Get model definition from centralized model definitions
+                    model_definition = get_model_by_id(model)
+                    
+                    if model_definition and 'api_model' in model_definition:
+                        # Use specified API model if available in model definition
+                        api_model = model_definition['api_model']
+                        logger.info(f"Using API model from definition: {api_model} for model ID: {model}")
+                    
                     # Log the API model being used
                     logger.info(f"Using API model: {api_model}")
                     
-                    # Ensure we're using the exact received model ID
-                    completion = self.openai_client.chat.completions.create(
-                        model=api_model,  # Use the mapped model ID for the API
-                        messages=api_messages,
+                    # Use the new responses API for all OpenAI models
+                    logger.info(f"Using new responses API for model: {api_model}")
+                    
+                    # Extract system message from api_messages
+                    system_messages = [msg['content'] for msg in api_messages if msg['role'] == 'system']
+                    instructions = '\n'.join(system_messages) if system_messages else None
+                    
+                    # Convert remaining messages to a conversation format
+                    conversation = []
+                    for msg in api_messages:
+                        if msg['role'] != 'system':
+                            conversation.append({
+                                "role": msg['role'],
+                                "content": msg['content']
+                            })
+                            
+                    # The last user message becomes the input
+                    input_content = next((msg['content'] for msg in reversed(api_messages) 
+                                     if msg['role'] == 'user'), "")
+                    
+                    # Make the API call using the new responses API
+                    completion = self.openai_client.responses.create(
+                        model=api_model,
+                        input=input_content,
+                        instructions=instructions,
                         temperature=0.7,
-                        max_tokens=4096,
-                        stream=False  # Explicitly disable streaming
+                        max_output_tokens=4096,
                     )
-                    response_content = completion.choices[0].message.content
+                    
+                    # Extract the response content
+                    if completion.output and len(completion.output) > 0:
+                        message = completion.output[0]
+                        if message.content and len(message.content) > 0:
+                            response_content = message.content[0].text
+                        else:
+                            response_content = "No text content found in response"
+                    else:
+                        response_content = "No output found in response"
                     
                     # Log successful completion with model
                     logger.info(f"Successfully completed OpenAI API call with model: {model}")
                 except Exception as api_error:
                     logger.error(f"OpenAI API error with model {model}: {str(api_error)}")
-                    if "API key" in str(api_error):
+                    error_message = str(api_error)
+                    
+                    if "API key" in error_message:
                         raise ValueError("The OpenAI API key is invalid or missing. Please check your OPENAI_KEY environment variable.")
+                    elif "No such endpoint" in error_message:
+                        raise ValueError(f"The model {api_model} requires the newer OpenAI API with /v1/responses endpoint. Please update your OpenAI client library.")
+                    elif "No such model" in error_message:
+                        raise ValueError(f"The model {api_model} was not found. This may be because your OpenAI client library does not support the latest models or the API key does not have access to it.")
                     raise
                     
             else:

@@ -264,62 +264,97 @@ export const AgentService = {
       }
       
       // Use the chat endpoint from agents/api
-      const response = await api.post('/api/v1/agents/chat/', payload)
+      console.info(`Sending chat request with model: ${payload.model}`);
       
-      // Store the conversation ID for future requests
-      if (response.data.conversation_id) {
-        localStorage.setItem(`chat_conversation_${projectId}`, response.data.conversation_id)
-      }
+      // Add some retry logic for model-related errors
+      let retryCount = 0;
+      const maxRetries = 1;
       
-      // Create properly formatted user and assistant messages
-      const userMessage = {
-        role: 'user',
-        content: data.prompt,
-        timestamp: new Date().toISOString()
-      };
-      
-      // Extract assistant response, ensuring it's not empty
-      let assistantResponse = response.data.response || '';
-      
-      // Handle potential null response
-      if (assistantResponse === null) {
-        console.warn('AgentService: Null assistant response received from API');
-        assistantResponse = '';
-      }
-      
-      // Additional validation and normalization for response format
-      let validatedResponse = assistantResponse;
-      
-      // If response is an object (possible with some model responses), convert to string
-      if (typeof validatedResponse === 'object') {
-        console.warn('AgentService: Object response received:', validatedResponse);
+      while (retryCount <= maxRetries) {
         try {
-          validatedResponse = JSON.stringify(validatedResponse);
-        } catch (e) {
-          validatedResponse = String(validatedResponse);
+          const response = await api.post('/api/v1/agents/chat/', payload);
+          
+          // Store the conversation ID for future requests
+          if (response.data.conversation_id) {
+            localStorage.setItem(`chat_conversation_${projectId}`, response.data.conversation_id);
+          }
+          
+          // Create properly formatted user and assistant messages
+          const userMessage = {
+            role: 'user',
+            content: data.prompt,
+            timestamp: new Date().toISOString()
+          };
+          
+          // Extract assistant response, ensuring it's not empty
+          let assistantResponse = response.data.response || '';
+          
+          // Handle potential null response
+          if (assistantResponse === null) {
+            console.warn('AgentService: Null assistant response received from API');
+            assistantResponse = '';
+          }
+          
+          // Additional validation and normalization for response format
+          let validatedResponse = assistantResponse;
+          
+          // If response is an object (possible with some model responses), convert to string
+          if (typeof validatedResponse === 'object') {
+            console.warn('AgentService: Object response received:', validatedResponse);
+            try {
+              validatedResponse = JSON.stringify(validatedResponse);
+            } catch (e) {
+              validatedResponse = String(validatedResponse);
+            }
+          }
+          
+          // Create the assistant message with complete data
+          const assistantMessage = {
+            role: 'assistant',
+            content: validatedResponse,
+            timestamp: new Date().toISOString(),
+            code: response.data.code || null
+          };
+          
+          // Refresh the user's balance after successful API call
+          try {
+            const paymentsStore = getPaymentsStore();
+            paymentsStore.fetchBalance(false); // silent refresh
+          } catch (err) {
+            console.warn('Failed to refresh balance:', err);
+          }
+          
+          return {
+            response: validatedResponse,
+            messages: [userMessage, assistantMessage]
+          };
+        } catch (error: any) {
+          // Check if this is a model-related error we should retry
+          const errorDetail = error.response?.data?.error || '';
+          const shouldRetry = 
+            retryCount < maxRetries && 
+            error.response?.status === 400 && 
+            (errorDetail.includes('model') || errorDetail.includes('API'));
+          
+          if (shouldRetry) {
+            console.warn(`Model error detected, retrying with fallback model (${retryCount + 1}/${maxRetries + 1}):`, errorDetail);
+            retryCount++;
+            // Fall back to Claude if there was an issue with OpenAI models
+            if (payload.model.includes('gpt')) {
+              payload.model = 'claude-3-7-sonnet-20250219';
+              console.info(`Falling back to ${payload.model}`);
+            }
+            // Small delay before retry
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } else {
+            // Not retrying, throw the error to be handled below
+            throw error;
+          }
         }
       }
       
-      // Create the assistant message with complete data
-      const assistantMessage = {
-        role: 'assistant',
-        content: validatedResponse,
-        timestamp: new Date().toISOString(),
-        code: response.data.code || null
-      };
-      
-      // Refresh the user's balance after successful API call
-      try {
-        const paymentsStore = getPaymentsStore();
-        paymentsStore.fetchBalance(false); // silent refresh
-      } catch (err) {
-        console.warn('Failed to refresh balance:', err);
-      }
-      
-      return {
-        response: validatedResponse,
-        messages: [userMessage, assistantMessage]
-      };
+      // If we exit the retry loop without returning, we've exhausted our retries without success
+      throw new Error('Failed to process chat after retry attempts');
     } catch (error: any) {
       // Log the error for debugging
       console.error('Chat API error:', error);
@@ -398,16 +433,6 @@ export const AgentService = {
     onConversationId?: (id: string) => void
   ): Promise<void> {
     try {
-      // console.log('Starting chat request with typing effect simulation...');
-      
-      // Enhanced logging for debugging
-      // console.log('Chat API Request:', {
-      //   payload: { 
-      //     ...payload, 
-      //     message: payload.message.length > 50 ? payload.message.substring(0, 50) + '...' : payload.message 
-      //   }
-      // });
-      
       // Process the message with regular chat API
       const chatResponse = await this.processChat(
         payload.project_id,
@@ -434,9 +459,11 @@ export const AgentService = {
       
       // Call onDone when complete
       onDone();
+      return;
     } catch (error: any) {
       console.error('Error in processChatWithTypingEffect:', error);
       onError(`Error: ${error.message || 'Unknown error'}`);
+      return;
     }
   },
   
@@ -499,7 +526,14 @@ export const AgentService = {
     onDone: () => void,
     onConversationId?: (id: string) => void
   ): Promise<void> {
-    return this.processChatWithTypingEffect(payload, onChunk, onError, onDone, onConversationId);
+    try {
+      await this.processChatWithTypingEffect(payload, onChunk, onError, onDone, onConversationId);
+      return;
+    } catch (error) {
+      console.error('Error in processChatStream:', error);
+      onError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return;
+    }
   },
 
   // Helper method to get auth token
@@ -579,11 +613,23 @@ export const AgentService = {
 
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      // Try to fetch from API
-      const response = await api.get('/api/v1/builder/models/')
+      // Try to fetch from centralized model definitions API
+      const response = await api.get('/api/v1/agents/models/')
       if (response.data && Array.isArray(response.data)) {
-        // If we got a valid response, return the models from API
-        return response.data
+        // Map backend model definitions to frontend AIModel format
+        return response.data.map((modelDef: any) => ({
+          id: modelDef.id,
+          name: modelDef.name,
+          provider: modelDef.provider,
+          type: modelDef.type,
+          context_window: modelDef.maxTokens,
+          features: modelDef.capabilities,
+          description: modelDef.description,
+          capabilities: modelDef.capabilities,
+          maxTokens: modelDef.maxTokens,
+          costPerRequest: modelDef.costPerRequest,
+          api_version: modelDef.api_version
+        }));
       }
       // Fallback to default models if API response is invalid
       return this.getDefaultModels()

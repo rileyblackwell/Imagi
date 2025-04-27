@@ -84,6 +84,30 @@ class TemplateAgentService(BaseAgentService):
             )
         }
 
+    def get_api_model(self, model_id):
+        """
+        Get the API model to use for a given model ID.
+        
+        Args:
+            model_id (str): The model ID
+            
+        Returns:
+            str: The API model to use
+        """
+        # Import model definitions
+        from .model_definitions import get_model_by_id
+        
+        # Try to get the model definition
+        model_def = get_model_by_id(model_id)
+        
+        # Use api_model from definition if available
+        if model_def and 'api_model' in model_def:
+            logger.info(f"Using API model from definition: {model_def['api_model']} for model ID: {model_id}")
+            return model_def['api_model']
+        
+        # All OpenAI models use API as-is (no mapping needed, using responses API)
+        # Return the model ID directly
+        return model_id
 
     def get_additional_context(self, **kwargs):
         """

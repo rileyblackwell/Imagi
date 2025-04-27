@@ -20,14 +20,17 @@
             :key="model.id"
             class="flex items-center justify-between p-4 rounded-lg bg-dark-800/50 border border-dark-700/40 backdrop-blur-sm hover:border-primary-500/30 transition-all duration-300"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
-                <i class="fas fa-robot text-primary-400"></i>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
+                  <i class="fas fa-robot text-primary-400"></i>
+                </div>
+                <span class="font-medium text-white">{{ model.name }}</span>
               </div>
-              <span class="font-medium text-white">{{ model.name }}</span>
+              <p v-if="model.description" class="text-xs text-gray-400 ml-11 mt-1">{{ model.description }}</p>
             </div>
             <div class="flex items-baseline gap-1">
-              <span class="font-semibold text-white">{{ model.price.toFixed(4) }}</span>
+              <span class="font-semibold text-white">${{ model.price.toFixed(4) }}</span>
               <span class="text-xs text-gray-400">per use</span>
             </div>
           </div>
@@ -50,6 +53,7 @@ interface PricingModel {
   id: string;
   name: string;
   price: number;
+  description?: string;
 }
 
 const props = defineProps({
@@ -61,19 +65,22 @@ const props = defineProps({
     type: Array as () => PricingModel[],
     default: () => [
       { 
-        id: 'gpt-4.1-nano', 
-        name: 'GPT-4.1 Nano', 
-        price: 0.01
-      },
-      { 
         id: 'gpt-4.1', 
         name: 'GPT-4.1', 
-        price: 0.04
+        price: 0.04,
+        description: 'OpenAI\'s most powerful model for complex tasks'
       },
       { 
-        id: 'gpt4o-mini', 
-        name: 'GPT-4o-mini', 
-        price: 0.005
+        id: 'gpt-4.1-nano', 
+        name: 'GPT-4.1 Nano', 
+        price: 0.01,
+        description: 'Faster, more cost-effective model with high capability'
+      },
+      { 
+        id: 'claude-3-7-sonnet-20250219', 
+        name: 'Claude 3.7 Sonnet', 
+        price: 0.04,
+        description: 'Anthropic\'s advanced model for nuanced tasks'
       }
     ]
   },
