@@ -15,13 +15,32 @@
     <!-- Project Info Section -->
     <div class="shrink-0 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
       <div v-if="!isCollapsed" class="mb-4">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Project</span>
-        <h2 class="text-lg font-semibold text-white truncate">
-          {{ currentProject?.name || 'Untitled Project' }}
-        </h2>
-        <p v-if="currentProject?.description" class="text-sm text-gray-400 mt-1 truncate">
+        <!-- Project label with badge -->
+        <div class="flex items-center mb-2">
+          <div class="inline-flex px-2 py-1 rounded-full bg-primary-600/10 border border-primary-500/20">
+            <span class="text-xxs font-bold text-primary-400 uppercase tracking-wider">Project</span>
+          </div>
+        </div>
+        
+        <!-- Project name with enhanced styling -->
+        <div class="group relative">
+          <!-- Subtle highlight effect -->
+          <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500/5 to-violet-500/5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <!-- Project name -->
+          <h2 class="relative px-2 py-1 text-lg font-semibold text-white truncate group-hover:text-indigo-300 transition-colors duration-300">
+            <i class="fas fa-cube mr-2 text-primary-400 opacity-80"></i>
+            {{ currentProject?.name || 'Untitled Project' }}
+          </h2>
+        </div>
+        
+        <!-- Project description with improved styling -->
+        <p v-if="currentProject?.description" class="relative px-2 mt-1.5 text-sm text-gray-400 truncate italic">
           {{ currentProject.description }}
         </p>
+        
+        <!-- Decorative line -->
+        <div class="mt-3 h-px bg-gradient-to-r from-transparent via-primary-500/20 to-transparent"></div>
       </div>
       
       <!-- Model Selector -->
@@ -292,26 +311,31 @@ const toggleNewFileForm = () => {
 
 .tooltip {
   position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 8px;
-  background-color: rgba(30, 30, 46, 0.9);
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #1e1e2a;
   color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
   font-size: 0.75rem;
   white-space: nowrap;
-  z-index: 10;
+  z-index: 50;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  backdrop-filter: blur(4px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.1);
 }
 
 .tooltip-container:hover .tooltip {
   opacity: 1;
+}
+
+.text-xxs {
+  font-size: 0.65rem;
+  line-height: 1rem;
 }
 
 /* Scrollbar styling */
