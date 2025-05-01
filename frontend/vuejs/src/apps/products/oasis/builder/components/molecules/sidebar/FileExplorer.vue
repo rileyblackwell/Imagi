@@ -34,7 +34,7 @@
             v-model="newFileName"
             type="text"
             placeholder="filename.ext"
-            class="w-full text-xs bg-dark-950 border border-dark-700 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            class="w-full text-xs bg-dark-950 border border-dark-700 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-indigo-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(99,102,241,0.25)] transition-all duration-200"
             @keydown.enter="createFile"
           />
           

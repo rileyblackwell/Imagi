@@ -42,7 +42,7 @@
                 @input="(e) => $emit('update:modelValue', (e.target as HTMLInputElement).value)"
                 type="text"
                 placeholder="Enter project name..."
-                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-indigo-500/50 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-200"
+                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
                 :disabled="isLoading"
               >
             </div>
