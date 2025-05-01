@@ -32,7 +32,7 @@ MODELS = {
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
         'costPerRequest': 0.04,
-        'api_version': 'responses'  # Uses OpenAI's newer responses API
+        'api_version': 'chat'  # Uses OpenAI chat completions API
     },
     'gpt-4.1-nano': {
         'id': 'gpt-4.1-nano',
@@ -43,7 +43,7 @@ MODELS = {
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
         'costPerRequest': 0.01,
-        'api_version': 'responses'  # Uses OpenAI's newer responses API
+        'api_version': 'chat'  # Uses OpenAI chat completions API
     }
 }
 

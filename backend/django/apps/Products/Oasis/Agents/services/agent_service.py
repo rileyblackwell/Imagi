@@ -580,42 +580,17 @@ class BaseAgentService(ABC):
                     # Log the API model being used
                     logger.info(f"Using API model: {api_model}")
                     
-                    # Use the new responses API for all OpenAI models
-                    logger.info(f"Using new responses API for model: {api_model}")
-                    
-                    # Extract system message from api_messages
-                    system_messages = [msg['content'] for msg in api_messages if msg['role'] == 'system']
-                    instructions = '\n'.join(system_messages) if system_messages else None
-                    
-                    # Convert remaining messages to a conversation format
-                    conversation = []
-                    for msg in api_messages:
-                        if msg['role'] != 'system':
-                            conversation.append({
-                                "role": msg['role'],
-                                "content": msg['content']
-                            })
-                            
-                    # The last user message becomes the input
-                    input_content = next((msg['content'] for msg in reversed(api_messages) 
-                                     if msg['role'] == 'user'), "")
-                    
-                    # Make the API call using the new responses API
-                    completion = self.openai_client.responses.create(
+                    # Make the API call using the chat completions API
+                    completion = self.openai_client.chat.completions.create(
                         model=api_model,
-                        input=input_content,
-                        instructions=instructions,
+                        messages=api_messages,  # Use the messages directly as they're already in the correct format
                         temperature=0.7,
-                        max_output_tokens=4096,
+                        max_tokens=4096,
                     )
                     
                     # Extract the response content
-                    if completion.output and len(completion.output) > 0:
-                        message = completion.output[0]
-                        if message.content and len(message.content) > 0:
-                            response_content = message.content[0].text
-                        else:
-                            response_content = "No text content found in response"
+                    if completion.choices and len(completion.choices) > 0:
+                        response_content = completion.choices[0].message.content
                     else:
                         response_content = "No output found in response"
                     
