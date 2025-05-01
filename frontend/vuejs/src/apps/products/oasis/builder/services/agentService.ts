@@ -614,7 +614,7 @@ export const AgentService = {
   async getAvailableModels(): Promise<AIModel[]> {
     try {
       // Try to fetch from centralized model definitions API
-      const response = await api.get('/api/v1/agents/models/')
+      const response = await api.get('/api/v1/builder/models/')
       if (response.data && Array.isArray(response.data)) {
         // Map backend model definitions to frontend AIModel format
         return response.data.map((modelDef: any) => ({
