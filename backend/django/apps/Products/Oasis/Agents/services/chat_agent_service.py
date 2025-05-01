@@ -139,6 +139,7 @@ class ChatAgentService(BaseAgentService):
                 user=user,
                 conversation_id=conversation_id,
                 project_path=project_path,
+                project_id=project_id,
                 current_file=current_file
             )
             

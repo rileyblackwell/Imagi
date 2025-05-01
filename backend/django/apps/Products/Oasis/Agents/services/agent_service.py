@@ -56,6 +56,15 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
     """
     messages = []
     
+    # Add project information if available
+    if hasattr(conversation, 'project_id') and conversation.project_id:
+        project_name = getattr(conversation, 'project_name', None)
+        if project_name:
+            messages.append({
+                "role": "system",
+                "content": f"You are currently working on project: {project_name} (ID: {conversation.project_id})"
+            })
+    
     # Add system prompt if it exists
     system_prompt = None
     if hasattr(conversation, 'system_prompt'):
@@ -334,7 +343,7 @@ class BaseAgentService(ABC):
             logger.error(f"Error getting conversation: {str(e)}")
             return None
     
-    def create_conversation(self, user, model, system_prompt):
+    def create_conversation(self, user, model, system_prompt, project_id=None):
         """
         Create a new conversation.
         
@@ -342,6 +351,7 @@ class BaseAgentService(ABC):
             user: The Django user object
             model: The model to use
             system_prompt: The system prompt dictionary
+            project_id (int, optional): The ID of the project
             
         Returns:
             AgentConversation: The created conversation object
@@ -351,7 +361,8 @@ class BaseAgentService(ABC):
             conversation = AgentConversation.objects.create(
                 user=user,
                 model_name=model,
-                provider='anthropic' if 'claude' in model else 'openai'
+                provider='anthropic' if 'claude' in model else 'openai',
+                project_id=project_id
             )
             
             # Add the system prompt
@@ -459,7 +470,12 @@ class BaseAgentService(ABC):
                         'error': f'Error retrieving conversation: {str(e)}'
                     }
             else:
-                conversation = self.create_conversation(user, model, self.get_system_prompt())
+                # Get project ID from kwargs if available
+                project_id = kwargs.get('project_id')
+                if project_id:
+                    logger.info(f"Creating new conversation for project ID: {project_id}")
+                
+                conversation = self.create_conversation(user, model, self.get_system_prompt(), project_id)
             
             # Charge the user for using AI models
             # Determine charge amount based on model using the centralized get_model_cost function
