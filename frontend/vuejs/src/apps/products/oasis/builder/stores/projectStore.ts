@@ -832,6 +832,66 @@ export const useProjectStore = defineStore('builder', () => {
     }
   }
 
+  /**
+   * Update an existing project
+   * Used to update project details like name and description
+   */
+  async function updateProject(projectId: string, projectData: { description?: string; name?: string }) {
+    if (!isAuthenticated.value) {
+      throw new Error('You must be logged in to update projects')
+    }
+
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    loading.value = true
+    error.value = null
+    
+    try {
+      console.debug('Updating project:', { projectId, projectData })
+      const updatedProject = await ProjectService.updateProject(projectId, projectData)
+      
+      console.debug('Project updated:', updatedProject)
+      
+      if (!updatedProject || typeof updatedProject !== 'object') {
+        throw new Error('Invalid project data received')
+      }
+
+      const normalizedProject = normalizeProject(updatedProject)
+      
+      // Update project in local state
+      const existingProjectIndex = projects.value.findIndex(p => String(p.id) === String(projectId))
+      if (existingProjectIndex !== -1) {
+        projects.value[existingProjectIndex] = {
+          ...projects.value[existingProjectIndex],
+          ...normalizedProject
+        }
+      }
+      
+      // Update in projects map
+      projectsMap.value.set(String(projectId), normalizedProject)
+      
+      console.debug('Store updated with modified project:', {
+        projectId,
+        updatedProject: normalizedProject
+      })
+      
+      return normalizedProject
+    } catch (err: any) {
+      console.error('Project update error in store:', {
+        error: err,
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      })
+      handleError(err, 'Failed to update project')
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // State
     projects,
@@ -867,6 +927,7 @@ export const useProjectStore = defineStore('builder', () => {
     fetchProject,
     setSelectedModel,
     fetchAvailableModels,
-    refreshProjectData
+    refreshProjectData,
+    updateProject
   }
 })

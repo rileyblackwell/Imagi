@@ -116,9 +116,44 @@
                       </h3>
                     </div>
                     
-                    <p class="text-gray-400 mb-6 line-clamp-2 text-sm">
-                      {{ project.description || 'No description provided' }}
-                    </p>
+                    <!-- Description with edit capability -->
+                    <div class="mb-6">
+                      <div v-if="editingDescription === project.id" class="relative group/input w-full mb-2">
+                        <textarea
+                          v-model="editedDescription"
+                          placeholder="Project description..."
+                          class="w-full px-3 py-2 bg-dark-800/60 border border-primary-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all duration-200 min-h-[80px] resize-y"
+                          rows="3"
+                          @keydown.esc="cancelEditDescription()"
+                        ></textarea>
+                        <div class="flex items-center gap-2 mt-2">
+                          <button 
+                            @click="saveDescription(project)"
+                            class="px-3 py-1.5 text-sm bg-primary-500/20 hover:bg-primary-500 text-primary-400 hover:text-white rounded-lg transition-all duration-200 flex items-center"
+                          >
+                            <i class="fas fa-check mr-1.5"></i> Save
+                          </button>
+                          <button 
+                            @click="cancelEditDescription()"
+                            class="px-3 py-1.5 text-sm bg-dark-700/50 hover:bg-dark-600 text-gray-400 hover:text-white rounded-lg transition-all duration-200 flex items-center"
+                          >
+                            <i class="fas fa-times mr-1.5"></i> Cancel
+                          </button>
+                        </div>
+                      </div>
+                      <div v-else class="flex items-center justify-between">
+                        <p class="text-gray-400 line-clamp-2 text-sm">
+                          {{ project.description || 'No description provided' }}
+                        </p>
+                        <button 
+                          @click="startEditDescription(project)"
+                          class="ml-2 text-primary-400 hover:text-primary-300 transition-colors"
+                          title="Edit description"
+                        >
+                          <i class="fas fa-edit"></i>
+                        </button>
+                      </div>
+                    </div>
                     
                     <div class="mt-auto">
                       <div class="flex items-center text-sm text-gray-500 mb-4">
@@ -155,11 +190,16 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal for editing project details (alternative approach) -->
+    <div v-if="false" class="hidden">
+      <!-- Placeholder for future implementation -->
+    </div>
   </BuilderLayout>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts';
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore';
@@ -176,17 +216,33 @@ const sortedProjects = computed(() => projectStore.sortedProjects);
 const isLoading = computed(() => projectStore.loading);
 const error = computed(() => projectStore.error);
 
+// Description editing state
+const editingDescription = ref(null);
+const editedDescription = ref('');
+
 const navigationItems = [
   { 
-    name: 'Main Dashboard',
+    name: 'Dashboard',
     to: '/dashboard',
-    icon: 'fas fa-th-large',
+    icon: 'fas fa-home',
     exact: true
   },
   {
-    name: 'Projects',
+    name: 'Oasis Projects',
     to: '/products/oasis/builder/projects',
     icon: 'fas fa-folder',
+    exact: true
+  },
+  {
+    name: 'Create Project',
+    to: '/products/oasis/builder/dashboard',
+    icon: 'fas fa-plus-circle',
+    exact: true
+  },
+  {
+    name: 'Buy AI Credits',
+    to: '/payments/checkout',
+    icon: 'fas fa-money-bill-wave',
     exact: true
   }
 ];
@@ -222,6 +278,38 @@ async function confirmDelete(project) {
     showNotification({
       type: 'error',
       message: err.response?.data?.error || 'Failed to delete project'
+    });
+  }
+}
+
+function startEditDescription(project) {
+  editingDescription.value = project.id;
+  editedDescription.value = project.description || '';
+}
+
+function cancelEditDescription() {
+  editingDescription.value = null;
+  editedDescription.value = '';
+}
+
+async function saveDescription(project) {
+  try {
+    // Call API to update the project description
+    await projectStore.updateProject(project.id, {
+      description: editedDescription.value.trim()
+    });
+    
+    showNotification({
+      type: 'success',
+      message: 'Project description updated'
+    });
+    
+    // Reset edit state
+    cancelEditDescription();
+  } catch (err) {
+    showNotification({
+      type: 'error',
+      message: err.response?.data?.error || 'Failed to update project description'
     });
   }
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
+  <div class="group relative transform transition-all duration-300" :class="{ 'hover:-translate-y-2': !isNew }">
     <!-- Card content with styling matching home components -->
     <div class="relative h-full rounded-2xl border border-gray-800/60 bg-dark-900/40 backdrop-blur-sm transition-all duration-500 hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)] overflow-hidden">
       <!-- Background gradient -->
@@ -47,6 +47,20 @@
               >
             </div>
             
+            <!-- Project Description Input -->
+            <div class="relative group/input w-full">
+              <label class="block text-sm font-medium text-gray-300 mb-2 ml-1">Project Description <span class="text-gray-500">(optional)</span></label>
+              <div class="absolute inset-0 mt-7 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+              <textarea
+                :value="description"
+                @input="(e) => $emit('update:description', (e.target as HTMLTextAreaElement).value)"
+                placeholder="Brief description of your project..."
+                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 min-h-[80px] resize-y"
+                :disabled="isLoading"
+                rows="3"
+              ></textarea>
+            </div>
+            
             <!-- Create Button -->
             <div class="pt-2">
               <button
@@ -92,6 +106,10 @@
                       v{{ project.version || '1.0' }}
                     </span>
                   </div>
+                  <!-- Add project description with line clamping -->
+                  <p v-if="project.description" class="text-gray-400 text-sm mt-2 line-clamp-2">
+                    {{ project.description }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -129,6 +147,7 @@ import type { Project } from '../../../types/components'
 const props = defineProps<{
   project?: Project;
   modelValue?: string;
+  description?: string;
   isLoading?: boolean;
   isNew?: boolean;
 }>();
@@ -136,6 +155,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'delete', project: Project): void;
   (e: 'update:modelValue', value: string): void;
+  (e: 'update:description', value: string): void;
   (e: 'submit'): void;
 }>();
 

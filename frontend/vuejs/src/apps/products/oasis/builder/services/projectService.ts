@@ -428,38 +428,87 @@ export const ProjectService = {
   },
 
   /**
-   * Update a project's details
+   * Update an existing project
    * Used by dashboard for project editing (not file content)
    */
   async updateProject(projectId: string, data: Partial<Project>): Promise<Project> {
     console.debug('Project API - updating project:', { projectId, data })
     
+    // Ensure projectId is a string
+    const projectIdStr = String(projectId);
+    
     try {
-      const response = await api.patch(
-        `${API_PATHS.BUILDER}/projects/${projectId}/`,
-        data
-      )
+      // Try multiple API paths to find the correct endpoint
+      const apiPaths = [
+        `api/v1/project-manager/projects/${projectIdStr}/update/`,
+        `api/v1/project-manager/projects/${projectIdStr}/`,
+        `${API_PATHS.PROJECT_MANAGER}/projects/${projectIdStr}/`,
+        `${API_PATHS.BUILDER}/projects/${projectIdStr}/`
+      ];
       
-      console.debug('Project API - updateProject response:', {
-        status: response.status,
-        data: response.data
-      })
+      let lastError: any = null;
       
-      return response.data
-    } catch (error: any) {
-      console.error('Project API - updateProject error:', error)
-      
-      if (error.response?.status === 404) {
-        throw new Error('Project not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to update a project')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to update this project')
-      } else if (error.response?.data?.detail) {
-        throw new Error(error.response.data.detail)
+      for (const path of apiPaths) {
+        try {
+          const cleanPath = buildApiUrl(path);
+          console.debug(`Making API request to update project at path: ${cleanPath}`)
+          
+          const response = await api.patch(cleanPath, data);
+          
+          console.debug('Project API - updateProject response:', {
+            status: response.status,
+            data: response.data
+          });
+          
+          return response.data;
+        } catch (error: any) {
+          lastError = error;
+          console.warn(`API request failed for update project path ${path}:`, {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            message: error.message
+          });
+          
+          // If it's a 401/403 error, no need to try other paths
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            if (error.response?.status === 401) {
+              throw new Error('You must be logged in to update this project');
+            } else {
+              throw new Error('You do not have permission to update this project');
+            }
+          }
+        }
       }
       
-      throw error
+      // If we've tried all paths and none worked, throw the last error
+      if (lastError) {
+        console.error('Project API - updateProject error:', lastError);
+        
+        if (lastError.response?.status === 404) {
+          throw new Error('Project not found');
+        } else if (lastError.response?.data?.detail) {
+          throw new Error(lastError.response.data.detail);
+        }
+        
+        throw lastError;
+      }
+      
+      throw new Error('Failed to update project data');
+    } catch (error: any) {
+      console.error('Project API - updateProject error:', error);
+      
+      if (error.response?.status === 404) {
+        throw new Error('Project not found');
+      } else if (error.response?.status === 401) {
+        throw new Error('You must be logged in to update a project');
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to update this project');
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      }
+      
+      throw error;
     }
   },
 

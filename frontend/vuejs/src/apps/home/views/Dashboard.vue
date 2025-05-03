@@ -148,6 +148,7 @@
                             </div>
                             <div>
                               <h3 class="text-white font-medium group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
+                              <p class="text-gray-400 text-sm line-clamp-1 mt-0.5">{{ project.description || 'No description provided' }}</p>
                               <p class="text-gray-400 text-sm">Last updated {{ formatDate(project.updated_at) }}</p>
                             </div>
                           </div>
@@ -413,8 +414,9 @@ const statsData = computed(() => [
 // Navigation configuration
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
-  { name: 'Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder' },
-  { name: 'Balance', to: '/payments', icon: 'fas fa-money-bill-wave' }
+  { name: 'Oasis Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder' },
+  { name: 'Create Project', to: '/products/oasis/builder/dashboard', icon: 'fas fa-plus-circle' },
+  { name: 'Buy AI Credits', to: '/payments/checkout', icon: 'fas fa-money-bill-wave' }
 ]
 
 // Quick actions configuration

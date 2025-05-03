@@ -180,7 +180,8 @@ const filteredProjects = computed(() => {
   
   return [...props.projects]
     .filter(project => 
-      project.name.toLowerCase().startsWith(query)
+      project.name.toLowerCase().includes(query) || 
+      (project.description && project.description.toLowerCase().includes(query))
     )
     .sort((a, b) => {
       // Handle cases where updated_at might be undefined

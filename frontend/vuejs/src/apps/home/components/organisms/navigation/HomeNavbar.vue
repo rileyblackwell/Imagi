@@ -38,7 +38,7 @@
           icon="fas fa-coins"
           gradient-type="amber"
         >
-          Buy Credits
+          Buy AI Credits
         </HomeNavbarButton>
 
         <!-- Auth Buttons -->

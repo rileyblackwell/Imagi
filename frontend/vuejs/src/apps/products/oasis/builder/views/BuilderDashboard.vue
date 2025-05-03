@@ -83,6 +83,7 @@
               <div class="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-8">
                 <ProjectCard
                   v-model="newProjectName"
+                  v-model:description="newProjectDescription"
                   :is-loading="isCreating"
                   :is-new="true"
                   @submit="createProject"
@@ -141,6 +142,7 @@ const { confirm } = useConfirm()
 
 // State with types - remove searchQuery since it's handled in ProjectList
 const newProjectName = ref('')
+const newProjectDescription = ref('') // New ref for project description
 const isCreating = ref(false)
 const isInitializing = ref(true) // Added to track initialization state
 
@@ -158,15 +160,27 @@ const showAuthError = computed(() => !authStore.isAuthenticated && !isLoading.va
 // Navigation items
 const navigationItems = [
   { 
-    name: 'Main Dashboard',
+    name: 'Dashboard',
     to: '/dashboard',
-    icon: 'fas fa-th-large',
+    icon: 'fas fa-home',
     exact: true
   },
   {
-    name: 'Projects',
+    name: 'Oasis Projects',
     to: '/products/oasis/builder/projects',
     icon: 'fas fa-folder',
+    exact: true
+  },
+  {
+    name: 'Create Project',
+    to: '/products/oasis/builder/dashboard',
+    icon: 'fas fa-plus-circle',
+    exact: true
+  },
+  {
+    name: 'Buy AI Credits',
+    to: '/payments/checkout',
+    icon: 'fas fa-money-bill-wave',
     exact: true
   }
 ];
@@ -198,13 +212,14 @@ async function createProject() {
     // Create a properly formatted project data object with name and description
     const projectData = {
       name: newProjectName.value.trim(),
-      description: '' // Default empty description
+      description: newProjectDescription.value.trim() // Use the description value
     }
     
     const newProject = await projectStore.createProject(projectData)
     
-    // Clear the project name field after successful creation
+    // Clear the project name and description fields after successful creation
     newProjectName.value = ''
+    newProjectDescription.value = ''
     
     // Log project information to debug any ID issues
     console.debug('Created project details:', {
