@@ -58,11 +58,16 @@ class TemplateAgentService(BaseAgentService):
                 "\n- Employ responsive, mobile-first layouts (flexbox/grid); include viewport meta tag."
                 "\n- Maintain consistent 2-space indentation."
                 "\n- Embed Django template tags within JavaScript inside {% block extra_js %}."
+                
+                "\n\n!important!"
+                "\n- Do not include any hyperlinks or references to other web pages."
+                "\n- Do not include images or any references to image files."
+
                 "\n\nNaming conventions:"
                 "\n- Use 'index.html' for the homepage (accessible at '/')."
                 "\n- Name other templates logically (e.g., 'about.html' for '/about/')."
                 "\n- Views and URL patterns are auto-generated based on template names."
-                
+
                 "\n\nExample template:"
                 "\n{% extends 'base.html' %}"
                 "\n{% load static %}"
