@@ -1,11 +1,12 @@
 # Imagi Oasis
 
-Imagi Oasis is an **AI-powered web application generator** that enables users to build full-stack web applications using natural language.
+Imagi Oasis is an **AI-powered web application generator** that enables users to build full-stack Django web applications using natural language.
 
 ## 🚀 Company Overview
-- **Product**: Imagi Oasis - AI-powered web application generator
-- **Mission**: Enable users to build full-stack web applications using natural language
-- **Target Users**: Developers and technical users requiring rapid application development
+- **Product**: Imagi Oasis - AI-powered Django web application generator
+- **Mission**: Enable users to build full-stack web applications using natural language - no coding required
+- **Target Users**: Entrepreneurs, creators, and developers requiring rapid application development
+- **Value Proposition**: Create beautiful web apps in minutes for just a few dollars - not thousands
 
 ---
 
@@ -44,8 +45,9 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 - **apps/**
   - **auth/**: Authentication and user management
   - **home/**: Landing pages and marketing
+  - **builder/**: AI-powered application generation
   - **payments/**: Stripe integration and subscription management
-  - **products/**: Product listings and details
+  - **project_manager/**: Project lifecycle handling
 
 - **shared/**: Reusable components and utilities
   - **components/**: Following Atomic Design principles
@@ -62,10 +64,12 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 
 ### **Backend Apps (Django)**
 - **apps/**
-  - **Auth/**: Authentication and user management
-  - **Home/**: Content for landing pages
-  - **Payments/**: Stripe integration and subscription handling
-  - **Products/**: Product information and management
+  - **auth/**: Custom authentication and authorization
+  - **builder/**: Core AI generation logic and prompts
+  - **home/**: Landing pages and static content
+  - **payments/**: Stripe integration for API credits
+  - **agents/**: AI workflow management
+  - **project_manager/**: Project lifecycle handling
 - **api/**: REST API endpoints
   - **v1/**: API version 1 endpoints
 
@@ -89,26 +93,16 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 
 ---
 
-## 🎨 Imagi Design Principles
+## 🎨 Key Features
 
-### **User Interface**
-- Clean, minimalist, modern UI using HeadlessUI and HeroIcons
-- Responsive layouts using Tailwind utility classes
-- Accessible components (**WCAG 2.1** compliance)
-- Dark/light mode support
-- Rich animations with GSAP
-
-### **Code Style**
-- **Frontend**: ESLint, Prettier with standardized configuration
-- **Backend**: Uses Django's standard code style
-- Type safety with TypeScript for frontend
-- Security measures including DOMPurify for sanitizing
-
-### **Architecture**
-- **RESTful API** design
-- **Modular Components** (Atomic Design Pattern)
-- **State Management** with Pinia
-- **AI Integration** with OpenAI and Anthropic
+- **No Coding Required**: Build web applications by describing what you want in plain English
+- **AI-Powered Development**: Choose from various AI models to chat about or build your project
+- **Build in Minutes, Not Months**: Create web apps that would take professional developers months
+- **Pay Only for What You Use**: Buy AI credits and pay per request - just a few dollars instead of thousands
+- **Simple Chat Interface**: Edit files through natural conversation with AI
+- **Full-Stack Development**: Generate both frontend and backend code, complete with database structures
+- **Iterative Refinement**: Continuously refine your application through conversation with our AI
+- **Best Practices Built-in**: Industry standards for security, performance, and maintainability
 
 ---
 
@@ -171,33 +165,20 @@ Ensure the following are installed:
 
 ---
 
-## 🧪 Testing
-
-### **Frontend Tests**
-```sh
-cd frontend/vuejs
-npm run type-check   # Run TypeScript type checking
-npm run lint         # Run ESLint checks
-```
-
-### **Backend Tests**
-Testing infrastructure is ready for implementation with Django's testing framework.
-
----
-
 ## 🔄 Deployment
 
 ### **Local Development**
-- Backend: Django with SQLite
-- Frontend: Vite development server (localhost:5174)
+- Backend: Django with SQLite, managed using Pipenv, running via Django's development server
+- Frontend: Vue.js with Vite development server (localhost:5174)
 - API: Django development server (localhost:8000)
 
 ### **Production Deployment**
 - **Containerization**: Docker configuration available for both frontend and backend
-- **Frontend**: Built with Vite and served as static files
-- **Backend**: Django served via Gunicorn
-- **Static Files**: Served via WhiteNoise
-- **Database**: PostgreSQL (configured for production)
+- **Frontend**: Built with Vite and served as static files using Nginx
+- **Backend**: Django served via Gunicorn (potential for Uvicorn if adopting async capabilities)
+- **Database**: PostgreSQL
+- **Hosting Provider**: Railway.com
+- **Architecture**: Separate Docker images for frontend and backend, separate Railway services communicating over Railway's private network
 
 ---
 

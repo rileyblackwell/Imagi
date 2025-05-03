@@ -20,8 +20,10 @@
         <div class="flex-1 text-center lg:text-left pt-6 sm:pt-0">
           <!-- Enhanced badge with glass morphism styling -->
           <div class="mb-4 sm:mb-6 inline-block animate-fade-in-up">
-            <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full">
-              <span class="text-primary-400 font-semibold text-sm tracking-wider">AI-POWERED WEB DEVELOPMENT</span>
+            <div class="inline-block p-[1px] rounded-full bg-gradient-to-r from-violet-500/70 to-purple-500/70 purple-glow-border">
+              <div class="inline-block px-4 py-1.5 bg-dark-900/95 backdrop-blur-xl rounded-full">
+                <span class="text-primary-400 font-semibold text-sm tracking-wider">AI-POWERED WEB DEVELOPMENT</span>
+              </div>
             </div>
           </div>
 
@@ -29,9 +31,9 @@
           <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-8 animate-fade-in-up animation-delay-150">
             <span class="text-white block mb-2">{{ titleLine1 }}</span>
             <span class="text-white block mb-2">{{ titleLine2 }}</span>
-            <GradientText variant="primary" class="font-bold block text-3xl sm:text-4xl md:text-5xl lg:text-7xl tracking-tighter mt-2 mb-8 py-1 text-shadow-sm">
+            <span class="text-primary-400 font-bold block text-3xl sm:text-4xl md:text-5xl lg:text-7xl tracking-tighter mt-2 mb-8 py-1 text-shadow-sm">
               {{ highlightedTitle }}
-            </GradientText>
+            </span>
           </h1>
 
           <!-- Enhanced description with animation -->
@@ -241,5 +243,16 @@ export default defineComponent({
 
 .text-shadow-sm {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Remove animation for the highlighted title */
+.no-animation {
+  animation: none !important;
+  background-size: 100% auto !important;
+}
+
+/* Purple border glow style */
+.purple-glow-border {
+  box-shadow: 0 0 10px -3px rgba(139, 92, 246, 0.5);
 }
 </style> 

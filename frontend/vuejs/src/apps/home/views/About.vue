@@ -127,7 +127,7 @@
                 <!-- Card header with gradient -->
                 <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-blue-500"></div>
                 <div class="p-7">
-                  <p class="text-lg text-gray-300 mb-10">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional web applications, making the development process more intuitive and efficient than ever before.</p>
+                  <p class="text-lg text-gray-300 mb-10">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional Django web applications, making the development process more intuitive and efficient than ever before.</p>
                   
                   <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
@@ -171,6 +171,15 @@
                       <div class="flex-1">
                         <strong class="text-white block mb-2">Best Practices Built-in</strong>
                         <span class="text-gray-300">Every generated application follows industry standards for security, performance, and maintainability.</span>
+                      </div>
+                    </div>
+                    <div class="flex items-start gap-6">
+                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center mt-1 flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
+                        <i class="fas fa-coins text-sm text-primary-400"></i>
+                      </div>
+                      <div class="flex-1">
+                        <strong class="text-white block mb-2">Affordable Pricing</strong>
+                        <span class="text-gray-300">Pay only for what you use with our credit-based system. Build complete web apps for just a few dollars instead of thousands.</span>
                       </div>
                     </div>
                   </div>
@@ -253,7 +262,7 @@
                           </div>
                           Modern Architecture
                         </h4>
-                        <p class="text-gray-300">A robust, scalable infrastructure built on cutting-edge technologies to ensure reliability, security, and performance.</p>
+                        <p class="text-gray-300">A robust, scalable infrastructure built on Django and Vue.js to ensure reliability, security, and performance for your web applications.</p>
                       </div>
                     </div>
                   </div>
@@ -285,8 +294,7 @@
                   </h2>
 
                   <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
-                    Join thousands of developers building amazing applications
-                    <span class="font-semibold text-primary-200">10x faster</span> with AI.
+                    Create beautiful web apps in minutes for just a few dollars - not thousands. No coding required.
                   </p>
 
                   <!-- Action Buttons -->
@@ -338,7 +346,7 @@ export default defineComponent({
     const visionItems = [
       {
         title: 'Future of Development',
-        description: 'We envision a world where the barrier between idea and implementation disappears, where creating sophisticated web applications is as natural as having a conversation.',
+        description: 'We envision a world where the barrier between idea and implementation disappears, where creating sophisticated Django web applications is as natural as having a conversation.',
         icon: 'fas fa-rocket'
       },
       {
