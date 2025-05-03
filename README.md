@@ -12,48 +12,62 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Framework**: Vue.js 3 with Composition API
-- **State Management**: Pinia
-- **HTTP Client**: Axios
-- **UI/Styling**: TailwindCSS
-- **Testing**: Jest, Cypress
-- **Build Tools**: Vite
+- **Framework**: Vue.js 3.4+ with Composition API
+- **State Management**: Pinia 2.1+
+- **HTTP Client**: Axios 1.6+
+- **UI/Styling**: TailwindCSS 3.4+
+- **UI Components**: HeadlessUI, HeroIcons
+- **Form Validation**: VeeValidate 4.15+
+- **Animations**: GSAP 3.12+
+- **Markdown Support**: Marked 15.0+
+- **Security**: DOMPurify
+- **Build Tools**: Vite 6.2+, TypeScript 5.3+
+- **Testing**: (Configured for future implementation)
 
 ### Backend
 - **Framework**: Django 4.x
 - **API**: Django REST Framework
+- **Authentication**: Django-AllAuth
+- **CORS Support**: Django-CORS-Headers
+- **AI Integration**: OpenAI, Anthropic
+- **Payments**: Stripe
 - **Database**: PostgreSQL (Production), SQLite (Development)
-- **Testing**: pytest
-- **Authentication**: Django built-in + DRF auth
-- **API Version**: `/api/v1/`
+- **Deployment**: Gunicorn, Whitenoise
+- **Security**: Environment variables management via python-dotenv
+- **Containerization**: Docker
 
 ---
 
 ## 📁 Project Structure
 
 ### **Frontend Apps (Vue.js)**
-Each app module is self-contained with:
-- Components (following Atomic Design principles)
-- Routes
-- Store
-- Services
-- Types
-- Tests
+- **apps/**
+  - **auth/**: Authentication and user management
+  - **home/**: Landing pages and marketing
+  - **payments/**: Stripe integration and subscription management
+  - **products/**: Product listings and details
 
-The Atomic Design structure includes:
-1. **Atoms**: Basic building blocks (buttons, inputs, icons, text)
-2. **Molecules**: Simple combinations of atoms (form fields, cards, menu items)
-3. **Organisms**: Complex combinations of molecules (forms, headers, feature grids)
-4. **Templates**: Page-level components and layouts
-5. **Pages**: Specific instances of templates with logic and routing
+- **shared/**: Reusable components and utilities
+  - **components/**: Following Atomic Design principles
+    - **atoms/**: Basic UI elements
+    - **molecules/**: Compound components
+    - **organisms/**: Complex UI sections
+    - **pages/**: Complete page templates
+  - **stores/**: Pinia state management
+  - **layouts/**: Layout components
+  - **composables/**: Vue.js composable functions
+  - **types/**: TypeScript type definitions
+  - **utils/**: Helper functions
+  - **assets/**: Static assets
 
 ### **Backend Apps (Django)**
-- **auth**: Manages authentication and authorization
-- **builder**: Contains core AI generation logic and prompt handling
-- **home**: Handles landing pages and static content
-- **payments**: Integrates Stripe for managing API credits
-- **agents**: Handles AI workflows and interactions
-- **project_manager**: Manages project lifecycle (creation, updates, deletion)
+- **apps/**
+  - **Auth/**: Authentication and user management
+  - **Home/**: Content for landing pages
+  - **Payments/**: Stripe integration and subscription handling
+  - **Products/**: Product information and management
+- **api/**: REST API endpoints
+  - **v1/**: API version 1 endpoints
 
 ---
 
@@ -62,11 +76,11 @@ The Atomic Design structure includes:
 ### **System Requirements**
 - **OS**: macOS (zsh)
 - **Package Managers**: 
-  - Frontend: npm/yarn
+  - Frontend: npm
   - Backend: pipenv
 - **Required Tools**:
   - Node.js >= 16.x
-  - Python >= 3.10
+  - Python >= 3.13
   - PostgreSQL >= 14
 - **Editor Setup**:
   - VSCode / Cursor with recommended extensions:
@@ -78,22 +92,23 @@ The Atomic Design structure includes:
 ## 🎨 Imagi Design Principles
 
 ### **User Interface**
-- Clean, minimalist, modern UI inspired by Stripe, Airbnb, Apple, Twilio
+- Clean, minimalist, modern UI using HeadlessUI and HeroIcons
 - Responsive layouts using Tailwind utility classes
 - Accessible components (**WCAG 2.1** compliance)
 - Dark/light mode support
+- Rich animations with GSAP
 
 ### **Code Style**
-- **Python**: Black formatter, 88-character line length
-- **JavaScript**: Prettier, 80-character line length
-- Clear comments and documentation
-- Type hints (**Python**) and TypeScript (**Vue.js**)
+- **Frontend**: ESLint, Prettier with standardized configuration
+- **Backend**: Uses Django's standard code style
+- Type safety with TypeScript for frontend
+- Security measures including DOMPurify for sanitizing
 
 ### **Architecture**
 - **RESTful API** design
 - **Modular Components** (Atomic Design Pattern)
-- **State Management Best Practices** (Pinia for Vue.js)
-- **AI-Powered Code Generation** (Backend AI Agents)
+- **State Management** with Pinia
+- **AI Integration** with OpenAI and Anthropic
 
 ---
 
@@ -102,7 +117,7 @@ The Atomic Design structure includes:
 ### **Prerequisites**
 Ensure the following are installed:
 - **Node.js** (>= 16.x)
-- **Python** (>= 3.10)
+- **Python** (>= 3.13)
 - **PostgreSQL** (>= 14)
 
 ### **Installation & Setup**
@@ -156,43 +171,33 @@ Ensure the following are installed:
 
 ---
 
-## 🧪 Running Tests
-
-### **Backend Tests**
-```sh
-cd backend/django
-pytest
-```
+## 🧪 Testing
 
 ### **Frontend Tests**
 ```sh
 cd frontend/vuejs
-npm run test
+npm run type-check   # Run TypeScript type checking
+npm run lint         # Run ESLint checks
 ```
 
-## 🛡️ Testing Strategy
-### Frontend (Vue.js)
-- **Unit Tests**: Jest for testing Vue components
-- **E2E Tests**: Cypress for end-to-end testing
-
-### Backend (Django)
-- **Unit Tests**: pytest for testing models, views, and APIs
-- **Integration Tests**: Ensure API endpoints work as expected
-
-**Test Coverage Targets:**
-- Authentication & Authorization: 90%+
-- API Endpoints: 80%+
-- UI Components: 75%+
+### **Backend Tests**
+Testing infrastructure is ready for implementation with Django's testing framework.
 
 ---
 
-## 🔄 Deployment Considerations
-- **Local Development**: SQLite, pipenv, Vite
-- **Staging & Production**:
-  - Database: PostgreSQL
-  - API Deployment: Django on Gunicorn/Uvicorn
-  - Frontend Deployment: Vite build, hosted on CDN
-  - Future Enhancements: Docker & Kubernetes for scaling
+## 🔄 Deployment
+
+### **Local Development**
+- Backend: Django with SQLite
+- Frontend: Vite development server (localhost:5174)
+- API: Django development server (localhost:8000)
+
+### **Production Deployment**
+- **Containerization**: Docker configuration available for both frontend and backend
+- **Frontend**: Built with Vite and served as static files
+- **Backend**: Django served via Gunicorn
+- **Static Files**: Served via WhiteNoise
+- **Database**: PostgreSQL (configured for production)
 
 ---
 
@@ -207,5 +212,4 @@ For updates and community discussions:
 
 - Website: imagi-oasis.com
 - GitHub: github.com/yourusername/imagi-oasis
-- Discord: Join Our Community
 
