@@ -1,13 +1,13 @@
 <!-- Hero Section Component -->
 <template>
-  <section class="relative min-h-[80vh] sm:min-h-[85vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden py-12 sm:py-16 md:py-24 mt-20 sm:mt-16 md:mt-0">
+  <section class="relative min-h-[80vh] sm:min-h-[85vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden py-12 sm:py-16 md:py-24 pb-28 sm:pb-32 md:pb-40 mt-20 sm:mt-16 md:mt-0">
     <!-- Enhanced Background Effects -->
     <div class="absolute inset-0">
       <!-- Base gradient background -->
       <div class="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-900 to-dark-950"></div>
       
       <!-- Animated glow effects -->
-      <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] max-w-[900px] h-[500px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-70 animate-pulse-slower"></div>
+      <div class="absolute top-40 left-1/2 -translate-x-1/2 w-[90%] max-w-[900px] h-[500px] bg-gradient-to-r from-primary-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-70 animate-pulse-slower"></div>
       
       <!-- Subtle grid pattern -->
       <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
@@ -29,7 +29,7 @@
           <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-8 animate-fade-in-up animation-delay-150">
             <span class="text-white block mb-2">{{ titleLine1 }}</span>
             <span class="text-white block mb-2">{{ titleLine2 }}</span>
-            <GradientText variant="primary" class="font-bold block text-3xl sm:text-4xl md:text-5xl lg:text-7xl tracking-tighter mt-2">
+            <GradientText variant="primary" class="font-bold block text-3xl sm:text-4xl md:text-5xl lg:text-7xl tracking-tighter mt-2 mb-8 py-1 text-shadow-sm">
               {{ highlightedTitle }}
             </GradientText>
           </h1>
@@ -114,11 +114,11 @@ export default defineComponent({
     },
     highlightedTitle: {
       type: String,
-      default: 'Web Applications'
+      default: 'Django Web Apps'
     },
     description: {
       type: String,
-      default: 'Create professional web applications using natural language. Describe your vision, and watch as AI brings it to life.'
+      default: 'Create beautiful web apps in minutes for just a few dollars - not thousands. Describe what you want in plain English, and our AI builds your web app with no coding required.'
     },
     primaryButtonText: {
       type: String,
@@ -237,5 +237,9 @@ export default defineComponent({
 /* Shadow effects */
 .shadow-glow-sm {
   box-shadow: 0 0 12px 2px rgba(59, 130, 246, 0.15);
+}
+
+.text-shadow-sm {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 </style> 

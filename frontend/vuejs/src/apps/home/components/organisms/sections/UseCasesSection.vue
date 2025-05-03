@@ -115,57 +115,57 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'What Can You Build?'
+      default: 'What Can You Build Today?'
     },
     subtitle: {
       type: String,
-      default: 'Our platform adapts to a wide range of web development needs, from simple landing pages to complex applications.'
+      default: 'Currently, Imagi supports basic web apps with HTML, CSS, and JavaScript. Here are some types of apps you can build right now for just a few dollars.'
     },
     useCases: {
       type: Array,
       default: () => [
         {
-          title: 'Web Applications',
-          description: 'Build full-stack web applications with frontend, backend, and database components.',
-          icon: 'fas fa-window-maximize',
+          title: 'Personal Resume',
+          description: 'Create a professional online resume web app to showcase your skills, experience, and achievements to potential employers.',
+          icon: 'fas fa-id-card',
           color: 'primary',
           features: [
-            'User authentication',
-            'API integration',
-            'Database models'
+            'Professional layout',
+            'Skills and experience sections',
+            'Contact information'
           ]
         },
         {
-          title: 'E-commerce Sites',
-          description: 'Create online stores with product catalogs, carts, and payment processing.',
-          icon: 'fas fa-shopping-cart',
+          title: 'Business Info Web App',
+          description: 'Build a simple web app for your business with information about your services, team members, and how to contact you.',
+          icon: 'fas fa-building',
           color: 'violet',
           features: [
-            'Product management',
-            'Shopping cart',
-            'Payment integration'
+            'Service descriptions',
+            'Company information',
+            'Contact details'
           ]
         },
         {
-          title: 'Admin Dashboards',
-          description: 'Develop powerful admin interfaces with data visualization and management tools.',
-          icon: 'fas fa-chart-line',
+          title: 'Personal Bio',
+          description: 'Create a personal web app to share your story, interests, and accomplishments with friends, family, or the world.',
+          icon: 'fas fa-user',
           color: 'blue',
           features: [
-            'Data analytics',
-            'User management',
-            'Interactive charts'
+            'About me section',
+            'Photo gallery',
+            'Personal achievements'
           ]
         },
         {
-          title: 'Content Platforms',
-          description: 'Build content management systems, blogs, and media-rich platforms.',
+          title: 'Content Display',
+          description: 'Build a web app to display any type of content - like a digital portfolio, hobby showcase, or informational resource.',
           icon: 'fas fa-newspaper',
           color: 'purple',
           features: [
-            'Rich text editing',
-            'Media management',
-            'Comment systems'
+            'Custom content sections',
+            'Image galleries',
+            'Information displays'
           ]
         }
       ]

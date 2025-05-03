@@ -109,6 +109,11 @@
                   <div class="text-sm text-gray-400">{{ metric.label }}</div>
                 </div>
               </div>
+              
+              <!-- Detail text -->
+              <div class="mt-3 pt-3 border-t border-dark-700/30 text-xs text-gray-400 leading-relaxed">
+                {{ metric.detail }}
+              </div>
             </div>
           </div>
         </div>
@@ -131,45 +136,41 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Our Impact By The Numbers'
+      default: 'Build Web Apps Without Code'
     },
     subtitle: {
       type: String,
-      default: 'See how our AI-powered platform is transforming the web development landscape through measurable results.'
+      default: 'Create web apps in minutes for dollars instead of paying thousands for a developer to build it over months.'
     },
     stats: {
       type: Array,
       default: () => [
         {
-          icon: 'fas fa-users',
-          value: '50K+',
+          icon: 'fas fa-dollar-sign',
+          value: '$5-10',
           unit: '',
-          label: 'Active Users',
-          growth: 28,
+          label: 'Average Web App Cost',
           color: 'primary'
         },
         {
-          icon: 'fas fa-code',
-          value: '5M+',
-          unit: '',
-          label: 'Lines of Code Generated',
-          growth: 42,
+          icon: 'fas fa-clock',
+          value: '30',
+          unit: 'min',
+          label: 'Avg. Build Time',
           color: 'violet'
         },
         {
-          icon: 'fas fa-laptop-code',
-          value: '100K+',
+          icon: 'fas fa-credit-card',
+          value: 'Pay',
           unit: '',
-          label: 'Apps Built',
-          growth: 35,
+          label: 'Per AI Request',
           color: 'blue'
         },
         {
-          icon: 'fas fa-clock',
-          value: '1.5M+',
+          icon: 'fas fa-code',
+          value: '0',
           unit: '',
-          label: 'Hours Saved',
-          growth: 57,
+          label: 'Coding Skills Needed',
           color: 'purple'
         }
       ]
@@ -178,21 +179,24 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          icon: 'fas fa-bolt',
-          value: '10x Faster',
-          label: 'Development Speed',
+          icon: 'fas fa-file-code',
+          value: 'HTML, CSS & JS',
+          label: 'Current Support',
+          detail: 'Build simple Django web apps with static frontend',
           color: 'primary'
         },
         {
-          icon: 'fas fa-calendar',
-          value: '99.9%',
-          label: 'Uptime Reliability',
+          icon: 'fas fa-globe',
+          value: 'Coming Soon',
+          label: 'Web Deployment',
+          detail: 'Deploy user Imagi Django web apps to the internet',
           color: 'violet'
         },
         {
-          icon: 'fas fa-globe',
-          value: '150+',
-          label: 'Countries Served',
+          icon: 'fas fa-tools',
+          value: 'In Development',
+          label: 'Database, Auth & Payments',
+          detail: 'User auth for Imagi projects, database support, and payments',
           color: 'blue'
         }
       ]

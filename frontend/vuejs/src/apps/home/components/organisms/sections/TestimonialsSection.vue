@@ -110,33 +110,33 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'What Our Users Say'
+      default: 'Why People Love Imagi'
     },
     subtitle: {
       type: String,
-      default: 'See how developers are transforming their workflow with our AI-powered platform'
+      default: 'See how non-technical users are creating web apps in minutes for a fraction of what professional developers charge'
     },
     testimonials: {
       type: Array,
       default: () => [
         {
           author: 'Sarah Johnson',
-          position: 'Frontend Developer',
-          text: 'I was skeptical at first, but this platform has completely changed how I approach web development. What used to take me days now takes hours.',
+          position: 'Small Business Owner',
+          text: 'I was quoted $4,500 by a web developer to build my business web app. With Imagi, I built it myself for under $10 in just one afternoon - no coding needed!',
           rating: 5,
           color: 'primary'
         },
         {
           author: 'Michael Chen',
-          position: 'Full-Stack Engineer',
-          text: 'The code quality is what impressed me the most. Clean, well-structured, and following best practices. It feels like code written by a senior developer, not an AI.',
+          position: 'Marketing Consultant',
+          text: 'I love how you only pay for the AI requests you make. I created my entire professional web app for $8 in AI credits. The different AI models are great for different tasks.',
           rating: 5,
           color: 'violet'
         },
         {
           author: 'Emily Rodriguez',
-          position: 'Tech Lead',
-          text: 'We\'ve integrated this into our team\'s workflow and it\'s been a game-changer for productivity. Our sprint velocity has increased by at least 40%.',
+          position: 'Content Creator',
+          text: 'Being able to chat with the AI to build my web app was amazing! I just described what I wanted, and it created the HTML and CSS for me. Saved me thousands of dollars!',
           rating: 5,
           color: 'blue'
         }

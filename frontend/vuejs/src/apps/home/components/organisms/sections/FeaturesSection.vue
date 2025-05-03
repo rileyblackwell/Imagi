@@ -77,49 +77,49 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Supercharge Your Web Development'
+      default: 'Web Apps for Everyone'
     },
     subtitle: {
       type: String,
-      default: 'Our platform combines AI-powered code generation with intuitive tools to streamline the development process.'
+      default: 'Build web apps in minutes that would take professional developers months to create - all through simple conversation with AI.'
     },
     features: {
       type: Array,
       default: () => [
         {
-          title: 'AI-Powered Code Generation',
-          description: 'Generate clean, production-ready code from natural language descriptions with our advanced AI models.',
+          title: 'No Coding Required',
+          description: 'Build web applications by describing what you want in plain English - no programming experience needed.',
           icon: 'fas fa-robot',
           color: 'primary'
         },
         {
-          title: 'Responsive Design',
-          description: 'Create applications that look great on any device with automatic responsive layouts and components.',
-          icon: 'fas fa-mobile-alt',
+          title: 'AI-Powered Development',
+          description: 'Choose from various AI models to chat about or build your project. The AI does all the technical work for you.',
+          icon: 'fas fa-microchip',
           color: 'purple'
         },
         {
-          title: 'Database Integration',
-          description: 'Connect to your database of choice with seamless integration and automatic schema generation.',
-          icon: 'fas fa-database',
+          title: 'Build in Minutes, Not Months',
+          description: 'Create web apps in just minutes that would take professional developers months and cost thousands of dollars.',
+          icon: 'fas fa-bolt',
           color: 'blue'
         },
         {
-          title: 'API Development',
-          description: 'Build robust APIs quickly with automatic endpoint generation and documentation.',
-          icon: 'fas fa-code',
+          title: 'Pay Only for What You Use',
+          description: 'Buy AI credits and pay per request. Build a complete web app for just a few dollars instead of thousands.',
+          icon: 'fas fa-coins',
           color: 'teal'
         },
         {
-          title: 'Collaboration Tools',
-          description: 'Work together smoothly with real-time collaboration features and version control integration.',
-          icon: 'fas fa-users',
+          title: 'Simple Chat Interface',
+          description: 'Edit files through natural conversation - just tell the AI what you want, and it makes the changes instantly.',
+          icon: 'fas fa-comments',
           color: 'indigo'
         },
         {
-          title: 'Deployment Ready',
-          description: 'Deploy your applications to your favorite cloud provider with one-click deployment options.',
-          icon: 'fas fa-cloud-upload-alt',
+          title: 'Advanced Features Coming Soon',
+          description: 'Database support, user authentication, payments, and web deployment are all on our upcoming roadmap.',
+          icon: 'fas fa-rocket',
           color: 'violet'
         }
       ]

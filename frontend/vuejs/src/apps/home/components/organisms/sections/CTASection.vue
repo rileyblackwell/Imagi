@@ -116,23 +116,23 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Ready to Transform Your'
+      default: 'Build for Dollars, Not'
     },
     highlightedText: {
       type: String,
-      default: 'Development Process?'
+      default: 'Thousands'
     },
     description: {
       type: String,
-      default: 'Join thousands of developers building amazing applications'
+      default: 'Create your web app in minutes instead of waiting months. With Imagi, you\'ll build your app for '
     },
     highlightedStat: {
       type: String,
-      default: '10x faster'
+      default: 'a fraction of the cost'
     },
     descriptionSuffix: {
       type: String,
-      default: 'with AI.'
+      default: ' of hiring a professional developer.'
     },
     primaryButtonText: {
       type: String,
@@ -140,19 +140,19 @@ export default defineComponent({
     },
     secondaryButtonText: {
       type: String,
-      default: 'Contact Sales'
+      default: 'Buy AI Credits'
     },
     secondaryButtonTo: {
       type: String,
-      default: '/contact'
+      default: '/payments/checkout'
     },
     testimonialQuote: {
       type: String,
-      default: 'This tool completely revolutionized how I build applications.'
+      default: 'I got a web app that would have cost me $3,000 and taken weeks for just $10 in AI credits and 30 minutes of my time!'
     },
     testimonialAuthor: {
       type: String,
-      default: 'Full-Stack Developer'
+      default: 'Early Access Developer'
     }
   },
   setup() {

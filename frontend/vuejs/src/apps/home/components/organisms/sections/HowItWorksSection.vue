@@ -151,53 +151,53 @@ export default defineComponent({
     },
     subtitle: {
       type: String,
-      default: 'From concept to code, our platform transforms ideas into fully functional web applications through an intuitive, AI-powered workflow.'
+      default: 'From idea to web app, our platform makes web development accessible to everyone - no coding skills required.'
     },
     steps: {
       type: Array,
       default: () => [
         {
-          title: 'Describe Your Vision',
-          description: 'Start by describing what you want to build using natural language. Be as detailed or as high-level as you like.',
+          title: 'Describe Your Idea',
+          description: 'Tell us what kind of web app you want to create. We currently support basic HTML, CSS, and JavaScript apps for displaying content like personal bios or company information.',
           icon: 'fas fa-lightbulb',
           color: 'primary',
           features: [
-            'No technical jargon required',
-            'Use everyday language to explain your idea',
-            'AI understands your intent and goals'
+            'No technical terms needed',
+            'Use regular, everyday language',
+            'Explain your web app goals'
           ]
         },
         {
-          title: 'Review AI Proposals',
-          description: 'Our AI analyzes your description and generates detailed proposals with architecture, components, and features.',
-          icon: 'fas fa-list-check',
+          title: 'Select Your AI Model',
+          description: 'Choose which AI model you want to power your project. Different models have different strengths depending on your specific needs.',
+          icon: 'fas fa-robot',
           color: 'violet',
           features: [
-            'Multiple design alternatives to choose from',
-            'Detailed technical specifications',
-            'Customizable project structure'
+            'Multiple AI options',
+            'Select the file to edit',
+            'Switch between chat and build modes'
           ]
         },
         {
-          title: 'Refine and Iterate',
-          description: 'Work with the AI to refine your application. Make changes, add features, or adjust the design in real-time.',
-          icon: 'fas fa-sliders',
+          title: 'Chat and Build',
+          description: 'Use our intuitive interface to either chat about your project or directly build and edit your files using simple natural language commands.',
+          icon: 'fas fa-comments',
           color: 'purple',
           features: [
-            'Conversational interface for making changes',
-            'Real-time preview of your application',
-            'Iterative refinement process'
+            'Pay per AI request',
+            'Instant file updates',
+            'Switch between modes anytime'
           ]
         },
         {
-          title: 'Generate Your Application',
-          description: 'Once satisfied with the plan, generate your complete application with clean, production-ready code.',
-          icon: 'fas fa-code',
+          title: 'Get Your Web App',
+          description: 'Within minutes, you\'ll have a complete web app that would have cost thousands of dollars and taken months if built by a professional developer.',
+          icon: 'fas fa-globe',
           color: 'blue',
           features: [
-            'Full-stack code generation',
-            'Responsive design out of the box',
-            'Well-documented codebase'
+            'Complete in minutes, not months',
+            'Costs dollars, not thousands',
+            'Ready for future advanced features'
           ]
         }
       ]
