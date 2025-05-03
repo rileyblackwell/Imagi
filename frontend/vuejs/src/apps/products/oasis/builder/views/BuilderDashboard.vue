@@ -49,7 +49,7 @@
                 
                 <!-- Modern Title with Gradient Enhancement -->
                 <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
-                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Create & Manage</span> 
+                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Create & Manage</span> 
                   <br class="hidden sm:block" />Your Projects
                 </h2>
                 
@@ -61,15 +61,7 @@
               
               <!-- Stats Overview Cards -->
               <div class="flex flex-wrap gap-4 justify-end">
-                <div class="group bg-dark-800/60 backdrop-blur-sm rounded-xl border border-gray-800/60 p-4 hover:border-indigo-500/30 transition-all duration-300 w-36">
-                  <div class="flex items-center gap-3 mb-2">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                      <i class="fas fa-folder text-indigo-400"></i>
-                    </div>
-                    <p class="text-xs text-gray-400 uppercase">Projects</p>
-                  </div>
-                  <p class="text-2xl font-bold text-white">{{ normalizedProjects.length || 0 }}</p>
-                </div>
+                <!-- Project count moved to Project Library -->
               </div>
             </div>
             

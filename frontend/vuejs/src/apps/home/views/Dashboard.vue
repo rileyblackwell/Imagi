@@ -32,7 +32,7 @@
                 </p>
               </div>
               <button
-                @click="$router.push({ name: 'builder-new-project' })"
+                @click="$router.push({ name: 'builder-dashboard' })"
                 class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300 self-start"
               >
                 <i class="fas fa-plus mr-2.5"></i>
@@ -165,7 +165,7 @@
                         <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
                         <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
                         <button
-                          @click="$router.push({ name: 'builder-new-project' })"
+                          @click="$router.push({ name: 'builder-dashboard' })"
                           class="px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 hover:from-primary-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
                         >
                           <i class="fas fa-plus mr-2"></i>
@@ -385,7 +385,7 @@ const statsData = computed(() => [
     title: 'Total Projects', 
     value: projectStore.projects?.length || 0, 
     icon: 'fas fa-folder', 
-    trend: '+12%', 
+    trend: '', 
     color: 'primary' 
   },
   { 
@@ -394,13 +394,6 @@ const statsData = computed(() => [
     icon: 'fas fa-money-bill-wave', 
     trend: '', 
     color: 'warning' 
-  },
-  { 
-    title: 'API Calls', 
-    value: stats.value?.apiCallCount || 0, 
-    icon: 'fas fa-bolt', 
-    trend: '+25%', 
-    color: 'info' 
   }
 ])
 
