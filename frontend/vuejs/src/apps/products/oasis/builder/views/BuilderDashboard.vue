@@ -16,70 +16,98 @@
     storage-key="builderDashboardSidebarCollapsed"
     :navigation-items="navigationItems"
   >
-    <!-- Main Content with Enhanced Background -->
+    <!-- Enhanced Main Content with Dynamic Background -->
     <div class="min-h-screen bg-dark-900 relative overflow-hidden">
-      <!-- Decorative background elements matching home landing page -->
+      <!-- Improved Decorative Background Elements -->
       <div class="absolute inset-0 pointer-events-none">
-        <!-- Subtle pattern overlay -->
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/5 via-dark-900 to-violet-950/5"></div>
+        <!-- Enhanced Pattern Overlay -->
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
         
-        <!-- Glowing orbs - matching the style from home landing page -->
-        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px]"></div>
-        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px]"></div>
+        <!-- Enhanced Glowing Orbs Animation -->
+        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
         
-        <!-- Animated gradient line -->
-        <div class="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
+        <!-- Animated Lines and Particles -->
+        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
       </div>
 
-      <!-- Content Container -->
+      <!-- Enhanced Content Container -->
       <div class="relative z-10">
-        <!-- Welcome Section with styling matching the home page -->
-        <div class="pt-20 pb-16 px-6 sm:px-8 lg:px-12">
+        <!-- Modern Welcome Header Section -->
+        <div class="pt-16 pb-12 px-6 sm:px-8 lg:px-12">
           <div class="max-w-7xl mx-auto">
-            <div class="text-center space-y-8">
-              <!-- Enhanced section header to match home landing page -->
-              <div class="inline-block px-4 py-1.5 bg-indigo-500/10 rounded-full mb-3">
-                <span class="text-indigo-400 font-semibold text-sm tracking-wider">YOUR WORKSPACE</span>
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+              <div class="space-y-6 md:max-w-3xl">
+                <!-- Enhanced Badge -->
+                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
+                  <div class="w-2 h-2 rounded-full bg-indigo-400 mr-2 animate-pulse"></div>
+                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">PROJECT WORKSPACE</span>
+                </div>
+                
+                <!-- Modern Title with Gradient Enhancement -->
+                <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Create & Manage</span> 
+                  <br class="hidden sm:block" />Your Projects
+                </h2>
+                
+                <!-- Enhanced Description -->
+                <p class="text-xl text-gray-300 max-w-2xl">
+                  Leverage AI-powered tools to build web applications quickly. Start a new project or continue working on existing ones.
+                </p>
               </div>
               
-              <!-- Enhanced Title -->
-              <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">Welcome to Your Dashboard</h2>
-              
-              <!-- Enhanced Description -->
-              <p class="text-xl text-gray-300 max-w-3xl mx-auto">
-                Create and manage your web projects using AI-powered tools. Start with a new project or continue working on existing ones.
-              </p>
-              
-              <!-- Decorative element matching home sections -->
-              <div class="w-24 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mx-auto mt-8"></div>
+              <!-- Stats Overview Cards -->
+              <div class="flex flex-wrap gap-4 justify-end">
+                <div class="group bg-dark-800/60 backdrop-blur-sm rounded-xl border border-gray-800/60 p-4 hover:border-indigo-500/30 transition-all duration-300 w-36">
+                  <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                      <i class="fas fa-folder text-indigo-400"></i>
+                    </div>
+                    <p class="text-xs text-gray-400 uppercase">Projects</p>
+                  </div>
+                  <p class="text-2xl font-bold text-white">{{ normalizedProjects.length || 0 }}</p>
+                </div>
+              </div>
             </div>
+            
+            <!-- Animated Divider Line -->
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
           </div>
         </div>
 
-        <!-- Authentication Error Message -->
+        <!-- Authentication Error Message with Enhanced Styling -->
         <div v-if="showAuthError" class="px-6 sm:px-8 lg:px-12 pb-16">
           <div class="max-w-7xl mx-auto">
-            <div class="bg-dark-900/40 backdrop-blur-sm rounded-2xl border border-gray-800/60 p-10 text-center shadow-lg hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)] hover:-translate-y-2 transition-all duration-500">
-              <i class="fas fa-lock text-5xl text-indigo-400 mb-6 opacity-80"></i>
-              <h2 class="text-2xl font-semibold text-white mb-3">Authentication Required</h2>
-              <p class="text-gray-300 mb-6 max-w-md mx-auto">Please log in to view and manage your projects.</p>
-              <router-link 
-                to="/login" 
-                class="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 text-white rounded-xl transform hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-indigo-500/20"
-              >
-                <i class="fas fa-sign-in-alt mr-2.5"></i>
-                Log In
-              </router-link>
+            <div class="relative group overflow-hidden">
+              <!-- Animated Glow Effect -->
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+              
+              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-2xl border border-gray-800/60 p-10 text-center transition-all duration-500">
+                <div class="w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <i class="fas fa-lock text-4xl text-indigo-400 opacity-80"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-white mb-3">Authentication Required</h2>
+                <p class="text-gray-300 mb-8 max-w-md mx-auto">Please log in to view and manage your projects.</p>
+                <router-link 
+                  to="/login" 
+                  class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl transform hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
+                >
+                  <i class="fas fa-sign-in-alt mr-2.5"></i>
+                  Log In
+                </router-link>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Project Section with Enhanced Layout -->
+        <!-- Enhanced Project Section with Modern Layout -->
         <div v-else class="px-6 sm:px-8 lg:px-12 pb-24">
           <div class="max-w-7xl mx-auto">
-            <!-- Project Cards with Refined Grid and more spacing -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-              <!-- New Project Card with improved positioning -->
+              <!-- New Project Card with Modern Positioning -->
               <div class="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-8">
                 <ProjectCard
                   v-model="newProjectName"
@@ -90,7 +118,7 @@
                 />
               </div>
 
-              <!-- Existing Projects List with adjusted column span -->
+              <!-- Existing Projects List with Enhanced Styling -->
               <div class="lg:col-span-7 xl:col-span-8 space-y-8">
                 <ProjectList
                   :projects="normalizedProjects"
@@ -101,14 +129,14 @@
                   @refresh="refreshProjects"
                 />
                 
-                <!-- Diagnostic button only shown in dev mode -->
+                <!-- Diagnostic Button with Enhanced Styling -->
                 <div v-if="error" class="mt-6 text-center">
                   <button
                     @click="retryFetchWithDiagnostics"
-                    class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl border border-indigo-500/40 hover:border-indigo-400/50 shadow-lg hover:shadow-indigo-500/20 transform hover:-translate-y-1 transition-all duration-300"
+                    class="px-6 py-3 inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl transform hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
                   >
-                    <i class="fas fa-sync-alt mr-2"></i>
-                    Run Diagnostic Fetch
+                    <i class="fas fa-sync-alt mr-2.5"></i>
+                    Diagnose Connection Issues
                   </button>
                 </div>
               </div>
@@ -580,5 +608,37 @@ watch(
 .animate-gradient {
   background-size: 200% auto;
   animation: gradient-shift 4s ease infinite;
+}
+
+/* Add subtle animation for loading state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+/* Float animation for background orbs */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 18s ease-in-out infinite reverse;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
 }
 </style>

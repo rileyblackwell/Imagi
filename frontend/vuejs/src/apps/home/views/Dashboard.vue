@@ -389,13 +389,6 @@ const statsData = computed(() => [
     color: 'primary' 
   },
   { 
-    title: 'Active Projects', 
-    value: projectStore.projects?.filter(p => p.status === 'active').length || 0, 
-    icon: 'fas fa-hammer', 
-    trend: '+5%', 
-    color: 'success' 
-  },
-  { 
     title: 'Account Balance', 
     value: `$${typeof paymentsStore.balance === 'number' ? paymentsStore.balance.toFixed(2) : '0.00'}`, 
     icon: 'fas fa-money-bill-wave', 
