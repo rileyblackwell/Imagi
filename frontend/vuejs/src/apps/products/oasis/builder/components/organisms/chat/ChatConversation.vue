@@ -81,60 +81,16 @@
               <div class="max-w-[75%]">
                 <!-- Message container with ChatGPT-like styling -->
                 <div class="bg-dark-850 text-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-md shadow-sm">
-                  <!-- Content with better markdown rendering - Hide in build mode if code exists -->
+                  <!-- Content with better markdown rendering -->
                   <div 
                     class="prose prose-invert max-w-none prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3"
-                    v-if="message.content && message.content.trim().length > 0 && !(message.code && mode === 'build')"
+                    v-if="message.content && message.content.trim().length > 0"
                     v-html="formatMessage(message.content)"
                   />
-                  <div v-else-if="message.code && mode === 'build'" class="text-gray-400 italic">
-                    <!-- Skip showing content text in build mode when code is available -->
-                  </div>
-                  <!-- Empty response case removed entirely -->
                   
                   <!-- Timestamp -->
                   <div class="text-left mt-1">
                     <span class="text-[9px] text-gray-500">{{ formatTimestamp(message.timestamp) }}</span>
-                  </div>
-                </div>
-                
-                <!-- Code Block with improved modern styling -->
-                <div v-if="message.code" class="mt-3 border border-dark-800 rounded-lg overflow-hidden shadow-sm bg-dark-900">
-                  <!-- Code Header -->
-                  <div class="px-4 py-2 bg-dark-900 flex items-center justify-between border-b border-dark-800">
-                    <span class="text-xs font-medium text-gray-300 flex items-center">
-                      <i class="fas fa-code mr-2"></i>
-                      Generated Code
-                    </span>
-                    <div class="flex gap-2">
-                      <button 
-                        class="p-1.5 text-xs text-gray-400 hover:text-primary-400 transition-colors rounded bg-dark-800/70 hover:bg-dark-800"
-                        @click="copyToClipboard(message.code)"
-                        title="Copy to clipboard"
-                      >
-                        <i class="fas fa-copy mr-1"></i>
-                        <span>Copy</span>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <!-- Code Content with improved styling -->
-                  <pre class="p-4 bg-dark-900 overflow-x-auto text-sm language-code">
-                    <code>{{ message.code }}</code>
-                  </pre>
-                  
-                  <!-- Code Actions -->
-                  <div class="px-4 py-2.5 bg-dark-900 border-t border-dark-800 flex justify-between items-center">
-                    <button
-                      class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors shadow-sm"
-                      @click="$emit('apply-code', message.code)"
-                    >
-                      <i class="fas fa-magic mr-1.5"></i>
-                      Apply Changes
-                    </button>
-                    
-                    <!-- Additional helper text -->
-                    <span class="text-xs text-gray-500">Apply to current file</span>
                   </div>
                 </div>
               </div>
@@ -344,6 +300,9 @@ const formatMessage = (content: string) => {
   }
   
   try {
+    // Remove any code blocks from the content before rendering
+    const contentWithoutCode = content.replace(/```[\s\S]*?```/g, '');
+    
     // Configure marked options
     marked.setOptions({
       gfm: true,
@@ -351,7 +310,7 @@ const formatMessage = (content: string) => {
     });
 
     // Parse markdown with type assurance
-    const parsedContent = marked.parse(content).toString();
+    const parsedContent = marked.parse(contentWithoutCode).toString();
     
     // Sanitize the content to prevent XSS
     return DOMPurify.sanitize(parsedContent);

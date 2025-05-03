@@ -176,7 +176,24 @@ export const FileService = {
    * Update file content
    */
   async updateFileContent(projectId: string, filePath: string, content: string): Promise<ProjectFile> {
-    console.debug('File API - updating file content:', { projectId, filePath, contentLength: content.length })
+    const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+    const isCSS = fileExtension === 'css';
+    
+    // Log with appropriate level of detail
+    if (isCSS) {
+      console.info('FileService - updating CSS file content:', { 
+        projectId, 
+        filePath, 
+        contentLength: content.length,
+        contentPreview: content.substring(0, 50) + '...'
+      });
+    } else {
+      console.debug('File API - updating file content:', { 
+        projectId, 
+        filePath, 
+        contentLength: content.length 
+      });
+    }
     
     try {
       // Check if the file exists
@@ -187,14 +204,59 @@ export const FileService = {
         return this.createFile(projectId, filePath, content)
       }
       
-      const response = await api.post(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/`, {
+      // For CSS files, ensure the static/css directory exists
+      if (isCSS && filePath.includes('static/css/')) {
+        try {
+          // Try to ensure the directory exists
+          const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
+          await this.createDirectory(projectId, dirPath).catch(err => {
+            // Ignore errors if directory already exists
+            console.debug('Directory may already exist:', err);
+          });
+        } catch (dirError) {
+          console.debug('Error ensuring directory exists (may be ok):', dirError);
+        }
+      }
+      
+      // Include a timestamp in the API call for cache-busting
+      const timestamp = Date.now();
+      const api_url = `/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/?_t=${timestamp}`;
+      
+      // Log the API call for CSS files
+      if (isCSS) {
+        console.info(`Sending CSS update to endpoint: ${api_url}`);
+      }
+      
+      const response = await api.post(api_url, {
         content
-      })
+      });
+      
+      // Log success for CSS files
+      if (isCSS) {
+        console.info(`Successfully updated CSS file: ${filePath}`, { 
+          status: response.status,
+          responseType: typeof response.data
+        });
+      }
       
       return response.data
-    } catch (error) {
-      console.error('File API - error updating file content:', error)
-      throw error
+    } catch (error: any) {
+      // Enhanced error logging for CSS files
+      if (isCSS) {
+        console.error('Error updating CSS file content:', { 
+          projectId, 
+          filePath, 
+          error: error.message, 
+          status: error.response?.status,
+          responseData: error.response?.data
+        });
+      } else {
+        console.error('File API - error updating file content:', error);
+      }
+      
+      // Provide more details in the error message
+      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
+      throw new Error(`Failed to update file ${filePath}: ${errorMsg}`);
     }
   },
   

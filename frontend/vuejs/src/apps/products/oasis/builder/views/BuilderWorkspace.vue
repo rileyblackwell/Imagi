@@ -56,7 +56,6 @@
             v-model="prompt"
             @submit="handlePrompt"
             @use-example="handleExamplePrompt"
-            @apply-code="handleApplyCode"
             style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
           />
         </div>
@@ -218,8 +217,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     store.setProcessing(true)
     
     // Add the user message to the conversation immediately
-    store.conversation.push({
-      role: 'user' as const,
+    store.addMessage({
+      role: 'user',
       content: prompt.value,
       timestamp: timestamp,
       id: `user-${Date.now()}`
@@ -256,20 +255,228 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       // Determine file type for specialized handling
       const fileExtension = store.selectedFile.path.split('.').pop()?.toLowerCase() || ''
       const isCSS = fileExtension === 'css' || store.selectedFile.type === 'css'
+      const isHTML = fileExtension === 'html' || store.selectedFile.type === 'html'
       
-      // Show loading notification
-      notify({ type: 'info', message: isCSS ? 'Generating stylesheet...' : 'Generating code...' })
-      
-      await generateCodeFromPrompt({
-        prompt: prompt.value,
-        file: store.selectedFile,
-        projectId: projectId.value, // This is guaranteed to be non-null at this point
-        modelId: store.selectedModelId as string, // Type assertion since we checked it's not null above
-        mode: 'build'
-      })
-      
-      // Show success notification
-      notify({ type: 'success', message: isCSS ? 'Stylesheet generated successfully' : 'Code generated successfully' })
+      // Log which agent service will be used based on file type
+      if (isCSS) {
+        console.info('Using stylesheet agent service for CSS file:', store.selectedFile.path)
+        // Show loading notification
+        notify({ type: 'info', message: 'Generating stylesheet with AI...' })
+        
+        try {
+          // For CSS files, use specialized stylesheet generator function
+          const response = await AgentService.generateStylesheet({
+            prompt: prompt.value,
+            projectId: projectId.value,
+            filePath: store.selectedFile.path,
+            model: store.selectedModelId,
+            onProgress: (progress) => {
+              // Update UI with progress
+              if (progress.percent < 100) {
+                notify({ 
+                  type: 'info', 
+                  message: `${progress.status} (${progress.percent}%)`,
+                  duration: 2000
+                });
+              }
+            }
+          });
+          
+          // Ensure we got a valid response
+          if (response && response.response) {
+            // Apply the generated code (may not be necessary as API handles the update)
+            try {
+              await applyCode({
+                code: response.response,
+                file: store.selectedFile,
+                projectId: projectId.value
+              });
+              
+              const simpleSummary = `Changes successfully applied to ${store.selectedFile.path}`;
+              
+              // Add assistant message to conversation
+              store.addMessage({
+                role: 'assistant',
+                content: simpleSummary,
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              });
+              
+              notify({ type: 'success', message: 'Stylesheet generated and applied successfully' });
+            } catch (applyError) {
+              console.error('Error applying stylesheet changes:', applyError);
+              store.addMessage({
+                role: 'assistant',
+                content: `Failed to apply stylesheet changes to ${store.selectedFile.path}: ${applyError instanceof Error ? applyError.message : 'Unknown error'}`,
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              });
+              
+              notify({ type: 'error', message: 'Error applying stylesheet changes' });
+            }
+          } else {
+            store.addMessage({
+              role: 'assistant',
+              content: 'No stylesheet changes were generated. Please try a different prompt.',
+              timestamp: new Date().toISOString(),
+              id: `assistant-response-${Date.now()}`
+            });
+          }
+        } catch (cssError) {
+          console.error('Error generating stylesheet:', cssError);
+          
+          store.addMessage({
+            role: 'assistant',
+            content: `Error generating stylesheet: ${cssError instanceof Error ? cssError.message : 'Unknown error'}`,
+            timestamp: new Date().toISOString(),
+            id: `system-error-${Date.now()}`
+          });
+          
+          notify({ type: 'error', message: 'Error generating stylesheet. Please try again.' });
+        }
+      } else if (isHTML) {
+        console.info('Using template agent service for HTML file:', store.selectedFile.path)
+        // Show loading notification
+        notify({ type: 'info', message: 'Generating HTML template...' })
+        
+        // Use standard code generation for HTML files
+        try {
+          // Call the AI service to generate code
+          const response = await AgentService.generateCode(
+            projectId.value,
+            {
+              prompt: prompt.value,
+              model: store.selectedModelId,
+              mode: 'build',
+              file_path: store.selectedFile.path
+            }
+          )
+          
+          // Apply the generated code automatically if available
+          if (response && response.code) {
+            try {
+              await applyCode({
+                code: response.code,
+                file: store.selectedFile,
+                projectId: projectId.value
+              })
+              
+              const simpleSummary = `Changes successfully applied to ${store.selectedFile.path}`;
+              
+              store.addMessage({
+                role: 'assistant',
+                content: simpleSummary,
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              })
+              
+              notify({ type: 'success', message: 'HTML template generated successfully' })
+            } catch (applyError) {
+              console.error('Error applying HTML template:', applyError)
+              
+              store.addMessage({
+                role: 'assistant',
+                content: `Failed to apply changes to ${store.selectedFile.path}: ${applyError instanceof Error ? applyError.message : 'Unknown error'}`,
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              })
+              
+              notify({ type: 'error', message: 'Error applying HTML template. Please try again.' })
+            }
+          } else {
+            store.addMessage({
+              role: 'assistant',
+              content: 'No HTML template was generated. Please try a different prompt.',
+              timestamp: new Date().toISOString(),
+              id: `assistant-response-${Date.now()}`
+            })
+          }
+        } catch (htmlError) {
+          console.error('Error generating HTML template:', htmlError)
+          
+          store.addMessage({
+            role: 'assistant',
+            content: `Error generating HTML template: ${htmlError instanceof Error ? htmlError.message : 'Unknown error'}`,
+            timestamp: new Date().toISOString(),
+            id: `system-error-${Date.now()}`
+          })
+          
+          notify({ type: 'error', message: 'Error generating HTML template. Please try again.' })
+        }
+      } else {
+        console.info('Using default agent service for file:', store.selectedFile.path)
+        // Show loading notification
+        notify({ type: 'info', message: 'Generating code...' })
+        
+        try {
+          // Call the AI service to generate code
+          const response = await AgentService.generateCode(
+            projectId.value,
+            {
+              prompt: prompt.value,
+              model: store.selectedModelId,
+              mode: 'build',
+              file_path: store.selectedFile.path
+            }
+          )
+          
+          // Apply the generated code automatically
+          if (response && response.code) {
+            try {
+              // Apply the generated code automatically
+              await applyCode({
+                code: response.code,
+                file: store.selectedFile,
+                projectId: projectId.value
+              })
+              
+              // Add only a single success message instead of two
+              const simpleSummary = `Changes successfully applied to ${store.selectedFile.path}`;
+              
+              store.addMessage({
+                role: 'assistant',
+                content: simpleSummary,
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              })
+              
+              notify({ type: 'success', message: 'Code changes applied successfully' })
+            } catch (applyError) {
+              console.error('Error applying generated code:', applyError)
+              
+              // Just add a single error message
+              store.addMessage({
+                role: 'assistant',
+                content: `Failed to apply changes to ${store.selectedFile.path}: ${applyError instanceof Error ? applyError.message : 'Unknown error'}`,
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              })
+              
+              notify({ type: 'error', message: 'Error applying code changes. Please try again.' })
+            }
+          } else {
+            // No code was generated, just show the response
+            store.addMessage({
+              role: 'assistant',
+              content: 'No code changes were generated. Please try a different prompt.',
+              timestamp: new Date().toISOString(),
+              id: `assistant-response-${Date.now()}`
+            })
+          }
+        } catch (buildError) {
+          console.error('Error in build mode:', buildError)
+          
+          // Add error message to conversation
+          store.addMessage({
+            role: 'assistant',
+            content: `Error generating code: ${buildError instanceof Error ? buildError.message : 'Unknown error'}`,
+            timestamp: new Date().toISOString(),
+            id: `system-error-${Date.now()}`
+          })
+          
+          notify({ type: 'error', message: 'Error generating code. Please try again.' })
+        }
+      }
     } else {
       // Show loading notification for chat
       notify({ type: 'info', message: 'Connecting with AI...' })
@@ -277,7 +484,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       try {
         // Call the AI service
         const response = await AgentService.processChat(
-          projectId.value as string, // Type assertion since we checked it's not null above
+          projectId.value,
           {
             prompt: prompt.value,
             model: store.selectedModelId,
@@ -286,13 +493,13 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           }
         )
         
-        // Add the real response message directly
-        store.conversation.push({
+        // Add the real response message directly, but without showing code in the UI
+        store.addMessage({
           role: 'assistant',
           content: response.response,
           timestamp: new Date().toISOString(),
-          id: `assistant-response-${Date.now()}`,
-          code: response.messages[1]?.code || null
+          id: `assistant-response-${Date.now()}`
+          // No code field to prevent displaying code in the UI
         })
 
       } catch (chatError) {
@@ -377,8 +584,35 @@ async function handleFileSelect(file: ProjectFile) {
     // Remove system messages about file changes completely
     // No longer add file switch notifications to the conversation
     
+    // Determine file type before selecting the file
+    const fileExtension = file.path.split('.').pop()?.toLowerCase() || '';
+    const isCSS = fileExtension === 'css' || file.type === 'css';
+    const isHTML = fileExtension === 'html' || file.type === 'html';
+    
+    // Log file type information for debugging
+    if (isCSS) {
+      console.info('Selected CSS file:', file.path);
+    } else if (isHTML) {
+      console.info('Selected HTML file:', file.path);
+    } else {
+      console.info('Selected file:', file.path, 'with type:', file.type || fileExtension);
+    }
+    
     // Use the improved selectFile method to maintain chat context
     store.selectFile(file)
+    
+    // If in build mode, update prompt placeholder based on file type
+    if (store.mode === 'build') {
+      // This will auto-update via the promptPlaceholder computed property
+      // which uses store.selectedFile and store.mode
+      
+      // Show a tooltip or notification about file selection
+      if (isCSS) {
+        notify({ type: 'info', message: 'CSS file selected. You can now generate stylesheet code.' });
+      } else if (isHTML) {
+        notify({ type: 'info', message: 'HTML template selected. You can now generate template code.' });
+      }
+    }
     
     // Update the mode indicator UI by forcing a re-render
     // This is needed because the selectedFile reference might not change
@@ -420,26 +654,6 @@ async function handleFileDelete(file: ProjectFile) {
   } catch (error) {
     console.error('Error deleting file:', error)
     notify({ type: 'error', message: 'Error deleting file. Please try again.' })
-  }
-}
-
-async function handleApplyCode(code: string) {
-  if (!store.selectedFile) {
-    notify({ type: 'warning', message: 'Please select a file to apply the changes' })
-    return
-  }
-  
-  try {
-    await applyCode({
-      code,
-      file: store.selectedFile,
-      projectId: projectId.value
-    })
-    
-    notify({ type: 'success', message: 'Code changes applied successfully' })
-  } catch (error) {
-    console.error('Error applying code:', error)
-    notify({ type: 'error', message: 'Error applying code changes. Please try again.' })
   }
 }
 

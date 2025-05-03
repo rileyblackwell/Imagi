@@ -114,12 +114,6 @@ export const AgentService = {
       const { notify } = await import('@/shared/utils');
       notify({ type: 'info', message: 'Generating code and updating file...' });
       
-      // Get conversation ID from localStorage
-      const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
-      
-      // Get all project files
-      const files = await FileService.getProjectFiles(projectId);
-      
       // Ensure file_path has a value and proper format
       let filePath = data.file_path || 'templates/index.html';
       
@@ -127,6 +121,47 @@ export const AgentService = {
       if (filePath.endsWith('.html') && !filePath.startsWith('templates/')) {
         filePath = `templates/${filePath.replace(/^\//, '')}`;
       }
+      
+      // Determine file type from extension
+      const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
+      
+      // For CSS files, use the specialized stylesheet generation method
+      if (fileExtension === 'css') {
+        console.log('Using specialized stylesheet generation for CSS file:', filePath);
+        
+        try {
+          // Use the dedicated stylesheet generator
+          const stylesheetResponse = await this.generateStylesheet({
+            prompt: data.prompt,
+            projectId: projectId,
+            filePath: filePath,
+            model: modelId,
+            onProgress: (progress) => {
+              console.info(`Stylesheet generation progress: ${progress.status} (${progress.percent}%)`);
+            }
+          });
+          
+          // Return the stylesheet response in the expected format
+          return {
+            success: true,
+            code: stylesheetResponse.response,
+            response: stylesheetResponse.response,
+            messages: stylesheetResponse.messages || [],
+            single_message: stylesheetResponse.single_message || false
+          };
+        } catch (cssError) {
+          console.error('Error generating stylesheet:', cssError);
+          notify({ type: 'error', message: `Error generating stylesheet: ${cssError instanceof Error ? cssError.message : 'Unknown error'}` });
+          throw cssError;
+        }
+      }
+      
+      // For non-CSS files, continue with the standard approach
+      // Get conversation ID from localStorage
+      const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
+      
+      // Get all project files
+      const files = await FileService.getProjectFiles(projectId);
       
       // Prepare request payload with all required fields
       const payload = {
@@ -143,22 +178,33 @@ export const AgentService = {
         }))
       }
       
-      console.log('Sending template request with payload:', {
+      // Determine which endpoint to use based on file extension
+      let endpoint = '/api/v1/agents/build/template/';
+      
+      // HTML files use the template endpoint (already set as default)
+      if (fileExtension === 'html') {
+        console.log('Using template agent for HTML file:', filePath);
+      } else {
+        console.log('Using default agent service for file:', filePath);
+      }
+      
+      console.log('Sending request with payload:', {
         message_length: payload.message.length,
         model: payload.model,
         project_id: payload.project_id,
         file_path: payload.file_path,
         mode: payload.mode,
         conversation_id: payload.conversation_id ? 'defined' : 'undefined',
-        project_files_count: payload.project_files.length
+        project_files_count: payload.project_files.length,
+        endpoint: endpoint
       });
       
-      // Use the build_template endpoint from agents/api
-      const response = await longTimeoutApi.post('/api/v1/agents/build/template/', payload)
+      // Use the appropriate endpoint based on file type
+      const response = await longTimeoutApi.post(endpoint, payload)
       
-      // Store the conversation ID for future requests
+      // Store the conversation ID for future requests based on file type
       if (response.data.conversation_id) {
-        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id)
+        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id);
       }
       
       // Show success notification
@@ -266,13 +312,17 @@ export const AgentService = {
       // Use the chat endpoint from agents/api
       console.info(`Sending chat request with model: ${payload.model}`);
       
+      // Make sure we're explicitly using the chat agent service
+      const chatEndpoint = '/api/v1/agents/chat/';
+      console.info(`Using chat agent service endpoint: ${chatEndpoint}`);
+      
       // Add some retry logic for model-related errors
       let retryCount = 0;
       const maxRetries = 1;
       
       while (retryCount <= maxRetries) {
         try {
-          const response = await api.post('/api/v1/agents/chat/', payload);
+          const response = await api.post(chatEndpoint, payload);
           
           // Store the conversation ID for future requests
           if (response.data.conversation_id) {
@@ -692,6 +742,10 @@ export const AgentService = {
       // Get all project files for context
       const files = await FileService.getProjectFiles(projectId);
       
+      // Log request info for debugging
+      console.info(`Generating stylesheet for file: ${filePath} with model: ${model}`);
+      console.info(`Project ID: ${projectId}, Files count: ${files.length}`);
+      
       // Update progress if callback provided
       if (onProgress) {
         onProgress({ status: 'Preparing stylesheet request...', percent: 10 });
@@ -725,8 +779,20 @@ export const AgentService = {
         onProgress({ status: 'Sending request to AI...', percent: 25 });
       }
       
-      // Make request with longer timeout
+      console.info(`Sending stylesheet generation request to endpoint: /api/v1/agents/build/stylesheet/`);
+      
+      // Make request with longer timeout - use longTimeoutApi for stylesheet generation
       const response = await longTimeoutApi.post('/api/v1/agents/build/stylesheet/', payload);
+      
+      console.info(`Received stylesheet response with status: ${response.status}`);
+      
+      // Log response data for debugging (without exposing sensitive information)
+      console.info('Stylesheet response data structure:', {
+        has_response: !!response.data.response,
+        has_code: !!response.data.code,
+        has_conversation_id: !!response.data.conversation_id,
+        success: response.data.success
+      });
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {
@@ -768,6 +834,15 @@ export const AgentService = {
       // Final progress update
       if (onProgress) {
         onProgress({ status: 'Stylesheet generated!', percent: 100 });
+      }
+      
+      // Apply the generated stylesheet content to the file
+      try {
+        await FileService.updateFileContent(projectId, filePath, response.data.response);
+        console.info(`Successfully updated stylesheet file: ${filePath}`);
+      } catch (error: Error | any) {
+        console.error(`Error updating stylesheet file: ${filePath}`, error);
+        throw new Error(`Generated stylesheet but failed to update file: ${error.message || 'Unknown error'}`);
       }
       
       return {
