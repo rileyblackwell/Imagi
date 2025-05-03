@@ -510,29 +510,45 @@
             </div>
           </div>
 
-          <!-- Contact Section -->
-          <section class="bg-gradient-to-br from-primary-600/90 via-violet-600/90 to-purple-600/90 rounded-2xl p-8 relative overflow-hidden mt-12">
-            <div class="absolute inset-0">
-              <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
-            </div>
-            
-            <div class="relative z-10">
-              <div class="flex items-center mb-6">
-                <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mr-4">
-                  <i class="fas fa-envelope text-xl text-white"></i>
-                </div>
-                <h2 class="text-2xl sm:text-3xl font-bold text-white">Contact Us</h2>
-              </div>
+          <!-- Enhanced CTA Section -->
+          <section>
+            <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
+              <!-- Enhanced glass morphism effect with stronger gradient glow -->
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/70 to-violet-500/70 rounded-2xl opacity-70 group-hover:opacity-90 blur group-hover:blur-md transition-all duration-300"></div>
               
-              <p class="text-lg text-white/90">
-                If you have any questions or concerns about this Privacy Policy, please 
-                <HomeNavbarButton
-                  to="/contact" 
-                  class="inline-block font-semibold text-white hover:text-primary-200 underline decoration-primary-400/30 hover:decoration-primary-200 transition-colors"
-                >
-                  contact us
-                </HomeNavbarButton>.
-              </p>
+              <div class="relative bg-dark-900/70 backdrop-blur-xl rounded-xl overflow-hidden border border-primary-500/30 group-hover:border-primary-500/50 transition-all duration-300">
+                <div class="h-3 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
+                <!-- Decorative Elements -->
+                <div class="absolute inset-0 pointer-events-none">
+                  <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
+                </div>
+
+                <!-- Content -->
+                <div class="relative z-10 px-6 py-12 md:px-12 text-center">
+                  <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+                    Have Questions About
+                    <span class="bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent">
+                      Our Privacy Policy?
+                    </span>
+                  </h2>
+
+                  <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
+                    We're committed to protecting your privacy and ensuring the security of your personal information.
+                  </p>
+
+                  <!-- Action Buttons -->
+                  <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <HomeNavbarButton
+                      to="/contact"
+                      class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 transition-all duration-300 transform hover:-translate-y-1"
+                    >
+                      <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
+                        Contact Us
+                      </span>
+                    </HomeNavbarButton>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -592,19 +608,41 @@ export default defineComponent({
   animation: pulse 3s ease-in-out infinite;
 }
 
-/* Style for list items */
+/* Simple list styling without generated bullets */
 ul {
-  padding-left: 0;
-  margin: 0;
+  @apply pl-0 mb-4;
   list-style: none;
 }
 
-li {
-  margin-bottom: 0.5rem;
-  color: #d1d5db; /* text-gray-300 */
+ul li {
+  @apply mb-3 text-gray-300;
 }
 
-strong {
-  font-weight: 600;
+/* Remove any generated bullets */
+ul li::before, 
+ul li::marker {
+  content: none;
+}
+
+/* Styling for circular bullet points (handled in markup) */
+.w-2.h-2.rounded-full {
+  @apply bg-gradient-to-r from-primary-400 to-violet-400;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.5);
+}
+
+h3 {
+  @apply text-xl font-bold text-white mb-4;
+}
+
+h4 {
+  @apply text-lg font-semibold text-white mb-3;
+}
+
+p {
+  @apply mb-4 text-gray-300;
+}
+
+p:last-child {
+  @apply mb-0;
 }
 </style>
