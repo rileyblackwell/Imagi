@@ -1,5 +1,5 @@
 from django.db import migrations, models
-import apps.Products.Oasis.Agents.services.model_definitions as model_defs
+import apps.Products.Oasis.Builder.services.models_service as model_defs
 
 
 class Migration(migrations.Migration):

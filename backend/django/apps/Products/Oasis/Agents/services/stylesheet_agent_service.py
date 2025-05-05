@@ -14,7 +14,7 @@ import re
 import os
 from functools import lru_cache
 import hashlib
-import threading
+
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -36,13 +36,12 @@ class StylesheetAgentService(BaseAgentService):
     def __init__(self):
         """Initialize the stylesheet agent service."""
         super().__init__()
-        self.project_files = []
         self.current_file_path = None
         # Initialize an in-memory cache to store common CSS components
         self._css_component_cache = {}
-        # Add default timeout override
-        self.request_timeout = 30  # Reduced from default 60s
-        # Define base system prompt
+        # Override default timeout for stylesheet generation
+        self.request_timeout = 30  # Reduced from default 60s in base class
+        # Define base system prompt from get_system_prompt for easier access
         self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
     
     # Create direct method for quickly generating basic stylesheets without AI
@@ -632,43 +631,6 @@ class StylesheetAgentService(BaseAgentService):
         
         return css_content
 
-    def validate_project_access(self, project_id, user):
-        """
-        Validate that a project exists and the user has access to it.
-        
-        Args:
-            project_id (str): The ID of the project
-            user (User): The Django user object
-            
-        Returns:
-            tuple: (project, error_response)
-        """
-        try:
-            from apps.Products.Oasis.ProjectManager.models import Project
-            project = Project.objects.get(id=project_id, user=user)
-            
-            if not project.project_path:
-                logger.error(f"Project {project_id} has no valid project path")
-                return None, {
-                    'success': False,
-                    'error': 'Project path not found. The project may not be properly initialized.'
-                }
-                
-            return project, None
-            
-        except Project.DoesNotExist:
-            logger.error(f"Project {project_id} not found for user {user.username}")
-            return None, {
-                'success': False,
-                'error': 'Project not found or you do not have access to it'
-            }
-        except Exception as e:
-            logger.error(f"Error verifying project: {str(e)}")
-            return None, {
-                'success': False,
-                'error': f'Error accessing project: {str(e)}'
-            }
-
     def _generate_cache_key(self, user_input, file_path, model):
         """
         Generate a cache key for storing stylesheet results.
@@ -821,31 +783,6 @@ body {
 """
         }
 
-    def get_api_model(self, model_id):
-        """
-        Get the API model to use for a given model ID.
-        
-        Args:
-            model_id (str): The model ID
-            
-        Returns:
-            str: The API model to use
-        """
-        # Import model definitions
-        from .model_definitions import get_model_by_id
-        
-        # Try to get the model definition
-        model_def = get_model_by_id(model_id)
-        
-        # Use api_model from definition if available
-        if model_def and 'api_model' in model_def:
-            logger.info(f"Using API model from definition: {model_def['api_model']} for model ID: {model_id}")
-            return model_def['api_model']
-        
-        # All OpenAI models use API as-is (no mapping needed, using responses API)
-        # Return the model ID directly
-        return model_id
-
     def process_stylesheet(self, prompt, model, user, project_id=None, file_path=None, conversation_id=None):
         """
         Process a stylesheet generation request.
@@ -908,23 +845,4 @@ body {
             return {
                 'success': False,
                 'error': str(e)
-            }
-
-    # Add error response method to the class
-    def error_response(self, message, code=400):
-        """
-        Create a standardized error response.
-        
-        Args:
-            message (str): The error message
-            code (int): The HTTP status code
-            
-        Returns:
-            dict: An error response dictionary
-        """
-        logger.error(f"Stylesheet agent error: {message}")
-        return {
-            'success': False,
-            'error': message,
-            'code': code
-        } 
+            } 

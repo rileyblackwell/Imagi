@@ -3,13 +3,18 @@ Chat agent service for Imagi Oasis.
 
 This module provides a specialized agent service for chat-based interactions,
 allowing users to have natural language conversations about their web applications.
+It handles both general chat functionality and conversational AI interactions.
 """
 
 import logging
+import re
+import json
 from dotenv import load_dotenv
 from .agent_service import BaseAgentService
-from apps.Payments.services import PaymentService
-from django.utils import timezone
+from apps.Products.Oasis.Builder.services.models_service import (
+   get_provider_from_model_id
+)
+
 
 # Load environment variables from .env
 load_dotenv()
@@ -23,12 +28,14 @@ class ChatAgentService(BaseAgentService):
     
     This service handles natural language conversations with users about their
     web applications, providing explanations, suggestions, and guidance.
+    It serves as the primary agent for general conversational interactions.
     """
     
     def __init__(self):
         """Initialize the chat agent service"""
         super().__init__()
-        self.payment_service = PaymentService()
+        # Standard timeout for general queries
+        self.request_timeout = 45  # 45 seconds timeout for general queries
     
     def get_system_prompt(self):
         """
@@ -41,7 +48,8 @@ class ChatAgentService(BaseAgentService):
             "role": "system",
             "content": (
                 "You are an expert web designer and developer working within Imagi Oasis, a powerful platform for building web applications. "
-                "Your role is to help users understand, design, and improve their web applications through natural conversation.\n\n"
+                "You assist users with understanding their project code, explaining concepts, and providing guidance "
+                "on web development using Django, Vue.js, and modern frontend technologies.\n\n"
                 
                 "Key Responsibilities:\n"
                 "1. Help users understand their current website structure and design choices.\n"
@@ -49,139 +57,201 @@ class ChatAgentService(BaseAgentService):
                 "3. Suggest improvements and answer questions about the user's web application.\n"
                 "4. Maintain context of the entire project while discussing specific files.\n\n"
                 
-                "Guidelines:\n"
-                "1. Always reference the current state of files when discussing them.\n"
-                "2. Provide specific, actionable suggestions for improvements.\n"
-                "3. Explain technical concepts in a clear, accessible way.\n"
-                "4. Consider the entire project context when making recommendations.\n"
-                "5. Focus on modern web design principles and best practices.\n\n"
+                "Guidelines for your responses:\n"
+                "1. Be concise, clear, and focused on providing actionable information.\n"
+                "2. When explaining code, focus on the most important concepts first.\n"
+                "3. If asked about a specific file, focus your answer on that file's content.\n"
+                "4. Use code examples when helpful, but keep them brief and targeted.\n"
+                "5. When suggesting improvements, explain the rationale briefly.\n"
+                "6. For technical questions, provide specific, practical guidance.\n"
+                "7. Remember that users may be at different skill levels - adjust accordingly.\n"
+                
+                "The user's project uses:\n"
+                "- Backend: Django with REST framework\n"
+                "- Frontend: Vue.js 3 with Composition API\n"
+                "- Styling: TailwindCSS\n"
+                "- Build tools: Vite\n"
+                "- State management: Pinia\n"
+                "- HTTP client: Axios\n\n"
                 
                 "Remember:\n"
                 "- You don't need to prefix your responses with 'As a web development assistant' or similar phrases.\n"
                 "- Give direct, practical advice rather than general platitudes.\n"
                 "- If you're not sure about something, say so rather than making up information.\n"
-                "- Use markdown for formatting when it enhances clarity.\n"
+                "- When responding, prioritize being helpful, accurate, and concise.\n"
             )
         }
     
     def validate_response(self, content):
         """
-        Validate chat response.
-        No specific validation needed for chat responses.
+        Validate that the response is appropriate and meets quality standards.
         
         Args:
-            content (str): The response content to validate
+            content (str): The content to validate
             
         Returns:
             tuple: (is_valid, error_message)
         """
+        # Basic validation
+        if not content or not isinstance(content, str):
+            return False, "Empty or invalid response received from AI model"
+            
+        # Check for response length
+        if len(content) < 10:
+            return False, f"Response too short ({len(content)} chars)"
+        
+        # Check for common error responses
+        error_phrases = [
+            "I'm sorry, I cannot",
+            "I apologize, but I cannot",
+            "As an AI language model",
+            "I don't have the ability to"
+        ]
+        
+        # If the response starts with a refusal, it's likely not a good response
+        for phrase in error_phrases:
+            if content.lower().startswith(phrase.lower()):
+                return False, f"Response starts with refusal: '{phrase}...'"
+        
+        # Check for excessive code blocks - general chat shouldn't have too many code samples
+        code_blocks = re.findall(r'```[^`]*```', content)
+        if len(code_blocks) > 5:
+            return False, f"Too many code blocks in response ({len(code_blocks)})"
+            
         return True, None
+    
+    def get_additional_context(self, **kwargs):
+        """
+        Get additional context for the chat based on current project and file.
+        
+        Args:
+            **kwargs: Additional arguments including file and project information
+            
+        Returns:
+            str: Additional context for the system prompt
+        """
+        context_parts = []
+        
+        # Add current file context if available
+        current_file = kwargs.get('file')
+        if current_file and isinstance(current_file, dict):
+            file_path = current_file.get('path')
+            file_type = current_file.get('type', 'unknown')
+            
+            if file_path:
+                context_parts.append(f"The user is currently working with file: {file_path}")
+                
+                # Add file type context
+                if file_type == 'html':
+                    context_parts.append("This is a Django HTML template file.")
+                elif file_type == 'vue':
+                    context_parts.append("This is a Vue.js component file.")
+                elif file_type == 'css':
+                    context_parts.append("This is a CSS stylesheet file.")
+                elif file_type == 'js':
+                    context_parts.append("This is a JavaScript file.")
+                elif file_type == 'ts':
+                    context_parts.append("This is a TypeScript file.")
+                elif file_type == 'python':
+                    context_parts.append("This is a Python file.")
+        
+        # Add project information if available
+        project_id = kwargs.get('project_id')
+        if project_id:
+            try:
+                from apps.Products.Oasis.ProjectManager.models import Project
+                project = Project.objects.get(id=project_id)
+                context_parts.append(f"Project name: {project.name}")
+                
+                if hasattr(project, 'description') and project.description:
+                    context_parts.append(f"Project description: {project.description}")
+            except Exception as e:
+                logger.warning(f"Could not get project details for context: {str(e)}")
+        
+        if not context_parts:
+            return None
+        
+        return "\n".join(context_parts)
+
+    def process_chat(self, prompt, model, user, project_id=None, file=None, conversation_id=None):
+        """
+        Process a general chat query and return the AI's response.
+        
+        Args:
+            prompt (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            project_id (str, optional): The project ID
+            file (dict, optional): The current file with keys: path, content, type
+            conversation_id (int, optional): ID of existing conversation
+            
+        Returns:
+            dict: The result of the operation with the AI's response
+        """
+        try:
+            # Validate required parameters
+            if not prompt:
+                return self.error_response("Prompt is required")
+            
+            if not model:
+                return self.error_response("Model is required")
+            
+            # Get additional context for this request
+            additional_context = self.get_additional_context(
+                file=file,
+                project_id=project_id
+            )
+            
+            # Process the conversation using the base implementation
+            return self.process_conversation(
+                user_input=prompt,
+                model=model,
+                user=user,
+                project_id=project_id,
+                file=file,
+                conversation_id=conversation_id,
+                system_prompt=additional_context
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in process_chat: {str(e)}")
+            return self.error_response(str(e))
 
     def process_message(self, user_input, model_id, user, conversation_id=None, project_id=None, current_file=None, is_build_mode=False):
         """
-        Process a chat message and generate a response.
+        Process a chat message and return the AI's response.
+        
+        This method is a convenience wrapper around process_chat that handles
+        additional validation and preprocessing.
         
         Args:
-            user_input (str): The user's input message
-            model_id (str): The model identifier to use
-            user (User): The user object
-            conversation_id (str, optional): The conversation ID
+            user_input (str): The user's message
+            model_id (str): The AI model to use
+            user: The Django user object
+            conversation_id (int, optional): ID of existing conversation
             project_id (str, optional): The project ID
-            current_file (dict, optional): The current file
-            is_build_mode (bool, optional): Whether we're in build mode
+            current_file (dict, optional): The current file details
+            is_build_mode (bool, optional): Whether this is being used in build mode
             
         Returns:
-            dict: The response data including the AI's response
+            dict: The result of the operation with the AI's response
         """
-        try:
-            # Get the exact model cost for logging
-            model_cost = self.get_model_cost(model_id)
-            logger.info(f"Processing message with model {model_id} (cost: ${model_cost:.4f})")
-            
-            # Check user credits before proceeding
-            has_credits, required_amount = self.check_user_credits(user, model_id)
-            if not has_credits:
-                return {
-                    'success': False,
-                    'error': f"Insufficient credits: You need ${required_amount:.4f} more to use {model_id}. Please add more credits."
-                }
-            
-            # Check API key availability
-            api_key_error = self.check_api_key_available(model_id)
-            if api_key_error:
-                logger.error(f"API key error: {api_key_error}")
-                return {
-                    'success': False,
-                    'error': api_key_error
-                }
-            
-            # Get project path from project_id if provided
-            project_path = None
-            if project_id:
-                try:
-                    from apps.Products.Oasis.ProjectManager.models import Project
-                    project = Project.objects.get(id=project_id, user=user)
-                    project_path = project.project_path
-                    logger.info(f"Found project path: {project_path}")
-                except Exception as e:
-                    logger.warning(f"Could not get project path from project_id {project_id}: {str(e)}")
-            
-            # Validate current file format if provided
-            if current_file:
-                is_valid, error_response = self.validate_current_file(current_file)
-                if not is_valid:
-                    return error_response
-                
-                # Log the current file being processed
-                logger.info(f"Current file: {current_file.get('path')}, type: {current_file.get('type')}")
-                content_preview = current_file.get('content', '')[:100]
-                logger.info(f"File content preview: {content_preview}...")
-            
-            # Log conversation details before API call
-            logger.info(f"===== CHAT DETAILS =====")
-            logger.info(f"Model: {model_id}")
-            logger.info(f"User: {user.username}")
-            logger.info(f"Conversation ID: {conversation_id}")
-            logger.info(f"Project ID: {project_id}")
-            logger.info(f"Message length: {len(user_input)} chars")
-            logger.info(f"Message preview: {user_input[:100]}...")
-            logger.info("===== END CHAT DETAILS =====")
-            
-            # Use process_conversation from BaseAgentService
-            result = self.process_conversation(
-                user_input=user_input,
-                model=model_id,
-                user=user,
-                conversation_id=conversation_id,
-                project_path=project_path,
-                project_id=project_id,
-                current_file=current_file
-            )
-            
-            # Add timestamp to successful results
-            if result.get('success', False):
-                # Add timestamp to result
-                result['timestamp'] = timezone.now().isoformat()
-                
-                # Log response length and preview
-                response = result.get('response', '')
-                logger.info(f"Response length: {len(response)} chars")
-                logger.info(f"Response preview: {response[:100]}...")
-            else:
-                # Log error
-                logger.error(f"Error in response: {result.get('error')}")
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error in process_message: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
+        # Validate current_file if provided
+        if current_file:
+            is_valid, error = self.validate_current_file(current_file)
+            if not is_valid:
+                return self.error_response(error)
+        
+        # Use process_chat to handle the request
+        return self.process_chat(
+            prompt=user_input,
+            model=model_id,
+            user=user,
+            project_id=project_id,
+            file=current_file,
+            conversation_id=conversation_id
+        )
+
     def validate_current_file(self, current_file):
         """
         Validate the current file format and required fields.
@@ -216,58 +286,6 @@ class ChatAgentService(BaseAgentService):
         
         return True, None
 
-    def check_api_key_available(self, model_id):
-        """
-        Check if the required API key is available for the selected model.
-        
-        Args:
-            model_id (str): The model ID to check
-            
-        Returns:
-            str: Error message if API key is not available, None otherwise
-        """
-        try:
-            import os
-            from django.conf import settings
-            
-            # Check if model is from OpenAI or Anthropic
-            if 'gpt' in model_id:
-                openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
-                if not openai_key:
-                    return "OpenAI API key is not configured. Please set the OPENAI_KEY environment variable."
-            elif 'claude' in model_id:
-                anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
-                if not anthropic_key:
-                    return "Anthropic API key is not configured. Please set the ANTHROPIC_KEY environment variable."
-            return None
-        except Exception as e:
-            logger.error(f"Error checking API key: {str(e)}")
-            return f"Error checking API key: {str(e)}"
-
-    def get_model_cost(self, model_id):
-        """
-        Get the exact cost for a specific model.
-        
-        Args:
-            model_id (str): The model ID to get the cost for
-            
-        Returns:
-            float: The cost of the model in dollars
-        """
-        # Use the get_model_cost function from model_definitions for centralized pricing
-        from .model_definitions import get_model_cost
-        
-        # Log the model ID for which we're calculating cost
-        logger.info(f"Calculating cost for model: {model_id}")
-        
-        # Get the cost from centralized function
-        amount = get_model_cost(model_id)
-        
-        # Log the final cost for debugging
-        logger.info(f"Final cost for model {model_id}: ${amount}")
-                
-        return amount
-            
     def get_conversation_history(self, conversation_id, user):
         """
         Get conversation history for a specific conversation.
@@ -302,84 +320,182 @@ class ChatAgentService(BaseAgentService):
             return {
                 'success': True,
                 'conversation_id': conversation_id,
-                'model': conversation.model_name,
                 'messages': message_list,
                 'created_at': conversation.created_at.isoformat(),
-                'updated_at': conversation.updated_at.isoformat() if hasattr(conversation, 'updated_at') else None
+                'model': conversation.model_name
             }
-        except AgentConversation.DoesNotExist:
-            logger.error(f"Conversation not found: {conversation_id}")
-            raise ValueError(f"Conversation with ID {conversation_id} not found")
+            
         except Exception as e:
             logger.error(f"Error getting conversation history: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            raise ValueError(f"Error retrieving conversation: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
-    def check_user_credits(self, user, model):
+    def process_conversation(self, user_input, model, user, **kwargs):
         """
-        Check if user has enough balance for the selected model.
+        Process a conversation with the AI model.
+        Implements the abstract method from BaseAgentService.
         
         Args:
-            user: The Django user object
+            user_input (str): The user's input message
             model (str): The AI model to use
+            user: The Django user object
+            **kwargs: Additional arguments for the conversation
             
         Returns:
-            tuple: (has_credits, required_amount)
+            dict: The result of the conversation
         """
+        # Extract optional parameters
+        project_id = kwargs.get('project_id')
+        project_path = kwargs.get('project_path')
+        conversation_id = kwargs.get('conversation_id')
+        system_prompt_content = kwargs.get('system_prompt')
+        is_stream = kwargs.get('stream', False)
+        temperature = kwargs.get('temperature', 0.7)
+        max_tokens = kwargs.get('max_tokens', None)
+        current_file = kwargs.get('file')
+        
+        # Get or create conversation
+        if conversation_id:
+            conversation = self.get_conversation(conversation_id, user)
+            if not conversation:
+                # Create a new conversation if the requested one doesn't exist
+                conversation = self.create_conversation(user, model, system_prompt_content, project_id)
+        else:
+            # Create a new conversation if no conversation_id provided
+            conversation = self.create_conversation(user, model, system_prompt_content, project_id)
+        
+        # Add the user's message to the conversation
+        self.add_user_message(conversation, user_input, user)
+        
+        # Build conversation history including system prompts
+        messages = self.build_conversation_history(conversation, project_path, current_file)
+        
+        # Convert model ID into a provider name
+        provider = get_provider_from_model_id(model)
+        
+        # Prepare response
+        response_content = ""
+        
+        # Check user has sufficient credits
+        completion_tokens = None  # We don't know yet how many tokens will be used
+        self.check_user_credits(user, model)
+        
+        # Log all messages for debugging with complete request payloads
+        for i, msg in enumerate(messages):
+            safe_msg = msg.copy()
+            if 'content' in safe_msg and safe_msg['content']:
+                # Truncate long content for logging
+                if len(safe_msg['content']) > 500:
+                    safe_msg['content'] = safe_msg['content'][:500] + f"... [truncated, total length: {len(msg['content'])}]"
+            logger.debug(f"Message {i+1}/{len(messages)}: {safe_msg}")
+        
         try:
-            # Get credit balance directly from the CreditBalance model
-            from apps.Payments.models import CreditBalance
-            
-            try:
-                credit_balance = CreditBalance.objects.get(user=user)
-                balance = float(credit_balance.balance)
-            except CreditBalance.DoesNotExist:
-                # Create a new balance record with zero balance if it doesn't exist
-                credit_balance = CreditBalance.objects.create(user=user, balance=0)
-                balance = 0.0
-            
-            # Get the exact cost for the model with 4 decimal precision
-            required_amount = float(f"{self.get_model_cost(model):.4f}")
-            
-            # Log the required amount for debugging with model name for tracking small amounts
-            logger.info(f"Credit check for model {model}: ${required_amount:.4f} required, user balance: ${balance:.4f}")
-            
-            # Use a small epsilon value to handle floating-point precision issues
-            epsilon = 0.0001
-            if balance + epsilon < required_amount:
-                logger.warning(f"Insufficient credits for {model}: ${balance:.4f} < ${required_amount:.4f}")
-                return False, required_amount
+            if provider == 'anthropic':
+                # Prepare Anthropic API payload
+                anthropic_messages = []
                 
-            logger.info(f"Credit check PASSED for {model}: ${balance:.4f} >= ${required_amount:.4f}")
-            return True, required_amount
-        except Exception as e:
-            logger.error(f"Error checking user balance: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return False, 0.04
-
-    def get_api_model(self, model_id):
-        """
-        Get the API model to use for a given model ID.
-        
-        Args:
-            model_id (str): The model ID
+                # Add system prompt as a system message if the first message is a system prompt
+                if messages and messages[0]['role'] == 'system':
+                    system_prompt = messages[0]['content']
+                    messages = messages[1:]  # Remove system prompt from messages list
+                else:
+                    system_prompt = None
+                
+                # Convert messages to Anthropic format
+                for msg in messages:
+                    if msg['role'] in ['user', 'assistant']:
+                        anthropic_messages.append({
+                            'role': msg['role'],
+                            'content': msg['content']
+                        })
+                
+                # Prepare complete API request payload
+                anthropic_payload = {
+                    'model': model,
+                    'messages': anthropic_messages,
+                    'max_tokens': max_tokens or 4096,
+                    'temperature': temperature,
+                }
+                
+                # Add system prompt if present
+                if system_prompt:
+                    anthropic_payload['system'] = system_prompt
+                
+                # Log the complete payload sent to Anthropic
+                masked_payload = anthropic_payload.copy()
+                logger.info(f"🤖 API REQUEST TO ANTHROPIC - Model: {model}")
+                logger.info(f"Complete API payload: {json.dumps(masked_payload, indent=2)}")
+                
+                # Make API call to Anthropic
+                completion = self.anthropic_client.messages.create(**anthropic_payload)
+                
+                # Extract response content
+                response_content = completion.content[0].text
+                completion_tokens = completion.usage.output_tokens
+                
+                # Log usage information
+                logger.info(f"🔄 ANTHROPIC COMPLETION TOKENS: {completion_tokens}")
+                logger.info(f"🔄 ANTHROPIC PROMPT TOKENS: {completion.usage.input_tokens}")
+                
+            elif provider == 'openai':
+                # Prepare OpenAI API payload
+                openai_payload = {
+                    'model': model,
+                    'messages': messages,
+                    'temperature': temperature,
+                }
+                
+                if max_tokens:
+                    openai_payload['max_tokens'] = max_tokens
+                
+                # Log the complete payload sent to OpenAI
+                masked_payload = openai_payload.copy()
+                logger.info(f"🤖 API REQUEST TO OPENAI - Model: {model}")
+                logger.info(f"Complete API payload: {json.dumps(masked_payload, indent=2)}")
+                
+                # Make API call to OpenAI
+                completion = self.openai_client.chat.completions.create(**openai_payload)
+                
+                # Extract response content
+                response_content = completion.choices[0].message.content
+                completion_tokens = completion.usage.completion_tokens
+                
+                # Log usage information
+                logger.info(f"🔄 OPENAI COMPLETION TOKENS: {completion_tokens}")
+                logger.info(f"🔄 OPENAI PROMPT TOKENS: {completion.usage.prompt_tokens}")
+                
+            else:
+                raise ValueError(f"Unsupported AI model provider: {provider}")
             
-        Returns:
-            str: The API model to use
-        """
-        # Import model definitions
-        from .model_definitions import get_model_by_id
-        
-        # Try to get the model definition
-        model_def = get_model_by_id(model_id)
-        
-        # Use api_model from definition if available
-        if model_def and 'api_model' in model_def:
-            logger.info(f"Using API model from definition: {model_def['api_model']} for model ID: {model_id}")
-            return model_def['api_model']
-        
-        # All OpenAI models use API as-is (no mapping needed, using responses API)
-        # Return the model ID directly
-        return model_id 
+            # Validate the response
+            is_valid, error_message = self.validate_response(response_content)
+            if not is_valid:
+                raise ValueError(f"Invalid response: {error_message}")
+            
+            # Add the assistant's message to the conversation
+            self.add_assistant_message(conversation, response_content, user)
+            
+            # Deduct credits for this API call
+            credits_used = self.deduct_credits(user.id, model, completion_tokens)
+            
+            return {
+                'success': True,
+                'response': response_content,
+                'conversation_id': conversation.id,
+                'credits_used': credits_used
+            }
+            
+        except Exception as e:
+            # Log the error
+            logger.error(f"Error processing conversation: {str(e)}")
+            
+            # Return error message
+            return {
+                'success': False,
+                'error': str(e),
+                'conversation_id': conversation.id if conversation else None
+            } 

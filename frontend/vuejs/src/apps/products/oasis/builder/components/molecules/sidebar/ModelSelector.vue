@@ -116,7 +116,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue'
-import { ModelService, AgentService } from '../../../services/agentService'
+import { ModelsService } from '../../../services/modelsService'
 import { AI_MODELS } from '../../../types/services'
 import type { AIModel } from '../../../types/services'
 
@@ -156,7 +156,7 @@ const handleModelSelect = async (modelId: string) => {
     }
     
     // Check rate limit before allowing selection
-    await ModelService.checkRateLimit(modelId)
+    await ModelsService.checkRateLimit(modelId)
     rateLimitWarning.value = null
     
     // Emit the update event
@@ -216,7 +216,7 @@ const getModelTypeIcon = (model: AIModel): string => {
 const fetchModels = async () => {
   isLoadingModels.value = true
   try {
-    const apiModels = await AgentService.getAvailableModels()
+    const apiModels = await ModelsService.getAvailableModels()
     if (apiModels && apiModels.length > 0) {
       defaultModels.value = apiModels
     }
@@ -244,7 +244,7 @@ const availableModels = computed(() => {
   const filtered = props.models.filter(model => {
     // For build mode, only show models that can generate code
     if (props.mode === 'build') {
-      return ModelService.canGenerateCode(model)
+      return ModelsService.canGenerateCode(model)
     }
     // For chat mode, show all models
     return true

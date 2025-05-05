@@ -3,7 +3,6 @@ import { AgentService } from '../services/agentService'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useBalanceStore } from '@/shared/stores/balance'
-import { notify } from '@/shared/utils'
 import type { Message, Conversation } from '../types/composables'
 
 export default function useChatMode() {
@@ -133,22 +132,12 @@ export default function useChatMode() {
             
             const formattedError = `Insufficient credits: You need $${amount} more to use ${modelId}. Please add more credits.`;
             error.value = formattedError;
-            notify({ 
-              type: 'error', 
-              message: formattedError,
-              duration: 7000
-            });
             
             // Refresh balance after error to ensure it's current
             balanceStore.fetchBalance(false)
           } 
           else if (errorMessage.includes('insufficient_credits') || errorMessage.includes('Insufficient credits')) {
             error.value = `Insufficient credits to use ${modelId}. Please add more credits.`;
-            notify({ 
-              type: 'error', 
-              message: `Insufficient credits to use ${modelId}. Please add more credits.`,
-              duration: 7000
-            });
             
             // Refresh balance after error to ensure it's current
             balanceStore.fetchBalance(false)
@@ -164,29 +153,13 @@ export default function useChatMode() {
             } catch (e) {
               console.error('Failed to refresh auth token:', e);
             }
-            
-            notify({ 
-              type: 'error', 
-              message: 'Authentication error. Please log in again.',
-              duration: 5000
-            });
           }
           else if (errorMessage.includes('500')) {
             error.value = 'Server error occurred. Please try again later.';
-            notify({ 
-              type: 'error', 
-              message: 'Server error occurred. Please try again later.',
-              duration: 5000
-            });
           }
           else {
             // Default error case
             error.value = errorMessage;
-            notify({ 
-              type: 'error', 
-              message: 'Error: ' + errorMessage,
-              duration: 5000
-            });
           }
           
           isProcessing.value = false;
@@ -234,12 +207,6 @@ export default function useChatMode() {
       if (conversation.value) {
         conversation.value.messages = conversation.value.messages.filter(msg => !msg.isStreaming);
       }
-      
-      notify({ 
-        type: 'error', 
-        message: error.value,
-        duration: 5000
-      });
     } finally {
       isProcessing.value = false;
     }

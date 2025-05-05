@@ -1,9 +1,10 @@
 # builder/models.py
 
+import os
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from .services.models_service import MODELS
 import logging
-from apps.Products.Oasis.Agents.services.model_definitions import MODELS
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 _model_choices = [(model_id, model_data['name']) for model_id, model_data in MODELS.items()]
 
 class Conversation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="conversations")
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="conversations")
     project_id = models.IntegerField(null=True)  # Store reference to ProjectManager's Project ID
     created_at = models.DateTimeField(auto_now_add=True)
 

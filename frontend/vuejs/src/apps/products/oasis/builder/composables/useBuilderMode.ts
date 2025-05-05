@@ -4,7 +4,6 @@ import { ProjectService } from '../services/projectService'
 import { FileService } from '../services/fileService'
 import type { ProjectFile } from '../types/components'
 import type { GenerateCodeOptions, CreateFileOptions, ApplyCodeOptions } from '../types/composables'
-import { notify } from '@/shared/utils/notifications'
 import type { EditorLanguage } from '@/shared/types/editor'
 
 export function useBuilderMode() {
@@ -35,20 +34,14 @@ export function useBuilderMode() {
     }
 
     if (!projectId) {
-      const { notify } = await import('@/shared/utils');
-      notify({ type: 'error', message: 'No project selected. Please select or create a project first.' });
       throw new Error('Project ID must be provided')
     }
 
     if (!file) {
-      const { notify } = await import('@/shared/utils');
-      notify({ type: 'error', message: 'No file selected. Please select or create a file first.' });
       throw new Error('Please select a file to edit')
     }
 
     if (!modelId) {
-      const { notify } = await import('@/shared/utils');
-      notify({ type: 'error', message: 'No AI model selected. Please select a model first.' });
       throw new Error('AI Model must be selected')
     }
 
@@ -206,7 +199,6 @@ export function useBuilderMode() {
       }
       
       if (!projectId) {
-        notify({ message: 'No project selected', type: 'error' })
         return null
       }
       
@@ -242,7 +234,6 @@ export function useBuilderMode() {
       return null
     } catch (error: any) {
       console.error('Failed to create file:', error)
-      notify({ message: 'Failed to create file', type: 'error' })
       return null
     } finally {
       store.setProcessing(false)
@@ -337,6 +328,85 @@ export function useBuilderMode() {
     }
   }
 
+  const startBuildMode = async (prompt: string): Promise<boolean> => {
+    try {
+      if (!store.projectId) {
+        return false;
+      }
+      
+      if (!store.selectedFile) {
+        return false;
+      }
+      
+      if (!store.selectedModelId) {
+        return false;
+      }
+      
+      // Set status flags
+      store.setProcessing(true);
+      
+      // Generate code using the agent service
+      const response = await AgentService.generateCode(
+        store.projectId,
+        {
+          prompt: prompt,
+          file_path: store.selectedFile.path,
+          model: store.selectedModelId,
+          mode: 'build' // Add missing mode parameter
+        }
+      );
+      
+      // Update the file with the generated code
+      if (response.success && response.code) {
+        // Update file content in store
+        store.updateFile({
+          ...store.selectedFile,
+          content: response.code
+        });
+        
+        // Return success
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      return false;
+    } finally {
+      // Reset status flags
+      store.setProcessing(false);
+    }
+  };
+
+  // Rename the second createFile to avoid redeclaration
+  const createProjectFile = async (filePath: string, fileType: string, initialContent: string = ''): Promise<boolean> => {
+    if (!store.projectId) {
+      return false;
+    }
+    
+    try {
+      // Create file through API
+      const created = await FileService.createFile(store.projectId, filePath, initialContent);
+      
+      if (created) {
+        // Refresh files
+        await loadModels();
+        
+        // Select the newly created file
+        store.setSelectedFile({ 
+          path: filePath, 
+          content: initialContent,
+          type: fileType as EditorLanguage
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    }
+  };
+
   return {
     generateCodeFromPrompt,
     updateFile,
@@ -344,6 +414,8 @@ export function useBuilderMode() {
     createFile,
     undoLastAction,
     loadModels,
-    applyCode
+    applyCode,
+    startBuildMode,
+    createProjectFile
   }
 }

@@ -14,6 +14,7 @@ import threading
 from functools import lru_cache
 import hashlib
 
+
 # Load environment variables from .env
 load_dotenv()
 
@@ -34,9 +35,9 @@ class TemplateAgentService(BaseAgentService):
         self.current_template_name = None
         # Add template cache for improved performance
         self._template_cache = {}
-        # Add default timeout override
-        self.request_timeout = 30  # Reduced from default 60s
-        # Define base system prompt
+        # Override default timeout for template generation
+        self.request_timeout = 30  # Reduced from default 60s in base class
+        # Define base system prompt from get_system_prompt for easier access
         self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
 
     def get_system_prompt(self):
@@ -90,31 +91,6 @@ class TemplateAgentService(BaseAgentService):
                 "\n{% endblock %}"
             )
         }
-
-    def get_api_model(self, model_id):
-        """
-        Get the API model to use for a given model ID.
-        
-        Args:
-            model_id (str): The model ID
-            
-        Returns:
-            str: The API model to use
-        """
-        # Import model definitions
-        from .model_definitions import get_model_by_id
-        
-        # Try to get the model definition
-        model_def = get_model_by_id(model_id)
-        
-        # Use api_model from definition if available
-        if model_def and 'api_model' in model_def:
-            logger.info(f"Using API model from definition: {model_def['api_model']} for model ID: {model_id}")
-            return model_def['api_model']
-        
-        # All OpenAI models use API as-is (no mapping needed, using responses API)
-        # Return the model ID directly
-        return model_id
 
     def get_additional_context(self, **kwargs):
         """
@@ -172,6 +148,15 @@ class TemplateAgentService(BaseAgentService):
         Returns:
             str: The fixed template content
         """
+        # First, check if the content is wrapped in markdown code blocks and extract it
+        code_block_pattern = r'```(?:html|django|jinja2)?\s*([\s\S]*?)\s*```'
+        code_blocks = re.findall(code_block_pattern, content)
+        
+        if code_blocks:
+            # Use the largest code block (most likely the main template)
+            content = max(code_blocks, key=len)
+            logger.info("Extracted template from code block")
+        
         # Add missing DOCTYPE and basic HTML structure for base.html
         if template_name == 'base.html' and '<!DOCTYPE html>' not in content:
             return (
@@ -193,23 +178,56 @@ class TemplateAgentService(BaseAgentService):
         
         # For non-base templates, ensure proper tag order
         if template_name != 'base.html':
-            # Remove existing tags
-            content = re.sub(r'{%\s*extends.*?%}', '', content)
-            content = re.sub(r'{%\s*load\s+static\s*%}', '', content)
+            # Check if the required tags exist
+            has_extends = re.search(r'{%\s*extends.*?%}', content) is not None
+            has_load_static = re.search(r'{%\s*load\s+static\s*%}', content) is not None
             
-            # Add tags in correct order (extends must come first)
-            content = (
-                "{% extends 'base.html' %}\n"
-                "{% load static %}\n\n"
-            ) + content.lstrip()
-            
-            # If somehow load static got added before extends, fix it
-            if re.search(r'{%\s*load\s+static\s*%}\s*{%\s*extends', content):
+            if not has_extends and not has_load_static:
+                # Neither tag exists, add both in correct order
+                content = (
+                    "{% extends 'base.html' %}\n"
+                    "{% load static %}\n\n"
+                ) + content.lstrip()
+            elif not has_extends:
+                # Only load static exists, add extends and ensure order
                 content = re.sub(
-                    r'{%\s*load\s+static\s*%}\s*({%\s*extends.*?%})',
+                    r'{%\s*load\s+static\s*%}',
+                    "{% extends 'base.html' %}\n{% load static %}",
+                    content
+                )
+            elif not has_load_static:
+                # Only extends exists, add load static after it
+                content = re.sub(
+                    r'({%\s*extends.*?%})',
                     r'\1\n{% load static %}',
                     content
                 )
+            else:
+                # Both exist, check order and fix if needed
+                if re.search(r'{%\s*load\s+static\s*%}\s*{%\s*extends', content):
+                    content = re.sub(
+                        r'{%\s*load\s+static\s*%}\s*({%\s*extends.*?%})',
+                        r'\1\n{% load static %}',
+                        content
+                    )
+            
+            # Check for common blocks
+            if "{% block title %}" not in content:
+                title = template_name.replace('.html', '').title()
+                content += f"\n\n{{% block title %}}{title}{{% endblock %}}"
+            
+            if "{% block content %}" not in content:
+                # Find a good place to insert the content block
+                if "<body" in content:
+                    # Insert after body tag
+                    content = re.sub(
+                        r'(<body.*?>)',
+                        r'\1\n{% block content %}\n  <h1>This is the content area</h1>\n{% endblock %}',
+                        content
+                    )
+                else:
+                    # Add at the end
+                    content += "\n\n{% block content %}\n  <h1>This is the content area</h1>\n{% endblock %}"
         
         return content
 
@@ -223,6 +241,14 @@ class TemplateAgentService(BaseAgentService):
         Returns:
             tuple: (is_valid, error_message)
         """
+        # Basic validation
+        if not content or not isinstance(content, str):
+            return False, "Empty or invalid response received from AI model"
+            
+        # Check for response length
+        if len(content) < 10:
+            return False, f"Response too short ({len(content)} chars)"
+        
         # Get the current template name
         template_name = self.current_template_name
         
@@ -419,6 +445,25 @@ class TemplateAgentService(BaseAgentService):
                 timeout=self.request_timeout  # Use shorter timeout
             )
             
+            # Ensure the result is not None and has expected structure
+            if result is None:
+                logger.error("Received None result from process_conversation in handle_template_request")
+                return {
+                    'success': False,
+                    'error': 'Internal server error: No response from AI model',
+                    'single_message': True
+                }
+            
+            # Make sure it has success key
+            if 'success' not in result:
+                logger.error("Result from process_conversation missing 'success' key")
+                result['success'] = False
+                
+            # Make sure it has error key if not successful
+            if not result.get('success') and 'error' not in result:
+                logger.error("Unsuccessful result missing 'error' key")
+                result['error'] = 'Unknown error occurred during template generation'
+            
             # If the operation was successful, try to create view and url
             if result.get('success') and project_id and self.current_template_name:
                 try:
@@ -452,11 +497,10 @@ class TemplateAgentService(BaseAgentService):
                 'error': str(e)
             }
 
-    # Override process_conversation to include detailed conversation logging
     def process_conversation(self, user_input, model, user, **kwargs):
         """Process conversation with logging of the complete conversation history."""
         # Extract timeout from kwargs if provided
-        timeout = kwargs.pop('timeout', None)
+        timeout = kwargs.pop('timeout', None) or self.request_timeout
         
         # Get conversation_id if available
         conversation_id = kwargs.get('conversation_id')
@@ -493,37 +537,146 @@ class TemplateAgentService(BaseAgentService):
                 kwargs['project_files'] = self.load_project_files(kwargs['project_path'])
                 logger.info(f"Loaded {len(kwargs['project_files'])} project files for context")
         
-        # Call original method with potentially modified timeout
-        if timeout:
-            # Store original timeout
-            original_timeout = self.request_timeout
-            try:
-                # Set new timeout for this request
-                self.request_timeout = timeout
-                result = super().process_conversation(user_input, model, user, **kwargs)
-                
-                # Log the response (preview only)
-                if result.get('success'):
-                    response_preview = result.get('response', '')[:100]
-                    logger.info(f"Response preview: {response_preview}...")
-                else:
-                    logger.error(f"Error in response: {result.get('error')}")
-                
-                return result
-            finally:
-                # Restore original timeout
-                self.request_timeout = original_timeout
-        else:
-            result = super().process_conversation(user_input, model, user, **kwargs)
+        try:
+            # Get or create conversation
+            system_prompt_content = kwargs.get('system_prompt')
+            project_id = kwargs.get('project_id')
             
-            # Log the response (preview only)
-            if result.get('success'):
-                response_preview = result.get('response', '')[:100]
-                logger.info(f"Response preview: {response_preview}...")
+            # Get conversation_id if available
+            if conversation_id:
+                conversation = self.get_conversation(conversation_id, user)
+                if not conversation:
+                    # Create a new conversation if the requested one doesn't exist
+                    conversation = self.create_conversation(user, model, system_prompt_content, project_id)
             else:
-                logger.error(f"Error in response: {result.get('error')}")
+                # Create a new conversation if no conversation_id provided
+                conversation = self.create_conversation(user, model, system_prompt_content, project_id)
             
-            return result
+            # Add the user's message to the conversation
+            self.add_user_message(conversation, user_input, user)
+            
+            # Build conversation history including context from project files
+            project_path = kwargs.get('project_path')
+            current_file = kwargs.get('current_file')
+            messages = self.build_conversation_history(conversation, project_path, current_file)
+            
+            # Check if user has sufficient credits
+            has_credits, required_amount = self.check_user_credits(user, model)
+            if not has_credits:
+                return {
+                    'success': False,
+                    'error': f"Insufficient credits. This model requires ${required_amount:.4f} credits."
+                }
+            
+            # Determine which AI provider to use based on model ID
+            from apps.Products.Oasis.Builder.services.models_service import get_provider_from_model_id
+            provider = get_provider_from_model_id(model)
+            
+            # Prepare response
+            response_content = ""
+            completion_tokens = None
+            
+            # Set up request parameters
+            temperature = kwargs.get('temperature', 0.5)  # Lower temperature for templates
+            max_tokens = kwargs.get('max_tokens', 4096)
+            
+            try:
+                if provider == 'anthropic':
+                    # Prepare Anthropic API payload
+                    anthropic_messages = []
+                    
+                    # Add system prompt as a system message if the first message is a system prompt
+                    if messages and messages[0]['role'] == 'system':
+                        system_prompt = messages[0]['content']
+                        messages = messages[1:]  # Remove system prompt from messages list
+                    else:
+                        system_prompt = None
+                    
+                    # Convert messages to Anthropic format
+                    for msg in messages:
+                        if msg['role'] in ['user', 'assistant']:
+                            anthropic_messages.append({
+                                'role': msg['role'],
+                                'content': msg['content']
+                            })
+                    
+                    # Prepare complete API request payload
+                    anthropic_payload = {
+                        'model': model,
+                        'messages': anthropic_messages,
+                        'max_tokens': max_tokens,
+                        'temperature': temperature,
+                    }
+                    
+                    # Add system prompt if present
+                    if system_prompt:
+                        anthropic_payload['system'] = system_prompt
+                    
+                    # Make API call to Anthropic
+                    completion = self.anthropic_client.messages.create(**anthropic_payload)
+                    
+                    # Extract response content
+                    response_content = completion.content[0].text
+                    completion_tokens = completion.usage.output_tokens
+                    
+                elif provider == 'openai':
+                    # Prepare OpenAI API payload
+                    openai_payload = {
+                        'model': model,
+                        'messages': messages,
+                        'temperature': temperature,
+                        'max_tokens': max_tokens
+                    }
+                    
+                    # Make API call to OpenAI
+                    completion = self.openai_client.chat.completions.create(**openai_payload)
+                    
+                    # Extract response content
+                    response_content = completion.choices[0].message.content
+                    completion_tokens = completion.usage.completion_tokens
+                    
+                else:
+                    raise ValueError(f"Unsupported AI model provider: {provider}")
+                
+                # Fix template issues before validation if this is a template
+                if self.current_template_name and self.current_template_name.endswith('.html'):
+                    response_content = self.fix_template_issues(response_content, self.current_template_name)
+                    logger.info("Fixed template issues automatically")
+                
+                # Validate the response
+                is_valid, error_message = self.validate_response(response_content)
+                if not is_valid:
+                    raise ValueError(f"Invalid response: {error_message}")
+                
+                # Add the assistant's message to the conversation
+                self.add_assistant_message(conversation, response_content, user)
+                
+                # Deduct credits for this API call
+                credits_used = self.deduct_credits(user.id, model, completion_tokens)
+                
+                return {
+                    'success': True,
+                    'response': response_content,
+                    'conversation_id': conversation.id,
+                    'credits_used': credits_used
+                }
+                
+            except Exception as e:
+                logger.error(f"Error in AI API call: {str(e)}")
+                return {
+                    'success': False,
+                    'error': f"Error calling AI model: {str(e)}",
+                    'conversation_id': conversation.id if conversation else None
+                }
+                
+        except Exception as e:
+            logger.error(f"Exception in process_conversation: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                'success': False,
+                'error': f"Error processing template: {str(e)}"
+            }
 
     def process_template(self, prompt, model, user, project_id=None, file_name=None, conversation_id=None):
         """
@@ -548,9 +701,14 @@ class TemplateAgentService(BaseAgentService):
             if not model:
                 return self.error_response("Model is required")
             
-            # Store file name if provided
+            # Store file name if provided and ensure it has .html extension if missing
             if file_name:
+                if not file_name.endswith('.html'):
+                    file_name = file_name + '.html'
+                    logger.info(f"Added .html extension to file name: {file_name}")
+                
                 self.current_template_name = file_name
+                logger.info(f"Set current_template_name to: {self.current_template_name}")
             
             # Get additional system context for this request
             template_context = self.get_additional_context(
@@ -579,8 +737,40 @@ class TemplateAgentService(BaseAgentService):
                 project_id=project_id,
                 system_prompt=system_prompt,
                 conversation_id=conversation_id,
-                is_build_mode=True
+                is_build_mode=True,
+                current_template_name=self.current_template_name  # Pass the template name explicitly
             )
+            
+            # Ensure the result is not None and has expected structure
+            if result is None:
+                logger.error("Received None result from process_conversation in process_template")
+                return {
+                    'success': False,
+                    'error': 'Internal server error: No response from AI model'
+                }
+            
+            # Make sure it has success key
+            if 'success' not in result:
+                logger.error("Result from process_conversation missing 'success' key")
+                result['success'] = False
+                
+            # Make sure it has error key if not successful
+            if not result.get('success') and 'error' not in result:
+                logger.error("Unsuccessful result missing 'error' key")
+                result['error'] = 'Unknown error occurred during template generation'
+            
+            # Make sure successful result has a response
+            if result.get('success') and 'response' not in result:
+                logger.error("Successful result missing 'response' key")
+                result['response'] = 'Template generation completed but no content was returned'
+            
+            # For successful results, try to fix any remaining template issues
+            if result.get('success') and 'response' in result:
+                # Apply fix_template_issues one more time to ensure all template issues are fixed
+                fixed_content = self.fix_template_issues(result['response'], self.current_template_name)
+                result['response'] = fixed_content
+                result['code'] = fixed_content  # Make sure code field matches the response
+                logger.info("Applied final template fixes to ensure proper structure")
             
             # Enhance response with file info
             if result.get('success') and file_name:
@@ -593,6 +783,8 @@ class TemplateAgentService(BaseAgentService):
             
         except Exception as e:
             logger.error(f"Error in process_template: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {
                 'success': False,
                 'error': str(e)
@@ -756,167 +948,3 @@ if settings.DEBUG:
         except Exception as e:
             logger.error(f"Error creating view and URL for {template_name}: {str(e)}")
             return False
-
-    def validate_project_access(self, project_id, user):
-        """
-        Validate that a project exists and the user has access to it.
-        
-        Args:
-            project_id (str): The ID of the project
-            user (User): The Django user object
-            
-        Returns:
-            tuple: (project, error_response)
-        """
-        try:
-            from apps.Products.Oasis.ProjectManager.models import Project
-            project = Project.objects.get(id=project_id, user=user)
-            
-            if not project.project_path:
-                logger.error(f"Project {project_id} has no valid project path")
-                return None, {
-                    'success': False,
-                    'error': 'Project path not found. The project may not be properly initialized.'
-                }
-                
-            return project, None
-            
-        except Project.DoesNotExist:
-            logger.error(f"Project {project_id} not found for user {user.username}")
-            return None, {
-                'success': False,
-                'error': 'Project not found or you do not have access to it'
-            }
-        except Exception as e:
-            logger.error(f"Error verifying project: {str(e)}")
-            return None, {
-                'success': False,
-                'error': f'Error accessing project: {str(e)}'
-            }
-
-    def load_project_files(self, project_path):
-        """
-        Load all relevant project files to provide context for template generation.
-        
-        Args:
-            project_path (str): Path to the project directory
-            
-        Returns:
-            list: List of project files with their content
-        """
-        files = []
-        
-        try:
-            if not project_path or not os.path.exists(project_path):
-                logger.warning(f"Invalid project path: {project_path}")
-                return files
-            
-            # Get templates
-            templates_dir = os.path.join(project_path, 'templates')
-            if os.path.exists(templates_dir):
-                html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
-                # Sort files but prioritize base.html and index.html
-                sorted_files = []
-                if 'base.html' in html_files:
-                    sorted_files.append('base.html')
-                    html_files.remove('base.html')
-                if 'index.html' in html_files:
-                    sorted_files.append('index.html')
-                    html_files.remove('index.html')
-                    
-                # Add remaining files
-                sorted_files.extend(sorted(html_files))
-                
-                for filename in sorted_files:
-                    file_path = os.path.join(templates_dir, filename)
-                    try:
-                        with open(file_path, 'r') as f:
-                            content = f.read()
-                            files.append({
-                                'path': f'templates/{filename}',
-                                'content': content,
-                                'type': 'html'
-                            })
-                    except Exception as e:
-                        logger.warning(f"Error reading HTML file {filename}: {str(e)}")
-            
-            # Get CSS files for styling context
-            css_dir = os.path.join(project_path, 'static', 'css')
-            if os.path.exists(css_dir):
-                for filename in os.listdir(css_dir):
-                    if filename.endswith('.css'):
-                        file_path = os.path.join(css_dir, filename)
-                        try:
-                            with open(file_path, 'r') as f:
-                                content = f.read()
-                                files.append({
-                                    'path': f'static/css/{filename}',
-                                    'content': content,
-                                    'type': 'css'
-                                })
-                        except Exception as e:
-                            logger.warning(f"Error reading CSS file {filename}: {str(e)}")
-            
-            # Get URL configuration for additional context
-            urls_py_path = None
-            for root, dirs, file_list in os.walk(project_path):
-                if 'urls.py' in file_list:
-                    urls_py_path = os.path.join(root, 'urls.py')
-                    break
-                    
-            if urls_py_path:
-                try:
-                    with open(urls_py_path, 'r') as f:
-                        content = f.read()
-                        rel_path = os.path.relpath(urls_py_path, project_path)
-                        files.append({
-                            'path': rel_path,
-                            'content': content,
-                            'type': 'python'
-                        })
-                except Exception as e:
-                    logger.warning(f"Error reading urls.py: {str(e)}")
-            
-            # Get views.py for additional context
-            views_py_path = None
-            for root, dirs, file_list in os.walk(project_path):
-                if 'views.py' in file_list:
-                    views_py_path = os.path.join(root, 'views.py')
-                    break
-                    
-            if views_py_path:
-                try:
-                    with open(views_py_path, 'r') as f:
-                        content = f.read()
-                        rel_path = os.path.relpath(views_py_path, project_path)
-                        files.append({
-                            'path': rel_path,
-                            'content': content,
-                            'type': 'python'
-                        })
-                except Exception as e:
-                    logger.warning(f"Error reading views.py: {str(e)}")
-                
-            return files
-            
-        except Exception as e:
-            logger.error(f"Error loading project files: {str(e)}")
-            return files
-
-    def error_response(self, message, code=400):
-        """
-        Create a standardized error response.
-        
-        Args:
-            message (str): The error message
-            code (int): The HTTP status code
-            
-        Returns:
-            dict: An error response dictionary
-        """
-        logger.error(f"Template agent error: {message}")
-        return {
-            'success': False,
-            'error': message,
-            'code': code
-        }

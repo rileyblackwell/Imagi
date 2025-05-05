@@ -16,8 +16,22 @@ import traceback
 
 
 # Import services when needed, not at module level
-from ..services import ChatAgentService, TemplateAgentService, StylesheetAgentService
+from ..services import ChatAgentService, TemplateAgentService
 
+# Try to import StylesheetAgentService, which might not be available
+try:
+    from ..services import StylesheetAgentService
+    has_stylesheet_service = True
+except ImportError:
+    has_stylesheet_service = False
+    # Create a fallback error function
+    def stylesheet_service_not_available(error_message="Stylesheet service not available"):
+        def service_error(*args, **kwargs):
+            return {
+                'success': False,
+                'error': error_message
+            }
+        return service_error
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +108,6 @@ def cors_preflight(request):
     response = Response()
     return add_cors_headers(response)
 
-# Remove chat_agent initialization at module level
-# chat_agent = ChatAgentService()
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def build_template(request):
@@ -124,6 +135,9 @@ def build_template(request):
             
         if not project_id:
             return create_error_response('Project ID is required', status.HTTP_400_BAD_REQUEST)
+        
+        # Ensure project_id is a string
+        project_id = str(project_id)
             
         # Validate project access
         project, error = template_agent.validate_project_access(project_id, request.user)
@@ -178,6 +192,13 @@ def build_stylesheet(request):
         Response: A Django REST Framework response containing the generated CSS
     """
     try:
+        # Check if StylesheetAgentService is available
+        if not has_stylesheet_service:
+            return create_error_response(
+                'Stylesheet generation service is not available in this installation',
+                status.HTTP_501_NOT_IMPLEMENTED
+            )
+            
         data = request.data
         message = data.get('message')
         model = data.get('model', 'claude-3-7-sonnet-20250219')
@@ -192,6 +213,9 @@ def build_stylesheet(request):
 
         if not project_id:
             return create_error_response('Project ID is required', status.HTTP_400_BAD_REQUEST)
+            
+        # Ensure project_id is a string
+        project_id = str(project_id)
 
         if not file_path:
             return create_error_response('File path is required', status.HTTP_400_BAD_REQUEST)
@@ -272,6 +296,10 @@ def chat(request):
         # Validate model
         if not model:
             model = 'claude-3-7-sonnet-20250219'  # Default model
+            
+        # Ensure project_id is a string if provided
+        if project_id:
+            project_id = str(project_id)
             
         # Create agent instance
         chat_agent = ChatAgentService()

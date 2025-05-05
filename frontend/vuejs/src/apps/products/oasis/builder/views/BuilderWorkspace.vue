@@ -308,14 +308,20 @@ async function handlePrompt(eventData?: { timestamp: string }) {
         }
       } else if (isHTML) {
         try {
-          // Call the AI service to generate code
+          // Ensure the file path is correctly formatted for HTML files
+          let formattedPath = store.selectedFile.path;
+          if (!formattedPath.includes('/templates/') && !formattedPath.startsWith('templates/')) {
+            formattedPath = `templates/${formattedPath.replace(/^\//, '')}`;
+          }
+          
+          // Call the AI service to generate code - will use template endpoint in agentService
           const response = await AgentService.generateCode(
             projectId.value,
             {
               prompt: prompt.value,
               model: store.selectedModelId,
               mode: 'build',
-              file_path: store.selectedFile.path
+              file_path: formattedPath
             }
           )
           

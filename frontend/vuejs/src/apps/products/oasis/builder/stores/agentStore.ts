@@ -38,11 +38,6 @@ export const useAgentStore = defineStore('agent', {
     setMode(mode: BuilderMode) {
       if (this.canSwitchMode) {
         this.mode = mode
-        
-        // Clear conversation when switching to build mode
-        if (mode === 'build') {
-          this.conversation = []
-        }
       } else {
         console.warn('Cannot switch mode due to unsaved changes or processing')
       }

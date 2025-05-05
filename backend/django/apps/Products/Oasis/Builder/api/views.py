@@ -123,7 +123,7 @@ class AIModelsView(APIView):
     def get(self, request):
         models_service = ModelsService()
         models = models_service.get_available_models()
-        return Response(models)
+        return Response({'models': models})
 
 @method_decorator(never_cache, name='dispatch')
 class FileContentView(APIView):

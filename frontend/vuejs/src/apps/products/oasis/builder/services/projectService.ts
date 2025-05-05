@@ -332,98 +332,57 @@ export const ProjectService = {
   },
 
   /**
-   * Initialize a project after creation
-   * This sets up the initial project structure
+   * Initialize a project by setting up required files and configurations
+   * 
+   * @param projectId - The ID of the project to initialize
+   * @returns Promise with success status
    */
-  async initializeProject(projectId: string): Promise<any> {
-    console.debug('Project API - initializing project:', { projectId })
-    
-    if (!projectId) {
-      console.error('Project API - initializeProject: No project ID provided')
-      throw new Error('Project ID is required')
-    }
-    
+  async initializeProject(projectId: string): Promise<{ success: boolean }> {
     try {
-      // First, check if the project is already initialized
-      const statusResponse = await api.get(
-        `api/v1/project-manager/projects/${projectId}/status/`
-      )
+      await api.post(`/api/v1/projects/${projectId}/initialize/`);
+      return { success: true };
+    } catch (error) {
+      throw new Error(`Failed to initialize project: ${this.formatError(error)}`);
+    }
+  },
+
+  /**
+   * Format an error object or string into a readable message
+   * 
+   * @param error - The error to format
+   * @returns Formatted error message
+   */
+  formatError(error: any): string {
+    if (error instanceof Error) {
+      return error.message;
+    } else if (typeof error === 'string') {
+      return error;
+    } else if (error && error.response && error.response.data) {
+      const data = error.response.data;
       
-      console.debug('Project API - project status check:', {
-        status: statusResponse.status,
-        data: statusResponse.data
-      })
-      
-      // If project is already initialized, return immediately
-      if (statusResponse.data?.is_initialized) {
-        console.debug('Project is already initialized, skipping initialization')
-        return {
-          success: true,
-          already_initialized: true,
-          is_initialized: true,
-          project_id: statusResponse.data.id,
-          name: statusResponse.data.name
+      if (data.detail) {
+        return data.detail;
+      } else if (data.message) {
+        return data.message;
+      } else if (data.error) {
+        return data.error;
+      } else if (typeof data === 'string') {
+        return data;
+      } else {
+        try {
+          return JSON.stringify(data);
+        } catch (e) {
+          return 'Unknown error occurred';
         }
       }
-      
-      // Add a small delay to ensure any previous operations are completed
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Otherwise, proceed with initialization
-      console.debug('Project not initialized, sending initialization request')
-      
-      // Use a timeout to prevent hanging requests
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-      
+    } else if (error && error.message) {
+      return error.message;
+    } else {
       try {
-        const response = await api.post(
-          `api/v1/project-manager/projects/${projectId}/initialize/`,
-          {}, // empty body
-          { signal: controller.signal }
-        )
-        
-        clearTimeout(timeoutId)
-        
-        console.debug('Project API - initializeProject response:', {
-          status: response.status,
-          data: response.data
-        })
-        
-        return response.data
-      } catch (initError: any) {
-        clearTimeout(timeoutId)
-        throw initError
+        return JSON.stringify(error);
+      } catch (e) {
+        return 'Unknown error occurred';
       }
-    } catch (error: any) {
-      console.error('Project API - initializeProject error:', error)
-      
-      // If it's an abort error, provide a clearer message
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-        throw new Error('Project initialization timed out. The server might be busy, please try again later.')
-      }
-      
-      if (error.response?.status === 404) {
-        throw new Error('Project not found')
-      } else if (error.response?.status === 401) {
-        throw new Error('You must be logged in to initialize a project')
-      } else if (error.response?.status === 403) {
-        throw new Error('You do not have permission to initialize this project')
-      } else if (error.response?.status === 409) {
-        // Project already initialized is not an error
-        console.debug('Project already initialized')
-        return { 
-          success: true, 
-          already_initialized: true,
-          project_id: projectId
-        }
-      } else if (error.response?.data?.detail) {
-        throw new Error(error.response.data.detail)
-      } else if (error.response?.data?.error) {
-        throw new Error(error.response.data.error)
-      }
-      
-      throw error
     }
   },
 
