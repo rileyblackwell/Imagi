@@ -13,6 +13,7 @@ Utility functions:
 
 import os
 import logging
+import json
 from dotenv import load_dotenv
 from openai import OpenAI
 import anthropic
@@ -23,8 +24,6 @@ from django.shortcuts import get_object_or_404
 from apps.Payments.services import PaymentService
 from .model_definitions import (
     get_model_cost, 
-    get_model_by_id, 
-    get_api_version_from_model_id,
     get_provider_from_model_id
 )
 
@@ -248,155 +247,154 @@ class BaseAgentService(ABC):
         Must be implemented by subclasses.
         
         Returns:
-            dict: A message dictionary with 'role' and 'content' keys
+            str: The system prompt text
         """
-        raise NotImplementedError("Subclasses must implement get_system_prompt()")
+        pass
     
-    @abstractmethod
     def validate_response(self, content):
         """
-        Validate the AI model's response.
-        Must be implemented by subclasses.
+        Validate that the response from the AI model is acceptable.
         
         Args:
-            content (str): The response content to validate
+            content (str): The content to validate
             
         Returns:
-            tuple: (is_valid, error_message)
+            bool: Whether the response is valid
+            
+        Raises:
+            ValueError: If the response is invalid
         """
-        raise NotImplementedError("Subclasses must implement validate_response()")
+        # Basic validation
+        if not content or not isinstance(content, str):
+            raise ValueError("Empty or invalid response received from AI model")
+            
+        # Check for response length
+        if len(content) < 10:
+            raise ValueError(f"Response too short ({len(content)} chars)")
+            
+        return True
     
     # Credit Management Methods
     def check_user_credits(self, user_id, model, completion_tokens=None):
         """
-        Check if the user has enough credits to use the specified model.
+        Check if user has sufficient credits for the model.
         
         Args:
-            user_id (str): The ID of the user
-            model (str): The model to be used
+            user_id (int): The user ID
+            model (str): The model ID
             completion_tokens (int, optional): The number of completion tokens if known
             
         Returns:
-            tuple: (bool, str) - Whether the user has enough credits and a message
+            bool: True if user has sufficient credits
+            
+        Raises:
+            ValueError: If user does not have sufficient credits
         """
-        try:
-            # Get the user and their credit balance
-            user = self.get_user_by_id(user_id)
-            
-            if not user:
-                return False, "User not found"
-            
-            credit_balance = user.get('credits', 0)
-            
-            # Default cost for unknown models
-            model_cost = 0.04  # Default to $0.04 per request for safety
-            
-            # Get the exact cost using the centralized get_model_cost function
-            model_cost = get_model_cost(model)
-            
-            # Check if user has enough credits
-            logger.info(f"User credits: ${credit_balance}, Model cost: ${model_cost}")
-            
-            if credit_balance < model_cost:
-                msg = f"Insufficient credits. You have ${credit_balance:.3f}, but this request costs ${model_cost:.3f}."
-                logger.warning(f"User {user_id} has insufficient credits: {credit_balance} < {model_cost}")
-                return False, msg
-            
-            return True, "User has sufficient credits"
-            
-        except Exception as e:
-            logger.error(f"Error checking user credits: {e}")
-            return False, f"Error checking credits: {str(e)}"
-
+        # Get the model cost
+        model_cost = get_model_cost(model)
+        
+        # Check if user has sufficient credits
+        payment_result = self.payment_service.check_balance(user_id, model_cost)
+        
+        if not payment_result.get('success', False):
+            # Handle insufficient credits
+            error_message = payment_result.get('error', 'Insufficient credits to use this AI model')
+            logger.warning(f"Credit check failed for user {user_id}: {error_message}")
+            raise ValueError(error_message)
+        
+        return True
+    
     def deduct_credits(self, user_id, model, completion_tokens=None):
         """
-        Deduct credits from a user's account based on the model used.
+        Deduct credits from user for using the model.
         
         Args:
-            user_id (str): The ID of the user
-            model (str): The model that was used
-            completion_tokens (int, optional): The number of completion tokens if known
+            user_id (int): The user ID
+            model (str): The model ID
+            completion_tokens (int, optional): The number of completion tokens
             
         Returns:
-            bool: Whether the credits were successfully deducted
+            float: The amount of credits deducted
         """
-        try:
-            # Get the user object
-            user = self.get_user_by_id(user_id)
+        # Get the model cost
+        amount = get_model_cost(model)
+        
+        # Create descriptive message for transaction
+        description = f"AI usage: {model}"
+        
+        # Add token information if available
+        if completion_tokens:
+            description += f" - {completion_tokens} tokens"
+            # Adjust cost based on actual token usage if available
+            token_cost = amount / 1000  # Assuming cost is per 1K tokens
+            adjusted_amount = token_cost * completion_tokens
+            amount = max(adjusted_amount, amount * 0.1)  # Ensure minimum charge of 10% of base cost
             
-            if not user:
-                logger.error(f"User {user_id} not found when trying to deduct credits")
-                return False
+        # Log the charge details
+        logger.info(f"Charging user {user_id} ${amount:.4f} for {description}")
             
-            # Get the cost of the model using the centralized get_model_cost function
-            model_cost = get_model_cost(model)  # Get centralized cost
+        # Charge the user
+        payment_result = self.payment_service.charge_tokens(user_id, amount, description)
+        
+        if not payment_result.get('success', False):
+            # This shouldn't happen if check_user_credits was called first
+            logger.error(f"Failed to deduct credits for user {user_id}: {payment_result.get('error')}")
             
-            # Get current credits
-            current_credits = user.get('credits', 0)
-            
-            # Calculate new credit balance
-            new_credit_balance = current_credits - model_cost
-            
-            # Ensure balance doesn't go negative (shouldn't happen with proper checks)
-            if new_credit_balance < 0:
-                new_credit_balance = 0
-            
-            # Update user credits in the database
-            self.update_user_credits(user_id, new_credit_balance)
-            
-            logger.info(f"Credits deducted for user {user_id}: -{model_cost:.3f}, New balance: {new_credit_balance:.3f}")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error deducting credits: {e}")
-            return False
+        return amount
     
     # Conversation Management Methods
     def get_conversation(self, conversation_id, user):
         """
-        Get a specific conversation by ID.
+        Get an existing conversation by ID.
         
         Args:
             conversation_id (str): The ID of the conversation
-            user: The Django user object
+            user (User): The Django user object
             
         Returns:
-            AgentConversation: The conversation object or None if not found
+            AgentConversation: The conversation object or None
         """
         try:
             return get_object_or_404(AgentConversation, id=conversation_id, user=user)
         except Exception as e:
-            logger.error(f"Error getting conversation: {str(e)}")
+            logger.error(f"Error getting conversation {conversation_id}: {str(e)}")
             return None
     
-    def create_conversation(self, user, model, system_prompt, project_id=None):
+    def create_conversation(self, user, model, system_prompt=None, project_id=None):
         """
         Create a new conversation.
         
         Args:
-            user: The Django user object
-            model: The model to use
-            system_prompt: The system prompt dictionary
-            project_id (int, optional): The ID of the project
+            user (User): The Django user object
+            model (str): The model ID to use
+            system_prompt (str, optional): The system prompt content
+            project_id (str, optional): The project ID
             
         Returns:
-            AgentConversation: The created conversation object
+            AgentConversation: The created conversation
         """
         try:
-            # Create the conversation
+            # Create conversation
             conversation = AgentConversation.objects.create(
                 user=user,
                 model_name=model,
-                provider='anthropic' if 'claude' in model else 'openai',
                 project_id=project_id
             )
             
-            # Add the system prompt
-            SystemPrompt.objects.create(
-                conversation=conversation,
-                content=system_prompt['content']
-            )
+            # Add system prompt if provided
+            if system_prompt:
+                SystemPrompt.objects.create(
+                    conversation=conversation,
+                    content=system_prompt
+                )
+            else:
+                # Use default system prompt from the agent service
+                default_prompt = self.get_system_prompt()
+                if default_prompt:
+                    SystemPrompt.objects.create(
+                        conversation=conversation,
+                        content=default_prompt
+                    )
             
             return conversation
         except Exception as e:
@@ -405,44 +403,48 @@ class BaseAgentService(ABC):
     
     def add_user_message(self, conversation, content, user):
         """
-        Add a user message to a conversation.
+        Add a user message to the conversation.
         
         Args:
-            conversation: The conversation object
-            content: The message content
-            user: The Django user object
+            conversation (AgentConversation): The conversation object
+            content (str): The message content
+            user (User): The Django user object
             
         Returns:
             AgentMessage: The created message
         """
         try:
-            return AgentMessage.objects.create(
+            message = AgentMessage.objects.create(
                 conversation=conversation,
-                role='user',
-                content=content
+                role="user",
+                content=content,
+                user=user
             )
+            return message
         except Exception as e:
             logger.error(f"Error adding user message: {str(e)}")
             raise
     
     def add_assistant_message(self, conversation, content, user):
         """
-        Add an assistant message to a conversation.
+        Add an assistant message to the conversation.
         
         Args:
-            conversation: The conversation object
-            content: The message content
-            user: The Django user object
+            conversation (AgentConversation): The conversation object
+            content (str): The message content
+            user (User): The Django user object
             
         Returns:
             AgentMessage: The created message
         """
         try:
-            return AgentMessage.objects.create(
+            message = AgentMessage.objects.create(
                 conversation=conversation,
-                role='assistant',
-                content=content
+                role="assistant",
+                content=content,
+                user=user
             )
+            return message
         except Exception as e:
             logger.error(f"Error adding assistant message: {str(e)}")
             raise
@@ -463,285 +465,163 @@ class BaseAgentService(ABC):
     
     def process_conversation(self, user_input, model, user, **kwargs):
         """
-        Process a conversation message and generate a response.
+        Process a conversation with the AI model.
         
         Args:
-            user_input (str): The user's message
-            model (str): The ID of the model to use
-            user (User): The Django user making the request
-            **kwargs: Additional arguments
-                - conversation_id (str, optional): ID of an existing conversation
-                - project_path (str, optional): Path to project files
-                - current_file (dict, optional): Current file being edited or chatted about
+            user_input (str): The user's input message
+            model (str): The model ID to use (e.g., 'gpt-4', 'claude-3-sonnet')
+            user (User): The Django user object
+            **kwargs: Additional parameters such as project_id, file, etc.
             
         Returns:
-            dict: The result of processing the message
+            dict: A dictionary containing the AI's response and other metadata
         """
+        # Extract optional parameters
+        project_id = kwargs.get('project_id')
+        project_path = kwargs.get('project_path')
+        conversation_id = kwargs.get('conversation_id')
+        system_prompt_content = kwargs.get('system_prompt')
+        is_stream = kwargs.get('stream', False)
+        temperature = kwargs.get('temperature', 0.7)
+        max_tokens = kwargs.get('max_tokens', None)
+        current_file = kwargs.get('file')
+        
+        # Get or create conversation
+        if conversation_id:
+            conversation = self.get_conversation(conversation_id, user)
+            if not conversation:
+                # Create a new conversation if the requested one doesn't exist
+                conversation = self.create_conversation(user, model, system_prompt_content, project_id)
+        else:
+            # Create a new conversation if no conversation_id provided
+            conversation = self.create_conversation(user, model, system_prompt_content, project_id)
+        
+        # Add the user's message to the conversation
+        self.add_user_message(conversation, user_input, user)
+        
+        # Build conversation history including system prompts
+        messages = self.build_conversation_history(conversation, project_path, current_file)
+        
+        # Convert model ID into a provider name
+        provider = get_provider_from_model_id(model)
+        
+        # Prepare response
+        response_content = ""
+        
+        # Check user has sufficient credits
+        completion_tokens = None  # We don't know yet how many tokens will be used
+        self.check_user_credits(user.id, model, completion_tokens)
+        
+        # Log all messages for debugging with complete request payloads
+        for i, msg in enumerate(messages):
+            safe_msg = msg.copy()
+            if 'content' in safe_msg and safe_msg['content']:
+                # Truncate long content for logging
+                if len(safe_msg['content']) > 500:
+                    safe_msg['content'] = safe_msg['content'][:500] + f"... [truncated, total length: {len(msg['content'])}]"
+            logger.debug(f"Message {i+1}/{len(messages)}: {safe_msg}")
+        
         try:
-            # Log the model ID being used
-            logger.info(f"Processing conversation with model: {model}")
-            
-            # Check if this is a build mode request
-            is_build_mode = kwargs.get('is_build_mode', False)
-            if is_build_mode:
-                logger.info("PROCESSING IN BUILD MODE")
-            
-            # Get or create conversation
-            conversation_id = kwargs.get('conversation_id')
-            if conversation_id:
-                try:
-                    conversation = self.get_conversation(conversation_id, user)
-                    if not conversation:
-                        return {
-                            'success': False,
-                            'error': 'Conversation not found'
-                        }
-                except Exception as e:
-                    return {
-                        'success': False,
-                        'error': f'Error retrieving conversation: {str(e)}'
-                    }
-            else:
-                # Get project ID from kwargs if available
-                project_id = kwargs.get('project_id')
-                if project_id:
-                    logger.info(f"Creating new conversation for project ID: {project_id}")
-                
-                conversation = self.create_conversation(user, model, self.get_system_prompt(), project_id)
-            
-            # Charge the user for using AI models
-            # Determine charge amount based on model using the centralized get_model_cost function
-            amount = get_model_cost(model)
-            
-            # Log the model pricing
-            logger.info(f"Charging user {user.username} ${amount:.4f} for using model: {model}")
-            
-            # Create descriptive message for transaction
-            description = f"AI usage: {model} - ${amount:.4f}"
-            
-            # Charge the user
-            payment_result = self.payment_service.charge_tokens(user, amount, description)
-            
-            if not payment_result.get('success', False):
-                # Handle insufficient credits
-                logger.warning(f"Payment failed for user {user.username}: {payment_result.get('error')}")
-                return {
-                    'success': False,
-                    'error': payment_result.get('error', 'Insufficient credits to use this AI model'),
-                    'current_balance': payment_result.get('current_balance', 0),
-                    'required_amount': amount
-                }
-            
-            logger.info(f"Successfully charged user {user.username} ${amount:.4f} for model {model}")
-            
-            # Get project path for context
-            project_path = kwargs.get('project_path')
-            current_file = kwargs.get('current_file')
-            
-            # Build conversation history including system prompt, project files, and messages
-            api_messages = self.build_conversation_history(conversation, project_path, current_file)
-            
-            # Add the user's message
-            api_messages.append({
-                "role": "user",
-                "content": user_input
-            })
-            
-            # Log the complete conversation history for debugging
-            logger.info(f"===== CONVERSATION HISTORY FOR {model} =====")
-            logger.info(f"Total messages: {len(api_messages)}")
-            
-            # Safe logging function to avoid exposing full content
-            def safe_log_message(msg, idx):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                content_preview = content[:100] + ('...' if len(content) > 100 else '')
-                content_length = len(content)
-                logger.info(f"Message {idx}: role={role}, length={content_length}, preview={content_preview}")
-            
-            # Log each message in a summarized format
-            for idx, msg in enumerate(api_messages):
-                safe_log_message(msg, idx)
-            
-            logger.info("===== END CONVERSATION HISTORY =====")
-            
-            # FULL PAYLOAD LOGGING FOR DEBUGGING (Task 2)
-            # Log the complete payload being sent to the AI provider
-            logger.info("==================================================================")
-            logger.info("========= COMPLETE AI PROVIDER PAYLOAD (BUILD MODE: %s) =========", is_build_mode)
-            logger.info("==================================================================")
-            
-            for idx, msg in enumerate(api_messages):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                
-                logger.info(f"MESSAGE {idx}: role={role}")
-                logger.info("---------- CONTENT START ----------")
-                logger.info(content)
-                logger.info("---------- CONTENT END ----------")
-                logger.info("")
-                
-            logger.info("==================================================================")
-            logger.info("==================== END OF COMPLETE AI PAYLOAD ==================")
-            logger.info("==================================================================")
-            
-            # Determine provider and API version from model ID
-            provider = get_provider_from_model_id(model)
-            api_version = get_api_version_from_model_id(model)
-            
-            # Generate the response using the appropriate model
             if provider == 'anthropic':
-                # Get the system message content for Claude
-                system_content = ""
-                for msg in api_messages:
-                    if msg['role'] == 'system':
-                        system_content += msg['content'] + "\n\n"
+                # Prepare Anthropic API payload
+                anthropic_messages = []
                 
-                # Filter out system messages for Claude API
-                claude_messages = [msg for msg in api_messages if msg['role'] != 'system']
+                # Add system prompt as a system message if the first message is a system prompt
+                if messages and messages[0]['role'] == 'system':
+                    system_prompt = messages[0]['content']
+                    messages = messages[1:]  # Remove system prompt from messages list
+                else:
+                    system_prompt = None
                 
-                # Add additional context to system prompt if file is being discussed
-                if current_file and current_file.get('path'):
-                    file_info = f"You are currently discussing the file: {current_file.get('path')}"
-                    system_content = f"{file_info}\n\n{system_content}"
+                # Convert messages to Anthropic format
+                for msg in messages:
+                    if msg['role'] in ['user', 'assistant']:
+                        anthropic_messages.append({
+                            'role': msg['role'],
+                            'content': msg['content']
+                        })
                 
-                # Adjust system prompt to include instructions about not using streaming
-                system_content = f"{system_content}\n\nIMPORTANT: Provide complete responses at once, not streamed. The user will see a processing animation while waiting."
+                # Prepare complete API request payload
+                anthropic_payload = {
+                    'model': model,
+                    'messages': anthropic_messages,
+                    'max_tokens': max_tokens or 4096,
+                    'temperature': temperature,
+                }
                 
-                # Log the final Claude API payload (sanitized for privacy)
-                logger.info("===== ANTHROPIC API PAYLOAD =====")
-                logger.info(f"Model: {model}, Max tokens: 4096, Temperature: 0.7")
-                logger.info(f"System content length: {len(system_content)} chars")
-                logger.info(f"System content preview: {system_content[:100]}...")
-                logger.info(f"Messages count: {len(claude_messages)}")
-                for idx, msg in enumerate(claude_messages):
-                    safe_log_message(msg, idx)
-                logger.info("===== END ANTHROPIC API PAYLOAD =====")
+                # Add system prompt if present
+                if system_prompt:
+                    anthropic_payload['system'] = system_prompt
                 
-                # Make the API call with better error handling
-                try:
-                    completion = self.anthropic_client.messages.create(
-                        model=model,
-                        max_tokens=4096,
-                        temperature=0.7,
-                        system=system_content.strip(),
-                        messages=claude_messages
-                    )
-                    response_content = completion.content[0].text
-                except Exception as api_error:
-                    logger.error(f"Anthropic API error: {str(api_error)}")
-                    if "API key" in str(api_error):
-                        raise ValueError("The Anthropic API key is invalid or missing. Please check your ANTHROPIC_KEY environment variable.")
-                    raise
-                    
+                # Log the complete payload sent to Anthropic
+                masked_payload = anthropic_payload.copy()
+                logger.info(f"🤖 API REQUEST TO ANTHROPIC - Model: {model}")
+                logger.info(f"Complete API payload: {json.dumps(masked_payload, indent=2)}")
+                
+                # Make API call to Anthropic
+                completion = self.anthropic_client.messages.create(**anthropic_payload)
+                
+                # Extract response content
+                response_content = completion.content[0].text
+                completion_tokens = completion.usage.output_tokens
+                
+                # Log usage information
+                logger.info(f"🔄 ANTHROPIC COMPLETION TOKENS: {completion_tokens}")
+                logger.info(f"🔄 ANTHROPIC PROMPT TOKENS: {completion.usage.input_tokens}")
+                
             elif provider == 'openai':
-                # Add file context as an additional system message
-                if current_file and current_file.get('path'):
-                    file_info_msg = {
-                        "role": "system", 
-                        "content": f"You are currently discussing the file: {current_file.get('path')}"
-                    }
-                    # Insert file context as the second message (after the main system prompt)
-                    system_exists = any(msg['role'] == 'system' for msg in api_messages)
-                    if system_exists:
-                        # Find position of last system message
-                        last_system_idx = max(i for i, msg in enumerate(api_messages) 
-                                            if msg['role'] == 'system')
-                        api_messages.insert(last_system_idx + 1, file_info_msg)
-                    else:
-                        api_messages.insert(0, file_info_msg)
+                # Prepare OpenAI API payload
+                openai_payload = {
+                    'model': model,
+                    'messages': messages,
+                    'temperature': temperature,
+                }
                 
-                # Add instruction about not using streaming
-                api_messages.insert(0, {
-                    "role": "system",
-                    "content": "IMPORTANT: Provide complete responses at once, not streamed. The user will see a processing animation while waiting."
-                })
+                if max_tokens:
+                    openai_payload['max_tokens'] = max_tokens
                 
-                # Log the final OpenAI API payload (sanitized for privacy)
-                logger.info("===== OPENAI API PAYLOAD =====")
-                logger.info(f"Total messages after adding context: {len(api_messages)}")
-                for idx, msg in enumerate(api_messages):
-                    safe_log_message(msg, idx)
-                logger.info("===== END OPENAI API PAYLOAD =====")
+                # Log the complete payload sent to OpenAI
+                masked_payload = openai_payload.copy()
+                logger.info(f"🤖 API REQUEST TO OPENAI - Model: {model}")
+                logger.info(f"Complete API payload: {json.dumps(masked_payload, indent=2)}")
                 
-                # Make the API call with better error handling
-                try:
-                    # Add explicit debug logging for the model being used
-                    logger.info(f"Making OpenAI API call with model ID: {model}")
-                    
-                    # For OpenAI API calls, ensure we're using the correct API format
-                    api_model = model
-                    
-                    # Get model definition from centralized model definitions
-                    model_definition = get_model_by_id(model)
-                    
-                    if model_definition and 'api_model' in model_definition:
-                        # Use specified API model if available in model definition
-                        api_model = model_definition['api_model']
-                        logger.info(f"Using API model from definition: {api_model} for model ID: {model}")
-                    
-                    # Log the API model being used
-                    logger.info(f"Using API model: {api_model}")
-                    
-                    # Make the API call using the chat completions API
-                    completion = self.openai_client.chat.completions.create(
-                        model=api_model,
-                        messages=api_messages,  # Use the messages directly as they're already in the correct format
-                        temperature=0.7,
-                        max_tokens=4096,
-                    )
-                    
-                    # Extract the response content
-                    if completion.choices and len(completion.choices) > 0:
-                        response_content = completion.choices[0].message.content
-                    else:
-                        response_content = "No output found in response"
-                    
-                    # Log successful completion with model
-                    logger.info(f"Successfully completed OpenAI API call with model: {model}")
-                except Exception as api_error:
-                    logger.error(f"OpenAI API error with model {model}: {str(api_error)}")
-                    error_message = str(api_error)
-                    
-                    if "API key" in error_message:
-                        raise ValueError("The OpenAI API key is invalid or missing. Please check your OPENAI_KEY environment variable.")
-                    elif "No such endpoint" in error_message:
-                        raise ValueError(f"The model {api_model} requires the newer OpenAI API with /v1/responses endpoint. Please update your OpenAI client library.")
-                    elif "No such model" in error_message:
-                        raise ValueError(f"The model {api_model} was not found. This may be because your OpenAI client library does not support the latest models or the API key does not have access to it.")
-                    raise
-                    
+                # Make API call to OpenAI
+                completion = self.openai_client.chat.completions.create(**openai_payload)
+                
+                # Extract response content
+                response_content = completion.choices[0].message.content
+                completion_tokens = completion.usage.completion_tokens
+                
+                # Log usage information
+                logger.info(f"🔄 OPENAI COMPLETION TOKENS: {completion_tokens}")
+                logger.info(f"🔄 OPENAI PROMPT TOKENS: {completion.usage.prompt_tokens}")
+                
             else:
-                raise ValueError(f"Unsupported model: {model}")
+                raise ValueError(f"Unsupported AI model provider: {provider}")
             
             # Validate the response
-            is_valid, error = self.validate_response(response_content)
-            if not is_valid:
-                return {
-                    'success': False,
-                    'error': error,
-                    'response': response_content
-                }
+            self.validate_response(response_content)
             
-            # Store the messages
-            if not kwargs.get('skip_store', False):
-                # Store user message
-                self.add_user_message(conversation, user_input, user)
-                
-                # Store assistant response
-                self.add_assistant_message(conversation, response_content, user)
+            # Add the assistant's message to the conversation
+            self.add_assistant_message(conversation, response_content, user)
+            
+            # Deduct credits for this API call
+            credits_used = self.deduct_credits(user.id, model, completion_tokens)
             
             return {
                 'success': True,
                 'response': response_content,
-                'conversation_id': conversation.id
+                'conversation_id': conversation.id,
+                'credits_used': credits_used
             }
             
         except Exception as e:
-            logger.error(f"Error in process_conversation: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
+            # Log the error
+            logger.error(f"Error processing conversation: {str(e)}")
+            
+            # Return error message
             return {
                 'success': False,
-                'error': str(e)
+                'error': str(e),
+                'conversation_id': conversation.id if conversation else None
             } 

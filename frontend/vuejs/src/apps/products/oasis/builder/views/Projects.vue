@@ -359,12 +359,14 @@ async function confirmDelete(project) {
     await projectStore.deleteProject(project.id);
     showNotification({
       type: 'success',
-      message: 'Project deleted successfully'
+      message: `Project "${project.name}" deleted successfully`,
+      duration: 4000 // Shorter duration for better UX
     });
   } catch (err) {
     showNotification({
       type: 'error',
-      message: err.response?.data?.error || 'Failed to delete project'
+      message: err.response?.data?.error || `Failed to delete project "${project.name}"`,
+      duration: 5000
     });
   }
 }

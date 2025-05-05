@@ -218,6 +218,7 @@ export interface ChatProcessingPayload {
 export interface ChatResponse {
   response: string;
   messages: any[];
+  conversation_id?: string;
 }
 
 /**

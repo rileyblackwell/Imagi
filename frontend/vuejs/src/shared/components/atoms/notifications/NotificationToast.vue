@@ -19,7 +19,8 @@
       <p class="flex-1">{{ notification.message }}</p>
       <button
         @click="closeNotification(notification.id)"
-        class="p-1 opacity-60 hover:opacity-100 transition-opacity"
+        class="p-1 opacity-60 hover:opacity-100 transition-opacity focus:outline-none"
+        aria-label="Close notification"
       >
         <i class="fas fa-times"></i>
       </button>

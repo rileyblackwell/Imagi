@@ -1,12 +1,10 @@
 import api from './api'
-import { handleAPIError } from '../utils/errors'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
   UndoResponse,
   ModelConfig,
   ChatPayload,
-  ChatProcessingPayload,
   ChatResponse,
   GenerateStylesheetOptions,
   CodeGenerationRequest
@@ -127,8 +125,6 @@ export const AgentService = {
       
       // For CSS files, use the specialized stylesheet generation method
       if (fileExtension === 'css') {
-        console.log('Using specialized stylesheet generation for CSS file:', filePath);
-        
         try {
           // Use the dedicated stylesheet generator
           const stylesheetResponse = await this.generateStylesheet({
@@ -137,7 +133,7 @@ export const AgentService = {
             filePath: filePath,
             model: modelId,
             onProgress: (progress) => {
-              console.info(`Stylesheet generation progress: ${progress.status} (${progress.percent}%)`);
+              // Progress callback
             }
           });
           
@@ -150,7 +146,6 @@ export const AgentService = {
             single_message: stylesheetResponse.single_message || false
           };
         } catch (cssError) {
-          console.error('Error generating stylesheet:', cssError);
           notify({ type: 'error', message: `Error generating stylesheet: ${cssError instanceof Error ? cssError.message : 'Unknown error'}` });
           throw cssError;
         }
@@ -179,61 +174,11 @@ export const AgentService = {
         }))
       }
       
-      // Log the request details for debugging
-      console.group('🔄 Code Generation Request');
-      console.info('Request Payload:');
-      console.info({
-        model: payload.model,
-        project_id: payload.project_id,
-        file_path: payload.file_path,
-        mode: payload.mode,
-        is_build_mode: payload.is_build_mode,
-        conversation_id: payload.conversation_id,
-        message_length: payload.message.length,
-        message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
-        project_files_count: (payload.project_files || []).length,
-        project_files_preview: (payload.project_files || []).slice(0, 3).map(f => ({
-          path: f.path,
-          type: f.type,
-          content_length: f.content ? f.content.length : 0
-        }))
-      });
-      
-      // Log the complete message
-      console.info('Full prompt:');
-      console.info(payload.message);
-      console.groupEnd();
-      
       // Determine which endpoint to use based on file extension
       let endpoint = '/api/v1/agents/build/template/';
       
-      // HTML files use the template endpoint (already set as default)
-      if (fileExtension === 'html') {
-        // Removed log: console.log('Using template agent for HTML file:', filePath);
-      } else {
-        // Removed log: console.log('Using default agent service for file:', filePath);
-      }
-      
-      // Track request duration
-      console.time('CodeGenerationDuration');
-      
       // Use the appropriate endpoint based on file type
       const response = await longTimeoutApi.post(endpoint, payload)
-      
-      // Log response duration and details
-      console.timeEnd('CodeGenerationDuration');
-      console.group('✅ Code Generation Response');
-      console.info({
-        success: response.data.success !== false,
-        status: response.status,
-        conversation_id: response.data.conversation_id,
-        response_length: response.data.response ? response.data.response.length : 0,
-        code_length: response.data.code ? response.data.code.length : 0,
-        response_preview: response.data.response ? 
-          response.data.response.substring(0, 100) + 
-          (response.data.response.length > 100 ? '...' : '') : 'No response'
-      });
-      console.groupEnd();
       
       // Store the conversation ID for future requests based on file type
       if (response.data.conversation_id) {
@@ -249,99 +194,45 @@ export const AgentService = {
             message: `Generated code with warning: ${response.data.warning}`
           });
         } else {
-          // Complete success
+          // Clean success
           notify({ 
             type: 'success', 
-            message: `Successfully updated file: ${payload.file_path}`
+            message: 'Code generated successfully!'
           });
         }
-        
-        // Refresh file list to show updated file
-        setTimeout(async () => {
-          try {
-            // Force refresh by getting fresh file list
-            await FileService.getProjectFiles(projectId);
-          } catch (err) {
-            console.warn('Error refreshing file list:', err);
-          }
-        }, 500);
       }
       
-      // Handle single_message flag to prevent duplicate messages
-      const messages = [];
-      
-      // Only include the user message if single_message is not set
-      // This prevents duplicates since the user message is already added in the UI
-      if (!response.data.single_message) {
-        messages.push(response.data.user_message);
+      // Log credits usage if provided
+      if (response.data.credits_used) {
+        const paymentsStore = getPaymentsStore();
+        if (paymentsStore) {
+          // Track credit usage in a generic way - just refresh the balance
+          paymentsStore.fetchBalance(false, true);
+        }
       }
-      
-      // Always include the assistant message
-      messages.push(response.data.assistant_message);
       
       return {
-        success: true,
-        code: response.data.code || response.data.response,
-        response: response.data.response || "Generated code successfully",
-        messages: messages,
+        success: response.data.success !== false,
+        code: response.data.code || response.data.response || "",
+        response: response.data.response || response.data.code || "",
+        messages: response.data.messages || [],
         single_message: response.data.single_message || false
       }
-    } catch (error: any) {
+    } catch (error) {
       // Show error notification
       const { notify } = await import('@/shared/utils');
+      notify({ 
+        type: 'error', 
+        message: `Code generation failed: ${this.formatError(error)}`
+      });
       
-      // Enhanced error logging for debugging
-      console.group('❌ Code Generation Error');
-      console.error('Error generating code:', error);
-      
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-        
-        // Log the detailed error data from the backend
-        if (error.response.data) {
-          console.error('Error details from server:', error.response.data);
-          
-          // Log specific error information if available
-          const errorMessage = error.response.data.error || 
-                              error.response.data.detail || 
-                              error.response.data.message ||
-                              'Unknown server error';
-          
-          console.error('Error message:', errorMessage);
-          
-          // Show more detailed error message to the user
-          notify({ 
-            type: 'error', 
-            message: `Error generating code: ${errorMessage}` 
-          });
-        } else {
-          notify({ 
-            type: 'error', 
-            message: `Error generating code: Server returned ${error.response.status}` 
-          });
-        }
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('No response received:', error.request);
-        notify({ 
-          type: 'error', 
-          message: 'Error generating code: No response from server. Please check your connection.' 
-        });
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Request setup error:', error.message);
-        notify({ 
-          type: 'error', 
-          message: `Error generating code: ${error.message || 'Unknown error'}` 
-        });
-      }
-      
-      console.groupEnd();
-      
-      throw handleAPIError(error)
+      // Create a proper CodeGenerationResponse error object
+      return {
+        success: false,
+        response: this.formatError(error),
+        messages: [],
+        error: this.formatError(error)
+      };
     }
   },
 
@@ -352,252 +243,94 @@ export const AgentService = {
     is_build_mode?: boolean;
     file?: any;
   }): Promise<ChatResponse> {
-    if (!data.prompt || !data.model || !projectId) {
-      console.error('AgentService: Missing required parameters for chat');
-      throw new Error('Missing required parameters for chat');
+    if (!data.prompt || !data.model) {
+      throw new Error('Prompt and model are required')
     }
     
-    // Get conversation ID from localStorage
-    const storedConversationId = localStorage.getItem(`chat_conversation_${projectId}`);
-    
-    // Get all project files
-    const files = await FileService.getProjectFiles(projectId);
-    
-    // Prepare request payload
-    const payload: ChatProcessingPayload = {
-      message: data.prompt,
-      model: data.model,
-      project_id: String(projectId),
-      conversation_id: storedConversationId || undefined,
-      mode: data.mode || 'chat',
-      is_build_mode: data.is_build_mode || false,
-      project_files: files.map(file => ({
-        path: file.path,
-        type: file.type,
-        content: file.content || ''
-      }))
-    };
-    
-    // Add current file if available
-    if (data.file) {
-      payload.current_file = {
-        path: data.file.path,
-        type: data.file.type,
-        content: data.file.content || ''
-      }
+    if (!projectId) {
+      throw new Error('Project ID is required')
     }
     
-    // Log request details for debugging
-    console.group('🔄 Chat API Request');
-    console.info('Request Payload:');
-    console.info({
-      model: payload.model,
-      project_id: payload.project_id,
-      conversation_id: payload.conversation_id,
-      message_length: payload.message.length,
-      message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
-      current_file: payload.current_file ? {
-        path: payload.current_file.path,
-        type: payload.current_file.type,
-        content_length: payload.current_file.content ? payload.current_file.content.length : 0
-      } : null,
-      project_files_count: payload.project_files?.length || 0,
-      project_files_preview: (payload.project_files || []).slice(0, 3).map(f => ({
-        path: f.path,
-        type: f.type,
-        content_length: f.content ? f.content.length : 0
-      }))
-    });
-    console.groupEnd();
+    // Check rate limits before making request
+    await this.checkRateLimit(data.model)
+    
+    // Validate prompt length against model context window
+    const config = this.getConfig({ id: data.model } as AIModel)
+    const estimatedTokens = this.estimateTokens(data.prompt)
+    
+    if (estimatedTokens > config.maxTokens) {
+      throw new Error(`Prompt is too long for selected model. Please reduce length or choose a different model.`)
+    }
     
     try {
-      // Check for valid project_id
-      if (!payload.project_id) {
-        console.error('Missing required project_id parameter');
-        throw new Error('Project ID is required for chat API');
+      // Get conversation ID from localStorage if exists
+      const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
+      
+      // Get project files
+      const files: Array<any> = [];
+      try {
+        files.push(...await FileService.getProjectFiles(projectId));
+      } catch (fileError) {
+        // Continue even if we can't get project files
       }
       
-      // Use the chat endpoint from agents/api
-      console.info(`Sending chat request with model: ${payload.model}`);
-      
-      // Make sure we're explicitly using the chat agent service
-      const chatEndpoint = '/api/v1/agents/chat/';
-      console.info(`Using chat agent service endpoint: ${chatEndpoint}`);
-      
-      // Add some retry logic for model-related errors
-      let retryCount = 0;
-      const maxRetries = 1;
-      
-      while (retryCount <= maxRetries) {
-        try {
-          console.time('ChatRequestDuration');
-          const response = await api.post(chatEndpoint, payload);
-          console.timeEnd('ChatRequestDuration');
-          
-          // Log response details for debugging
-          console.group('✅ Chat API Response');
-          console.info({
-            success: response.data.success !== false,
-            status: response.status,
-            conversation_id: response.data.conversation_id,
-            response_length: response.data.response ? response.data.response.length : 0,
-            response_preview: response.data.response ? 
-              response.data.response.substring(0, 100) + 
-              (response.data.response.length > 100 ? '...' : '') : 'No response'
-          });
-          console.groupEnd();
-          
-          // Store the conversation ID for future requests
-          if (response.data.conversation_id) {
-            localStorage.setItem(`chat_conversation_${projectId}`, response.data.conversation_id);
-          }
-          
-          // Create properly formatted user and assistant messages
-          const userMessage = {
-            role: 'user',
-            content: data.prompt,
-            timestamp: new Date().toISOString()
-          };
-          
-          // Extract assistant response, ensuring it's not empty
-          let assistantResponse = response.data.response || '';
-          
-          // Handle potential null response
-          if (assistantResponse === null) {
-            console.warn('AgentService: Null assistant response received from API');
-            assistantResponse = '';
-          }
-          
-          // Additional validation and normalization for response format
-          let validatedResponse = assistantResponse;
-          
-          // If response is an object (possible with some model responses), convert to string
-          if (typeof validatedResponse === 'object') {
-            console.warn('AgentService: Object response received:', validatedResponse);
-            try {
-              validatedResponse = JSON.stringify(validatedResponse);
-            } catch (e) {
-              validatedResponse = String(validatedResponse);
-            }
-          }
-          
-          // Create the assistant message with complete data
-          const assistantMessage = {
-            role: 'assistant',
-            content: validatedResponse,
-            timestamp: new Date().toISOString(),
-            code: response.data.code || null
-          };
-          
-          // Refresh the user's balance after successful API call
-          try {
-            const paymentsStore = getPaymentsStore();
-            paymentsStore.fetchBalance(false); // silent refresh
-          } catch (err) {
-            console.warn('Failed to refresh balance:', err);
-          }
-          
-          return {
-            response: validatedResponse,
-            messages: [userMessage, assistantMessage]
-          };
-        } catch (error: any) {
-          // Check if this is a model-related error we should retry
-          const errorDetail = error.response?.data?.error || '';
-          const shouldRetry = 
-            retryCount < maxRetries && 
-            error.response?.status === 400 && 
-            (errorDetail.includes('model') || errorDetail.includes('API'));
-          
-          if (shouldRetry) {
-            console.warn(`Model error detected, retrying with fallback model (${retryCount + 1}/${maxRetries + 1}):`, errorDetail);
-            retryCount++;
-            // Fall back to Claude if there was an issue with OpenAI models
-            if (payload.model.includes('gpt')) {
-              payload.model = 'claude-3-7-sonnet-20250219';
-              console.info(`Falling back to ${payload.model}`);
-            }
-            // Small delay before retry
-            await new Promise(resolve => setTimeout(resolve, 500));
-          } else {
-            // Not retrying, throw the error to be handled below
-            throw error;
-          }
+      // Prepare file info if provided
+      let currentFile = null;
+      if (data.file) {
+        currentFile = {
+          path: data.file.path,
+          type: data.file.type || this.getFileType(data.file.path),
+          content: data.file.content || ''
         }
       }
       
-      // If we exit the retry loop without returning, we've exhausted our retries without success
-      throw new Error('Failed to process chat after retry attempts');
-    } catch (error: any) {
-      // Log the error for debugging
-      console.error('Chat API error:', error);
+      // Prepare request payload
+      const payload = {
+        message: data.prompt,
+        model: data.model,
+        project_id: String(projectId),
+        conversation_id: storedConversationId || undefined,
+        mode: data.mode || 'chat',
+        is_build_mode: data.is_build_mode === true,
+        file: currentFile,
+        project_files: files.map(file => ({
+          path: file.path,
+          type: file.type,
+          content: file.content || ''
+        }))
+      }
       
-      // Improved error handling
-      if (error.response?.status === 400) {
-        // Parse specific error details for 400 Bad Request
-        const errorDetail = error.response.data?.error || 'Bad request';
-        
-        // Log the detailed error for debugging
-        console.warn('Chat API 400 Bad Request details:', {
-          error: errorDetail,
-          data: error.response.data,
-          request: {
-            model: payload.model,
-            project_id: payload.project_id,
-            has_conversation_id: !!payload.conversation_id,
-            has_current_file: !!payload.current_file
-          }
-        });
-        
-        // Try to provide more specific error messages for known issues
-        if (errorDetail.includes('Insufficient credits')) {
-          throw new Error(`You don't have enough credits: ${errorDetail}`);
-        } else if (errorDetail.includes('model')) {
-          throw new Error(`Model error: ${errorDetail}`);
-        } else {
-          throw new Error(`API Error: ${errorDetail}`);
+      // API call
+      const response = await api.post('/api/v1/agents/chat/', payload)
+      
+      // Store the conversation ID for future requests
+      if (response.data.conversation_id) {
+        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id);
+      }
+      
+      // Log credits usage if provided
+      if (response.data.credits_used) {
+        const paymentsStore = getPaymentsStore();
+        if (paymentsStore) {
+          // Track credit usage in a generic way - just refresh the balance
+          paymentsStore.fetchBalance(false, true);
         }
       }
       
-      // Check if the error contains an HTML response (Django error page)
-      if (error.response && error.response.data && 
-          typeof error.response.data === 'string' && 
-          error.response.data.includes('<!DOCTYPE html>')) {
-        console.error('Received HTML error page instead of JSON response');
-        error.message = 'Server returned an HTML error page instead of JSON response';
-      }
-      
-      // Check if the error is due to authentication (401)
-      if (error.response && error.response.status === 401) {
-        console.error('Authentication error in chat request. Attempting to reauth.');
-        
-        // Force refresh the token or redirect to login if needed
-        window.dispatchEvent(new CustomEvent('auth:refresh-needed'));
-      }
-      
-      // Check if the error is a server error (500)
-      if (error.response && error.response.status === 500) {
-        console.error('Server error (500) in chat request:');
-        
-        // Try to log useful information about the error
-        if (error.response.data) {
-          console.error('Error data:', 
-            typeof error.response.data === 'string' 
-              ? error.response.data.substring(0, 200) 
-              : error.response.data);
-        }
-        
-        error.message = 'Server error (500). The request failed due to an internal server problem.';
-      }
-      
-      throw handleAPIError(error);
+      return {
+        response: response.data.response,
+        messages: response.data.messages || [],
+        conversation_id: response.data.conversation_id
+      } as ChatResponse; // Cast to ensure TS is happy
+    } catch (error) {
+      // Create a proper ChatResponse error object
+      return {
+        response: this.formatError(error),
+        messages: []
+      };
     }
   },
 
-  /**
-   * Process a chat message with a simulated typing effect
-   * This simulates streaming but uses the regular chat API
-   */
   async processChatWithTypingEffect(
     payload: ChatPayload,
     onChunk: (chunk: string) => void,
@@ -606,113 +339,65 @@ export const AgentService = {
     onConversationId?: (id: string) => void
   ): Promise<void> {
     try {
-      // Enhance payload with build mode flag for backend
-      const isBuildMode = payload.mode === 'build';
+      // Get auth token for SSE connection
+      const token = this.getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required');
+      }
       
-      // Log the enhanced payload for debugging
-      console.group('🔄 Chat API Request (with Typing Effect)');
-      console.info('Chat Request Payload:');
-      console.info({
-        model: payload.model,
-        project_id: payload.project_id,
-        mode: payload.mode,
-        is_build_mode: isBuildMode,
-        current_file: payload.current_file ? {
-          path: payload.current_file.path,
-          type: payload.current_file.type
-        } : null,
-        message_length: payload.message.length,
-        message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
-      });
-      console.groupEnd();
-      
-      // Process the message with regular chat API
-      const chatResponse = await this.processChat(
+      // First make a regular request to get the full response
+      const response = await this.processChat(
         payload.project_id,
         {
           prompt: payload.message,
           model: payload.model,
-          mode: payload.mode,
-          is_build_mode: isBuildMode,
+          mode: payload.mode || 'chat',
+          is_build_mode: payload.is_build_mode === true,
           file: payload.current_file
         }
       );
       
-      // Extract the response text
-      const responseText = chatResponse.response;
-      
-      // If we have a conversation ID and callback, use it
-      if (chatResponse.messages[0] && payload.conversation_id) {
-        if (onConversationId) {
-          onConversationId(payload.conversation_id);
-        }
+      // Store conversation ID if provided and callback exists
+      if ((response as any).conversation_id && onConversationId) {
+        onConversationId((response as any).conversation_id);
       }
       
-      // Simulate typing effect by chunking the response
-      await this.simulateTypingEffect(responseText, onChunk);
+      // Simulate typing effect with the response
+      await this.simulateTypingEffect(response.response, onChunk);
       
-      // Call onDone when complete
+      // Signal completion
       onDone();
-      return;
-    } catch (error: any) {
-      console.error('Error in processChatWithTypingEffect:', error);
-      onError(`Error: ${error.message || 'Unknown error'}`);
-      return;
+    } catch (error) {
+      onError(this.formatError(error));
     }
   },
   
-  /**
-   * Simulates a typing effect by chunking a string over time
-   */
   async simulateTypingEffect(
     text: string, 
     onChunk: (chunk: string) => void
   ): Promise<void> {
     if (!text) return;
     
-    // Configuration for typing simulation
-    const avgCharsPerSecond = 40; // Adjust for slower/faster typing
-    const minChunkSize = 1;
-    const maxChunkSize = 5;
-    const variability = 0.3; // Randomness in timing (0-1)
+    const minDelay = 5;  // Minimum delay in milliseconds
+    const maxDelay = 20; // Maximum delay in milliseconds
     
-    // Calculate base delay between chunks
-    const baseDelayMs = 1000 / avgCharsPerSecond;
+    // Helper to get a random delay between min and max
+    const getRandomDelay = () => 
+      Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
     
-    // Process the text in small chunks to simulate typing
-    let processedLength = 0;
+    // Split text into words
+    const words = text.split(/(\s+)/);
     
-    while (processedLength < text.length) {
-      // Determine chunk size with some randomness
-      const remainingChars = text.length - processedLength;
-      const maxPossibleChunk = Math.min(maxChunkSize, remainingChars);
-      const chunkSize = Math.max(
-        minChunkSize, 
-        Math.floor(Math.random() * (maxPossibleChunk - minChunkSize + 1)) + minChunkSize
-      );
+    // Process each word with a small delay
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      onChunk(word);
       
-      // Extract the next chunk
-      const chunk = text.substr(processedLength, chunkSize);
-      processedLength += chunkSize;
-      
-      // Send the chunk
-      onChunk(chunk);
-      
-      // Add natural variability to typing speed
-      const delayVariability = 1 + (Math.random() * 2 * variability - variability);
-      const delay = baseDelayMs * chunkSize * delayVariability;
-      
-      // Add a longer pause at natural breakpoints (periods, commas, etc.)
-      const lastChar = chunk.charAt(chunk.length - 1);
-      const isPunctuation = ['.', '!', '?', ',', ';', ':'].includes(lastChar);
-      const breakpointMultiplier = isPunctuation ? (lastChar === '.' ? 5 : 2) : 1;
-      
-      // Wait before next chunk
-      await new Promise(resolve => setTimeout(resolve, delay * breakpointMultiplier));
+      // Add a random delay between words
+      await new Promise(resolve => setTimeout(resolve, getRandomDelay()));
     }
   },
-
-  // Replace processChatStream with the new function that uses typing effect
+  
   async processChatStream(
     payload: ChatPayload,
     onChunk: (chunk: string) => void,
@@ -721,399 +406,316 @@ export const AgentService = {
     onConversationId?: (id: string) => void
   ): Promise<void> {
     try {
-      await this.processChatWithTypingEffect(payload, onChunk, onError, onDone, onConversationId);
-      return;
+      // For now, just use the typing effect simulation
+      await this.processChatWithTypingEffect(
+        payload,
+        onChunk,
+        onError,
+        onDone,
+        onConversationId
+      );
     } catch (error) {
-      console.error('Error in processChatStream:', error);
-      onError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return;
+      onError(this.formatError(error));
     }
   },
-
-  // Helper method to get auth token
+  
   getAuthToken(): string | null {
-    try {
-      const tokenData = localStorage.getItem('token');
-      if (!tokenData) return null;
-      
-      const parsedToken = JSON.parse(tokenData);
-      return parsedToken?.value || null;
-    } catch {
-      return null;
+    // Try to get token from localStorage first
+    const token = localStorage.getItem('auth_token');
+    
+    if (token) {
+      return token;
     }
+    
+    // If not in localStorage, try to get from cookie
+    const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
+      const [key, value] = cookie.split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+    
+    return cookies['auth_token'] || null;
   },
-
-  // Helper to format error messages
+  
   formatError(error: any): string {
-    if (error.response) {
-      // Server responded with error
-      if (error.response.status === 401) {
-        return '401: Unauthorized - Please log in again';
-      }
+    if (error instanceof Error) {
+      // If it's a standard Error object
+      return error.message;
+    } else if (typeof error === 'string') {
+      // If it's already a string
+      return error;
+    } else if (error && error.response && error.response.data) {
+      // If it's an Axios error with a data payload
+      const data = error.response.data;
       
-      // Handle bad request errors (400) with more detail
-      if (error.response.status === 400) {
-        let detail = '';
-        
-        // Try to extract useful information from response
-        if (error.response.data) {
-          if (typeof error.response.data === 'string') {
-            detail = error.response.data.substring(0, 200);
-          } else if (typeof error.response.data === 'object') {
-            // Format object data
-            detail = JSON.stringify(error.response.data);
-          }
+      if (data.detail) {
+        return data.detail;
+      } else if (data.message) {
+        return data.message;
+      } else if (data.error) {
+        return data.error;
+      } else if (typeof data === 'string') {
+        return data;
+      } else {
+        try {
+          // Try to stringify the response data
+          return JSON.stringify(data);
+        } catch (e) {
+          return 'Unknown error occurred';
         }
-        
-        return `400: Bad Request - ${detail || error.response.statusText}`;
       }
-      
-      return `Server error ${error.response.status}: ${error.response.data?.detail || error.response.statusText}`;
-    } else if (error.request) {
-      // Request made but no response
-      return 'No response received from server. Please check your connection.';
+    } else if (error && error.message) {
+      // Object with message property
+      return error.message;
     } else {
-      // Something else went wrong
-      return error.message || 'Unknown error occurred';
+      try {
+        // Try to stringify whatever we got
+        return JSON.stringify(error);
+      } catch (e) {
+        return 'Unknown error occurred';
+      }
     }
   },
-
+  
   async clearConversation(projectId: string): Promise<void> {
+    if (!projectId) {
+      throw new Error('Project ID is required');
+    }
+    
+    // Get the stored conversation ID
+    const conversationId = localStorage.getItem(`agent_conversation_${projectId}`);
+    
+    if (!conversationId) {
+      // If no conversation exists, nothing to clear
+      return;
+    }
+    
     try {
-      // Get conversation IDs for this project
-      const chatConversationId = localStorage.getItem(`chat_conversation_${projectId}`)
-      const agentConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
-      const stylesheetConversationId = localStorage.getItem(`stylesheet_conversation_${projectId}`)
+      // Make API call to clear conversation history
+      await api.post(`/api/v1/agents/conversation/${conversationId}/clear/`);
       
-      // Just clear local storage items without calling the API
-      if (chatConversationId) {
-        localStorage.removeItem(`chat_conversation_${projectId}`)
-      }
-      
-      if (agentConversationId) {
-        localStorage.removeItem(`agent_conversation_${projectId}`)
-      }
-      
-      if (stylesheetConversationId) {
-        localStorage.removeItem(`stylesheet_conversation_${projectId}`)
-      }
-      
-      // Return a resolved promise
-      return Promise.resolve()
+      // Remove the stored conversation ID
+      localStorage.removeItem(`agent_conversation_${projectId}`);
     } catch (error) {
-      throw handleAPIError(error)
+      // Handle errors
+      const { notify } = await import('@/shared/utils');
+      notify({
+        type: 'error',
+        message: `Failed to clear conversation: ${this.formatError(error)}`
+      });
+      
+      throw error;
     }
   },
 
   async getAvailableModels(): Promise<AIModel[]> {
     try {
-      // Try to fetch from centralized model definitions API
-      const response = await api.get('/api/v1/builder/models/')
-      if (response.data && Array.isArray(response.data)) {
-        // Map backend model definitions to frontend AIModel format
-        return response.data.map((modelDef: any) => ({
-          id: modelDef.id,
-          name: modelDef.name,
-          provider: modelDef.provider,
-          type: modelDef.type,
-          context_window: modelDef.maxTokens,
-          features: modelDef.capabilities,
-          description: modelDef.description,
-          capabilities: modelDef.capabilities,
-          maxTokens: modelDef.maxTokens,
-          costPerRequest: modelDef.costPerRequest,
-          api_version: modelDef.api_version
+      // Try to get from API first
+      const response = await api.get('/api/v1/agents/models/');
+      
+      if (response.data && Array.isArray(response.data.models)) {
+        return response.data.models.map((model: any) => ({
+          id: model.id,
+          name: model.name,
+          description: model.description || '',
+          capabilities: model.capabilities || ['chat'],
+          contextWindow: model.context_window || 4096,
+          provider: model.provider || 'Unknown'
         }));
       }
-      // Fallback to default models if API response is invalid
-      return this.getDefaultModels()
     } catch (error) {
-      console.warn('Error fetching models from API, using defaults:', error)
-      // Fallback to default models if API call fails
-      return this.getDefaultModels()
-    }
-  },
-
-  async undoAction(projectId: string, filePath?: string): Promise<UndoResponse> {
-    if (!projectId) {
-      throw new Error('Project ID is required')
+      // If API request fails, fall back to default models
     }
     
-    if (!filePath) {
-      throw new Error('File path is required for undo action')
+    // Fall back to defaults if API request failed or returned invalid data
+    return this.getDefaultModels();
+  },
+  
+  async undoAction(projectId: string, filePath?: string): Promise<UndoResponse> {
+    if (!projectId) {
+      throw new Error('Project ID is required');
     }
-
+    
     try {
-      // Use the new undo-interaction endpoint
-      const response = await api.post(`/api/v1/builder/${projectId}/files/${filePath}/undo-interaction/`)
+      const endpoint = filePath
+        ? `/api/v1/agents/project/${projectId}/file/undo/?file_path=${encodeURIComponent(filePath)}`
+        : `/api/v1/agents/project/${projectId}/undo/`;
+      
+      const response = await api.post(endpoint);
       
       return {
-        success: response.data.success,
-        message: response.data.message || 'Successfully undid the last AI interaction',
-        details: response.data.details || {}
-      }
+        success: true,
+        message: response.data.message || 'Undo successful',
+        details: {
+          code: response.data.code || null,
+          file_path: response.data.file_path || filePath
+        }
+      };
     } catch (error) {
-      throw handleAPIError(error)
+      // Create a proper UndoResponse error object
+      return {
+        success: false,
+        message: this.formatError(error),
+        details: error
+      };
     }
   },
 
-  /**
-   * Generates a CSS stylesheet based on a prompt
-   * 
-   * This method sends a request to the stylesheet agent API to generate a CSS 
-   * stylesheet based on user input.
-   * 
-   * @param options - Object containing request options 
-   * @returns A Promise that resolves with the API response
-   */
   async generateStylesheet(options: GenerateStylesheetOptions): Promise<any> {
+    const { prompt, projectId, filePath, model, onProgress } = options;
+    
+    if (!prompt || !projectId || !filePath) {
+      throw new Error('Prompt, project ID, and file path are required');
+    }
+    
+    // Use the provided model or default to claude-3-haiku
+    const modelId = model || 'claude-3-haiku';
+    
     try {
-      const { prompt, projectId, filePath, model = 'claude-3-7-sonnet-20250219', conversationId, onProgress } = options;
+      // Get conversation ID if available
+      const conversationId = localStorage.getItem(`agent_conversation_${projectId}`);
       
-      // Validate inputs
-      if (!prompt || !prompt.trim()) {
-        throw new Error('Prompt is required');
-      }
-      
-      if (!projectId) {
-        throw new Error('Project ID is required');
-      }
-      
-      if (!filePath) {
-        throw new Error('File path is required');
-      }
-      
-      // Get all project files for context
+      // Get project files
       const files = await FileService.getProjectFiles(projectId);
       
       // Update progress if callback provided
       if (onProgress) {
-        onProgress({ status: 'Preparing stylesheet request...', percent: 10 });
+        onProgress({ status: 'Getting project files', percent: 10 });
       }
       
-      // Get stored conversation ID or use provided one
-      const storedConversationId = localStorage.getItem(`stylesheet_conversation_${projectId}`) || conversationId;
+      // Find the current file content if it exists
+      const currentFile = files.find(file => file.path === filePath);
+      const currentContent = currentFile?.content || '';
       
       // Prepare request payload
       const payload = {
-        message: prompt,
-        model,
-        project_id: projectId,
+        prompt,
+        project_id: String(projectId),
         file_path: filePath,
-        mode: 'build',
-        is_build_mode: true, // Explicitly flag this as build mode for the backend
-        conversation_id: storedConversationId,
-        project_files: files.filter(file => 
-          // Only include relevant files for stylesheet context
-          file.path.endsWith('.css') || 
-          file.path.endsWith('.html') ||
-          file.path === filePath
-        ).map(file => ({
+        model: modelId,
+        conversation_id: conversationId || undefined,
+        current_content: currentContent,
+        project_files: files.map(file => ({
           path: file.path,
-          type: this.getFileType(file.path),
+          type: file.type || this.getFileType(file.path),
           content: file.content || ''
         }))
       };
       
       // Update progress
       if (onProgress) {
-        onProgress({ status: 'Sending request to AI...', percent: 25 });
+        onProgress({ status: 'Generating stylesheet', percent: 30 });
       }
-
-      // Log the detailed payload for debugging
-      console.group('🔄 Stylesheet Generation Request');
-      console.info('Request Payload:');
-      console.info({
-        model: payload.model,
-        project_id: payload.project_id,
-        file_path: payload.file_path,
-        mode: payload.mode,
-        is_build_mode: payload.is_build_mode,
-        conversation_id: payload.conversation_id,
-        message_length: payload.message.length,
-        message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
-        project_files_count: (payload.project_files || []).length,
-        project_files_preview: (payload.project_files || []).slice(0, 3).map(f => ({
-          path: f.path,
-          type: f.type,
-          content_length: f.content ? f.content.length : 0
-        }))
-      });
       
-      // Log the complete message for backend debugging
-      console.info('Full prompt:');
-      console.info(payload.message);
-      console.groupEnd();
-      
-      // Make request with longer timeout - use longTimeoutApi for stylesheet generation
+      // Make API call
       const response = await longTimeoutApi.post('/api/v1/agents/build/stylesheet/', payload);
-      
-      // Log response data for debugging (without exposing sensitive information)
-      console.group('✅ Stylesheet Generation Response');
-      console.info('Stylesheet response data structure:', {
-        has_response: !!response.data.response,
-        has_code: !!response.data.code,
-        has_conversation_id: !!response.data.conversation_id,
-        success: response.data.success,
-        response_preview: response.data.response ? 
-          response.data.response.substring(0, 100) + 
-          (response.data.response.length > 100 ? '...' : '') : 'No response'
-      });
-      console.groupEnd();
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {
-        localStorage.setItem(`stylesheet_conversation_${projectId}`, response.data.conversation_id);
+        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id);
       }
       
       // Update progress
       if (onProgress) {
-        onProgress({ status: 'Processing stylesheet...', percent: 75 });
+        onProgress({ status: 'Processing response', percent: 90 });
       }
       
-      // Check for generated CSS content
-      if (!response.data.response) {
-        throw new Error('No stylesheet content was generated');
+      // Handle credits tracking
+      if (response.data.credits_used) {
+        const paymentsStore = getPaymentsStore();
+        if (paymentsStore) {
+          // Track credit usage in a generic way - just refresh the balance
+          paymentsStore.fetchBalance(false, true);
+        }
       }
-      
-      // Handle single_message flag to prevent duplicate messages
-      const messages = [];
-      
-      // Only include the user message if single_message is not set
-      if (!response.data.single_message) {
-        messages.push({
-          role: 'user',
-          content: prompt,
-          timestamp: new Date().toISOString(),
-          id: `user-${Date.now()}`
-        });
-      }
-      
-      // Always include the assistant message
-      messages.push({
-        role: 'assistant',
-        content: response.data.response,
-        timestamp: new Date().toISOString(),
-        id: `assistant-${Date.now()}`,
-        code: response.data.response
-      });
       
       // Final progress update
       if (onProgress) {
-        onProgress({ status: 'Stylesheet generated!', percent: 100 });
+        onProgress({ status: 'Complete', percent: 100 });
       }
       
-      // Apply the generated stylesheet content to the file
-      try {
-        await FileService.updateFileContent(projectId, filePath, response.data.response);
-        console.info(`Successfully updated stylesheet file: ${filePath}`);
-      } catch (error: Error | any) {
-        console.error(`Error updating stylesheet file: ${filePath}`, error);
-        throw new Error(`Generated stylesheet but failed to update file: ${error.message || 'Unknown error'}`);
-      }
-      
+      // Return the response
       return {
         success: true,
-        response: response.data.response,
-        file_path: filePath,
-        messages: messages,
+        response: response.data.code || response.data.response || '',
+        messages: response.data.messages || [],
         single_message: response.data.single_message || false
       };
-    } catch (error: any) {
-      console.error('Error generating stylesheet:', error);
-      throw handleAPIError(error);
+    } catch (error) {
+      // Handle errors
+      const { notify } = await import('@/shared/utils');
+      notify({
+        type: 'error',
+        message: `Failed to generate stylesheet: ${this.formatError(error)}`
+      });
+      
+      throw error;
     }
   },
   
-  /**
-   * Get the file type based on file extension
-   */
   getFileType(filePath: string): string {
+    if (!filePath) return 'unknown';
+    
     const extension = filePath.split('.').pop()?.toLowerCase();
     
     switch (extension) {
       case 'html':
-      case 'htm':
         return 'html';
       case 'css':
         return 'css';
       case 'js':
         return 'javascript';
-      case 'ts':
-        return 'typescript';
       case 'json':
         return 'json';
-      case 'vue':
-        return 'vue';
-      case 'jsx':
-      case 'tsx':
-        return 'react';
       case 'py':
         return 'python';
-      default:
+      case 'md':
+        return 'markdown';
+      case 'txt':
         return 'text';
+      case 'svg':
+        return 'svg';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return 'image';
+      default:
+        return extension || 'unknown';
     }
   },
-
-  // Preview project - migrated from BuilderService
+  
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      const response = await api.get(`/api/v1/builder/${projectId}/preview/`)
-      
-      if (!response.data || !response.data.preview_url) {
-        throw new Error('Invalid response from preview API')
-      }
-      
+      const response = await api.post(`/api/v1/projects/${projectId}/preview/`);
       return {
         previewUrl: response.data.preview_url
-      }
+      };
     } catch (error) {
-      console.error('Error generating preview:', error)
-      throw handleAPIError(error)
+      throw new Error(`Failed to generate preview: ${this.formatError(error)}`);
     }
   },
-
-  // Deploy project - migrated from BuilderService
+  
   async deployProject(projectId: string, options: { environment: string }): Promise<{ deploymentUrl: string }> {
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/deploy/`, options)
-      return response.data
+      const response = await api.post(`/api/v1/projects/${projectId}/deploy/`, options);
+      return {
+        deploymentUrl: response.data.deployment_url
+      };
     } catch (error) {
-      throw handleAPIError(error)
+      throw new Error(`Failed to deploy project: ${this.formatError(error)}`);
     }
   },
-
+  
   async initializeProject(projectId: string): Promise<{ success: boolean }> {
-    if (!projectId) {
-      throw new Error('Project ID is required')
-    }
-
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/initialize/`)
-      
-      // Return success or the actual data if available
-      return response.data?.success !== undefined 
-        ? response.data 
-        : { success: true }
-    } catch (error: any) {
-      // If we get a 409 status, it means the project is already initialized
-      if (error.response?.status === 409) {
-        return { success: true }
-      }
-
-      console.error('Error initializing project:', error)
-      
-      // For 404 errors, we will treat this as "not yet created" and return success: false
-      // rather than throwing an error, as the project might still be in the creation process
-      if (error.response?.status === 404) {
-        return { success: false }
-      }
-      
-      // For other errors, throw and let the caller handle it
-      throw handleAPIError(error)
+      await api.post(`/api/v1/projects/${projectId}/initialize/`);
+      return { success: true };
+    } catch (error) {
+      throw new Error(`Failed to initialize project: ${this.formatError(error)}`);
     }
   }
-}
+};
 
 // Export ModelService for backward compatibility
 export const ModelService = {

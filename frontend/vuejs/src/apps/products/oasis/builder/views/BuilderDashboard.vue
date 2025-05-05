@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
@@ -152,6 +152,7 @@ import { ProjectCard } from '@/apps/products/oasis/builder/components/molecules'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useConfirm } from '../composables/useConfirm'
 import api from '@/apps/products/oasis/builder/services/api'
+import { useNotificationStore } from '@/shared/stores/notificationStore'
 
 
 const router = useRouter()
@@ -159,6 +160,7 @@ const projectStore = useProjectStore()
 const authStore = useAuthStore()
 const { showNotification } = useNotification()
 const { confirm } = useConfirm()
+const notificationStore = useNotificationStore()
 
 // State with types - remove searchQuery since it's handled in ProjectList
 const newProjectName = ref('')
@@ -248,9 +250,11 @@ async function createProject() {
       idType: typeof newProject.id
     })
     
-    showNotification({
+    // Store notification ID to be able to clear it before navigation
+    const notificationId = showNotification({
       message: `Project "${newProject.name}" created successfully. Setting up your workspace...`,
-      type: 'success'
+      type: 'success',
+      duration: 4000 // Shorter duration so it's less likely to persist
     })
     
     // Ensure ID is properly formatted as a string
@@ -267,6 +271,14 @@ async function createProject() {
     
     // Add a small delay to allow initialization to complete
     setTimeout(async () => {
+      // Get notification store to clear notifications before navigation
+      const notificationStore = useNotificationStore()
+      
+      // Remove the success notification to prevent it from showing in workspace
+      if (notificationId) {
+        notificationStore.removeNotification(notificationId)
+      }
+      
       // Navigate to the new project workspace
       await router.push({
         name: 'builder-workspace',
@@ -360,7 +372,8 @@ const confirmDelete = async (projectId: string, projectName: string) => {
     
     showNotification({
       message: `Project "${projectName}" deleted successfully`,
-      type: 'success'
+      type: 'success',
+      duration: 4000 // Shorter duration for better UX
     })
   } catch (error: any) {
     showNotification({
@@ -553,6 +566,13 @@ onMounted(async () => {
       }, 2000)
     }
   }
+})
+
+// Clean up resources when leaving the dashboard
+onBeforeUnmount(() => {
+  // Clear dashboard-specific notifications when leaving
+  const notificationStore = useNotificationStore()
+  notificationStore.clear()
 })
 
 // Watch auth store authentication status
