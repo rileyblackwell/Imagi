@@ -42,6 +42,8 @@ class StylesheetAgentService(BaseAgentService):
         self._css_component_cache = {}
         # Add default timeout override
         self.request_timeout = 30  # Reduced from default 60s
+        # Define base system prompt
+        self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
     
     # Create direct method for quickly generating basic stylesheets without AI
     def generate_basic_stylesheet(self):
@@ -287,8 +289,10 @@ class StylesheetAgentService(BaseAgentService):
             # Store the current file path for context
             self.current_file_path = file_path
             
-            # Get project path for context if project_id is provided
+            # Get project details and load project files for context
             project_path = None
+            project = None
+            
             if project_id:
                 try:
                     # Import here to avoid circular imports
@@ -298,11 +302,9 @@ class StylesheetAgentService(BaseAgentService):
                     
                     # Load project files for context if not already loaded
                     if not self.project_files and project_path:
-                        # Run in background thread to avoid blocking
-                        threading.Thread(
-                            target=self.load_project_files,
-                            args=(project_path,)
-                        ).start()
+                        # Load synchronously for build mode to ensure context is available
+                        self.project_files = self.load_project_files(project_path)
+                        logger.info(f"Loaded {len(self.project_files)} project files for context")
                 except Exception as e:
                     logger.warning(f"Could not get project path: {str(e)}")
             
@@ -319,8 +321,38 @@ class StylesheetAgentService(BaseAgentService):
                                 'content': file_content,
                                 'type': 'css'
                             }
+                    else:
+                        # If file doesn't exist yet, make an empty CSS file for context
+                        current_file = {
+                            'path': file_path,
+                            'content': "/* New CSS file */",
+                            'type': 'css'
+                        }
                 except Exception as e:
                     logger.warning(f"Could not read file {file_path}: {str(e)}")
+            
+            # Build additional context for the stylesheet generation
+            additional_context = []
+            
+            # File context
+            if self.current_file_path:
+                additional_context.append(f"You are creating/editing the CSS file: {self.current_file_path}")
+            
+            # Project context
+            if project:
+                additional_context.append(f"Project name: {project.name}")
+                if hasattr(project, 'description') and project.description:
+                    additional_context.append(f"Project description: {project.description}")
+            
+            # HTML files for styling context
+            html_files = [f["path"] for f in self.project_files if f["path"].endswith(".html")]
+            if html_files:
+                additional_context.append(f"HTML templates: {', '.join(html_files[:5])}")
+            
+            # Other CSS files 
+            css_files = [f["path"] for f in self.project_files if f["path"].endswith(".css") and f["path"] != self.current_file_path]
+            if css_files:
+                additional_context.append(f"Other CSS files: {', '.join(css_files[:5])}")
             
             # Process the conversation using the parent class method with additional context
             result = self.process_conversation(
@@ -333,6 +365,8 @@ class StylesheetAgentService(BaseAgentService):
                 current_file=current_file,
                 file_path=file_path,
                 project_files=self.project_files,
+                additional_context="\n".join(additional_context),
+                is_build_mode=True,  # Flag to indicate this is build mode
                 timeout=self.request_timeout,  # Use shorter timeout
             )
             
@@ -377,144 +411,126 @@ class StylesheetAgentService(BaseAgentService):
         ]
         return any(phrase in user_input.lower() for phrase in simple_inputs)
 
-    # Override this to provide faster timeout
+    # Override this to provide faster timeout and add logging
     def process_conversation(self, user_input, model, user, **kwargs):
-        """Process conversation with optional timeout override."""
+        """
+        Process a conversation with the stylesheet agent.
+        
+        Args:
+            user_input (str): The user's message
+            model (str): The AI model to use
+            user: The Django user object
+            **kwargs: Additional arguments for processing
+            
+        Returns:
+            dict: The result of the operation, including success status and response
+        """
         # Extract timeout from kwargs if provided
         timeout = kwargs.pop('timeout', None)
         
+        # Get project path if provided
+        project_path = kwargs.get('project_path')
+        
+        # Flag indicating if this is a build mode request
+        is_build_mode = kwargs.get('is_build_mode', False)
+        if is_build_mode:
+            logger.info(f"Processing in BUILD MODE for file: {self.current_file_path}")
+        
+        # Load project files if project path is provided and not already loaded
+        if project_path and not self.project_files:
+            self.project_files = self.load_project_files(project_path)
+        
+        # Use project_files from kwargs if provided (overrides self.project_files)
+        if kwargs.get('project_files'):
+            self.project_files = kwargs.get('project_files')
+            logger.info(f"Using {len(self.project_files)} project files provided in kwargs")
+        
+        # Add an override for file_path to use in get_additional_context
+        if kwargs.get('file_path'):
+            self.current_file_path = kwargs.get('file_path')
+        
+        # Add context about the project files to the system prompt
+        additional_context = []
+        if kwargs.get('additional_context'):
+            # Use provided context if available
+            additional_context = kwargs.get('additional_context').split('\n')
+        else:
+            # Otherwise build our own context
+            if self.current_file_path:
+                additional_context.append(f"You are creating/editing the CSS file: {self.current_file_path}")
+            
+            if self.project_files:
+                additional_context.append(f"The project contains {len(self.project_files)} files for context")
+                # Add information about the most relevant files (HTML, CSS)
+                html_files = [f["path"] for f in self.project_files if f["path"].endswith(".html")]
+                css_files = [f["path"] for f in self.project_files if f["path"].endswith(".css") and f["path"] != self.current_file_path]
+                
+                if html_files:
+                    additional_context.append(f"HTML templates: {', '.join(html_files[:5])}")
+                if css_files:
+                    additional_context.append(f"Other CSS files: {', '.join(css_files[:5])}")
+        
+        # Add the additional context to kwargs
+        kwargs['additional_context'] = "\n".join(additional_context)
+        
+        # Log the conversation details before API call
+        logger.info(f"===== STYLESHEET CONVERSATION DETAILS =====")
+        logger.info(f"Model: {model}")
+        logger.info(f"User: {user.username}")
+        logger.info(f"File path: {self.current_file_path}")
+        logger.info(f"Project files count: {len(self.project_files)}")
+        logger.info(f"Message length: {len(user_input)} chars")
+        logger.info(f"Message preview: {user_input[:100]}...")
+        logger.info(f"Build mode: {is_build_mode}")
+        
+        # Log available context
+        logger.info("Additional context:")
+        for ctx in additional_context:
+            logger.info(f"- {ctx}")
+        logger.info("===== END STYLESHEET CONVERSATION DETAILS =====")
+        
         # Call original method with potentially modified timeout
+        result = None
         if timeout:
             # Store original timeout
             original_timeout = self.request_timeout
             try:
                 # Set new timeout for this request
                 self.request_timeout = timeout
-                return super().process_conversation(user_input, model, user, **kwargs)
+                result = super().process_conversation(user_input, model, user, **kwargs)
             finally:
                 # Restore original timeout
                 self.request_timeout = original_timeout
         else:
-            return super().process_conversation(user_input, model, user, **kwargs)
-
-    def process_stylesheet(self, prompt, model, user, project_id=None, file_path=None, conversation_id=None):
-        """
-        Process a stylesheet generation request.
+            result = super().process_conversation(user_input, model, user, **kwargs)
         
-        Args:
-            prompt (str): The user's prompt
-            model (str): The AI model to use
-            user: The Django user object
-            project_id (str, optional): The ID of the project
-            file_path (str, optional): The path to the stylesheet file
-            conversation_id (int, optional): The ID of an existing conversation
+        # Process the result to ensure it's valid CSS
+        if result and result.get('success'):
+            # Extract and enhance CSS content
+            css_content = self.extract_css_from_response(result['response'])
+            enhanced_css = self.ensure_required_sections(css_content)
+            original_response = result.get('response', '')
+            result['original_response'] = original_response  # Store original for comparison
+            result['response'] = enhanced_css
             
-        Returns:
-            dict: The result of the operation, including success status and response
-        """
-        try:
-            # Verify the project exists and user has access to it
-            if project_id:
-                project, error = self.validate_project_access(project_id, user)
-                if error:
-                    return error
+            # Set code field to match the exact response
+            result['code'] = enhanced_css
             
-            # Use a performance optimization: for very simple requests, we might be able
-            # to generate a response without calling the AI
-            if self.can_handle_without_ai(prompt):
-                logger.info("Using predefined basic stylesheet template")
-                css_content = self.generate_basic_stylesheet()
-                result = {
-                    'success': True,
-                    'response': css_content,
-                    'file_path': file_path,
-                    'timestamp': timezone.now().isoformat(),
-                    'was_predefined': True,
-                    'is_build_mode': True,
-                    'single_message': True,
-                    'code': css_content
-                }
-                
-                # Save the generated CSS to the file
-                if project_id and file_path:
-                    try:
-                        # Import file service to handle file operations
-                        from apps.Products.Oasis.Builder.services.file_service import FileService
-                        
-                        # Save the CSS content to the specified file
-                        file_result = FileService.update_file_content(
-                            project_id=project_id,
-                            file_path=file_path,
-                            content=result['response'],
-                            user=user
-                        )
-                        
-                        logger.info(f"CSS content saved to {file_path} successfully")
-                        
-                        # Add file info to the result
-                        result['file_saved'] = True
-                        result['file_info'] = file_result
-                    except Exception as e:
-                        logger.error(f"Error saving CSS file: {str(e)}")
-                        result['file_saved'] = False
-                        result['file_error'] = str(e)
-                
-                return result
+            # Add flag to indicate this is build mode content (just code)
+            result['is_build_mode'] = True
             
-            # Process the stylesheet using the handle_stylesheet_request method
-            result = self.handle_stylesheet_request(
-                user_input=prompt,
-                model=model,
-                user=user,
-                file_path=file_path,
-                conversation_id=conversation_id,
-                project_id=project_id
-            )
-            
-            # Enhance the response with file information
-            if result.get('success') and file_path:
-                result['file_path'] = file_path
-                
-                # Add timestamp to the result
-                result['timestamp'] = timezone.now().isoformat()
-                
-                # Set build mode flag to ensure proper UI display
-                result['is_build_mode'] = True
-                
-                # Save the generated CSS to the file in background thread
-                if project_id and result.get('response'):
-                    try:
-                        # Import file service to handle file operations
-                        from apps.Products.Oasis.Builder.services.file_service import FileService
-                        
-                        # Save the CSS content to the specified file
-                        file_result = FileService.update_file_content(
-                            project_id=project_id,
-                            file_path=file_path,
-                            content=result['response'],
-                            user=user
-                        )
-                        
-                        logger.info(f"CSS content saved to {file_path} successfully")
-                        
-                        # Add file info to the result
-                        result['file_saved'] = True
-                        result['file_info'] = file_result
-                    except Exception as e:
-                        logger.error(f"Error saving CSS file: {str(e)}")
-                        result['file_saved'] = False
-                        result['file_error'] = str(e)
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Error in process_stylesheet: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            # Log response details
+            logger.info(f"===== STYLESHEET RESPONSE =====")
+            logger.info(f"Successfully processed stylesheet")
+            logger.info(f"Original length: {len(original_response)} chars")
+            logger.info(f"Enhanced length: {len(enhanced_css)} chars") 
+            logger.info(f"Response preview: {enhanced_css[:100]}...")
+            logger.info("===== END STYLESHEET RESPONSE =====")
+        elif result:
+            # Log error details
+            logger.error(f"Error processing stylesheet: {result.get('error')}")
+        
+        return result
 
     def load_project_files(self, project_path):
         """
@@ -805,109 +821,6 @@ body {
 """
         }
 
-    def process_conversation(self, user_input, model, user, **kwargs):
-        """
-        Process a conversation with the stylesheet agent.
-        
-        Args:
-            user_input (str): The user's message
-            model (str): The AI model to use
-            user: The Django user object
-            **kwargs: Additional arguments for processing
-            
-        Returns:
-            dict: The result of the operation, including success status and response
-        """
-        # Get project path if provided
-        project_path = kwargs.get('project_path')
-        
-        # Load project files if project path is provided and not already loaded
-        if project_path and not self.project_files:
-            self.project_files = self.load_project_files(project_path)
-        
-        # Use project_files from kwargs if provided (overrides self.project_files)
-        if kwargs.get('project_files'):
-            self.project_files = kwargs.get('project_files')
-            logger.info(f"Using {len(self.project_files)} project files provided in kwargs")
-        
-        # Add an override for file_path to use in get_additional_context
-        if kwargs.get('file_path'):
-            self.current_file_path = kwargs.get('file_path')
-        
-        # Add context about the project files to the system prompt
-        additional_context = []
-        if self.current_file_path:
-            additional_context.append(f"You are creating/editing the CSS file: {self.current_file_path}")
-        
-        if self.project_files:
-            additional_context.append(f"The project contains {len(self.project_files)} files for context")
-            # Add information about the most relevant files (HTML, CSS)
-            html_files = [f["path"] for f in self.project_files if f["path"].endswith(".html")]
-            css_files = [f["path"] for f in self.project_files if f["path"].endswith(".css") and f["path"] != self.current_file_path]
-            
-            if html_files:
-                additional_context.append(f"HTML templates: {', '.join(html_files[:5])}")
-            if css_files:
-                additional_context.append(f"Other CSS files: {', '.join(css_files[:5])}")
-        
-        # Add the additional context to kwargs
-        kwargs['additional_context'] = "\n".join(additional_context)
-        
-        # Call parent class process_conversation method
-        result = super().process_conversation(user_input, model, user, **kwargs)
-        
-        # Process the result to ensure it's valid CSS
-        if result.get('success'):
-            # Extract and enhance CSS content
-            css_content = self.extract_css_from_response(result['response'])
-            enhanced_css = self.ensure_required_sections(css_content)
-            result['response'] = enhanced_css
-            
-            # Set code field to match the exact response
-            result['code'] = enhanced_css
-            
-            # Add flag to indicate this is build mode content (just code)
-            result['is_build_mode'] = True
-        
-        return result
-
-    def validate_project_access(self, project_id, user):
-        """
-        Validate that a project exists and the user has access to it.
-        
-        Args:
-            project_id (str): The ID of the project
-            user (User): The Django user object
-            
-        Returns:
-            tuple: (project, error_response)
-        """
-        try:
-            from apps.Products.Oasis.ProjectManager.models import Project
-            project = Project.objects.get(id=project_id, user=user)
-            
-            if not project.project_path:
-                logger.error(f"Project {project_id} has no valid project path")
-                return None, {
-                    'success': False,
-                    'error': 'Project path not found. The project may not be properly initialized.'
-                }
-                
-            return project, None
-            
-        except Project.DoesNotExist:
-            logger.error(f"Project {project_id} not found for user {user.username}")
-            return None, {
-                'success': False,
-                'error': 'Project not found or you do not have access to it'
-            }
-        except Exception as e:
-            logger.error(f"Error verifying project: {str(e)}")
-            return None, {
-                'success': False,
-                'error': f'Error accessing project: {str(e)}'
-            }
-
     def get_api_model(self, model_id):
         """
         Get the API model to use for a given model ID.
@@ -931,4 +844,87 @@ body {
         
         # All OpenAI models use API as-is (no mapping needed, using responses API)
         # Return the model ID directly
-        return model_id 
+        return model_id
+
+    def process_stylesheet(self, prompt, model, user, project_id=None, file_path=None, conversation_id=None):
+        """
+        Process a stylesheet generation request.
+        
+        Args:
+            prompt (str): The user's prompt describing the stylesheet
+            model (str): The AI model to use
+            user (User): The Django user object
+            project_id (str, optional): The project ID
+            file_path (str, optional): The file path to create/update
+            conversation_id (int, optional): ID of existing conversation
+            
+        Returns:
+            dict: The result of the operation
+        """
+        try:
+            # Store file path
+            if file_path:
+                self.current_file_path = file_path
+            
+            # Get additional context for this request
+            context = self.get_additional_context(
+                file_path=file_path,
+                project_id=project_id
+            )
+            
+            # Create a custom system prompt
+            system_prompt = f"{self.BASE_SYSTEM_PROMPT}\n\n{context}".strip()
+            
+            # Log the complete system prompt for debugging
+            logger.info("==================================================================")
+            logger.info("=========== STYLESHEET AGENT SYSTEM PROMPT (BUILD MODE) ==========")
+            logger.info("==================================================================")
+            logger.info(system_prompt)
+            logger.info("==================================================================")
+            logger.info("==================== END OF SYSTEM PROMPT ========================")
+            logger.info("==================================================================")
+            
+            # Process the conversation with the agent service
+            result = self.process_conversation(
+                user_input=prompt,
+                model=model,
+                user=user,
+                project_id=project_id,
+                system_prompt=system_prompt,
+                conversation_id=conversation_id,
+                is_build_mode=True
+            )
+            
+            # Enhance response with file info
+            if result.get('success') and file_path:
+                result['file_path'] = file_path
+                # Set build mode flag to ensure proper UI display
+                result['is_build_mode'] = True
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in process_stylesheet: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    # Add error response method to the class
+    def error_response(self, message, code=400):
+        """
+        Create a standardized error response.
+        
+        Args:
+            message (str): The error message
+            code (int): The HTTP status code
+            
+        Returns:
+            dict: An error response dictionary
+        """
+        logger.error(f"Stylesheet agent error: {message}")
+        return {
+            'success': False,
+            'error': message,
+            'code': code
+        } 

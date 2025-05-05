@@ -58,12 +58,31 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
     
     # Add project information if available
     if hasattr(conversation, 'project_id') and conversation.project_id:
-        project_name = getattr(conversation, 'project_name', None)
-        if project_name:
+        try:
+            # Import here to avoid circular imports
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.get(id=conversation.project_id)
+            
+            # Enhanced project information including description
+            project_info = f"You are currently working on project: {project.name} (ID: {conversation.project_id})"
+            
+            # Add project description if available
+            if hasattr(project, 'description') and project.description:
+                project_info += f"\n\nProject Description: {project.description}"
+                
             messages.append({
                 "role": "system",
-                "content": f"You are currently working on project: {project_name} (ID: {conversation.project_id})"
+                "content": project_info
             })
+        except Exception as e:
+            logger.warning(f"Could not fetch detailed project info: {str(e)}")
+            # Fall back to basic info if available
+            project_name = getattr(conversation, 'project_name', None)
+            if project_name:
+                messages.append({
+                    "role": "system",
+                    "content": f"You are currently working on project: {project_name} (ID: {conversation.project_id})"
+                })
     
     # Add system prompt if it exists
     system_prompt = None
@@ -101,13 +120,17 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
                 html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
             
             for filename in html_files:
+                # Skip if this file is already provided as current_file
+                if current_file and current_file.get('path') and current_file.get('path').endswith(filename):
+                    continue
+                    
                 file_path = os.path.join(templates_dir, filename)
                 try:
                     with open(file_path, 'r') as f:
                         content = f.read()
                         messages.append({
                             "role": "system",
-                            "content": f"[File: {filename}]\n{content}"
+                            "content": f"[File: templates/{filename}]\n{content}"
                         })
                 except FileNotFoundError:
                     logger.warning(f"File not found: {filename}")
@@ -117,13 +140,17 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
         if os.path.exists(css_dir):
             css_files = [f for f in os.listdir(css_dir) if f.endswith('.css')]
             for filename in css_files:
+                # Skip if this file is already provided as current_file
+                if current_file and current_file.get('path') and current_file.get('path').endswith(filename):
+                    continue
+                    
                 css_path = os.path.join(css_dir, filename)
                 try:
                     with open(css_path, 'r') as f:
                         content = f.read()
                         messages.append({
                             "role": "system",
-                            "content": f"[File: {filename}]\n{content}"
+                            "content": f"[File: static/css/{filename}]\n{content}"
                         })
                 except FileNotFoundError:
                     logger.warning(f"File not found: {filename}")
@@ -454,6 +481,11 @@ class BaseAgentService(ABC):
             # Log the model ID being used
             logger.info(f"Processing conversation with model: {model}")
             
+            # Check if this is a build mode request
+            is_build_mode = kwargs.get('is_build_mode', False)
+            if is_build_mode:
+                logger.info("PROCESSING IN BUILD MODE")
+            
             # Get or create conversation
             conversation_id = kwargs.get('conversation_id')
             if conversation_id:
@@ -515,6 +547,44 @@ class BaseAgentService(ABC):
                 "content": user_input
             })
             
+            # Log the complete conversation history for debugging
+            logger.info(f"===== CONVERSATION HISTORY FOR {model} =====")
+            logger.info(f"Total messages: {len(api_messages)}")
+            
+            # Safe logging function to avoid exposing full content
+            def safe_log_message(msg, idx):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                content_preview = content[:100] + ('...' if len(content) > 100 else '')
+                content_length = len(content)
+                logger.info(f"Message {idx}: role={role}, length={content_length}, preview={content_preview}")
+            
+            # Log each message in a summarized format
+            for idx, msg in enumerate(api_messages):
+                safe_log_message(msg, idx)
+            
+            logger.info("===== END CONVERSATION HISTORY =====")
+            
+            # FULL PAYLOAD LOGGING FOR DEBUGGING (Task 2)
+            # Log the complete payload being sent to the AI provider
+            logger.info("==================================================================")
+            logger.info("========= COMPLETE AI PROVIDER PAYLOAD (BUILD MODE: %s) =========", is_build_mode)
+            logger.info("==================================================================")
+            
+            for idx, msg in enumerate(api_messages):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                
+                logger.info(f"MESSAGE {idx}: role={role}")
+                logger.info("---------- CONTENT START ----------")
+                logger.info(content)
+                logger.info("---------- CONTENT END ----------")
+                logger.info("")
+                
+            logger.info("==================================================================")
+            logger.info("==================== END OF COMPLETE AI PAYLOAD ==================")
+            logger.info("==================================================================")
+            
             # Determine provider and API version from model ID
             provider = get_provider_from_model_id(model)
             api_version = get_api_version_from_model_id(model)
@@ -537,6 +607,16 @@ class BaseAgentService(ABC):
                 
                 # Adjust system prompt to include instructions about not using streaming
                 system_content = f"{system_content}\n\nIMPORTANT: Provide complete responses at once, not streamed. The user will see a processing animation while waiting."
+                
+                # Log the final Claude API payload (sanitized for privacy)
+                logger.info("===== ANTHROPIC API PAYLOAD =====")
+                logger.info(f"Model: {model}, Max tokens: 4096, Temperature: 0.7")
+                logger.info(f"System content length: {len(system_content)} chars")
+                logger.info(f"System content preview: {system_content[:100]}...")
+                logger.info(f"Messages count: {len(claude_messages)}")
+                for idx, msg in enumerate(claude_messages):
+                    safe_log_message(msg, idx)
+                logger.info("===== END ANTHROPIC API PAYLOAD =====")
                 
                 # Make the API call with better error handling
                 try:
@@ -576,6 +656,13 @@ class BaseAgentService(ABC):
                     "role": "system",
                     "content": "IMPORTANT: Provide complete responses at once, not streamed. The user will see a processing animation while waiting."
                 })
+                
+                # Log the final OpenAI API payload (sanitized for privacy)
+                logger.info("===== OPENAI API PAYLOAD =====")
+                logger.info(f"Total messages after adding context: {len(api_messages)}")
+                for idx, msg in enumerate(api_messages):
+                    safe_log_message(msg, idx)
+                logger.info("===== END OPENAI API PAYLOAD =====")
                 
                 # Make the API call with better error handling
                 try:

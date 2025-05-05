@@ -36,6 +36,8 @@ class TemplateAgentService(BaseAgentService):
         self._template_cache = {}
         # Add default timeout override
         self.request_timeout = 30  # Reduced from default 60s
+        # Define base system prompt
+        self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
 
     def get_system_prompt(self):
         """
@@ -124,10 +126,40 @@ class TemplateAgentService(BaseAgentService):
         Returns:
             str: Additional context for the system prompt
         """
+        context_parts = []
+        
+        # Get file/template information
         template_name = kwargs.get('template_name')
+        file_path = kwargs.get('file_path')
+        
         if template_name:
-            return f"You are creating/editing the template: {template_name}"
-        return None
+            context_parts.append(f"You are creating/editing the template: {template_name}")
+        elif file_path:
+            context_parts.append(f"You are creating/editing the file: {file_path}")
+        
+        # Add project information if available
+        project_id = kwargs.get('project_id')
+        if project_id:
+            try:
+                from apps.Products.Oasis.ProjectManager.models import Project
+                project = Project.objects.get(id=project_id)
+                context_parts.append(f"Project name: {project.name}")
+                
+                if hasattr(project, 'description') and project.description:
+                    context_parts.append(f"Project description: {project.description}")
+            except Exception as e:
+                logger.warning(f"Could not get project details for context: {str(e)}")
+        
+        # Add information about other templates in the project
+        if hasattr(self, 'project_files') and self.project_files:
+            template_files = [f["path"] for f in self.project_files if f["path"].endswith('.html')]
+            if template_files:
+                context_parts.append(f"Project contains the following templates: {', '.join(template_files)}")
+        
+        if not context_parts:
+            return None
+        
+        return "\n".join(context_parts)
     
     def fix_template_issues(self, content, template_name):
         """
@@ -331,6 +363,46 @@ class TemplateAgentService(BaseAgentService):
                     return result
             
             # For more complex requests, use the regular flow
+            # Get project path and load project files for context
+            project_path = None
+            project_files = []
+            project = None
+            
+            if project_id:
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = project.project_path
+                    
+                    # Load all project files for context
+                    project_files = self.load_project_files(project_path)
+                    logger.info(f"Loaded {len(project_files)} project files for context")
+                except Exception as e:
+                    logger.warning(f"Could not load project files: {str(e)}")
+            
+            # Prepare current file data
+            current_file = None
+            if file_path and project_path:
+                try:
+                    full_path = os.path.join(project_path, file_path)
+                    if os.path.exists(full_path):
+                        with open(full_path, 'r') as f:
+                            file_content = f.read()
+                            current_file = {
+                                'path': file_path,
+                                'content': file_content,
+                                'type': 'html'
+                            }
+                    else:
+                        # If file doesn't exist yet, make an empty template to include in context
+                        current_file = {
+                            'path': file_path,
+                            'content': f"# New file: {file_path}",
+                            'type': 'html'
+                        }
+                except Exception as e:
+                    logger.warning(f"Could not read file {file_path}: {str(e)}")
+            
             # Process the conversation with a shorter timeout
             result = self.process_conversation(
                 user_input=user_input,
@@ -340,6 +412,10 @@ class TemplateAgentService(BaseAgentService):
                 project_id=project_id,
                 template_name=self.current_template_name,
                 file_path=file_path,
+                project_path=project_path,
+                project_files=project_files,
+                current_file=current_file,
+                is_build_mode=True,  # Flag to indicate this is build mode
                 timeout=self.request_timeout  # Use shorter timeout
             )
             
@@ -376,11 +452,46 @@ class TemplateAgentService(BaseAgentService):
                 'error': str(e)
             }
 
-    # Override this to provide faster timeout
+    # Override process_conversation to include detailed conversation logging
     def process_conversation(self, user_input, model, user, **kwargs):
-        """Process conversation with optional timeout override."""
+        """Process conversation with logging of the complete conversation history."""
         # Extract timeout from kwargs if provided
         timeout = kwargs.pop('timeout', None)
+        
+        # Get conversation_id if available
+        conversation_id = kwargs.get('conversation_id')
+        if conversation_id:
+            logger.info(f"Processing conversation with ID: {conversation_id}")
+        else:
+            logger.info("Starting new conversation")
+        
+        # Print current file path if available
+        file_path = kwargs.get('file_path') or self.current_template_name
+        if file_path:
+            logger.info(f"Working with template file: {file_path}")
+        
+        # Check if this is a build mode request
+        is_build_mode = kwargs.get('is_build_mode', False)
+        if is_build_mode:
+            logger.info(f"Processing in BUILD MODE for file: {file_path}")
+            
+            # Make sure we have project information
+            project_id = kwargs.get('project_id')
+            project_path = kwargs.get('project_path')
+            if project_id and not project_path:
+                # Try to get project path
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    kwargs['project_path'] = project.project_path
+                    logger.info(f"Added project path: {project.project_path}")
+                except Exception as e:
+                    logger.warning(f"Could not get project path: {str(e)}")
+            
+            # Ensure we have all project files loaded
+            if not kwargs.get('project_files') and kwargs.get('project_path'):
+                kwargs['project_files'] = self.load_project_files(kwargs['project_path'])
+                logger.info(f"Loaded {len(kwargs['project_files'])} project files for context")
         
         # Call original method with potentially modified timeout
         if timeout:
@@ -389,59 +500,103 @@ class TemplateAgentService(BaseAgentService):
             try:
                 # Set new timeout for this request
                 self.request_timeout = timeout
-                return super().process_conversation(user_input, model, user, **kwargs)
+                result = super().process_conversation(user_input, model, user, **kwargs)
+                
+                # Log the response (preview only)
+                if result.get('success'):
+                    response_preview = result.get('response', '')[:100]
+                    logger.info(f"Response preview: {response_preview}...")
+                else:
+                    logger.error(f"Error in response: {result.get('error')}")
+                
+                return result
             finally:
                 # Restore original timeout
                 self.request_timeout = original_timeout
         else:
-            return super().process_conversation(user_input, model, user, **kwargs)
+            result = super().process_conversation(user_input, model, user, **kwargs)
+            
+            # Log the response (preview only)
+            if result.get('success'):
+                response_preview = result.get('response', '')[:100]
+                logger.info(f"Response preview: {response_preview}...")
+            else:
+                logger.error(f"Error in response: {result.get('error')}")
+            
+            return result
 
     def process_template(self, prompt, model, user, project_id=None, file_name=None, conversation_id=None):
         """
-        Process a template generation request.
+        Process a template generation request and return the generated code.
         
         Args:
-            prompt (str): The user's prompt
+            prompt (str): The user's prompt describing the template
             model (str): The AI model to use
-            user: The Django user object
-            project_id (str, optional): The ID of the project
-            file_name (str, optional): The name of the template file
-            conversation_id (int, optional): The ID of an existing conversation
+            user (User): The Django user object
+            project_id (str, optional): The project ID
+            file_name (str, optional): The file name to create/update
+            conversation_id (int, optional): ID of existing conversation
             
         Returns:
-            dict: The result of the operation, including success status and response
+            dict: The result of the operation
         """
-        # Store the current template name for validation
-        self.current_template_name = file_name
-        
-        # Determine file path
-        file_path = None
-        if project_id and file_name:
-            try:
-                from apps.Products.Oasis.ProjectManager.models import Project
-                project = Project.objects.get(id=project_id, user=user)
-                file_path = os.path.join(project.project_path, 'templates', file_name)
-            except Exception as e:
-                logger.warning(f"Could not determine file path: {str(e)}")
-                
-        # Get response from conversation
-        response = self.handle_template_request(
-            user_input=prompt,
-            model=model,
-            user=user,
-            file_path=file_path,
-            conversation_id=conversation_id,
-            project_id=project_id
-        )
-        
-        # Enhance response with file info
-        if response.get('success') and file_name:
-            response['file_name'] = file_name
-            response['file_path'] = file_path
-            # Set build mode flag to ensure proper UI display
-            response['is_build_mode'] = True
-        
-        return response
+        try:
+            # Validate required parameters
+            if not prompt:
+                return self.error_response("Prompt is required")
+            
+            if not model:
+                return self.error_response("Model is required")
+            
+            # Store file name if provided
+            if file_name:
+                self.current_template_name = file_name
+            
+            # Get additional system context for this request
+            template_context = self.get_additional_context(
+                template_name=file_name,
+                project_id=project_id,
+                file_path=file_name
+            )
+            
+            # Create a custom system prompt
+            system_prompt = f"{self.BASE_SYSTEM_PROMPT}\n\n{template_context}".strip()
+            
+            # Log the complete system prompt for debugging
+            logger.info("==================================================================")
+            logger.info("============ TEMPLATE AGENT SYSTEM PROMPT (BUILD MODE) ===========")
+            logger.info("==================================================================")
+            logger.info(system_prompt)
+            logger.info("==================================================================")
+            logger.info("==================== END OF SYSTEM PROMPT ========================")
+            logger.info("==================================================================")
+            
+            # Process the conversation with the agent service
+            result = self.process_conversation(
+                user_input=prompt,
+                model=model,
+                user=user,
+                project_id=project_id,
+                system_prompt=system_prompt,
+                conversation_id=conversation_id,
+                is_build_mode=True
+            )
+            
+            # Enhance response with file info
+            if result.get('success') and file_name:
+                result['file_name'] = file_name
+                result['file_path'] = file_name
+                # Set build mode flag to ensure proper UI display
+                result['is_build_mode'] = True
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in process_template: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     def create_view_and_url(self, project_id, template_name, user):
         """
@@ -638,3 +793,130 @@ if settings.DEBUG:
                 'success': False,
                 'error': f'Error accessing project: {str(e)}'
             }
+
+    def load_project_files(self, project_path):
+        """
+        Load all relevant project files to provide context for template generation.
+        
+        Args:
+            project_path (str): Path to the project directory
+            
+        Returns:
+            list: List of project files with their content
+        """
+        files = []
+        
+        try:
+            if not project_path or not os.path.exists(project_path):
+                logger.warning(f"Invalid project path: {project_path}")
+                return files
+            
+            # Get templates
+            templates_dir = os.path.join(project_path, 'templates')
+            if os.path.exists(templates_dir):
+                html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
+                # Sort files but prioritize base.html and index.html
+                sorted_files = []
+                if 'base.html' in html_files:
+                    sorted_files.append('base.html')
+                    html_files.remove('base.html')
+                if 'index.html' in html_files:
+                    sorted_files.append('index.html')
+                    html_files.remove('index.html')
+                    
+                # Add remaining files
+                sorted_files.extend(sorted(html_files))
+                
+                for filename in sorted_files:
+                    file_path = os.path.join(templates_dir, filename)
+                    try:
+                        with open(file_path, 'r') as f:
+                            content = f.read()
+                            files.append({
+                                'path': f'templates/{filename}',
+                                'content': content,
+                                'type': 'html'
+                            })
+                    except Exception as e:
+                        logger.warning(f"Error reading HTML file {filename}: {str(e)}")
+            
+            # Get CSS files for styling context
+            css_dir = os.path.join(project_path, 'static', 'css')
+            if os.path.exists(css_dir):
+                for filename in os.listdir(css_dir):
+                    if filename.endswith('.css'):
+                        file_path = os.path.join(css_dir, filename)
+                        try:
+                            with open(file_path, 'r') as f:
+                                content = f.read()
+                                files.append({
+                                    'path': f'static/css/{filename}',
+                                    'content': content,
+                                    'type': 'css'
+                                })
+                        except Exception as e:
+                            logger.warning(f"Error reading CSS file {filename}: {str(e)}")
+            
+            # Get URL configuration for additional context
+            urls_py_path = None
+            for root, dirs, file_list in os.walk(project_path):
+                if 'urls.py' in file_list:
+                    urls_py_path = os.path.join(root, 'urls.py')
+                    break
+                    
+            if urls_py_path:
+                try:
+                    with open(urls_py_path, 'r') as f:
+                        content = f.read()
+                        rel_path = os.path.relpath(urls_py_path, project_path)
+                        files.append({
+                            'path': rel_path,
+                            'content': content,
+                            'type': 'python'
+                        })
+                except Exception as e:
+                    logger.warning(f"Error reading urls.py: {str(e)}")
+            
+            # Get views.py for additional context
+            views_py_path = None
+            for root, dirs, file_list in os.walk(project_path):
+                if 'views.py' in file_list:
+                    views_py_path = os.path.join(root, 'views.py')
+                    break
+                    
+            if views_py_path:
+                try:
+                    with open(views_py_path, 'r') as f:
+                        content = f.read()
+                        rel_path = os.path.relpath(views_py_path, project_path)
+                        files.append({
+                            'path': rel_path,
+                            'content': content,
+                            'type': 'python'
+                        })
+                except Exception as e:
+                    logger.warning(f"Error reading views.py: {str(e)}")
+                
+            return files
+            
+        except Exception as e:
+            logger.error(f"Error loading project files: {str(e)}")
+            return files
+
+    def error_response(self, message, code=400):
+        """
+        Create a standardized error response.
+        
+        Args:
+            message (str): The error message
+            code (int): The HTTP status code
+            
+        Returns:
+            dict: An error response dictionary
+        """
+        logger.error(f"Template agent error: {message}")
+        return {
+            'success': False,
+            'error': message,
+            'code': code
+        }

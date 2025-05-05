@@ -169,7 +169,8 @@ export const AgentService = {
         model: modelId,
         project_id: String(projectId), // Ensure project_id is a string
         file_path: filePath,
-        mode: data.mode || 'build', // Default to build mode if not specified
+        mode: 'build', // Always set to build mode for code generation
+        is_build_mode: true, // Explicitly flag this as build mode for backend
         conversation_id: storedConversationId || undefined,
         project_files: files.map(file => ({
           path: file.path,
@@ -178,29 +179,61 @@ export const AgentService = {
         }))
       }
       
+      // Log the request details for debugging
+      console.group('🔄 Code Generation Request');
+      console.info('Request Payload:');
+      console.info({
+        model: payload.model,
+        project_id: payload.project_id,
+        file_path: payload.file_path,
+        mode: payload.mode,
+        is_build_mode: payload.is_build_mode,
+        conversation_id: payload.conversation_id,
+        message_length: payload.message.length,
+        message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
+        project_files_count: (payload.project_files || []).length,
+        project_files_preview: (payload.project_files || []).slice(0, 3).map(f => ({
+          path: f.path,
+          type: f.type,
+          content_length: f.content ? f.content.length : 0
+        }))
+      });
+      
+      // Log the complete message
+      console.info('Full prompt:');
+      console.info(payload.message);
+      console.groupEnd();
+      
       // Determine which endpoint to use based on file extension
       let endpoint = '/api/v1/agents/build/template/';
       
       // HTML files use the template endpoint (already set as default)
       if (fileExtension === 'html') {
-        console.log('Using template agent for HTML file:', filePath);
+        // Removed log: console.log('Using template agent for HTML file:', filePath);
       } else {
-        console.log('Using default agent service for file:', filePath);
+        // Removed log: console.log('Using default agent service for file:', filePath);
       }
       
-      console.log('Sending request with payload:', {
-        message_length: payload.message.length,
-        model: payload.model,
-        project_id: payload.project_id,
-        file_path: payload.file_path,
-        mode: payload.mode,
-        conversation_id: payload.conversation_id ? 'defined' : 'undefined',
-        project_files_count: payload.project_files.length,
-        endpoint: endpoint
-      });
+      // Track request duration
+      console.time('CodeGenerationDuration');
       
       // Use the appropriate endpoint based on file type
       const response = await longTimeoutApi.post(endpoint, payload)
+      
+      // Log response duration and details
+      console.timeEnd('CodeGenerationDuration');
+      console.group('✅ Code Generation Response');
+      console.info({
+        success: response.data.success !== false,
+        status: response.status,
+        conversation_id: response.data.conversation_id,
+        response_length: response.data.response ? response.data.response.length : 0,
+        code_length: response.data.code ? response.data.code.length : 0,
+        response_preview: response.data.response ? 
+          response.data.response.substring(0, 100) + 
+          (response.data.response.length > 100 ? '...' : '') : 'No response'
+      });
+      console.groupEnd();
       
       // Store the conversation ID for future requests based on file type
       if (response.data.conversation_id) {
@@ -256,7 +289,57 @@ export const AgentService = {
     } catch (error: any) {
       // Show error notification
       const { notify } = await import('@/shared/utils');
-      notify({ type: 'error', message: `Error generating code: ${error.message || 'Unknown error'}` });
+      
+      // Enhanced error logging for debugging
+      console.group('❌ Code Generation Error');
+      console.error('Error generating code:', error);
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+        
+        // Log the detailed error data from the backend
+        if (error.response.data) {
+          console.error('Error details from server:', error.response.data);
+          
+          // Log specific error information if available
+          const errorMessage = error.response.data.error || 
+                              error.response.data.detail || 
+                              error.response.data.message ||
+                              'Unknown server error';
+          
+          console.error('Error message:', errorMessage);
+          
+          // Show more detailed error message to the user
+          notify({ 
+            type: 'error', 
+            message: `Error generating code: ${errorMessage}` 
+          });
+        } else {
+          notify({ 
+            type: 'error', 
+            message: `Error generating code: Server returned ${error.response.status}` 
+          });
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('No response received:', error.request);
+        notify({ 
+          type: 'error', 
+          message: 'Error generating code: No response from server. Please check your connection.' 
+        });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Request setup error:', error.message);
+        notify({ 
+          type: 'error', 
+          message: `Error generating code: ${error.message || 'Unknown error'}` 
+        });
+      }
+      
+      console.groupEnd();
       
       throw handleAPIError(error)
     }
@@ -266,6 +349,7 @@ export const AgentService = {
     prompt: string;
     model: string;
     mode?: string;
+    is_build_mode?: boolean;
     file?: any;
   }): Promise<ChatResponse> {
     if (!data.prompt || !data.model || !projectId) {
@@ -286,6 +370,7 @@ export const AgentService = {
       project_id: String(projectId),
       conversation_id: storedConversationId || undefined,
       mode: data.mode || 'chat',
+      is_build_mode: data.is_build_mode || false,
       project_files: files.map(file => ({
         path: file.path,
         type: file.type,
@@ -301,6 +386,29 @@ export const AgentService = {
         content: data.file.content || ''
       }
     }
+    
+    // Log request details for debugging
+    console.group('🔄 Chat API Request');
+    console.info('Request Payload:');
+    console.info({
+      model: payload.model,
+      project_id: payload.project_id,
+      conversation_id: payload.conversation_id,
+      message_length: payload.message.length,
+      message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
+      current_file: payload.current_file ? {
+        path: payload.current_file.path,
+        type: payload.current_file.type,
+        content_length: payload.current_file.content ? payload.current_file.content.length : 0
+      } : null,
+      project_files_count: payload.project_files?.length || 0,
+      project_files_preview: (payload.project_files || []).slice(0, 3).map(f => ({
+        path: f.path,
+        type: f.type,
+        content_length: f.content ? f.content.length : 0
+      }))
+    });
+    console.groupEnd();
     
     try {
       // Check for valid project_id
@@ -322,7 +430,22 @@ export const AgentService = {
       
       while (retryCount <= maxRetries) {
         try {
+          console.time('ChatRequestDuration');
           const response = await api.post(chatEndpoint, payload);
+          console.timeEnd('ChatRequestDuration');
+          
+          // Log response details for debugging
+          console.group('✅ Chat API Response');
+          console.info({
+            success: response.data.success !== false,
+            status: response.status,
+            conversation_id: response.data.conversation_id,
+            response_length: response.data.response ? response.data.response.length : 0,
+            response_preview: response.data.response ? 
+              response.data.response.substring(0, 100) + 
+              (response.data.response.length > 100 ? '...' : '') : 'No response'
+          });
+          console.groupEnd();
           
           // Store the conversation ID for future requests
           if (response.data.conversation_id) {
@@ -483,6 +606,26 @@ export const AgentService = {
     onConversationId?: (id: string) => void
   ): Promise<void> {
     try {
+      // Enhance payload with build mode flag for backend
+      const isBuildMode = payload.mode === 'build';
+      
+      // Log the enhanced payload for debugging
+      console.group('🔄 Chat API Request (with Typing Effect)');
+      console.info('Chat Request Payload:');
+      console.info({
+        model: payload.model,
+        project_id: payload.project_id,
+        mode: payload.mode,
+        is_build_mode: isBuildMode,
+        current_file: payload.current_file ? {
+          path: payload.current_file.path,
+          type: payload.current_file.type
+        } : null,
+        message_length: payload.message.length,
+        message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
+      });
+      console.groupEnd();
+      
       // Process the message with regular chat API
       const chatResponse = await this.processChat(
         payload.project_id,
@@ -490,6 +633,7 @@ export const AgentService = {
           prompt: payload.message,
           model: payload.model,
           mode: payload.mode,
+          is_build_mode: isBuildMode,
           file: payload.current_file
         }
       );
@@ -742,10 +886,6 @@ export const AgentService = {
       // Get all project files for context
       const files = await FileService.getProjectFiles(projectId);
       
-      // Log request info for debugging
-      console.info(`Generating stylesheet for file: ${filePath} with model: ${model}`);
-      console.info(`Project ID: ${projectId}, Files count: ${files.length}`);
-      
       // Update progress if callback provided
       if (onProgress) {
         onProgress({ status: 'Preparing stylesheet request...', percent: 10 });
@@ -761,6 +901,7 @@ export const AgentService = {
         project_id: projectId,
         file_path: filePath,
         mode: 'build',
+        is_build_mode: true, // Explicitly flag this as build mode for the backend
         conversation_id: storedConversationId,
         project_files: files.filter(file => 
           // Only include relevant files for stylesheet context
@@ -778,21 +919,47 @@ export const AgentService = {
       if (onProgress) {
         onProgress({ status: 'Sending request to AI...', percent: 25 });
       }
+
+      // Log the detailed payload for debugging
+      console.group('🔄 Stylesheet Generation Request');
+      console.info('Request Payload:');
+      console.info({
+        model: payload.model,
+        project_id: payload.project_id,
+        file_path: payload.file_path,
+        mode: payload.mode,
+        is_build_mode: payload.is_build_mode,
+        conversation_id: payload.conversation_id,
+        message_length: payload.message.length,
+        message_preview: payload.message.substring(0, 100) + (payload.message.length > 100 ? '...' : ''),
+        project_files_count: (payload.project_files || []).length,
+        project_files_preview: (payload.project_files || []).slice(0, 3).map(f => ({
+          path: f.path,
+          type: f.type,
+          content_length: f.content ? f.content.length : 0
+        }))
+      });
       
-      console.info(`Sending stylesheet generation request to endpoint: /api/v1/agents/build/stylesheet/`);
+      // Log the complete message for backend debugging
+      console.info('Full prompt:');
+      console.info(payload.message);
+      console.groupEnd();
       
       // Make request with longer timeout - use longTimeoutApi for stylesheet generation
       const response = await longTimeoutApi.post('/api/v1/agents/build/stylesheet/', payload);
       
-      console.info(`Received stylesheet response with status: ${response.status}`);
-      
       // Log response data for debugging (without exposing sensitive information)
+      console.group('✅ Stylesheet Generation Response');
       console.info('Stylesheet response data structure:', {
         has_response: !!response.data.response,
         has_code: !!response.data.code,
         has_conversation_id: !!response.data.conversation_id,
-        success: response.data.success
+        success: response.data.success,
+        response_preview: response.data.response ? 
+          response.data.response.substring(0, 100) + 
+          (response.data.response.length > 100 ? '...' : '') : 'No response'
       });
+      console.groupEnd();
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {

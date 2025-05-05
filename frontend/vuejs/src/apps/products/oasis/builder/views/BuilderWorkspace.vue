@@ -257,9 +257,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       const isCSS = fileExtension === 'css' || store.selectedFile.type === 'css'
       const isHTML = fileExtension === 'html' || store.selectedFile.type === 'html'
       
-      // Log which agent service will be used based on file type
+      // Remove logs about which agent service will be used
       if (isCSS) {
-        console.info('Using stylesheet agent service for CSS file:', store.selectedFile.path)
         // Show loading notification
         notify({ type: 'info', message: 'Generating stylesheet with AI...' })
         
@@ -335,7 +334,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           notify({ type: 'error', message: 'Error generating stylesheet. Please try again.' });
         }
       } else if (isHTML) {
-        console.info('Using template agent service for HTML file:', store.selectedFile.path)
         // Show loading notification
         notify({ type: 'info', message: 'Generating HTML template...' })
         
@@ -404,7 +402,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           notify({ type: 'error', message: 'Error generating HTML template. Please try again.' })
         }
       } else {
-        console.info('Using default agent service for file:', store.selectedFile.path)
         // Show loading notification
         notify({ type: 'info', message: 'Generating code...' })
         
@@ -588,15 +585,6 @@ async function handleFileSelect(file: ProjectFile) {
     const fileExtension = file.path.split('.').pop()?.toLowerCase() || '';
     const isCSS = fileExtension === 'css' || file.type === 'css';
     const isHTML = fileExtension === 'html' || file.type === 'html';
-    
-    // Log file type information for debugging
-    if (isCSS) {
-      console.info('Selected CSS file:', file.path);
-    } else if (isHTML) {
-      console.info('Selected HTML file:', file.path);
-    } else {
-      console.info('Selected file:', file.path, 'with type:', file.type || fileExtension);
-    }
     
     // Use the improved selectFile method to maintain chat context
     store.selectFile(file)

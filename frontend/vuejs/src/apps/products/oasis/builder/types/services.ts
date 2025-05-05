@@ -185,6 +185,7 @@ export interface ChatPayload {
   project_id: string;
   conversation_id?: string;
   mode?: string;
+  is_build_mode?: boolean;
   current_file?: any;
 }
 
@@ -197,6 +198,7 @@ export interface ChatProcessingPayload {
   project_id: string;
   conversation_id?: string;
   mode: string;
+  is_build_mode?: boolean;
   stream?: boolean;
   current_file?: {
     path: string;

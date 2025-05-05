@@ -129,10 +129,19 @@ def build_template(request):
         project, error = template_agent.validate_project_access(project_id, request.user)
         if error:
             return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
-            
-        # Set project files if available
+        
+        # Load project files if not provided in the request
+        if not project_files and project and project.project_path:
+            try:
+                project_files = template_agent.load_project_files(project.project_path)
+                logger.info(f"Loaded {len(project_files)} project files from server for context")
+            except Exception as e:
+                logger.warning(f"Could not load project files: {str(e)}")
+        
+        # Set project files on the agent
         if project_files:
             template_agent.project_files = project_files
+            logger.info(f"Added {len(project_files)} project files to template context")
             
         # Process the template request
         result = template_agent.process_template(
@@ -194,6 +203,14 @@ def build_stylesheet(request):
         project, error = stylesheet_agent.validate_project_access(project_id, request.user)
         if error:
             return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+        
+        # Load project files if not provided in the request
+        if not project_files and project and project.project_path:
+            try:
+                project_files = stylesheet_agent.load_project_files(project.project_path)
+                logger.info(f"Loaded {len(project_files)} project files from server for context")
+            except Exception as e:
+                logger.warning(f"Could not load project files: {str(e)}")
                 
         # Add project files to the agent context if provided
         if project_files:
@@ -241,6 +258,13 @@ def chat(request):
         current_file = request.data.get('current_file')
         project_files = request.data.get('project_files', [])
         
+        # Explicitly check for build mode flag
+        is_build_mode = request.data.get('is_build_mode', False)
+        if not is_build_mode and mode == 'build':
+            is_build_mode = True
+        
+        logger.info(f"Chat API request - Mode: {mode}, Build Mode: {is_build_mode}, Model: {model}")
+        
         # Validate required fields
         if not message:
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
@@ -255,6 +279,10 @@ def chat(request):
         # Optionally add project files to the agent context
         if project_files:
             chat_agent.project_files = project_files
+            logger.info(f"Added {len(project_files)} project files to chat context")
+        
+        # Log the complete request payload
+        logger.info(f"Chat request payload: message length={len(message)}, model={model}, project_id={project_id}, is_build_mode={is_build_mode}")
         
         # Process the message
         result = chat_agent.process_message(
@@ -264,7 +292,7 @@ def chat(request):
             conversation_id=conversation_id,
             project_id=project_id,
             current_file=current_file,
-            is_build_mode=(mode == 'build')
+            is_build_mode=is_build_mode
         )
         
         # Check for success

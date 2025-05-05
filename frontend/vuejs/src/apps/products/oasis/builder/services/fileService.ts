@@ -196,25 +196,20 @@ export const FileService = {
     }
     
     try {
-      // Check if the file exists
-      try {
-        await this.getFile(projectId, filePath)
-      } catch (fileError) {
-        console.warn('File not found, creating it instead:', fileError)
-        return this.createFile(projectId, filePath, content)
-      }
-      
       // For CSS files, ensure the static/css directory exists
       if (isCSS && filePath.includes('static/css/')) {
+        const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
+        
+        // Check if the file exists first
         try {
-          // Try to ensure the directory exists
-          const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
-          await this.createDirectory(projectId, dirPath).catch(err => {
-            // Ignore errors if directory already exists
-            console.debug('Directory may already exist:', err);
-          });
-        } catch (dirError) {
-          console.debug('Error ensuring directory exists (may be ok):', dirError);
+          await this.getFile(projectId, filePath)
+        } catch (fileError) {
+          console.debug('File not found, will create it with its parent directories');
+          
+          // The backend will automatically create parent directories when creating a file,
+          // so we don't need to explicitly create them here anymore.
+          // Just proceed to create/update the file directly.
+          return this.createFile(projectId, filePath, content);
         }
       }
       
@@ -227,16 +222,10 @@ export const FileService = {
         console.info(`Sending CSS update to endpoint: ${api_url}`);
       }
       
-      const response = await api.post(api_url, {
-        content
-      });
+      const response = await api.post(api_url, { content })
       
-      // Log success for CSS files
       if (isCSS) {
-        console.info(`Successfully updated CSS file: ${filePath}`, { 
-          status: response.status,
-          responseType: typeof response.data
-        });
+        console.info(`Successfully updated CSS file: ${filePath}`, {status: response.status, responseType: typeof response.data});
       }
       
       return response.data
@@ -254,9 +243,10 @@ export const FileService = {
         console.error('File API - error updating file content:', error);
       }
       
-      // Provide more details in the error message
-      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
-      throw new Error(`Failed to update file ${filePath}: ${errorMsg}`);
+      // Provide more detailed error message
+      const errorMsg = error.response?.data?.detail || error.response?.data?.error || error.message || 'Unknown error'
+      const errorStatus = error.response?.status ? `(HTTP ${error.response.status})` : ''
+      throw new Error(`Failed to update file ${filePath}: ${errorMsg} ${errorStatus}`.trim())
     }
   },
   
@@ -267,15 +257,37 @@ export const FileService = {
     console.debug('File API - creating file:', { projectId, filePath, contentLength: content.length })
     
     try {
+      // The backend will automatically create parent directories when creating a file
+      const dirPath = filePath.substring(0, filePath.lastIndexOf('/'))
+      if (dirPath) {
+        console.debug(`Parent directory ${dirPath} will be created automatically if needed`)
+      }
+      
       const response = await api.post(`/api/v1/builder/${projectId}/files/create/`, {
         path: filePath,
         content
       })
       
+      console.debug(`Successfully created file: ${filePath}`, {
+        status: response.status,
+        type: response.data?.type
+      })
+      
       return response.data
-    } catch (error) {
-      console.error('File API - error creating file:', error)
-      throw error
+    } catch (error: any) {
+      // Enhanced error logging
+      console.error('File API - error creating file:', { 
+        projectId, 
+        filePath, 
+        error: error.message, 
+        status: error.response?.status,
+        responseData: error.response?.data
+      })
+      
+      // Provide more detailed error message
+      const errorMsg = error.response?.data?.detail || error.response?.data?.error || error.message || 'Unknown error'
+      const errorStatus = error.response?.status ? `(HTTP ${error.response.status})` : ''
+      throw new Error(`Failed to create file ${filePath}: ${errorMsg} ${errorStatus}`.trim())
     }
   },
 
@@ -289,14 +301,15 @@ export const FileService = {
       // Ensure the directory path ends with a /
       const normalizedPath = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`
       
-      // Create a placeholder file in the directory
+      // Create a placeholder file in the directory (.gitkeep)
+      // This implicitly creates the directory structure
       const placeholderPath = `${normalizedPath}.gitkeep`
       
-      await api.post(`/api/v1/builder/${projectId}/directories/`, {
-        path: normalizedPath
-      })
+      // Instead of trying to create the directory directly (which is not supported),
+      // create a .gitkeep file in the directory to implicitly create it
+      await this.createFile(projectId, placeholderPath, '')
       
-      console.debug('Directory created successfully')
+      console.debug('Directory created successfully via .gitkeep file')
     } catch (error) {
       console.error('File API - error creating directory:', error)
       throw error

@@ -131,6 +131,21 @@ class ChatAgentService(BaseAgentService):
                 is_valid, error_response = self.validate_current_file(current_file)
                 if not is_valid:
                     return error_response
+                
+                # Log the current file being processed
+                logger.info(f"Current file: {current_file.get('path')}, type: {current_file.get('type')}")
+                content_preview = current_file.get('content', '')[:100]
+                logger.info(f"File content preview: {content_preview}...")
+            
+            # Log conversation details before API call
+            logger.info(f"===== CHAT DETAILS =====")
+            logger.info(f"Model: {model_id}")
+            logger.info(f"User: {user.username}")
+            logger.info(f"Conversation ID: {conversation_id}")
+            logger.info(f"Project ID: {project_id}")
+            logger.info(f"Message length: {len(user_input)} chars")
+            logger.info(f"Message preview: {user_input[:100]}...")
+            logger.info("===== END CHAT DETAILS =====")
             
             # Use process_conversation from BaseAgentService
             result = self.process_conversation(
@@ -147,6 +162,14 @@ class ChatAgentService(BaseAgentService):
             if result.get('success', False):
                 # Add timestamp to result
                 result['timestamp'] = timezone.now().isoformat()
+                
+                # Log response length and preview
+                response = result.get('response', '')
+                logger.info(f"Response length: {len(response)} chars")
+                logger.info(f"Response preview: {response[:100]}...")
+            else:
+                # Log error
+                logger.error(f"Error in response: {result.get('error')}")
             
             return result
             
