@@ -320,22 +320,56 @@
                     </div>
                     
                     <div class="space-y-3">
+                      <router-link 
+                        to="/docs" 
+                        class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                              <i class="fas fa-book text-emerald-400"></i>
+                            </div>
+                            <div>
+                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">Documentation</h3>
+                              <p class="text-sm text-gray-400">Learn how to use Imagi Oasis</p>
+                            </div>
+                          </div>
+                          <i class="fas fa-arrow-right text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
+                        </div>
+                      </router-link>
+                      
+                      <router-link 
+                        to="/docs/api" 
+                        class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                              <i class="fas fa-code text-emerald-400"></i>
+                            </div>
+                            <div>
+                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">API Reference</h3>
+                              <p class="text-sm text-gray-400">Integrate with our API</p>
+                            </div>
+                          </div>
+                          <i class="fas fa-arrow-right text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
+                        </div>
+                      </router-link>
+                      
                       <a 
-                        v-for="resource in resourceLinks" 
-                        :key="resource.title"
-                        :href="resource.url"
-                        target="_blank"
+                        href="https://discord.gg/imagioasis" 
+                        target="_blank" 
                         rel="noopener noreferrer"
                         class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
                       >
                         <div class="flex items-center justify-between">
                           <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                              <i :class="[resource.icon, 'text-emerald-400']"></i>
+                              <i class="fas fa-users text-emerald-400"></i>
                             </div>
                             <div>
-                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">{{ resource.title }}</h3>
-                              <p class="text-sm text-gray-400">{{ resource.description }}</p>
+                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">Community</h3>
+                              <p class="text-sm text-gray-400">Join our Discord community</p>
                             </div>
                           </div>
                           <i class="fas fa-external-link-alt text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
@@ -410,7 +444,7 @@ const quickActions = [
   { 
     title: 'New Project', 
     icon: 'fas fa-plus', 
-    route: { name: 'products-builder-new-project' } 
+    route: { name: 'builder-dashboard' } 
   },
   { 
     title: 'API Documentation', 
@@ -431,9 +465,9 @@ const quickActions = [
 
 // Resources links
 const resourceLinks = [
-  { title: 'Documentation', icon: 'fas fa-book', url: '/docs', description: 'Learn how to use Imagi' },
+  { title: 'Documentation', icon: 'fas fa-book', url: '/docs', description: 'Learn how to use Imagi Oasis' },
   { title: 'API Reference', icon: 'fas fa-code', url: '/docs/api', description: 'Integrate with our API' },
-  { title: 'Community', icon: 'fas fa-users', url: '/community', description: 'Join our Discord' }
+  { title: 'Community', icon: 'fas fa-users', url: 'https://discord.gg/imagioasis', description: 'Join our Discord community' }
 ]
 
 // Format date helper

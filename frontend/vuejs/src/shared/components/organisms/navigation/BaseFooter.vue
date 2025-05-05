@@ -1,7 +1,7 @@
 <template>
   <footer class="bg-gradient-to-b from-dark-900 to-dark-950 border-t border-dark-700/30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="py-8 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+      <div class="py-8 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
         <div class="col-span-1 space-y-4">
           <div class="space-y-3">
             <ImagiLogo size="md" />
@@ -11,12 +11,32 @@
           </div>
         </div>
 
-        <div class="col-span-1 flex justify-end">
+        <div class="col-span-1">
           <div class="space-y-4">
-            <h4 class="text-xs font-semibold text-primary-400/90 uppercase tracking-wider">Quick Links</h4>
+            <h4 class="text-xs font-semibold text-primary-400/90 uppercase tracking-wider">Learn</h4>
             <ul class="space-y-2.5">
-              <li v-for="link in links" :key="link.to" class="w-full">
-                <NavLink :to="link.to">{{ link.text }}</NavLink>
+              <li>
+                <NavLink to="/docs">Documentation</NavLink>
+              </li>
+              <li>
+                <NavLink to="/about">About Us</NavLink>
+              </li>
+              <li>
+                <NavLink to="/contact">Contact</NavLink>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-span-1">
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-primary-400/90 uppercase tracking-wider">Legal</h4>
+            <ul class="space-y-2.5">
+              <li>
+                <NavLink to="/privacy">Privacy Policy</NavLink>
+              </li>
+              <li>
+                <NavLink to="/terms">Terms of Service</NavLink>
               </li>
             </ul>
           </div>
@@ -45,16 +65,6 @@ export default defineComponent({
   computed: {
     currentYear() {
       return new Date().getFullYear()
-    }
-  },
-  data() {
-    return {
-      links: [
-        { to: '/about', text: 'About Us' },
-        { to: '/contact', text: 'Contact' },
-        { to: '/privacy', text: 'Privacy Policy' },
-        { to: '/terms', text: 'Terms of Service' }
-      ]
     }
   }
 })
