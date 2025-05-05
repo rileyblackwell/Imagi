@@ -6,6 +6,7 @@ import DocsPageHeader from './DocsPageHeader.vue';
 import DocsStepCard from './DocsStepCard.vue';
 import DocsNavbar from './DocsNavbar.vue';
 import DocsNextSteps from './DocsNextSteps.vue';
+import DocsCTASection from './DocsCTASection.vue';
 
 export {
   DocsCard,
@@ -15,5 +16,6 @@ export {
   DocsPageHeader,
   DocsStepCard,
   DocsNavbar,
-  DocsNextSteps
+  DocsNextSteps,
+  DocsCTASection
 }; 

@@ -279,46 +279,14 @@
           </div>
 
           <!-- Enhanced CTA Section -->
-          <section>
-            <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-              <!-- Enhanced glass morphism effect with stronger gradient glow -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/70 to-violet-500/70 rounded-2xl opacity-70 group-hover:opacity-90 blur group-hover:blur-md transition-all duration-300"></div>
-              
-              <div class="relative bg-dark-900/70 backdrop-blur-xl rounded-xl overflow-hidden border border-primary-500/30 group-hover:border-primary-500/50 transition-all duration-300">
-                <div class="h-3 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
-                <!-- Decorative Elements -->
-                <div class="absolute inset-0 pointer-events-none">
-                  <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
-                </div>
-
-                <!-- Content -->
-                <div class="relative z-10 px-6 py-12 md:px-12 text-center">
-                  <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-                    Questions About
-                    <span class="bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent">
-                      Our Terms?
-                    </span>
-                  </h2>
-
-                  <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
-                    We're here to help you understand our terms and conditions. Reach out with any questions.
-                  </p>
-
-                  <!-- Action Buttons -->
-                  <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <HomeNavbarButton
-                      to="/contact"
-                      class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 transition-all duration-300 transform hover:-translate-y-1"
-                    >
-                      <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
-                        Contact Us
-                      </span>
-                    </HomeNavbarButton>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+          <CTASection
+            title="Questions About"
+            highlightedText="Our Terms?"
+            description="We're here to help you understand our terms and conditions. Reach out with any questions."
+            primaryButtonText="Contact Us"
+            primaryButtonTo="/contact"
+            icon="fas fa-file-contract"
+          />
         </div>
       </div>
     </div>
@@ -333,8 +301,9 @@ import {
   HeroBadge,
   HomeNavbarButton,
   CardContainer,
-  SectionHeader 
+  SectionHeader
 } from '@/apps/home/components'
+import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
   name: 'Terms',
@@ -344,7 +313,8 @@ export default defineComponent({
     HeroBadge,
     HomeNavbarButton,
     CardContainer,
-    SectionHeader
+    SectionHeader,
+    CTASection
   },
   setup() {
     const termsSection = [

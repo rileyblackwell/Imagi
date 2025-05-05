@@ -233,85 +233,42 @@
               <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
                 <!-- Card header with gradient -->
                 <div class="h-2 w-full bg-gradient-to-r from-cyan-500 to-blue-500"></div>
-                <div class="p-7">
-                  <p class="text-lg text-gray-300 mb-8">At the heart of Imagi lies a sophisticated AI system that understands context, requirements, and user intent. Our technology stack combines:</p>
-                  
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
-                      <!-- Subtle glass morphism effect -->
-                      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-xl opacity-0 group-hover:opacity-50 blur group-hover:blur-sm transition-all duration-300"></div>
-                      
-                      <div class="relative bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-dark-700/40 group-hover:border-primary-500/20 transition-all duration-300">
-                        <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                            <i class="fas fa-brain text-primary-400"></i>
-                          </div>
-                          Advanced AI Models
-                        </h4>
-                        <p class="text-gray-300">State-of-the-art language models trained on vast amounts of code and development patterns to understand and generate high-quality applications.</p>
-                      </div>
-                    </div>
-                    <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
-                      <!-- Subtle glass morphism effect -->
-                      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-xl opacity-0 group-hover:opacity-50 blur group-hover:blur-sm transition-all duration-300"></div>
-                      
-                      <div class="relative bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-dark-700/40 group-hover:border-primary-500/20 transition-all duration-300">
-                        <h4 class="text-lg font-semibold text-white mb-4 flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                            <i class="fas fa-cubes text-primary-400"></i>
-                          </div>
-                          Modern Architecture
-                        </h4>
-                        <p class="text-gray-300">A robust, scalable infrastructure built on Django and Vue.js to ensure reliability, security, and performance for your web applications.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Join Us Section -->
-          <section>
-            <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-              <!-- Enhanced glass morphism effect with stronger gradient glow -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/70 to-violet-500/70 rounded-2xl opacity-70 group-hover:opacity-90 blur group-hover:blur-md transition-all duration-300"></div>
-              
-              <div class="relative bg-dark-900/70 backdrop-blur-xl rounded-xl overflow-hidden border border-primary-500/30 group-hover:border-primary-500/50 transition-all duration-300">
-                <div class="h-3 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
-                <!-- Decorative Elements -->
-                <div class="absolute inset-0 pointer-events-none">
-                  <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
-                </div>
-
                 <!-- Content -->
-                <div class="relative z-10 px-6 py-12 md:px-12 text-center">
-                  <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-                    Ready to Transform Your
-                    <span class="bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent">
-                      Development Process?
-                    </span>
-                  </h2>
-
-                  <p class="text-lg text-white/90 mb-8 max-w-xl mx-auto">
-                    Create beautiful web apps in minutes for just a few dollars - not thousands. No coding required.
-                  </p>
-
-                  <!-- Action Buttons -->
-                  <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <HomeNavbarButton
-                      :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-                      class="group relative w-full sm:w-auto min-w-[200px] !h-12 px-6 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 transition-all duration-300 transform hover:-translate-y-1"
+                <div class="p-7">
+                  <div class="text-center md:text-left">
+                    <h3 class="text-xl font-bold text-white mb-4">AI-Powered Development Platform</h3>
+                    <p class="text-gray-300 mb-6">
+                      Our technology stack combines the latest advancements in AI with robust, industry-standard web development frameworks and tools.
+                    </p>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mt-8">
+                    <div v-for="(tech, index) in ['Python', 'Django', 'Vue.js', 'TailwindCSS', 'PostgreSQL', 'Docker', 'OpenAI', 'Anthropic']" :key="index"
+                         class="bg-dark-800/50 backdrop-blur-sm border border-dark-700 rounded-lg p-4 text-center group-hover:border-primary-500/20 transition-all duration-300"
                     >
-                      <span class="relative z-10 flex items-center justify-center text-lg font-bold text-white">
-                        Start Building
-                      </span>
-                    </HomeNavbarButton>
+                      <div class="h-14 flex items-center justify-center mb-3">
+                        <i :class="['text-3xl', getTechIcon(tech)]"></i>
+                      </div>
+                      <h4 class="text-sm font-medium text-gray-200">{{ tech }}</h4>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </section>
+          
+          <!-- CTA Section -->
+          <CTASection
+            title="Ready to Transform Your"
+            highlightedText="Development Process?"
+            description="Create beautiful web apps in minutes for just a few dollars - not thousands. No coding required."
+            primaryButtonText="Start Building"
+            primaryButtonTo="/products/oasis/builder/dashboard"
+            icon="fas fa-wand-magic-sparkles"
+            :showSecondaryButton="true"
+            secondaryButtonText="Learn More" 
+            secondaryButtonTo="/docs"
+          />
         </div>
       </div>
     </div>
@@ -323,6 +280,7 @@ import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/store'
 import { DefaultLayout } from '@/shared/layouts'
 import { GradientText, HomeNavbarButton, HeroBadge, SectionHeader } from '@/apps/home/components'
+import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
   name: 'About',
@@ -331,7 +289,8 @@ export default defineComponent({
     GradientText,
     HomeNavbarButton,
     HeroBadge,
-    SectionHeader
+    SectionHeader,
+    CTASection
   },
   setup() {
     const authStore = useAuthStore()
@@ -361,10 +320,27 @@ export default defineComponent({
       }
     ]
     
+    // Function to get icon for technology stack items
+    const getTechIcon = (tech) => {
+      const iconMap = {
+        'Python': 'fab fa-python text-blue-400',
+        'Django': 'fas fa-server text-green-400',
+        'Vue.js': 'fab fa-vuejs text-green-500',
+        'TailwindCSS': 'fab fa-css3 text-blue-500',
+        'PostgreSQL': 'fas fa-database text-blue-400',
+        'Docker': 'fab fa-docker text-blue-500',
+        'OpenAI': 'fas fa-brain text-primary-400',
+        'Anthropic': 'fas fa-robot text-violet-400',
+        'Google Cloud': 'fab fa-google text-blue-400',
+      }
+      return iconMap[tech] || 'fas fa-code text-gray-400'
+    }
+    
     return {
       isAuthenticated: computed(() => authStore.isAuthenticated),
       stats,
-      visionItems
+      visionItems,
+      getTechIcon
     }
   }
 })

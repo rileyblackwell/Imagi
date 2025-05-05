@@ -16,6 +16,15 @@ export const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/payments/history',
+    name: 'PaymentHistory',
+    component: () => import('../views/PaymentHistoryView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: 'Payment History - Imagi Oasis'
+    }
+  },
+  {
     path: '/payments/success',
     name: 'PaymentSuccess',
     component: () => import('../views/PaymentSuccessView.vue'),

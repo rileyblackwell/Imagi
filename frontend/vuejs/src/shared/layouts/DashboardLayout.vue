@@ -162,8 +162,8 @@ onMounted(() => {
     }
   }
 
-  // Check authentication
-  if (!authStore.isAuthenticated) {
+  // Only check authentication if the current route requires it
+  if (!authStore.isAuthenticated && route.meta.requiresAuth) {
     router.push({ 
       name: 'login',
       query: { redirect: route.fullPath }

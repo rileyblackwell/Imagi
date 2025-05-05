@@ -111,6 +111,17 @@
               <span class="text-gray-300 text-sm">All payments are secure and encrypted</span>
             </div>
           </div>
+          
+          <!-- Link to Payment History -->
+          <div class="animate-fade-in-up animation-delay-900 mt-8 text-center">
+            <router-link 
+              to="/payments/history" 
+              class="text-primary-400 hover:text-primary-300 font-medium inline-flex items-center gap-2 transition-colors"
+            >
+              <i class="fas fa-history"></i>
+              <span>View Payment History</span>
+            </router-link>
+          </div>
         </div>
       </div>
     </div>
@@ -223,6 +234,10 @@ const processPayment = async (paymentData: any) => {
 
 .animation-delay-750 {
   animation-delay: 750ms;
+}
+
+.animation-delay-900 {
+  animation-delay: 900ms;
 }
 
 @keyframes fade-in-up {

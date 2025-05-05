@@ -1,24 +1,10 @@
 <template>
   <DocsLayout>
-    <div class="max-w-4xl mx-auto">
-      <!-- Page header with attractive styling -->
-      <div class="mb-10">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">DOCUMENTATION</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-          Quick Start Guide
-        </h1>
-        <p class="text-xl text-gray-300 leading-relaxed">
-          Get up and running with Imagi Oasis in minutes with this step-by-step guide.
-        </p>
-      </div>
-
-      <!-- Attractive divider -->
-      <div class="relative h-16 mb-10">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
+    <DocsContentWrapper
+      title="Quick Start Guide"
+      description="Get up and running with Imagi Oasis in minutes with this step-by-step guide."
+      badge-text="DOCUMENTATION"
+    >
       <!-- Main content with step-by-step guide -->
       <div class="prose prose-invert prose-lg max-w-none">
         <!-- Step 1 -->
@@ -257,13 +243,24 @@
             </div>
           </router-link>
         </div>
+        
+        <!-- CTA Section -->
+        <DocsCTASection 
+          title="Ready to Build?" 
+          icon="fas fa-rocket" 
+          description="Start building your first AI-powered web application with Imagi Oasis."
+          buttonText="Create a Project"
+          buttonLink="/builder/dashboard"
+          buttonIcon="fas fa-plus-circle"
+        />
       </div>
-    </div>
+    </DocsContentWrapper>
   </DocsLayout>
 </template>
 
 <script setup>
 import DocsLayout from '../layouts/DocsLayout.vue'
+import { DocsContentWrapper, DocsCTASection } from '../components'
 </script>
 
 <style scoped>

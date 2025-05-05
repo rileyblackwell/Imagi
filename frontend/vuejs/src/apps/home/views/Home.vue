@@ -39,7 +39,19 @@
         <StatsSection />
         
         <!-- Enhanced CTA Section -->
-        <CTASection />
+        <CTASection 
+          icon="fas fa-rocket" 
+          title="Build for Dollars, Not" 
+          highlightedText="Thousands" 
+          description="Create your web app in minutes instead of waiting months. With Imagi, you'll build your app for"
+          highlightedStat="a fraction of the cost"
+          descriptionSuffix=" of hiring a professional developer."
+          primaryButtonText="Start Building"
+          primaryButtonTo="/products/oasis/builder/dashboard"
+          :showSecondaryButton="true"
+          secondaryButtonText="Learn More"
+          secondaryButtonTo="/docs"
+        />
       </main>
     </div>
   </DefaultLayout>
