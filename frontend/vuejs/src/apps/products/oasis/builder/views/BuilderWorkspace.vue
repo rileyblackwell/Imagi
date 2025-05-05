@@ -76,8 +76,6 @@ import { FileService } from '../services/fileService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentsStore } from '@/apps/payments/store'
 import { useBalanceStore } from '@/shared/stores/balance'
-import { useNotification } from '@/shared/composables/useNotification'
-import { useNotificationStore } from '@/shared/stores/notificationStore'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
@@ -87,14 +85,9 @@ import { AccountBalanceDisplay } from '../components/molecules'
 // Atomic Components
 import { WorkspaceChat } from '../components/organisms/workspace'
 
-// Utils
-import { notify } from '@/shared/utils'
+// Types
 import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
-
-// Get notification functions
-const { showNotification } = useNotification()
-const notificationStore = useNotificationStore()
 
 // Debounce utility function for balance refresh
 const debounce = (fn: Function, delay: number) => {
@@ -200,10 +193,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
   
   try {
     if (!store.selectedModelId) {
-      showNotification({
-        type: 'warning',
-        message: 'Please select an AI model'
-      })
       return
     }
     
@@ -218,10 +207,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     
     // Check if we have a project ID
     if (!projectId.value) {
-      showNotification({
-        type: 'warning',
-        message: 'Invalid project ID'
-      })
       return
     }
     
@@ -238,32 +223,22 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     
     // For build mode, file selection is required
     if (store.mode === 'build' && !store.selectedFile) {
-      showNotification({
-        type: 'warning',
-        message: 'Please select a file to modify'
-      })
       return
     }
     
     // Get user auth status before making request
     const isUserAuthenticated = await useAuthStore().validateAuth()
     if (!isUserAuthenticated) {
-      showNotification({ 
-        type: 'error', 
-        message: 'Authentication error. Please log in again.' 
-      })
       return
     }
     
     if (store.mode === 'build') {
       // Check for missing required values
       if (!projectId.value) {
-        showNotification({ type: 'error', message: 'No project selected. Please select or create a project first.' })
         return
       }
       
       if (!store.selectedFile) {
-        showNotification({ type: 'warning', message: 'Please select a file to modify' })
         return
       }
       
@@ -272,11 +247,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       const isCSS = fileExtension === 'css' || store.selectedFile.type === 'css'
       const isHTML = fileExtension === 'html' || store.selectedFile.type === 'html'
       
-      // Remove logs about which agent service will be used
       if (isCSS) {
-        // Show loading notification
-        showNotification({ type: 'info', message: 'Generating stylesheet with AI...' })
-        
         try {
           // For CSS files, use specialized stylesheet generator function
           const response = await AgentService.generateStylesheet({
@@ -285,14 +256,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
             filePath: store.selectedFile.path,
             model: store.selectedModelId,
             onProgress: (progress) => {
-              // Update UI with progress
-              if (progress.percent < 100) {
-                showNotification({ 
-                  type: 'info', 
-                  message: `${progress.status} (${progress.percent}%)`,
-                  duration: 2000
-                });
-              }
+              // Update UI with progress - no notification needed
             }
           });
           
@@ -315,8 +279,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               });
-              
-              showNotification({ type: 'success', message: 'Stylesheet generated and applied successfully' });
             } catch (applyError) {
               console.error('Error applying stylesheet changes:', applyError);
               store.addMessage({
@@ -325,8 +287,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               });
-              
-              showNotification({ type: 'error', message: 'Error applying stylesheet changes' });
             }
           } else {
             store.addMessage({
@@ -345,14 +305,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
             timestamp: new Date().toISOString(),
             id: `system-error-${Date.now()}`
           });
-          
-          showNotification({ type: 'error', message: 'Error generating stylesheet. Please try again.' });
         }
       } else if (isHTML) {
-        // Show loading notification
-        showNotification({ type: 'info', message: 'Generating HTML template...' })
-        
-        // Use standard code generation for HTML files
         try {
           // Call the AI service to generate code
           const response = await AgentService.generateCode(
@@ -382,8 +336,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               })
-              
-              showNotification({ type: 'success', message: 'HTML template generated successfully' })
             } catch (applyError) {
               console.error('Error applying HTML template:', applyError)
               
@@ -393,8 +345,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               })
-              
-              showNotification({ type: 'error', message: 'Error applying HTML template. Please try again.' })
             }
           } else {
             store.addMessage({
@@ -413,13 +363,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
             timestamp: new Date().toISOString(),
             id: `system-error-${Date.now()}`
           })
-          
-          showNotification({ type: 'error', message: 'Error generating HTML template. Please try again.' })
         }
       } else {
-        // Show loading notification
-        showNotification({ type: 'info', message: 'Generating code...' })
-        
         try {
           // Call the AI service to generate code
           const response = await AgentService.generateCode(
@@ -451,8 +396,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               })
-              
-              showNotification({ type: 'success', message: 'Code changes applied successfully' })
             } catch (applyError) {
               console.error('Error applying generated code:', applyError)
               
@@ -463,8 +406,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               })
-              
-              showNotification({ type: 'error', message: 'Error applying code changes. Please try again.' })
             }
           } else {
             // No code was generated, just show the response
@@ -485,14 +426,9 @@ async function handlePrompt(eventData?: { timestamp: string }) {
             timestamp: new Date().toISOString(),
             id: `system-error-${Date.now()}`
           })
-          
-          showNotification({ type: 'error', message: 'Error generating code. Please try again.' })
         }
       }
     } else {
-      // Show loading notification for chat
-      showNotification({ type: 'info', message: 'Connecting with AI...' })
-      
       try {
         // Call the AI service
         const response = await AgentService.processChat(
@@ -513,7 +449,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           id: `assistant-response-${Date.now()}`
           // No code field to prevent displaying code in the UI
         })
-
       } catch (chatError) {
         throw chatError
       }
@@ -537,16 +472,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     prompt.value = ''
   } catch (error) {
     console.error('Error processing prompt:', error)
-    
-    // Show specific error message if available
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'Error processing your request. Please try again.';
-      
-    showNotification({
-      type: 'error',
-      message: errorMessage
-    })
   } finally {
     // Ensure processing flag is set to FALSE when everything is complete
     store.setProcessing(false)
@@ -572,7 +497,6 @@ async function handleModeSwitch(mode: BuilderMode) {
   if (previousMode === 'chat' && mode === 'build' && !store.selectedFile && store.files.length > 0) {
     // Auto-select the first file when switching to build mode
     store.selectFile(store.files[0])
-    showNotification({ type: 'info', message: `Auto-selected file: ${store.files[0].path}` })
   }
   
   // Only add system messages about mode changes if the new mode is chat mode
@@ -607,19 +531,6 @@ async function handleFileSelect(file: ProjectFile) {
     // Use the improved selectFile method to maintain chat context
     store.selectFile(file)
     
-    // If in build mode, update prompt placeholder based on file type
-    if (store.mode === 'build') {
-      // This will auto-update via the promptPlaceholder computed property
-      // which uses store.selectedFile and store.mode
-      
-      // Show a tooltip or notification about file selection
-      if (isCSS) {
-        showNotification({ type: 'info', message: 'CSS file selected. You can now generate stylesheet code.' });
-      } else if (isHTML) {
-        showNotification({ type: 'info', message: 'HTML template selected. You can now generate template code.' });
-      }
-    }
-    
     // Update the mode indicator UI by forcing a re-render
     // This is needed because the selectedFile reference might not change
     // if the file content is the same, but we still want the UI to update
@@ -636,11 +547,8 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     
     // Refresh file list after creating a new file
     await loadProjectFiles()
-    
-    showNotification({ type: 'success', message: `File ${data.name} created successfully` })
   } catch (error) {
     console.error('Error creating file:', error)
-    showNotification({ type: 'error', message: 'Error creating file. Please try again.' })
   }
 }
 
@@ -655,17 +563,13 @@ async function handleFileDelete(file: ProjectFile) {
     if (store.selectedFile && store.selectedFile.path === file.path) {
       store.setSelectedFile(null)
     }
-    
-    showNotification({ type: 'success', message: `File ${file.path} deleted successfully` })
   } catch (error) {
     console.error('Error deleting file:', error)
-    showNotification({ type: 'error', message: 'Error deleting file. Please try again.' })
   }
 }
 
 async function handleUndo() {
   if (!store.selectedFile) {
-    showNotification({ type: 'warning', message: 'Please select a file to undo changes' })
     return
   }
   
@@ -699,23 +603,11 @@ async function handleUndo() {
         // Use $patch to update the conversation state
         store.$patch({ conversation: newConversation })
       }
-      
-      showNotification({ 
-        type: 'success', 
-        message: result.message || 'Successfully undid the last AI interaction'
-      })
     } else {
-      showNotification({ 
-        type: 'error', 
-        message: result.message || 'Failed to undo the last AI interaction'
-      })
+      // Show notification about undo failure
     }
   } catch (error) {
     console.error('Error undoing last interaction:', error)
-    showNotification({ 
-      type: 'error', 
-      message: 'Error undoing the last AI interaction. Please try again.'
-    })
   } finally {
     store.setProcessing(false)
   }
@@ -724,23 +616,19 @@ async function handleUndo() {
 async function handlePreview() {
   try {
     if (!projectId.value) {
-      showNotification({ type: 'warning', message: 'Project ID is required' })
       return
     }
 
-    showNotification({ type: 'info', message: 'Starting preview server...' })
     const response = await AgentService.generatePreview(projectId.value)
     
     if (response && response.previewUrl) {
       // Open the preview URL in a new tab
       window.open(response.previewUrl, '_blank')
-      showNotification({ type: 'success', message: 'Preview server started successfully' })
     } else {
-      showNotification({ type: 'error', message: 'Failed to start preview server' })
+      // Show notification about preview failure
     }
   } catch (error) {
     console.error('Error starting preview server:', error)
-    showNotification({ type: 'error', message: 'Error starting preview server. Please try again.' })
   }
 }
 
@@ -769,16 +657,12 @@ async function loadProjectFiles() {
     }
   } catch (error) {
     console.error('Error loading project files:', error)
-    showNotification({ type: 'error', message: 'Error loading project files' })
     return []
   }
 }
 
 // Lifecycle hooks
 onMounted(async () => {
-  // Clear any lingering notifications from previous views
-  notificationStore.clear()
-  
   // Get project ID from route params
   projectId.value = String(route.params.projectId)
   
@@ -852,11 +736,9 @@ onMounted(async () => {
       }
     } else {
       console.error('Failed to load project or set project ID');
-      showNotification({ type: 'error', message: 'Error loading project' });
     }
   } catch (error) {
     console.error('Error initializing workspace:', error);
-    showNotification({ type: 'error', message: 'Error loading project. Please try again.' });
   }
 })
 
@@ -864,9 +746,6 @@ onBeforeUnmount(() => {
   // Clean up resources
   store.clearConversation()
   store.setSelectedFile(null)
-  
-  // Clear workspace-specific notifications when leaving
-  notificationStore.clear()
 })
 </script>
 
