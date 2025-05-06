@@ -16,32 +16,71 @@
     <div class="shrink-0 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
       <div v-if="!isCollapsed" class="mb-4">
         <!-- Project section with enhanced design -->
-        <div class="bg-dark-800/70 backdrop-blur-sm rounded-xl p-3 border border-dark-700/50">
+        <div class="oasis-project-card bg-gradient-to-br from-dark-800/80 via-dark-900/80 to-dark-950/90 shadow-xl backdrop-blur-lg rounded-2xl p-4 border border-dark-700/60 relative overflow-visible">
           <!-- Project label with badge -->
           <div class="flex items-center mb-3">
             <div class="inline-flex px-2 py-1 rounded-full bg-primary-600/10 border border-primary-500/20">
               <span class="text-xxs font-bold text-primary-400 uppercase tracking-wider">Project</span>
             </div>
           </div>
-          
-          <!-- Project name with enhanced styling -->
-          <div class="group relative">
+          <!-- Project name with accent and enhanced styling -->
+          <div class="group relative flex items-center">
+
+            <!-- Icon with glow -->
+            <span class="relative mr-2">
+              <i class="fas fa-cube text-primary-400 opacity-90 oasis-project-icon-glow"></i>
+            </span>
             <!-- Project name -->
-            <h2 class="relative px-2 py-1 text-lg font-semibold text-white truncate group-hover:text-indigo-300 transition-colors duration-300">
-              <i class="fas fa-cube mr-2 text-primary-400 opacity-80"></i>
+            <h2 class="relative px-2 py-1 text-2xl font-extrabold oasis-project-gradient-text truncate group-hover:text-primary-300 transition-colors duration-300 drop-shadow-md">
               {{ currentProject?.name || 'Untitled Project' }}
             </h2>
           </div>
-          
-          <!-- Project description with improved styling -->
-          <p v-if="currentProject?.description" class="relative px-2 mt-1.5 text-sm text-gray-400 truncate italic">
-            {{ currentProject.description }}
-          </p>
+          <!-- Editable Project Description -->
+          <div v-if="!isCollapsed" class="relative px-2 mt-2">
+            <div v-if="!editingDescription" class="group flex items-start">
+              <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate flex-1 cursor-pointer hover:text-gray-300 transition-colors" @click="startEditingDescription">
+                {{ currentProject.description }}
+              </p>
+              <p v-else class="text-sm text-gray-500 italic cursor-pointer hover:text-gray-300 transition-colors" @click="startEditingDescription">
+                Add a company description...
+              </p>
+              <button class="ml-2 text-xs text-gray-500 hover:text-primary-400 transition-colors" @click="startEditingDescription" title="Edit description">
+                <i class="fas fa-edit"></i>
+              </button>
+            </div>
+            <div v-else class="flex items-start w-full">
+              <textarea
+                v-model="editableDescription"
+                class="w-full min-h-[2.2rem] rounded-md bg-dark-900/70 border border-dark-700/50 text-sm text-gray-200 px-2 py-1 outline-none focus:ring-2 focus:ring-primary-500 resize-none transition"
+                @blur="saveDescription"
+                @keydown.enter.prevent="saveDescription"
+                @keydown.esc="cancelEditingDescription"
+                maxlength="180"
+                placeholder="Add a company description..."
+                ref="descInputRef"
+                rows="2"
+                aria-label="Edit company description"
+              ></textarea>
+              <button class="ml-2 text-xs text-gray-500 hover:text-primary-400 transition-colors mt-1" @mousedown.prevent="saveDescription" title="Save">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="ml-1 text-xs text-gray-500 hover:text-red-400 transition-colors mt-1" @mousedown.prevent="cancelEditingDescription" title="Cancel">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Divider below project card -->
+        <div class="w-full flex justify-center mt-4 mb-2" aria-hidden="true">
+          <div class="h-[1.5px] w-4/5 bg-gradient-to-r from-transparent via-dark-700/70 to-transparent rounded-full shadow-sm"></div>
         </div>
       </div>
       
       <!-- Model Selector -->
       <div :class="{'mb-4': !isCollapsed}">
+        <div v-if="!isCollapsed" class="mb-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Model</span>
+        </div>
         <ModelSelector 
           v-if="!isCollapsed"
           :models="models"
@@ -57,12 +96,9 @@
             class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
             :title="selectedModel?.name || 'AI Model'"
           >
-            <i 
-              class="fas" 
-              :class="[
-                selectedModel?.id === 'claude-3-7-sonnet-20250219' || selectedModel?.id === 'gpt-4.1' ? 'fa-brain text-primary-400' :
-                selectedModel?.id === 'gpt-4.1-nano' ? 'fa-bolt text-warning-500' : 'fa-robot'
-              ]"
+            <i
+              class="fas"
+              :class="[getModelTypeIcon(selectedModel), getModelTypeClass(selectedModel)]"
             ></i>
           </button>
           <div class="sidebar-label">Models</div>
@@ -211,8 +247,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
+import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import ModelSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModelSelector.vue'
+import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/oasis/builder/utils/modelIconUtils'
 import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
 import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
 import type { 
@@ -241,6 +279,40 @@ const props = defineProps<{
   projectId: string
 }>()
 
+
+// Editable description state
+const editingDescription = ref(false)
+const editableDescription = ref(props.currentProject?.description || '')
+const descInputRef = ref<HTMLInputElement | null>(null)
+
+function startEditingDescription() {
+  editableDescription.value = props.currentProject?.description || ''
+  editingDescription.value = true
+  nextTick(() => {
+    descInputRef.value?.focus()
+  })
+}
+const projectStore = useProjectStore()
+
+async function saveDescription() {
+  editingDescription.value = false
+  const newDesc = editableDescription.value.trim()
+  if (props.currentProject && newDesc !== (props.currentProject.description || '')) {
+    try {
+      await projectStore.updateProject(props.currentProject.id, { description: newDesc })
+      // Optionally, update the local project description optimistically
+      if (props.currentProject) props.currentProject.description = newDesc
+    } catch (err) {
+      // Optionally, show an error toast or revert the UI
+      console.error('Failed to update project description:', err)
+    }
+  }
+}
+function cancelEditingDescription() {
+  editingDescription.value = false
+  editableDescription.value = props.currentProject?.description || ''
+}
+
 const getModeIcon = (mode: BuilderMode): string => {
   const icons: Record<BuilderMode, string> = {
     chat: 'fa-comments',
@@ -258,11 +330,13 @@ const selectedModel = computed(() => {
   // First try to find the model in the provided models
   const model = props.models.find(m => m.id === props.modelId)
   if (model) return model
-  
   // If not found, check in the default models
   const defaultModel = AI_MODELS.find(m => m.id === props.modelId)
   return defaultModel || null
 })
+
+// Use shared icon utilities for consistency
+// getModelTypeIcon and getModelTypeClass are imported from ModelSelector.vue
 
 // Computed property for mode options with icons
 const modeOptions = computed(() => ([
@@ -320,6 +394,27 @@ const toggleNewFileForm = () => {
   font-size: 0.65rem;
   line-height: 1rem;
 }
+
+/* Oasis Project Card Enhancements */
+.oasis-project-card {
+  box-shadow: 0 4px 32px 0 rgba(80, 100, 250, 0.08), 0 1.5px 8px 0 rgba(30, 30, 50, 0.16);
+  transition: box-shadow 0.3s;
+}
+.oasis-project-card:hover {
+  box-shadow: 0 6px 36px 0 rgba(99, 102, 241, 0.16), 0 2px 12px 0 rgba(30,30,50,0.22);
+}
+.oasis-project-gradient-text {
+  background: linear-gradient(90deg, #a5b4fc 10%, #60a5fa 50%, #a78bfa 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+
+.oasis-project-icon-glow {
+  text-shadow: 0 0 8px #6366f1cc, 0 0 2px #a5b4fc99;
+}
+
 
 /* Scrollbar styling */
 .overflow-auto {

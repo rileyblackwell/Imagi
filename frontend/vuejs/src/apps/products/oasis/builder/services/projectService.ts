@@ -399,10 +399,10 @@ export const ProjectService = {
     try {
       // Try multiple API paths to find the correct endpoint
       const apiPaths = [
-        `api/v1/project-manager/projects/${projectIdStr}/update/`,
         `api/v1/project-manager/projects/${projectIdStr}/`,
         `${API_PATHS.PROJECT_MANAGER}/projects/${projectIdStr}/`,
-        `${API_PATHS.BUILDER}/projects/${projectIdStr}/`
+        `${API_PATHS.BUILDER}/projects/${projectIdStr}/`,
+        `api/v1/project-manager/projects/${projectIdStr}/update/` // legacy fallback, if needed
       ];
       
       let lastError: any = null;

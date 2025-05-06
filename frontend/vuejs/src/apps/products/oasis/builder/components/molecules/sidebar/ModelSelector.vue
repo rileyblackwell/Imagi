@@ -60,7 +60,7 @@
           <button
             v-for="model in displayModels"
             :key="model.id"
-            class="w-full flex items-center space-x-3 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
+            class="w-full flex items-start gap-1 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
             :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': modelId === model.id }"
             @click="handleModelSelect(model.id)"
           >
@@ -78,17 +78,11 @@
             <!-- Model Info with improved layout -->
             <div class="flex flex-col text-left flex-1 min-w-0">
               <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ model.name }}</span>
-              <div class="flex items-center gap-1 text-xs">
-                <span class="text-gray-400 truncate">{{ model.description }}</span>
-              </div>
+              <span class="text-gray-400 group-hover:text-gray-200 transition-colors whitespace-normal break-words pt-1 block text-xs" :title="model.description">{{ model.description }}</span>
             </div>
-            
-            <!-- Price tag with improved styling -->
-            <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
-            
-            <!-- Selected Indicator with animation -->
-            <div v-if="modelId === model.id" class="ml-2 text-primary-400">
-              <i class="fas fa-check"></i>
+            <div class="flex flex-col items-center justify-between h-full flex-shrink-0">
+              <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
+              <span v-if="modelId === model.id" class="text-primary-400"><i class="fas fa-check"></i></span>
             </div>
           </button>
         </div>
@@ -195,42 +189,9 @@ const handleModelSelect = async (modelId: string) => {
   }
 }
 
-// Utility functions with enhanced styling
-const getModelTypeClass = (model: AIModel): string => {
-  // Use type assertion to avoid type errors
-  const modelType = (model as any).type || (model as any).provider || 'unknown';
-  
-  if (modelType === 'anthropic') {
-    return 'bg-gradient-to-br from-blue-600/20 to-indigo-600/20 text-blue-400 border border-blue-500/20';
-  } else if (modelType === 'openai') {
-    return 'bg-gradient-to-br from-emerald-600/20 to-green-600/20 text-emerald-400 border border-emerald-500/20';
-  }
-  
-  // Claude 3.7 Sonnet special styling
-  if (model.id === 'claude-3-7-sonnet-20250219') {
-    return 'bg-gradient-to-br from-primary-600/20 to-violet-600/20 text-primary-400 border border-primary-500/20';
-  }
-  
-  return 'bg-gradient-to-br from-gray-600/20 to-gray-700/20 text-gray-400 border border-gray-500/20';
-}
+// Utility functions are now imported from utils/modelIconUtils.ts
+import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/oasis/builder/utils/modelIconUtils'
 
-const getModelTypeIcon = (model: AIModel): string => {
-  // Special case for Claude 3.7 Sonnet to use brain icon
-  if (model.id === 'claude-3-7-sonnet-20250219') {
-    return 'fa-brain';
-  }
-  
-  // Standard provider-based icons for other models
-  const modelType = (model as any).type || (model as any).provider || 'unknown';
-  
-  if (modelType === 'anthropic') {
-    return 'fa-diamond'; // More modern Anthropic logo representation
-  } else if (modelType === 'openai') {
-    return 'fa-bolt'; // More modern OpenAI logo representation
-  }
-  
-  return 'fa-robot';
-}
 
 // Format price for display
 const formatPrice = (price: number | undefined): string => {
