@@ -12,35 +12,32 @@
       <div class="absolute -top-10 -left-10 w-40 h-40 bg-primary-600/20 rounded-full filter blur-xl opacity-40"></div>
     </div>
 
-    <!-- Project Info Section -->
+    <!-- Project Info Section - Updated Design -->
     <div class="shrink-0 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
       <div v-if="!isCollapsed" class="mb-4">
-        <!-- Project label with badge -->
-        <div class="flex items-center mb-2">
-          <div class="inline-flex px-2 py-1 rounded-full bg-primary-600/10 border border-primary-500/20">
-            <span class="text-xxs font-bold text-primary-400 uppercase tracking-wider">Project</span>
+        <!-- Project section with enhanced design -->
+        <div class="bg-dark-800/70 backdrop-blur-sm rounded-xl p-3 border border-dark-700/50">
+          <!-- Project label with badge -->
+          <div class="flex items-center mb-3">
+            <div class="inline-flex px-2 py-1 rounded-full bg-primary-600/10 border border-primary-500/20">
+              <span class="text-xxs font-bold text-primary-400 uppercase tracking-wider">Project</span>
+            </div>
           </div>
-        </div>
-        
-        <!-- Project name with enhanced styling -->
-        <div class="group relative">
-          <!-- Subtle highlight effect -->
-          <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500/5 to-violet-500/5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           
-          <!-- Project name -->
-          <h2 class="relative px-2 py-1 text-lg font-semibold text-white truncate group-hover:text-indigo-300 transition-colors duration-300">
-            <i class="fas fa-cube mr-2 text-primary-400 opacity-80"></i>
-            {{ currentProject?.name || 'Untitled Project' }}
-          </h2>
+          <!-- Project name with enhanced styling -->
+          <div class="group relative">
+            <!-- Project name -->
+            <h2 class="relative px-2 py-1 text-lg font-semibold text-white truncate group-hover:text-indigo-300 transition-colors duration-300">
+              <i class="fas fa-cube mr-2 text-primary-400 opacity-80"></i>
+              {{ currentProject?.name || 'Untitled Project' }}
+            </h2>
+          </div>
+          
+          <!-- Project description with improved styling -->
+          <p v-if="currentProject?.description" class="relative px-2 mt-1.5 text-sm text-gray-400 truncate italic">
+            {{ currentProject.description }}
+          </p>
         </div>
-        
-        <!-- Project description with improved styling -->
-        <p v-if="currentProject?.description" class="relative px-2 mt-1.5 text-sm text-gray-400 truncate italic">
-          {{ currentProject.description }}
-        </p>
-        
-        <!-- Decorative line -->
-        <div class="mt-3 h-px bg-gradient-to-r from-transparent via-primary-500/20 to-transparent"></div>
       </div>
       
       <!-- Model Selector -->
@@ -142,24 +139,29 @@
       </div>
     </div>
     
-    <!-- Files Section -->
+    <!-- Files Section - Updated Design -->
     <div class="flex-1 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
-      <div v-if="!isCollapsed" class="mb-2 flex items-center justify-between">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
+      <div v-if="!isCollapsed" class="mb-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
+          <span class="text-xs text-gray-500">{{ files.length }} item{{ files.length !== 1 ? 's' : '' }}</span>
+        </div>
+        
+        <!-- Files container with enhanced styling -->
+        <div class="mt-2 bg-dark-800/70 backdrop-blur-sm rounded-xl border border-dark-700/50 overflow-hidden">
+          <FileExplorer
+            :files="files"
+            :selected-file="selectedFile"
+            :file-types="fileTypes"
+            :show-new-form="showNewFileFormValue"
+            :project-id="projectId"
+            @select-file="$emit('selectFile', $event)"
+            @create-file="$emit('createFile', $event)"
+            @delete-file="$emit('deleteFile', $event)"
+          />
+        </div>
       </div>
       
-      <template v-if="!isCollapsed">
-        <FileExplorer
-          :files="files"
-          :selected-file="selectedFile"
-          :file-types="fileTypes"
-          :show-new-form="showNewFileFormValue"
-          :project-id="projectId"
-          @select-file="$emit('selectFile', $event)"
-          @create-file="$emit('createFile', $event)"
-          @delete-file="$emit('deleteFile', $event)"
-        />
-      </template>
       <template v-else>
         <div class="tooltip-container">
           <button 
@@ -173,7 +175,7 @@
       </template>
     </div>
     
-    <!-- Action Buttons -->
+    <!-- Action Buttons - Updated Design -->
     <div :class="{'p-4': !isCollapsed, 'px-2 py-3': isCollapsed}" class="flex justify-between border-t border-dark-700/50">
       <!-- Undo button -->
       <button
