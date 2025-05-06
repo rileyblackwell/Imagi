@@ -54,7 +54,7 @@
         />
         <div 
           v-else
-          class="tooltip-container"
+          class="tooltip-container mb-4"
         >
           <button 
             class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
@@ -68,12 +68,7 @@
               ]"
             ></i>
           </button>
-          <div class="tooltip">
-            {{ selectedModel?.name || 'AI Model' }}
-            <div v-if="selectedModel?.costPerRequest" class="text-xs mt-1 text-primary-300">
-              ${{ selectedModel.costPerRequest >= 0.01 ? selectedModel.costPerRequest.toFixed(2) : selectedModel.costPerRequest.toFixed(3) }} per use
-            </div>
-          </div>
+          <div class="sidebar-label">Models</div>
         </div>
       </div>
     </div>
@@ -89,18 +84,49 @@
       
       <div class="flex items-center" :class="{'justify-center': isCollapsed, 'space-x-2': !isCollapsed}">
         <template v-if="!isCollapsed">
-          <ModeSelector
-            :modes="modes"
-            :mode="mode"
-            @update:mode="(newMode) => $emit('update:mode', newMode)"
-          />
+          <!-- Enhanced Mode Selector with modern design -->
+          <div class="w-full">
+            <div class="bg-dark-800/70 backdrop-blur-sm rounded-xl p-2 border border-dark-700/50">
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  v-for="m in modes"
+                  :key="m"
+                  class="relative group flex items-center justify-center py-3 px-4 rounded-lg transition-all duration-300"
+                  :class="[
+                    mode === m 
+                      ? 'bg-gradient-to-r from-primary-500/20 to-violet-500/20 border border-primary-500/40' 
+                      : 'bg-dark-850/50 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30'
+                  ]"
+                  @click="$emit('update:mode', m)"
+                >
+                  <!-- Subtle glow effect on hover -->
+                  <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+                  
+                  <div class="relative flex items-center space-x-3">
+                    <i :class="['fas', getModeIcon(m), mode === m ? 'text-primary-400' : 'text-gray-400 group-hover:text-white']"></i>
+                    <span :class="[mode === m ? 'text-white' : 'text-gray-400 group-hover:text-white']">{{ formatMode(m) }}</span>
+                  </div>
+                </button>
+              </div>
+              
+              <!-- Mode description -->
+              <div class="mt-3 px-2 text-sm text-gray-400">
+                <p v-if="mode === 'chat'">
+                  Have a conversation about your project and get assistance
+                </p>
+                <p v-else-if="mode === 'build'">
+                  Generate and modify code directly in your project
+                </p>
+              </div>
+            </div>
+          </div>
         </template>
         <template v-else>
-          <div class="space-y-2">
+          <div class="space-y-4">
             <button 
               v-for="m in modes" 
               :key="m"
-              class="w-10 h-10 rounded-md flex items-center justify-center transition-colors tooltip-container"
+              class="tooltip-container w-10 h-10 rounded-md flex items-center justify-center transition-colors"
               :class="[
                 mode === m 
                   ? 'bg-primary-600/30 border border-primary-500/40 text-primary-400' 
@@ -109,7 +135,7 @@
               @click="$emit('update:mode', m)"
             >
               <i :class="['fas', getModeIcon(m)]"></i>
-              <div class="tooltip">{{ formatMode(m) }}</div>
+              <div class="sidebar-label">{{ formatMode(m) }}</div>
             </button>
           </div>
         </template>
@@ -142,9 +168,7 @@
           >
             <i class="fas fa-folder text-primary-400"></i>
           </button>
-          <div class="tooltip">
-            {{ files.length }} Files
-          </div>
+          <div class="sidebar-label">Files</div>
         </div>
       </template>
     </div>
@@ -307,6 +331,9 @@ const toggleNewFileForm = () => {
 <style scoped>
 .tooltip-container {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .tooltip {
@@ -327,6 +354,14 @@ const toggleNewFileForm = () => {
   transition: opacity 0.2s;
   border: 1px solid rgba(99, 102, 241, 0.2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.sidebar-label {
+  font-size: 0.7rem;
+  color: #a5a5b5;
+  text-align: center;
+  margin-top: 0.35rem;
+  font-weight: 500;
 }
 
 .tooltip-container:hover .tooltip {
@@ -355,5 +390,10 @@ const toggleNewFileForm = () => {
 .overflow-auto::-webkit-scrollbar-thumb {
   background-color: theme('colors.dark.600');
   border-radius: 3px;
+}
+
+/* New styles for enhanced mode selector */
+.bg-dark-850\/50 {
+  background-color: rgba(15, 15, 25, 0.5);
 }
 </style>
