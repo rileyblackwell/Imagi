@@ -213,9 +213,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import ModelSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModelSelector.vue'
-import ModeSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModeSelector.vue'
 import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
-import { ActionButton, IconButton } from '@/apps/products/oasis/builder/components'
 import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
 import type { 
   AIModel, 
@@ -243,16 +241,6 @@ const props = defineProps<{
   projectId: string
 }>()
 
-const emit = defineEmits<{
-  (e: 'update:modelId', value: string): void
-  (e: 'update:mode', value: BuilderMode): void
-  (e: 'selectFile', file: ProjectFile): void
-  (e: 'createFile', data: { name: string; type: string; content?: string }): void
-  (e: 'deleteFile', file: ProjectFile): void
-  (e: 'undo'): void
-  (e: 'preview'): void
-}>()
-
 const getModeIcon = (mode: BuilderMode): string => {
   const icons: Record<BuilderMode, string> = {
     chat: 'fa-comments',
@@ -275,48 +263,6 @@ const selectedModel = computed(() => {
   const defaultModel = AI_MODELS.find(m => m.id === props.modelId)
   return defaultModel || null
 })
-
-// Add validation before emitting model changes
-const handleModelChange = (modelId: string) => {
-  // Check if the model exists in props.models or default models
-  const modelInProps = props.models.find(m => m.id === modelId)
-  const modelInDefaults = AI_MODELS.find(m => m.id === modelId)
-  
-  if (modelInProps || modelInDefaults) {
-    // Force immediate update
-    emit('update:modelId', modelId)
-    
-    // Add a small delay to ensure the UI updates
-    setTimeout(() => {
-      // Use window instead of document for event dispatching
-      const event = new CustomEvent('model-changed', { 
-        detail: modelId,
-        bubbles: true,
-        cancelable: true
-      })
-      window.dispatchEvent(event)
-    }, 50)
-  }
-}
-
-// Add validation before emitting mode changes
-const handleModeChange = (mode: BuilderMode) => {
-  if (['chat', 'build'].includes(mode)) {
-    // Force immediate update
-    emit('update:mode', mode)
-    
-    // Add a small delay to ensure the UI updates
-    setTimeout(() => {
-      // Use window instead of document for event dispatching
-      const event = new CustomEvent('mode-changed', { 
-        detail: mode,
-        bubbles: true,
-        cancelable: true
-      })
-      window.dispatchEvent(event)
-    }, 50)
-  }
-}
 
 // Computed property for mode options with icons
 const modeOptions = computed(() => ([

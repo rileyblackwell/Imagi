@@ -1,0 +1,162 @@
+## Purpose
+
+Defines coding, design, and generation standards for **Imagi Oasis** to ensure consistency, efficiency, and best practices.
+
+## Company Overview
+
+* **Product**: Imagi Oasis – AI-powered full-stack web application generator
+* **Mission**: Enable users to rapidly build full-stack web apps using natural language
+* **Target Users**: Developers and technical users
+
+## Environment Setup
+
+### OS & Shell
+
+* macOS
+* Shell: zsh
+
+### Package Managers
+
+* Frontend: npm/yarn
+* Backend: pipenv
+
+### Required Tools
+
+* Node.js: >= 16.x
+* Python: >= 3.10
+* PostgreSQL: >= 14
+
+### Editor Configuration
+
+* IDE: VSCode/Cursor (with project settings)
+* Extensions:
+
+  * Tailwind CSS IntelliSense
+  * Python extensions
+  * Vue.js extensions
+* Local Servers (Running by Default):
+
+  * Frontend: `npm run dev` on localhost:5174
+  * Backend: `python manage.py runserver` on localhost:8000
+
+## Local Development
+
+* **Backend**:
+
+  * Django with SQLite3
+  * Managed by Pipenv
+  * Run using Django's development server
+
+* **Frontend**:
+
+  * Vue.js with Vite development server
+
+## Staging & Production
+
+* **Backend**:
+
+  * Django with PostgreSQL
+  * Served via Gunicorn (potential future: Uvicorn for async)
+
+* **Frontend**:
+
+  * Vue.js built via `vite build`
+  * Served as static files via Nginx
+
+* **Hosting**:
+
+  * Provider: Railway.com
+  * Separate Docker images/services for frontend and backend
+  * Communication via Railway’s private network
+
+* **Future Enhancements**:
+
+  * Container orchestration via Kubernetes
+
+## Backend Specifications
+
+* **Framework**: Django 4.x
+* **API Framework**: Django REST Framework (DRF)
+* **Database**:
+
+  * Development: SQLite
+  * Production: PostgreSQL
+* **Testing**: pytest
+* **Authentication**: Django built-in, DRF Token Authentication, future OAuth2 integration
+* **API Versioning**: `/api/v1/`
+
+### Backend Apps (Django)
+
+* **auth**: Authentication and authorization
+* **builder**: Core AI generation logic and prompts
+* **home**: Landing pages and static content
+* **payments**: Stripe integration for credits
+* **agents**: AI workflow management
+* **project\_manager**: Project lifecycle management
+
+### Django API Design
+
+* RESTful API principles
+* Clear separation of views, serializers, and models
+
+### Testing Strategy (Backend)
+
+* **Unit Tests**: pytest for models, views, and APIs
+* **Integration Tests**: API endpoint verification
+
+## Frontend Specifications
+
+* **Framework**: Vue.js 3 with Composition API
+* **State Management**: Pinia
+* **HTTP Client**: Axios
+* **UI/Styling**: Tailwind CSS
+* **Testing**: Jest (Unit), Cypress (E2E)
+* **Build Tools**: Vite
+
+### Frontend Structure
+
+Each app module must be self-contained, including:
+
+* Components
+* Routes
+* Store
+* Services
+* Types
+* Tests
+
+## Code Architecture (Vue.js)
+
+### Atomic Design Principles
+
+1. **Atoms**: Basic UI elements (buttons, inputs, icons, text)
+2. **Molecules**: Combinations of atoms (form fields, cards)
+3. **Organisms**: Combinations of molecules (forms, headers)
+4. **Templates**: Layout and page-level components
+
+### Guidelines
+
+* Use Composition API for reusability and logic encapsulation
+* TypeScript for type safety
+* Import alias (`@`) referencing `src` directory
+
+## UI/UX Design Principles
+
+* Minimalist and modern UI inspired by Stripe, Airbnb, Apple, Twilio
+* Fully responsive layouts with Tailwind CSS
+* Accessibility compliance (WCAG 2.1)
+* Dark and light mode support
+
+### Testing Strategy (Frontend)
+
+* **Unit Tests**: Jest for Vue component testing
+* **E2E Tests**: Cypress for complete application workflows
+
+## General AI Assistant Instructions
+
+* Prefix tasks clearly:
+
+  * Generation tasks: `task:`
+  * Documentation/study tasks: `study:`
+* Generate self-contained files with imports and dependencies
+* Include tests for all new features
+* Adhere strictly to established naming conventions

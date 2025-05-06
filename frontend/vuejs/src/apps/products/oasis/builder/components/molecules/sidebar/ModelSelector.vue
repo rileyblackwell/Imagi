@@ -5,76 +5,90 @@
       Models: {{ models.length }}, Available: {{ availableModels.length }}
     </div>
     
-    <!-- Model Selection Dropdown -->
+    <!-- Modern Model Selection Dropdown -->
     <div class="relative">
+      <!-- Dropdown Trigger Button with Enhanced Design -->
       <button
         @click="toggleDropdown"
-        class="w-full flex items-center justify-between p-3 rounded-lg border transition-colors bg-dark-800 border-dark-700 hover:border-dark-600"
-        :class="{ 'border-primary-500 bg-primary-500/10': isDropdownOpen }"
+        class="w-full flex items-center justify-between p-3 rounded-lg border transition-all duration-300 bg-dark-800/70 backdrop-blur-sm border-dark-700/50 hover:border-primary-500/30 group"
+        :class="{ 'border-primary-500/40 bg-gradient-to-r from-primary-500/10 to-violet-500/10': isDropdownOpen }"
       >
-        <div v-if="selectedModel" class="flex items-center space-x-3 max-w-[85%]">
-          <!-- Selected Model Icon -->
+        <!-- Subtle glow effect on hover -->
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
+        
+        <div v-if="selectedModel" class="relative flex items-center space-x-3 max-w-[85%]">
+          <!-- Selected Model Icon with enhanced styling -->
           <div 
-            class="w-8 h-8 rounded-md flex items-center justify-center"
+            class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
             :class="[getModelTypeClass(selectedModel)]"
           >
             <i class="fas" :class="getModelTypeIcon(selectedModel)"></i>
           </div>
           
-          <!-- Selected Model Info -->
+          <!-- Selected Model Info with improved typography -->
           <div class="flex flex-col text-left">
-            <span class="font-medium text-gray-200">{{ selectedModel.name }}</span>
+            <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ selectedModel.name }}</span>
             <div class="flex items-center gap-1 text-xs truncate max-w-[150px]">
               <span class="text-gray-400">{{ selectedModel.description }}</span>
-              <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300">${{ formatPrice(selectedModel.costPerRequest) }}</span>
+              <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20">${{ formatPrice(selectedModel.costPerRequest) }}</span>
             </div>
           </div>
         </div>
-        <div v-else class="flex items-center space-x-3">
-          <div class="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center text-gray-400">
+        <div v-else class="relative flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-lg bg-dark-700/50 flex items-center justify-center text-gray-400 border border-dark-600/30">
             <i class="fas fa-robot"></i>
           </div>
           <span class="text-gray-400">Select a model</span>
         </div>
         
-        <!-- Dropdown Arrow -->
-        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
-           :class="{ 'transform rotate-180': isDropdownOpen }"></i>
+        <!-- Dropdown Arrow with animation -->
+        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300 relative"
+           :class="{ 'transform rotate-180 text-primary-400': isDropdownOpen }"></i>
       </button>
       
-      <!-- Dropdown Menu -->
+      <!-- Enhanced Dropdown Menu -->
       <div 
         v-show="isDropdownOpen" 
-        class="absolute z-50 w-full mt-1 bg-dark-800 border border-dark-700 rounded-lg shadow-lg overflow-hidden"
+        class="absolute z-50 w-full mt-2 bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
       >
+        <!-- Subtle header -->
+        <div class="px-3 py-2 border-b border-dark-700/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Available Models
+        </div>
+        
         <div class="max-h-60 overflow-y-auto py-1">
           <button
             v-for="model in displayModels"
             :key="model.id"
-            class="w-full flex items-center space-x-3 p-3 hover:bg-dark-700 transition-colors"
-            :class="{ 'bg-primary-500/10': modelId === model.id }"
+            class="w-full flex items-center space-x-3 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
+            :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': modelId === model.id }"
             @click="handleModelSelect(model.id)"
           >
-            <!-- Model Icon -->
+            <!-- Subtle hover effect -->
+            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+            
+            <!-- Model Icon with enhanced styling -->
             <div 
-              class="w-8 h-8 rounded-md flex items-center justify-center"
+              class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
               :class="[getModelTypeClass(model)]"
             >
               <i class="fas" :class="getModelTypeIcon(model)"></i>
             </div>
             
-            <!-- Model Info -->
-            <div class="flex flex-col text-left">
-              <span class="font-medium text-gray-200">{{ model.name }}</span>
+            <!-- Model Info with improved layout -->
+            <div class="flex flex-col text-left flex-1 min-w-0">
+              <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ model.name }}</span>
               <div class="flex items-center gap-1 text-xs">
-                <span class="text-gray-400">{{ model.description }}</span>
-                <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300">${{ formatPrice(model.costPerRequest) }}</span>
+                <span class="text-gray-400 truncate">{{ model.description }}</span>
               </div>
             </div>
             
-            <!-- Selected Indicator -->
-            <div v-if="modelId === model.id" class="ml-auto">
-              <i class="fas fa-check text-primary-500"></i>
+            <!-- Price tag with improved styling -->
+            <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
+            
+            <!-- Selected Indicator with animation -->
+            <div v-if="modelId === model.id" class="ml-2 text-primary-400">
+              <i class="fas fa-check"></i>
             </div>
           </button>
         </div>
@@ -88,12 +102,13 @@
       ></div>
     </div>
     
-    <!-- No Models Available Message -->
-    <div v-if="displayModels.length === 0" class="p-3 bg-dark-800 rounded-lg text-center text-gray-400 text-sm mt-2">
+    <!-- No Models Available Message with improved styling -->
+    <div v-if="displayModels.length === 0" class="mt-2 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg text-center text-gray-400 text-sm border border-dark-700/50">
+      <i class="fas fa-exclamation-circle mr-1 text-gray-500"></i>
       No AI models available
     </div>
 
-    <!-- Model Details -->
+    <!-- Model Details with enhanced styling -->
     <TransitionGroup 
       enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="opacity-0 -translate-y-2"
@@ -104,7 +119,7 @@
     >
       <div 
         v-if="rateLimitWarning"
-        class="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-yellow-400 text-xs"
+        class="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs backdrop-blur-sm"
         :key="'warning'"
       >
         <i class="fas fa-exclamation-triangle mr-1"></i>
@@ -180,7 +195,7 @@ const handleModelSelect = async (modelId: string) => {
   }
 }
 
-// Utility functions
+// Utility functions with enhanced styling
 const getModelTypeClass = (model: AIModel): string => {
   // Use type assertion to avoid type errors
   const modelType = (model as any).type || (model as any).provider || 'unknown';
@@ -189,6 +204,11 @@ const getModelTypeClass = (model: AIModel): string => {
     return 'bg-gradient-to-br from-blue-600/20 to-indigo-600/20 text-blue-400 border border-blue-500/20';
   } else if (modelType === 'openai') {
     return 'bg-gradient-to-br from-emerald-600/20 to-green-600/20 text-emerald-400 border border-emerald-500/20';
+  }
+  
+  // Claude 3.7 Sonnet special styling
+  if (model.id === 'claude-3-7-sonnet-20250219') {
+    return 'bg-gradient-to-br from-primary-600/20 to-violet-600/20 text-primary-400 border border-primary-500/20';
   }
   
   return 'bg-gradient-to-br from-gray-600/20 to-gray-700/20 text-gray-400 border border-gray-500/20';
@@ -209,7 +229,13 @@ const getModelTypeIcon = (model: AIModel): string => {
     return 'fa-bolt'; // More modern OpenAI logo representation
   }
   
-  return 'fa-question';
+  return 'fa-robot';
+}
+
+// Format price for display
+const formatPrice = (price: number | undefined): string => {
+  if (price === undefined || price === null) return '0.00';
+  return price >= 0.01 ? price.toFixed(2) : price.toFixed(3);
 }
 
 // Fetch models from API on mount
@@ -250,56 +276,43 @@ const availableModels = computed(() => {
     return true
   })
   
-  // If no models are available, use default models
+  // If no models from props, use default models
   return filtered.length > 0 ? filtered : defaultModels.value
 })
 
-// Compute the models to display, falling back to defaults if needed
+// Filter models based on mode
 const displayModels = computed(() => {
-  // This computes models for display, falling back to defaults if needed
-  return availableModels.value
+  return availableModels.value.filter(model => {
+    if (props.mode === 'build') {
+      return ModelsService.canGenerateCode(model)
+    }
+    return true
+  })
 })
 
-// Find the selected model object
+// Selected model
 const selectedModel = computed(() => {
-  // First try to find in display models
+  if (!props.modelId) return null
+  
+  // First try to find the model in the available models
   const model = displayModels.value.find(m => m.id === props.modelId)
   if (model) return model
   
-  // If not found but we have a modelId, try to find in default models
-  if (props.modelId) {
-    const defaultModel = defaultModels.value.find(m => m.id === props.modelId)
-    if (defaultModel) return defaultModel
-  }
-  
-  // If still not found, return the first available model
-  return displayModels.value[0] || null
+  // If not found, check in the default models
+  const defaultModel = defaultModels.value.find(m => m.id === props.modelId)
+  return defaultModel || null
 })
-
-// Auto-select first model if none selected
-watch(() => displayModels.value, async (models) => {
-  if (models.length > 0 && !props.modelId) {
-    await handleModelSelect(models[0].id)
-  }
-}, { immediate: true })
-
-// Add this function to the script section
-const formatPrice = (price?: number): string => {
-  if (price === undefined || price === null) return '0.00';
-  // Show fewer decimal places for larger prices
-  return price >= 0.01 ? price.toFixed(2) : price.toFixed(3);
-}
 </script>
 
 <style scoped>
-/* Scrollbar styling for dropdown */
+/* Custom scrollbar for dropdown */
 .overflow-y-auto {
   scrollbar-width: thin;
   scrollbar-color: theme('colors.dark.600') transparent;
 }
 
 .overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
@@ -308,6 +321,12 @@ const formatPrice = (price?: number): string => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
   background-color: theme('colors.dark.600');
-  border-radius: 3px;
+  border-radius: 2px;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
