@@ -451,11 +451,7 @@ const quickActions = [
     icon: 'fas fa-book', 
     route: { name: 'docs-api' } 
   },
-  { 
-    title: 'Invite Team', 
-    icon: 'fas fa-user-plus', 
-    route: { name: 'settings-team' } 
-  },
+
   { 
     title: 'Account Settings', 
     icon: 'fas fa-cog', 
