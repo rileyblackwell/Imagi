@@ -17,7 +17,7 @@
               </div>
               <span class="text-gray-300">Total Credits Added</span>
             </div>
-            <span class="text-white font-semibold">{{ totalAdded }}</span>
+            <span class="text-white font-semibold">{{ Number(totalAdded).toFixed(3) }}</span>
           </div>
           
           <!-- Total Credits Spent -->
@@ -28,7 +28,7 @@
               </div>
               <span class="text-gray-300">Total Credits Spent</span>
             </div>
-            <span class="text-white font-semibold">{{ totalSpent }}</span>
+            <span class="text-white font-semibold">{{ Number(totalSpent).toFixed(3) }}</span>
           </div>
           
           <!-- Total Transactions -->

@@ -1,9 +1,9 @@
 <template>
   <DashboardLayout :navigationItems="navigationItems">
     <div class="flex flex-col w-full min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Enhanced Background Effects matching Projects page -->
+      <!-- Enhanced Background Effects matching other pages -->
       <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <!-- Gradient orbs matching Projects page -->
+        <!-- Gradient orbs -->
         <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
         <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
         <!-- Grid pattern overlay -->
@@ -12,33 +12,40 @@
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
       </div>
 
-      <!-- Dashboard Content with improved spacing and organization -->
+      <!-- Dashboard Content with consistent spacing and organization -->
       <div class="relative z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <!-- Welcome Section with Enhanced Imagi Title Styling -->
-          <div class="mb-12">
-            <!-- Enhanced section header to match projects page -->
-            <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
-              <span class="text-primary-400 font-semibold text-sm tracking-wider">YOUR DASHBOARD</span>
-            </div>
-            
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
-                <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                  Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋
+          <!-- Hero Section matching BuilderDashboard style -->
+          <section class="relative pt-16 pb-12 px-6 sm:px-8 lg:px-12">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+              <div class="space-y-6 md:max-w-3xl">
+                <!-- Enhanced Badge with animated dot and gradient -->
+                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
+                  <div class="w-2 h-2 rounded-full bg-indigo-400 mr-2 animate-pulse"></div>
+                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">DASHBOARD</span>
+                </div>
+                <!-- Modern Title with Gradient Enhancement -->
+                <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋<br class="hidden sm:block" />
+                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Imagi Oasis</span>
                 </h2>
-                <p class="text-xl text-gray-300 max-w-3xl leading-relaxed">
+                <!-- Enhanced Description -->
+                <p class="text-xl text-gray-300 max-w-2xl">
                   Here's what's happening with your projects today.
                 </p>
               </div>
-              <button
-                @click="$router.push({ name: 'builder-dashboard' })"
-                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300 self-start"
-              >
-                <i class="fas fa-plus mr-2.5"></i>
-                New Project
-              </button>
             </div>
+          </section>
+
+          <!-- New Project Button below hero, matching BuilderDashboard -->
+          <div class="mt-6 mb-8">
+            <button
+              @click="$router.push({ name: 'builder-dashboard' })"
+              class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
+            >
+              <i class="fas fa-plus mr-2.5"></i>
+              New Project
+            </button>
           </div>
 
           <!-- Divider with animated line matching Projects page -->
@@ -194,7 +201,7 @@
                         <h2 class="text-xl font-bold text-white">Payment Transactions</h2>
                       </div>
                       <router-link 
-                        to="/payments"
+                        :to="{ name: 'PaymentHistory' }"
                         class="text-green-400 hover:text-green-300 transition-colors text-sm font-medium flex items-center"
                       >
                         View All
@@ -434,9 +441,9 @@ const statsData = computed(() => [
 // Navigation configuration
 const navigationItems = [
   { name: 'Dashboard', to: '/dashboard', icon: 'fas fa-home', exact: true },
-  { name: 'Oasis Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder' },
-  { name: 'Create Project', to: '/products/oasis/builder/dashboard', icon: 'fas fa-plus-circle' },
-  { name: 'Buy AI Credits', to: '/payments/checkout', icon: 'fas fa-money-bill-wave' }
+  { name: 'Oasis Projects', to: '/products/oasis/builder/projects', icon: 'fas fa-folder', exact: true },
+  { name: 'Create Project', to: '/products/oasis/builder/dashboard', icon: 'fas fa-plus-circle', exact: true },
+  { name: 'Buy AI Credits', to: '/payments/checkout', icon: 'fas fa-money-bill-wave', exact: true }
 ]
 
 // Quick actions configuration

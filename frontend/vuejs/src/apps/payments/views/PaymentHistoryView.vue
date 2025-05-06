@@ -218,16 +218,21 @@ const filteredTransactions = computed(() => {
 })
 
 // Computed statistics
+const roundOrShow = (value: number) => {
+  return value >= 1000 ? Math.round(value / 1000) * 1000 : value
+}
+
 const totalSpent = computed(() => {
   return transactions.value
     .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0)
 })
 
 const totalAdded = computed(() => {
-  return transactions.value
+  const sum = transactions.value
     .filter(t => t.amount > 0)
-    .reduce((sum, t) => sum + t.amount, 0)
+    .reduce((acc, t) => acc + Number(t.amount), 0)
+  return roundOrShow(sum)
 })
 
 // Methods
