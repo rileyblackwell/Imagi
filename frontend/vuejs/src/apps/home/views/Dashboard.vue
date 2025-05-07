@@ -207,7 +207,7 @@
                             <tr v-for="tx in recentTransactions" :key="tx.id" class="hover:bg-dark-800/40 transition-colors">
                               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ formatDate(tx.created_at) }}</td>
                               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ tx.model || '—' }}</td>
-                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ tx.request_type || '—' }}</td>
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ mapRequestType(tx.request_type) }}</td>
                               <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
                                 <span :class="tx.amount < 0 ? 'text-red-400' : 'text-green-400'">
                                   {{ formatTransactionAmount(Math.abs(tx.amount)) }}
@@ -325,6 +325,17 @@
 </template>
 
 <script setup>
+// --- Request Type Mapping Helper ---
+function mapRequestType(type) {
+  if (!type || typeof type !== 'string') return '—';
+  const normalized = type.replace(/_/g, ' ').toLowerCase().trim();
+  if (['build template'].includes(normalized)) return 'Build Template';
+  if (['build stylesheet'].includes(normalized)) return 'Build Stylesheet';
+  if (['chat'].includes(normalized)) return 'Chat';
+  // fallback: capitalize each word
+  return normalized.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
