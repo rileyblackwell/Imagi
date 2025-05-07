@@ -11,7 +11,6 @@ import type {
 import { usePaymentsStore } from '@/apps/payments/store'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
 import { ModelsService } from '@/apps/products/oasis/builder/services/modelsService'
-import { PreviewService } from '@/apps/products/oasis/builder/services/previewService'
 import axios from 'axios'
 
 // Create a custom API instance with longer timeout

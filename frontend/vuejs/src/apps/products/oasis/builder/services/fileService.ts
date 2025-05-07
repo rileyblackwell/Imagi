@@ -1,5 +1,5 @@
 import api from './api'
-import type { ProjectFile, EditorLanguage } from '../types/index'
+import type { ProjectFile } from '../types/index'
 
 // Define API path constants
 const API_PATHS = {
