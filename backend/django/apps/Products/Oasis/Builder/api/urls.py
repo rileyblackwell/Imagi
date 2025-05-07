@@ -6,9 +6,10 @@ from django.urls import path
 
 from .views import (
    AIModelsView, CreateFileView, DeleteFileView,
-    DirectoryView, FileContentView, FileUndoView, 
+    DirectoryView, FileContentView, 
     PreviewView, ProjectDetailsView, 
-    StaticFilesView, TemplateFilesView, UndoLastInteractionView
+    StaticFilesView, TemplateFilesView,
+    VersionControlHistoryView, VersionControlResetView
 )
 
 urlpatterns = [
@@ -19,7 +20,6 @@ urlpatterns = [
     path('<int:project_id>/files/create/', CreateFileView.as_view(), name='api-create-file'),
     path('<int:project_id>/files/<path:file_path>/content/', FileContentView.as_view(), name='api-file-content'),
     path('<int:project_id>/files/<path:file_path>/delete/', DeleteFileView.as_view(), name='api-delete-file'),
-    path('<int:project_id>/files/<path:file_path>/undo/', FileUndoView.as_view(), name='api-file-undo'),
     
     # Directory management endpoints
     path('<int:project_id>/directories/', DirectoryView.as_view(), name='api-directories'),
@@ -32,6 +32,7 @@ urlpatterns = [
     # Model selection endpoint
     path('models/', AIModelsView.as_view(), name='api-ai-models'),
     
-    # Undo last AI interaction
-    path('<int:project_id>/files/<path:file_path>/undo-interaction/', UndoLastInteractionView.as_view(), name='api-undo-interaction'),
+    # Version control endpoints
+    path('<int:project_id>/versions/', VersionControlHistoryView.as_view(), name='api-version-history'),
+    path('<int:project_id>/versions/reset/', VersionControlResetView.as_view(), name='api-version-reset'),
 ]

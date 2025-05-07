@@ -6,7 +6,8 @@ import type {
   ChatPayload,
   ChatResponse,
   GenerateStylesheetOptions,
-  CodeGenerationRequest
+  CodeGenerationRequest,
+  VersionControlResponse
 } from '../types/services'
 import { usePaymentsStore } from '@/apps/payments/store'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
@@ -402,33 +403,77 @@ export const AgentService = {
     return ModelsService.formatError(error);
   },
   
-  async undoAction(projectId: string, filePath?: string): Promise<UndoResponse> {
+  async getVersionHistory(projectId: string): Promise<VersionControlResponse> {
     if (!projectId) {
-      throw new Error('Project ID is required');
+      throw new Error('Project ID is required')
     }
-    
+
     try {
-      const endpoint = filePath
-        ? `/api/v1/agents/project/${projectId}/file/undo/?file_path=${encodeURIComponent(filePath)}`
-        : `/api/v1/agents/project/${projectId}/undo/`;
-      
-      const response = await api.post(endpoint);
+      const response = await api.get(`/api/v1/builder/${projectId}/versions/`)
       
       return {
-        success: true,
-        message: response.data.message || 'Undo successful',
-        details: {
-          code: response.data.code || null,
-          file_path: response.data.file_path || filePath
-        }
-      };
-    } catch (error) {
-      // Create a proper UndoResponse error object
+        success: response.data.success !== false,
+        versions: response.data.versions || [],
+        error: response.data.error || null
+      }
+    } catch (error: any) {
+      console.error('Error getting version history:', error)
       return {
         success: false,
-        message: this.formatError(error),
-        details: error
-      };
+        versions: [],
+        error: this.formatError(error)
+      }
+    }
+  },
+
+  async resetToVersion(projectId: string, commitHash: string): Promise<VersionControlResponse> {
+    if (!projectId || !commitHash) {
+      throw new Error('Project ID and commit hash are required')
+    }
+
+    try {
+      const response = await api.post(`/api/v1/builder/${projectId}/versions/reset/`, {
+        commit_hash: commitHash
+      })
+      
+      return {
+        success: response.data.success !== false,
+        message: response.data.message || 'Project reset successful',
+        error: response.data.error || null
+      }
+    } catch (error: any) {
+      console.error('Error resetting to version:', error)
+      return {
+        success: false,
+        versions: [],
+        error: this.formatError(error)
+      }
+    }
+  },
+
+  async createVersion(projectId: string, data: { file_path?: string, description?: string }): Promise<VersionControlResponse> {
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    try {
+      const response = await api.post(`/api/v1/builder/${projectId}/versions/`, {
+        file_path: data.file_path,
+        description: data.description || 'Project update'
+      })
+      
+      return {
+        success: response.data.success !== false,
+        message: response.data.message || 'Version created successfully',
+        commitHash: response.data.commit_hash || null,
+        error: response.data.error || null
+      }
+    } catch (error: any) {
+      console.error('Error creating version:', error)
+      return {
+        success: false,
+        error: this.formatError(error)
+      }
     }
   },
 

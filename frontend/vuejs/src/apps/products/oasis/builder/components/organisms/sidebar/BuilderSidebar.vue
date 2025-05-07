@@ -211,36 +211,58 @@
       </template>
     </div>
     
-    <!-- Action Buttons - Updated Design -->
-    <div :class="{'p-4': !isCollapsed, 'px-2 py-3': isCollapsed}" class="flex justify-between border-t border-dark-700/50">
-      <!-- Undo button -->
-      <button
-        v-if="!isCollapsed"
-        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02]"
-        title="Undo Last Action"
-        :disabled="isLoading"
-        @click="$emit('undo')"
-      >
-        <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/30 to-primary-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-        <div class="relative flex items-center">
-          <i class="fas fa-undo mr-2 text-primary-400 group-hover:text-primary-300 transition-colors"></i>
-          <span class="text-white text-sm font-medium">Undo</span>
-        </div>
-      </button>
+    <!-- Version Control Section - New Design -->
+    <div class="shrink-0 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
+      <div v-if="!isCollapsed" class="mb-2">
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Version History</span>
+      </div>
       
+      <div v-if="!isCollapsed" class="w-full">
+        <VersionControlDropdown 
+          :project-id="projectId"
+          @version-reset="handleVersionReset"
+        />
+      </div>
+      
+      <template v-else>
+        <div class="tooltip-container mb-4">
+          <button 
+            class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
+            title="Version History"
+          >
+            <i class="fas fa-history text-primary-400"></i>
+          </button>
+          <div class="sidebar-label">Versions</div>
+        </div>
+      </template>
+    </div>
+    
+    <!-- Action Buttons - Updated Design (Preview Button Only) -->
+    <div :class="{'p-4': !isCollapsed, 'px-2 py-3': isCollapsed}" class="flex justify-center border-t border-dark-700/50">
       <!-- Preview button -->
       <button
         v-if="!isCollapsed"
-        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02]"
+        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02] w-full"
         title="Preview Project"
         :disabled="isLoading"
         @click="$emit('preview')"
       >
         <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-        <div class="relative flex items-center">
+        <div class="relative flex items-center justify-center">
           <i class="fas fa-eye mr-2 text-primary-400 group-hover:text-primary-300 transition-colors"></i>
-          <span class="text-white text-sm font-medium">Preview</span>
+          <span class="text-white text-sm font-medium">Preview Project</span>
         </div>
+      </button>
+      
+      <button 
+        v-else
+        class="tooltip-container w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
+        title="Preview Project"
+        :disabled="isLoading"
+        @click="$emit('preview')"
+      >
+        <i class="fas fa-eye text-primary-400"></i>
+        <div class="sidebar-label">Preview</div>
       </button>
     </div>
   </div>
@@ -249,10 +271,9 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
-import ModelSelector from '@/apps/products/oasis/builder/components/molecules/sidebar/ModelSelector.vue'
-import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/oasis/builder/utils/modelIconUtils'
-import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
-import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
+import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
+import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
+import VersionControlDropdown from '../../molecules/VersionControlDropdown.vue'
 import type { 
   AIModel, 
   BuilderMode,
@@ -260,6 +281,7 @@ import type {
   EditorMode,
   ProjectType
 } from '@/apps/products/oasis/builder/types'
+import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
 
 // Local state
 const showNewFileFormValue = ref(false)
@@ -299,7 +321,7 @@ async function saveDescription() {
   const newDesc = editableDescription.value.trim()
   if (props.currentProject && newDesc !== (props.currentProject.description || '')) {
     try {
-      await projectStore.updateProject(props.currentProject.id, { description: newDesc })
+      await projectStore.updateProject(String(props.currentProject.id), { description: newDesc })
       // Optionally, update the local project description optimistically
       if (props.currentProject) props.currentProject.description = newDesc
     } catch (err) {
@@ -347,6 +369,23 @@ const modeOptions = computed(() => ([
 // Function to toggle the new file form visibility
 const toggleNewFileForm = () => {
   showNewFileFormValue.value = !showNewFileFormValue.value
+}
+
+// Handle version reset event
+const handleVersionReset = (version: Record<string, any>) => {
+  console.log('Version reset to:', version)
+  // Additional handling if needed
+}
+
+// Fix for the getModelTypeIcon and getModelTypeClass methods
+const getModelTypeIcon = (model: AIModel | null) => {
+  if (!model) return 'fa-robot';
+  // existing implementation
+}
+
+const getModelTypeClass = (model: AIModel | null) => {
+  if (!model) return 'text-gray-400';
+  // existing implementation
 }
 </script>
 

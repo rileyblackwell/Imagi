@@ -19,7 +19,6 @@ from ..services.models_service import ModelsService
 from apps.Products.Oasis.Agents.services import (
     process_builder_mode_input,
     process_chat_mode_input,
-    undo_last_action_service
 )
 from ..services.preview_service import PreviewService
 from apps.Products.Oasis.ProjectManager.models import Project as PMProject
@@ -28,7 +27,7 @@ from apps.Products.Oasis.ProjectManager.services.project_creation_service import
 from rest_framework.exceptions import NotFound
 from ..services.project_service import ProjectService
 from apps.Products.Oasis.Agents.services.template_agent_service import TemplateAgentService
-from ..services.undo_service import UndoService
+from ..services.version_control_service import VersionControlService
 
 logger = logging.getLogger(__name__)
 
@@ -228,26 +227,6 @@ def process_input(request):
         
     except Exception as e:
         logger.error(f"Error processing input: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def undo_last_action(request):
-    """Undo the last action in a conversation."""
-    try:
-        conversation_id = request.data.get('conversation_id')
-        if not conversation_id:
-            return Response({
-                'error': 'Missing conversation_id'
-            }, status=status.HTTP_400_BAD_REQUEST)
-            
-        response = undo_last_action_service(conversation_id)
-        return Response(response)
-        
-    except Exception as e:
-        logger.error(f"Error undoing last action: {str(e)}")
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -740,62 +719,128 @@ class AnalyzeTemplateView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class UndoLastInteractionView(APIView):
-    """Undo the last AI interaction for a specific file."""
+@method_decorator(never_cache, name='dispatch')
+class VersionControlHistoryView(APIView):
+    """Get version control history for a project."""
     permission_classes = [IsAuthenticated]
-    
+
     def get_project(self, project_id):
         """Get a project by ID, ensuring user has access."""
         try:
             return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
         except PMProject.DoesNotExist:
             raise NotFound('Project not found')
-    
-    def post(self, request, project_id, file_path):
-        """
-        Undo the last AI interaction for a specific file.
-        
-        This endpoint removes the last user prompt and AI response for the specified file,
-        effectively reverting the file back to its previous state.
-        """
+
+    def get(self, request, project_id):
+        """Get commit history for the project."""
         try:
-            # Get the project
+            # Get project
             project = self.get_project(project_id)
             
-            # Initialize the undo service
-            undo_service = UndoService(project=project)
+            # Use VersionControlService to get history
+            version_service = VersionControlService(project=project)
+            result = version_service.get_commit_history(request.user, project_id)
             
-            # Perform the undo operation
-            result = undo_service.undo_last_interaction(
-                user=request.user,
-                project_id=project_id,
-                file_path=file_path
+            if result.get('success'):
+                return Response({
+                    'success': True,
+                    'versions': result.get('commits', [])
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': result.get('message', 'Failed to get version history')
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error getting version history: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f"Error getting version history: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request, project_id):
+        """Create a new version (commit)."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            file_path = request.data.get('file_path', None)
+            description = request.data.get('description', None)
+            
+            # Use VersionControlService to create version
+            version_service = VersionControlService(project=project)
+            result = version_service.create_version_after_file_change(
+                request.user, project_id, file_path, description
             )
             
             if result.get('success'):
-                return Response(
-                    {
-                        'success': True,
-                        'message': result.get('message', 'Successfully undid the last AI interaction.'),
-                        'details': result.get('details', {})
-                    },
-                    status=status.HTTP_200_OK
-                )
+                return Response({
+                    'success': True,
+                    'message': result.get('message', 'Successfully created version'),
+                    'commit_hash': result.get('commit_hash')
+                })
             else:
-                return Response(
-                    {
-                        'success': False,
-                        'error': result.get('error', 'Failed to undo the last AI interaction.')
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response({
+                    'success': False,
+                    'error': result.get('message', 'Failed to create version')
+                }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Exception as e:
-            logger.error(f"Error undoing last interaction: {str(e)}")
-            return Response(
-                {
+            logger.error(f"Error creating version: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f"Error creating version: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(never_cache, name='dispatch')
+class VersionControlResetView(APIView):
+    """Reset project to a specific version."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Reset project to specified version."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            commit_hash = request.data.get('commit_hash', None)
+            
+            if not commit_hash:
+                return Response({
                     'success': False,
-                    'error': f"Failed to undo the last interaction: {str(e)}"
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    'error': 'Commit hash is required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Use VersionControlService to reset to version
+            version_service = VersionControlService(project=project)
+            result = version_service.reset_to_version(
+                request.user, project_id, commit_hash
             )
+            
+            if result.get('success'):
+                return Response({
+                    'success': True,
+                    'message': result.get('message', 'Successfully reset project to specified version')
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': result.get('message', 'Failed to reset project')
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error resetting project: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f"Error resetting project: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

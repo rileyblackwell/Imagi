@@ -241,4 +241,19 @@ export interface CodeGenerationRequest {
   mode: string;
   model: string | null;
   file_path?: string;
+}
+
+// Add the VersionControlResponse interface
+export interface VersionControlResponse {
+  success: boolean;
+  message?: string;
+  versions?: Array<{
+    hash: string;
+    message: string;
+    author: string;
+    date: string;
+    relative_date: string;
+  }>;
+  commitHash?: string | null;
+  error?: string | null;
 } 

@@ -34,7 +34,6 @@
           @select-file="handleFileSelect"
           @create-file="handleFileCreate"
           @delete-file="handleFileDelete"
-          @undo="handleUndo"
           @preview="handlePreview"
         />
       </template>
@@ -189,6 +188,35 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
   return validMessages
 }
 
+// Add a function to create a git commit after successful code changes
+async function createCommitFromPrompt(filePath: string, prompt: string) {
+  try {
+    if (!projectId.value) {
+      console.warn('Cannot create commit: No project ID');
+      return;
+    }
+    
+    // Create a summary from the prompt - limit to 50 chars for git message
+    const summary = prompt.length > 50 
+      ? prompt.substring(0, 47) + '...' 
+      : prompt;
+    
+    // Call the version control API to create a commit
+    await AgentService.createVersion(
+      projectId.value, 
+      {
+        file_path: filePath,
+        description: summary
+      }
+    );
+    
+    console.log('Created git commit for changes with description:', summary);
+  } catch (error) {
+    console.error('Failed to create git commit:', error);
+    // Don't throw - this is a non-critical operation
+  }
+}
+
 async function handlePrompt(eventData?: { timestamp: string }) {
   if (!prompt.value.trim()) return
   
@@ -293,6 +321,9 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               });
+              
+              // Create a git commit for the CSS changes
+              await createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying stylesheet changes:', applyError);
               store.addMessage({
@@ -356,6 +387,9 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               })
+              
+              // Create a git commit for the HTML changes
+              await createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying HTML template:', applyError)
               
@@ -416,6 +450,9 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 timestamp: new Date().toISOString(),
                 id: `assistant-response-${Date.now()}`
               })
+              
+              // Create a git commit for the applied changes
+              await createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying generated code:', applyError)
               
@@ -585,51 +622,6 @@ async function handleFileDelete(file: ProjectFile) {
     }
   } catch (error) {
     console.error('Error deleting file:', error)
-  }
-}
-
-async function handleUndo() {
-  if (!store.selectedFile) {
-    return
-  }
-  
-  try {
-    store.setProcessing(true)
-    
-    const result = await AgentService.undoAction(
-      projectId.value,
-      store.selectedFile.path
-    )
-    
-    if (result.success) {
-      // Refresh the file content after undo
-      const updatedContent = await FileService.getFileContent(
-        projectId.value, 
-        store.selectedFile.path
-      )
-      
-      // Update the file in the store
-      if (store.selectedFile) {
-        store.setSelectedFile({
-          ...store.selectedFile,
-          content: updatedContent
-        })
-      }
-      
-      // Remove the last two messages from the conversation (user and assistant)
-      if (store.conversation.length >= 2) {
-        // Create a new array with all but the last two messages
-        const newConversation = store.conversation.slice(0, -2)
-        // Use $patch to update the conversation state
-        store.$patch({ conversation: newConversation })
-      }
-    } else {
-      // Show notification about undo failure
-    }
-  } catch (error) {
-    console.error('Error undoing last interaction:', error)
-  } finally {
-    store.setProcessing(false)
   }
 }
 
