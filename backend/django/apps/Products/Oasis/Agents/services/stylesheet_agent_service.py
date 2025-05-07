@@ -444,26 +444,164 @@ class StylesheetAgentService(BaseAgentService):
         """
         try:
             # Extract timeout from kwargs if provided
-            timeout = kwargs.pop('timeout', None)
+            timeout = kwargs.pop('timeout', None) or self.request_timeout
+            
+            # Get project path and files
             project_path = kwargs.get('project_path')
             if project_path and not self.project_files:
                 self.project_files = self.load_project_files(project_path)
-            conversation = kwargs.get('conversation')
+                logger.info(f"Loaded {len(self.project_files)} project files for stylesheet context")
+            
+            # Get or create conversation
+            conversation_id = kwargs.get('conversation_id')
+            project_id = kwargs.get('project_id')
+            system_prompt_content = kwargs.get('system_prompt')
+            
+            if conversation_id:
+                conversation = self.get_conversation(conversation_id, user)
+                if not conversation:
+                    # Create a new conversation if the requested one doesn't exist
+                    conversation = self.create_conversation(user, model, system_prompt_content, project_id)
+            else:
+                # Create a new conversation if no conversation_id provided
+                conversation = self.create_conversation(user, model, system_prompt_content, project_id)
+            
+            # Get current file
             current_file = kwargs.get('current_file')
             is_build_mode = kwargs.get('is_build_mode', False)
+            
+            # Build conversation history
             messages = self.build_conversation_history(
                 conversation,
-                project_path,
-                current_file,
+                project_path=project_path,
+                current_file=current_file,
                 is_build_mode=is_build_mode,
                 current_user_prompt=user_input
             )
-            # ... (rest of logic continues as before)
-            # For now, just return the messages for verification
-            return {'success': True, 'messages': messages}
+            
+            logger.info(f"Processing stylesheet conversation with {len(messages)} messages")
+            
+            # Determine which AI provider to use based on model ID
+            from apps.Products.Oasis.Builder.services.models_service import get_provider_from_model_id
+            provider = get_provider_from_model_id(model)
+            
+            # Prepare response
+            response_content = ""
+            completion_tokens = None
+            
+            # Set up request parameters
+            temperature = kwargs.get('temperature', 0.5)  # Lower temperature for stylesheets
+            max_tokens = kwargs.get('max_tokens', 4096)
+            
+            try:
+                if provider == 'anthropic':
+                    # Prepare Anthropic API payload
+                    anthropic_messages = []
+                    
+                    # Add system prompt as a system message if the first message is a system prompt
+                    if messages and messages[0]['role'] == 'system':
+                        system_prompt = messages[0]['content']
+                        messages = messages[1:]  # Remove system prompt from messages list
+                    else:
+                        system_prompt = None
+                    
+                    # Convert messages to Anthropic format
+                    for msg in messages:
+                        if msg['role'] in ['user', 'assistant']:
+                            anthropic_messages.append({
+                                'role': msg['role'],
+                                'content': msg['content']
+                            })
+                    
+                    # Prepare complete API request payload
+                    anthropic_payload = {
+                        'model': model,
+                        'messages': anthropic_messages,
+                        'max_tokens': max_tokens,
+                        'temperature': temperature,
+                    }
+                    
+                    # Add system prompt if present
+                    if system_prompt:
+                        anthropic_payload['system'] = system_prompt
+                    
+                    logger.info(f"Making Anthropic API call for stylesheet generation")
+                    
+                    # Make API call to Anthropic
+                    completion = self.anthropic_client.messages.create(**anthropic_payload)
+                    
+                    # Extract response content
+                    response_content = completion.content[0].text
+                    completion_tokens = completion.usage.output_tokens
+                    
+                    logger.info(f"Received {completion_tokens} tokens from Anthropic API")
+                    
+                elif provider == 'openai':
+                    # Prepare OpenAI API payload
+                    openai_payload = {
+                        'model': model,
+                        'messages': messages,
+                        'temperature': temperature,
+                        'max_tokens': max_tokens
+                    }
+                    
+                    logger.info(f"Making OpenAI API call for stylesheet generation")
+                    
+                    # Make API call to OpenAI
+                    completion = self.openai_client.chat.completions.create(**openai_payload)
+                    
+                    # Extract response content
+                    response_content = completion.choices[0].message.content
+                    completion_tokens = completion.usage.completion_tokens
+                    
+                    logger.info(f"Received {completion_tokens} tokens from OpenAI API")
+                    
+                else:
+                    raise ValueError(f"Unsupported AI model provider: {provider}")
+                
+                # Extract pure CSS from the response
+                css_content = self.extract_css_from_response(response_content)
+                
+                # Enhance with required sections
+                enhanced_css = self.ensure_required_sections(css_content)
+                
+                # Validate the response
+                is_valid, error_message = self.validate_response(enhanced_css)
+                if not is_valid:
+                    raise ValueError(f"Invalid CSS: {error_message}")
+                
+                # Add the assistant's message to the conversation
+                self.add_assistant_message(conversation, enhanced_css, user)
+                
+                # Deduct credits for this API call
+                credits_used = self.deduct_credits(user.id, model, completion_tokens)
+                
+                logger.info(f"Stylesheet generation successful, {credits_used} credits used")
+                
+                return {
+                    'success': True,
+                    'response': enhanced_css,
+                    'code': enhanced_css,
+                    'conversation_id': conversation.id,
+                    'credits_used': credits_used
+                }
+                
+            except Exception as e:
+                logger.error(f"Error in AI API call: {str(e)}")
+                return {
+                    'success': False,
+                    'error': f"Error calling AI model: {str(e)}",
+                    'conversation_id': conversation.id if conversation else None
+                }
+                
         except Exception as e:
-            logger.error(f"Error in process_conversation: {str(e)}")
-            return {'success': False, 'error': str(e)}        
+            logger.error(f"Exception in process_conversation: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                'success': False,
+                'error': f"Error processing stylesheet: {str(e)}"
+            }
 
     def load_project_files(self, project_path):
         """

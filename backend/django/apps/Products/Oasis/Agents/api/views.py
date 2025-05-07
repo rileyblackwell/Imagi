@@ -18,11 +18,31 @@ import traceback
 # Import services when needed, not at module level
 from ..services import ChatAgentService, TemplateAgentService
 
+# Add more detailed logging for StylesheetAgentService import
+logger = logging.getLogger(__name__)
+logger.info("Attempting to import StylesheetAgentService...")
+
 # Try to import StylesheetAgentService, which might not be available
 try:
+    # First check if the file exists
+    import os
+    import importlib.util
+    
+    # Get the directory of the current file
+    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    stylesheet_path = os.path.join(current_dir, 'services', 'stylesheet_agent_service.py')
+    
+    logger.info(f"Looking for stylesheet_agent_service.py at: {stylesheet_path}")
+    if os.path.exists(stylesheet_path):
+        logger.info(f"File exists! Attempting import...")
+        
+    # Try the actual import
     from ..services import StylesheetAgentService
     has_stylesheet_service = True
-except ImportError:
+    logger.info("Successfully imported StylesheetAgentService")
+except ImportError as e:
+    logger.error(f"Failed to import StylesheetAgentService: {str(e)}")
+    logger.error(traceback.format_exc())
     has_stylesheet_service = False
     # Create a fallback error function
     def stylesheet_service_not_available(error_message="Stylesheet service not available"):
@@ -32,8 +52,12 @@ except ImportError:
                 'error': error_message
             }
         return service_error
-
-logger = logging.getLogger(__name__)
+except Exception as e:
+    logger.error(f"Unexpected error importing StylesheetAgentService: {str(e)}")
+    logger.error(traceback.format_exc())
+    has_stylesheet_service = False
+    
+logger.info(f"Stylesheet service availability: {has_stylesheet_service}")
 
 # Helper function to create error responses that are properly rendered
 def create_error_response(error, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):
@@ -194,6 +218,7 @@ def build_stylesheet(request):
     try:
         # Check if StylesheetAgentService is available
         if not has_stylesheet_service:
+            logger.error("StylesheetAgentService is not available - import failed")
             return create_error_response(
                 'Stylesheet generation service is not available in this installation',
                 status.HTTP_501_NOT_IMPLEMENTED
@@ -206,6 +231,9 @@ def build_stylesheet(request):
         file_path = data.get('file_path')
         conversation_id = data.get('conversation_id')
         project_files = data.get('project_files', [])
+
+        # Log the request details
+        logger.info(f"Stylesheet build request: file={file_path}, model={model}, project_id={project_id}")
 
         # Validate required fields
         if not message:
@@ -221,12 +249,23 @@ def build_stylesheet(request):
             return create_error_response('File path is required', status.HTTP_400_BAD_REQUEST)
 
         # Initialize stylesheet agent
-        stylesheet_agent = StylesheetAgentService()
+        try:
+            stylesheet_agent = StylesheetAgentService()
+            logger.info("StylesheetAgentService initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing StylesheetAgentService: {str(e)}")
+            logger.error(traceback.format_exc())
+            return create_error_response(f"Error initializing stylesheet service: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Validate project access
-        project, error = stylesheet_agent.validate_project_access(project_id, request.user)
-        if error:
-            return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+        try:
+            project, error = stylesheet_agent.validate_project_access(project_id, request.user)
+            if error:
+                logger.error(f"Project access validation failed: {error['error']}")
+                return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error validating project access: {str(e)}")
+            return create_error_response(f"Error validating project: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Load project files if not provided in the request
         if not project_files and project and project.project_path:
@@ -242,20 +281,38 @@ def build_stylesheet(request):
             logger.info(f"Added {len(project_files)} project files to stylesheet context")
 
         # Process the stylesheet
-        result = stylesheet_agent.process_stylesheet(
-            prompt=message,
-            model=model,
-            user=request.user,
-            project_id=project_id,
-            file_path=file_path,
-            conversation_id=conversation_id
-        )
+        try:
+            logger.info(f"Processing stylesheet with prompt length: {len(message)}")
+            result = stylesheet_agent.process_stylesheet(
+                prompt=message,
+                model=model,
+                user=request.user,
+                project_id=project_id,
+                file_path=file_path,
+                conversation_id=conversation_id
+            )
+            logger.info(f"Stylesheet processing result: success={result.get('success', False)}")
+            
+            # Log response structure for debugging
+            logger.debug(f"Stylesheet result keys: {list(result.keys() if result else [])}")
+            
+            # Check for empty response
+            if result.get('success') and not result.get('response', '').strip():
+                logger.warning("Stylesheet result is empty despite success=True")
+                result['response'] = "/* Default stylesheet - no specific styles generated */"
+                result['code'] = result['response']
+            
+        except Exception as e:
+            logger.error(f"Error processing stylesheet: {str(e)}")
+            logger.error(traceback.format_exc())
+            return create_error_response(f"Error generating stylesheet: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         # Return the result
         if result.get('success'):
             response = Response(result)
             return add_cors_headers(response)
         else:
+            logger.warning(f"Stylesheet generation failed: {result.get('error', 'Unknown error')}")
             return create_error_response(result.get('error', 'Unknown error'), status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:

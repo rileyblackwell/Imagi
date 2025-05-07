@@ -481,8 +481,26 @@ export const AgentService = {
         onProgress({ status: 'Generating stylesheet', percent: 30 });
       }
       
+      console.log('Stylesheet API request payload:', {
+        endpoint: '/api/v1/agents/build/stylesheet/',
+        projectId,
+        filePath,
+        modelId,
+        promptLength: prompt.length,
+        filesCount: files.length
+      });
+      
       // Make API call to the stylesheet-specific endpoint
       const response = await longTimeoutApi.post('/api/v1/agents/build/stylesheet/', payload);
+      
+      // Log the response structure for debugging
+      console.log('Stylesheet API response structure:', {
+        status: response.status,
+        hasData: !!response.data,
+        hasCode: !!response.data?.code,
+        hasResponse: !!response.data?.response,
+        dataKeys: response.data ? Object.keys(response.data) : []
+      });
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {
@@ -508,15 +526,32 @@ export const AgentService = {
         onProgress({ status: 'Complete', percent: 100 });
       }
       
+      // Check if we have actual content in the response
+      const responseContent = response.data.code || response.data.response || '';
+      if (!responseContent.trim()) {
+        console.warn('Stylesheet API returned empty content');
+      }
+      
       // Return the response in a consistent format matching generateCode
       return {
         success: response.data.success !== false,
         response: response.data.code || response.data.response || '',
+        code: response.data.code || response.data.response || '',
         messages: response.data.messages || [],
         single_message: response.data.single_message || false
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Stylesheet generation error:', error);
+      
+      // Enhanced error logging
+      if (error.response) {
+        console.error('API Error Response:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+      }
+      
       throw error;
     }
   },

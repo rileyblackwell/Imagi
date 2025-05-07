@@ -262,11 +262,24 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           });
           
           // Ensure we got a valid response
-          if (response && response.response) {
-            // Apply the generated code (may not be necessary as API handles the update)
+          if (response && (response.response || response.code)) {
+            // Get the content from either response or code field
+            const cssContent = response.response || response.code || '';
+            
+            if (!cssContent.trim()) {
+              store.addMessage({
+                role: 'assistant',
+                content: 'No stylesheet changes were generated. Please try a different prompt.',
+                timestamp: new Date().toISOString(),
+                id: `assistant-response-${Date.now()}`
+              });
+              return;
+            }
+            
+            // Apply the generated code
             try {
               await applyCode({
-                code: response.response,
+                code: cssContent,
                 file: store.selectedFile,
                 projectId: projectId.value
               });
