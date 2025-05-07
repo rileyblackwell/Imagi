@@ -283,7 +283,6 @@ class ChatAgentService(BaseAgentService):
         project_path = kwargs.get('project_path')
         conversation_id = kwargs.get('conversation_id')
         system_prompt_content = kwargs.get('system_prompt')
-        is_stream = kwargs.get('stream', False)
         temperature = kwargs.get('temperature', 0.7)
         max_tokens = kwargs.get('max_tokens', None)
         current_file = kwargs.get('file')
