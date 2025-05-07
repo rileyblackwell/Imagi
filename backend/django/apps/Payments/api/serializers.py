@@ -16,18 +16,40 @@ class CreditBalanceSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'last_updated')
 
 class TransactionSerializer(serializers.ModelSerializer):
+    model = serializers.SerializerMethodField()
+    request_type = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaction
         fields = ('id', 'user', 'amount', 'transaction_type', 'status', 
-                 'stripe_payment_intent_id', 'created_at', 'updated_at', 'description')
+                 'stripe_payment_intent_id', 'created_at', 'updated_at', 'description', 'model', 'request_type')
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def get_model(self, obj):
+        # Try to extract model from description, e.g. "Claude Sonnet 3.7 - build template: $0.04"
+        if obj.transaction_type == 'usage' and obj.description:
+            parts = obj.description.split(' - ')
+            if len(parts) > 1:
+                return parts[0].strip()
+        return None
+
+    def get_request_type(self, obj):
+        # Try to extract request type from description, e.g. "Claude Sonnet 3.7 - build template: $0.04"
+        if obj.transaction_type == 'usage' and obj.description:
+            parts = obj.description.split(' - ')
+            if len(parts) > 1 and ':' in parts[1]:
+                return parts[1].split(':')[0].strip()
+        return None
+
 
 class PaymentHistorySerializer(serializers.ModelSerializer):
     """Serializer for payment history items displayed in the frontend."""
-    
+    model = serializers.SerializerMethodField()
+    request_type = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaction
-        fields = ('id', 'amount', 'status', 'created_at', 'description')
+        fields = ('id', 'amount', 'status', 'created_at', 'description', 'model', 'request_type')
         read_only_fields = ('id', 'created_at')
     
     def to_representation(self, instance):
@@ -37,6 +59,23 @@ class PaymentHistorySerializer(serializers.ModelSerializer):
         representation['amount'] = abs(float(instance.amount))
         representation['created_at'] = instance.created_at.isoformat()
         return representation
+
+    def get_model(self, obj):
+        # Try to extract model from description, e.g. "Claude Sonnet 3.7 - build template: $0.04"
+        if obj.transaction_type == 'usage' and obj.description:
+            parts = obj.description.split(' - ')
+            if len(parts) > 1:
+                return parts[0].strip()
+        return None
+
+    def get_request_type(self, obj):
+        # Try to extract request type from description, e.g. "Claude Sonnet 3.7 - build template: $0.04"
+        if obj.transaction_type == 'usage' and obj.description:
+            parts = obj.description.split(' - ')
+            if len(parts) > 1 and ':' in parts[1]:
+                return parts[1].split(':')[0].strip()
+        return None
+
 
 class CreditPlanSerializer(serializers.ModelSerializer):
     price_in_dollars = serializers.SerializerMethodField()

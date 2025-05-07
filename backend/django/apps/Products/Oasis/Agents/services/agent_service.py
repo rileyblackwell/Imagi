@@ -555,53 +555,60 @@ class BaseAgentService(ABC):
             logger.error(traceback.format_exc())
             return False, 0.04
     
-    def deduct_credits(self, user_id, model, completion_tokens=None):
+    def deduct_credits(self, user_id, model, request_type=None, completion_tokens=None):
         """
         Deduct credits from user for using the model.
-        
         Args:
             user_id (int): The user ID
             model (str): The model ID
+            request_type (str, optional): The type of AI request (e.g., build template, chat)
             completion_tokens (int, optional): The number of completion tokens
-            
         Returns:
             float: The amount of credits deducted
         """
         try:
             # Get the model cost
             amount = self.get_model_cost(model)
-            
             # Get user
             from django.contrib.auth import get_user_model
             User = get_user_model()
             user = User.objects.get(id=user_id)
-            
-            # Create descriptive message for transaction
-            description = f"AI usage: {model}"
-            
-            # Add token information if available
-            if completion_tokens:
-                description += f" - {completion_tokens} tokens"
-                # Adjust cost based on actual token usage if available
-                token_cost = amount / 1000  # Assuming cost is per 1K tokens
-                adjusted_amount = token_cost * completion_tokens
-                amount = max(adjusted_amount, amount * 0.1)  # Ensure minimum charge of 10% of base cost
-                
+
+            # Create clear, fixed-format description for transaction
+            if request_type:
+                description = f"{model} - {request_type}: ${amount:.2f}"
+            else:
+                description = f"{model}: ${amount:.2f}"
+
             # Log the charge details
             logger.info(f"Charging user {user_id} ${amount:.4f} for {description}")
-                
-            # Charge the user
+
+            # Charge the user (transaction will use this description)
             payment_result = self.payment_service.credit_service.deduct_credits(user, amount, description)
-            
+
             if not payment_result.get('success', False):
-                # This shouldn't happen if check_user_credits was called first
                 logger.error(f"Failed to deduct credits for user {user_id}: {payment_result.get('error')}")
-                
+
+            # Optionally, record AIModelUsage (if not handled elsewhere)
+            try:
+                from apps.Payments.models import AIModel, AIModelUsage
+                ai_model = AIModel.objects.filter(name=model).first()
+                if ai_model:
+                    AIModelUsage.objects.create(
+                        user=user,
+                        model=ai_model,
+                        cost=amount,
+                        context={"request_type": request_type} if request_type else {},
+                        success=payment_result.get('success', False)
+                    )
+            except Exception as usage_error:
+                logger.error(f"Error logging AIModelUsage: {usage_error}")
+
             return amount
         except Exception as e:
             logger.error(f"Error deducting credits: {str(e)}")
-            # Return 0 for amount since deduction failed
             return 0
+
     
     # Conversation Management Methods
     def get_conversation(self, conversation_id, user):

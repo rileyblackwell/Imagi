@@ -126,25 +126,25 @@
                       <thead>
                         <tr>
                           <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                          <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Description</th>
+                          <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Model</th>
+                          <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Request Type</th>
                           <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
                           <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                         </tr>
                       </thead>
                       <tbody class="divide-y divide-dark-700">
                         <tr v-for="transaction in filteredTransactions" :key="transaction.id" class="hover:bg-dark-800/40 transition-colors">
-                          <td class="px-4 py-3 text-sm text-gray-300">
-                            {{ formatDate(transaction.created_at) }}
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ formatDate(transaction.created_at) }}</td>
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ transaction.model || '—' }}</td>
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ transaction.request_type || '—' }}</td>
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            <span :class="getAmountClass(transaction.amount)">
+                              {{ formatCredits(transaction.amount) }}
+                            </span>
                           </td>
-                          <td class="px-4 py-3 text-sm text-gray-300">
-                            {{ transaction.description }}
-                          </td>
-                          <td class="px-4 py-3 text-sm text-right" :class="getAmountClass(transaction.amount)">
-                            {{ formatCredits(transaction.amount) }}
-                          </td>
-                          <td class="px-4 py-3 text-sm text-right">
-                            <span :class="getStatusClass(transaction.status)" class="px-2 py-1 rounded-full text-xs inline-flex items-center">
-                              <span class="w-1.5 h-1.5 rounded-full mr-1" :class="getStatusDotClass(transaction.status)"></span>
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
+                            <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', getStatusClass(transaction.status)]">
+                              <span :class="['w-2 h-2 rounded-full mr-2', getStatusDotClass(transaction.status)]"></span>
                               {{ transaction.status }}
                             </span>
                           </td>

@@ -1,52 +1,35 @@
 <template>
   <DashboardLayout :navigationItems="navigationItems">
     <div class="flex flex-col w-full min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Enhanced Background Effects matching other pages -->
+      <!-- Decorative/Animated Background -->
       <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <!-- Gradient orbs -->
         <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
         <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
-        <!-- Grid pattern overlay -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <!-- Subtle noise texture -->
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
       </div>
-
-      <!-- Dashboard Content with consistent spacing and organization -->
+      <!-- Main Content -->
       <div class="relative z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <!-- Hero Section matching BuilderDashboard style -->
+          <!-- Hero Section -->
           <section class="relative pt-16 pb-12 px-6 sm:px-8 lg:px-12">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
               <div class="space-y-6 md:max-w-3xl">
-                <!-- Enhanced Badge with animated dot and gradient -->
                 <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
                   <div class="w-2 h-2 rounded-full bg-indigo-400 mr-2 animate-pulse"></div>
                   <span class="text-indigo-400 font-semibold text-sm tracking-wider">DASHBOARD</span>
                 </div>
-                <!-- Modern Title with Gradient Enhancement -->
                 <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
                   Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋<br class="hidden sm:block" />
                   <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Imagi Oasis</span>
                 </h2>
-                <!-- Enhanced Description -->
                 <p class="text-xl text-gray-300 max-w-2xl">
-                  Here's what's happening with your projects today.
+                  Your AI-powered app builder dashboard.
                 </p>
               </div>
+              <!-- Quick Actions removed as requested -->
             </div>
           </section>
-
-          <!-- New Project Button below hero, matching BuilderDashboard -->
-          <div class="mt-6 mb-8">
-            <button
-              @click="$router.push({ name: 'builder-dashboard' })"
-              class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-xl hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
-            >
-              <i class="fas fa-plus mr-2.5"></i>
-              New Project
-            </button>
-          </div>
 
           <!-- Divider with animated line matching Projects page -->
           <div class="relative h-16 max-w-7xl mx-auto mb-8">
@@ -210,56 +193,38 @@
                     </div>
                     
                     <div class="space-y-3">
-                      <div 
-                        v-for="transaction in recentTransactions" 
-                        :key="transaction.id"
-                        class="bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-green-500/30 rounded-xl p-4 transition-all duration-300"
-                      >
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center"
-                              :class="{
-                                'bg-green-500/15 text-green-400': transaction.status === 'completed',
-                                'bg-amber-500/15 text-amber-400': transaction.status === 'pending',
-                                'bg-red-500/15 text-red-400': transaction.status === 'failed'
-                              }"
-                            >
-                              <i :class="[
-                                transaction.status === 'completed' ? 'fas fa-check' : 
-                                transaction.status === 'pending' ? 'fas fa-clock' : 
-                                'fas fa-times'
-                              ]"></i>
-                            </div>
-                            <div>
-                              <h3 class="text-white font-medium">{{ transaction.description }}</h3>
-                              <p class="text-gray-400 text-sm">{{ formatDate(transaction.created_at) }}</p>
-                            </div>
-                          </div>
-                          <div class="text-right">
-                            <p class="text-white font-medium">
-                              ${{ formatTransactionAmount(transaction.amount) }}
-                            </p>
-                            <p class="text-xs"
-                              :class="{
-                                'text-green-400': transaction.status === 'completed',
-                                'text-amber-400': transaction.status === 'pending',
-                                'text-red-400': transaction.status === 'failed'
-                              }"
-                            >
-                              {{ transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1) }}
-                            </p>
-                          </div>
-                        </div>
+                      <div v-if="recentTransactions.length" class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-dark-700">
+                          <thead>
+                            <tr>
+                              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
+                              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Model</th>
+                              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Request Type</th>
+                              <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-dark-700">
+                            <tr v-for="tx in recentTransactions" :key="tx.id" class="hover:bg-dark-800/40 transition-colors">
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ formatDate(tx.created_at) }}</td>
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ tx.model || '—' }}</td>
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ tx.request_type || '—' }}</td>
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
+                                <span :class="tx.amount < 0 ? 'text-red-400' : 'text-green-400'">
+                                  {{ formatTransactionAmount(Math.abs(tx.amount)) }}
+                                </span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
-                      
-                      <div v-if="!recentTransactions.length" class="flex flex-col items-center justify-center py-10 bg-dark-800/30 rounded-xl border border-dark-700/50">
+                      <div v-else class="flex flex-col items-center justify-center py-10 bg-dark-800/30 rounded-xl border border-dark-700/50">
                         <div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-5">
                           <i class="fas fa-money-bill-wave text-2xl text-green-400"></i>
                         </div>
                         <h3 class="text-xl font-semibold text-white mb-2">No transactions yet</h3>
                         <p class="text-gray-300 text-center max-w-md mb-6">Add funds to your account to see transactions here</p>
                         <button
-                          @click="$router.push({ name: 'payments' })"
+                          @click="$router.push({ path: '/payments/checkout' })"
                           class="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-xl shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transform hover:-translate-y-1 transition-all duration-300"
                         >
                           <i class="fas fa-plus mr-2"></i>
@@ -327,61 +292,26 @@
                     </div>
                     
                     <div class="space-y-3">
-                      <router-link 
-                        to="/docs" 
-                        class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
-                      >
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                              <i class="fas fa-book text-emerald-400"></i>
+                      <template v-for="resource in resourceLinks" :key="resource.title">
+                        <router-link 
+                          v-if="resource.url.startsWith('/')"
+                          :to="resource.url" 
+                          class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                        >
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                                <i :class="[resource.icon, 'text-emerald-400']"></i>
+                              </div>
+                              <div>
+                                <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">{{ resource.title }}</h3>
+                                <p class="text-sm text-gray-400">{{ resource.description }}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">Documentation</h3>
-                              <p class="text-sm text-gray-400">Learn how to use Imagi Oasis</p>
-                            </div>
+                            <i class="fas fa-arrow-right text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
                           </div>
-                          <i class="fas fa-arrow-right text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
-                        </div>
-                      </router-link>
-                      
-                      <router-link 
-                        to="/docs/api" 
-                        class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
-                      >
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                              <i class="fas fa-code text-emerald-400"></i>
-                            </div>
-                            <div>
-                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">API Reference</h3>
-                              <p class="text-sm text-gray-400">Integrate with our API</p>
-                            </div>
-                          </div>
-                          <i class="fas fa-arrow-right text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
-                        </div>
-                      </router-link>
-                      
-                      <a 
-                        href="https://discord.gg/imagioasis" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
-                      >
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                              <i class="fas fa-users text-emerald-400"></i>
-                            </div>
-                            <div>
-                              <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">Community</h3>
-                              <p class="text-sm text-gray-400">Join our Discord community</p>
-                            </div>
-                          </div>
-                          <i class="fas fa-external-link-alt text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
-                        </div>
-                      </a>
+                        </router-link>
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -454,11 +384,10 @@ const quickActions = [
     route: { name: 'builder-dashboard' } 
   },
   { 
-    title: 'API Documentation', 
-    icon: 'fas fa-book', 
-    route: { name: 'docs-api' } 
+    title: 'Buy Credits', 
+    icon: 'fas fa-money-bill-wave', 
+    route: { path: '/payments/checkout' } 
   },
-
   { 
     title: 'Account Settings', 
     icon: 'fas fa-cog', 
@@ -469,7 +398,7 @@ const quickActions = [
 // Resources links
 const resourceLinks = [
   { title: 'Documentation', icon: 'fas fa-book', url: '/docs', description: 'Learn how to use Imagi Oasis' },
-  { title: 'API Reference', icon: 'fas fa-code', url: '/docs/api', description: 'Integrate with our API' },
+  { title: 'Contact', icon: 'fas fa-envelope', url: '/contact', description: 'Get in touch with our team' },
   { title: 'Community', icon: 'fas fa-users', url: 'https://discord.gg/imagioasis', description: 'Join our Discord community' }
 ]
 
