@@ -6,12 +6,10 @@ allowing users to create and modify templates through natural language instructi
 """
 
 from dotenv import load_dotenv
-import re
 import logging
 from .agent_service import BaseAgentService
 import os
 import threading
-from functools import lru_cache
 import hashlib
 
 
@@ -28,6 +26,38 @@ class TemplateAgentService(BaseAgentService):
     This service handles the generation and modification of Django HTML templates
     based on user instructions, ensuring they follow best practices and proper structure.
     """
+
+    def fix_template_issues(self, content, template_name=None):
+        """
+        Attempt to fix common issues in generated Django template content.
+        Args:
+            content (str): The generated template content
+            template_name (str, optional): The template's filename
+        Returns:
+            str: The (possibly fixed) template content
+        TODO: Implement auto-fix for common template issues (missing blocks, static tags, etc.)
+        """
+        return content
+
+    def validate_response(self, content):
+        """
+        Validate that the generated template is a non-empty string and contains Django template tags.
+        Args:
+            content (str): The template content to validate
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        if not content or not isinstance(content, str):
+            return False, "Template content is empty or invalid."
+        # Check for at least one Django template tag/block
+        if "{%" not in content or "%}" not in content:
+            return False, "Template does not contain any Django template tags."
+        # Optionally check for required blocks
+        required_blocks = ["block content", "block title"]
+        missing_blocks = [b for b in required_blocks if b not in content]
+        if missing_blocks:
+            return False, f"Missing required Django blocks: {', '.join(missing_blocks)}"
+        return True, None
 
     def build_conversation_history(self, conversation, project_path=None, current_file=None, is_build_mode=False, current_user_prompt=None):
         """
@@ -155,194 +185,6 @@ class TemplateAgentService(BaseAgentService):
             return None
         
         return "\n".join(context_parts)
-    
-    def fix_template_issues(self, content, template_name):
-        """
-        Fix common template issues and ensure proper tag order.
-        
-        Args:
-            content (str): The template content to fix
-            template_name (str): The name of the template file
-            
-        Returns:
-            str: The fixed template content
-        """
-        # First, check if the content is wrapped in markdown code blocks and extract it
-        code_block_pattern = r'```(?:html|django|jinja2)?\s*([\s\S]*?)\s*```'
-        code_blocks = re.findall(code_block_pattern, content)
-        
-        if code_blocks:
-            # Use the largest code block (most likely the main template)
-            content = max(code_blocks, key=len)
-            logger.info("Extracted template from code block")
-        
-        # Add missing DOCTYPE and basic HTML structure for base.html
-        if template_name == 'base.html' and '<!DOCTYPE html>' not in content:
-            return (
-                "<!DOCTYPE html>\n"
-                '<html lang="en">\n'
-                "<head>\n"
-                '    <meta charset="UTF-8">\n'
-                '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-                "    <title>{% block title %}{% endblock %}</title>\n"
-                "    {% load static %}\n"
-                "    {% block extra_css %}{% endblock %}\n"
-                "</head>\n"
-                "<body>\n"
-                "    {% block content %}{% endblock %}\n"
-                "    {% block extra_js %}{% endblock %}\n"
-                "</body>\n"
-                "</html>"
-            )
-        
-        # For non-base templates, ensure proper tag order
-        if template_name != 'base.html':
-            # Check if the required tags exist
-            has_extends = re.search(r'{%\s*extends.*?%}', content) is not None
-            has_load_static = re.search(r'{%\s*load\s+static\s*%}', content) is not None
-            
-            if not has_extends and not has_load_static:
-                # Neither tag exists, add both in correct order
-                content = (
-                    "{% extends 'base.html' %}\n"
-                    "{% load static %}\n\n"
-                ) + content.lstrip()
-            elif not has_extends:
-                # Only load static exists, add extends and ensure order
-                content = re.sub(
-                    r'{%\s*load\s+static\s*%}',
-                    "{% extends 'base.html' %}\n{% load static %}",
-                    content
-                )
-            elif not has_load_static:
-                # Only extends exists, add load static after it
-                content = re.sub(
-                    r'({%\s*extends.*?%})',
-                    r'\1\n{% load static %}',
-                    content
-                )
-            else:
-                # Both exist, check order and fix if needed
-                if re.search(r'{%\s*load\s+static\s*%}\s*{%\s*extends', content):
-                    content = re.sub(
-                        r'{%\s*load\s+static\s*%}\s*({%\s*extends.*?%})',
-                        r'\1\n{% load static %}',
-                        content
-                    )
-            
-            # Check for common blocks
-            if "{% block title %}" not in content:
-                title = template_name.replace('.html', '').title()
-                content += f"\n\n{{% block title %}}{title}{{% endblock %}}"
-            
-            if "{% block content %}" not in content:
-                # Find a good place to insert the content block
-                if "<body" in content:
-                    # Insert after body tag
-                    content = re.sub(
-                        r'(<body.*?>)',
-                        r'\1\n{% block content %}\n  <h1>This is the content area</h1>\n{% endblock %}',
-                        content
-                    )
-                else:
-                    # Add at the end
-                    content += "\n\n{% block content %}\n  <h1>This is the content area</h1>\n{% endblock %}"
-        
-        return content
-
-    def validate_response(self, content):
-        """
-        Validate Django template syntax and structure.
-        
-        Args:
-            content (str): The template content to validate
-            
-        Returns:
-            tuple: (is_valid, error_message)
-        """
-        # Basic validation
-        if not content or not isinstance(content, str):
-            return False, "Empty or invalid response received from AI model"
-            
-        # Check for response length
-        if len(content) < 10:
-            return False, f"Response too short ({len(content)} chars)"
-        
-        # Get the current template name
-        template_name = self.current_template_name
-        
-        # Define checks based on template type
-        if template_name == 'base.html':
-            checks = [
-                (r"{%\s*load\s+static\s*%}", "Missing {% load static %} tag"),
-                (r"<!DOCTYPE\s+html>", "Missing DOCTYPE declaration"),
-                (r"<html.*?>", "Missing <html> tag"),
-                (r"<head>.*?</head>", "Missing <head> section", re.DOTALL),
-                (r"<body>.*?</body>", "Missing <body> section", re.DOTALL),
-                (r'<meta\s+name="viewport"', "Missing viewport meta tag"),
-            ]
-        else:
-            # For non-base templates, first check if extends comes before load static
-            if re.search(r'{%\s*load\s+static\s*%}\s*{%\s*extends', content):
-                return False, "{% extends 'base.html' %} must come before {% load static %}"
-            
-            # Then check for the presence of both tags
-            checks = [
-                (r"{%\s*extends\s+'base\.html'\s*%}", "Missing {% extends 'base.html' %} tag"),
-                (r"{%\s*load\s+static\s*%}", "Missing {% load static %} tag"),
-            ]
-        
-        # Run all checks
-        for pattern, error_msg, *flags in checks:
-            if not re.search(pattern, content, *flags):
-                return False, error_msg
-        
-        # Check for matching template tags
-        block_starts = len(re.findall(r"{%\s*block\s+\w+\s*%}", content))
-        block_ends = len(re.findall(r"{%\s*endblock\s*%}", content))
-        if block_starts != block_ends:
-            return False, "Mismatched block tags"
-        
-        return True, None
-
-    # Add caching for frequently used templates
-    @lru_cache(maxsize=32)
-    def get_base_template(self):
-        """Get the base template with standard structure."""
-        return """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %}</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    {% block extra_css %}{% endblock %}
-</head>
-<body>
-    {% block content %}{% endblock %}
-    
-    {% block extra_js %}{% endblock %}
-</body>
-</html>"""
-
-    # Create a method to check if we can provide a fast response
-    def can_provide_fast_response(self, user_input, template_name):
-        """Check if we can provide a fast cached response based on input and template name."""
-        # Simple inputs that can be handled without calling the AI
-        simple_inputs = [
-            "create basic template", "basic template", "empty template", 
-            "starter template", "default template", "template starter",
-            "simple template", "blank template", "new template"
-        ]
-        
-        # For simple requests with standard template names, we can respond faster
-        if any(phrase in user_input.lower() for phrase in simple_inputs):
-            return True
-            
-        # Check if we have a cached response for this input
-        cache_key = self._generate_cache_key(user_input, template_name)
-        return cache_key in self._template_cache
     
     def _generate_cache_key(self, user_input, template_name):
         """Generate a cache key for template responses."""
@@ -821,7 +663,6 @@ class TemplateAgentService(BaseAgentService):
         try:
             # Import necessary services
             from apps.Products.Oasis.ProjectManager.models import Project
-            from apps.Products.Oasis.Builder.services.file_service import FileService
             
             logger.info(f"Creating view and URL for template: {template_name} in project {project_id}")
             
