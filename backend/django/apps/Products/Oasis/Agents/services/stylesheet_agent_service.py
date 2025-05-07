@@ -44,80 +44,6 @@ class StylesheetAgentService(BaseAgentService):
         # Define base system prompt from get_system_prompt for easier access
         self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
     
-    # Create direct method for quickly generating basic stylesheets without AI
-    def generate_basic_stylesheet(self):
-        """Generate a basic stylesheet without using AI."""
-        css_sections = self.get_default_css_sections()
-        return (
-            css_sections["root"] + 
-            css_sections["reset"] + 
-            css_sections["body"] + 
-            self.get_common_components()
-        )
-    
-    # Add method for common CSS components
-    def get_common_components(self):
-        """Get common CSS components for quick generation."""
-        return """
-/* Layout */
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-md);
-}
-
-/* Flexbox utilities */
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.gap-md {
-  gap: var(--spacing-md);
-}
-
-/* Common components */
-.btn {
-  display: inline-block;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--color-primary);
-  color: white;
-  border-radius: var(--border-radius);
-  text-decoration: none;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: background-color 0.2s;
-}
-
-.btn:hover {
-  background-color: var(--color-accent);
-}
-
-/* Media queries */
-@media (min-width: 768px) {
-  .container {
-    padding: 0 var(--spacing-lg);
-  }
-}
-"""
-
     def get_system_prompt(self):
         """
         Get a concise, optimized system prompt for CSS stylesheet generation.
@@ -256,27 +182,6 @@ class StylesheetAgentService(BaseAgentService):
         try:
             logger.info(f"StylesheetAgentService handling request for file: {file_path}")
             
-            # Check for simple requests that can be handled without AI
-            if self.can_handle_without_ai(user_input):
-                logger.info(f"Handling request without AI for {file_path}")
-                css_content = self.generate_basic_stylesheet()
-                
-                result = {
-                    'success': True,
-                    'response': css_content,
-                    'code': css_content,
-                    'is_build_mode': True,
-                    'single_message': True,
-                    'timestamp': timezone.now().isoformat(),
-                    'was_predefined': True
-                }
-                
-                # Cache this result
-                cache_key = self._generate_cache_key(user_input, file_path, model)
-                self._css_component_cache[cache_key] = result
-                
-                return result
-            
             # Check cache for existing results
             if len(user_input) < 100:
                 cache_key = self._generate_cache_key(user_input, file_path, model)
@@ -372,11 +277,10 @@ class StylesheetAgentService(BaseAgentService):
             # Extract CSS content if successful
             if result.get('success', False):
                 css_content = self.extract_css_from_response(result['response'])
-                enhanced_css = self.ensure_required_sections(css_content)
-                result['response'] = enhanced_css
+                result['response'] = css_content
                 
                 # Set code field to match the exact response
-                result['code'] = enhanced_css
+                result['code'] = css_content
                 
                 # Add flag to indicate this is build mode content (just code)
                 result['is_build_mode'] = True
@@ -400,16 +304,6 @@ class StylesheetAgentService(BaseAgentService):
                 'error': str(e)
             }
     
-    def can_handle_without_ai(self, user_input):
-        """Determine if request can be handled without AI."""
-        simple_inputs = [
-            "generate basic styles", "create default stylesheet", "basic css",
-            "starter css", "default styles", "simple stylesheet", 
-            "standard styles", "new stylesheet", "empty stylesheet",
-            "base styles", "create styles"
-        ]
-        return any(phrase in user_input.lower() for phrase in simple_inputs)
-
     def build_conversation_history(self, conversation, project_path=None, current_file=None, is_build_mode=False, current_user_prompt=None):
         """
         Only override to handle unique system prompt logic in build mode. All other logic is delegated to BaseAgentService.
@@ -562,16 +456,13 @@ class StylesheetAgentService(BaseAgentService):
                 # Extract pure CSS from the response
                 css_content = self.extract_css_from_response(response_content)
                 
-                # Enhance with required sections
-                enhanced_css = self.ensure_required_sections(css_content)
-                
                 # Validate the response
-                is_valid, error_message = self.validate_response(enhanced_css)
+                is_valid, error_message = self.validate_response(css_content)
                 if not is_valid:
                     raise ValueError(f"Invalid CSS: {error_message}")
                 
                 # Add the assistant's message to the conversation
-                self.add_assistant_message(conversation, enhanced_css, user)
+                self.add_assistant_message(conversation, css_content, user)
                 
                 # Deduct credits for this API call
                 credits_used = self.deduct_credits(user.id, model, completion_tokens)
@@ -580,8 +471,8 @@ class StylesheetAgentService(BaseAgentService):
                 
                 return {
                     'success': True,
-                    'response': enhanced_css,
-                    'code': enhanced_css,
+                    'response': css_content,
+                    'code': css_content,
                     'conversation_id': conversation.id,
                     'credits_used': credits_used
                 }
@@ -663,38 +554,6 @@ class StylesheetAgentService(BaseAgentService):
             logger.error(f"Error loading project files: {str(e)}")
             return files
 
-    def ensure_required_sections(self, css_content):
-        """
-        Ensure the CSS content has all the required sections.
-        
-        Args:
-            css_content (str): The CSS content to enhance
-            
-        Returns:
-            str: The enhanced CSS content
-        """
-        # Get default CSS sections
-        css_sections = self.get_default_css_sections()
-        
-        # Check if :root section exists
-        if ':root' not in css_content:
-            # Add :root section with common variables
-            css_content = css_sections["root"] + css_content
-        
-        # Check if reset section exists
-        if '*::before' not in css_content and '*::after' not in css_content:
-            # Add basic reset
-            # Find position to insert (after :root section)
-            root_end = css_content.find('}', css_content.find(':root'))
-            if root_end > -1:
-                css_content = css_content[:root_end+1] + css_sections["reset"] + css_content[root_end+1:]
-            else:
-                css_content = css_sections["reset"] + css_content
-        
-        # Check if body styles exist
-        if 'body {' not in css_content:
-            # Add basic body styles
-            # Find position to insert (after reset section)
             reset_end = css_content.find('}', css_content.find('*::after')) if '*::after' in css_content else css_content.find('}', css_content.find('box-sizing')) if 'box-sizing' in css_content else -1
             if reset_end > -1:
                 css_content = css_content[:reset_end+1] + css_sections["body"] + css_content[reset_end+1:]
