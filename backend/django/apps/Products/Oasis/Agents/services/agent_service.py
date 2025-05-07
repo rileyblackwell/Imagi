@@ -38,7 +38,7 @@ anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
 # Default model costs for unknown models based on common prefixes - imported from model_definitions.py
 # New code should use get_model_cost() function instead
 
-def build_conversation_history(conversation, project_path=None, current_file=None):
+def build_conversation_history(conversation, project_path=None, current_file=None, current_user_prompt=None):
     """
     Builds a formatted conversation history for the AI model.
     Returns a list of messages in the format expected by the AI APIs.
@@ -47,33 +47,47 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
         conversation: The AgentConversation object
         project_path (str, optional): Path to the project directory to include template and CSS files
         current_file (dict, optional): Current file being edited or chatted about with keys: path, content, type
-        
+        current_user_prompt (str, optional): The user's current prompt to be appended as the last message
+    
     Returns:
         list: A list of message dictionaries with 'role' and 'content' keys
+    
+    Ensures the following order:
+        1. System prompt (always first)
+        2. Project info (name, description)
+        3. Current file info (name, content)
+        4. All project files (HTML, CSS)
+        5. Complete conversation history
+        6. Current user prompt (as the last user message)
     """
     messages = []
+    
+    # Add system prompt if it exists (always first)
+    system_prompt = None
+    if hasattr(conversation, 'system_prompt'):
+        sp = SystemPrompt.objects.filter(conversation=conversation).first()
+        if sp:
+            system_prompt = {
+                "role": "system",
+                "content": sp.content
+            }
+    if system_prompt:
+        messages.append(system_prompt)
     
     # Add project information if available
     if hasattr(conversation, 'project_id') and conversation.project_id:
         try:
-            # Import here to avoid circular imports
             from apps.Products.Oasis.ProjectManager.models import Project
             project = Project.objects.get(id=conversation.project_id)
-            
-            # Enhanced project information including description
             project_info = f"You are currently working on project: {project.name} (ID: {conversation.project_id})"
-            
-            # Add project description if available
             if hasattr(project, 'description') and project.description:
                 project_info += f"\n\nProject Description: {project.description}"
-                
             messages.append({
                 "role": "system",
                 "content": project_info
             })
         except Exception as e:
             logger.warning(f"Could not fetch detailed project info: {str(e)}")
-            # Fall back to basic info if available
             project_name = getattr(conversation, 'project_name', None)
             if project_name:
                 messages.append({
@@ -81,45 +95,29 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
                     "content": f"You are currently working on project: {project_name} (ID: {conversation.project_id})"
                 })
     
-    # Add system prompt if it exists
-    if hasattr(conversation, 'system_prompt'):
-        system_prompt = SystemPrompt.objects.filter(conversation=conversation).first()
-        if system_prompt:
-            messages.append({
-                "role": "system",
-                "content": system_prompt.content
-            })
-    
-    # Add current file if provided - give this priority
+    # Add current file info (name and content)
     if current_file and current_file.get('path') and current_file.get('content'):
         messages.append({
             "role": "system",
             "content": f"CURRENTLY WORKING WITH FILE: {current_file.get('path')}\n\nCONTENT:\n{current_file.get('content')}"
         })
     
-    # Include project files if project_path is provided
+    # Add all project files (HTML, CSS)
     if project_path:
         templates_dir = os.path.join(project_path, 'templates')
         css_dir = os.path.join(project_path, 'static', 'css')
-        
-        # Add HTML files
         if os.path.exists(templates_dir):
             html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
             html_files.sort()
-            
-            # Ensure base.html is first, followed by index.html for better context
             if 'base.html' in html_files:
                 html_files.remove('base.html')
                 html_files.insert(0, 'base.html')
             if 'index.html' in html_files:
                 html_files.remove('index.html')
                 html_files.insert(1 if 'base.html' in html_files else 0, 'index.html')
-            
             for filename in html_files:
-                # Skip if this file is already provided as current_file
                 if current_file and current_file.get('path') and current_file.get('path').endswith(filename):
                     continue
-                    
                 file_path = os.path.join(templates_dir, filename)
                 try:
                     with open(file_path, 'r') as f:
@@ -131,15 +129,11 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
                 except FileNotFoundError:
                     logger.warning(f"File not found: {filename}")
                     continue
-        
-        # Add CSS files
         if os.path.exists(css_dir):
             css_files = [f for f in os.listdir(css_dir) if f.endswith('.css')]
             for filename in css_files:
-                # Skip if this file is already provided as current_file
                 if current_file and current_file.get('path') and current_file.get('path').endswith(filename):
                     continue
-                    
                 css_path = os.path.join(css_dir, filename)
                 try:
                     with open(css_path, 'r') as f:
@@ -152,17 +146,22 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
                     logger.warning(f"File not found: {filename}")
                     continue
     
-    # Add conversation history
+    # Add conversation history (all user and assistant messages)
     history_messages = AgentMessage.objects.filter(
         conversation=conversation
     ).order_by('created_at')
-    
     for msg in history_messages:
         messages.append({
             "role": msg.role,
             "content": msg.content
         })
     
+    # Append the current user prompt as the last message if provided
+    if current_user_prompt:
+        messages.append({
+            "role": "user",
+            "content": current_user_prompt
+        })
     return messages
 
 def format_system_prompt(base_prompt, context=None):

@@ -12,10 +12,10 @@ from django.conf import settings
 def favicon_view(request):
     return HttpResponse(status=204)
 
+from apps.Products.Oasis.ProjectManager.api.views import ProjectInitializeView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # API endpoints - version 1
     path('api/v1/', include([
         path('project-manager/', include('apps.Products.Oasis.ProjectManager.api.urls')),
         path('auth/', include('apps.Auth.api.urls')),

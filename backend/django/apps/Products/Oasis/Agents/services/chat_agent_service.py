@@ -210,7 +210,8 @@ class ChatAgentService(BaseAgentService):
                 project_id=project_id,
                 file=file,
                 conversation_id=conversation_id,
-                system_prompt=additional_context
+                system_prompt=additional_context,
+                current_user_prompt=prompt
             )
             
         except Exception as e:
@@ -271,84 +272,31 @@ class ChatAgentService(BaseAgentService):
                 'error': 'current_file must be a dictionary with path, content, and type'
             }
         
-        required_fields = ['path', 'type']
-        missing_required = [field for field in required_fields if field not in current_file]
-        if missing_required:
-            logger.error(f"Missing required fields in current_file: {missing_required}")
-            return False, {
-                'success': False,
-                'error': f"current_file must contain {', '.join(required_fields)} fields"
-            }
-        
-        # If content is not provided, we'll fetch it later if needed
-        if 'content' not in current_file:
-            logger.info(f"current_file missing content field, will be fetched as needed")
-        
-        return True, None
-
-    def get_conversation_history(self, conversation_id, user):
-        """
-        Get conversation history for a specific conversation.
-        
-        Args:
-            conversation_id (str): The ID of the conversation
-            user (User): The Django user object
-            
-        Returns:
-            dict: The conversation history data
-        """
-        try:
-            # Get the conversation object
-            from ..models import AgentConversation, AgentMessage
-            
-            # Make sure conversation exists and belongs to user
-            conversation = AgentConversation.objects.get(id=conversation_id, user=user)
-            
-            # Get all messages in this conversation
-            messages = AgentMessage.objects.filter(conversation=conversation).order_by('created_at')
-            
-            # Format messages for the response
-            message_list = []
-            for msg in messages:
-                message_list.append({
-                    'role': msg.role,
-                    'content': msg.content,
-                    'timestamp': msg.created_at.isoformat()
-                })
-            
-            # Return conversation data including messages and metadata
-            return {
-                'success': True,
-                'conversation_id': conversation_id,
-                'messages': message_list,
-                'created_at': conversation.created_at.isoformat(),
-                'model': conversation.model_name
-            }
-            
-        except Exception as e:
-            logger.error(f"Error getting conversation history: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return {
-                'success': False,
-                'error': str(e)
-            }
 
     def process_conversation(self, user_input, model, user, **kwargs):
         """
         Process a conversation with the AI model.
         Implements the abstract method from BaseAgentService.
-        
-        Args:
-            user_input (str): The user's input message
-            model (str): The AI model to use
-            user: The Django user object
-            **kwargs: Additional arguments for the conversation
-            
-        Returns:
-            dict: The result of the conversation
         """
         # Extract optional parameters
+        project_id = kwargs.get('project_id')
+        project_path = kwargs.get('project_path')
+        conversation_id = kwargs.get('conversation_id')
+        system_prompt_content = kwargs.get('system_prompt')
+        is_stream = kwargs.get('stream', False)
+        temperature = kwargs.get('temperature', 0.7)
+        max_tokens = kwargs.get('max_tokens', None)
+        current_file = kwargs.get('file')
+
+        # Get or create conversation
+        if conversation_id:
+            conversation = self.get_conversation(conversation_id, user)
+            if not conversation:
+                conversation = self.create_conversation(user, model, project_id)
+        else:
+            conversation = self.create_conversation(user, model, project_id)
+
+        # ... (rest of method logic)
         project_id = kwargs.get('project_id')
         project_path = kwargs.get('project_path')
         conversation_id = kwargs.get('conversation_id')

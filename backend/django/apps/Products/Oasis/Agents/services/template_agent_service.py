@@ -28,7 +28,26 @@ class TemplateAgentService(BaseAgentService):
     This service handles the generation and modification of Django HTML templates
     based on user instructions, ensuring they follow best practices and proper structure.
     """
-    
+
+    def build_conversation_history(self, conversation, project_path=None, current_file=None, is_build_mode=False, current_user_prompt=None):
+        """
+        Only override to handle unique system prompt logic in build mode. All other logic is delegated to BaseAgentService.
+        """
+        history = super().build_conversation_history(
+            conversation,
+            project_path=project_path,
+            current_file=current_file,
+            current_user_prompt=current_user_prompt
+        )
+        if is_build_mode:
+            # Prepend only the unique system prompt for this agent
+            system_prompt = self.get_system_prompt()
+            # Remove any other system prompt if present
+            history = [msg for msg in history if msg.get('role') != 'system']
+            history.insert(0, system_prompt)
+        return history
+
+
     def __init__(self):
         """Initialize the template agent service."""
         super().__init__()
@@ -498,7 +517,12 @@ class TemplateAgentService(BaseAgentService):
             }
 
     def process_conversation(self, user_input, model, user, **kwargs):
-        """Process conversation with logging of the complete conversation history."""
+        """
+        Process conversation with logging of the complete conversation history.
+        """
+        # Detect build mode
+        is_build_mode = kwargs.get('is_build_mode', False)
+        
         # Extract timeout from kwargs if provided
         timeout = kwargs.pop('timeout', None) or self.request_timeout
         
@@ -515,7 +539,6 @@ class TemplateAgentService(BaseAgentService):
             logger.info(f"Working with template file: {file_path}")
         
         # Check if this is a build mode request
-        is_build_mode = kwargs.get('is_build_mode', False)
         if is_build_mode:
             logger.info(f"Processing in BUILD MODE for file: {file_path}")
             
@@ -552,26 +575,19 @@ class TemplateAgentService(BaseAgentService):
                 # Create a new conversation if no conversation_id provided
                 conversation = self.create_conversation(user, model, system_prompt_content, project_id)
             
-            # Add the user's message to the conversation
-            self.add_user_message(conversation, user_input, user)
-            
-            # Build conversation history including context from project files
-            project_path = kwargs.get('project_path')
-            current_file = kwargs.get('current_file')
-            messages = self.build_conversation_history(conversation, project_path, current_file)
-            
-            # Check if user has sufficient credits
-            has_credits, required_amount = self.check_user_credits(user, model)
-            if not has_credits:
-                return {
-                    'success': False,
-                    'error': f"Insufficient credits. This model requires ${required_amount:.4f} credits."
-                }
-            
             # Determine which AI provider to use based on model ID
             from apps.Products.Oasis.Builder.services.models_service import get_provider_from_model_id
             provider = get_provider_from_model_id(model)
-            
+
+            # Always build conversation history before provider-specific logic
+            messages = self.build_conversation_history(
+                conversation,
+                kwargs.get('project_path'),
+                kwargs.get('current_file'),
+                is_build_mode=is_build_mode,
+                current_user_prompt=user_input
+            )
+
             # Prepare response
             response_content = ""
             completion_tokens = None

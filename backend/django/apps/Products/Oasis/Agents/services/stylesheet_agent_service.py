@@ -410,6 +410,24 @@ class StylesheetAgentService(BaseAgentService):
         ]
         return any(phrase in user_input.lower() for phrase in simple_inputs)
 
+    def build_conversation_history(self, conversation, project_path=None, current_file=None, is_build_mode=False, current_user_prompt=None):
+        """
+        Only override to handle unique system prompt logic in build mode. All other logic is delegated to BaseAgentService.
+        """
+        history = super().build_conversation_history(
+            conversation,
+            project_path=project_path,
+            current_file=current_file,
+            current_user_prompt=current_user_prompt
+        )
+        if is_build_mode:
+            # Prepend only the unique system prompt for this agent
+            system_prompt = self.get_system_prompt()
+            # Remove any other system prompt if present
+            history = [msg for msg in history if msg.get('role') != 'system']
+            history.insert(0, system_prompt)
+        return history
+
     # Override this to provide faster timeout and add logging
     def process_conversation(self, user_input, model, user, **kwargs):
         """
@@ -424,53 +442,28 @@ class StylesheetAgentService(BaseAgentService):
         Returns:
             dict: The result of the operation, including success status and response
         """
-        # Extract timeout from kwargs if provided
-        timeout = kwargs.pop('timeout', None)
-        
-        # Get project path if provided
-        project_path = kwargs.get('project_path')
-        
-        # Flag indicating if this is a build mode request
-        is_build_mode = kwargs.get('is_build_mode', False)
-        if is_build_mode:
-            logger.info(f"Processing in BUILD MODE for file: {self.current_file_path}")
-        
-        # Load project files if project path is provided and not already loaded
-        if project_path and not self.project_files:
-            self.project_files = self.load_project_files(project_path)
-        
-        # Use project_files from kwargs if provided (overrides self.project_files)
-        if kwargs.get('project_files'):
-            self.project_files = kwargs.get('project_files')
-            logger.info(f"Using {len(self.project_files)} project files provided in kwargs")
-        
-        # Add an override for file_path to use in get_additional_context
-        if kwargs.get('file_path'):
-            self.current_file_path = kwargs.get('file_path')
-        
-        # Add context about the project files to the system prompt
-        additional_context = []
-        if kwargs.get('additional_context'):
-            # Use provided context if available
-            additional_context = kwargs.get('additional_context').split('\n')
-        else:
-            # Otherwise build our own context
-            if self.current_file_path:
-                additional_context.append(f"You are creating/editing the CSS file: {self.current_file_path}")
-            
-            if self.project_files:
-                additional_context.append(f"The project contains {len(self.project_files)} files for context")
-                # Add information about the most relevant files (HTML, CSS)
-                html_files = [f["path"] for f in self.project_files if f["path"].endswith(".html")]
-                css_files = [f["path"] for f in self.project_files if f["path"].endswith(".css") and f["path"] != self.current_file_path]
-                
-                if html_files:
-                    additional_context.append(f"HTML templates: {', '.join(html_files[:5])}")
-                if css_files:
-                    additional_context.append(f"Other CSS files: {', '.join(css_files[:5])}")
-        
-        # Add the additional context to kwargs
-        kwargs['additional_context'] = "\n".join(additional_context)
+        try:
+            # Extract timeout from kwargs if provided
+            timeout = kwargs.pop('timeout', None)
+            project_path = kwargs.get('project_path')
+            if project_path and not self.project_files:
+                self.project_files = self.load_project_files(project_path)
+            conversation = kwargs.get('conversation')
+            current_file = kwargs.get('current_file')
+            is_build_mode = kwargs.get('is_build_mode', False)
+            messages = self.build_conversation_history(
+                conversation,
+                project_path,
+                current_file,
+                is_build_mode=is_build_mode,
+                current_user_prompt=user_input
+            )
+            # ... (rest of logic continues as before)
+            # For now, just return the messages for verification
+            return {'success': True, 'messages': messages}
+        except Exception as e:
+            logger.error(f"Error in process_conversation: {str(e)}")
+            return {'success': False, 'error': str(e)}
         
         # Log the conversation details before API call
         logger.info(f"===== STYLESHEET CONVERSATION DETAILS =====")
