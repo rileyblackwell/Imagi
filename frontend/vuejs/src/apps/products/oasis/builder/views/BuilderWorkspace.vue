@@ -73,6 +73,7 @@ import useChatMode from '../composables/useChatMode'
 import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
+import { PreviewService } from '../services/previewService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentsStore } from '@/apps/payments/store'
 import { useBalanceStore } from '@/shared/stores/balance'
@@ -625,7 +626,7 @@ async function handlePreview() {
       return
     }
 
-    const response = await AgentService.generatePreview(projectId.value)
+    const response = await PreviewService.generatePreview(projectId.value)
     
     if (response && response.previewUrl) {
       // Open the preview URL in a new tab

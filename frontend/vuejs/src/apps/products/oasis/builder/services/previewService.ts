@@ -12,7 +12,7 @@ export const PreviewService = {
    */
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      const response = await api.post(`/api/v1/projects/${projectId}/preview/`);
+      const response = await api.get(`/api/v1/builder/${projectId}/preview/`);
       return {
         previewUrl: response.data.preview_url
       };
