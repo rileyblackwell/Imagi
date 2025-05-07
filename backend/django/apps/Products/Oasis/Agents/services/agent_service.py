@@ -708,7 +708,7 @@ class BaseAgentService(ABC):
             logger.error(f"Error adding assistant message: {str(e)}")
             raise
     
-    def build_conversation_history(self, conversation, project_path=None, current_file=None):
+    def build_conversation_history(self, conversation, project_path=None, current_file=None, is_build_mode=False, current_user_prompt=None):
         """
         Build the conversation history for the AI model.
         
@@ -716,8 +716,10 @@ class BaseAgentService(ABC):
             conversation: The conversation object
             project_path: Optional project path for context
             current_file: Optional current file being edited
+            is_build_mode: Whether the agent is in build mode
+            current_user_prompt: Optional current user prompt to append
             
         Returns:
             list: A list of message dictionaries with 'role' and 'content' keys
         """
-        return build_conversation_history(conversation, project_path, current_file) 
+        return build_conversation_history(conversation, project_path, current_file, current_user_prompt) 

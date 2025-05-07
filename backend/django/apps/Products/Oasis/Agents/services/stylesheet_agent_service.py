@@ -463,66 +463,7 @@ class StylesheetAgentService(BaseAgentService):
             return {'success': True, 'messages': messages}
         except Exception as e:
             logger.error(f"Error in process_conversation: {str(e)}")
-            return {'success': False, 'error': str(e)}
-        
-        # Log the conversation details before API call
-        logger.info(f"===== STYLESHEET CONVERSATION DETAILS =====")
-        logger.info(f"Model: {model}")
-        logger.info(f"User: {user.username}")
-        logger.info(f"File path: {self.current_file_path}")
-        logger.info(f"Project files count: {len(self.project_files)}")
-        logger.info(f"Message length: {len(user_input)} chars")
-        logger.info(f"Message preview: {user_input[:100]}...")
-        logger.info(f"Build mode: {is_build_mode}")
-        
-        # Log available context
-        logger.info("Additional context:")
-        for ctx in additional_context:
-            logger.info(f"- {ctx}")
-        logger.info("===== END STYLESHEET CONVERSATION DETAILS =====")
-        
-        # Call original method with potentially modified timeout
-        result = None
-        if timeout:
-            # Store original timeout
-            original_timeout = self.request_timeout
-            try:
-                # Set new timeout for this request
-                self.request_timeout = timeout
-                result = super().process_conversation(user_input, model, user, **kwargs)
-            finally:
-                # Restore original timeout
-                self.request_timeout = original_timeout
-        else:
-            result = super().process_conversation(user_input, model, user, **kwargs)
-        
-        # Process the result to ensure it's valid CSS
-        if result and result.get('success'):
-            # Extract and enhance CSS content
-            css_content = self.extract_css_from_response(result['response'])
-            enhanced_css = self.ensure_required_sections(css_content)
-            original_response = result.get('response', '')
-            result['original_response'] = original_response  # Store original for comparison
-            result['response'] = enhanced_css
-            
-            # Set code field to match the exact response
-            result['code'] = enhanced_css
-            
-            # Add flag to indicate this is build mode content (just code)
-            result['is_build_mode'] = True
-            
-            # Log response details
-            logger.info(f"===== STYLESHEET RESPONSE =====")
-            logger.info(f"Successfully processed stylesheet")
-            logger.info(f"Original length: {len(original_response)} chars")
-            logger.info(f"Enhanced length: {len(enhanced_css)} chars") 
-            logger.info(f"Response preview: {enhanced_css[:100]}...")
-            logger.info("===== END STYLESHEET RESPONSE =====")
-        elif result:
-            # Log error details
-            logger.error(f"Error processing stylesheet: {result.get('error')}")
-        
-        return result
+            return {'success': False, 'error': str(e)}        
 
     def load_project_files(self, project_path):
         """
