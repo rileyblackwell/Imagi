@@ -339,7 +339,7 @@ export const ProjectService = {
    */
   async initializeProject(projectId: string): Promise<{ success: boolean }> {
     try {
-      await api.post(`/api/v1/projects/${projectId}/initialize/`);
+      await api.post(`/api/v1/project-manager/projects/${projectId}/initialize/`);
       return { success: true };
     } catch (error) {
       throw new Error(`Failed to initialize project: ${this.formatError(error)}`);
