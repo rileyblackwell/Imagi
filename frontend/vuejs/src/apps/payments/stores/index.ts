@@ -1,2 +1,3 @@
-// Export the module balance store
-export { useModuleBalanceStore } from './moduleBalance' 
+// Export all stores from the payments module
+export { useModuleBalanceStore } from './moduleBalance'
+export { usePaymentStore } from './payments'

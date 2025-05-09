@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { usePaymentStore } from '../../stores/payments'
+import { usePaymentStore } from '@/apps/payments/stores'
 import { useRouter } from 'vue-router'
 
 const store = usePaymentStore()

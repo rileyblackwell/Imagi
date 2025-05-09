@@ -171,7 +171,7 @@ import AccountBalanceCard from '../components/organisms/cards/AccountBalanceCard
 import TimePeriodSelector from '../components/molecules/selectors/TimePeriodSelector/TimePeriodSelector.vue'
 import SummaryStatsCard from '../components/organisms/cards/SummaryStatsCard/SummaryStatsCard.vue'
 import BalanceChart from '../components/organisms/charts/BalanceChart/BalanceChart.vue'
-import type { Transaction as BaseTransaction } from '../types/store.types'
+import type { Transaction as BaseTransaction } from '../types/store'
 
 type Transaction = BaseTransaction & {
   model?: string;

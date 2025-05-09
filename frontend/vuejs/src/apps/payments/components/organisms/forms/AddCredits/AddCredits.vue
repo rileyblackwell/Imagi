@@ -132,9 +132,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { usePaymentStore } from '../../stores/payments'
-import AddCreditCard from './AddCreditCard.vue'
-import type { PaymentMethod, CreditPackage } from '../../types'
+import { usePaymentStore } from '@/apps/payments/stores'
+import AddCreditCard from '../AddCreditCard/AddCreditCard.vue'
+import type { PaymentMethod, CreditPackage, Transaction } from '@/apps/payments/types'
 
 const store = usePaymentStore()
 
@@ -200,7 +200,7 @@ const handleCardAdded = async (paymentMethod: any) => {
   
   // Find and select the newly added payment method
   const newMethod = store.paymentMethods.find(
-    (pm) => pm.payment_method_id === paymentMethod.id
+    (pm: PaymentMethod) => pm.payment_method_id === paymentMethod.id
   )
   
   if (newMethod) {

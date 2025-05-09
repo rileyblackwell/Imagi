@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { usePaymentStore } from '../../stores/payments'
+import { usePaymentStore } from '@/apps/payments/stores'
 
 const store = usePaymentStore()
 

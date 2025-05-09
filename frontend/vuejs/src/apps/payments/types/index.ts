@@ -1,3 +1,5 @@
+// This file helps TypeScript recognize the types directory as a module.
+// Merged from index.d.ts
 export interface Toast {
   id: number;
   message: string;
@@ -150,5 +152,7 @@ export const SORT_OPTIONS = [
   { label: 'Amount (Lowest First)', value: 'amount_asc' }
 ];
 
-// Re-export all store types
-export * from './store.types'; 
+// Re-export all types from models.ts, store.ts, and services.ts for ergonomic imports.
+export * from './models';
+export * from './store';
+export * from './services';

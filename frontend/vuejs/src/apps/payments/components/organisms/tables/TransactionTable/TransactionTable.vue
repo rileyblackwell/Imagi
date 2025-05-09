@@ -105,8 +105,8 @@
 <script lang="ts">
 import { defineComponent, ref, computed, watch } from 'vue'
 import type { PropType } from 'vue'
-import type { Transaction } from '../../types'
-import PaymentButton from '../atoms/Button.vue'
+import type { Transaction } from '@/apps/payments/types'
+import PaymentButton from '../../../atoms/buttons/Button/Button.vue'
 
 export default defineComponent({
   name: 'TransactionTable',
