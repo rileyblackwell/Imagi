@@ -54,7 +54,7 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
     
     Ensures the following order:
         1. System prompt (always first)
-        2. Project info (name, description)
+        2. Project info (name, description, platform info)
         3. Current file info (name, content)
         4. All project files (HTML, CSS)
         5. Complete conversation history
@@ -74,26 +74,42 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
     if system_prompt:
         messages.append(system_prompt)
     
-    # Add project information if available
+    # Add project information - always include this
+    project_info = "PROJECT INFORMATION:\n"
+    project_name = None
+    project_description = None
+    
+    # Try to get project info from the conversation
     if hasattr(conversation, 'project_id') and conversation.project_id:
         try:
             from apps.Products.Oasis.ProjectManager.models import Project
             project = Project.objects.get(id=conversation.project_id)
-            project_info = f"You are currently working on project: {project.name} (ID: {conversation.project_id})"
+            project_name = project.name
+            project_info += f"Project Name: {project_name}\n"
+            
             if hasattr(project, 'description') and project.description:
-                project_info += f"\n\nProject Description: {project.description}"
-            messages.append({
-                "role": "system",
-                "content": project_info
-            })
+                project_description = project.description
+                project_info += f"Project Description: {project_description}\n"
         except Exception as e:
             logger.warning(f"Could not fetch detailed project info: {str(e)}")
             project_name = getattr(conversation, 'project_name', None)
             if project_name:
-                messages.append({
-                    "role": "system",
-                    "content": f"You are currently working on project: {project_name} (ID: {conversation.project_id})"
-                })
+                project_info += f"Project Name: {project_name}\n"
+    
+    # If we couldn't get project info, use defaults
+    if not project_name:
+        project_info += "Project Name: Imagi Oasis Web Application\n"
+        project_info += "Project Description: A web application built with Imagi Oasis, an AI-powered web application generator that enables users to build full-stack web applications using natural language.\n"
+    
+    # Always add platform information for context
+    project_info += "\nPlatform: Imagi Oasis - AI-powered web application generator\n"
+    project_info += "Technologies: Django backend, Vue.js frontend, TailwindCSS styling\n"
+    
+    # Add the project info as a system message
+    messages.append({
+        "role": "system",
+        "content": project_info
+    })
     
     # Add current file info (name and content)
     if current_file and current_file.get('path') and current_file.get('content'):
@@ -729,4 +745,28 @@ class BaseAgentService(ABC):
         Returns:
             list: A list of message dictionaries with 'role' and 'content' keys
         """
-        return build_conversation_history(conversation, project_path, current_file, current_user_prompt) 
+        history = build_conversation_history(conversation, project_path, current_file, current_user_prompt)
+        
+        # Ensure project information is included
+        has_project_info = False
+        for message in history:
+            if message.get('role') == 'system' and 'PROJECT INFORMATION:' in message.get('content', ''):
+                has_project_info = True
+                break
+                
+        if not has_project_info:
+            # Add project info right after system prompt (at index 1 or 0 if no system prompt)
+            index = 1 if history and history[0].get('role') == 'system' else 0
+            project_info = {
+                "role": "system",
+                "content": (
+                    "PROJECT INFORMATION:\n"
+                    "Project Name: Imagi Oasis Web Application\n"
+                    "Project Description: A web application built with Imagi Oasis, an AI-powered web application generator.\n"
+                    "\nPlatform: Imagi Oasis - AI-powered web application generator\n"
+                    "Technologies: Django backend, Vue.js frontend, TailwindCSS styling\n"
+                )
+            }
+            history.insert(index, project_info)
+            
+        return history 

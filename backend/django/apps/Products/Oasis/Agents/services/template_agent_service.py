@@ -70,10 +70,21 @@ class TemplateAgentService(BaseAgentService):
             current_user_prompt=current_user_prompt
         )
         if is_build_mode:
+            # Preserve project information when modifying the history
+            project_info = None
+            for i, msg in enumerate(history):
+                if msg.get('role') == 'system' and 'PROJECT INFORMATION:' in msg.get('content', ''):
+                    project_info = msg
+                    break
+                    
             # Prepend only the unique system prompt for this agent
             system_prompt = self.get_system_prompt()
             # Remove any other system prompt if present
             history = [msg for msg in history if msg.get('role') != 'system']
+            
+            # Insert the system prompt first, then project info
+            if project_info:
+                history.insert(0, project_info)
             history.insert(0, system_prompt)
         return history
 

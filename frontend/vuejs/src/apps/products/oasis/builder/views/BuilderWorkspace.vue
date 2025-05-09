@@ -189,8 +189,9 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
 }
 
 // Add a function to create a git commit after successful code changes
-async function createCommitFromPrompt(filePath: string, prompt: string) {
+async function createCommitFromPrompt(filePath: string | null, prompt: string) {
   try {
+    // Early return if no project ID available
     if (!projectId.value) {
       console.warn('Cannot create commit: No project ID');
       return;
@@ -201,11 +202,14 @@ async function createCommitFromPrompt(filePath: string, prompt: string) {
       ? prompt.substring(0, 47) + '...' 
       : prompt;
     
+    // Ensure we have a file path - if not, use a default
+    const filePathToUse = filePath || 'project';
+    
     // Call the version control API to create a commit
     await AgentService.createVersion(
       projectId.value, 
       {
-        file_path: filePath,
+        file_path: filePathToUse,
         description: summary
       }
     );

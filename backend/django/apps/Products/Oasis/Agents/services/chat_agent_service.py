@@ -155,16 +155,21 @@ class ChatAgentService(BaseAgentService):
                 elif file_type == 'python':
                     context_parts.append("This is a Python file.")
         
-        # Add project information if available
+        # Add project information if available - this is separate from the project info
+        # added by build_conversation_history, and provides additional context to the system prompt
         project_id = kwargs.get('project_id')
         if project_id:
             try:
                 from apps.Products.Oasis.ProjectManager.models import Project
                 project = Project.objects.get(id=project_id)
-                context_parts.append(f"Project name: {project.name}")
+                context_parts.append(f"Detailed context for project: {project.name}")
                 
                 if hasattr(project, 'description') and project.description:
-                    context_parts.append(f"Project description: {project.description}")
+                    # Format the description to be included in the additional context
+                    # This won't replace the main project info, but adds extra context to the system prompt
+                    description = project.description.strip()
+                    if description:
+                        context_parts.append(f"Additional project details: {description}")
             except Exception as e:
                 logger.warning(f"Could not get project details for context: {str(e)}")
         
