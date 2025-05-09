@@ -1,21 +1,27 @@
 <template>
   <div class="account-balance-display">
     <div
-      class="balance-container bg-dark-850/95 backdrop-blur-xl px-3.5 py-2.5 flex items-center rounded-lg border border-slate-700/30 transition-all duration-300 shadow-xl hover:shadow-primary-500/10"
+      class="balance-container group bg-dark-900/90 backdrop-blur-xl px-4 py-3 flex items-center rounded-xl border border-dark-700/50 hover:border-primary-500/30 transition-all duration-300 shadow-lg hover:shadow-primary-500/20 transform hover:scale-[1.02]"
     >
-      <!-- Professional gradient icon -->
-      <div class="mr-3 flex-shrink-0">
-        <div class="w-7 h-7 rounded-full professional-gradient flex items-center justify-center shadow-md ring-1 ring-white/10">
+      <!-- Subtle glow effect on hover -->
+      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-xl blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+      
+      <!-- Professional gradient icon with improved styling -->
+      <div class="mr-3 flex-shrink-0 relative">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-md ring-1 ring-white/10">
           <i class="fas fa-wallet text-white text-xs"></i>
         </div>
+        <!-- Subtle pulse animation around the icon -->
+        <div class="absolute -inset-0.5 rounded-full bg-primary-500/20 animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </div>
-      <div>
-        <div class="text-xs font-medium text-slate-400 tracking-wide uppercase">
+      
+      <div class="relative">
+        <div class="text-xs font-medium text-gray-400 tracking-wide uppercase">
           Account Balance
         </div>
         <div class="text-sm font-semibold text-white leading-tight flex items-baseline">
           <span class="highlight-text">{{ formattedBalance }}</span>
-          <span class="ml-1 text-[10px] font-normal text-slate-400">credits</span>
+          <span class="ml-1 text-[10px] font-normal text-gray-400">credits</span>
         </div>
       </div>
     </div>
@@ -116,36 +122,16 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.balance-container:hover {
-  transform: translateY(-1px);
-  border-color: rgba(99, 102, 241, 0.4);
-}
-
-.balance-container::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(99, 102, 241, 0.04), transparent 70%);
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Professional gradient with subtle color hints */
-.professional-gradient {
-  background: linear-gradient(135deg, #5046e5, #6366f1);
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Highlight text with subtle gradient */
 .highlight-text {
-  background: linear-gradient(90deg, #f9fafb, #e2e8f0);
+  background: linear-gradient(90deg, #ffffff, #e2e8f0);
   -webkit-background-clip: text;
   background-clip: text;
   color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
@@ -160,5 +146,21 @@ onBeforeUnmount(() => {
     rgba(255, 255, 255, 0) 40%
   );
   pointer-events: none;
+}
+
+/* Animation for slow pulsing effect */
+@keyframes pulse-slow {
+  0%, 100% { 
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s infinite ease-in-out;
 }
 </style> 
