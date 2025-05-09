@@ -2,7 +2,6 @@ import api from './api'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
-  UndoResponse,
   ChatPayload,
   ChatResponse,
   GenerateStylesheetOptions,
