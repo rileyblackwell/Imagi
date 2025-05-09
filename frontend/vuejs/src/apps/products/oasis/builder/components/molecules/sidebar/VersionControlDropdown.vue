@@ -5,61 +5,68 @@
 -->
 <template>
   <div class="version-control-dropdown">
-    <!-- Dropdown button -->
+    <!-- Dropdown button with enhanced styling to match other sidebar elements -->
     <button 
       @click="toggleDropdown"
-      class="flex items-center justify-between w-full px-3 py-2 text-left text-sm font-medium rounded-md bg-dark-700 hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-gray-200"
+      class="group relative flex items-center justify-between w-full py-3 px-4 text-left text-sm font-medium rounded-lg bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transition-all duration-300"
     >
-      <span class="flex items-center">
-        <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-        Version History
-      </span>
-      <svg class="w-5 h-5 ml-2 -mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-      </svg>
+      <!-- Subtle glow effect on hover -->
+      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+      
+      <div class="relative flex items-center">
+        <i class="fas fa-history mr-2 text-primary-400"></i>
+        <span class="text-white">Version History</span>
+      </div>
+      
+      <i class="fas fa-chevron-down text-gray-400 group-hover:text-white transition-colors"></i>
     </button>
 
-    <!-- Dropdown menu -->
-    <div v-if="dropdownOpen" class="absolute z-10 mt-1 w-full bg-dark-800 shadow-lg rounded-md py-1 text-sm text-gray-200 max-h-64 overflow-y-auto">
-      <div v-if="isLoading" class="px-4 py-2 text-center text-gray-400">
-        Loading versions...
+    <!-- Dropdown menu with enhanced styling -->
+    <div 
+      v-if="dropdownOpen" 
+      class="absolute z-10 mt-2 w-full bg-dark-800/90 backdrop-blur-sm shadow-xl rounded-xl py-1 text-sm text-gray-200 max-h-64 overflow-y-auto border border-dark-700/60"
+    >
+      <div v-if="isLoading" class="px-4 py-3 text-center text-gray-400">
+        <div class="flex items-center justify-center space-x-2">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Loading versions...</span>
+        </div>
       </div>
       <template v-else-if="versions.length > 0">
         <button
           v-for="version in versions"
           :key="version.hash"
           @click="selectVersion(version)"
-          class="w-full text-left px-4 py-2 hover:bg-dark-700"
+          class="w-full text-left px-4 py-3 hover:bg-dark-700/70 hover:bg-gradient-to-r hover:from-primary-500/10 hover:to-violet-500/5 transition-all duration-200"
         >
           <div class="flex flex-col">
-            <span class="font-medium truncate" :title="version.message">{{ truncateMessage(version.message) }}</span>
-            <div class="flex justify-between text-xs text-gray-400">
+            <span class="font-medium truncate text-gray-200" :title="version.message">{{ truncateMessage(version.message) }}</span>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
               <span>{{ version.relative_date }}</span>
-              <span class="font-mono">{{ version.hash.substring(0, 7) }}</span>
+              <span class="font-mono text-primary-400/80">{{ version.hash.substring(0, 7) }}</span>
             </div>
           </div>
         </button>
       </template>
-      <div v-else class="px-4 py-2 text-center text-gray-400">
-        No versions available
+      <div v-else class="px-4 py-3 text-center text-gray-400">
+        <div class="flex flex-col items-center justify-center">
+          <i class="fas fa-history text-gray-500 mb-1"></i>
+          <span>No versions available</span>
+        </div>
       </div>
     </div>
 
-    <!-- Confirmation modal -->
-    <div v-if="showConfirmation" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- Confirmation modal with styling consistent with the modern UI -->
+    <div v-if="showConfirmation" class="fixed inset-0 z-50 overflow-y-auto backdrop-blur-sm" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Background overlay -->
         <div class="fixed inset-0 bg-black bg-opacity-75 transition-opacity" aria-hidden="true"></div>
 
         <!-- Modal panel -->
-        <div class="inline-block align-bottom bg-dark-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+        <div class="inline-block align-bottom bg-dark-900/90 backdrop-blur-md rounded-xl px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6 border border-dark-700/60">
           <div>
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-              <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-900/30 border border-red-700/40">
+              <i class="fas fa-exclamation-triangle text-red-500"></i>
             </div>
             <div class="mt-3 text-center sm:mt-5">
               <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
@@ -76,14 +83,14 @@
             <button 
               @click="confirmReset"
               type="button" 
-              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+              class="group relative w-full inline-flex justify-center rounded-lg border border-transparent px-4 py-2 bg-gradient-to-r from-red-600/90 to-red-700/90 text-base font-medium text-white hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm transition-all duration-200"
             >
               Reset Project
             </button>
             <button 
               @click="cancelReset"
               type="button" 
-              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-dark-700 text-base font-medium text-gray-300 hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+              class="mt-3 w-full inline-flex justify-center rounded-lg border border-dark-700/60 px-4 py-2 bg-dark-800/70 text-base font-medium text-gray-300 hover:bg-dark-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500/50 sm:mt-0 sm:col-start-1 sm:text-sm transition-colors duration-200"
             >
               Cancel
             </button>
@@ -216,5 +223,24 @@ watch(() => props.projectId, (newProjectId) => {
 .version-control-dropdown {
   position: relative;
   width: 100%;
+}
+
+/* Add consistent scrollbar styling to match other sidebar components */
+.max-h-64 {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.dark.600') transparent;
+}
+
+.max-h-64::-webkit-scrollbar {
+  width: 6px;
+}
+
+.max-h-64::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.max-h-64::-webkit-scrollbar-thumb {
+  background-color: theme('colors.dark.600');
+  border-radius: 3px;
 }
 </style> 
