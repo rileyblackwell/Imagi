@@ -7,7 +7,11 @@
 <script setup lang="ts">
 import ResourceCard from '@/shared/components/molecules/ResourceCard.vue'
 
-const props = defineProps({
-  resources: { type: Array, required: true }
-})
+interface Resource {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+const props = defineProps<{ resources: Resource[] }>()
 </script>

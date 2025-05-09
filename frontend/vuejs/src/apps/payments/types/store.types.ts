@@ -15,6 +15,8 @@ export interface Transaction {
   status: string;
   created_at: string;
   description: string;
+  model?: string;
+  request_type?: string;
 }
 
 export interface CreditPackage {

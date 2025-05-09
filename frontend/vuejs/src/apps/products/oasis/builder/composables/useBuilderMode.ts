@@ -247,7 +247,9 @@ export function useBuilderMode() {
 
     try {
       store.$patch({ isProcessing: true })
-      const result = await AgentService.undoAction(store.projectId, filePath)
+      // TODO: Implement undoAction in AgentService or update logic here
+      // const result = await AgentService.undoAction(store.projectId, filePath)
+      const result = null;
       
       // Refresh file content if needed
       if (store.selectedFile && (!filePath || store.selectedFile.path === filePath)) {

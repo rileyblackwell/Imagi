@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { ProjectService } from '../services/projectService'
-import { AgentService } from '../services/agentService'
 import api from '../services/api'
 import type { Project } from '../types/components'
 import { normalizeProject } from '../types/components'
@@ -801,8 +800,10 @@ export const useProjectStore = defineStore('builder', () => {
   async function fetchAvailableModels() {
     loading.value = true
     try {
-      const models = await AgentService.getAvailableModels()
-      availableModels.value = models
+      // TODO: Implement getAvailableModels in AgentService or update logic here
+      // const models = await AgentService.getAvailableModels()
+      const models: any[] = []; // TODO: Type this properly when AgentService.getAvailableModels is implemented
+      availableModels.value = models // Will be empty until implemented
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch models'
       throw err

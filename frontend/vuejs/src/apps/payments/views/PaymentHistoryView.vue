@@ -171,7 +171,12 @@ import AccountBalanceCard from '../components/organisms/AccountBalanceCard.vue'
 import TimePeriodSelector from '../components/molecules/TimePeriodSelector.vue'
 import SummaryStatsCard from '../components/organisms/SummaryStatsCard.vue'
 import BalanceChart from '../components/organisms/BalanceChart.vue'
-import type { Transaction } from '../types'
+import type { Transaction as BaseTransaction } from '../types/store.types'
+
+type Transaction = BaseTransaction & {
+  model?: string;
+  request_type?: string;
+};
 
 const store = usePaymentsStore()
 const { userCredits, lastUpdated, isLoading, isHistoryLoading, transactions } = storeToRefs(store)
