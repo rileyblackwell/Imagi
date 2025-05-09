@@ -457,7 +457,7 @@ export const AgentService = {
 
     try {
       const response = await api.post(`/api/v1/builder/${projectId}/versions/`, {
-        file_path: data.file_path,
+        file_path: data.file_path || '',
         description: data.description || 'Project update'
       })
       
