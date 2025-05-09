@@ -18,14 +18,7 @@
               : 'border-dark-700/60 hover:border-dark-600/70'
           ]"
         >
-          <!-- Typing indicator dots when processing -->
-          <div 
-            v-if="isProcessing" 
-            class="absolute left-5 top-1/2 -translate-y-1/2 flex items-center space-x-1.5 z-10"
-          >
-            <div v-for="i in 3" :key="i" class="w-2 h-2 rounded-full bg-primary-400 opacity-80 animate-typing-pulse" 
-              :style="{ animationDelay: `${i * 150}ms` }"></div>
-          </div>
+          <!-- Typing indicator dots removed from here -->
           
           <!-- Subtle gradient overlay for input area -->
           <div class="absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent to-dark-900/20 pointer-events-none z-0"></div>
