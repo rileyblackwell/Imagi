@@ -189,12 +189,12 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
 }
 
 // Add a function to create a git commit after successful code changes
-async function createCommitFromPrompt(filePath: string | null, prompt: string) {
+async function createCommitFromPrompt(filePath: string, prompt: string) {
   try {
-    // Early return if no project ID available
+    // Let's make sure we have a valid project ID before proceeding
     if (!projectId.value) {
-      console.warn('Cannot create commit: No project ID');
-      return;
+      console.warn('Cannot create commit: missing project ID')
+      return
     }
     
     // Create a summary from the prompt - limit to 50 chars for git message
@@ -202,19 +202,58 @@ async function createCommitFromPrompt(filePath: string | null, prompt: string) {
       ? prompt.substring(0, 47) + '...' 
       : prompt;
     
-    // Ensure we have a file path - if not, use a default
-    const filePathToUse = filePath || 'project';
+    // Format file path properly for the backend
+    let filePathToUse;
+    if (filePath) {
+      // Make sure the file path starts with a forward slash
+      filePathToUse = filePath.startsWith('/') ? filePath : `/${filePath}`;
+    } else {
+      // Use root path if no file path provided
+      filePathToUse = '/';
+    }
+    
+    // Add a small delay to ensure file system operations are complete
+    // This helps especially with the initial commit
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Call the version control API to create a commit
-    await AgentService.createVersion(
-      projectId.value, 
-      {
-        file_path: filePathToUse,
-        description: summary
+    try {
+      console.log(`Creating version for project ${projectId.value} with file path "${filePathToUse}"`);
+      const result = await AgentService.createVersion(
+        projectId.value, 
+        {
+          file_path: filePathToUse,
+          description: summary
+        }
+      );
+      
+      // Only log success if the operation actually succeeded
+      if (result.success) {
+        if (result.commitHash) {
+          console.log('Created git commit for changes with description:', summary);
+        } else if (result.message && result.message.includes('No file changes')) {
+          // This is an expected state in some cases, so log it appropriately
+          console.log('Version control: No file changes detected to commit');
+        } else {
+          console.log('Version control operation completed:', result.message);
+        }
+      } else {
+        // Skip logging errors containing "No changes to commit" as they're not really errors
+        if (result.error && result.error.includes('No changes to commit')) {
+          console.log('Version control: No changes needed to commit');
+        } else {
+          console.error('Failed to create version:', result.error || 'Unknown error');
+        }
       }
-    );
-    
-    console.log('Created git commit for changes with description:', summary);
+    } catch (versionError: any) {
+      // Check if this is a "no changes to commit" scenario which we don't consider an error
+      if (versionError.message && versionError.message.includes('No changes to commit')) {
+        console.log('Version control: No changes needed to commit');
+      } else {
+        console.error('Version control error:', versionError);
+      }
+      // Don't throw - attempt to continue even if version control fails
+    }
   } catch (error) {
     console.error('Failed to create git commit:', error);
     // Don't throw - this is a non-critical operation

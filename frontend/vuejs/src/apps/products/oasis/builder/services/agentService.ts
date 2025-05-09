@@ -456,18 +456,126 @@ export const AgentService = {
     }
 
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/versions/`, {
-        file_path: data.file_path || '',
-        description: data.description || 'Project update'
-      })
+      // Normalize file path
+      let filePath = '';
       
-      return {
-        success: response.data.success !== false,
-        message: response.data.message || 'Version created successfully',
-        commitHash: response.data.commit_hash || null,
-        error: response.data.error || null
+      if (data.file_path) {
+        // Remove any double slashes and ensure single leading slash
+        filePath = data.file_path.replace(/\/+/g, '/');
+        if (!filePath.startsWith('/')) {
+          filePath = '/' + filePath;
+        }
+        
+        // For special cases like the root, normalize to '/'
+        if (filePath === '//') {
+          filePath = '/';
+        }
+      } else {
+        // Default to root path
+        filePath = '/';
+      }
+      
+      // Remove trailing slash except for root path
+      if (filePath.length > 1 && filePath.endsWith('/')) {
+        filePath = filePath.slice(0, -1);
+      }
+      
+      // Create payload with normalized file path
+      const payload = {
+        file_path: filePath,
+        description: data.description || 'Project update'
+      }
+      
+      console.log('Creating version with payload:', payload);
+      
+      try {
+        // Add extra logging
+        console.log(`Making POST request to /api/v1/builder/${projectId}/versions/`);
+        
+        const response = await api.post(`/api/v1/builder/${projectId}/versions/`, payload)
+        
+        // Log successful response
+        console.log('Version creation API response:', {
+          status: response.status,
+          success: response.data.success,
+          message: response.data.message,
+          hasCommitHash: !!response.data.commit_hash
+        });
+        
+        // Check for explicit error in response data
+        if (response.data.error || response.data.success === false) {
+          console.error('Server returned error:', response.data.error || 'Unknown error');
+          
+          // Special handling for "No changes to commit" which is actually not an error
+          // but a normal state we should handle gracefully
+          if (response.data.error === 'No changes to commit detected' || 
+              response.data.message === 'No changes to commit detected' ||
+              (response.data.error && response.data.error.includes('No changes to commit')) ||
+              (response.data.message && response.data.message.includes('No changes to commit'))) {
+            console.log('No changes to commit - this is expected after certain operations');
+            return {
+              success: true, // Treat as success since this is not a real error
+              message: 'No file changes detected to commit',
+              commitHash: null,
+              error: null
+            };
+          }
+          
+          return {
+            success: false,
+            message: response.data.message || 'Failed to create version',
+            error: response.data.error || 'Server returned failure status'
+          }
+        }
+        
+        return {
+          success: true,
+          message: response.data.message || 'Version created successfully',
+          commitHash: response.data.commit_hash || null,
+          error: null
+        }
+      } catch (apiError: any) {
+        // Log API error details
+        console.error('API error when creating version:', {
+          status: apiError.response?.status,
+          statusText: apiError.response?.statusText,
+          data: apiError.response?.data
+        });
+        
+        // Special handling for "No changes to commit" which is actually not an error
+        // but a normal state we should handle gracefully
+        if (apiError.response?.status === 400 && 
+            (apiError.response.data?.message?.includes('No changes to commit') ||
+             apiError.response.data?.error?.includes('No changes to commit') ||
+             apiError.response.data?.message === 'No changes to commit detected' ||
+             apiError.response.data?.error === 'No changes to commit detected')) {
+          
+          console.log('No changes to commit - this is expected after certain operations');
+          return {
+            success: true, // Treat as success since this is not a real error
+            message: 'No file changes detected to commit',
+            commitHash: null,
+            error: null
+          };
+        }
+        
+        // Re-throw other errors to be handled by the outer catch
+        throw apiError;
       }
     } catch (error: any) {
+      // Special handling for specific error strings that should be treated as non-errors
+      if (typeof error === 'object' && error.message && 
+          (error.message.includes('No changes to commit') || 
+           error.message.includes('No changes to commit detected'))) {
+        console.log('No changes to commit detected in outer catch - handling as a non-error state');
+        return {
+          success: true, // Mark as success since this is an expected state
+          message: 'No file changes detected to commit',
+          commitHash: null,
+          error: null
+        };
+      }
+
       console.error('Error creating version:', error)
       return {
         success: false,

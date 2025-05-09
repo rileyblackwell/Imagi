@@ -769,11 +769,41 @@ class VersionControlHistoryView(APIView):
             file_path = request.data.get('file_path', None)
             description = request.data.get('description', None)
             
+            # Log the request parameters
+            logger.info(
+                f"Creating version for project {project_id} with file_path={file_path}, "
+                f"description={description[:50] + '...' if description and len(description) > 50 else description}"
+            )
+            
+            # Check if the file actually exists before trying to commit
+            if file_path and file_path != '/':
+                file_service = FileService(project=project)
+                try:
+                    # Try to get the file content to verify its existence
+                    file_service.get_file_content(file_path.lstrip('/'))
+                except Exception as e:
+                    logger.error(f"File {file_path} not found for commit: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'error': f"File {file_path} not found: {str(e)}"
+                    }, status=status.HTTP_404_NOT_FOUND)
+            
             # Use VersionControlService to create version
             version_service = VersionControlService(project=project)
             result = version_service.create_version_after_file_change(
                 request.user, project_id, file_path, description
             )
+            
+            # Log the result
+            logger.info(f"Version creation result: {result}")
+            
+            # Special handling for "No changes to commit" scenario
+            if not result.get('success') and result.get('message') == 'No changes to commit detected':
+                return Response({
+                    'success': False,
+                    'message': 'No changes to commit detected',
+                    'error': 'No changes to commit detected'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             if result.get('success'):
                 return Response({

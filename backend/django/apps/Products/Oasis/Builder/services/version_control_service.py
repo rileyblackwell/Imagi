@@ -14,6 +14,7 @@ import datetime
 from pathlib import Path
 from django.shortcuts import get_object_or_404
 from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ class VersionControlService:
             if not status.stdout.strip():
                 return {
                     'success': False,
-                    'message': 'No changes to commit'
+                    'message': 'No changes to commit detected'
                 }
             
             # Stage all changes
@@ -350,6 +351,22 @@ class VersionControlService:
             git_dir = os.path.join(project.project_path, '.git')
             if not os.path.exists(git_dir) or not os.path.isdir(git_dir):
                 self.initialize_repo(project.project_path)
+            
+            # Add a small delay to ensure file system operations are complete
+            # This helps especially with the initial commit when files are just being created
+            time.sleep(0.5)
+            
+            # Sync the file system
+            try:
+                subprocess.run(
+                    ['sync'],
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+                logger.info(f"File system synced before commit for project {project_id}")
+            except Exception as e:
+                logger.warning(f"Could not sync file system: {str(e)}")
             
             # Create commit message
             if not description:

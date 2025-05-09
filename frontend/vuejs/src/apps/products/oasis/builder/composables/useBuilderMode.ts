@@ -312,14 +312,39 @@ export function useBuilderMode() {
     store.setProcessing(true);
     
     try {
+      // Make sure the file path exists in the project
+      // Check if we need to create parent directories
+      const pathParts = file.path.split('/').filter(Boolean);
+      if (pathParts.length > 1) {
+        // There are directories in the path
+        // Unfortunately we can't create them directly, but the backend will handle this
+        console.log(`File path "${file.path}" contains directories, ensuring they exist on server side...`);
+      }
+      
       // Update the file with the code
       await updateFile(projectId, file.path, code);
       
-      // Update the file in the store
-      store.updateFile({
-        ...file,
-        content: code
-      });
+      // Ensure the file content is properly refreshed in the store
+      try {
+        // Get the most up-to-date version from the API
+        const updatedFile = await FileService.getFile(projectId, file.path);
+        
+        // Update the file in the store with the latest content
+        store.updateFile({
+          ...file,
+          content: updatedFile.content
+        });
+      } catch (refreshError) {
+        // If we can't refresh, at least update with what we know
+        console.warn('Could not refresh file after update, using local content:', refreshError);
+        store.updateFile({
+          ...file,
+          content: code
+        });
+      }
+      
+      // Small delay to ensure file system operations are complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       return true;
     } catch (error) {
