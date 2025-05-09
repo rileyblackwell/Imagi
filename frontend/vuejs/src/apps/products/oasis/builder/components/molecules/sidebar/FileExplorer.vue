@@ -1,24 +1,28 @@
 <template>
   <div class="flex-1 overflow-y-auto">
-    <!-- File Tree -->
+    <!-- File Tree with Enhanced Modern Styling -->
     <div class="p-3">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-medium text-gray-200 flex items-center">
           <i class="fas fa-folder-open text-primary-400 mr-1.5"></i>
           <span>Project Files</span>
         </h3>
-        <!-- Add file button now visible for better UX -->
+        <!-- Enhanced Add file button with modern styling -->
         <button 
           @click="toggleNewFileForm" 
-          class="text-xs rounded-md px-2 py-1 bg-primary-500 hover:bg-primary-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+          class="group relative text-xs rounded-lg px-2 py-1.5 bg-primary-600/80 hover:bg-primary-600 text-white transition-all duration-200 transform hover:scale-[1.02]"
           title="Create new file"
         >
-          <i class="fas fa-plus mr-1"></i> 
-          <span>New</span>
+          <!-- Subtle glow effect on hover -->
+          <div class="absolute -inset-0.5 bg-primary-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+          <div class="relative flex items-center">
+            <i class="fas fa-plus mr-1"></i> 
+            <span>New</span>
+          </div>
         </button>
       </div>
 
-      <!-- New File Form - Enhanced -->
+      <!-- New File Form - Enhanced with modern styling -->
       <Transition
         enter-active-class="transition-all duration-300 ease-out"
         enter-from-class="opacity-0 -translate-y-2"
@@ -27,14 +31,14 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="showNewForm" class="mb-4 p-3 bg-dark-800/70 rounded-lg border border-dark-700/50 space-y-2">
+        <div v-if="showNewForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-dark-700/50 space-y-2">
           <h3 class="text-xs font-medium text-gray-300">Create New File</h3>
           
           <input
             v-model="newFileName"
             type="text"
             placeholder="filename.ext"
-            class="w-full text-xs bg-dark-950 border border-dark-700 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-indigo-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(99,102,241,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(99,102,241,0.25)] transition-all duration-200"
             @keydown.enter="createFile"
           />
           
@@ -52,34 +56,36 @@
             <button
               @click="createFile"
               :disabled="!isValidFileName"
-              class="text-xs rounded-md px-2 py-1 bg-primary-500 disabled:bg-gray-700 disabled:text-gray-500 hover:bg-primary-600 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+              class="group relative text-xs rounded-md px-2 py-1 bg-primary-600/80 disabled:bg-gray-700 disabled:text-gray-500 hover:bg-primary-600 text-white transition-all duration-200 focus:outline-none"
             >
-              Create
+              <!-- Subtle glow effect on hover (only when enabled) -->
+              <div v-if="isValidFileName" class="absolute -inset-0.5 bg-primary-500/30 rounded-md blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+              <span class="relative">Create</span>
             </button>
           </div>
         </div>
       </Transition>
 
-      <!-- Directory Structure - More dynamic implementation -->
-      <div>
+      <!-- Directory Structure - Enhanced with modern styling -->
+      <div class="space-y-2">
         <!-- Group files by directory -->
         <div 
           v-for="(dirFiles, dirName) in filesByDirectory"
           :key="dirName"
-          class="mb-4 p-2 bg-dark-850/60 rounded-lg border border-dark-700/30"
-          :class="{'border-primary-500/30 bg-primary-900/10': currentDirectory === dirName}"
+          class="p-2 bg-dark-850/60 backdrop-blur-sm rounded-lg border border-dark-700/40 transition-all duration-200"
+          :class="{'border-primary-500/30 bg-primary-900/10 shadow-[0_0_10px_rgba(99,102,241,0.1)]': currentDirectory === dirName}"
         >
           <div 
-            class="flex items-center text-xs py-1.5 px-2.5 rounded-md transition-colors cursor-pointer mb-2"
+            class="group flex items-center text-xs py-1.5 px-2.5 rounded-md transition-all duration-200 cursor-pointer mb-2"
             :class="[
               currentDirectory === dirName 
-                ? 'bg-primary-500/20 text-white' 
-                : 'text-primary-300 hover:bg-dark-800/80'
+                ? 'bg-gradient-to-r from-primary-500/20 to-violet-500/10 text-white border border-primary-500/30' 
+                : 'text-primary-300 hover:bg-dark-800/80 border border-transparent hover:border-primary-500/20'
             ]"
             @click="selectDirectory(dirName)"
           >
             <i 
-              class="fas fa-folder-open mr-2 w-4 text-center"
+              class="fas fa-folder-open mr-2 w-4 text-center transition-colors duration-200"
               :class="getDirectoryIconClass(dirName)"
             ></i>
             <span class="font-medium">{{ formatDirectoryName(dirName) }}</span>
@@ -88,8 +94,8 @@
             </span>
           </div>
           
-          <!-- Files List -->
-          <div v-if="currentDirectory === dirName" class="space-y-1 pl-2">
+          <!-- Files List with enhanced styling -->
+          <div v-if="currentDirectory === dirName" class="space-y-1.5 pl-2">
             <FileTreeItem
               v-for="file in dirFiles"
               :key="file.path"
@@ -104,11 +110,22 @@
           </div>
         </div>
         
-        <!-- No files message -->
-        <div v-if="Object.keys(filesByDirectory).length === 0" class="text-center text-sm text-gray-500 py-4">
-          <div><i class="fas fa-info-circle text-primary-400 mb-2 text-xl"></i></div>
+        <!-- No files message - Enhanced with modern styling -->
+        <div v-if="Object.keys(filesByDirectory).length === 0" class="text-center text-sm text-gray-500 py-6 px-3 bg-dark-850/60 backdrop-blur-sm rounded-lg border border-dark-700/40">
+          <div><i class="fas fa-info-circle text-primary-400 mb-2 text-xl opacity-80"></i></div>
           <div>No project files found</div>
-          <div class="text-xs mt-1">Click 'New' to create your first file</div>
+          <div class="text-xs mt-1 mb-3">Click 'New' to create your first file</div>
+          <button
+            @click="toggleNewFileForm"
+            class="group relative text-xs rounded-lg px-3 py-1.5 bg-primary-600/80 hover:bg-primary-600 text-white transition-all duration-200 transform hover:scale-[1.02] inline-flex items-center"
+          >
+            <!-- Subtle glow effect on hover -->
+            <div class="absolute -inset-0.5 bg-primary-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+            <div class="relative flex items-center">
+              <i class="fas fa-plus mr-1.5"></i> 
+              <span>Create File</span>
+            </div>
+          </button>
         </div>
       </div>
     </div>
@@ -248,8 +265,7 @@ const createFile = () => {
     // If a path is already specified, but it's for a CSS file that's not in static/css,
     // and it's not already in static/css, adjust it
     if (ext === 'css' && !filePath.includes('static/css/')) {
-      const fileName = filePath.split('/').pop() || ''
-      filePath = `static/css/${fileName}`
+      filePath = `static/css/${filePath.replace(/^static\//, '')}`
     }
   }
   
@@ -265,6 +281,7 @@ const createFile = () => {
 </script>
 
 <style scoped>
+/* Add consistent scrollbar styling to match other sidebar components */
 .overflow-y-auto {
   scrollbar-width: thin;
   scrollbar-color: theme('colors.dark.600') transparent;
@@ -283,17 +300,9 @@ const createFile = () => {
   border-radius: 3px;
 }
 
+/* Custom text size class */
 .text-xxs {
   font-size: 0.65rem;
   line-height: 1rem;
-}
-
-/* Additional styles for enhanced UI */
-.bg-dark-850\/60 {
-  background-color: rgba(18, 20, 25, 0.6);
-}
-
-.bg-dark-750\/70 {
-  background-color: rgba(28, 30, 35, 0.7);
 }
 </style>
