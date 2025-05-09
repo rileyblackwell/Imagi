@@ -273,7 +273,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
 import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
-import VersionControlDropdown from '../../molecules/VersionControlDropdown.vue'
+import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
 import type { 
   AIModel, 
   BuilderMode,

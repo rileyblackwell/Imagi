@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import DocsIconBadge from '../atoms/DocsIconBadge.vue';
+import DocsIconBadge from '../../atoms/badges/DocsIconBadge.vue';
 
 withDefaults(defineProps<{
   icon?: string;

@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { DocsCard, DocsCardHeader } from '../molecules';
+import { DocsCard, DocsCardHeader } from '../index';
 
 withDefaults(defineProps<{
   title: string;

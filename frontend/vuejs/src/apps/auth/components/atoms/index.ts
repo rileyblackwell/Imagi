@@ -5,4 +5,4 @@ export { default as PasswordInput } from './inputs/PasswordInput.vue'
 export { default as GradientButton } from './buttons/GradientButton.vue'
 
 // Auth Components
-export { default as RequirementItem } from './auth/RequirementItem.vue'
+export { default as RequirementItem } from './items/RequirementItem.vue';

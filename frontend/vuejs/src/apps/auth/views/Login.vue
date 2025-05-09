@@ -78,7 +78,7 @@ import {
   FormInput,
   GradientButton,
   AuthLinks 
-} from '@/apps/auth/components'
+} from '@/apps/auth/components' // Barrel already updated, so this is fine
 
 const router = useRouter()
 const route = useRoute()

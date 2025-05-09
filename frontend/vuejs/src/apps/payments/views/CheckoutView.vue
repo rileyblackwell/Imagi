@@ -133,10 +133,10 @@ import { ref, computed, onMounted } from 'vue'
 import { usePaymentsStore } from '../store'
 import { storeToRefs } from 'pinia'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
-import StatusMessage from '../components/molecules/StatusMessage.vue'
-import AccountBalanceCard from '../components/organisms/AccountBalanceCard.vue'
-import ModelPricingSection from '../components/organisms/ModelPricingSection.vue'
-import PaymentFormSection from '../components/organisms/PaymentFormSection.vue'
+import StatusMessage from '../components/molecules/messages/StatusMessage/StatusMessage.vue'
+import AccountBalanceCard from '../components/organisms/cards/AccountBalanceCard/AccountBalanceCard.vue'
+import ModelPricingSection from '../components/organisms/sections/ModelPricingSection/ModelPricingSection.vue'
+import PaymentFormSection from '../components/organisms/forms/PaymentFormSection/PaymentFormSection.vue'
 
 const store = usePaymentsStore()
 const { userCredits, lastUpdated, isLoading, error } = storeToRefs(store)

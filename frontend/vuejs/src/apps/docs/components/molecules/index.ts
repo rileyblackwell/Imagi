@@ -1,12 +1,12 @@
-import DocsCard from './DocsCard.vue';
-import DocsCardHeader from './DocsCardHeader.vue';
-import DocsListItem from './DocsListItem.vue';
-import DocsNavigationCard from './DocsNavigationCard.vue';
-import DocsPageHeader from './DocsPageHeader.vue';
-import DocsStepCard from './DocsStepCard.vue';
-import DocsNavbar from './DocsNavbar.vue';
-import DocsNextSteps from './DocsNextSteps.vue';
-import DocsCTASection from './DocsCTASection.vue';
+import DocsCard from './cards/DocsCard.vue';
+import DocsCardHeader from './headers/DocsCardHeader.vue';
+import DocsListItem from './lists/DocsListItem.vue';
+import DocsNavigationCard from './cards/DocsNavigationCard.vue';
+import DocsPageHeader from './headers/DocsPageHeader.vue';
+import DocsStepCard from './cards/DocsStepCard.vue';
+import DocsNavbar from './navbars/DocsNavbar.vue';
+import DocsNextSteps from './sections/DocsNextSteps.vue';
+import DocsCTASection from './sections/DocsCTASection.vue';
 
 export {
   DocsCard,
@@ -18,4 +18,4 @@ export {
   DocsNavbar,
   DocsNextSteps,
   DocsCTASection
-}; 
+};

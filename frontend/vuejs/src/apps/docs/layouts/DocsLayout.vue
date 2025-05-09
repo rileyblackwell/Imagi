@@ -44,7 +44,7 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
-import DocsNavbar from '../components/molecules/DocsNavbar.vue'
+import DocsNavbar from '../components/molecules/navbars/DocsNavbar.vue'
 
 const route = useRoute()
 const router = useRouter()

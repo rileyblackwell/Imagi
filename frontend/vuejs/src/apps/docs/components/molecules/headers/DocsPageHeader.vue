@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import DocsBadge from '../atoms/DocsBadge.vue';
+import DocsBadge from '../../atoms/badges/DocsBadge.vue';
 
 withDefaults(defineProps<{
   title: string;

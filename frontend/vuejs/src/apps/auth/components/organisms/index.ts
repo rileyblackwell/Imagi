@@ -1,2 +1,2 @@
 // Header Components
-export { default as AuthHeader } from './headers/AuthHeader.vue'
+export { default as AuthHeader } from './headers/AuthHeader.vue';

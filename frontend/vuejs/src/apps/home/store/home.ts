@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia'
 
+import type { ContactForm, HomeState } from '../types/home'
+
 export const useHomeStore = defineStore('home', {
-  state: () => ({
+  state: (): HomeState => ({
     // UI state
     isLoading: false,
     error: null,
-    
     // Feature flags and preferences
     showFeatureHighlights: true,
-    
     // Contact form state
     contactForm: {
       name: '',
@@ -19,19 +19,19 @@ export const useHomeStore = defineStore('home', {
   }),
 
   getters: {
-    hasError: (state) => !!state.error,
-    isContactFormValid: (state) => {
+    hasError: (state: HomeState): boolean => !!state.error,
+    isContactFormValid: (state: HomeState): boolean => {
       const { name, email, subject, message } = state.contactForm
-      return name && email && subject && message
+      return !!(name && email && subject && message)
     }
   },
 
   actions: {
-    setLoading(loading) {
+    setLoading(loading: boolean) {
       this.isLoading = loading
     },
 
-    setError(error) {
+    setError(error: string) {
       this.error = error
     },
 
@@ -44,7 +44,7 @@ export const useHomeStore = defineStore('home', {
     },
 
     // Contact form actions
-    updateContactForm(field, value) {
+    updateContactForm(field: keyof ContactForm, value: string) {
       this.contactForm[field] = value
     },
 
@@ -57,17 +57,15 @@ export const useHomeStore = defineStore('home', {
       }
     },
 
-    async submitContactForm() {
+    async submitContactForm(): Promise<boolean> {
       try {
         this.setLoading(true)
         this.clearError()
-        
         // TODO: Implement API call to submit form
         // const response = await homeService.submitContactForm(this.contactForm)
-        
         this.resetContactForm()
         return true
-      } catch (error) {
+      } catch (error: any) {
         this.setError(error.message || 'Failed to submit contact form')
         return false
       } finally {
@@ -75,4 +73,4 @@ export const useHomeStore = defineStore('home', {
       }
     }
   }
-}) 
+})

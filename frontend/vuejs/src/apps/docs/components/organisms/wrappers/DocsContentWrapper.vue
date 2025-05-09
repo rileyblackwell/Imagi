@@ -15,8 +15,8 @@
 </template>
 
 <script setup lang="ts">
-import DocsPageHeader from '../molecules/DocsPageHeader.vue';
-import DocsDivider from '../atoms/DocsDivider.vue';
+import DocsPageHeader from '../../molecules/headers/DocsPageHeader.vue';
+import DocsDivider from '../../atoms/dividers/DocsDivider.vue';
 
 withDefaults(defineProps<{
   title: string;
