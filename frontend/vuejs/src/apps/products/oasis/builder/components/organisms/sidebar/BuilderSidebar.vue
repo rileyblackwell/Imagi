@@ -88,25 +88,10 @@
           :mode="mode"
           @update:model-id="(id) => $emit('update:modelId', id)"
         />
-        <div 
-          v-else
-          class="tooltip-container mb-4"
-        >
-          <button 
-            class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
-            :title="selectedModel?.name || 'AI Model'"
-          >
-            <i
-              class="fas"
-              :class="[getModelTypeIcon(selectedModel), getModelTypeClass(selectedModel)]"
-            ></i>
-          </button>
-          <div class="sidebar-label">Models</div>
-        </div>
       </div>
     </div>
     
-    <!-- Mode Selector -->
+    <!-- Mode Selector - Action Buttons Section -->
     <div 
       class="shrink-0 py-4" 
       :class="{'border-b border-dark-700/50': !isCollapsed}"
@@ -154,30 +139,83 @@
             </div>
           </div>
         </template>
-        <template v-else>
-          <div class="space-y-4">
-            <button 
-              v-for="m in modes" 
-              :key="m"
-              class="tooltip-container w-10 h-10 rounded-md flex items-center justify-center transition-colors"
-              :class="[
-                mode === m 
-                  ? 'bg-primary-600/30 border border-primary-500/40 text-primary-400' 
-                  : 'bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 text-gray-400 hover:text-white'
-              ]"
-              @click="$emit('update:mode', m)"
-            >
-              <i :class="['fas', getModeIcon(m)]"></i>
-              <div class="sidebar-label">{{ formatMode(m) }}</div>
-            </button>
-          </div>
-        </template>
       </div>
     </div>
     
-    <!-- Files Section - Updated Design -->
-    <div class="flex-1 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
-      <div v-if="!isCollapsed" class="mb-3">
+    <!-- Collapsed sidebar icons - Reorganized to match expanded sidebar order -->
+    <template v-if="isCollapsed">
+      <div class="space-y-4 py-4">
+        <!-- Model Icon -->
+        <div class="sidebar-icon-container">
+          <div 
+            class="sidebar-icon"
+            :title="selectedModel?.name || 'AI Model'"
+          >
+            <i
+              class="fas"
+              :class="[getModelTypeIcon(selectedModel), getModelTypeClass(selectedModel)]"
+            ></i>
+          </div>
+          <div class="sidebar-label">Model</div>
+        </div>
+        
+        <!-- Chat Mode Button -->
+        <button 
+          class="sidebar-icon-container"
+          :class="{ 'active': mode === 'chat' }"
+          @click="$emit('update:mode', 'chat')"
+        >
+          <div class="sidebar-icon" :class="{ 'active-icon': mode === 'chat' }">
+            <i class="fas fa-comments"></i>
+          </div>
+          <div class="sidebar-label">Chat</div>
+        </button>
+        
+        <!-- Build Mode Button -->
+        <button 
+          class="sidebar-icon-container"
+          :class="{ 'active': mode === 'build' }"
+          @click="$emit('update:mode', 'build')"
+        >
+          <div class="sidebar-icon" :class="{ 'active-icon': mode === 'build' }">
+            <i class="fas fa-code"></i>
+          </div>
+          <div class="sidebar-label">Build</div>
+        </button>
+        
+        <!-- Files Icon -->
+        <div class="sidebar-icon-container">
+          <div class="sidebar-icon">
+            <i class="fas fa-folder text-primary-400"></i>
+          </div>
+          <div class="sidebar-label">Files</div>
+        </div>
+        
+        <!-- Version Icon -->
+        <div class="sidebar-icon-container">
+          <div class="sidebar-icon">
+            <i class="fas fa-history text-primary-400"></i>
+          </div>
+          <div class="sidebar-label">Version</div>
+        </div>
+        
+        <!-- Preview Button -->
+        <button 
+          class="sidebar-icon-container"
+          :disabled="isLoading"
+          @click="$emit('preview')"
+        >
+          <div class="sidebar-icon">
+            <i class="fas fa-eye text-primary-400"></i>
+          </div>
+          <div class="sidebar-label">Preview</div>
+        </button>
+      </div>
+    </template>
+    
+    <!-- Files Section - Updated Design (expanded mode only) -->
+    <div v-if="!isCollapsed" class="flex-1 py-4 border-b border-dark-700/50">
+      <div class="mb-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
           <span class="text-xs text-gray-500">{{ files.length }} item{{ files.length !== 1 ? 's' : '' }}</span>
@@ -197,51 +235,26 @@
           />
         </div>
       </div>
-      
-      <template v-else>
-        <div class="tooltip-container">
-          <button 
-            class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
-            title="Files"
-          >
-            <i class="fas fa-folder text-primary-400"></i>
-          </button>
-          <div class="sidebar-label">Files</div>
-        </div>
-      </template>
     </div>
     
-    <!-- Version Control Section - New Design -->
-    <div class="shrink-0 py-4" :class="{'border-b border-dark-700/50': !isCollapsed}">
-      <div v-if="!isCollapsed" class="mb-2">
+    <!-- Version Control Section - New Design (expanded mode only) -->
+    <div v-if="!isCollapsed" class="shrink-0 py-4">
+      <div class="mb-2">
         <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Version History</span>
       </div>
       
-      <div v-if="!isCollapsed" class="w-full">
+      <div class="w-full">
         <VersionControlDropdown 
           :project-id="projectId"
           @version-reset="handleVersionReset"
         />
       </div>
-      
-      <template v-else>
-        <div class="tooltip-container mb-4">
-          <button 
-            class="w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
-            title="Version History"
-          >
-            <i class="fas fa-history text-primary-400"></i>
-          </button>
-          <div class="sidebar-label">Versions</div>
-        </div>
-      </template>
     </div>
     
-    <!-- Action Buttons - Updated Design (Preview Button Only) -->
-    <div :class="{'p-4': !isCollapsed, 'px-2 py-3': isCollapsed}" class="flex justify-center border-t border-dark-700/50">
+    <!-- Action Buttons - Updated Design (Preview Button Only in expanded mode) -->
+    <div v-if="!isCollapsed" class="p-4 flex justify-center border-t border-dark-700/50">
       <!-- Preview button -->
       <button
-        v-if="!isCollapsed"
         class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02] w-full"
         title="Preview Project"
         :disabled="isLoading"
@@ -253,17 +266,6 @@
           <span class="text-white text-sm font-medium">Preview Project</span>
         </div>
       </button>
-      
-      <button 
-        v-else
-        class="tooltip-container w-10 h-10 rounded-md flex items-center justify-center bg-dark-800/70 hover:bg-dark-700/70 border border-dark-700/50 transition-colors"
-        title="Preview Project"
-        :disabled="isLoading"
-        @click="$emit('preview')"
-      >
-        <i class="fas fa-eye text-primary-400"></i>
-        <div class="sidebar-label">Preview</div>
-      </button>
     </div>
   </div>
 </template>
@@ -274,6 +276,7 @@ import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectSto
 import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
 import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
 import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
+import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/oasis/builder/utils/modelIconUtils'
 import type { 
   AIModel, 
   BuilderMode,
@@ -357,9 +360,6 @@ const selectedModel = computed(() => {
   return defaultModel || null
 })
 
-// Use shared icon utilities for consistency
-// getModelTypeIcon and getModelTypeClass are imported from ModelSelector.vue
-
 // Computed property for mode options with icons
 const modeOptions = computed(() => ([
   { id: 'chat', icon: 'fa-comments', label: 'Chat Mode' },
@@ -375,17 +375,6 @@ const toggleNewFileForm = () => {
 const handleVersionReset = (version: Record<string, any>) => {
   console.log('Version reset to:', version)
   // Additional handling if needed
-}
-
-// Fix for the getModelTypeIcon and getModelTypeClass methods
-const getModelTypeIcon = (model: AIModel | null) => {
-  if (!model) return 'fa-robot';
-  // existing implementation
-}
-
-const getModelTypeClass = (model: AIModel | null) => {
-  if (!model) return 'text-gray-400';
-  // existing implementation
 }
 </script>
 
@@ -432,6 +421,69 @@ const getModelTypeClass = (model: AIModel | null) => {
 .text-xxs {
   font-size: 0.65rem;
   line-height: 1rem;
+}
+
+/* Sidebar icon styles */
+.sidebar-icon-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s;
+}
+
+.sidebar-icon-container:hover {
+  transform: translateY(-1px);
+}
+
+.sidebar-icon-container.active .sidebar-label {
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.sidebar-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background-color: rgba(30, 30, 40, 0.7);
+  border: 1px solid rgba(70, 70, 90, 0.5);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  backdrop-filter: blur(4px);
+  color: #a5a5b5;
+}
+
+.sidebar-icon:hover {
+  background-color: rgba(40, 40, 55, 0.8);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: white;
+}
+
+.sidebar-icon.active-icon {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.sidebar-icon-container button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sidebar-icon-container button:disabled .sidebar-icon:hover {
+  transform: none;
+  background-color: rgba(30, 30, 40, 0.7);
+  border-color: rgba(70, 70, 90, 0.5);
+  box-shadow: none;
 }
 
 /* Oasis Project Card Enhancements */
