@@ -153,7 +153,7 @@
           >
             <i
               class="fas"
-              :class="[getModelTypeIcon(selectedModel), getModelTypeClass(selectedModel)]"
+              :class="[selectedModel ? getModelTypeIcon(selectedModel) : 'fa-robot', selectedModel ? getModelTypeClass(selectedModel) : 'bg-gradient-to-br from-gray-600/20 to-gray-700/20 text-gray-400 border border-gray-500/20']"
             ></i>
           </div>
           <div class="sidebar-label">Model</div>
