@@ -1,28 +1,67 @@
-FROM node:20-slim
+# Build stage
+FROM node:20-slim as build-stage
 
 WORKDIR /app
 
 # Copy dependency files first for better caching
 COPY package*.json ./
-RUN npm install
 
-# Frontend environment variables (will be set by Railway)
-ENV VITE_API_URL=
-ENV VITE_STRIPE_PUBLISHABLE_KEY=
+# Install dependencies
+RUN npm ci --only=production
+
+# Environment variables for build time (will be set by Railway)
+ARG VITE_API_URL
+ARG VITE_STRIPE_PUBLISHABLE_KEY
+
+# Set environment variables for Vite build
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
 
 # Copy application code
 COPY . .
 
-# Build the application
+# Build the Vue.js application
 RUN npm run build
 
-# Use a lightweight server for production
-FROM nginx:alpine
+# Production stage
+FROM nginx:alpine as production-stage
 
-# Copy the built files to nginx serve directory
-COPY --from=0 /app/dist /usr/share/nginx/html
+# Copy custom nginx configuration
+COPY <<EOF /etc/nginx/conf.d/default.conf
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
 
-# Expose port
+    # Handle client-side routing (SPA)
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+
+# Copy the built files from build stage
+COPY --from=build-stage /app/dist /usr/share/nginx/html
+
+# Expose port 80 (Railway will map this to the public port)
 EXPOSE 80
 
 # Start nginx
