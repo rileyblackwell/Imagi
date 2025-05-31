@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 import tempfile
 import stat
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # Update BASE_DIR to point to the django directory
@@ -44,7 +45,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'debug_toolbar',
     # custom apps
     'apps.Auth',
     'apps.Products.Oasis.Builder',
@@ -63,7 +63,6 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first to handle CORS properly
     'apps.Auth.middleware.CORSErrorMiddleware',  # Add our custom CORS error middleware
     'apps.Auth.middleware.APIRequestLoggingMiddleware',  # Add our API request logging middleware
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -107,12 +106,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Imagi.wsgi.application'
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use PostgreSQL if DATABASE_URL is provided (production), otherwise SQLite (development)
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    # Production database configuration (PostgreSQL via Railway)
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
     }
-}
+else:
+    # Development database configuration (SQLite)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -297,6 +306,10 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app']
 
 # Development-specific settings
 if DEBUG:
+    # Add debug toolbar for development
+    INSTALLED_APPS.append('debug_toolbar')
+    MIDDLEWARE.insert(2, 'debug_toolbar.middleware.DebugToolbarMiddleware')  # Insert after CORS middleware
+    
     # Override security settings for local development
     SECURE_SSL_REDIRECT = False
     CSRF_COOKIE_SECURE = False
@@ -335,11 +348,6 @@ if DEBUG:
         'localhost',
     ]
 
-# Debug toolbar settings
-INTERNAL_IPS = [
-    '127.0.0.1',
-]
-
 # Stripe settings
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLIC_KEY')
@@ -361,7 +369,7 @@ if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
 PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
 # Projects settings
-PROJECTS_ROOT = BASE_DIR.parent / 'oasis_projects'
+PROJECTS_ROOT = os.getenv('PROJECTS_ROOT', str(BASE_DIR.parent / 'oasis_projects'))
 try:
     if not os.path.exists(PROJECTS_ROOT):
         os.makedirs(PROJECTS_ROOT, exist_ok=True)

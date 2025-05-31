@@ -36,6 +36,11 @@ urlpatterns = [
 
 # Debug toolbar in development
 if settings.DEBUG:
-    urlpatterns += [
-        path('__debug__/', include('debug_toolbar.urls')),
-    ]
+    try:
+        import debug_toolbar
+        urlpatterns += [
+            path('__debug__/', include('debug_toolbar.urls')),
+        ]
+    except ImportError:
+        # debug_toolbar not installed, skip
+        pass
