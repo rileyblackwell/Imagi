@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy dependency files first for better caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including dev dependencies needed for build)
+RUN npm ci
 
 # Environment variables for build time (will be set by Railway)
 ARG VITE_API_URL
