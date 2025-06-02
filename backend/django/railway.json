@@ -1,0 +1,13 @@
+{
+    "build": {
+        "builder": "DOCKERFILE",
+        "dockerfilePath": "./Dockerfile",
+        "watchPatterns": [
+            "Pipfile",
+            "Pipfile.lock",
+            "django/**",
+            "railway.json",
+            "Dockerfile"
+        ]
+    }
+}

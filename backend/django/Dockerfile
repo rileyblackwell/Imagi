@@ -1,41 +1,42 @@
-# Use Python 3.13 slim image for smaller size
-FROM python:3.13-slim
+# Set the python version as a build-time argument
+ARG PYTHON_VERSION=3.12-slim-bullseye
+FROM python:${PYTHON_VERSION}
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies required for Python packages
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
     libpq-dev \
+    libjpeg-dev \
+    libcairo2 \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pipenv
+# Install pipenv globally
 RUN pip install --no-cache-dir pipenv
 
-# Copy dependency files first for better Docker layer caching
-COPY Pipfile Pipfile.lock ./
-
-# Install Python dependencies
-# Use --system to install packages globally (not in virtual env)
-# Use --deploy for production-like installation
-RUN pipenv install --system --deploy
-
-# Copy Django project code
-COPY . .
-
-# Create required directories
-RUN mkdir -p /app/staticfiles /app/media
-
-# Set environment variables for Django
-ENV DJANGO_SETTINGS_MODULE=Imagi.settings
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 ENV PORT=8000
 
-# Production environment variables (will be set by Railway)
+# Create code directory and set as workdir
+RUN mkdir -p /code
+WORKDIR /code
+
+# Copy pipenv files first for caching
+COPY Pipfile Pipfile.lock ./
+
+# Install dependencies using pipenv (system, deploy)
+RUN pipenv install --system --deploy
+
+# Copy project code
+COPY . .
+
+# Create static/media/projects directories
+RUN mkdir -p /code/staticfiles /code/media /code/projects
+
+# Django/production env vars (Railway will override as needed)
+ENV DJANGO_SETTINGS_MODULE=Imagi.settings
 ENV SECRET_KEY=""
 ENV DEBUG=0
 ENV OPENAI_KEY=""
@@ -44,9 +45,7 @@ ENV STRIPE_SECRET_KEY=""
 ENV STRIPE_PUBLIC_KEY=""
 ENV FRONTEND_URL=""
 ENV FRONTEND_REDIRECT_ENABLED="true"
-ENV PROJECTS_ROOT="/app/projects"
-
-# Database environment variables for Railway PostgreSQL
+ENV PROJECTS_ROOT="/code/projects"
 ENV DATABASE_URL=""
 ENV PGDATABASE=""
 ENV PGHOST=""
@@ -54,47 +53,25 @@ ENV PGPASSWORD=""
 ENV PGPORT=""
 ENV PGUSER=""
 
-# Create projects directory
-RUN mkdir -p /app/projects
+# Create runtime script to run migrations and start gunicorn on port 8000
+RUN printf "#!/bin/bash\n" > ./paracord_runner.sh && \
+    printf "RUN_PORT=\"\${PORT:-8000}\"\n\n" >> ./paracord_runner.sh && \
+    printf "python manage.py collectstatic --noinput --clear\n" >> ./paracord_runner.sh && \
+    printf "python manage.py migrate --no-input\n" >> ./paracord_runner.sh && \
+    printf "gunicorn Imagi.wsgi:application --bind [::]:\$RUN_PORT --workers 3 --threads 2 --timeout 120 --keep-alive 2 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - --log-level info\n" >> ./paracord_runner.sh
 
-# Create startup script for Railway deployment
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "Starting Django application..."\n\
-\n\
-# Collect static files\n\
-echo "Collecting static files..."\n\
-python manage.py collectstatic --noinput --clear\n\
-\n\
-# Run database migrations\n\
-echo "Running database migrations..."\n\
-python manage.py migrate --noinput\n\
-\n\
-# Start Gunicorn server\n\
-echo "Starting Gunicorn server on port $PORT..."\n\
-exec gunicorn Imagi.wsgi:application \\\n\
-    --bind 0.0.0.0:$PORT \\\n\
-    --workers 3 \\\n\
-    --threads 2 \\\n\
-    --timeout 120 \\\n\
-    --keep-alive 2 \\\n\
-    --max-requests 1000 \\\n\
-    --max-requests-jitter 100 \\\n\
-    --access-logfile - \\\n\
-    --error-logfile - \\\n\
-    --log-level info\n\
-' > /app/start.sh && chmod +x /app/start.sh
+# Make script executable
+RUN chmod +x paracord_runner.sh
 
 # Clean up build dependencies to reduce image size
-RUN apt-get purge -y build-essential gcc && apt-get autoremove -y
+RUN apt-get purge -y gcc && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Expose port (Railway will map this to public port)
+# Expose port 8000
 EXPOSE 8000
 
-# Health check for Railway
+# Healthcheck for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:$PORT/api/v1/health/ || exit 1
 
-# Start the application
-CMD ["/app/start.sh"] 
+# Start the Django project via the runtime script
+CMD ./paracord_runner.sh
