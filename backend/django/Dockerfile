@@ -27,7 +27,7 @@ WORKDIR /code
 COPY Pipfile Pipfile.lock ./
 
 # Install dependencies using pipenv (system, deploy)
-RUN pipenv install --system --deploy
+RUN PIP_ROOT_USER_ACTION=ignore pipenv install --system --deploy
 
 # Copy project code
 COPY . .
