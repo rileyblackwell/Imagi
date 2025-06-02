@@ -1,13 +1,9 @@
 {
-    "build": {
-        "builder": "DOCKERFILE",
-        "dockerfilePath": "./Dockerfile",
-        "watchPatterns": [
-            "Pipfile",
-            "Pipfile.lock",
-            "django/**",
-            "railway.json",
-            "Dockerfile"
-        ]
-    }
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "start": {
+    "cmd": "./paracord_runner.sh"
+  }
 }
