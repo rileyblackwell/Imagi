@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip to the latest version
+RUN python -m pip install --upgrade pip
+
 # Install pipenv globally
 RUN pip install --no-cache-dir pipenv
 
@@ -27,7 +30,7 @@ WORKDIR /code
 COPY Pipfile Pipfile.lock ./
 
 # Install dependencies using pipenv (system, deploy)
-RUN PIP_ROOT_USER_ACTION=ignore pipenv install --system --deploy
+RUN pipenv install --system --deploy
 
 # Copy project code
 COPY . .
@@ -65,6 +68,8 @@ RUN chmod +x paracord_runner.sh
 
 # Clean up build dependencies to reduce image size
 RUN apt-get purge -y gcc && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip freeze
 
 # Expose port 8000
 EXPOSE 8000
