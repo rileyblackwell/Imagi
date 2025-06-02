@@ -1,6 +1,9 @@
 # Imagi Oasis
 
-Imagi Oasis is an **AI-powered web application generator** that enables users to build full-stack Django web applications using natural language.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/yourusername/imagi-oasis/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Imagi Oasis is an **AI-powered full-stack web application generator**. Rapidly build production-grade Django/Vue apps using natural language prompts—no manual coding required.
 
 ## 🚀 Company Overview
 - **Product**: Imagi Oasis - AI-powered Django web application generator
@@ -45,16 +48,11 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 - **apps/**
   - **auth/**: Authentication and user management
   - **home/**: Landing pages and marketing
-  - **builder/**: AI-powered application generation
   - **payments/**: Stripe integration and subscription management
-  - **project_manager/**: Project lifecycle handling
+  - **products/**: Product/project lifecycle handling
 
 - **shared/**: Reusable components and utilities
-  - **components/**: Following Atomic Design principles
-    - **atoms/**: Basic UI elements
-    - **molecules/**: Compound components
-    - **organisms/**: Complex UI sections
-    - **pages/**: Complete page templates
+  - **components/**: Atomic Design (atoms, molecules, organisms, pages)
   - **stores/**: Pinia state management
   - **layouts/**: Layout components
   - **composables/**: Vue.js composable functions
@@ -64,12 +62,10 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 
 ### **Backend Apps (Django)**
 - **apps/**
-  - **auth/**: Custom authentication and authorization
-  - **builder/**: Core AI generation logic and prompts
-  - **home/**: Landing pages and static content
-  - **payments/**: Stripe integration for API credits
-  - **agents/**: AI workflow management
-  - **project_manager/**: Project lifecycle handling
+  - **Auth/**: Authentication and authorization
+  - **Home/**: Landing pages and static content
+  - **Payments/**: Stripe integration for API credits
+  - **Products/**: Product and project management
 - **api/**: REST API endpoints
   - **v1/**: API version 1 endpoints
 
@@ -77,19 +73,14 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 
 ## 💻 Development Environment
 
-### **System Requirements**
 - **OS**: macOS (zsh)
-- **Package Managers**: 
-  - Frontend: npm
-  - Backend: pipenv
-- **Required Tools**:
-  - Node.js >= 16.x
-  - Python >= 3.13
-  - PostgreSQL >= 14
-- **Editor Setup**:
-  - VSCode / Cursor with recommended extensions:
-    - Tailwind CSS IntelliSense
-    - Python and Vue.js extensions
+- **Frontend**: npm/yarn
+- **Backend**: pipenv
+- **Database**: SQLite (dev), PostgreSQL (prod)
+- **Editor**: VSCode/Cursor (recommended extensions: Tailwind CSS IntelliSense, Python, Vue.js)
+- **Local Servers**:
+  - Frontend: `npm run dev` (localhost:5174)
+  - Backend: `python manage.py runserver` (localhost:8000)
 
 ---
 
@@ -108,60 +99,54 @@ Imagi Oasis is an **AI-powered web application generator** that enables users to
 
 ## 🚀 Getting Started
 
-### **Prerequisites**
-Ensure the following are installed:
+### Prerequisites
 - **Node.js** (>= 16.x)
-- **Python** (>= 3.13)
+- **Python** (>= 3.10)
 - **PostgreSQL** (>= 14)
 
-### **Installation & Setup**
+### Installation & Setup
 
-1. **Clone the repository**:
-    ```sh
-    git clone https://github.com/yourusername/imagi-oasis.git
-    cd imagi-oasis
-    ```
+1. **Clone the repository**
+   ```sh
+   git clone https://github.com/yourusername/imagi-oasis.git
+   cd imagi-oasis
+   ```
 
-2. **Set up the backend**:
-    ```sh
-    cd backend/django
-    pipenv install
-    pipenv shell
-    ```
+2. **Backend Setup**
+   ```sh
+   cd backend/django
+   pipenv install
+   pipenv shell
+   cp .env.example .env  # Edit with your keys
+   ```
 
-3. **Create a .env file in the Django root directory with the following variables**:
-    ```
-    OPENAI_KEY=your_openai_api_key
-    ANTHROPIC_KEY=your_anthropic_api_key
-    SECRET_KEY=your_django_secret_key
-    STRIPE_PUBLIC_KEY=your_stripe_public_key
-    STRIPE_SECRET_KEY=your_stripe_secret_key
-    FRONTEND_URL=http://localhost:5174
-    FRONTEND_REDIRECT_ENABLED=true
-    ```
+3. **Frontend Setup**
+   ```sh
+   cd ../../frontend/vuejs
+   npm install
+   cp .env.example .env  # Edit with your API URL and Stripe key
+   ```
 
-4. **Run the database migrations and start the server**:
-    ```sh
-    python manage.py migrate
-    python manage.py runserver
-    ```
+4. **Database & Server**
+   ```sh
+   # In backend/django (pipenv shell)
+   python manage.py migrate
+   python manage.py runserver
+   ```
 
-5. **Set up the frontend**:
-    ```sh
-    cd frontend/vuejs
-    npm install
-    ```
+5. **Frontend Dev Server**
+   ```sh
+   # In frontend/vuejs
+   npm run dev
+   ```
 
-6. **Create a .env file in the Vue.js root directory with the following variables**:
-    ```
-    VITE_API_URL=http://localhost:8000
-    VITE_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-    ```
+### Running Tests
+- **Backend**: `cd backend/django && pipenv run pytest`
+- **Frontend**: `cd frontend/vuejs && npm run test` (Jest) / `npm run test:e2e` (Cypress)
 
-7. **Start the frontend development server**:
-    ```sh
-    npm run dev
-    ```
+### Example API Usage
+- Access API at `http://localhost:8000/api/v1/`
+- Frontend served at `http://localhost:5174/`
 
 ---
 
