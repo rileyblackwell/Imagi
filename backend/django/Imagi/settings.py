@@ -47,9 +47,9 @@ INSTALLED_APPS = [
     'corsheaders',
     # custom apps
     'apps.Auth',
-    'apps.Products.Oasis.Builder',
     'apps.Home',
     'apps.Payments',
+    'apps.Products.Oasis.Builder',
     'apps.Products.Oasis.Agents',
     'apps.Products.Oasis.ProjectManager',
     # Add django-allauth required apps
@@ -64,7 +64,6 @@ MIDDLEWARE = [
     'apps.Auth.middleware.CORSErrorMiddleware',  # Add our custom CORS error middleware
     'apps.Auth.middleware.APIRequestLoggingMiddleware',  # Add our API request logging middleware
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this line for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -164,8 +163,6 @@ os.makedirs(str(STATIC_ROOT), exist_ok=True)
 for static_dir in STATICFILES_DIRS:
     os.makedirs(str(static_dir), exist_ok=True)
 
-# Use whitenoise for static file serving
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

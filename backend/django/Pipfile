@@ -17,7 +17,6 @@ psutil = "*"
 python-dotenv = "*"
 requests = "*"
 stripe = "*"
-whitenoise = "*"
 dj-database-url = "*"
 psycopg2-binary = "*"
 
