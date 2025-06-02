@@ -69,8 +69,6 @@ RUN chmod +x paracord_runner.sh
 # Clean up build dependencies to reduce image size
 RUN apt-get purge -y gcc && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip freeze
-
 # Expose port 8000
 EXPOSE 8000
 
