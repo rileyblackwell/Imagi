@@ -122,8 +122,5 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 # Expose HTTP port
 EXPOSE 80
 
-# Make sure Nginx listens on both IPv4 and IPv6 (Railway uses IPv6 for internal networking)
-RUN echo 'listen [::]:80;' >> /etc/nginx/templates/default.conf.template
-
 # Start Nginx (templates processed automatically)
 CMD ["nginx", "-g", "daemon off;"]
