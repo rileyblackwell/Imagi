@@ -223,15 +223,15 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Set to False when using specific origins with credentials
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
+
+# Define allowed origins - both public and internal Railway domains
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5174',
+    'http://127.0.0.1:5174', 
+    'https://imagi.up.railway.app',
+    'http://frontend.railway.internal'
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -244,9 +244,8 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-api-client',
-    'x-accept-override',
-    'x-force-content-type',
+    'cache-control',
+    'pragma',
 ]
 
 # Add CORS_EXPOSE_HEADERS to allow clients to access these headers
@@ -255,6 +254,19 @@ CORS_EXPOSE_HEADERS = [
     'access-control-allow-credentials',
     'cache-control',
     'connection',
+]
+
+# Enable credentials (cookies, authorization headers)
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow all standard HTTP methods
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
 
 # Add additional CORS configuration
@@ -269,18 +281,26 @@ CSRF_TRUSTED_ORIGINS = [
     'https://imagi.up.railway.app',
 ]
 
-# Cookie settings
+# Cookie settings - configured for cross-domain requests via Railway architecture
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Use 'None' for cross-domain cookies when using HTTPS
+# This allows cookies to be sent in cross-origin requests when the frontend and backend are on different domains
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True  # Required when SameSite=None
 
 SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-domain session cookies
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
+
+# Railway private networking - IPv6 configuration
+# Note: Ensure Gunicorn is configured to bind to '::' instead of '0.0.0.0'
+# Example: gunicorn --bind=:: --workers=4 Imagi.wsgi
 
 # Security settings
 SECURE_SSL_REDIRECT = True
@@ -293,7 +313,8 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Only allow specific hosts
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app']
+# Allow the backend.railway.internal hostname for internal Railway communication
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', 'backend.railway.internal']
 
 # Development-specific settings
 if DEBUG:
