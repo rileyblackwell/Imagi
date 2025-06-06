@@ -82,6 +82,7 @@
 import { defineComponent, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
+import { useAuth } from '@/apps/auth'
 import BaseNavbar from '@/shared/components/organisms/navigation/BaseNavbar.vue'
 import GradientText from '@/apps/home/components/atoms/text/GradientText.vue'
 import IconButton from '@/apps/home/components/atoms/buttons/IconButton.vue'
@@ -100,12 +101,13 @@ export default defineComponent({
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
+    const { logout } = useAuth()
     const isProductsMenuOpen = ref(false)
 
     const handleLogout = async () => {
       try {
-        await authStore.clearAuth()
-        router.push('/auth/login')
+        await logout()
+        // No need to handle redirection - the auth store logout method does this
       } catch (error) {
         console.error('Logout failed:', error)
       }

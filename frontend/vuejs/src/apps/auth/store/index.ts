@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { AuthAPI } from '../services/api'
 import { useAuthStore as useGlobalAuthStore } from '@/shared/stores/auth'
 import type { LoginCredentials, AuthResponse, UserRegistrationData, User } from '../types/auth'
@@ -89,6 +90,7 @@ export const useAuthStore = defineStore('auth-module', () => {
    * Handles local loading state and delegates to global auth store
    */
   const logout = async (): Promise<void> => {
+    const router = useRouter();
     if (isLoggingOut.value) return
 
     try {
@@ -102,8 +104,8 @@ export const useAuthStore = defineStore('auth-module', () => {
       // Clear global auth state
       await globalAuthStore.clearAuth()
       
-      // Redirect to home page
-      window.location.href = '/'
+      // Redirect to home page using Vue Router for SPA navigation
+      await router.push('/')
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
