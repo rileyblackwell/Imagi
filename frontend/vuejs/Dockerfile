@@ -32,8 +32,6 @@ ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 # Log backend URL for debugging
 RUN echo "Backend URL will be set to: ${VITE_BACKEND_URL}"
 
-# Install IPv6 support packages
-RUN apk add --no-cache ipv6-localhost iproute2
 
 # Set up Nginx configuration template (env vars processed at runtime)
 RUN mkdir -p /etc/nginx/templates
