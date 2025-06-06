@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-import os
-from dotenv import load_dotenv
+from decouple import config
+from dotenv import load_dotenv  # Remove if not used elsewhere, but keep for now for .env compatibility
+
+# Use python-decouple's config for environment variables as per Imagi Oasis standards
 from datetime import timedelta
 import tempfile
 import stat
@@ -29,10 +31,10 @@ load_dotenv()
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
 # Application definition
 INSTALLED_APPS = [
@@ -106,7 +108,7 @@ WSGI_APPLICATION = 'Imagi.wsgi.application'
 
 # Database
 # Use PostgreSQL if DATABASE_URL is provided (production), otherwise SQLite (development)
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = config('DATABASE_URL', default=None)
 
 if DATABASE_URL:
     # Production database configuration (PostgreSQL via Railway)
@@ -346,8 +348,8 @@ if DEBUG:
     ]
 
 # Stripe settings
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
-STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default=None)
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLIC_KEY', default=None)
 
 # Ensure these keys are not None
 if not STRIPE_SECRET_KEY:
@@ -366,7 +368,7 @@ if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
 PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
 # Projects settings
-PROJECTS_ROOT = os.getenv('PROJECTS_ROOT', str(BASE_DIR.parent / 'oasis_projects'))
+PROJECTS_ROOT = config('PROJECTS_ROOT', default=str(BASE_DIR.parent / 'oasis_projects'))
 try:
     if not os.path.exists(PROJECTS_ROOT):
         os.makedirs(PROJECTS_ROOT, exist_ok=True)
@@ -404,8 +406,8 @@ CACHES = {
 }
 
 # Frontend configuration
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5174')
-FRONTEND_REDIRECT_ENABLED = os.getenv('FRONTEND_REDIRECT_ENABLED', 'true').lower() == 'true'
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5174')
+FRONTEND_REDIRECT_ENABLED = config('FRONTEND_REDIRECT_ENABLED', default='true').lower() == 'true'
 
 # Add site framework settings
 SITE_ID = 1
@@ -429,8 +431,8 @@ ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
 
 # API Keys for AI services
-OPENAI_KEY = os.getenv('OPENAI_KEY')
-ANTHROPIC_KEY = os.getenv('ANTHROPIC_KEY')
+OPENAI_KEY = config('OPENAI_KEY', default=None)
+ANTHROPIC_KEY = config('ANTHROPIC_KEY', default=None)
 
 # Ensure API keys are set for production
 if not DEBUG:
