@@ -106,8 +106,8 @@ export default defineComponent({
 
     const handleLogout = async () => {
       try {
-        await logout()
-        // No need to handle redirection - the auth store logout method does this
+        // Pass router to the logout function
+        await logout(router)
       } catch (error) {
         console.error('Logout failed:', error)
       }

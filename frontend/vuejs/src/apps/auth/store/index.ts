@@ -88,9 +88,9 @@ export const useAuthStore = defineStore('auth-module', () => {
   /**
    * Logout user
    * Handles local loading state and delegates to global auth store
+   * @param {import('vue-router').Router} [router] - Optional router instance for navigation after logout
    */
-  const logout = async (): Promise<void> => {
-    const router = useRouter();
+  const logout = async (router?: any): Promise<void> => {
     if (isLoggingOut.value) return
 
     try {
@@ -104,8 +104,10 @@ export const useAuthStore = defineStore('auth-module', () => {
       // Clear global auth state
       await globalAuthStore.clearAuth()
       
-      // Redirect to home page using Vue Router for SPA navigation
-      await router.push('/')
+      // Redirect to home page using Vue Router for SPA navigation if router is provided
+      if (router) {
+        await router.push('/')
+      }
     } catch (err) {
       console.error('Logout error:', err)
     } finally {
