@@ -1,49 +1,38 @@
-# Build stage
+# Build stage - Vue.js application
 FROM node:20-slim as build-stage
 
 WORKDIR /app
 
-# Copy dependency files first for better caching
+# Copy and install dependencies (better layer caching)
 COPY package*.json ./
-
-# Install all dependencies (including dev dependencies needed for build)
 RUN npm ci
 
-# Build-time arguments that will be set by Railway
+# Railway build arguments and environment variables
 ARG VITE_STRIPE_PUBLISHABLE_KEY
 ARG BACKEND_URL
 
-# Set build-time environment variables for Vite
-# VITE_* variables are automatically embedded in the built code
+# Set Vite env vars (embedded in built code)
 ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
-# BACKEND_URL is also needed at build time for any API base URL references in the code
 ENV BACKEND_URL=$BACKEND_URL
 
-# Copy application code
+# Copy source and build application
 COPY . .
-
-# Build the Vue.js application
 RUN npm run build
 
-# Production stage
+# Production stage - Nginx server
 FROM nginx:alpine as production-stage
 
-# Install envsubst for environment variable substitution
+# Install envsubst utility
 RUN apk add --no-cache bash gettext
 
-# Re-declare ARGs in production stage (Docker ARGs don't persist between stages)
+# Re-set backend URL for Nginx configuration
 ARG BACKEND_URL
-# Set as environment variable for runtime nginx configuration
 ENV BACKEND_URL=$BACKEND_URL
 
-# Create script to update nginx config at runtime with environment variables
-RUN echo '#!/bin/bash\n\
-echo "Using backend URL: ${BACKEND_URL}"\n\
-envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf\n\
-exec "$@"' > /docker-entrypoint.sh && \
-chmod +x /docker-entrypoint.sh
+# Log backend URL for debugging
+RUN echo "Backend URL will be set to: ${BACKEND_URL}"
 
-# Create nginx configuration template with environment variables
+# Set up Nginx configuration template (env vars processed at runtime)
 RUN mkdir -p /etc/nginx/templates
 COPY <<EOF /etc/nginx/templates/default.conf.template
 server {
@@ -52,7 +41,7 @@ server {
     root /usr/share/nginx/html;
     index index.html;
     
-    # Proxy all API requests to the backend
+    # API request proxy to backend
     location /api/ {
         proxy_pass \${BACKEND_URL};
         proxy_http_version 1.1;
@@ -68,13 +57,13 @@ server {
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
         
-        # Add CORS headers for development
+        # CORS headers
         add_header 'Access-Control-Allow-Origin' '*' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRFToken' always;
         add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
         
-        # Handle preflight requests
+        # OPTIONS request handling
         if (\$request_method = 'OPTIONS') {
             add_header 'Access-Control-Allow-Origin' '*';
             add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
@@ -86,7 +75,7 @@ server {
         }
     }
 
-    # Handle client-side routing (SPA)
+    # SPA client-side routing
     location / {
         try_files \$uri \$uri/ /index.html;
     }
@@ -110,12 +99,11 @@ server {
 }
 EOF
 
-# Copy the built files from build stage
+# Copy Vue.js build artifacts
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Expose port 80 (Railway will map this to the public port)
+# Expose HTTP port
 EXPOSE 80
 
-# Start nginx with our custom entrypoint
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"] 
+# Start Nginx (templates processed automatically)
+CMD ["nginx", "-g", "daemon off;"]
