@@ -304,20 +304,34 @@ export const AuthAPI = {
 
   async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
     try {
-      // Get CSRF token
+      console.log('🔄 AuthAPI: Starting registration request')
+      console.log('🌐 API Environment:', {
+        baseURL: axios.defaults.baseURL || 'Not set',
+        apiUrl: BASE_URL,
+        backendUrl: import.meta.env.BACKEND_URL || 'Not defined',
+        environment: import.meta.env.MODE
+      })
+      
+      // Ensure CSRF token is available
+      console.log('🔑 AuthAPI: Getting CSRF token')
       const csrfToken = await this.ensureCSRFToken()
+      console.log('🔑 AuthAPI: CSRF token obtained:', csrfToken ? 'Yes' : 'No')
       if (!csrfToken && !axios.defaults.baseURL?.toString().includes('.railway.internal')) {
-        // Only throw error for non-Railway environments
         console.error('Could not obtain CSRF token')
         throw new Error('Registration error: Could not obtain security token');
       }
       
-      // Validate required fields
-      if (!userData.username || !userData.email || !userData.password || !userData.password_confirmation) {
-        throw new Error('All registration fields are required')
+      // Validate username (basic check only, server will check uniqueness)
+      if (!userData.username || userData.username.length < 3) {
+        throw new Error('Username must be at least 3 characters long')
       }
       
-      // Validate that password and confirmation match
+      // Validate password requirements
+      if (!userData.password || userData.password.length < 8) {
+        throw new Error('Password must be at least 8 characters long')
+      }
+      
+      // Confirm password matches confirmation
       if (userData.password !== userData.password_confirmation) {
         throw new Error('Passwords do not match')
       }
@@ -332,6 +346,8 @@ export const AuthAPI = {
       if (!emailRegex.test(userData.email)) {
         throw new Error('Please enter a valid email address')
       }
+      
+      console.log('✅ AuthAPI: Client-side validation passed')
 
       // Prepare headers with proper handling for Railway environment
       const headers: Record<string, string> = {
@@ -344,23 +360,63 @@ export const AuthAPI = {
         headers['X-CSRFToken'] = csrfToken
       }
       
-      const response = await axios.post(`${BASE_URL}/register/`, userData, {
+      // Log API request details
+      console.log('📣 AuthAPI: Preparing request to', `${BASE_URL}/register/`, {
         headers,
         withCredentials: true,
-        // Increase timeout for Railway environments
-        timeout: axios.defaults.baseURL?.toString().includes('.railway.internal') 
-          ? 30000 // 30 seconds for Railway internal calls
-          : 15000 // 15 seconds for other environments
+        isRailway: axios.defaults.baseURL?.toString().includes('.railway.internal')
       })
+      
+      // Check if we're in Railway environment
+      const isRailway = import.meta.env.BACKEND_URL?.includes('.railway.internal');
+      if (isRailway) {
+        console.log('🚀 AuthAPI: Running in Railway environment', {
+          backendUrl: import.meta.env.BACKEND_URL,
+          timeout: '30 seconds'
+        })
+      } else {
+        console.log('💻 AuthAPI: Running in local/dev environment', {
+          baseUrl: BASE_URL,
+          timeout: '15 seconds'
+        })
+      }
+      
+      // Create timer for request duration measurement
+      const startTime = performance.now();
+      
+      try {
+        const response = await axios.post(`${BASE_URL}/register/`, userData, {
+          headers,
+          withCredentials: true,
+          // Increase timeout for Railway environments
+          timeout: axios.defaults.baseURL?.toString().includes('.railway.internal') 
+            ? 30000 // 30 seconds for Railway internal calls
+            : 15000 // 15 seconds for other environments
+        })
+        
+        const duration = Math.round(performance.now() - startTime);
+        console.log(`⏰ AuthAPI: Request completed in ${duration}ms`);
+        
+        // Log response status and structure (without sensitive data)
+        console.log('✅ AuthAPI: Registration API response successful', {
+          status: response.status,
+          hasData: !!response.data,
+          hasToken: !!(response.data?.token || response.data?.key),
+          hasUser: !!response.data?.user
+        })
 
       // Validate response format
       if (!response.data) {
+        console.error('❌ AuthAPI: Empty response data')
         throw new Error('Invalid server response: Empty response')
       }
       
       if (!response.data.token && !response.data.key) {
+        console.error('❌ AuthAPI: Missing token in response', response.data)
         throw new Error('Invalid server response: Missing token')
       }
+      
+      console.log('🔐 AuthAPI: Token received successfully')
 
       return { 
         data: {
@@ -368,10 +424,35 @@ export const AuthAPI = {
           user: response.data.user || {}
         }
       }
+    } catch (error) {
+      // Connection issues during the request
+      console.error('❌ AuthAPI: Error during API call', error)
+      throw error
+    }
     } catch (error: any) {
-      // Handle network errors
-      if (error.code === 'ECONNABORTED' || !error.response) {
-        throw new Error('Network Error')
+      // Handle network errors with detailed logging
+      if (error.code === 'ECONNABORTED') {
+        console.error('❌ AuthAPI: Request timeout error', {
+          url: `${BASE_URL}/register/`,
+          timeout: error.config?.timeout || 'unknown'
+        })
+        throw new Error('Network Error: Connection timed out')
+      } else if (!error.response) {
+        // Log full network error details
+        console.error('❌ AuthAPI: Network connection error', {
+          code: error.code || 'unknown',
+          message: error.message || 'No error message',
+          backendUrl: import.meta.env.BACKEND_URL || 'Not defined',
+          apiUrl: `${BASE_URL}/register/`, 
+          config: error.config ? {
+            baseURL: error.config.baseURL,
+            url: error.config.url,
+            method: error.config.method,
+            headers: error.config.headers,
+            timeout: error.config.timeout
+          } : 'No config available'
+        })
+        throw new Error('Network Error: Unable to connect to the server')
       }
       
       if (error.response?.status === 400) {

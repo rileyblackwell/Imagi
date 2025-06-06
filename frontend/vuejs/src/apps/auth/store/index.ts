@@ -61,27 +61,64 @@ export const useAuthStore = defineStore('auth-module', () => {
    */
   const register = async (userData: UserRegistrationData): Promise<AuthResponse> => {
     try {
+      console.log('🔄 Auth Store: Starting registration process')
       loading.value = true
       error.value = null
       lastAuthAction.value = 'register'
       
+      console.log('📡 Auth Store: Calling AuthAPI.register()')
+      // Log backend URL from environment if available
+      const backendUrl = import.meta.env.BACKEND_URL || 'Using default API URL configuration';
+      console.log('🌐 Current backend URL config:', backendUrl);
+      
       const response = await AuthAPI.register(userData)
+      console.log('✅ Auth Store: Received response from API', { 
+        success: true, 
+        responseExists: !!response,
+        hasData: !!response?.data,
+        hasToken: !!response?.data?.token,
+        hasUser: !!response?.data?.user
+      })
       
       // Handle successful registration using global auth store
       if (response?.data?.token) {
+        console.log('🔑 Auth Store: Token received, setting auth state')
         // Update global auth state
         globalAuthStore.setAuthState(response.data.user, response.data.token)
         return response.data
       }
       
+      console.error('❌ Auth Store: Invalid response', response)
       throw new Error('Invalid response from server')
     } catch (err: any) {
       const errorMessage = err.message || 'Registration failed'
       error.value = errorMessage
-      console.error('Registration error:', errorMessage)
+      console.error('❌ Auth Store: Registration error:', errorMessage)
+      
+      // Enhanced error logging
+      if (err.response) {
+        console.error('❌ Auth Store: API response error:', {
+          status: err.response.status,
+          statusText: err.response.statusText,
+          data: err.response.data,
+          headers: err.response.headers
+        })
+      } else if (err.request) {
+        console.error('❌ Auth Store: No response received (network issue):', {
+          request: err.request,
+          baseURL: err.config?.baseURL,
+          url: err.config?.url,
+          method: err.config?.method,
+          timeout: err.config?.timeout
+        })
+      } else {
+        console.error('❌ Auth Store: Error creating request:', err)
+      }
+      
       throw err
     } finally {
       loading.value = false
+      console.log('🔄 Auth Store: Registration process complete')
     }
   }
 
