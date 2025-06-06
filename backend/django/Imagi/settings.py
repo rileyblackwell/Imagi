@@ -306,10 +306,6 @@ if DEBUG:
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
     
-    # Make sure CORS is configured properly for development
-    CORS_ALLOW_ALL_ORIGINS = False  # Keep this False to use the explicit list
-    CORS_ALLOW_CREDENTIALS = True
-    
     # Expose Access-Control-Allow-Origin header in the response
     CORS_EXPOSE_HEADERS = [
         'Access-Control-Allow-Origin',
@@ -323,38 +319,10 @@ if DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
     SECURE_HSTS_PRELOAD = False
     
-    # Allow all hosts in development
-    ALLOWED_HOSTS = ['*']
-    
-    # Disable CSRF for development API endpoints
-    CSRF_TRUSTED_ORIGINS = [
-        'http://localhost:5174',
-        'http://127.0.0.1:5174',
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
-    ]
-    
     INTERNAL_IPS = [
         '127.0.0.1',
         'localhost',
     ]
-
-# Stripe settings
-STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default=None)
-STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLIC_KEY', default=None)
-
-# Ensure these keys are not None
-if not STRIPE_SECRET_KEY:
-    raise ValueError("STRIPE_SECRET_KEY is not set in the environment variables.")
-if not STRIPE_PUBLISHABLE_KEY:
-    raise ValueError("STRIPE_PUBLIC_KEY is not set in the environment variables.")
-
-# Validate Stripe key formats
-if not STRIPE_SECRET_KEY.startswith(('sk_test_', 'sk_live_')):
-    raise ValueError("STRIPE_SECRET_KEY appears to be in an invalid format")
-if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
-    raise ValueError("STRIPE_PUBLIC_KEY appears to be in an invalid format")
-
 
 # Password Reset settings
 PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
@@ -399,7 +367,7 @@ CACHES = {
 
 # Frontend configuration
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5174')
-FRONTEND_REDIRECT_ENABLED = config('FRONTEND_REDIRECT_ENABLED', default='true').lower() == 'true'
+FRONTEND_REDIRECT_ENABLED = config('FRONTEND_REDIRECT_ENABLED', default='true', cast=bool)
 
 # Add site framework settings
 SITE_ID = 1
@@ -419,17 +387,6 @@ ACCOUNT_ADAPTER = 'apps.Auth.adapters.CustomAccountAdapter'
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
 ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
 ACCOUNT_EMAIL_CONFIRMATION_HMAC = True
-
-# API Keys for AI services
-OPENAI_KEY = config('OPENAI_KEY', default=None)
-ANTHROPIC_KEY = config('ANTHROPIC_KEY', default=None)
-
-# Ensure API keys are set for production
-if not DEBUG:
-    if not OPENAI_KEY:
-        raise ValueError("OPENAI_KEY is not set in the environment variables.")
-    if not ANTHROPIC_KEY:
-        raise ValueError("ANTHROPIC_KEY is not set in the environment variables.")
 
 # Logging configuration to filter CORSErrorMiddleware logs
 LOGGING = {
@@ -484,3 +441,30 @@ LOGGING = {
         },
     },
 }
+
+# API Keys for AI services
+OPENAI_KEY = config('OPENAI_KEY', default=None)
+ANTHROPIC_KEY = config('ANTHROPIC_KEY', default=None)
+
+# Ensure API keys are set for production
+if not DEBUG:
+    if not OPENAI_KEY:
+        raise ValueError("OPENAI_KEY is not set in the environment variables.")
+    if not ANTHROPIC_KEY:
+        raise ValueError("ANTHROPIC_KEY is not set in the environment variables.")
+
+# Stripe API keys
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default=None)
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLIC_KEY', default=None)
+
+# Ensure these keys are not None
+if not STRIPE_SECRET_KEY:
+    raise ValueError("STRIPE_SECRET_KEY is not set in the environment variables.")
+if not STRIPE_PUBLISHABLE_KEY:
+    raise ValueError("STRIPE_PUBLIC_KEY is not set in the environment variables.")
+
+# Validate Stripe key formats
+if not STRIPE_SECRET_KEY.startswith(('sk_test_', 'sk_live_')):
+    raise ValueError("STRIPE_SECRET_KEY appears to be in an invalid format")
+if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
+    raise ValueError("STRIPE_PUBLIC_KEY appears to be in an invalid format")
