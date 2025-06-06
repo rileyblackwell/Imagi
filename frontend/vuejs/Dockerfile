@@ -32,7 +32,6 @@ ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 # Log backend URL for debugging
 RUN echo "Backend URL will be set to: ${VITE_BACKEND_URL}"
 
-
 # Set up Nginx configuration template (env vars processed at runtime)
 RUN mkdir -p /etc/nginx/templates
 COPY <<EOF /etc/nginx/templates/default.conf.template
@@ -44,26 +43,21 @@ server {
     
     # API request proxy to backend
     location /api/ {
-        # For Railway, use the documented internal networking approach
-        # The VITE_BACKEND_URL should be in format: http://backend.railway.internal:8000
-        set \$backend_url \${VITE_BACKEND_URL};
-        if (\$backend_url !~ '.*/$') {
-            set \$backend_url \${VITE_BACKEND_URL}/;
-        }
+        # Use a hardcoded backend service name for Railway internal networking
+        # This ensures proper routing regardless of VITE_BACKEND_URL
+        # The service name "backend" should match your Railway service name
+        proxy_pass http://backend:8000;
         
-        # Extract the hostname from BACKEND_URL for the Host header
-        # This regex extracts the hostname portion (e.g., backend.railway.internal)
-        if (\$backend_url ~ "http://([^:/]+)(:[0-9]+)?/") {
-            set \$backend_host \$1;
-        }
+        # For debugging
+        access_log /var/log/nginx/api_access.log;
+        error_log /var/log/nginx/api_error.log;
         
-        # Send all /api/ requests to the backend service
-        proxy_pass \$backend_url;
+        # Standard proxy headers
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        # Use the extracted backend hostname as the Host header
-        proxy_set_header Host \$backend_host;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;

@@ -9,7 +9,36 @@ import type {
   UserRegistrationData 
 } from '@/apps/auth/types/auth'
 
-const BASE_URL = '/api/v1/auth'
+// API Configuration
+const API_PATH = '/api/v1/auth'
+let BASE_URL = ''
+
+// Determine base URL based on environment
+const configureApiUrl = () => {
+  const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
+  
+  if (isProd) {
+    // In production, always use relative URLs for browser requests
+    // This ensures requests go through the Nginx proxy
+    console.log('🔄 API: Configuring for production - using relative URLs')
+    BASE_URL = API_PATH
+  } else {
+    // In development, we might need the full backend URL for local development
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
+    if (backendUrl) {
+      console.log(`🔄 API: Using backend URL from env: ${backendUrl}`)
+      BASE_URL = `${backendUrl}${API_PATH}`
+    } else {
+      console.log('🔄 API: Using relative URL (no backend URL configured)')
+      BASE_URL = API_PATH
+    }
+  }
+  
+  console.log(`🔄 API: Configured BASE_URL: ${BASE_URL}`)
+}
+
+// Initialize the API URL configuration
+configureApiUrl()
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string): string | null {
@@ -165,9 +194,9 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async getCSRFToken() {
     // Check if we're in production Railway environment
-    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
-    const isRailway = backendUrl.includes('.railway.internal')
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
+    const environment = isProd ? 'production' : 'development'
+    const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal') || false
     
     // In production Railway environment, we can bypass CSRF for internal API calls
     if (isProd && isRailway) {
@@ -194,9 +223,9 @@ export const AuthAPI = {
 
   async ensureCSRFToken(): Promise<string | null> {
     // Check if we're in a production Railway environment
-    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
-    const isRailway = backendUrl.includes('.railway.internal')
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
+    const environment = isProd ? 'production' : 'development'
+    const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal') || false
     
     // In production Railway environment, bypass CSRF token requirement
     if (isProd && isRailway) {
@@ -327,16 +356,19 @@ export const AuthAPI = {
 
   async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
     // Check if we're in production Railway environment
-    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
-    const isRailway = backendUrl.includes('.railway.internal')
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
+    const environment = isProd ? 'production' : 'development'
+    const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal') || false
     try {
       console.log('🔄 AuthAPI: Starting registration request')
       console.log('🌐 API Environment:', {
         axiosBaseUrl: axios.defaults.baseURL || 'Not set', // Where axios sends requests
-        apiPath: BASE_URL, // API path appended to base URL
+        apiBaseUrl: BASE_URL, // Full API base URL used for requests
+        apiPath: API_PATH, // API path component
         viteBackendEnv: import.meta.env.VITE_BACKEND_URL || 'Not defined', // Vite env variable
-        environment: import.meta.env.MODE
+        environment: import.meta.env.MODE,
+        isProd,
+        isRailway
       })
       
       // Ensure CSRF token is available
@@ -394,8 +426,7 @@ export const AuthAPI = {
         isRailway: axios.defaults.baseURL?.toString().includes('.railway.internal')
       })
       
-      // Check if we're in Railway environment
-      const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal');
+      // We've already checked isProd and isRailway earlier
       if (isRailway) {
         console.log('🚀 AuthAPI: Running in Railway environment', {
           backendUrl: import.meta.env.VITE_BACKEND_URL,
@@ -411,8 +442,12 @@ export const AuthAPI = {
       // Create timer for request duration measurement
       const startTime = performance.now();
       
+      // In production, log the actual URL being requested
+      const fullRequestUrl = `${BASE_URL}/register/`;
+      console.log('📤 AuthAPI: Sending request to:', fullRequestUrl);
+      
       try {
-        const response = await axios.post(`${BASE_URL}/register/`, userData, {
+        const response = await axios.post(fullRequestUrl, userData, {
           headers,
           withCredentials: true,
           // Increase timeout for Railway environments
