@@ -130,23 +130,37 @@ app.component('font-awesome-icon', FontAwesomeIcon)
 // Performance monitoring
 if (process.env.NODE_ENV === 'production') {
   // Add performance marks
-  performance.mark('app-start')
-  
+  performance.mark('app-start');
+
+  // Always set route-start at app startup (for initial navigation)
+  if (!performance.getEntriesByName('route-start').length) {
+    performance.mark('route-start');
+  }
+
+  // Utility to check if a mark exists
+  function hasMark(name: string): boolean {
+    return performance.getEntriesByName(name, 'mark').length > 0;
+  }
+
   router.beforeEach(() => {
-    performance.mark('route-start')
-  })
-  
+    performance.mark('route-start');
+  });
+
   router.afterEach(() => {
-    performance.mark('route-end')
-    performance.measure('route-change', 'route-start', 'route-end')
-  })
-  
+    performance.mark('route-end');
+    if (hasMark('route-start')) {
+      performance.measure('route-change', 'route-start', 'route-end');
+    }
+  });
+
   app.mixin({
     mounted() {
-      performance.mark('component-mounted')
-      performance.measure('component-render', 'route-start', 'component-mounted')
+      performance.mark('component-mounted');
+      if (hasMark('route-start')) {
+        performance.measure('component-render', 'route-start', 'component-mounted');
+      }
     }
-  })
+  });
 }
 
 // Cache control
