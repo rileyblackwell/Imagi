@@ -17,10 +17,13 @@ RUN python -m pip install --upgrade pip
 # Install pipenv globally
 RUN pip install --no-cache-dir pipenv
 
-# Set environment variables
+# Set Python environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PORT=8000
+
+# Define port as ARG with default value
+ARG PORT=8000
+ENV PORT=$PORT
 
 # Create code directory and set as workdir
 RUN mkdir -p /code
@@ -38,18 +41,31 @@ COPY . .
 # Create static/media/projects directories
 RUN mkdir -p /code/staticfiles /code/media /code/projects
 
-# Django/production env vars (Railway will override as needed)
-ENV DJANGO_SETTINGS_MODULE=Imagi.settings
-ENV SECRET_KEY=""
-ENV DEBUG=0
-ENV OPENAI_KEY=""
-ENV ANTHROPIC_KEY=""
-ENV STRIPE_SECRET_KEY=""
-ENV STRIPE_PUBLIC_KEY=""
-ENV FRONTEND_URL=""
-ENV FRONTEND_REDIRECT_ENABLED="true"
-ENV PROJECTS_ROOT="/code/projects"
-ENV DATABASE_URL=""
+# Build-time arguments that will be set by Railway
+ARG DJANGO_SETTINGS_MODULE=Imagi.settings
+ARG SECRET_KEY
+ARG DEBUG=0
+ARG OPENAI_KEY
+ARG ANTHROPIC_KEY
+ARG STRIPE_SECRET_KEY
+ARG STRIPE_PUBLIC_KEY
+ARG FRONTEND_URL
+ARG FRONTEND_REDIRECT_ENABLED=true
+ARG PROJECTS_ROOT=/code/projects
+ARG DATABASE_URL
+
+# Set runtime environment variables from build args
+ENV DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE
+ENV SECRET_KEY=$SECRET_KEY
+ENV DEBUG=$DEBUG
+ENV OPENAI_KEY=$OPENAI_KEY
+ENV ANTHROPIC_KEY=$ANTHROPIC_KEY
+ENV STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
+ENV STRIPE_PUBLIC_KEY=$STRIPE_PUBLIC_KEY
+ENV FRONTEND_URL=$FRONTEND_URL
+ENV FRONTEND_REDIRECT_ENABLED=$FRONTEND_REDIRECT_ENABLED
+ENV PROJECTS_ROOT=$PROJECTS_ROOT
+ENV DATABASE_URL=$DATABASE_URL
 
 # Create runtime script to run migrations and start gunicorn on port 8000
 RUN printf "#!/bin/bash\n" > ./paracord_runner.sh && \
