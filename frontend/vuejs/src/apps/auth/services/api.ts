@@ -193,18 +193,17 @@ let logoutPromise: Promise<any> | null = null
 
 export const AuthAPI = {
   async getCSRFToken() {
-    // Check if we're in production Railway environment
+    // Check if we're in production environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
     const environment = isProd ? 'production' : 'development'
-    const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal') || false
     
-    // In production Railway environment, we can bypass CSRF for internal API calls
-    if (isProd && isRailway) {
-      console.log('🔐 Production Railway environment detected - CSRF checks bypassed')
-      return { data: { csrf: 'railway-internal' } }
+    // In production environment, we can bypass CSRF for API calls that go through Nginx
+    if (isProd) {
+      console.log('🔐 Production environment detected - CSRF checks handled by Nginx proxy')
+      return { data: { csrf: 'production-bypass' } }
     }
     
-    // For development or other environments, get a real CSRF token
+    // For development environments, get a real CSRF token
     try {
       // Use a shorter timeout for CSRF token requests
       return await axios.get(`${BASE_URL}/csrf/`, {
@@ -213,28 +212,27 @@ export const AuthAPI = {
       })
     } catch (error) {
       console.error('🔑 Failed to get CSRF token:', error)
-      // If in Railway prod but failed for some reason, still allow requests to proceed
-      if (isProd && isRailway) {
-        return { data: { csrf: 'railway-internal' } }
+      // If in production but failed for some reason, still allow requests to proceed
+      if (isProd) {
+        return { data: { csrf: 'production-bypass' } }
       }
       throw error
     }
   },
 
   async ensureCSRFToken(): Promise<string | null> {
-    // Check if we're in a production Railway environment
+    // Check if we're in a production environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
     const environment = isProd ? 'production' : 'development'
-    const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal') || false
     
-    // In production Railway environment, bypass CSRF token requirement
-    if (isProd && isRailway) {
-      console.log('🔐 Production Railway environment - bypassing CSRF requirement')
-      return 'railway-internal'
+    // In production environment, bypass CSRF token requirement - handled by Nginx
+    if (isProd) {
+      console.log('🔐 Production environment - bypassing CSRF requirement')
+      return 'production-bypass'
     }
     
     try {
-      // For other environments, check if CSRF token already exists in cookies
+      // For development environments, check if CSRF token already exists in cookies
       let csrfToken = getCookie('csrftoken')
       
       // If no token, fetch a new one
@@ -242,9 +240,9 @@ export const AuthAPI = {
         console.log('🔄 No CSRF token found, fetching a new one')
         const response = await this.getCSRFToken()
         
-        // Check if we got a token from the response
-        if (response?.data?.csrf === 'railway-internal') {
-          return 'railway-internal'
+        // Check if we got a bypass token from the response
+        if (response?.data?.csrf === 'production-bypass') {
+          return 'production-bypass'
         }
         
         csrfToken = getCookie('csrftoken')
@@ -258,10 +256,10 @@ export const AuthAPI = {
     } catch (error) {
       console.error('❌ Error fetching CSRF token:', error)
       
-      // If in Railway but failed for some reason, still allow requests to proceed
-      if (isProd && isRailway) {
-        console.log('🔄 Error occurred but running in Railway environment - bypassing CSRF')
-        return 'railway-internal'
+      // If in production but failed for some reason, still allow requests to proceed
+      if (isProd) {
+        console.log('🔄 Error occurred but running in production environment - bypassing CSRF')
+        return 'production-bypass'
       }
       
       return null
@@ -367,15 +365,14 @@ export const AuthAPI = {
         apiPath: API_PATH, // API path component
         viteBackendEnv: import.meta.env.VITE_BACKEND_URL || 'Not defined', // Vite env variable
         environment: import.meta.env.MODE,
-        isProd,
-        isRailway
+        isProd
       })
       
       // Ensure CSRF token is available
       console.log('🔑 AuthAPI: Getting CSRF token')
       const csrfToken = await this.ensureCSRFToken()
       console.log('🔑 AuthAPI: CSRF token obtained:', csrfToken ? 'Yes' : 'No')
-      if (!csrfToken && !axios.defaults.baseURL?.toString().includes('.railway.internal')) {
+      if (!csrfToken && !isProd) {
         console.error('Could not obtain CSRF token')
         throw new Error('Registration error: Could not obtain security token');
       }
@@ -414,8 +411,8 @@ export const AuthAPI = {
         'Content-Type': 'application/json'
       }
       
-      // Only add CSRF token if we have one and it's not the railway-internal placeholder
-      if (csrfToken && csrfToken !== 'railway-internal') {
+      // Only add CSRF token if we have one and it's not the production-bypass placeholder
+      if (csrfToken && csrfToken !== 'production-bypass') {
         headers['X-CSRFToken'] = csrfToken
       }
       
@@ -423,13 +420,12 @@ export const AuthAPI = {
       console.log('📣 AuthAPI: Preparing request to', `${BASE_URL}/register/`, {
         headers,
         withCredentials: true,
-        isRailway: axios.defaults.baseURL?.toString().includes('.railway.internal')
+        isProd
       })
       
-      // We've already checked isProd and isRailway earlier
-      if (isRailway) {
-        console.log('🚀 AuthAPI: Running in Railway environment', {
-          backendUrl: import.meta.env.VITE_BACKEND_URL,
+      // We've already checked isProd earlier
+      if (isProd) {
+        console.log('🚀 AuthAPI: Running in production environment', {
           timeout: '30 seconds'
         })
       } else {
@@ -450,10 +446,10 @@ export const AuthAPI = {
         const response = await axios.post(fullRequestUrl, userData, {
           headers,
           withCredentials: true,
-          // Increase timeout for Railway environments
-          timeout: axios.defaults.baseURL?.toString().includes('.railway.internal') 
-            ? 30000 // 30 seconds for Railway internal calls
-            : 15000 // 15 seconds for other environments
+          // Increase timeout for production environments
+          timeout: isProd 
+            ? 30000 // 30 seconds for production
+            : 15000 // 15 seconds for development environments
         })
         
         const duration = Math.round(performance.now() - startTime);
