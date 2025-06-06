@@ -12,10 +12,12 @@ RUN npm ci
 # Environment variables for build time (will be set by Railway)
 ARG VITE_API_URL
 ARG VITE_STRIPE_PUBLISHABLE_KEY
+ARG BACKEND_URL
 
 # Set environment variables for Vite build
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
+
 
 # Copy application code
 COPY . .

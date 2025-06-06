@@ -50,11 +50,6 @@ ENV FRONTEND_URL=""
 ENV FRONTEND_REDIRECT_ENABLED="true"
 ENV PROJECTS_ROOT="/code/projects"
 ENV DATABASE_URL=""
-ENV PGDATABASE=""
-ENV PGHOST=""
-ENV PGPASSWORD=""
-ENV PGPORT=""
-ENV PGUSER=""
 
 # Create runtime script to run migrations and start gunicorn on port 8000
 RUN printf "#!/bin/bash\n" > ./paracord_runner.sh && \
