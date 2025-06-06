@@ -190,7 +190,7 @@ const handleSubmit = async (values: RegisterFormValues) => {
 
   // Log environment and submission attempt
   console.log('🔄 Register attempt - Environment:', import.meta.env.MODE, 'BASE_URL:', import.meta.env.BASE_URL)
-  console.log('🔄 BACKEND_URL:', import.meta.env.BACKEND_URL || 'Not defined')
+  console.log('🔄 BACKEND_URL:', import.meta.env.VITE_BACKEND_URL || 'Not defined')
 
   try {
     // Set form data from values if empty

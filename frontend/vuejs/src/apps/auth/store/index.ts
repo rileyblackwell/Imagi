@@ -68,7 +68,7 @@ export const useAuthStore = defineStore('auth-module', () => {
       
       console.log('📡 Auth Store: Calling AuthAPI.register()')
       // Log backend URL from environment if available
-      const backendUrl = import.meta.env.BACKEND_URL || 'Using default API URL configuration';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'Using default API URL configuration';
       console.log('🌐 Current backend URL config:', backendUrl);
       
       const response = await AuthAPI.register(userData)

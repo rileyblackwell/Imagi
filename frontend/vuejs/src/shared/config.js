@@ -1,7 +1,7 @@
 const config = {
   // API Configuration
   apiUrl: (() => {
-    const url = import.meta.env.BACKEND_URL || 'http://localhost:8000'
+    const url = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
     // Railway internal URLs require the port to be specified
     return url
   })(),

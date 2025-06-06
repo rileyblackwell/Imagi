@@ -306,9 +306,9 @@ export const AuthAPI = {
     try {
       console.log('🔄 AuthAPI: Starting registration request')
       console.log('🌐 API Environment:', {
-        baseURL: axios.defaults.baseURL || 'Not set',
-        apiUrl: BASE_URL,
-        backendUrl: import.meta.env.BACKEND_URL || 'Not defined',
+        axiosBaseUrl: axios.defaults.baseURL || 'Not set', // Where axios sends requests
+        apiPath: BASE_URL, // API path appended to base URL
+        viteBackendEnv: import.meta.env.VITE_BACKEND_URL || 'Not defined', // Vite env variable
         environment: import.meta.env.MODE
       })
       
@@ -322,8 +322,8 @@ export const AuthAPI = {
       }
       
       // Validate username (basic check only, server will check uniqueness)
-      if (!userData.username || userData.username.length < 3) {
-        throw new Error('Username must be at least 3 characters long')
+      if (!userData.username || userData.username.trim() === '') {
+        throw new Error('Username is required')
       }
       
       // Validate password requirements
@@ -368,10 +368,10 @@ export const AuthAPI = {
       })
       
       // Check if we're in Railway environment
-      const isRailway = import.meta.env.BACKEND_URL?.includes('.railway.internal');
+      const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal');
       if (isRailway) {
         console.log('🚀 AuthAPI: Running in Railway environment', {
-          backendUrl: import.meta.env.BACKEND_URL,
+          backendUrl: import.meta.env.VITE_BACKEND_URL,
           timeout: '30 seconds'
         })
       } else {
@@ -442,7 +442,7 @@ export const AuthAPI = {
         console.error('❌ AuthAPI: Network connection error', {
           code: error.code || 'unknown',
           message: error.message || 'No error message',
-          backendUrl: import.meta.env.BACKEND_URL || 'Not defined',
+          backendUrl: import.meta.env.VITE_BACKEND_URL || 'Not defined',
           apiUrl: `${BASE_URL}/register/`, 
           config: error.config ? {
             baseURL: error.config.baseURL,
