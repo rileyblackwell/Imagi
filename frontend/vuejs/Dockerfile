@@ -9,11 +9,11 @@ RUN npm ci
 
 # Railway build arguments and environment variables
 ARG VITE_STRIPE_PUBLISHABLE_KEY
-ARG BACKEND_URL
+ARG VITE_BACKEND_URL
 
 # Set Vite env vars (embedded in built code)
 ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
-ENV BACKEND_URL=$BACKEND_URL
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
 # Copy source and build application
 COPY . .
@@ -26,11 +26,11 @@ FROM nginx:alpine as production-stage
 RUN apk add --no-cache bash gettext
 
 # Re-set backend URL for Nginx configuration
-ARG BACKEND_URL
-ENV BACKEND_URL=$BACKEND_URL
+ARG VITE_BACKEND_URL
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
 # Log backend URL for debugging
-RUN echo "Backend URL will be set to: ${BACKEND_URL}"
+RUN echo "Backend URL will be set to: ${VITE_BACKEND_URL}"
 
 # Set up Nginx configuration template (env vars processed at runtime)
 RUN mkdir -p /etc/nginx/templates
@@ -43,7 +43,7 @@ server {
     
     # API request proxy to backend
     location /api/ {
-        proxy_pass \${BACKEND_URL};
+        proxy_pass \${VITE_BACKEND_URL};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
