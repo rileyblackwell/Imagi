@@ -46,7 +46,7 @@ server {
         # Use the backend service name for Railway internal networking with IPv6 support
         # The service name "backend" should match your Railway service name
         resolver 127.0.0.11 ipv6=off;
-        set $backend_server backend.railway.internal:8000;
+        set $$backend_server backend.railway.internal:8000;
         proxy_pass http://$backend_server;
         
         # For debugging
