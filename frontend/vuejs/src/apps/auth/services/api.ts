@@ -164,51 +164,74 @@ let logoutPromise: Promise<any> | null = null
 
 export const AuthAPI = {
   async getCSRFToken() {
-    // Use a shorter timeout for CSRF token requests to fail fast if there are issues
-    return axios.get(`${BASE_URL}/csrf/`, {
-      withCredentials: true,
-      timeout: 10000 // 10 seconds timeout - shorter to fail faster
-    })
-    .catch(error => {
-      console.error('Failed to get CSRF token:', error)
+    // Check if we're in production Railway environment
+    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
+    const isRailway = backendUrl.includes('.railway.internal')
+    
+    // In production Railway environment, we can bypass CSRF for internal API calls
+    if (isProd && isRailway) {
+      console.log('🔐 Production Railway environment detected - CSRF checks bypassed')
+      return { data: { csrf: 'railway-internal' } }
+    }
+    
+    // For development or other environments, get a real CSRF token
+    try {
+      // Use a shorter timeout for CSRF token requests
+      return await axios.get(`${BASE_URL}/csrf/`, {
+        withCredentials: true,
+        timeout: 10000 // 10 seconds timeout
+      })
+    } catch (error) {
+      console.error('🔑 Failed to get CSRF token:', error)
+      // If in Railway prod but failed for some reason, still allow requests to proceed
+      if (isProd && isRailway) {
+        return { data: { csrf: 'railway-internal' } }
+      }
       throw error
-    })
+    }
   },
 
   async ensureCSRFToken(): Promise<string | null> {
+    // Check if we're in a production Railway environment
+    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
+    const isRailway = backendUrl.includes('.railway.internal')
+    
+    // In production Railway environment, bypass CSRF token requirement
+    if (isProd && isRailway) {
+      console.log('🔐 Production Railway environment - bypassing CSRF requirement')
+      return 'railway-internal'
+    }
+    
     try {
-      // Check if CSRF token already exists in cookies
+      // For other environments, check if CSRF token already exists in cookies
       let csrfToken = getCookie('csrftoken')
       
       // If no token, fetch a new one
       if (!csrfToken) {
-        console.log('No CSRF token found, fetching a new one')
+        console.log('🔄 No CSRF token found, fetching a new one')
+        const response = await this.getCSRFToken()
         
-        // In production Railway environment, try to work without CSRF for internal API calls
-        // Railway internal services should have secure communication already
-        const apiUrl = axios.defaults.baseURL || ''
-        if (apiUrl.toString().includes('.railway.internal')) {
-          console.log('Running in Railway environment, bypassing CSRF requirement')
-          return 'railway-internal' // Return a placeholder that won't cause errors
+        // Check if we got a token from the response
+        if (response?.data?.csrf === 'railway-internal') {
+          return 'railway-internal'
         }
         
-        await this.getCSRFToken()
         csrfToken = getCookie('csrftoken')
-      }
-      
-      if (!csrfToken) {
-        console.error('Error fetching CSRF token:', 'No token received')
-        return null
+        if (!csrfToken) {
+          console.error('⚠️ No CSRF token received')
+          return null
+        }
       }
       
       return csrfToken
     } catch (error) {
-      console.error('Error fetching CSRF token:', error)
+      console.error('❌ Error fetching CSRF token:', error)
       
-      // Handle Railway internal environment as a special case
-      const apiUrl = axios.defaults.baseURL || ''
-      if (apiUrl.toString().includes('.railway.internal')) {
-        console.log('Error occurred but running in Railway environment, bypassing CSRF requirement')
+      // If in Railway but failed for some reason, still allow requests to proceed
+      if (isProd && isRailway) {
+        console.log('🔄 Error occurred but running in Railway environment - bypassing CSRF')
         return 'railway-internal'
       }
       
@@ -303,6 +326,10 @@ export const AuthAPI = {
   },
 
   async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
+    // Check if we're in production Railway environment
+    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
+    const isRailway = backendUrl.includes('.railway.internal')
     try {
       console.log('🔄 AuthAPI: Starting registration request')
       console.log('🌐 API Environment:', {

@@ -32,6 +32,9 @@ ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 # Log backend URL for debugging
 RUN echo "Backend URL will be set to: ${VITE_BACKEND_URL}"
 
+# Install IPv6 support packages
+RUN apk add --no-cache ipv6-localhost iproute2
+
 # Set up Nginx configuration template (env vars processed at runtime)
 RUN mkdir -p /etc/nginx/templates
 COPY <<EOF /etc/nginx/templates/default.conf.template
@@ -43,14 +46,30 @@ server {
     
     # API request proxy to backend
     location /api/ {
-        proxy_pass \${VITE_BACKEND_URL};
+        # For Railway, use the documented internal networking approach
+        # The VITE_BACKEND_URL should be in format: http://backend.railway.internal:8000
+        set \$backend_url \${VITE_BACKEND_URL};
+        if (\$backend_url !~ '.*/$') {
+            set \$backend_url \${VITE_BACKEND_URL}/;
+        }
+        
+        # Extract the hostname from BACKEND_URL for the Host header
+        # This regex extracts the hostname portion (e.g., backend.railway.internal)
+        if (\$backend_url ~ "http://([^:/]+)(:[0-9]+)?/") {
+            set \$backend_host \$1;
+        }
+        
+        # Send all /api/ requests to the backend service
+        proxy_pass \$backend_url;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
+        # Use the extracted backend hostname as the Host header
+        proxy_set_header Host \$backend_host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$host;
         proxy_cache_bypass \$http_upgrade;
         proxy_buffering off;
         proxy_connect_timeout 60s;
@@ -104,6 +123,9 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Expose HTTP port
 EXPOSE 80
+
+# Make sure Nginx listens on both IPv4 and IPv6 (Railway uses IPv6 for internal networking)
+RUN echo 'listen [::]:80;' >> /etc/nginx/templates/default.conf.template
 
 # Start Nginx (templates processed automatically)
 CMD ["nginx", "-g", "daemon off;"]
