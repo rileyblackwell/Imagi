@@ -43,14 +43,15 @@ server {
     
     # API request proxy to backend
     location /api/ {
-        # Use a hardcoded backend service name for Railway internal networking
-        # This ensures proper routing regardless of VITE_BACKEND_URL
+        # Use the backend service name for Railway internal networking with IPv6 support
         # The service name "backend" should match your Railway service name
-        proxy_pass http://backend:8000;
+        resolver 127.0.0.11 [::1]:53 valid=30s;
+        set $backend_server "backend.railway.internal:8000";
+        proxy_pass http://$backend_server;
         
         # For debugging
         access_log /var/log/nginx/api_access.log;
-        error_log /var/log/nginx/api_error.log;
+        error_log /var/log/nginx/api_error.log debug;
         
         # Standard proxy headers
         proxy_http_version 1.1;

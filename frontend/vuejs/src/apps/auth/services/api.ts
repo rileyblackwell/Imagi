@@ -261,17 +261,18 @@ export const AuthAPI = {
         console.log('🔄 Error occurred but running in production environment - bypassing CSRF')
         return 'production-bypass'
       }
-      
       return null
     }
   },
 
   async init(): Promise<{ data: { isAuthenticated: boolean; user: User } }> {
-    const response = await axios.get(`${BASE_URL}/init/`)
-    return response
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
+    const url = isProd ? '/api/v1/auth/me/' : `${BASE_URL}/me/`;
+    return await axios.get(url, { withCredentials: true })
   },
 
   async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
     try {
       if (!credentials?.username || !credentials?.password) {
         throw new Error('Username and password are required')
@@ -284,7 +285,11 @@ export const AuthAPI = {
         throw new Error('Authentication error: Could not obtain security token');
       }
       
-      const response = await axios.post(`${BASE_URL}/login/`, credentials, {
+      // Call the actual login API endpoint with the correct URL based on environment
+      const loginUrl = isProd ? '/api/v1/auth/login/' : `${BASE_URL}/login/`;
+      console.log('🔑 AuthAPI: Sending login request to:', loginUrl);
+      
+      const response = await axios.post(loginUrl, credentials, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -438,8 +443,9 @@ export const AuthAPI = {
       // Create timer for request duration measurement
       const startTime = performance.now();
       
-      // In production, log the actual URL being requested
-      const fullRequestUrl = `${BASE_URL}/register/`;
+      // For production, make the request path relative to ensure it goes through Nginx proxy
+      // This is the critical fix that ensures requests don't go directly to backend.railway.internal
+      const fullRequestUrl = isProd ? '/api/v1/auth/register/' : `${BASE_URL}/register/`;
       console.log('📤 AuthAPI: Sending request to:', fullRequestUrl);
       
       try {
@@ -564,8 +570,11 @@ export const AuthAPI = {
       return logoutPromise
     }
 
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
+    const logoutUrl = isProd ? '/api/v1/auth/logout/' : `${BASE_URL}/logout/`;
+
     try {
-      logoutPromise = axios.post(`${BASE_URL}/logout/`, {}, {
+      logoutPromise = axios.post(logoutUrl, {}, {
         withCredentials: true
       })
       await logoutPromise
@@ -581,7 +590,9 @@ export const AuthAPI = {
   },
 
   async updateUser(userData: Partial<User>): Promise<{ data: User }> {
-    const response = await axios.patch(`${BASE_URL}/user/`, userData)
+    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
+    const updateUrl = isProd ? '/api/v1/auth/user/' : `${BASE_URL}/user/`;
+    const response = await axios.patch(updateUrl, userData, { withCredentials: true })
     return response
   }
 }

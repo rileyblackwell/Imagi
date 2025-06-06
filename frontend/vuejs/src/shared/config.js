@@ -1,15 +1,15 @@
 const config = {
   // API Configuration
   apiUrl: (() => {
-    // In production, use relative URLs instead of Railway internal URLs
-    // This allows the Nginx proxy to handle the request properly
+    // In production, always use relative URLs for browser requests
+    // This ensures all API requests go through our Nginx proxy
     const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
     
-    // If this is a Railway internal URL and we're in production, use relative URL
-    if (isProd && backendUrl.includes('railway.internal')) {
+    // If in production, always use relative URL regardless of backend URL config
+    if (isProd) {
       console.log('📡 Using relative API URL for production environment')
-      return ''
+      return '/api'
     }
     
     // Otherwise use the configured backend URL (for development)
