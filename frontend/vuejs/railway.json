@@ -1,0 +1,12 @@
+{
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "sleepApplication": false,
+    "cronSchedule": null
+  },
+  "build": {
+    "builder": "DOCKERFILE",
+    "buildCommand": null,
+    "watchPatterns": []
+  }
+} 

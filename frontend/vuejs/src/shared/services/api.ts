@@ -156,5 +156,9 @@ export function buildApiUrl(path: string): string {
   if (!path.startsWith('/api/')) {
     path = path.startsWith('/') ? `/api${path}` : `/api/${path}`
   }
+  
+  // Always use relative URLs - this works in both development and production
+  // Development: Vite dev server proxies /api/* to VITE_BACKEND_URL (localhost:8000)
+  // Production: Nginx proxies /api/* to backend.railway.internal:8000
   return path
 } 

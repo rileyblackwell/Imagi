@@ -188,10 +188,6 @@ const handleSubmit = async (values: RegisterFormValues) => {
   serverError.value = ''
   isSubmitting.value = true
 
-  // Log environment and submission attempt
-  console.log('🔄 Register attempt - Environment:', import.meta.env.MODE, 'BASE_URL:', import.meta.env.BASE_URL)
-  console.log('🔄 BACKEND_URL:', import.meta.env.VITE_BACKEND_URL || 'Not defined')
-
   try {
     // Set form data from values if empty
     if (!formData.username && values.username) {
@@ -229,44 +225,25 @@ const handleSubmit = async (values: RegisterFormValues) => {
       terms_accepted: values.agreeToTerms
     }
 
-    // Log registration data (removing sensitive info)
-    console.log('📤 Sending registration data:', {
-      username: registerData.username,
-      email: registerData.email,
-      // Password omitted for security
-      terms_accepted: registerData.terms_accepted
-    })
+    console.log('🔄 Registration attempt for user:', registerData.username)
 
     // Show loading state in UI
     document.body.style.cursor = 'wait'
 
-    console.log('⏳ Calling authStore.register() - Starting API request')
     await authStore.register(registerData)
-    console.log('✅ Registration succeeded')
+    console.log('✅ Registration successful')
     
     // After successful registration, redirect to home
     await router.push('/')
   } catch (error: unknown) {
-    console.error('❌ Registration error:', error)
-    // More detailed error logging
-    if (error instanceof Error) {
-      console.error('❌ Error message:', error.message)
-      console.error('❌ Error stack:', error.stack)
-      
-      // Check if it's an axios error with response data
-      const axiosError = error as any
-      if (axiosError.response) {
-        console.error('❌ API Response error:', {
-          status: axiosError.response.status,
-          statusText: axiosError.response.statusText,
-          data: axiosError.response.data,
-          headers: axiosError.response.headers
-        })
-      } else if (axiosError.request) {
-        // Request was made but no response
-        console.error('❌ No response received:', axiosError.request)
-        console.error('❌ Request config:', axiosError.config)
-      }
+    console.error('❌ Registration failed:', error instanceof Error ? error.message : 'Unknown error')
+    
+    // Log additional details for network/API errors
+    const axiosError = error as any
+    if (axiosError.response?.status) {
+      console.error(`❌ API Error ${axiosError.response.status}:`, axiosError.response.data)
+    } else if (!axiosError.response) {
+      console.error('❌ Network error - unable to reach server')
     }
     
     serverError.value = formatAuthError(error, 'register')

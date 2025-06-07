@@ -105,36 +105,100 @@ Running Tests
 
 ⸻
 
-🔄 Deployment
+🔄 Deployment & API Architecture
 
-API Proxy Setup
-	•	Development (Vite): Proxies API to http://localhost:8000
-	•	Production (Nginx): Proxies API via internal Railway network
+## Development Environment
+- **Frontend**: Vite dev server on `http://localhost:5174`
+- **Backend**: Django dev server on `http://localhost:8000`
+- **Proxying**: Vite dev server proxies `/api/*` requests to `VITE_BACKEND_URL`
+- **Environment Variable**: `VITE_BACKEND_URL=http://localhost:8000`
 
-Centralized API Client
+## Production Environment
+- **Frontend**: Nginx serving static files from `https://imagi.up.railway.app`
+- **Backend**: Django + Gunicorn on Railway internal network `http://backend.railway.internal:8000`
+- **Proxying**: Nginx proxies `/api/*` requests to backend service
+- **Environment Variable**: `VITE_BACKEND_URL` is **not used** in production (relative URLs only)
+
+## Key Configuration Files
+
+### Frontend
+- `frontend/vuejs/vite.config.ts` - Development proxy configuration
+- `frontend/vuejs/Dockerfile` - Production build and deployment with inline Nginx config
+- `frontend/vuejs/src/shared/services/api.ts` - API client using relative URLs
+
+### Backend
+- `backend/django/Imagi/settings.py` - CORS and CSRF configuration
+- Django handles both development and production with different settings
+
+## Railway Deployment
+
+### Frontend Service
+```bash
+# Uses frontend/vuejs/Dockerfile
+# Builds Vue.js app and serves with Nginx
+# Proxies /api/* to backend.railway.internal:8000
+```
+
+### Backend Service  
+```bash
+# Uses Python buildpack or custom Dockerfile
+# Runs Django + Gunicorn
+# Accessible at backend.railway.internal:8000 (internal network only)
+```
+
+## Centralized API Client
 
 Use relative URLs for API requests:
 
+```javascript
 import api from '@/shared/services/api'
 const response = await api.get('/api/v1/projects/')
+```
 
-Proxy Configurations
-	•	Vite (vite.config.ts)
-	•	Nginx (Production)
+## Important Notes
 
-Benefits
-	•	Consistency, simplicity, security, flexibility, avoids CORS issues
+1. **Never set `VITE_BACKEND_URL` to `backend.railway.internal:8000` in production**
+   - Browsers cannot access Railway's internal network
+   - Use Nginx proxying instead
+
+2. **Always use relative URLs in frontend code**
+   - Development: Vite proxy handles routing
+   - Production: Nginx proxy handles routing
+
+3. **CORS Configuration**
+   - Development: Allow `localhost:5174`
+   - Production: Allow `imagi.up.railway.app`
+   - Backend also allows Railway internal origins for service-to-service communication
+
+4. **CSRF Tokens**
+   - Required in both development and production
+   - Handled automatically by the API client
+   - Uses cookie-based CSRF tokens
 
 ⸻
 
 Troubleshooting
 
-Common Issues
-	•	Check environment variables and proxy configurations
+## Common Issues
 
-Debugging
-	•	Development: Check Vite proxy logs
-	•	Production: Check Nginx logs
+### "Network Error: Unable to connect to server"
+- Check that proxying is properly configured
+- Verify CORS settings in Django
+- Ensure relative URLs are being used
+
+### "CSRF token missing or incorrect"
+- Check that cookies are being sent with requests
+- Verify CSRF_TRUSTED_ORIGINS includes your domain
+- Ensure CSRF_COOKIE_SAMESITE and CSRF_COOKIE_SECURE are properly configured
+
+### "HTML response instead of JSON"  
+- Usually indicates a proxy configuration issue
+- Check Nginx configuration
+- Verify backend service is running and accessible
+
+## Debugging
+- **Development**: Check Vite proxy logs in terminal
+- **Production**: Check Nginx logs and Railway service logs
 
 ⸻
 

@@ -32,6 +32,10 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', cast=str)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
+# Railway sets RAILWAY_ENVIRONMENT in production
+RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
+IS_RAILWAY_PRODUCTION = RAILWAY_ENVIRONMENT == 'production'
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -222,6 +226,15 @@ CORS_ALLOWED_ORIGINS = [
     "https://imagi.up.railway.app",  # Production: Public frontend domain
 ]
 
+# In production, Railway services communicate via internal network
+# Allow internal Railway communication
+if not DEBUG or IS_RAILWAY_PRODUCTION:
+    # Allow Railway internal communication (frontend service to backend service)
+    CORS_ALLOWED_ORIGINS.extend([
+        "https://frontend.railway.internal",
+        "http://frontend.railway.internal",
+    ])
+
 # Set to False when using specific origins with credentials
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
@@ -271,6 +284,13 @@ CSRF_TRUSTED_ORIGINS = [
     'https://imagi.up.railway.app',  # Production: Public frontend domain
 ]
 
+# Add Railway internal origins for production
+if not DEBUG or IS_RAILWAY_PRODUCTION:
+    CSRF_TRUSTED_ORIGINS.extend([
+        'https://frontend.railway.internal',
+        'http://frontend.railway.internal',
+    ])
+
 # Cookie settings - configured for cross-domain requests via Railway architecture
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_HTTPONLY = False
@@ -304,7 +324,14 @@ SECURE_HSTS_PRELOAD = True
 
 # Only allow specific hosts
 # Allow the backend.railway.internal hostname for internal Railway communication
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', 'backend.railway.internal']
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1', 
+    '.railway.app', 
+    'backend.railway.internal',
+    # Also allow the internal Railway service name pattern
+    '*.railway.internal'
+]
 
 # Development-specific settings
 if DEBUG:

@@ -43,33 +43,39 @@ export const AuthAPI = {
   async ensureCSRFToken(): Promise<string | null> {
     // Check if we're in a production environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
-    const environment = isProd ? 'production' : 'development'
     
-    // In production environment, bypass CSRF token requirement - handled by Nginx
-    console.log('🔑 Environment:', environment)
+    // In production environment with proper Nginx proxying, CSRF is still needed
+    // but cookie-based CSRF should work through the proxy
     if (isProd) {
-      console.log('🔑 AuthAPI: Production environment - bypassing CSRF token')
-      return 'bypass'
+      // Check if CSRF token exists in cookies first
+      let csrfToken = getCookie('csrftoken')
+      if (!csrfToken) {
+        try {
+          await this.getCSRFToken()
+          csrfToken = getCookie('csrftoken')
+        } catch (error) {
+          console.error('Error fetching CSRF token in production:', error)
+          // In production, if CSRF fetch fails, continue without it
+          // as the backend might be configured to accept requests without CSRF
+          return null
+        }
+      }
+      return csrfToken
     }
     
     // In development, check if CSRF token exists
     let csrfToken = getCookie('csrftoken')
     if (!csrfToken) {
-      console.log('🔑 AuthAPI: No CSRF token found, fetching...')
       try {
         await this.getCSRFToken()
         csrfToken = getCookie('csrftoken')
-        if (csrfToken) {
-          console.log('🔑 AuthAPI: CSRF token obtained successfully')
-        } else {
-          console.error('🔑 AuthAPI: Failed to obtain CSRF token after fetch')
+        if (!csrfToken) {
+          console.error('Failed to obtain CSRF token after fetch')
         }
       } catch (error) {
-        console.error('🔑 AuthAPI: Error fetching CSRF token:', error)
+        console.error('Error fetching CSRF token:', error)
         return null
       }
-    } else {
-      console.log('🔑 AuthAPI: CSRF token found in cookies')
     }
     
     return csrfToken
@@ -92,7 +98,7 @@ export const AuthAPI = {
         throw new Error('Authentication error: Could not obtain security token');
       }
       
-      console.log('🔑 AuthAPI: Sending login request to:', buildApiUrl(`${API_PATH}/login/`));
+
       
       // Use the shared API client
       const response = await api.post(buildApiUrl(`${API_PATH}/login/`), credentials, {
@@ -140,18 +146,8 @@ export const AuthAPI = {
     // Check if we're in production Railway environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
     try {
-      console.log('🔄 AuthAPI: Starting registration request')
-      console.log('🌐 API Environment:', {
-        apiPath: API_PATH,
-        viteBackendEnv: import.meta.env.VITE_BACKEND_URL || 'Not defined',
-        environment: import.meta.env.MODE,
-        isProd
-      })
-      
       // Ensure CSRF token is available
-      console.log('🔑 AuthAPI: Getting CSRF token')
       const csrfToken = await this.ensureCSRFToken()
-      console.log('🔑 AuthAPI: CSRF token obtained:', csrfToken ? 'Yes' : 'No')
       if (!csrfToken && !isProd) {
         console.error('Could not obtain CSRF token')
         throw new Error('Registration error: Could not obtain security token');
@@ -183,10 +179,7 @@ export const AuthAPI = {
         throw new Error('Please enter a valid email address')
       }
       
-      const startTime = performance.now();
       const fullRequestUrl = buildApiUrl(`${API_PATH}/register/`);
-      
-      console.log('🔄 AuthAPI: Making registration request to:', fullRequestUrl);
       
       const headers: Record<string, string> = {
         'Accept': 'application/json',
@@ -203,30 +196,15 @@ export const AuthAPI = {
           headers,
           timeout: 30000 // 30 seconds timeout
         })
-        
-        const duration = Math.round(performance.now() - startTime);
-        console.log(`⏰ AuthAPI: Request completed in ${duration}ms`);
-        
-        // Log response status and structure (without sensitive data)
-        console.log('✅ AuthAPI: Registration API response successful', {
-          status: response.status,
-          hasData: !!response.data,
-          hasToken: !!(response.data?.token || response.data?.key),
-          hasUser: !!response.data?.user
-        })
 
         // Validate response format
         if (!response.data) {
-          console.error('❌ AuthAPI: Empty response data')
           throw new Error('Invalid server response: Empty response')
         }
         
         if (!response.data.token && !response.data.key) {
-          console.error('❌ AuthAPI: Missing token in response', response.data)
           throw new Error('Invalid server response: Missing token')
         }
-        
-        console.log('🔐 AuthAPI: Token received successfully')
 
         return { 
           data: {
@@ -235,8 +213,7 @@ export const AuthAPI = {
           }
         }
       } catch (error) {
-        // Connection issues during the request
-        console.error('❌ AuthAPI: Error during API call', error)
+        console.error('❌ Registration API call failed:', error)
         throw error
       }
     } catch (error: any) {
