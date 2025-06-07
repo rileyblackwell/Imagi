@@ -31,7 +31,7 @@
           <!-- Current Balance Card -->
           <div class="animate-fade-in-up animation-delay-300">
             <AccountBalanceCard
-              :credits="userCredits ?? undefined"
+              :credits="store.balance ?? 0"
               :loading="isLoading"
               :last-updated="lastUpdated || undefined"
             />

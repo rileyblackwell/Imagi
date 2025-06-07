@@ -50,6 +50,7 @@ export const usePaymentStore = defineStore('payments', () => {
       // Validate response has the expected structure
       if (response && typeof response.balance === 'number') {
         balance.value = response.balance;
+        userCredits.value = response.balance; // Keep userCredits in sync
         return response.balance;
       } else {
         console.error('Invalid balance response format:', response);
@@ -164,6 +165,7 @@ export const usePaymentStore = defineStore('payments', () => {
       // If payment was successful, update the balance
       if (result.success || result.newBalance) {
         balance.value = result.newBalance
+        userCredits.value = result.newBalance
       }
       
       return result
@@ -186,6 +188,7 @@ export const usePaymentStore = defineStore('payments', () => {
       // If payment was confirmed, update the balance
       if (result.newBalance) {
         balance.value = result.newBalance
+        userCredits.value = result.newBalance
       }
       
       return result
@@ -207,6 +210,7 @@ export const usePaymentStore = defineStore('payments', () => {
       // If payment verification returned a new balance, update it
       if (result.newBalance) {
         balance.value = result.newBalance
+        userCredits.value = result.newBalance
       }
       
       return result
@@ -306,6 +310,7 @@ export const usePaymentStore = defineStore('payments', () => {
       // Update balance if deduction was successful
       if (result.newBalance !== undefined) {
         balance.value = result.newBalance
+        userCredits.value = result.newBalance
       }
       
       return result
@@ -359,13 +364,13 @@ export const usePaymentStore = defineStore('payments', () => {
   // Reset store state
   function resetState() {
     balance.value = null
+    userCredits.value = null
     transactions.value = []
     totalTransactions.value = 0
     paymentMethods.value = []
     plans.value = []
     packages.value = []
     error.value = null
-    userCredits.value = null
     lastUpdated.value = null
     isLoading.value = false
   }
