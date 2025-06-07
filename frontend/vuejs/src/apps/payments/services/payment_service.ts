@@ -33,7 +33,6 @@ class PaymentService implements IPaymentService {
     // Production: Nginx proxies /api/* to backend.railway.internal:8000
     this.apiBaseUrl = '/api/v1';
     this.apiUrl = this.apiBaseUrl + '/payments';
-    console.log('📡 Using relative API URL (proxied in both dev and production)');
   }
 
   /**

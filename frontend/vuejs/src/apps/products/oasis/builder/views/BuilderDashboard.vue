@@ -263,13 +263,7 @@
 </template>
 
 <script setup lang="ts">
-// Debug base path in dev
-if (import.meta.env.DEV) {
-  // Print the Vite/Vue base URL and current path
-  // This helps confirm whether the dev server is serving at the correct base
-  console.log('[BuilderDashboard] import.meta.env.BASE_URL:', import.meta.env.BASE_URL);
-  console.log('[BuilderDashboard] window.location.pathname:', window.location.pathname);
-}
+
 
 import { ref, computed, onMounted, watch, onBeforeUnmount, type ComputedRef } from 'vue'
 import { useRouter } from 'vue-router'

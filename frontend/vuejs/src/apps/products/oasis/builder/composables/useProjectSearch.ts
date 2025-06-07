@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import type { ComputedRef } from 'vue';
 import type { Project } from '../types/components';
 

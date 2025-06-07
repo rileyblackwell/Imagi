@@ -20,7 +20,6 @@ const config = {
     // Always use relative URLs for API requests
     // Development: Vite dev server proxies /api/* to http://localhost:8000
     // Production: Nginx proxies /api/* to http://backend.railway.internal:8000
-    console.log('📡 Using relative API URL (proxied in both dev and production)')
     return '/api'
   })(),
   
