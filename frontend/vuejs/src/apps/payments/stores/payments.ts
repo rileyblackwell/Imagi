@@ -51,6 +51,7 @@ export const usePaymentStore = defineStore('payments', () => {
       if (response && typeof response.balance === 'number') {
         balance.value = response.balance;
         userCredits.value = response.balance; // Keep userCredits in sync
+        lastUpdated.value = new Date().toISOString(); // Track when balance was last updated
         return response.balance;
       } else {
         console.error('Invalid balance response format:', response);
@@ -166,6 +167,7 @@ export const usePaymentStore = defineStore('payments', () => {
       if (result.success || result.newBalance) {
         balance.value = result.newBalance
         userCredits.value = result.newBalance
+        lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       
       return result
@@ -189,6 +191,7 @@ export const usePaymentStore = defineStore('payments', () => {
       if (result.newBalance) {
         balance.value = result.newBalance
         userCredits.value = result.newBalance
+        lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       
       return result
@@ -211,6 +214,7 @@ export const usePaymentStore = defineStore('payments', () => {
       if (result.newBalance) {
         balance.value = result.newBalance
         userCredits.value = result.newBalance
+        lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       
       return result
@@ -311,6 +315,7 @@ export const usePaymentStore = defineStore('payments', () => {
       if (result.newBalance !== undefined) {
         balance.value = result.newBalance
         userCredits.value = result.newBalance
+        lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       
       return result

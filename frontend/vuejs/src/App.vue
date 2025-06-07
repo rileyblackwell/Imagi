@@ -74,10 +74,9 @@ onMounted(async () => {
     // Initialize auth state on app mount
     await authStore.initAuth();
     
-    // Initialize balance store after auth is initialized
-    if (authStore.isAuthenticated) {
-      await balanceStore.initBalance();
-    }
+    // Remove automatic balance initialization - balance should only be fetched
+    // when user visits specific pages (payments/checkout, builder workspace) or
+    // after specific actions (adding money, using AI models)
     
     // Add event listeners for browser navigation
     window.addEventListener('popstate', handlePopState);
@@ -94,11 +93,10 @@ onMounted(async () => {
   }
 });
 
-// Watch for changes in authentication state to initialize/reset balance
+// Watch for changes in authentication state to reset balance when logged out
 watch(() => authStore.isAuthenticated, (isAuthenticated) => {
-  if (isAuthenticated) {
-    balanceStore.initBalance();
-  } else {
+  if (!isAuthenticated) {
+    // Only reset balance when user logs out - don't fetch when logging in
     balanceStore.resetBalance();
   }
 });

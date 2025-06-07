@@ -69,9 +69,9 @@ const isLoading = computed(() => store.isLoadingBalance)
 
 // Load balance on mount
 onMounted(() => {
-  if (balance.value === null) {
-    refreshBalance()
-  }
+  // Don't automatically fetch balance on mount - this component should only display
+  // balance if it's already available. Balance should be fetched by the parent page/component
+  // when appropriate (e.g., on payment pages, builder workspace, etc.)
 })
 
 // Function to refresh balance

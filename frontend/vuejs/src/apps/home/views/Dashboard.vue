@@ -447,9 +447,18 @@ async function fetchDashboardData() {
       recentProjects.value = projectStore.projects?.slice(0, 5) || []
     }
     
-    // Fetch payments data
+    // Fetch payments data - only fetch balance if not available or stale
     try {
-      await paymentsStore.fetchBalance()
+      // Only fetch balance if it's not available or stale (older than 5 minutes)
+      const needsBalanceRefresh = paymentsStore.balance === null || 
+        paymentsStore.balance === 0 || 
+        !paymentsStore.lastUpdated || 
+        (Date.now() - new Date(paymentsStore.lastUpdated).getTime()) > 5 * 60 * 1000
+      
+      if (needsBalanceRefresh) {
+        await paymentsStore.fetchBalance()
+      }
+      
       await paymentsStore.fetchTransactions()
       recentTransactions.value = paymentsStore.transactions.slice(0, 5) || []
     } catch (err) {

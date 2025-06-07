@@ -45,6 +45,10 @@ export const useBalanceStore = defineStore('global-balance', {
         const response = await api.get<{ balance: number }>(buildApiUrl('/api/v1/payments/balance/'))
         this.balance = response.data.balance
         this.lastUpdated = new Date().toISOString()
+        
+        // Store balance in localStorage for offline access
+        localStorage.setItem('userBalance', this.balance.toString())
+        
         return response.data.balance
       } catch (error: any) {
         console.error('Error fetching balance:', error)
@@ -64,6 +68,9 @@ export const useBalanceStore = defineStore('global-balance', {
     updateBalance(newBalance: number) {
       this.balance = newBalance
       this.lastUpdated = new Date().toISOString()
+      
+      // Store balance in localStorage for offline access
+      localStorage.setItem('userBalance', newBalance.toString())
     },
 
     beginTransaction() {
@@ -88,11 +95,25 @@ export const useBalanceStore = defineStore('global-balance', {
     },
 
     /**
-     * Initialize balance (fetch initial balance from API)
+     * Initialize balance (prepare balance state but don't fetch from API automatically)
+     * Balance should only be fetched when user visits specific pages or performs specific actions
      */
     initBalance() {
-      // Initialize with stored balance if available
-      this.fetchBalance()
+      // Only initialize with stored balance if available, but don't fetch from API
+      // Balance will be fetched when user visits specific pages (payments/checkout, builder workspace)
+      // or performs specific actions (adding money, using AI models)
+      const storedBalance = localStorage.getItem('userBalance')
+      if (storedBalance) {
+        try {
+          const balance = parseFloat(storedBalance)
+          if (!isNaN(balance)) {
+            this.balance = balance
+            this.lastUpdated = new Date().toISOString()
+          }
+        } catch (error) {
+          console.log('Could not parse stored balance, will fetch when needed')
+        }
+      }
     },
     
     /**
@@ -103,6 +124,9 @@ export const useBalanceStore = defineStore('global-balance', {
       this.loading = false
       this.error = null
       this.lastUpdated = null
+      
+      // Clear stored balance from localStorage
+      localStorage.removeItem('userBalance')
     },
 
     /**

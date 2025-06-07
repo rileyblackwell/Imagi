@@ -102,10 +102,9 @@ async function fetchBalance(showLoading = true, forceRefresh = false) {
 
 // Initialize on component mount
 onMounted(() => {
-  // Initial balance fetch with force refresh to ensure accuracy
-  fetchBalance(false, true);
-  
-  // Periodic refresh removed to prevent excessive API calls
+  // Don't automatically fetch balance on mount - balance should only be fetched
+  // when user visits specific pages or after specific actions like AI model usage
+  // The balance will be available if it was already fetched by the page that displays this component
 })
 
 onBeforeUnmount(() => {
