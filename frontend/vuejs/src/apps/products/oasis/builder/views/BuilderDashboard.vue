@@ -620,7 +620,7 @@ const retryFetchWithDiagnostics = async () => {
   // Try direct access to API
   await testApiConnection()
   
-  // Force a regular fetch
+  // Force a fetch only for diagnostics/retry after failure
   fetchProjects(true)
 }
 
@@ -630,7 +630,8 @@ const retryFetchWithDiagnostics = async () => {
  */
 const synchronizeStores = async () => {
   try {
-    // Force auth initialization if needed
+    // Only force auth initialization if really needed and not recently done
+    // Let the auth store handle its own caching logic
     if (!authStore.initialized) {
       await authStore.initAuth()
     }
@@ -652,8 +653,9 @@ const synchronizeStores = async () => {
           // Ensure API headers are set
           api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
           
-          // If we have a valid token but isAuthenticated is false, validate token with API
-          if (!authStore.isAuthenticated) {
+          // Only validate if auth store shows not authenticated but we have a valid token
+          // and auth store hasn't been initialized recently (let it handle its own caching)
+          if (!authStore.isAuthenticated && !authStore.initialized) {
             try {
               await authStore.validateAuth()
             } catch (validationError) {
@@ -710,10 +712,10 @@ onMounted(async () => {
     }
   }
   
-  // Always force refresh projects when the dashboard loads to ensure fresh data
+  // Fetch projects when the dashboard loads, but let store handle caching
   try {
-    // Always use force=true to ensure we get the latest data
-    await fetchProjects(true)
+    // Don't force - let the store decide if fetch is needed based on cache
+    await fetchProjects(false)
   } catch (error) {
     console.error('Initial project fetch failed:', error)
     
@@ -722,7 +724,7 @@ onMounted(async () => {
       setTimeout(async () => {
         try {
           console.debug('Retrying project fetch after initial failure')
-          await fetchProjects(true)
+          await fetchProjects(true) // Force on retry after failure
         } catch (retryError) {
           console.error('Retry fetch also failed:', retryError)
         }
@@ -744,7 +746,9 @@ watch(
   (newAuthStatus) => {
     console.debug('Auth state changed:', newAuthStatus)
     if (newAuthStatus) {
-      fetchProjects(true)
+      // Don't automatically fetch projects when auth state changes
+      // Projects will be fetched when needed by the component's normal flow
+      // This prevents unnecessary API calls immediately after login
     }
   }
 )

@@ -219,24 +219,9 @@ performance.measure('app-total-init', 'app-init', 'app-mounted')
 
 // Add project data refresh when tab visibility changes (user returns to the tab)
 document.addEventListener('visibilitychange', () => {
-  // Only refresh when document becomes visible again
-  if (document.visibilityState === 'visible') {
-    try {
-      const authStore = useAuthStore()
-      
-      // Only refresh if user is authenticated
-      if (authStore.isAuthenticated) {
-        const projectStore = useProjectStore()
-        
-        // Fetch latest projects in the background
-        projectStore.fetchProjects(true).catch(error => {
-          console.error('Failed to refresh projects on tab visibility change:', error)
-        })
-      }
-    } catch (error) {
-      console.error('Error handling visibility change:', error)
-    }
-  }
+  // Remove automatic project fetching on visibility change
+  // Projects should only be fetched when user visits pages that display projects
+  // or when projects are created/deleted and those pages need to be updated
 })
 
 // Router navigation hooks are already defined in router/index.ts

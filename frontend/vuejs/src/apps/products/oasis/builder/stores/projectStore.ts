@@ -10,7 +10,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 
 // Constants
 const DEBOUNCE_DURATION = 1000 // 1 second
-const CACHE_EXPIRY_TIME = 30 * 1000 // 30 seconds
+const CACHE_EXPIRY_TIME = 5 * 60 * 1000 // 5 minutes (was 30 seconds)
 
 // Create static request tracker outside the store to prevent duplicate calls across component instances
 let globalProjectListRequest: Promise<Project[]> | null = null;

@@ -143,20 +143,9 @@ router.beforeEach(async (to, from, next) => {
   ]
   
   if (projectRoutes.includes(String(to.name))) {
-    // Get the auth store - we need to import this here to avoid circular dependencies
-    const authStore = useAuthStore()
-    
-    // Only refresh projects if authenticated
-    if (authStore.isAuthenticated) {
-      // Get the project store
-      const projectStore = useProjectStore()
-      
-      // Force refresh project data when navigating to a project-related view
-      // But don't block navigation - refresh in the background
-      projectStore.fetchProjects(true).catch((error: Error) => {
-        console.error('Failed to refresh projects during navigation:', error)
-      })
-    }
+    // Remove automatic project fetching on navigation
+    // Projects should only be fetched by the specific pages that need them
+    // when they mount, not automatically on every navigation
   }
 
   next()

@@ -21,7 +21,7 @@ const safeJSONParse = <T>(jsonString: string | null, fallback: T): T => {
 }
 
 // Set cache duration for auth init calls to prevent duplicates
-const AUTH_CACHE_DURATION = 30000; // 30 seconds
+const AUTH_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (was 30 seconds)
 
 /**
  * Global authentication store for managing user sessions across the application

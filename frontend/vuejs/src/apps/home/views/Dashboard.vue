@@ -442,8 +442,16 @@ const goToProject = (id) => {
 async function fetchDashboardData() {
   try {
     if (projectStore.fetchProjects) {
-      // Always use force=true to ensure we get the latest data
-      await projectStore.fetchProjects(true)
+      // Only fetch projects if not available or stale (older than 5 minutes)
+      const needsProjectsRefresh = !projectStore.projects || 
+        projectStore.projects.length === 0 || 
+        !projectStore.lastFetch || 
+        (Date.now() - projectStore.lastFetch.getTime()) > 5 * 60 * 1000
+      
+      if (needsProjectsRefresh) {
+        await projectStore.fetchProjects(false) // Don't force, let store handle caching
+      }
+      
       recentProjects.value = projectStore.projects?.slice(0, 5) || []
     }
     
