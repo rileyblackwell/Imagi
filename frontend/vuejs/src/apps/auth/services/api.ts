@@ -15,24 +15,11 @@ let BASE_URL = ''
 
 // Determine base URL based on environment
 const configureApiUrl = () => {
-  const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
-  
-  if (isProd) {
-    // In production, always use relative URLs for browser requests
-    // This ensures requests go through the Nginx proxy
-    console.log('🔄 API: Configuring for production - using relative URLs')
-    BASE_URL = API_PATH
-  } else {
-    // In development, we might need the full backend URL for local development
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
-    if (backendUrl) {
-      console.log(`🔄 API: Using backend URL from env: ${backendUrl}`)
-      BASE_URL = `${backendUrl}${API_PATH}`
-    } else {
-      console.log('🔄 API: Using relative URL (no backend URL configured)')
-      BASE_URL = API_PATH
-    }
-  }
+  // Always use relative URLs - proxy handles routing in both dev and production
+  // Development: Vite dev server proxies /api/* to VITE_BACKEND_URL
+  // Production: Nginx proxies /api/* to backend service
+  console.log('🔄 API: Using relative URLs (proxied in both dev and production)')
+  BASE_URL = API_PATH
   
   console.log(`🔄 API: Configured BASE_URL: ${BASE_URL}`)
 }
@@ -193,29 +180,14 @@ let logoutPromise: Promise<any> | null = null
 
 export const AuthAPI = {
   async getCSRFToken() {
-    // Check if we're in production environment
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
-    const environment = isProd ? 'production' : 'development'
-    
-    // In production environment, we can bypass CSRF for API calls that go through Nginx
-    if (isProd) {
-      console.log('🔐 Production environment detected - CSRF checks handled by Nginx proxy')
-      return { data: { csrf: 'production-bypass' } }
-    }
-    
-    // For development environments, get a real CSRF token
     try {
-      // Use a shorter timeout for CSRF token requests
+      // Use relative URL - proxy handles routing
       return await axios.get(`${BASE_URL}/csrf/`, {
         withCredentials: true,
         timeout: 10000 // 10 seconds timeout
       })
     } catch (error) {
       console.error('🔑 Failed to get CSRF token:', error)
-      // If in production but failed for some reason, still allow requests to proceed
-      if (isProd) {
-        return { data: { csrf: 'production-bypass' } }
-      }
       throw error
     }
   },
@@ -266,13 +238,10 @@ export const AuthAPI = {
   },
 
   async init(): Promise<{ data: { isAuthenticated: boolean; user: User } }> {
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
-    const url = isProd ? '/api/v1/auth/me/' : `${BASE_URL}/me/`;
-    return await axios.get(url, { withCredentials: true })
+    return await axios.get(`${BASE_URL}/me/`, { withCredentials: true })
   },
 
   async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
     try {
       if (!credentials?.username || !credentials?.password) {
         throw new Error('Username and password are required')
@@ -285,11 +254,10 @@ export const AuthAPI = {
         throw new Error('Authentication error: Could not obtain security token');
       }
       
-      // Call the actual login API endpoint with the correct URL based on environment
-      const loginUrl = isProd ? '/api/v1/auth/login/' : `${BASE_URL}/login/`;
-      console.log('🔑 AuthAPI: Sending login request to:', loginUrl);
+      // Use relative URL - proxy handles routing
+      console.log('🔑 AuthAPI: Sending login request to:', `${BASE_URL}/login/`);
       
-      const response = await axios.post(loginUrl, credentials, {
+      const response = await axios.post(`${BASE_URL}/login/`, credentials, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -360,8 +328,6 @@ export const AuthAPI = {
   async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
     // Check if we're in production Railway environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
-    const environment = isProd ? 'production' : 'development'
-    const isRailway = import.meta.env.VITE_BACKEND_URL?.includes('.railway.internal') || false
     try {
       console.log('🔄 AuthAPI: Starting registration request')
       console.log('🌐 API Environment:', {
@@ -410,52 +376,35 @@ export const AuthAPI = {
       
       console.log('✅ AuthAPI: Client-side validation passed')
 
-      // Prepare headers with proper handling for Railway environment
+      // Prepare headers
       const headers: Record<string, string> = {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       }
       
-      // Only add CSRF token if we have one and it's not the production-bypass placeholder
-      if (csrfToken && csrfToken !== 'production-bypass') {
+      // Add CSRF token if available
+      if (csrfToken) {
         headers['X-CSRFToken'] = csrfToken
       }
       
       // Log API request details
       console.log('📣 AuthAPI: Preparing request to', `${BASE_URL}/register/`, {
         headers,
-        withCredentials: true,
-        isProd
+        withCredentials: true
       })
-      
-      // We've already checked isProd earlier
-      if (isProd) {
-        console.log('🚀 AuthAPI: Running in production environment', {
-          timeout: '30 seconds'
-        })
-      } else {
-        console.log('💻 AuthAPI: Running in local/dev environment', {
-          baseUrl: BASE_URL,
-          timeout: '15 seconds'
-        })
-      }
       
       // Create timer for request duration measurement
       const startTime = performance.now();
       
-      // For production, make the request path relative to ensure it goes through Nginx proxy
-      // This is the critical fix that ensures requests don't go directly to backend.railway.internal
-      const fullRequestUrl = isProd ? '/api/v1/auth/register/' : `${BASE_URL}/register/`;
+      // Use relative URL - proxy handles routing in both dev and production
+      const fullRequestUrl = `${BASE_URL}/register/`;
       console.log('📤 AuthAPI: Sending request to:', fullRequestUrl);
       
       try {
         const response = await axios.post(fullRequestUrl, userData, {
           headers,
           withCredentials: true,
-          // Increase timeout for production environments
-          timeout: isProd 
-            ? 30000 // 30 seconds for production
-            : 15000 // 15 seconds for development environments
+          timeout: 30000 // 30 seconds timeout
         })
         
         const duration = Math.round(performance.now() - startTime);
@@ -506,7 +455,6 @@ export const AuthAPI = {
         console.error('❌ AuthAPI: Network connection error', {
           code: error.code || 'unknown',
           message: error.message || 'No error message',
-          backendUrl: import.meta.env.VITE_BACKEND_URL || 'Not defined',
           apiUrl: `${BASE_URL}/register/`, 
           config: error.config ? {
             baseURL: error.config.baseURL,
@@ -570,11 +518,8 @@ export const AuthAPI = {
       return logoutPromise
     }
 
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
-    const logoutUrl = isProd ? '/api/v1/auth/logout/' : `${BASE_URL}/logout/`;
-
     try {
-      logoutPromise = axios.post(logoutUrl, {}, {
+      logoutPromise = axios.post(`${BASE_URL}/logout/`, {}, {
         withCredentials: true
       })
       await logoutPromise
@@ -590,9 +535,7 @@ export const AuthAPI = {
   },
 
   async updateUser(userData: Partial<User>): Promise<{ data: User }> {
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production';
-    const updateUrl = isProd ? '/api/v1/auth/user/' : `${BASE_URL}/user/`;
-    const response = await axios.patch(updateUrl, userData, { withCredentials: true })
+    const response = await axios.patch(`${BASE_URL}/user/`, userData, { withCredentials: true })
     return response
   }
 }

@@ -1,19 +1,27 @@
+/*
+ * Imagi Frontend Configuration
+ * 
+ * PROXY ARCHITECTURE:
+ * - Development: Vite dev server (localhost:5174) → Django backend (VITE_BACKEND_URL)
+ * - Production: Nginx (imagi.up.railway.app) → Django backend (backend.railway.internal:8000)
+ * 
+ * ENVIRONMENT SETUP:
+ * - Development: Set VITE_BACKEND_URL=http://localhost:8000 in environment
+ * - Production: Railway automatically handles internal networking
+ * 
+ * All API calls use relative URLs (/api/*) and are proxied by:
+ * - Vite dev server in development (configured via VITE_BACKEND_URL)
+ * - Nginx in production (configured via Dockerfile)
+ */
+
 const config = {
   // API Configuration
   apiUrl: (() => {
-    // In production, always use relative URLs for browser requests
-    // This ensures all API requests go through our Nginx proxy
-    const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production'
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
-    
-    // If in production, always use relative URL regardless of backend URL config
-    if (isProd) {
-      console.log('📡 Using relative API URL for production environment')
-      return '/api'
-    }
-    
-    // Otherwise use the configured backend URL (for development)
-    return backendUrl
+    // Always use relative URLs for API requests
+    // Development: Vite dev server proxies /api/* to http://localhost:8000
+    // Production: Nginx proxies /api/* to http://backend.railway.internal:8000
+    console.log('📡 Using relative API URL (proxied in both dev and production)')
+    return '/api'
   })(),
   
   // Authentication Configuration

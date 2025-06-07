@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import api from '@/shared/services/api'
 import type { 
   PaymentHistoryItem, 
   PaymentStoreState, 
@@ -41,7 +41,12 @@ export const usePaymentsStore = defineStore('payments', {
     formattedLastUpdated: (state) => {
       if (!state.lastUpdated) return '';
       return new Date(state.lastUpdated).toLocaleString();
-    }
+    },
+    recentTransactions: (state) => state.transactions.slice(0, 5),
+    completedTransactions: (state) => 
+      state.transactions.filter(t => t.status === 'completed'),
+    pendingTransactions: (state) => 
+      state.transactions.filter(t => t.status === 'pending')
   },
   
   actions: {
@@ -49,15 +54,12 @@ export const usePaymentsStore = defineStore('payments', {
     async initializePayments(): Promise<void> {
       // Use the global balance store for managing balance
       const balanceStore = useBalanceStore();
-      await balanceStore.initBalance(); // Initialize only once at startup
+      await balanceStore.fetchBalance(); // Fetch balance
       
       // Sync local state with global state
       this.balance = balanceStore.balance;
       this.userCredits = balanceStore.balance;
-      this.lastUpdated = balanceStore.lastUpdated;
-      
-      // Don't auto-refresh balance - only fetch when needed
-      balanceStore.stopAutoRefresh();
+      this.lastUpdated = balanceStore.lastUpdated ? new Date(balanceStore.lastUpdated) : null;
       
       // Fetch other payment-specific data
       await this.fetchTransactions();
@@ -66,25 +68,21 @@ export const usePaymentsStore = defineStore('payments', {
     
     // Start auto-refresh of balance
     startBalanceAutoRefresh(): void {
-      // Delegate to global balance store
-      const balanceStore = useBalanceStore();
-      balanceStore.startAutoRefresh(BALANCE_REFRESH_INTERVAL);
+      // Auto-refresh functionality has been simplified in the new balance store
+      // The balance store now uses a stale check instead of auto-refresh
+      this.isAutoRefreshEnabled = true;
     },
     
     // Stop auto-refresh
     stopBalanceAutoRefresh(): void {
-      // Delegate to global balance store
-      const balanceStore = useBalanceStore();
-      balanceStore.stopAutoRefresh();
+      // Auto-refresh functionality has been simplified in the new balance store
+      this.isAutoRefreshEnabled = false;
     },
     
     // Toggle auto-refresh setting
     toggleAutoRefresh(enabled: boolean): void {
       this.isAutoRefreshEnabled = enabled;
-      
-      // Delegate to global balance store
-      const balanceStore = useBalanceStore();
-      balanceStore.toggleAutoRefresh(enabled);
+      // Auto-refresh is now handled via stale checks in the balance store
     },
     
     // Fetch user's current balance
@@ -97,12 +95,12 @@ export const usePaymentsStore = defineStore('payments', {
       try {
         // Use global balance store
         const balanceStore = useBalanceStore();
-        await balanceStore.fetchBalance(false, force); // Only force refresh when explicitly requested
+        await balanceStore.fetchBalance(); // Fetch balance
         
         // Sync local state with global state
         this.balance = balanceStore.balance;
         this.userCredits = balanceStore.balance;
-        this.lastUpdated = balanceStore.lastUpdated;
+        this.lastUpdated = balanceStore.lastUpdated ? new Date(balanceStore.lastUpdated) : null;
       } catch (error: any) {
         this.error = error.response?.data?.message || 'Failed to fetch balance';
         console.error('Failed to fetch balance:', error);
@@ -123,7 +121,7 @@ export const usePaymentsStore = defineStore('payments', {
       this.isHistoryLoading = true;
       
       try {
-        const response = await axios.get<{ payments: PaymentHistoryItem[] }>('/api/v1/payments/history/')
+        const response = await api.get<{ payments: PaymentHistoryItem[] }>('/api/v1/payments/history/')
         this.paymentHistory = response.data.payments;
       } catch (error) {
         console.error('Failed to fetch payment history:', error);
@@ -153,7 +151,7 @@ export const usePaymentsStore = defineStore('payments', {
       this.isTransactionsFetching = true;
       
       try {
-        const response = await axios.get<{ transactions: Transaction[] }>('/api/v1/payments/transactions/')
+        const response = await api.get<{ transactions: Transaction[] }>('/api/v1/payments/transactions/')
         this.transactions = response.data.transactions;
         this.lastTransactionsFetch = now;
       } catch (error) {
@@ -174,7 +172,7 @@ export const usePaymentsStore = defineStore('payments', {
         const balanceStore = useBalanceStore();
         balanceStore.beginTransaction();
         
-        const response = await axios.post<PaymentProcessResponse>('/api/v1/payments/process/', {
+        const response = await api.post<PaymentProcessResponse>('/api/v1/payments/process/', {
           amount,
           paymentMethodId,
           saveCard
@@ -221,7 +219,7 @@ export const usePaymentsStore = defineStore('payments', {
       this.error = null;
       
       try {
-        const response = await axios.get<{ packages: CreditPackage[] }>('/api/v1/payments/packages/')
+        const response = await api.get<{ packages: CreditPackage[] }>('/api/v1/payments/packages/')
         // Ensure all packages have a description field to match the type
         this.packages = response.data.packages.map(pkg => ({
           ...pkg,

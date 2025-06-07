@@ -197,19 +197,15 @@ export const ProjectService = {
       }
     }
     
-    // Try direct axios call as last resort
+    // Try direct API call as last resort
     try {
-      console.debug('Making direct axios call to /api/v1/project-manager/projects/')
-      const response = await axios.get('/api/v1/project-manager/projects/', {
-        headers: {
-          'Authorization': String(api.defaults.headers.common['Authorization'])
-        }
-      })
+      console.debug('Making direct API call to /api/v1/project-manager/projects/')
+      const response = await api.get('/api/v1/project-manager/projects/')
       
-      console.debug('Direct axios call response:', {
-        status: response.status,
-        data: response.data
-      })
+              console.debug('Direct API call response:', {
+          status: response.status,
+          data: response.data
+        })
       
       if (Array.isArray(response.data)) {
         this._cacheProjects(response.data)
@@ -219,7 +215,7 @@ export const ProjectService = {
         return response.data.results
       }
     } catch (directError: any) {
-      console.error('Direct axios call failed:', directError)
+      console.error('Direct API call failed:', directError)
     }
     
     // If we got here after trying everything, check if we have cached projects as a last resort
@@ -576,14 +572,13 @@ export const ProjectService = {
       }
     }
     
-    // Try direct axios call as last resort with both endpoints
+    // Try direct API call as last resort with both endpoints
     for (const baseEndpoint of ['project-manager', 'builder']) {
       try {
         const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectIdStr}/`
-        console.debug(`Making direct axios call to ${absolutePath}`)
+        console.debug(`Making direct API call to ${absolutePath}`)
         
-        const response = await axios.get(absolutePath, {
-          headers: api.defaults.headers.common,
+        const response = await api.get(absolutePath, {
           params: fullData ? { full_data: true } : {},
           // Set validateStatus to prevent axios from rejecting non-2xx responses
           validateStatus: (status) => status < 500
@@ -591,7 +586,7 @@ export const ProjectService = {
         
         // Log the content type and check if response is HTML
         const contentType = response.headers['content-type'] || '';
-        console.debug('Direct axios call response:', {
+        console.debug('Direct API call response:', {
           status: response.status,
           contentType,
           dataType: typeof response.data,
@@ -608,9 +603,9 @@ export const ProjectService = {
         if (response.status >= 200 && response.status < 300) {
           return response.data;
         }
-      } catch (directError: any) {
-        console.error(`Direct axios call to ${baseEndpoint} failed:`, directError)
-      }
+              } catch (directError: any) {
+          console.error(`Direct API call to ${baseEndpoint} failed:`, directError)
+        }
     }
     
     // If we've tried all paths and none worked, throw the last error

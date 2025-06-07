@@ -9,11 +9,9 @@ RUN npm ci
 
 # Railway build arguments and environment variables
 ARG VITE_STRIPE_PUBLISHABLE_KEY
-ARG VITE_BACKEND_URL
 
 # Set Vite env vars (embedded in built code)
 ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
-ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
 # Copy source and build application
 COPY . .
@@ -22,17 +20,7 @@ RUN npm run build
 # Production stage - Nginx server
 FROM nginx:alpine as production-stage
 
-# Install envsubst utility
-RUN apk add --no-cache bash gettext
-
-# Re-set backend URL for Nginx configuration
-ARG VITE_BACKEND_URL
-ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
-
-# Log backend URL for debugging
-RUN echo "Backend URL will be set to: ${VITE_BACKEND_URL}"
-
-# Set up Nginx configuration template (env vars processed at runtime)
+# Set up Nginx configuration for Railway proxy architecture
 RUN mkdir -p /etc/nginx/templates
 COPY <<EOF /etc/nginx/templates/default.conf.template
 server {
@@ -41,48 +29,31 @@ server {
     root /usr/share/nginx/html;
     index index.html;
     
-    # API request proxy to backend
+    # API request proxy to backend via Railway internal network
     location /api/ {
-        # Use the backend service name for Railway internal networking with IPv6 support
-        # The service name "backend" should match your Railway service name
-        resolver 127.0.0.11 ipv6=off;
+        # Proxy to backend service via Railway internal networking
         proxy_pass http://backend.railway.internal:8000;
         
-        # For debugging
-        access_log /var/log/nginx/api_access.log;
-        error_log /var/log/nginx/api_error.log debug;
-        
-        # Standard proxy headers
+        # Standard proxy headers for Django
         proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header X-Forwarded-Host \$host;
-        proxy_cache_bypass \$http_upgrade;
+        
+        # Handle streaming responses and prevent buffering
         proxy_buffering off;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # Timeouts for AI processing
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
         
-        # CORS headers
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRFToken' always;
-        add_header 'Access-Control-Expose-Headers' 'Content-Length,Content-Range' always;
-        
-        # OPTIONS request handling
-        if (\$request_method = 'OPTIONS') {
-            add_header 'Access-Control-Allow-Origin' '*';
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
-            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRFToken';
-            add_header 'Access-Control-Max-Age' 1728000;
-            add_header 'Content-Type' 'text/plain; charset=utf-8';
-            add_header 'Content-Length' 0;
-            return 204;
-        }
+        # Logging for debugging
+        access_log /var/log/nginx/api_access.log;
+        error_log /var/log/nginx/api_error.log;
     }
 
     # SPA client-side routing
@@ -115,5 +86,5 @@ COPY --from=build-stage /app/dist /usr/share/nginx/html
 # Expose HTTP port
 EXPOSE 80
 
-# Start Nginx (templates processed automatically)
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

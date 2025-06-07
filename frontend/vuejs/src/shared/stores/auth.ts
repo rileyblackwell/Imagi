@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
+import api from '@/shared/services/api'
 import type { User } from '@/apps/auth/types/auth'
 
 // Define token data structure interface
@@ -162,7 +163,7 @@ export const useAuthStore = defineStore('global-auth', () => {
         
         try {
           // Check auth status with backend
-          const response = await axios.get('/api/v1/auth/init/')
+          const response = await api.get('/api/v1/auth/init/')
           
           if (response.data.isAuthenticated) {
             // Update user data from server
@@ -223,7 +224,7 @@ export const useAuthStore = defineStore('global-auth', () => {
     const authCheckPromise = (async () => {
       try {
         axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-        const response = await axios.get('/api/v1/auth/init/')
+        const response = await api.get('/api/v1/auth/init/')
         const authStatus = !!response.data.isAuthenticated
         
         // Update the last check time
@@ -266,7 +267,7 @@ export const useAuthStore = defineStore('global-auth', () => {
         }
         
         axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-        const response = await axios.get('/api/v1/auth/init/')
+        const response = await api.get('/api/v1/auth/init/')
         
         if (response.data.isAuthenticated) {
           // Update user data from server
@@ -319,7 +320,7 @@ export const useAuthStore = defineStore('global-auth', () => {
 
   const refreshToken = async () => {
     try {
-      const response = await axios.post('/api/v1/auth/refresh-token/')
+      const response = await api.post('/api/v1/auth/refresh-token/')
       if (response.data.token) {
         setAuthState(response.data.user, response.data.token)
         return true

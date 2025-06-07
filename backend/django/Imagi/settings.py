@@ -215,24 +215,16 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# CORS settings
+# CORS settings - Updated for proxy architecture
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "https://imagi.up.railway.app",
+    "http://localhost:5174",  # Development: Vite dev server
+    "http://127.0.0.1:5174",  # Development: Vite dev server (alternate)
+    "https://imagi.up.railway.app",  # Production: Public frontend domain
 ]
 
 # Set to False when using specific origins with credentials
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
-
-# Define allowed origins - both public and internal Railway domains
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5174',
-    'http://127.0.0.1:5174', 
-    'https://imagi.up.railway.app',
-    'http://frontend.railway.internal'
-]
 
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -272,13 +264,11 @@ CORS_ALLOW_METHODS = [
 # Add additional CORS configuration
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
-# CSRF settings
+# CSRF settings - Updated for proxy architecture
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'https://imagi.up.railway.app',
+    'http://localhost:5174',  # Development: Vite dev server
+    'http://127.0.0.1:5174',  # Development: Vite dev server (alternate)
+    'https://imagi.up.railway.app',  # Production: Public frontend domain
 ]
 
 # Cookie settings - configured for cross-domain requests via Railway architecture

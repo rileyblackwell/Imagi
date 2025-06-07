@@ -7,7 +7,7 @@ import type {
 
 // Constants for API configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
+  BASE_URL: '', // Always use relative URLs - proxy handles routing in both dev and production
   DEFAULT_HEADERS: {
     'Accept': 'application/json',
     'Content-Type': 'application/json'
@@ -159,14 +159,14 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   
   // Only fetch CSRF token for mutation requests
   if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
-    if (!document.cookie.includes('csrftoken')) {
-      console.debug('Fetching CSRF token')
-      try {
-        await axios.get(`${API_CONFIG.BASE_URL}/api/v1/csrf/`)
-      } catch (error) {
-        console.error('Error fetching CSRF token:', error)
+          if (!document.cookie.includes('csrftoken')) {
+        console.debug('Fetching CSRF token')
+        try {
+          await axios.get('/api/v1/csrf/')
+        } catch (error) {
+          console.error('Error fetching CSRF token:', error)
+        }
       }
-    }
     
     const csrfToken = document.cookie
       .split('; ')

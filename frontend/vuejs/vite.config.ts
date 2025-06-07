@@ -63,21 +63,23 @@ export default defineConfig({
       overlay: false, // Disable the HMR error overlay to prevent URI errors from breaking the UI
     },
     proxy: {
-      // Proxy API requests to the Django backend
+      // Proxy all API requests to the Django backend
+      // This allows consistent API calls using relative URLs in both development and production
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         configure: (proxy, _options) => {
+          const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8000';
+          
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             // Log request info when debugging
-            // console.log('Proxying request:', req.method, req.url);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`🔄 Proxy: ${req.method} ${req.url} → ${backendUrl}${req.url}`);
+            }
           });
           
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            // Log response headers for debugging
-            // console.log('Proxy response:', proxyRes.statusCode, req.url);
-            
             // Ensure proper headers for streaming responses
             if (req.headers.accept?.includes('text/event-stream')) {
               proxyRes.headers['content-type'] = 'text/event-stream';
@@ -86,8 +88,8 @@ export default defineConfig({
             }
           });
           
-          proxy.on('error', (err, _req, _res) => {
-            console.error('Proxy error:', err);
+          proxy.on('error', (err, req, _res) => {
+            console.error(`❌ Proxy Error: ${req.method} ${req.url} → ${backendUrl}${req.url}`, err.message);
           });
         }
       }
