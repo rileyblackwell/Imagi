@@ -89,6 +89,9 @@ import { WorkspaceChat } from '../components/organisms/workspace'
 import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
 
+// Ensure all services use the shared API client with proper timeout configurations
+const AI_TIMEOUT = 90000 // 90 seconds for AI processing
+
 const route = useRoute()
 const store = useAgentStore()
 const projectStore = useProjectStore()
@@ -202,48 +205,79 @@ async function createCommitFromPrompt(filePath: string, prompt: string) {
       filePathToUse = '/';
     }
     
-    // Add a small delay to ensure file system operations are complete
-    // This helps especially with the initial commit
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Retry logic for git commit creation
+    const maxRetries = 2;
+    let lastError: any = null;
     
-    // Call the version control API to create a commit
-    try {
-      console.log(`Creating version for project ${projectId.value} with file path "${filePathToUse}"`);
-      const result = await AgentService.createVersion(
-        projectId.value, 
-        {
-          file_path: filePathToUse,
-          description: summary
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Progressive delay: longer wait for each retry attempt
+        const delay = attempt === 1 ? 3000 : 5000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Verify the file exists by trying to get project files
+        if (filePathToUse !== '/') {
+          try {
+            const files = await FileService.getProjectFiles(projectId.value);
+            const fileExists = files.some(f => f.path === filePath);
+            if (!fileExists && attempt < maxRetries) {
+              continue; // Try again with longer delay
+            }
+          } catch (fileCheckError) {
+            // Continue anyway - the backend will handle the error
+          }
         }
-      );
-      
-      // Only log success if the operation actually succeeded
-      if (result.success) {
-        if (result.commitHash) {
-          console.log('Created git commit for changes with description:', summary);
-        } else if (result.message && result.message.includes('No file changes')) {
-          // This is an expected state in some cases, so log it appropriately
-          console.log('Version control: No file changes detected to commit');
+        
+        // Call the version control API to create a commit
+        const result = await AgentService.createVersion(
+          projectId.value, 
+          {
+            file_path: filePathToUse,
+            description: summary
+          }
+        );
+        
+        // Only log success if the operation actually succeeded
+        if (result.success) {
+          if (result.commitHash) {
+            // Git commit created successfully
+          } else if (result.message && result.message.includes('No file changes')) {
+            console.log('Version control: No file changes detected to commit');
+          }
+          return; // Success - exit the retry loop
         } else {
-          console.log('Version control operation completed:', result.message);
+          // Skip logging errors containing "No changes to commit" as they're not really errors
+          if (result.error && result.error.includes('No changes to commit')) {
+            console.log('Version control: No changes needed to commit');
+            return; // This is not an error - exit the retry loop
+          } else {
+            lastError = new Error(result.error || 'Unknown error');
+            if (attempt === maxRetries) {
+              console.error('Failed to create version after all retries:', result.error);
+            }
+          }
         }
-      } else {
-        // Skip logging errors containing "No changes to commit" as they're not really errors
-        if (result.error && result.error.includes('No changes to commit')) {
+      } catch (versionError: any) {
+        lastError = versionError;
+        
+        // Check if this is a "no changes to commit" scenario which we don't consider an error
+        if (versionError.message && versionError.message.includes('No changes to commit')) {
           console.log('Version control: No changes needed to commit');
-        } else {
-          console.error('Failed to create version:', result.error || 'Unknown error');
+          return; // This is not an error - exit the retry loop
         }
+        
+        if (attempt === maxRetries) {
+          console.error('Version control error after all retries:', versionError);
+        }
+        // Don't throw - attempt to continue even if version control fails
       }
-    } catch (versionError: any) {
-      // Check if this is a "no changes to commit" scenario which we don't consider an error
-      if (versionError.message && versionError.message.includes('No changes to commit')) {
-        console.log('Version control: No changes needed to commit');
-      } else {
-        console.error('Version control error:', versionError);
-      }
-      // Don't throw - attempt to continue even if version control fails
     }
+    
+    // If we get here, all retries failed
+    if (lastError) {
+      console.error('All commit attempts failed. Last error:', lastError);
+    }
+    
   } catch (error) {
     console.error('Failed to create git commit:', error);
     // Don't throw - this is a non-critical operation
@@ -355,7 +389,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 id: `assistant-response-${Date.now()}`
               });
               
-              // Create a git commit for the CSS changes
+              // Create a git commit for the CSS changes - WAIT for applyCode to complete
               await createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying stylesheet changes:', applyError);
@@ -421,7 +455,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 id: `assistant-response-${Date.now()}`
               })
               
-              // Create a git commit for the HTML changes
+              // Create a git commit for the HTML changes - WAIT for applyCode to complete
               await createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying HTML template:', applyError)
@@ -484,7 +518,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 id: `assistant-response-${Date.now()}`
               })
               
-              // Create a git commit for the applied changes
+              // Create a git commit for the applied changes - WAIT for applyCode to complete
               await createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying generated code:', applyError)

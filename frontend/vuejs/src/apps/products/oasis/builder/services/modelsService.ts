@@ -1,5 +1,4 @@
-import api from './api'
-import { buildApiUrl } from '@/shared/services/api'
+import api, { buildApiUrl } from '@/shared/services/api'
 import type { AIModel, ModelConfig } from '../types/services'
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 

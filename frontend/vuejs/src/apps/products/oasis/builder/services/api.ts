@@ -2,6 +2,10 @@ import api, { getAuthToken } from '@/shared/services/api'
 import { handleAPIError } from '../utils/errors'
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosError } from 'axios'
 
+// DEPRECATED: This builder-specific API client is no longer used
+// All services should use the shared API client from '@/shared/services/api'
+// This file is kept for backward compatibility but will be removed in future versions
+
 // Constants for API configuration - keeping timeout separate for longer AI processing
 export const API_CONFIG = {
   TIMEOUT: 60000, // 60 seconds (increased from 30 to handle longer AI model processing)

@@ -1,5 +1,4 @@
-import api from './api'
-import { buildApiUrl } from '@/shared/services/api'
+import api, { buildApiUrl } from '@/shared/services/api'
 
 /**
  * Service for handling preview functionality

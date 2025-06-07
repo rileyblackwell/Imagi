@@ -104,7 +104,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
+import api, { buildApiUrl } from '@/shared/services/api';
 
 const props = defineProps({
   projectId: {
@@ -136,7 +136,7 @@ const loadVersions = async () => {
   
   isLoading.value = true;
   try {
-    const response = await axios.get(`/api/v1/builder/${props.projectId}/versions/`);
+    const response = await api.get(buildApiUrl(`/api/v1/builder/${props.projectId}/versions/`));
     if (response.data.success && response.data.versions) {
       versions.value = response.data.versions;
     } else {
@@ -165,7 +165,7 @@ const confirmReset = async () => {
   }
   
   try {
-    const response = await axios.post(`/api/v1/builder/${props.projectId}/versions/reset/`, {
+    const response = await api.post(buildApiUrl(`/api/v1/builder/${props.projectId}/versions/reset/`), {
       commit_hash: selectedVersion.value.hash
     });
     

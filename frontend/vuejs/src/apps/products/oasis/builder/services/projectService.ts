@@ -1,12 +1,12 @@
-import api from './api'
+import api, { buildApiUrl } from '@/shared/services/api'
 import type { Project, ProjectFile } from '../types/components'
 
 
 // Define API path constants
 const API_PATHS = {
-  PROJECT_MANAGER: 'api/v1/project-manager',
-  BUILDER: 'api/v1/builder',
-  AGENTS: 'api/v1/agents'
+  PROJECT_MANAGER: '/api/v1/project-manager',
+  BUILDER: '/api/v1/builder',
+  AGENTS: '/api/v1/agents'
 }
 
 // Define cache keys
@@ -107,9 +107,9 @@ export const ProjectService = {
     
     // Update the order of API paths to try the project_manager endpoint first
     const apiPaths = [
-      'api/v1/project-manager/projects/',  // Primary endpoint matching Django backend URLs
+      '/api/v1/project-manager/projects/',  // Primary endpoint matching Django backend URLs
       API_PATHS.PROJECT_MANAGER + '/projects/',
-      'api/v1/builder/builder/',          // Fallback endpoint using new URL structure
+      '/api/v1/builder/builder/',          // Fallback endpoint using new URL structure
       API_PATHS.BUILDER + '/builder/',
     ]
     
@@ -121,7 +121,7 @@ export const ProjectService = {
     // Try each path in sequence
     for (const path of apiPaths) {
       try {
-        const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+        const cleanPath = buildApiUrl(path);
         console.debug(`Making API request to get projects from path: ${cleanPath}`)
         
         // Debug log auth header to verify it's being sent
@@ -179,7 +179,7 @@ export const ProjectService = {
                 // Update the token in the API headers
                 api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
                 // Try again with the first path only
-                const retryResponse = await api.get(apiPaths[0])
+                const retryResponse = await api.get(buildApiUrl(apiPaths[0]))
                 if (Array.isArray(retryResponse.data)) {
                   return retryResponse.data
                 } else if (retryResponse.data?.results && Array.isArray(retryResponse.data.results)) {
@@ -281,7 +281,7 @@ export const ProjectService = {
     
     try {
       // Update to match the exact URL structure in backend/django/apps/Products/Oasis/ProjectManager/api/urls.py
-      const response = await api.post(buildApiUrl(`api/v1/project-manager/projects/create/`), {
+      const response = await api.post(buildApiUrl(`/api/v1/project-manager/projects/create/`), {
         name,
         description
       })
@@ -390,7 +390,7 @@ export const ProjectService = {
     
     try {
       // Use ProjectManager API directly with buildApiUrl for consistency
-      const updateUrl = buildApiUrl(`api/v1/project-manager/projects/${projectId}/`)
+      const updateUrl = buildApiUrl(`/api/v1/project-manager/projects/${projectId}/`)
       console.debug('Project API - updateProject URL:', updateUrl)
       
       const response = await api.patch(updateUrl, data)
@@ -427,7 +427,7 @@ export const ProjectService = {
     
     try {
       // Use buildApiUrl to ensure proper URL construction for proxying
-      const deleteUrl = buildApiUrl(`api/v1/project-manager/projects/${projectId}/delete/`)
+      const deleteUrl = buildApiUrl(`/api/v1/project-manager/projects/${projectId}/delete/`)
       console.debug('Project API - deleteProject URL:', deleteUrl)
       
       const response = await api.delete(deleteUrl)
@@ -465,9 +465,9 @@ export const ProjectService = {
     // Try multiple API paths, starting with project-manager
     const apiPaths = [
       // Try direct paths first with explicit API endpoint
-      'api/v1/project-manager/projects/' + projectIdStr + '/',
-      'api/v1/project-manager/projects/detail/' + projectIdStr + '/',
-      'api/v1/builder/builder/' + projectIdStr + '/',
+      '/api/v1/project-manager/projects/' + projectIdStr + '/',
+      '/api/v1/project-manager/projects/detail/' + projectIdStr + '/',
+      '/api/v1/builder/builder/' + projectIdStr + '/',
       
       // Then try the standard paths
       API_PATHS.PROJECT_MANAGER + '/projects/' + projectIdStr + '/',
@@ -732,18 +732,3 @@ export const ProjectService = {
   }
 }
 
-/**
- * Helper function to build a proper API URL
- * Always returns an absolute URL starting with a forward slash
- */
-function buildApiUrl(path: string) {
-  // Remove leading slashes for consistency
-  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-  
-  // If already has api/v1/ prefix, use as is, otherwise add it
-  const apiPath = cleanPath.startsWith('api/v1/') ? cleanPath : `api/v1/${cleanPath}`;
-  
-  // CRITICAL: Always add leading slash to make URL absolute to site root
-  // This prevents it from being relative to current path (/products/oasis/builder/)
-  return `/${apiPath}`;
-}

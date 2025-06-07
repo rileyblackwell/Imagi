@@ -1,21 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import api from '@/shared/services/api'
-import { useAuthStore } from './auth'
+import api, { buildApiUrl } from '@/shared/services/api'
 
-// Helper function for safely parsing JSON
-const safeJSONParse = <T>(jsonString: string | null, fallback: T): T => {
-  if (!jsonString) return fallback
-  try {
-    return JSON.parse(jsonString) as T
-  } catch (e) {
-    return fallback
-  }
-}
-
-// Increase cache timeout value to reduce frequent balance API calls
-// Only fetch new balance data when explicitly needed
-const BALANCE_CACHE_TIMEOUT = 60000 // Increase to 60 seconds (1 minute)
 
 interface BalanceState {
   balance: number;
@@ -57,7 +42,7 @@ export const useBalanceStore = defineStore('global-balance', {
       try {
         // Ignore forceRefresh parameter but still use it as a valid parameter
         // to maintain compatibility with existing calls
-        const response = await api.get<{ balance: number }>('/api/v1/payments/balance/')
+        const response = await api.get<{ balance: number }>(buildApiUrl('/api/v1/payments/balance/'))
         this.balance = response.data.balance
         this.lastUpdated = new Date().toISOString()
         return response.data.balance

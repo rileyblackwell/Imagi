@@ -1,5 +1,4 @@
-import api from './api'
-import { buildApiUrl } from '@/shared/services/api'
+import api, { buildApiUrl } from '@/shared/services/api'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
@@ -13,8 +12,8 @@ import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
 import { ModelsService } from '@/apps/products/oasis/builder/services/modelsService'
 
-// Use the builder API instance which already has extended timeout (90 seconds)
-const longTimeoutApi = api
+// Use the shared API instance with extended timeout for AI operations
+const AI_TIMEOUT = 90000 // 90 seconds for AI processing
 
 function getPaymentsStore() {
   // Get the payments store using function to avoid SSR issues
@@ -130,7 +129,7 @@ export const AgentService = {
         payload.is_build_mode = true;
       }
       
-      const response = await longTimeoutApi.post(endpoint, payload)
+      const response = await api.post(endpoint, payload, { timeout: AI_TIMEOUT })
       
       // Store the conversation ID for future requests based on file type
       if (response.data.conversation_id) {
@@ -241,11 +240,8 @@ export const AgentService = {
         }))
       }
       
-      // Log the endpoint we're using
-      console.log(`Using chat endpoint for processing message in chat mode`);
-      
       // API call
-      const response = await api.post(buildApiUrl('/api/v1/agents/chat/'), payload)
+      const response = await api.post(buildApiUrl('/api/v1/agents/chat/'), payload, { timeout: AI_TIMEOUT })
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
@@ -482,32 +478,122 @@ export const AgentService = {
         description: data.description || 'Project update'
       }
       
-      console.log('Creating version with payload:', payload);
-      
+      // Check if this is a new project by trying to get version history first
+      let isNewProject = false;
       try {
-        // Add extra logging
-              console.log(`Making POST request to /api/v1/builder/${projectId}/versions/`);
+        const historyCheck = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`));
+        if (historyCheck.data.success && (!historyCheck.data.versions || historyCheck.data.versions.length === 0)) {
+          isNewProject = true;
+        }
+      } catch (historyError: any) {
+        // If we can't get history, assume it might be a new project
+        isNewProject = true;
+      }
       
-      const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/versions/`), payload)
+      // For new projects, use much longer delay to ensure backend git initialization completes
+      // For existing projects, use shorter delay
+      const delayTime = isNewProject ? 5000 : 1000;
+      await new Promise(resolve => setTimeout(resolve, delayTime));
+      
+      // For new projects, make multiple attempts with verification
+      const maxAttempts = isNewProject ? 3 : 1;
+      
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (attempt > 1) {
+          // Additional delay between attempts for new projects
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
         
-        // Log successful response
-        console.log('Version creation API response:', {
-          status: response.status,
-          success: response.data.success,
-          message: response.data.message,
-          hasCommitHash: !!response.data.commit_hash
-        });
-        
-        // Check for explicit error in response data
-        if (response.data.error || response.data.success === false) {
-          console.error('Server returned error:', response.data.error || 'Unknown error');
+        try {
+          const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/versions/`), payload)
+          
+          // Check for explicit error in response data
+          if (response.data.error || response.data.success === false) {
+            // Special handling for "No changes to commit" which is actually not an error
+            // but a normal state we should handle gracefully
+            if (response.data.error === 'No changes to commit detected' || 
+                response.data.message === 'No changes to commit detected' ||
+                (response.data.error && response.data.error.includes('No changes to commit')) ||
+                (response.data.message && response.data.message.includes('No changes to commit'))) {
+              
+              // For new projects, this likely means files were included in initial commit
+              if (isNewProject) {
+                // Check if initial commit was created
+                try {
+                  const postHistory = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`));
+                  if (postHistory.data.success && postHistory.data.versions && postHistory.data.versions.length > 0) {
+                    return {
+                      success: true,
+                      message: 'Files were included in initial project commit',
+                      commitHash: postHistory.data.versions[0].hash,
+                      error: null
+                    };
+                  }
+                } catch (historyRecheckError: any) {
+                  // Continue with normal "no changes" handling
+                }
+              }
+              
+              console.log('No changes to commit - this is expected after certain operations');
+              return {
+                success: true, // Treat as success since this is not a real error
+                message: 'No file changes detected to commit',
+                commitHash: null,
+                error: null
+              };
+            }
+            
+            return {
+              success: false,
+              message: response.data.message || 'Failed to create version',
+              error: response.data.error || 'Server returned failure status'
+            }
+          }
+          
+          return {
+            success: true,
+            message: response.data.message || 'Version created successfully',
+            commitHash: response.data.commit_hash || null,
+            error: null
+          }
+        } catch (apiError: any) {
+          // Enhanced API error logging with more context
+          console.error('API error when creating version:', {
+            projectId,
+            filePath,
+            status: apiError.response?.status,
+            statusText: apiError.response?.statusText,
+            data: apiError.response?.data,
+            url: apiError.config?.url,
+            method: apiError.config?.method
+          });
           
           // Special handling for "No changes to commit" which is actually not an error
           // but a normal state we should handle gracefully
-          if (response.data.error === 'No changes to commit detected' || 
-              response.data.message === 'No changes to commit detected' ||
-              (response.data.error && response.data.error.includes('No changes to commit')) ||
-              (response.data.message && response.data.message.includes('No changes to commit'))) {
+          if (apiError.response?.status === 400 && 
+              (apiError.response.data?.message?.includes('No changes to commit') ||
+               apiError.response.data?.error?.includes('No changes to commit') ||
+               apiError.response.data?.message === 'No changes to commit detected' ||
+               apiError.response.data?.error === 'No changes to commit detected')) {
+            
+            // For new projects, check if initial commit exists
+            if (isNewProject) {
+              try {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const postErrorHistory = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`));
+                if (postErrorHistory.data.success && postErrorHistory.data.versions && postErrorHistory.data.versions.length > 0) {
+                  return {
+                    success: true,
+                    message: 'Files were included in initial project commit',
+                    commitHash: postErrorHistory.data.versions[0].hash,
+                    error: null
+                  };
+                }
+              } catch (historyRecheckError: any) {
+                // Continue with normal handling
+              }
+            }
+            
             console.log('No changes to commit - this is expected after certain operations');
             return {
               success: true, // Treat as success since this is not a real error
@@ -517,53 +603,36 @@ export const AgentService = {
             };
           }
           
-          return {
-            success: false,
-            message: response.data.message || 'Failed to create version',
-            error: response.data.error || 'Server returned failure status'
+          // Handle 404 errors for files that don't exist
+          if (apiError.response?.status === 404) {
+            return {
+              success: false,
+              message: `File ${filePath} not found for commit`,
+              error: `File ${filePath} not found. The file may not have been created yet.`,
+              commitHash: null
+            };
           }
-        }
-        
-        return {
-          success: true,
-          message: response.data.message || 'Version created successfully',
-          commitHash: response.data.commit_hash || null,
-          error: null
-        }
-      } catch (apiError: any) {
-        // Log API error details
-        console.error('API error when creating version:', {
-          status: apiError.response?.status,
-          statusText: apiError.response?.statusText,
-          data: apiError.response?.data
-        });
-        
-        // Special handling for "No changes to commit" which is actually not an error
-        // but a normal state we should handle gracefully
-        if (apiError.response?.status === 400 && 
-            (apiError.response.data?.message?.includes('No changes to commit') ||
-             apiError.response.data?.error?.includes('No changes to commit') ||
-             apiError.response.data?.message === 'No changes to commit detected' ||
-             apiError.response.data?.error === 'No changes to commit detected')) {
           
-          console.log('No changes to commit - this is expected after certain operations');
-          return {
-            success: true, // Treat as success since this is not a real error
-            message: 'No file changes detected to commit',
-            commitHash: null,
-            error: null
-          };
+          // For new projects, retry on other errors
+          if (isNewProject && attempt < maxAttempts) {
+            continue;
+          }
+          
+          // Re-throw other errors to be handled by the outer catch
+          throw apiError;
         }
-        
-        // Re-throw other errors to be handled by the outer catch
-        throw apiError;
       }
+      
+      // If all attempts failed, return a generic error
+      return {
+        success: false,
+        error: 'All commit attempts failed'
+      };
     } catch (error: any) {
       // Special handling for specific error strings that should be treated as non-errors
       if (typeof error === 'object' && error.message && 
           (error.message.includes('No changes to commit') || 
            error.message.includes('No changes to commit detected'))) {
-        console.log('No changes to commit detected in outer catch - handling as a non-error state');
         return {
           success: true, // Mark as success since this is an expected state
           message: 'No file changes detected to commit',
@@ -628,26 +697,8 @@ export const AgentService = {
         onProgress({ status: 'Generating stylesheet', percent: 30 });
       }
       
-      console.log('Stylesheet API request payload:', {
-        endpoint: buildApiUrl('/api/v1/agents/build/stylesheet/'),
-        projectId,
-        filePath,
-        modelId,
-        promptLength: prompt.length,
-        filesCount: files.length
-      });
-      
       // Make API call to the stylesheet-specific endpoint
-      const response = await longTimeoutApi.post(buildApiUrl('/api/v1/agents/build/stylesheet/'), payload);
-      
-      // Log the response structure for debugging
-      console.log('Stylesheet API response structure:', {
-        status: response.status,
-        hasData: !!response.data,
-        hasCode: !!response.data?.code,
-        hasResponse: !!response.data?.response,
-        dataKeys: response.data ? Object.keys(response.data) : []
-      });
+      const response = await api.post(buildApiUrl('/api/v1/agents/build/stylesheet/'), payload, { timeout: AI_TIMEOUT });
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {

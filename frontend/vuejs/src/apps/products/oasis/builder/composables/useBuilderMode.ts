@@ -318,7 +318,6 @@ export function useBuilderMode() {
       if (pathParts.length > 1) {
         // There are directories in the path
         // Unfortunately we can't create them directly, but the backend will handle this
-        console.log(`File path "${file.path}" contains directories, ensuring they exist on server side...`);
       }
       
       // Update the file with the code
@@ -343,8 +342,9 @@ export function useBuilderMode() {
         });
       }
       
-      // Small delay to ensure file system operations are complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Longer delay to ensure file system operations are complete
+      // This prevents race conditions when creating git commits
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       return true;
     } catch (error) {

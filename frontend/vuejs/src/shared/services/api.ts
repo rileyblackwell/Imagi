@@ -3,6 +3,11 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
 // Centralized API Configuration
 // This ensures all services use the same configuration for API calls
+// IMPORTANT: This is the SINGLE shared API client used by ALL frontend services
+// including builder workspace, dashboard, payments, auth, etc.
+// All API requests are automatically proxied:
+// - Development: Vite dev server proxies /api/* to VITE_BACKEND_URL (localhost:8000)
+// - Production: Nginx proxies /api/* to backend service on Railway
 export const API_CONFIG = {
   // Always use relative URLs - proxy handles routing in both dev and production
   // Development: Vite dev server proxies /api/* to VITE_BACKEND_URL
@@ -81,7 +86,13 @@ api.interceptors.request.use(
       } else {
         // Fetch CSRF token if not available
         try {
-          await axios.get('/api/v1/csrf/', { withCredentials: true })
+          // Use a separate axios instance to avoid infinite recursion
+          const csrfClient = axios.create({
+            baseURL: API_CONFIG.BASE_URL,
+            withCredentials: true,
+            timeout: 10000
+          })
+          await csrfClient.get(buildApiUrl('/api/v1/csrf/'))
           const newCSRFToken = getCSRFToken()
           if (newCSRFToken) {
             config.headers['X-CSRFToken'] = newCSRFToken

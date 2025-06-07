@@ -1,10 +1,53 @@
-import api from './api'
-import { buildApiUrl } from '@/shared/services/api'
+import api, { buildApiUrl } from '@/shared/services/api'
 import type { ProjectFile } from '../types/index'
+import { AgentService } from './agentService'
 
 // Define API path constants
 const API_PATHS = {
-  BUILDER: 'api/v1/builder'
+  BUILDER: '/api/v1/builder'
+}
+
+/**
+ * Helper function to create git commits for file operations
+ */
+async function createFileOperationCommit(projectId: string, filePath: string, operation: 'created' | 'deleted'): Promise<void> {
+  try {
+    // Format file path properly for the backend
+    let filePathToUse;
+    if (filePath) {
+      // Make sure the file path starts with a forward slash
+      filePathToUse = filePath.startsWith('/') ? filePath : `/${filePath}`;
+    } else {
+      // Use root path if no file path provided
+      filePathToUse = '/';
+    }
+    
+    // Create commit message
+    const fileName = filePath.split('/').pop() || filePath;
+    const commitMessage = `${operation} ${fileName}`;
+    
+    // Add a delay to ensure file system operations are complete
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Call the version control API to create a commit
+    const result = await AgentService.createVersion(
+      projectId, 
+      {
+        file_path: filePathToUse,
+        description: commitMessage
+      }
+    );
+    
+    // Log result but don't throw errors - this is non-critical
+    if (result.success && result.commitHash) {
+      console.debug(`Git commit created for ${operation} file: ${fileName}`);
+    } else if (result.message && result.message.includes('No file changes')) {
+      console.debug(`No git commit needed for ${operation} file: ${fileName} (no changes detected)`);
+    }
+  } catch (error) {
+    // Log but don't throw - file operations should succeed even if git commits fail
+    console.warn(`Failed to create git commit for ${operation} file ${filePath}:`, error);
+  }
 }
 
 /**
@@ -180,21 +223,7 @@ export const FileService = {
     const fileExtension = filePath.split('.').pop()?.toLowerCase() || '';
     const isCSS = fileExtension === 'css';
     
-    // Log with appropriate level of detail
-    if (isCSS) {
-      console.info('FileService - updating CSS file content:', { 
-        projectId, 
-        filePath, 
-        contentLength: content.length,
-        contentPreview: content.substring(0, 50) + '...'
-      });
-    } else {
-      console.debug('File API - updating file content:', { 
-        projectId, 
-        filePath, 
-        contentLength: content.length 
-      });
-    }
+    // Update file content
     
     try {
       // For CSS files, ensure the static/css directory exists
@@ -218,16 +247,7 @@ export const FileService = {
       const timestamp = Date.now();
       const api_url = buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/?_t=${timestamp}`);
       
-      // Log the API call for CSS files
-      if (isCSS) {
-        console.info(`Sending CSS update to endpoint: ${api_url}`);
-      }
-      
       const response = await api.post(api_url, { content })
-      
-      if (isCSS) {
-        console.info(`Successfully updated CSS file: ${filePath}`, {status: response.status, responseType: typeof response.data});
-      }
       
       return response.data
     } catch (error: any) {
@@ -274,6 +294,11 @@ export const FileService = {
         type: response.data?.type
       })
       
+      // Create a git commit for the file creation (non-blocking)
+      createFileOperationCommit(projectId, filePath, 'created').catch(() => {
+        // Silently handle commit failures - file creation should still succeed
+      });
+      
       return response.data
     } catch (error: any) {
       // Enhanced error logging
@@ -311,6 +336,8 @@ export const FileService = {
       await this.createFile(projectId, placeholderPath, '')
       
       console.debug('Directory created successfully via .gitkeep file')
+      
+      // Note: Git commit for .gitkeep file creation is handled by createFile method
     } catch (error) {
       console.error('File API - error creating directory:', error)
       throw error
@@ -331,6 +358,11 @@ export const FileService = {
         console.warn('DELETE method failed, trying POST method:', deleteError)
         await api.post(buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`))
       }
+      
+      // Create a git commit for the file deletion (non-blocking)
+      createFileOperationCommit(projectId, filePath, 'deleted').catch(() => {
+        // Silently handle commit failures - file deletion should still succeed
+      });
       
       return true
     } catch (error) {
