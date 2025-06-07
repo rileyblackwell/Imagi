@@ -2,11 +2,6 @@ import api, { buildApiUrl } from '@/shared/services/api'
 import type { ProjectFile } from '../types/index'
 import { AgentService } from './agentService'
 
-// Define API path constants
-const API_PATHS = {
-  BUILDER: '/api/v1/builder'
-}
-
 /**
  * Helper function to create git commits for file operations
  */
@@ -228,8 +223,6 @@ export const FileService = {
     try {
       // For CSS files, ensure the static/css directory exists
       if (isCSS && filePath.includes('static/css/')) {
-        const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
-        
         // Check if the file exists first
         try {
           await this.getFile(projectId, filePath)

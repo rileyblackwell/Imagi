@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 import cssutils
 import logging
 from .agent_service import BaseAgentService
-from django.utils import timezone
 import re
 import os
 from functools import lru_cache
@@ -150,7 +149,7 @@ class StylesheetAgentService(BaseAgentService):
             
             # Parse CSS to check for syntax errors
             try:
-                sheet = cssutils.parseString(content)
+                cssutils.parseString(content)
                 logger.info("CSS parsed successfully")
             except Exception as e:
                 logger.warning(f"CSS parsing error: {str(e)}")
@@ -349,7 +348,7 @@ class StylesheetAgentService(BaseAgentService):
         """
         try:
             # Extract timeout from kwargs if provided
-            timeout = kwargs.pop('timeout', None) or self.request_timeout
+            kwargs.pop('timeout', None) or self.request_timeout
             
             # Get project path and files
             project_path = kwargs.get('project_path')

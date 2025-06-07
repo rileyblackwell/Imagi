@@ -137,7 +137,7 @@
 <script setup lang="ts">
 import { ref, reactive, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Form, Field, ErrorMessage } from 'vee-validate'
+import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'

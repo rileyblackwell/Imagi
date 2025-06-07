@@ -49,10 +49,7 @@ import DocsNavbar from '../components/molecules/navbars/DocsNavbar.vue'
 const route = useRoute()
 const router = useRouter()
 
-// Function to navigate programmatically - no longer needed but kept for reference
-const navigateToPage = (path) => {
-  router.push(path)
-}
+
 
 // Navigation structure
 const navigation = [

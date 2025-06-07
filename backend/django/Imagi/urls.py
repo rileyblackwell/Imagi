@@ -12,7 +12,6 @@ from django.conf import settings
 def favicon_view(request):
     return HttpResponse(status=204)
 
-from apps.Products.Oasis.ProjectManager.api.views import ProjectInitializeView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -37,7 +36,6 @@ urlpatterns = [
 # Debug toolbar in development
 if settings.DEBUG:
     try:
-        import debug_toolbar
         urlpatterns += [
             path('__debug__/', include('debug_toolbar.urls')),
         ]

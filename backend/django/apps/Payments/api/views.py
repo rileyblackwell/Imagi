@@ -3,28 +3,21 @@ API views for the Payments app.
 """
 
 import stripe
-from decimal import Decimal
 import logging
-import json
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
-from django.shortcuts import get_object_or_404
-from django.db import transaction
 
-from ..models import Transaction, CreditPlan, CreditPackage, PaymentMethod
 from ..services.stripe_service import StripeService
 from ..services.credit_service import CreditService
 from ..services.transaction_service import TransactionService
 from ..services.payment_method_service import PaymentMethodService
 from .serializers import (
     TransactionSerializer,
-    CreditPlanSerializer,
     CreditPackageSerializer,
-    PaymentMethodSerializer,
     PaymentHistorySerializer,
 )
 

@@ -1,6 +1,5 @@
 # builder/models.py
 
-import os
 from django.db import models
 from django.contrib.auth import get_user_model
 from .services.models_service import MODELS

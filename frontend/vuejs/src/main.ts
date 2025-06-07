@@ -8,8 +8,6 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
-import { useAuthStore } from '@/shared/stores/auth'
-import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'

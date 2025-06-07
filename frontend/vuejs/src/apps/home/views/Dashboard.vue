@@ -342,13 +342,7 @@ import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/stores'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
-import { CardContainer, StatCard } from '@/apps/home/components'
 import { useNotification } from '@/shared/composables/useNotification'
-import { ActionButton, IconButton, GradientText, ProgressBar } from '@/shared/components/atoms'
-import {   
-  EmptyState,
-  ResourceLink
-} from '@/shared/components/molecules'
 
 // Store initialization
 const authStore = useAuthStore()

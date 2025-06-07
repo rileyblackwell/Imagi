@@ -377,7 +377,7 @@ class TemplateAgentService(BaseAgentService):
         is_build_mode = kwargs.get('is_build_mode', False)
         
         # Extract timeout from kwargs if provided
-        timeout = kwargs.pop('timeout', None) or self.request_timeout
+        kwargs.pop('timeout', None) or self.request_timeout
         
         # Get conversation_id if available
         conversation_id = kwargs.get('conversation_id')

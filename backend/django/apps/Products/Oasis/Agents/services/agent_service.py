@@ -265,7 +265,6 @@ class BaseAgentService(ABC):
         Returns:
             dict: A dictionary with 'role' and 'content' keys for the system prompt
         """
-        pass
     
     @abstractmethod
     def validate_response(self, content):
@@ -279,7 +278,6 @@ class BaseAgentService(ABC):
         Returns:
             tuple: (is_valid, error_message)
         """
-        pass
     
     @abstractmethod
     def process_conversation(self, user_input, model, user, **kwargs):
@@ -296,7 +294,6 @@ class BaseAgentService(ABC):
         Returns:
             dict: The result of the conversation
         """
-        pass
     
     def get_additional_context(self, **kwargs):
         """

@@ -6,7 +6,7 @@ import logging
 from decimal import Decimal
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Optional
 
 from ..models import CreditBalance
 

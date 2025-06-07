@@ -279,7 +279,7 @@
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/apps/auth/stores'
 import { DefaultLayout } from '@/shared/layouts'
-import { GradientText, HomeNavbarButton, HeroBadge, SectionHeader } from '@/apps/home/components'
+import { GradientText, HeroBadge, SectionHeader } from '@/apps/home/components'
 import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
@@ -287,7 +287,6 @@ export default defineComponent({
   components: {
     DefaultLayout,
     GradientText,
-    HomeNavbarButton,
     HeroBadge,
     SectionHeader,
     CTASection

@@ -1,4 +1,4 @@
-import { ref, readonly } from 'vue'
+import { ref, readonly, type Ref, type DeepReadonly } from 'vue'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -7,6 +7,17 @@ export interface Toast {
   message: string;
   type: ToastType;
   timeout: number;
+}
+
+export interface UseToastReturn {
+  toasts: DeepReadonly<Ref<Toast[]>>;
+  showToast(message: string, type?: ToastType, timeout?: number): number;
+  hideToast(id: number): void;
+  clearToasts(): void;
+  success(message: string, timeout?: number): number;
+  error(message: string, timeout?: number): number;
+  info(message: string, timeout?: number): number;
+  warning(message: string, timeout?: number): number;
 }
 
 // Create a global reactive list of toasts
@@ -18,7 +29,7 @@ let toastIdCounter = 0
  * 
  * @returns Object with methods to show different types of toasts and clear them
  */
-export function useToast() {
+export function useToast(): UseToastReturn {
   /**
    * Show a toast notification
    * 

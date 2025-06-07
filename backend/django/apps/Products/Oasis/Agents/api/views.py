@@ -26,7 +26,6 @@ logger.info("Attempting to import StylesheetAgentService...")
 try:
     # First check if the file exists
     import os
-    import importlib.util
     
     # Get the directory of the current file
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
