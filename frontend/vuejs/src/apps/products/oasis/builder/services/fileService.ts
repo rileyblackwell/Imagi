@@ -1,4 +1,5 @@
 import api from './api'
+import { buildApiUrl } from '@/shared/services/api'
 import type { ProjectFile } from '../types/index'
 
 // Define API path constants
@@ -49,7 +50,7 @@ export const FileService = {
     try {
       // Try to get all files from the consolidated API endpoint first (backward compatibility)
       try {
-        const response = await api.get(`/api/v1/builder/${projectId}/directories/`)
+        const response = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/directories/`))
         
         // Check if response is HTML instead of JSON
         const contentType = response.headers['content-type'] || '';
@@ -73,18 +74,18 @@ export const FileService = {
       // If the directories endpoint failed or returned empty, try the new separate endpoints
       console.debug('File API - trying separate template and static endpoints')
       
-      const detailsResponse = await api.get(`/api/v1/builder/${projectId}/details/`)
+      const detailsResponse = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/details/`))
       
       if (detailsResponse.data && detailsResponse.data.file_counts) {
         console.log('File API - project details retrieved:', detailsResponse.data)
       }
       
       // Get templates first
-      const templatesResponse = await api.get(`/api/v1/builder/${projectId}/templates/`)
+      const templatesResponse = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/templates/`))
       const templates = templatesResponse.data || []
       
       // Then get static files
-      const staticResponse = await api.get(`/api/v1/builder/${projectId}/static/`)
+      const staticResponse = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/static/`))
       const staticFiles = staticResponse.data || []
       
       // Combine results
@@ -105,14 +106,14 @@ export const FileService = {
     console.debug('File API - getting directory files:', { projectId, directory })
     
     try {
-      const response = await api.get(`/api/v1/builder/${projectId}/directories/`)
+      const response = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/directories/`))
       
       if (!response.data || !Array.isArray(response.data)) {
         return []
       }
       
       // Filter files by directory
-      return response.data.filter(file => {
+      return response.data.filter((file: ProjectFile) => {
         // Check if the file is in the requested directory
         // This handles both files directly in the directory and in subdirectories
         return file.path.startsWith(directory)
@@ -152,7 +153,7 @@ export const FileService = {
     console.debug('File API - getting file content:', { projectId, filePath })
     
     try {
-      const response = await api.get(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/`)
+      const response = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/`))
       
       // Check if response is HTML instead of JSON
       const contentType = response.headers['content-type'] || '';
@@ -215,7 +216,7 @@ export const FileService = {
       
       // Include a timestamp in the API call for cache-busting
       const timestamp = Date.now();
-      const api_url = `/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/?_t=${timestamp}`;
+      const api_url = buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/content/?_t=${timestamp}`);
       
       // Log the API call for CSS files
       if (isCSS) {
@@ -263,7 +264,7 @@ export const FileService = {
         console.debug(`Parent directory ${dirPath} will be created automatically if needed`)
       }
       
-      const response = await api.post(`/api/v1/builder/${projectId}/files/create/`, {
+      const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/files/create/`), {
         path: filePath,
         content
       })
@@ -325,10 +326,10 @@ export const FileService = {
     try {
       // Try DELETE method first (REST standard)
       try {
-        await api.delete(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`)
+        await api.delete(buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`))
       } catch (deleteError) {
         console.warn('DELETE method failed, trying POST method:', deleteError)
-        await api.post(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`)
+        await api.post(buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/delete/`))
       }
       
       return true
@@ -345,7 +346,7 @@ export const FileService = {
     console.debug('File API - undoing file changes:', { projectId, filePath })
     
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/undo/`)
+      const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/files/${safeEncodeURIComponent(filePath)}/undo/`))
       
       return response.data?.content || ''
     } catch (error) {

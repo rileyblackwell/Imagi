@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { AuthAPI } from '../services/api'
 import { useAuthStore as useGlobalAuthStore } from '@/shared/stores/auth'
 import type { LoginCredentials, AuthResponse, UserRegistrationData, User } from '../types/auth'

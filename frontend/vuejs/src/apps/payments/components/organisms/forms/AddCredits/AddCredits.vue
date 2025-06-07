@@ -250,10 +250,10 @@ const processDirectPayment = async () => {
     error.value = ''
     successMessage.value = ''
     
-    const result = await store.processPayment(
-      finalAmount.value,
-      selectedPaymentMethod.value.payment_method_id
-    )
+    const result = await store.processPayment({
+      amount: finalAmount.value,
+      paymentMethodId: selectedPaymentMethod.value.payment_method_id
+    })
     
     if (result.requires_action) {
       // Get Stripe from window

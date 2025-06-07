@@ -1,4 +1,4 @@
-import { useAuthStore } from '../store/index'
+import { useAuthStore } from '../stores/index'
 import type { User, LoginCredentials, UserRegistrationData, AuthResponse } from '../types/auth'
 
 /**

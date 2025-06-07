@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { ProjectService } from '../services/projectService'
 import api from '../services/api'
+import { buildApiUrl } from '@/shared/services/api'
 import type { Project } from '../types/components'
 import { normalizeProject } from '../types/components'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
@@ -196,7 +197,7 @@ export const useProjectStore = defineStore('builder', () => {
         
         // Try to verify the token with a quick API call
         try {
-          await api.get('/auth/user/')
+          await api.get(buildApiUrl('/auth/user/'))
           setAuthenticated(true)
           return true
         } catch (apiError: any) {

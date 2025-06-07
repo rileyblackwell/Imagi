@@ -277,7 +277,7 @@
 
 <script>
 import { defineComponent, computed } from 'vue'
-import { useAuthStore } from '@/apps/auth/store'
+import { useAuthStore } from '@/apps/auth/stores'
 import { DefaultLayout } from '@/shared/layouts'
 import { GradientText, HomeNavbarButton, HeroBadge, SectionHeader } from '@/apps/home/components'
 import { CTASection } from '@/apps/home/components/organisms/sections'

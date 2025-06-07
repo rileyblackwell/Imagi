@@ -51,7 +51,7 @@
 <script>
 import { ref, onMounted, computed } from 'vue'
 import PaymentAmountSelector from '../molecules/PaymentAmountSelector.vue'
-import { usePaymentsStore } from '../../store'
+import { usePaymentsStore } from '../../stores'
 
 export default {
   name: 'PaymentForm',

@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
-import { usePaymentsStore } from '@/apps/payments/store';
+import { usePaymentsStore } from '@/apps/payments/stores';
 import { useBalanceStore } from '@/shared/stores/balance';
 import { useAgentStore } from '../../../stores/agentStore';
 

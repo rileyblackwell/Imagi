@@ -31,7 +31,7 @@
           <!-- Current Balance Card -->
           <div class="animate-fade-in-up animation-delay-300">
             <AccountBalanceCard
-              :credits="userCredits"
+              :credits="userCredits ?? undefined"
               :loading="isLoading"
               :last-updated="lastUpdated || undefined"
             />
@@ -130,7 +130,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { usePaymentsStore } from '../store'
+import { usePaymentsStore } from '../stores'
 import { storeToRefs } from 'pinia'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 import StatusMessage from '../components/molecules/messages/StatusMessage/StatusMessage.vue'

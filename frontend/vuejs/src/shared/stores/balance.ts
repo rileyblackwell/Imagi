@@ -50,20 +50,23 @@ export const useBalanceStore = defineStore('global-balance', {
   },
 
   actions: {
-    async fetchBalance() {
-      this.loading = true
+    async fetchBalance(showLoading: boolean = true, forceRefresh: boolean = false) {
+      this.loading = showLoading
       this.error = null
       
       try {
+        // Ignore forceRefresh parameter but still use it as a valid parameter
+        // to maintain compatibility with existing calls
         const response = await api.get<{ balance: number }>('/api/v1/payments/balance/')
         this.balance = response.data.balance
         this.lastUpdated = new Date().toISOString()
+        return response.data.balance
       } catch (error: any) {
         console.error('Error fetching balance:', error)
         this.error = error.message || 'Failed to fetch balance'
         throw error
       } finally {
-        this.loading = false
+        this.loading = showLoading
       }
     },
 
@@ -99,11 +102,29 @@ export const useBalanceStore = defineStore('global-balance', {
       this.error = null
     },
 
-    reset() {
+    /**
+     * Initialize balance (fetch initial balance from API)
+     */
+    initBalance() {
+      // Initialize with stored balance if available
+      this.fetchBalance()
+    },
+    
+    /**
+     * Reset balance state to default values
+     */
+    resetBalance() {
       this.balance = 0
       this.loading = false
       this.error = null
       this.lastUpdated = null
+    },
+
+    /**
+     * Alias for resetBalance for backward compatibility
+     */
+    reset() {
+      this.resetBalance()
     }
   }
-}) 
+})

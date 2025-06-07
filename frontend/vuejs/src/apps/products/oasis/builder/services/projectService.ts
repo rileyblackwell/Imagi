@@ -1,4 +1,3 @@
-import axios from 'axios'
 import api from './api'
 import type { Project, ProjectFile } from '../types/components'
 
@@ -199,8 +198,8 @@ export const ProjectService = {
     
     // Try direct API call as last resort
     try {
-      console.debug('Making direct API call to /api/v1/project-manager/projects/')
-      const response = await api.get('/api/v1/project-manager/projects/')
+              console.debug('Making direct API call to /api/v1/project-manager/projects/')
+        const response = await api.get(buildApiUrl('/api/v1/project-manager/projects/'))
       
               console.debug('Direct API call response:', {
           status: response.status,
@@ -247,7 +246,7 @@ export const ProjectService = {
    */
   async _refreshProjectsInBackground(authHeader: unknown) {
     try {
-      const response = await axios.get('/api/v1/project-manager/projects/', {
+      const response = await api.get(buildApiUrl('/api/v1/project-manager/projects/'), {
         headers: {
           'Authorization': String(authHeader)
         }
@@ -282,7 +281,7 @@ export const ProjectService = {
     
     try {
       // Update to match the exact URL structure in backend/django/apps/Products/Oasis/ProjectManager/api/urls.py
-      const response = await api.post(`api/v1/project-manager/projects/create/`, {
+      const response = await api.post(buildApiUrl(`api/v1/project-manager/projects/create/`), {
         name,
         description
       })
@@ -335,7 +334,7 @@ export const ProjectService = {
    */
   async initializeProject(projectId: string): Promise<{ success: boolean }> {
     try {
-      await api.post(`/api/v1/project-manager/projects/${projectId}/initialize/`);
+      await api.post(buildApiUrl(`/api/v1/project-manager/projects/${projectId}/initialize/`));
       return { success: true };
     } catch (error) {
       throw new Error(`Failed to initialize project: ${this.formatError(error)}`);
@@ -575,13 +574,13 @@ export const ProjectService = {
     // Try direct API call as last resort with both endpoints
     for (const baseEndpoint of ['project-manager', 'builder']) {
       try {
-        const absolutePath = `/api/v1/${baseEndpoint}/projects/${projectIdStr}/`
+        const absolutePath = buildApiUrl(`/api/v1/${baseEndpoint}/projects/${projectIdStr}/`)
         console.debug(`Making direct API call to ${absolutePath}`)
         
         const response = await api.get(absolutePath, {
           params: fullData ? { full_data: true } : {},
           // Set validateStatus to prevent axios from rejecting non-2xx responses
-          validateStatus: (status) => status < 500
+          validateStatus: (status: number) => status < 500
         })
         
         // Log the content type and check if response is HTML
@@ -630,7 +629,7 @@ export const ProjectService = {
    */
   async getActivities(): Promise<Activity[]> {
     try {
-      const response = await api.get(`${API_PATHS.BUILDER}/activities/`)
+      const response = await api.get(buildApiUrl(`${API_PATHS.BUILDER}/activities/`))
       return response.data?.results || []
     } catch (error) {
       console.error('Failed to fetch activities:', error)
@@ -644,7 +643,7 @@ export const ProjectService = {
    */
   async getStats(): Promise<DashboardStats> {
     try {
-      const response = await api.get(`${API_PATHS.BUILDER}/stats/`)
+      const response = await api.get(buildApiUrl(`${API_PATHS.BUILDER}/stats/`))
       return response.data || { 
         activeBuildCount: 0, 
         apiCallCount: 0, 

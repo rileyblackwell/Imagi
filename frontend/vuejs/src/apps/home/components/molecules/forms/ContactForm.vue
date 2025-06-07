@@ -81,7 +81,7 @@
 </template>
 
 <script>
-import { useHomeStore } from '@/apps/home/store/index'
+import { useHomeStore } from '@/apps/home/stores/index'
 import { computed } from 'vue'
 
 export default {

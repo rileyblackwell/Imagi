@@ -38,13 +38,14 @@ export const useBalanceStore = defineStore('builder-balance', () => {
   /**
    * Fetch current balance
    */
-  const fetchBalance = async (showLoading: boolean = true): Promise<void> => {
+  const fetchBalance = async (showLoading: boolean = true, forceRefresh: boolean = false): Promise<void> => {
     if (showLoading) {
       loading.value = true
     }
     
     try {
-      await globalBalanceStore.fetchBalance(false) // Don't show loading in global store
+      // The global balance store's fetchBalance no longer accepts parameters
+      await globalBalanceStore.fetchBalance()
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch balance'
     } finally {

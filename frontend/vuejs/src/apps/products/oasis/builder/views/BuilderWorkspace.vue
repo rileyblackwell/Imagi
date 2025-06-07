@@ -74,7 +74,7 @@ import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { PreviewService } from '../services/previewService'
 import { useAuthStore } from '@/shared/stores/auth'
-import { usePaymentsStore } from '@/apps/payments/store'
+import { usePaymentsStore } from '@/apps/payments/stores'
 import { useBalanceStore } from '@/shared/stores/balance'
 
 // Builder Components

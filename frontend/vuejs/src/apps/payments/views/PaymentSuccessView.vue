@@ -50,7 +50,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePaymentStore } from '../stores/payments'
-import { usePaymentsStore } from '../store'
+import { usePaymentsStore } from '../stores'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 
 const paymentStore = usePaymentStore()
@@ -86,7 +86,7 @@ onMounted(async () => {
       await paymentsStore.initializePayments();
       
       // Set the balance using the current value from the payments store
-      balance.value = paymentsStore.balance;
+      balance.value = paymentsStore.balance ?? 0;
     } else {
       error.value = 'Your payment is still being processed. Please check back later.'
     }

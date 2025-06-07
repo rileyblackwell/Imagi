@@ -31,7 +31,7 @@
           <!-- Current Balance Card -->
           <div class="animate-fade-in-up animation-delay-300">
             <AccountBalanceCard
-              :credits="userCredits"
+              :credits="userCredits ?? undefined"
               :loading="isLoading"
               :last-updated="lastUpdated || undefined"
             />
@@ -135,8 +135,8 @@
                       <tbody class="divide-y divide-dark-700">
                         <tr v-for="transaction in filteredTransactions" :key="transaction.id" class="hover:bg-dark-800/40 transition-colors">
                           <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ formatDate(transaction.created_at) }}</td>
-                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ transaction.model || '—' }}</td>
-                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ transaction.request_type || '—' }}</td>
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ transaction.transaction_type || '—' }}</td>
+                          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ transaction.transaction_type || '—' }}</td>
                           <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
                             <span :class="getAmountClass(transaction.amount)">
                               {{ formatCredits(transaction.amount) }}
@@ -164,7 +164,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { usePaymentsStore } from '../store'
+import { usePaymentsStore } from '../stores'
 import { storeToRefs } from 'pinia'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 import AccountBalanceCard from '../components/organisms/cards/AccountBalanceCard/AccountBalanceCard.vue'
@@ -229,14 +229,14 @@ const roundOrShow = (value: number) => {
 
 const totalSpent = computed(() => {
   return transactions.value
-    .filter(t => t.amount < 0)
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0)
+    .filter((t: Transaction) => t.amount < 0)
+    .reduce((sum: number, t: Transaction) => sum + Math.abs(Number(t.amount)), 0)
 })
 
 const totalAdded = computed(() => {
   const sum = transactions.value
-    .filter(t => t.amount > 0)
-    .reduce((acc, t) => acc + Number(t.amount), 0)
+    .filter((t: Transaction) => t.amount > 0)
+    .reduce((acc: number, t: Transaction) => acc + Number(t.amount), 0)
   return roundOrShow(sum)
 })
 

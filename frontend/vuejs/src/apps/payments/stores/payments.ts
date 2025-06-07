@@ -4,7 +4,6 @@ import type { Ref } from 'vue'
 import PaymentService from '../services/payment_service'
 import type { 
   PaymentMethod, 
-  TransactionHistoryItem, 
   Plan, 
   CreditPackage,
   Transaction
@@ -16,6 +15,10 @@ export const usePaymentStore = defineStore('payments', () => {
   // State
   const balance: Ref<number | null> = ref(null)
   const isLoadingBalance: Ref<boolean> = ref(false)
+  const userCredits: Ref<number | null> = ref(null)
+  const lastUpdated: Ref<string | null> = ref(null)
+  const isLoading: Ref<boolean> = ref(false)
+  const isHistoryLoading: Ref<boolean> = ref(false)
   const transactions: Ref<Transaction[]> = ref([])
   const totalTransactions: Ref<number> = ref(0)
   const isLoadingTransactions: Ref<boolean> = ref(false)
@@ -35,7 +38,7 @@ export const usePaymentStore = defineStore('payments', () => {
   )
 
   // Actions
-  async function fetchBalance() {
+  async function fetchBalance(skipLoading = false, forceRefresh = false) {
     isLoadingBalance.value = true
     error.value = null
     
@@ -75,7 +78,7 @@ export const usePaymentStore = defineStore('payments', () => {
     error.value = null
     
     try {
-      const history = await paymentService.getTransactionHistory()
+      const history = await paymentService.getTransactions()
       return history
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch transaction history'
@@ -141,16 +144,16 @@ export const usePaymentStore = defineStore('payments', () => {
     }
   }
 
-  async function processPayment(amount: number, paymentMethodId: string) {
+  async function processPayment(paymentData: { amount: number; paymentMethodId: string }) {
     isProcessingPayment.value = true
     error.value = null
     
     try {
-      const result = await paymentService.processPayment(amount, paymentMethodId)
+      const result = await paymentService.processPayment(paymentData.amount, paymentData.paymentMethodId)
       
       // If payment was successful, update the balance
-      if (result.success || result.new_balance) {
-        balance.value = result.new_balance
+      if (result.success || result.newBalance) {
+        balance.value = result.newBalance
       }
       
       return result
@@ -171,8 +174,8 @@ export const usePaymentStore = defineStore('payments', () => {
       const result = await paymentService.confirmPayment(paymentIntentId)
       
       // If payment was confirmed, update the balance
-      if (result.new_balance) {
-        balance.value = result.new_balance
+      if (result.newBalance) {
+        balance.value = result.newBalance
       }
       
       return result
@@ -192,8 +195,8 @@ export const usePaymentStore = defineStore('payments', () => {
       const result = await paymentService.verifyPayment(paymentIntentId)
       
       // If payment verification returned a new balance, update it
-      if (result.new_balance) {
-        balance.value = result.new_balance
+      if (result.newBalance) {
+        balance.value = result.newBalance
       }
       
       return result
@@ -291,8 +294,8 @@ export const usePaymentStore = defineStore('payments', () => {
       const result = await paymentService.deductCredits(credits, description)
       
       // Update balance if deduction was successful
-      if (result.new_balance !== undefined) {
-        balance.value = result.new_balance
+      if (result.newBalance !== undefined) {
+        balance.value = result.newBalance
       }
       
       return result
@@ -301,6 +304,33 @@ export const usePaymentStore = defineStore('payments', () => {
       console.error('Error deducting credits:', err)
       throw err
     }
+  }
+
+  // Initialize payments
+  async function initializePayments() {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      await Promise.all([
+        fetchBalance(),
+        fetchPaymentMethods()
+      ]);
+      lastUpdated.value = new Date().toISOString();
+      return true;
+    } catch (err: any) {
+      error.value = err.message || 'Failed to initialize payments';
+      console.error('Failed to initialize payments', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+  
+  // Fetch user credits (alias for fetchBalance for backward compatibility)
+  async function fetchUserCredits() {
+    const result = await fetchBalance();
+    userCredits.value = balance.value;
+    return result;
   }
 
   // Reset store state
@@ -312,12 +342,19 @@ export const usePaymentStore = defineStore('payments', () => {
     plans.value = []
     packages.value = []
     error.value = null
+    userCredits.value = null
+    lastUpdated.value = null
+    isLoading.value = false
   }
 
   return {
     // State
     balance,
     isLoadingBalance,
+    userCredits,
+    lastUpdated,
+    isLoading,
+    isHistoryLoading,
     transactions,
     totalTransactions,
     isLoadingTransactions,
@@ -339,6 +376,8 @@ export const usePaymentStore = defineStore('payments', () => {
     fetchTransactions,
     fetchTransactionHistory,
     fetchPaymentMethods,
+    fetchUserCredits,
+    initializePayments,
     setupCustomer,
     attachPaymentMethod,
     createPaymentIntent,

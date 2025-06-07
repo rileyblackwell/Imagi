@@ -1,4 +1,5 @@
 import api from './api'
+import { buildApiUrl } from '@/shared/services/api'
 import type { 
   CodeGenerationResponse, 
   AIModel, 
@@ -8,17 +9,12 @@ import type {
   CodeGenerationRequest,
   VersionControlResponse
 } from '../types/services'
-import { usePaymentsStore } from '@/apps/payments/store'
+import { usePaymentsStore } from '@/apps/payments/stores'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
 import { ModelsService } from '@/apps/products/oasis/builder/services/modelsService'
-import axios from 'axios'
 
-// Create a custom API instance with longer timeout
-const longTimeoutApi = axios.create({
-  baseURL: api.defaults.baseURL,
-  timeout: 90000, // 90 seconds timeout
-  headers: api.defaults.headers
-})
+// Use the builder API instance which already has extended timeout (90 seconds)
+const longTimeoutApi = api
 
 function getPaymentsStore() {
   // Get the payments store using function to avoid SSR issues
@@ -124,12 +120,12 @@ export const AgentService = {
       
       // Use the appropriate endpoint based on file type
       if (fileExtension === 'html') {
-        endpoint = '/api/v1/agents/build/template/';
+        endpoint = buildApiUrl('/api/v1/agents/build/template/');
       } else if (fileExtension === 'css') {
-        endpoint = '/api/v1/agents/build/stylesheet/';
+        endpoint = buildApiUrl('/api/v1/agents/build/stylesheet/');
       } else {
         // For other file types, use the chat API in build mode
-        endpoint = '/api/v1/agents/chat/';
+        endpoint = buildApiUrl('/api/v1/agents/chat/');
         payload.mode = 'build';
         payload.is_build_mode = true;
       }
@@ -146,7 +142,7 @@ export const AgentService = {
         const paymentsStore = getPaymentsStore();
         if (paymentsStore) {
           // Track credit usage in a generic way - just refresh the balance
-          paymentsStore.fetchBalance(false, true);
+          await paymentsStore.fetchBalance();
         }
       }
       
@@ -249,7 +245,7 @@ export const AgentService = {
       console.log(`Using chat endpoint for processing message in chat mode`);
       
       // API call
-      const response = await api.post('/api/v1/agents/chat/', payload)
+      const response = await api.post(buildApiUrl('/api/v1/agents/chat/'), payload)
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
@@ -261,7 +257,7 @@ export const AgentService = {
         const paymentsStore = getPaymentsStore();
         if (paymentsStore) {
           // Track credit usage in a generic way - just refresh the balance
-          paymentsStore.fetchBalance(false, true);
+          await paymentsStore.fetchBalance();
         }
       }
       
@@ -408,7 +404,7 @@ export const AgentService = {
     }
 
     try {
-      const response = await api.get(`/api/v1/builder/${projectId}/versions/`)
+      const response = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`))
       
       return {
         success: response.data.success !== false,
@@ -431,9 +427,9 @@ export const AgentService = {
     }
 
     try {
-      const response = await api.post(`/api/v1/builder/${projectId}/versions/reset/`, {
-        commit_hash: commitHash
-      })
+          const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/versions/reset/`), {
+      commit_hash: commitHash
+    })
       
       return {
         success: response.data.success !== false,
@@ -490,9 +486,9 @@ export const AgentService = {
       
       try {
         // Add extra logging
-        console.log(`Making POST request to /api/v1/builder/${projectId}/versions/`);
-        
-        const response = await api.post(`/api/v1/builder/${projectId}/versions/`, payload)
+              console.log(`Making POST request to /api/v1/builder/${projectId}/versions/`);
+      
+      const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/versions/`), payload)
         
         // Log successful response
         console.log('Version creation API response:', {
@@ -633,7 +629,7 @@ export const AgentService = {
       }
       
       console.log('Stylesheet API request payload:', {
-        endpoint: '/api/v1/agents/build/stylesheet/',
+        endpoint: buildApiUrl('/api/v1/agents/build/stylesheet/'),
         projectId,
         filePath,
         modelId,
@@ -642,7 +638,7 @@ export const AgentService = {
       });
       
       // Make API call to the stylesheet-specific endpoint
-      const response = await longTimeoutApi.post('/api/v1/agents/build/stylesheet/', payload);
+      const response = await longTimeoutApi.post(buildApiUrl('/api/v1/agents/build/stylesheet/'), payload);
       
       // Log the response structure for debugging
       console.log('Stylesheet API response structure:', {
@@ -668,7 +664,7 @@ export const AgentService = {
         const paymentsStore = getPaymentsStore();
         if (paymentsStore) {
           // Track credit usage in a generic way - just refresh the balance
-          paymentsStore.fetchBalance(false, true);
+          await paymentsStore.fetchBalance();
         }
       }
       
