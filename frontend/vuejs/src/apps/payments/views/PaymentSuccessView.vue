@@ -50,11 +50,9 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePaymentStore } from '../stores/payments'
-import { usePaymentsStore } from '../stores'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 
-const paymentStore = usePaymentStore()
-const paymentsStore = usePaymentsStore() // For balance tracking
+const paymentStore = usePaymentStore() // Single store instance
 const route = useRoute()
 
 // State
@@ -83,10 +81,10 @@ onMounted(async () => {
       creditsAdded.value = status.credits_added || 0
       
       // Initialize payment system with auto-refresh for accurate balance tracking
-      await paymentsStore.initializePayments();
+      await paymentStore.initializePayments();
       
       // Set the balance using the current value from the payments store
-      balance.value = paymentsStore.balance ?? 0;
+      balance.value = paymentStore.balance ?? 0;
     } else {
       error.value = 'Your payment is still being processed. Please check back later.'
     }

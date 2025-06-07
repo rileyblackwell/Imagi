@@ -51,7 +51,7 @@
 <script>
 import { ref, onMounted, computed } from 'vue'
 import PaymentAmountSelector from '../molecules/PaymentAmountSelector.vue'
-import { usePaymentsStore } from '../../stores'
+import { usePaymentStore } from '../../../../stores/payments'
 
 export default {
   name: 'PaymentForm',
@@ -65,7 +65,7 @@ export default {
     }
   },
   setup(props, { emit }) {
-    const store = usePaymentsStore()
+    const store = usePaymentStore()
     const amount = ref(props.initialAmount)
     const cardElement = ref(null)
     const stripe = ref(null)

@@ -83,18 +83,11 @@
                 </div>
                 
                 <!-- Modern search input -->
-                <div class="relative group flex-1 max-w-md">
-                  <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within:opacity-100 transition-all duration-300 pointer-events-none"></div>
-                  <div class="relative flex items-center">
-                    <i class="fas fa-search text-gray-500 absolute left-4"></i>
-                    <input
-                      v-model="searchQuery"
-                      type="text"
-                      placeholder="Search projects by name or description..."
-                      class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
-                    >
-                  </div>
-                </div>
+                <!-- Use the new atomic search component -->
+                <ProjectSearchInput 
+                  v-model="searchQuery"
+                  placeholder="Search projects by name..."
+                />
               </div>
             </div>
 
@@ -161,7 +154,7 @@
                   <i class="fas fa-search text-2xl text-indigo-400"></i>
                 </div>
                 <h3 class="text-xl font-semibold text-white mb-2">No matching projects</h3>
-                <p class="text-gray-300 text-center max-w-md">No projects match your search for "{{ searchQuery }}"</p>
+                <p class="text-gray-300 text-center max-w-md">No projects found with names starting with "{{ searchQuery }}"</p>
               </div>
               
               <!-- Project Grid with Modern Cards -->
@@ -275,6 +268,7 @@ import { BuilderLayout } from '@/apps/products/oasis/builder/layouts';
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore';
 import { useNotification } from '@/shared/composables/useNotification';
 import { useConfirm } from '../composables/useConfirm';
+import ProjectSearchInput from '../components/atoms/ProjectSearchInput.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -290,17 +284,9 @@ const error = computed(() => projectStore.error);
 const editingDescription = ref(null);
 const editedDescription = ref('');
 
-// Search functionality
-const searchQuery = ref('');
-const filteredProjects = computed(() => {
-  if (!searchQuery.value.trim()) return sortedProjects.value;
-  
-  const query = searchQuery.value.toLowerCase().trim();
-  return sortedProjects.value.filter(project => 
-    project.name.toLowerCase().includes(query) || 
-    (project.description && project.description.toLowerCase().includes(query))
-  );
-});
+// Use the project search composable
+import { useProjectSearch } from '../composables/useProjectSearch';
+const { searchQuery, filteredProjects } = useProjectSearch(sortedProjects);
 
 // Computed property for displayed projects
 const displayedProjects = computed(() => {
@@ -517,6 +503,7 @@ onMounted(async () => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

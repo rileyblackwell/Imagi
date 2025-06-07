@@ -781,11 +781,16 @@ export const ProjectService = {
 
 /**
  * Helper function to build a proper API URL
+ * Always returns an absolute URL starting with a forward slash
  */
 function buildApiUrl(path: string) {
   // Remove leading slashes for consistency
   const cleanPath = path.startsWith('/') ? path.substring(1) : path;
   
   // If already has api/v1/ prefix, use as is, otherwise add it
-  return cleanPath.startsWith('api/v1/') ? cleanPath : `api/v1/${cleanPath}`;
+  const apiPath = cleanPath.startsWith('api/v1/') ? cleanPath : `api/v1/${cleanPath}`;
+  
+  // CRITICAL: Always add leading slash to make URL absolute to site root
+  // This prevents it from being relative to current path (/products/oasis/builder/)
+  return `/${apiPath}`;
 }

@@ -130,7 +130,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { usePaymentsStore } from '../stores'
+import { usePaymentStore } from '../stores/payments'
 import { storeToRefs } from 'pinia'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 import StatusMessage from '../components/molecules/messages/StatusMessage/StatusMessage.vue'
@@ -138,7 +138,7 @@ import AccountBalanceCard from '../components/organisms/cards/AccountBalanceCard
 import ModelPricingSection from '../components/organisms/sections/ModelPricingSection/ModelPricingSection.vue'
 import PaymentFormSection from '../components/organisms/forms/PaymentFormSection/PaymentFormSection.vue'
 
-const store = usePaymentsStore()
+const store = usePaymentStore()
 const { userCredits, lastUpdated, isLoading, error } = storeToRefs(store)
 
 // State
@@ -150,14 +150,18 @@ const processingPayment = ref(false)
 // Initialize payment data when component mounts
 onMounted(async () => {
   try {
-    // Initialize the payment system with auto-refresh
-    await store.initializePayments();
+    // Initialize payment store
+    await store.initializePayments()
+    
+    // If balance is still null after initialization, try direct fetch
+    if (store.balance === null) {
+      await store.fetchBalance()
+    }
     
     // Set default amount
     customAmount.value = 5;
-  } catch (err: any) {
-    console.error('Failed to initialize payment data:', err);
-    paymentError.value = 'Failed to load account data. Please refresh the page.';
+  } catch (error) {
+    console.error('Failed to initialize checkout view:', error)
   }
 })
 

@@ -28,9 +28,12 @@ class PaymentService implements IPaymentService {
   private apiBaseUrl: string
 
   constructor() {
-    // Always use relative URLs - proxy handles routing in both dev and production
-    this.apiBaseUrl = '/api/v1'
-    this.apiUrl = this.apiBaseUrl + '/payments'
+    // ALWAYS use relative URLs - proxy handles routing in both dev and production
+    // Development: Vite dev server proxies /api/* to VITE_BACKEND_URL
+    // Production: Nginx proxies /api/* to backend.railway.internal:8000
+    this.apiBaseUrl = '/api/v1';
+    this.apiUrl = this.apiBaseUrl + '/payments';
+    console.log('📡 Using relative API URL (proxied in both dev and production)');
   }
 
   /**
@@ -52,11 +55,20 @@ class PaymentService implements IPaymentService {
    * Get the current user's credit balance
    */
   async getBalance(): Promise<BalanceResponse> {
+    const url = `${this.apiUrl}/balance/`
     try {
-      const response = await api.get(`${this.apiUrl}/balance/`)
+      const response = await api.get(url)
       return response.data
     } catch (error: any) {
       console.error('Error fetching balance:', error)
+      
+      // Enhanced error reporting with better context
+      if (error.response) {
+        console.error(`Balance request failed with status ${error.response.status}:`, error.response.data)
+      } else if (error.request) {
+        console.error('No response received from balance request')
+      } 
+      
       throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch balance')
     }
   }

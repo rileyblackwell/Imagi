@@ -30,11 +30,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
-import { usePaymentsStore } from '@/apps/payments/stores';
+import { usePaymentStore } from '@/apps/payments/stores/payments';
 import { useBalanceStore } from '@/shared/stores/balance';
 import { useAgentStore } from '../../../stores/agentStore';
 
-const paymentsStore = usePaymentsStore();
+const paymentsStore = usePaymentStore();
 const balanceStore = useBalanceStore();
 const agentStore = useAgentStore();
 const isLoading = ref(false);
@@ -72,6 +72,11 @@ async function fetchBalance(showLoading = true, forceRefresh = false) {
   }
   
   try {
+    // Check if balance is already loaded, if not fetch it
+    if (paymentsStore.balance === null) {
+      await paymentsStore.fetchBalance()
+    }
+    
     // Use both stores to maximize chance of successful update
     if (forceRefresh) {
       // Signal that a transaction is in progress to bypass cache

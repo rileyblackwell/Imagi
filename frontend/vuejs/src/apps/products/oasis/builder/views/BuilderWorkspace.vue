@@ -74,7 +74,7 @@ import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { PreviewService } from '../services/previewService'
 import { useAuthStore } from '@/shared/stores/auth'
-import { usePaymentsStore } from '@/apps/payments/stores'
+import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { useBalanceStore } from '@/shared/stores/balance'
 
 // Builder Components
@@ -89,26 +89,16 @@ import { WorkspaceChat } from '../components/organisms/workspace'
 import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
 
-// Debounce utility function for balance refresh
-const debounce = (fn: Function, delay: number) => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return (...args: any[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-};
-
 const route = useRoute()
 const store = useAgentStore()
 const projectStore = useProjectStore()
 const projectId = ref<string>('')
 const { 
-  generateCodeFromPrompt, 
   createFile, 
   loadModels,
   applyCode 
 } = useBuilderMode()
-const { sendMessage } = useChatMode()
+const {} = useChatMode()
 
 // Constants
 const fileTypes = {
@@ -271,7 +261,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     const timestamp = eventData?.timestamp || new Date().toISOString()
     
     // Get payments store for updating balance
-    const paymentsStore = usePaymentsStore()
+    const paymentsStore = usePaymentStore()
     const balanceStore = useBalanceStore()
     
     // Mark that a transaction is about to happen to ensure fresh balance data
@@ -723,7 +713,7 @@ onMounted(async () => {
   
   try {
     // Get stores for easier access
-    const paymentsStore = usePaymentsStore();
+    const paymentsStore = usePaymentStore();
     const authStore = useAuthStore();
     
     // Create a shared request cache to prevent duplicate calls

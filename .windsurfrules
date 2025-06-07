@@ -1,162 +1,154 @@
-## Purpose
+Purpose
 
-Defines coding, design, and generation standards for **Imagi Oasis** to ensure consistency, efficiency, and best practices.
+Defines coding, design, and generation standards for Imagi Oasis to ensure consistency, efficiency, and best practices.
 
-## Company Overview
+Company Overview
+	•	Product: Imagi Oasis – AI-powered full-stack web application generator
+	•	Mission: Enable users to rapidly build full-stack web apps using natural language
+	•	Target Users: Entrepreneurs, creators, and developers requiring rapid application development
 
-* **Product**: Imagi Oasis – AI-powered full-stack web application generator
-* **Mission**: Enable users to rapidly build full-stack web apps using natural language
-* **Target Users**: Developers and technical users
+Environment Setup
 
-## Environment Setup
+OS & Shell
+	•	macOS
+	•	Shell: zsh
 
-### OS & Shell
+Package Managers
+	•	Frontend: npm/yarn
+	•	Backend: pipenv
 
-* macOS
-* Shell: zsh
+Required Tools
+	•	Node.js: >= 16.x
+	•	Python: >= 3.10
+	•	PostgreSQL: >= 14
 
-### Package Managers
+Editor Configuration
+	•	IDE: VSCode/Cursor (with project settings)
+	•	Extensions:
+	•	Tailwind CSS IntelliSense
+	•	Python extensions
+	•	Vue.js extensions
+	•	Local Servers (Running by Default):
+	•	Frontend: npm run dev on localhost:5174
+	•	Backend: python manage.py runserver on localhost:8000
 
-* Frontend: npm/yarn
-* Backend: pipenv
+Local Development
+	•	Backend:
+	•	Django with SQLite3
+	•	Managed by Pipenv
+	•	Run using Django’s development server
+	•	Frontend:
+	•	Vue.js with Vite development server
 
-### Required Tools
+Staging & Production
+	•	Backend:
+	•	Django with PostgreSQL
+	•	Served via Gunicorn
+	•	Frontend:
+	•	Vue.js built via vite build
+	•	Served as static files via Nginx
+	•	Hosting:
+	•	Provider: Railway.com
+	•	Separate Docker images/services for frontend and backend
+	•	Communication via Railway’s private network
+	•	Future Enhancements:
+	•	Container orchestration via Kubernetes
 
-* Node.js: >= 16.x
-* Python: >= 3.10
-* PostgreSQL: >= 14
+Backend Specifications
+	•	Framework: Django 4.x
+	•	API Framework: Django REST Framework (DRF)
+	•	Database:
+	•	Development: SQLite
+	•	Production: PostgreSQL
+	•	Testing: pytest
+	•	Authentication: Django-AllAuth
+	•	AI Integration: OpenAI, Anthropic
+	•	Payments: Stripe
+	•	Server: Gunicorn, Whitenoise
+	•	Containerization: Docker
+	•	API Versioning: /api/v1/
 
-### Editor Configuration
+Backend Apps (Django)
+	•	auth: Authentication and authorization
+	•	builder: Core AI generation logic and prompts
+	•	home: Landing pages and static content
+	•	payments: Stripe integration for credits
+	•	agents: AI workflow management
+	•	project_manager: Project lifecycle management
 
-* IDE: VSCode/Cursor (with project settings)
-* Extensions:
+Django API Design
+	•	RESTful API principles
+	•	Clear separation of views, serializers, and models
 
-  * Tailwind CSS IntelliSense
-  * Python extensions
-  * Vue.js extensions
-* Local Servers (Running by Default):
+Testing Strategy (Backend)
+	•	Unit Tests: pytest for models, views, and APIs
+	•	Integration Tests: API endpoint verification
 
-  * Frontend: `npm run dev` on localhost:5174
-  * Backend: `python manage.py runserver` on localhost:8000
+Frontend Specifications
+	•	Framework: Vue.js 3.4+ with Composition API
+	•	State Management: Pinia 2.1+
+	•	HTTP Client: Axios 1.6+
+	•	Styling: Tailwind CSS 3.4+
+	•	UI Components: HeadlessUI, HeroIcons
+	•	Form Validation: VeeValidate 4.15+
+	•	Animations: GSAP 3.12+
+	•	Markdown: Marked 15.0+
+	•	Security: DOMPurify
+	•	Build Tools: Vite 6.2+, TypeScript 5.3+
+	•	Testing: Jest (Unit), Cypress (E2E)
 
-## Local Development
-
-* **Backend**:
-
-  * Django with SQLite3
-  * Managed by Pipenv
-  * Run using Django's development server
-
-* **Frontend**:
-
-  * Vue.js with Vite development server
-
-## Staging & Production
-
-* **Backend**:
-
-  * Django with PostgreSQL
-  * Served via Gunicorn (potential future: Uvicorn for async)
-
-* **Frontend**:
-
-  * Vue.js built via `vite build`
-  * Served as static files via Nginx
-
-* **Hosting**:
-
-  * Provider: Railway.com
-  * Separate Docker images/services for frontend and backend
-  * Communication via Railway’s private network
-
-* **Future Enhancements**:
-
-  * Container orchestration via Kubernetes
-
-## Backend Specifications
-
-* **Framework**: Django 4.x
-* **API Framework**: Django REST Framework (DRF)
-* **Database**:
-
-  * Development: SQLite
-  * Production: PostgreSQL
-* **Testing**: pytest
-* **Authentication**: Django built-in, DRF Token Authentication, future OAuth2 integration
-* **API Versioning**: `/api/v1/`
-
-### Backend Apps (Django)
-
-* **auth**: Authentication and authorization
-* **builder**: Core AI generation logic and prompts
-* **home**: Landing pages and static content
-* **payments**: Stripe integration for credits
-* **agents**: AI workflow management
-* **project\_manager**: Project lifecycle management
-
-### Django API Design
-
-* RESTful API principles
-* Clear separation of views, serializers, and models
-
-### Testing Strategy (Backend)
-
-* **Unit Tests**: pytest for models, views, and APIs
-* **Integration Tests**: API endpoint verification
-
-## Frontend Specifications
-
-* **Framework**: Vue.js 3 with Composition API
-* **State Management**: Pinia
-* **HTTP Client**: Axios
-* **UI/Styling**: Tailwind CSS
-* **Testing**: Jest (Unit), Cypress (E2E)
-* **Build Tools**: Vite
-
-### Frontend Structure
+Frontend Structure
 
 Each app module must be self-contained, including:
+	•	Components
+	•	Routes
+	•	Stores
+	•	Services
+	•	Types
+	•	Tests
 
-* Components
-* Routes
-* Store
-* Services
-* Types
-* Tests
+Code Architecture (Vue.js)
 
-## Code Architecture (Vue.js)
+Atomic Design Principles
+	1.	Atoms: Basic UI elements (buttons, inputs, icons, text)
+	2.	Molecules: Combinations of atoms (form fields, cards)
+	3.	Organisms: Combinations of molecules (forms, headers)
+	4.	Templates: Layout and page-level components
 
-### Atomic Design Principles
+Guidelines
+	•	Use Composition API for reusability and logic encapsulation
+	•	TypeScript for type safety
+	•	Import alias (@) referencing src directory
 
-1. **Atoms**: Basic UI elements (buttons, inputs, icons, text)
-2. **Molecules**: Combinations of atoms (form fields, cards)
-3. **Organisms**: Combinations of molecules (forms, headers)
-4. **Templates**: Layout and page-level components
+UI/UX Design Principles
+	•	Minimalist and modern UI inspired by Stripe, Airbnb, Apple, Twilio
+	•	Fully responsive layouts with Tailwind CSS
+	•	Accessibility compliance (WCAG 2.1)
+	•	Dark and light mode support
 
-### Guidelines
+Testing Strategy (Frontend)
+	•	Unit Tests: Jest for Vue component testing
+	•	E2E Tests: Cypress for complete application workflows
 
-* Use Composition API for reusability and logic encapsulation
-* TypeScript for type safety
-* Import alias (`@`) referencing `src` directory
+Deployment & API Architecture
 
-## UI/UX Design Principles
+Development Environment
+	•	Frontend: Vite dev server on localhost:5174
+	•	Backend: Django dev server on localhost:8000
+	•	Proxying: Vite dev server proxies /api/* to Django backend
 
-* Minimalist and modern UI inspired by Stripe, Airbnb, Apple, Twilio
-* Fully responsive layouts with Tailwind CSS
-* Accessibility compliance (WCAG 2.1)
-* Dark and light mode support
+Production Environment
+	•	Frontend: Nginx serving static files
+	•	Backend: Django + Gunicorn on Railway internal network
+	•	Proxying: Nginx proxies /api/* to backend
 
-### Testing Strategy (Frontend)
+Centralized API Client
+	•	Use relative URLs for API requests in both development and production
 
-* **Unit Tests**: Jest for Vue component testing
-* **E2E Tests**: Cypress for complete application workflows
-
-## General AI Assistant Instructions
-
-* Prefix tasks clearly:
-
-  * Generation tasks: `task:`
-  * Documentation/study tasks: `study:`
-* Generate self-contained files with imports and dependencies
-* Include tests for all new features
-* Adhere strictly to established naming conventions
+General AI Assistant Instructions
+	•	Prefix tasks clearly:
+	•	Generation tasks: task:
+	•	Documentation/study tasks: study:
+	•	Generate self-contained files with imports and dependencies
+	•	Include tests for all new features
+	•	Adhere strictly to established naming conventions

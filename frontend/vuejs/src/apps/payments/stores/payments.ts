@@ -39,19 +39,29 @@ export const usePaymentStore = defineStore('payments', () => {
 
   // Actions
   async function fetchBalance(skipLoading = false, forceRefresh = false) {
-    isLoadingBalance.value = true
-    error.value = null
+    if (skipLoading === false) {
+      isLoadingBalance.value = true;
+    }
+    error.value = null;
     
     try {
-      const response = await paymentService.getBalance()
-      balance.value = response.balance
-      return response.balance
+      const response = await paymentService.getBalance();
+      
+      // Validate response has the expected structure
+      if (response && typeof response.balance === 'number') {
+        balance.value = response.balance;
+        return response.balance;
+      } else {
+        console.error('Invalid balance response format:', response);
+        error.value = 'Invalid balance response format';
+        return null;
+      }
     } catch (err: any) {
-      error.value = err.message || 'Failed to fetch balance'
-      console.error('Error fetching balance:', err)
-      return null
+      error.value = err.message || 'Failed to fetch balance';
+      console.error('Error fetching balance:', err);
+      return null;
     } finally {
-      isLoadingBalance.value = false
+      isLoadingBalance.value = false;
     }
   }
 
@@ -311,15 +321,28 @@ export const usePaymentStore = defineStore('payments', () => {
     isLoading.value = true;
     error.value = null;
     try {
-      await Promise.all([
-        fetchBalance(),
+      // Execute balance and payment methods fetches in parallel with error handling
+      // This ensures one failing doesn't prevent the other from completing
+      const results = await Promise.allSettled([
+        fetchBalance(true, true),  // skipLoading=true since we're managing loading state at this level
         fetchPaymentMethods()
       ]);
+      
+      // Check results and log any failures
+      if (results[0].status === 'rejected') {
+        console.error('Failed to fetch balance during initialization:', results[0].reason);
+      }
+      
+      if (results[1].status === 'rejected') {
+        console.error('Failed to fetch payment methods during initialization:', results[1].reason);
+      }
+      
+      // Update last updated timestamp
       lastUpdated.value = new Date().toISOString();
       return true;
     } catch (err: any) {
       error.value = err.message || 'Failed to initialize payments';
-      console.error('Failed to initialize payments', err);
+      console.error('Failed to initialize payments:', err);
       return false;
     } finally {
       isLoading.value = false;

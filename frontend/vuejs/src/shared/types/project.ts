@@ -17,8 +17,8 @@ export function normalizeProject(data: any): Project {
     id: String(data.id),
     name: data.name,
     description: data.description,
-    created_at: data.created_at || data.createdAt,
-    updated_at: data.updated_at || data.updatedAt,
+    created_at: data.created_at || data.createdAt || '',
+    updated_at: data.updated_at || data.updatedAt || '',
     status: data.status || 'active'
   }
 }

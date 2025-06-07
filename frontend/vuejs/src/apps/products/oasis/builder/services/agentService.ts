@@ -9,7 +9,7 @@ import type {
   CodeGenerationRequest,
   VersionControlResponse
 } from '../types/services'
-import { usePaymentsStore } from '@/apps/payments/stores'
+import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { FileService } from '@/apps/products/oasis/builder/services/fileService'
 import { ModelsService } from '@/apps/products/oasis/builder/services/modelsService'
 
@@ -18,7 +18,7 @@ const longTimeoutApi = api
 
 function getPaymentsStore() {
   // Get the payments store using function to avoid SSR issues
-  return usePaymentsStore()
+  return usePaymentStore()
 }
 
 /**

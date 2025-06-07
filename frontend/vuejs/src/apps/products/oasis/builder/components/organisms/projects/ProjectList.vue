@@ -62,47 +62,26 @@
         </div>
       </div>
 
-      <!-- Search Section with Enhanced Styling -->
+      <!-- All Projects Section -->
       <div class="space-y-5">
-        <div class="flex items-center justify-between flex-wrap gap-4">
-          <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2">
-            <i class="fas fa-search text-indigo-400 mr-3"></i>
-            <h3 class="text-sm font-medium text-white uppercase tracking-wider">All Projects</h3>
-          </div>
-          
-          <div class="relative group w-full max-w-md">
-            <!-- Enhanced focus effect -->
-            <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within:opacity-100 transition-all duration-300 pointer-events-none"></div>
-            <div class="relative flex items-center">
-              <i class="fas fa-search text-gray-500 absolute left-4"></i>
-              <input
-                :value="searchQuery"
-                @input="onSearchInput"
-                type="text"
-                placeholder="Search projects by name..."
-                class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
-              >
-            </div>
-          </div>
+        <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-4">
+          <i class="fas fa-folder text-indigo-400 mr-3"></i>
+          <h3 class="text-sm font-medium text-white uppercase tracking-wider">All Projects</h3>
         </div>
 
-        <!-- Search Results with Enhanced Scrollbar -->
-        <div 
-          v-if="searchQuery"
-          class="space-y-4 mt-6 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar"
-        >
-          <template v-if="filteredProjects.length">
+        <!-- Projects List with Enhanced Scrollbar -->
+        <div class="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+          <template v-if="props.projects.length > 3">
             <ProjectCard
-              v-for="project in filteredProjects"
+              v-for="project in otherProjects"
               :key="project.id"
               :project="project"
               @delete="$emit('delete', project.id, project.name)"
             />
           </template>
-          
-          <div v-else class="text-center py-10 bg-indigo-500/5 rounded-xl border border-indigo-500/20">
-            <i class="fas fa-search text-3xl text-indigo-400 mb-3 opacity-70"></i>
-            <p class="text-gray-300">No projects match your search</p>
+          <div v-else-if="recentProjects.length === 0" class="flex flex-col items-center justify-center py-12">
+            <i class="fas fa-folder-open text-3xl text-indigo-400 mb-3 opacity-70"></i>
+            <p class="text-gray-300">No additional projects</p>
           </div>
         </div>
       </div>
@@ -152,17 +131,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import ProjectCard from '../../molecules/cards/ProjectCard.vue'
-import SearchInput from '../../atoms/inputs/SearchInput.vue'
 import { ActionButton } from '@/shared/components/atoms'
 import type { Project } from '../../../types/components'
 import type { ProjectListProps } from '../../../types/components'
 
 const props = defineProps<ProjectListProps>()
-
-// Local state
-const searchQuery = ref('')
 
 // Get 3 most recently updated projects for display
 const recentProjects = computed(() => {
@@ -181,17 +156,14 @@ const recentProjects = computed(() => {
     .slice(0, 3)
 })
 
-// Filter all projects based on search query
-const filteredProjects = computed(() => {
-  if (!props.projects?.length || !searchQuery.value.trim()) return []
-
-  const query = searchQuery.value.toLowerCase().trim()
+// Get all projects except the recent ones
+const otherProjects = computed(() => {
+  if (!props.projects?.length) return []
+  
+  const recentIds = new Set(recentProjects.value.map(p => p.id))
   
   return [...props.projects]
-    .filter(project => 
-      project.name.toLowerCase().includes(query) || 
-      (project.description && project.description.toLowerCase().includes(query))
-    )
+    .filter(project => !recentIds.has(project.id))
     .sort((a, b) => {
       // Handle cases where updated_at might be undefined
       if (!a.updated_at) return 1;  // If a's date is missing, b comes first
@@ -202,11 +174,6 @@ const filteredProjects = computed(() => {
       return dateB - dateA
     })
 })
-
-function onSearchInput(e: Event): void {
-  const target = e.target as HTMLInputElement
-  searchQuery.value = target.value
-}
 </script>
 
 <style scoped>

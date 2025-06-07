@@ -110,8 +110,8 @@ export function normalizeProject(data: any): Project {
 
   return {
     id: id,
-    name: data.name || 'Untitled Project',
-    description: data.description || '',
+    name: (data.name || 'Untitled Project').trim(),
+    description: (data.description || '').trim(),
     created_at: data.created_at || data.createdAt || new Date().toISOString(),
     updated_at: data.updated_at || data.updatedAt || new Date().toISOString(),
     is_active: data.is_active !== undefined ? data.is_active : true,

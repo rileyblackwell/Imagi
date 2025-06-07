@@ -110,26 +110,148 @@
                 />
               </div>
 
-              <!-- Existing Projects List with Enhanced Styling -->
-              <div class="lg:col-span-7 xl:col-span-8 space-y-8">
-                <ProjectList
-                  :projects="normalizedProjects"
-                  :is-loading="isLoading || false"
-                  :error="error || ''"
-                  @delete="confirmDelete"
-                  @retry="retryFetch"
-                  @refresh="refreshProjects"
-                />
-                
-                <!-- Diagnostic Button with Enhanced Styling -->
-                <div v-if="error" class="mt-6 text-center">
-                  <button
-                    @click="retryFetchWithDiagnostics"
-                    class="px-6 py-3 inline-flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl transform hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
-                  >
-                    <i class="fas fa-sync-alt mr-2.5"></i>
-                    Diagnose Connection Issues
-                  </button>
+              <!-- Combined Project Library and Search -->
+              <div class="lg:col-span-7 xl:col-span-8">
+                <!-- Unified Project Library Container -->
+                <div class="relative rounded-2xl border border-gray-800/60 bg-dark-900/40 backdrop-blur-sm transition-all duration-500 hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)] overflow-hidden p-8">
+                  <!-- Background gradient -->
+                  <div class="absolute inset-0 bg-gradient-to-br opacity-10 -z-10 transition-opacity duration-300 group-hover:opacity-20 from-indigo-900 to-violet-900"></div>
+                  
+                  <!-- Glowing orb effect -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-10 blur-3xl transition-opacity duration-500 group-hover:opacity-20 bg-indigo-500"></div>
+                  
+                  <!-- Header Section -->
+                  <div class="relative z-10 mb-8">
+                    <!-- Badge -->
+                    <div class="inline-block px-4 py-1.5 bg-indigo-500/10 rounded-full mb-4">
+                      <span class="text-indigo-400 font-semibold text-sm tracking-wider">YOUR PROJECTS</span>
+                    </div>
+                    
+                    <!-- Title and Stats -->
+                    <div class="flex items-center justify-between mb-6">
+                      <div>
+                        <h2 class="text-2xl font-bold text-white mb-2">Project Library</h2>
+                        <p class="text-gray-300">Continue working on your existing web applications</p>
+                        <!-- Decorative element -->
+                        <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mt-4"></div>
+                      </div>
+                      
+                      <!-- Project count with enhanced styling -->
+                      <div class="group relative">
+                        <!-- Glow effect on hover -->
+                        <div class="absolute -inset-1 rounded-xl bg-gradient-to-r from-indigo-500/30 to-violet-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-all duration-300"></div>
+                        
+                        <!-- Icon container -->
+                        <div class="relative bg-dark-800/60 backdrop-blur-sm rounded-xl border border-gray-800/60 px-4 py-2 hover:border-indigo-500/30 transition-all duration-300 flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-lg bg-indigo-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
+                            <i class="fas fa-folder-open text-indigo-400 text-lg"></i>
+                          </div>
+                          <div>
+                            <p class="text-xs text-gray-400 uppercase">Total</p>
+                            <p class="text-xl font-bold text-white">{{ projects.length || 0 }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Search Input -->
+                    <div class="mb-6">
+                      <ProjectSearchInput 
+                        v-model="searchQuery"
+                        placeholder="Search projects by name or description..."
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Content Section -->
+                  <div class="relative z-10">
+                    <!-- Loading State -->
+                    <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
+                      <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5 animate-pulse">
+                        <i class="fas fa-spinner fa-spin text-2xl text-indigo-400"></i>
+                      </div>
+                      <p class="text-gray-300 text-lg">Loading your projects...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
+                      <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-5">
+                        <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
+                      </div>
+                      <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
+                      <button
+                        @click="retryFetch"
+                        class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 text-white rounded-xl shadow-lg hover:shadow-indigo-500/20 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
+                      >
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        Try Again
+                      </button>
+                      
+                      <!-- Diagnostic Button -->
+                      <button
+                        @click="retryFetchWithDiagnostics"
+                        class="mt-4 px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl transform hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 inline-flex items-center"
+                      >
+                        <i class="fas fa-tools mr-2.5"></i>
+                        Diagnose Connection Issues
+                      </button>
+                    </div>
+
+                    <!-- No Search Results -->
+                    <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex flex-col items-center justify-center py-16">
+                      <div class="w-16 h-16 bg-gray-500/10 rounded-full flex items-center justify-center mb-5">
+                        <i class="fas fa-search text-2xl text-gray-400"></i>
+                      </div>
+                      <h3 class="text-xl font-semibold text-white mb-2">No matching projects</h3>
+                      <p class="text-gray-300 text-center max-w-md">No projects found matching "{{ searchQuery }}"</p>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else-if="!projects.length" class="flex flex-col items-center justify-center py-16">
+                      <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
+                        <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
+                      </div>
+                      <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
+                      <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
+                      
+                      <!-- Directional hint -->
+                      <div class="flex items-center text-indigo-400 animate-pulse-slow">
+                        <i class="fas fa-long-arrow-alt-left text-lg mr-2"></i>
+                        <span>Get started with a new project</span>
+                      </div>
+                    </div>
+
+                    <!-- Recent Projects Display -->
+                    <div v-else-if="displayedProjects.length > 0">
+                      <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-6">
+                        <i class="fas fa-clock text-indigo-400 mr-3"></i>
+                        <h3 class="text-sm font-medium text-white uppercase tracking-wider">
+                          {{ searchQuery ? `Search Results (${displayedProjects.length})` : 'Recently Opened' }}
+                        </h3>
+                      </div>
+                      
+                      <!-- Project Cards -->
+                      <div class="space-y-4">
+                        <ProjectCard
+                          v-for="project in displayedProjects"
+                          :key="project.id"
+                          :project="project"
+                          @delete="(project) => confirmDelete(String(project.id), project.name)"
+                        />
+                      </div>
+                      
+                      <!-- Show All Projects Link (when not searching) -->
+                      <div v-if="!searchQuery && projects.length > 3" class="mt-6 text-center">
+                        <router-link
+                          to="/products/oasis/builder/projects"
+                          class="inline-flex items-center px-6 py-3 bg-dark-800/60 hover:bg-dark-700/60 border border-gray-800/60 hover:border-indigo-500/30 text-gray-300 hover:text-white rounded-xl transition-all duration-300"
+                        >
+                          <i class="fas fa-folder-open mr-2"></i>
+                          View All Projects ({{ projects.length }})
+                        </router-link>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -141,18 +263,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
+// Debug base path in dev
+if (import.meta.env.DEV) {
+  // Print the Vite/Vue base URL and current path
+  // This helps confirm whether the dev server is serving at the correct base
+  console.log('[BuilderDashboard] import.meta.env.BASE_URL:', import.meta.env.BASE_URL);
+  console.log('[BuilderDashboard] window.location.pathname:', window.location.pathname);
+}
+
+import { ref, computed, onMounted, watch, onBeforeUnmount, type ComputedRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 import { useNotification } from '@/shared/composables/useNotification'
-import { normalizeProject } from '@/shared/types'
-import { ProjectList } from '@/apps/products/oasis/builder/components/organisms'
 import { ProjectCard } from '@/apps/products/oasis/builder/components/molecules'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useConfirm } from '../composables/useConfirm'
 import api from '@/apps/products/oasis/builder/services/api'
 import { useNotificationStore } from '@/shared/stores/notificationStore'
+import ProjectSearchInput from '../components/atoms/ProjectSearchInput.vue'
+import { useProjectSearch } from '../composables/useProjectSearch'
+import type { Project } from '../types/components' 
+import { normalizeProject } from '../types/components' // Use the normalizeProject from components.ts
 
 
 const router = useRouter()
@@ -171,13 +303,50 @@ const isInitializing = ref(true) // Added to track initialization state
 // Computed with types - remove filteredProjects
 const projects = computed(() => projectStore.projects)
 // Add a normalized projects computed property that ensures all projects have the required status field
-const normalizedProjects = computed(() => {
-  if (!projects.value) return []
-  return projects.value.map(project => normalizeProject(project))
+// Ensure normalizedProjects always returns an array of Project with all required fields (including created_at)
+const normalizedProjects = computed<Project[]>(() => {
+  if (!projects.value) return [];
+  return projects.value.map(project => {
+    // normalizeProject already ensures created_at is set with fallbacks
+    return normalizeProject(project);
+  });
 })
 const isLoading = computed(() => projectStore.loading || isInitializing.value)
 const error = computed(() => projectStore.error || '')
 const showAuthError = computed(() => !authStore.isAuthenticated && !isLoading.value)
+
+// Use project search composable with options to include descriptions in search
+const { searchQuery, filteredProjects } = useProjectSearch(normalizedProjects, { includeDescription: true });
+
+
+
+// Compute displayed projects - show search results if searching, otherwise show 3 most recent
+const displayedProjects = computed<Project[]>(() => {
+  // Check if we have a meaningful search query (not just whitespace)
+  const hasSearchQuery = searchQuery.value?.trim().length > 0;
+  
+  if (hasSearchQuery) {
+    // Return filtered search results
+    return filteredProjects.value || [];
+  }
+  
+  // Show 3 most recently updated projects when not searching
+  if (!normalizedProjects.value?.length) {
+    return [];
+  }
+  
+  return [...normalizedProjects.value]
+    .sort((a, b) => {
+      // Handle cases where updated_at might be undefined
+      if (!a.updated_at) return 1;  // If a's date is missing, b comes first
+      if (!b.updated_at) return -1; // If b's date is missing, a comes first
+      
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    })
+    .slice(0, 3);
+});
 
 // Navigation items
 const navigationItems = [
@@ -652,5 +821,28 @@ watch(
 
 .delay-700 {
   animation-delay: 700ms;
+}
+
+/* Custom scrollbar styling for project container */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.gray.700') transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: theme('colors.gray.700');
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.gray.600');
 }
 </style>

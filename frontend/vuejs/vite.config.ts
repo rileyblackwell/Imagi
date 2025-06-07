@@ -27,7 +27,14 @@ function safeDecodeMiddleware(req: any, res: any, next: any) {
   next();
 }
 
+// Set base path depending on environment
+// '/' for development, '/products/oasis/builder/' for production deploys (e.g., on Railway)
+// Force base path to '/' in development, regardless of env vars or CLI flags
+// Only use '/products/oasis/builder/' in production deploys
+const BASE_PATH = process.env.NODE_ENV === 'production' ? '/products/oasis/builder/' : '/';
+
 export default defineConfig({
+  base: BASE_PATH,
   plugins: [
     vue(),
     // Handle missing pattern SVG references
@@ -57,6 +64,7 @@ export default defineConfig({
     }
   ],
   server: {
+    // No need to set base here; handled globally above
     port: 5174,
     strictPort: true, // This will fail if port 5174 is not available
     hmr: {

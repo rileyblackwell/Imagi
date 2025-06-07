@@ -164,7 +164,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { usePaymentsStore } from '../stores'
+import { usePaymentStore } from '../stores/payments'
 import { storeToRefs } from 'pinia'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 import AccountBalanceCard from '../components/organisms/cards/AccountBalanceCard/AccountBalanceCard.vue'
@@ -178,7 +178,7 @@ type Transaction = BaseTransaction & {
   request_type?: string;
 };
 
-const store = usePaymentsStore()
+const store = usePaymentStore()
 const { userCredits, lastUpdated, isLoading, isHistoryLoading, transactions } = storeToRefs(store)
 
 // State for filtering and time periods
@@ -332,13 +332,18 @@ const getStatusDotClass = (status: string) => {
 // Lifecycle hooks
 onMounted(async () => {
   try {
-    // Initialize the payment system
+    // Initialize the payment system - loads balance and payment methods
     await store.initializePayments()
+    
+    // If balance is still null after initialization, try direct fetch
+    if (store.balance === null) {
+      await store.fetchBalance()
+    }
     
     // Fetch transaction history
     await fetchHistoryData()
-  } catch (err: any) {
-    console.error('Failed to initialize payment history:', err)
+  } catch (error) {
+    console.error('Failed to initialize payment history:', error)
   }
 })
 
