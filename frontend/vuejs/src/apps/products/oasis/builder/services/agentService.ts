@@ -449,199 +449,26 @@ export const AgentService = {
 
     try {
       // Normalize file path
-      let filePath = '';
-      
-      if (data.file_path) {
-        // Remove any double slashes and ensure single leading slash
-        filePath = data.file_path.replace(/\/+/g, '/');
-        if (!filePath.startsWith('/')) {
-          filePath = '/' + filePath;
-        }
-        
-        // For special cases like the root, normalize to '/'
-        if (filePath === '//') {
-          filePath = '/';
-        }
-      } else {
-        // Default to root path
-        filePath = '/';
+      let filePath = data.file_path || '/';
+      if (filePath !== '/' && !filePath.startsWith('/')) {
+        filePath = '/' + filePath;
       }
       
-      // Remove trailing slash except for root path
-      if (filePath.length > 1 && filePath.endsWith('/')) {
-        filePath = filePath.slice(0, -1);
-      }
-      
-      // Create payload with normalized file path
+      // Create payload
       const payload = {
         file_path: filePath,
         description: data.description || 'Project update'
       }
       
-      // Check if this is a new project by trying to get version history first
-      let isNewProject = false;
-      try {
-        const historyCheck = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`));
-        if (historyCheck.data.success && (!historyCheck.data.versions || historyCheck.data.versions.length === 0)) {
-          isNewProject = true;
-        }
-      } catch (historyError: any) {
-        // If we can't get history, assume it might be a new project
-        isNewProject = true;
-      }
+      const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/versions/`), payload)
       
-      // For new projects, use much longer delay to ensure backend git initialization completes
-      // For existing projects, use shorter delay
-      const delayTime = isNewProject ? 5000 : 1000;
-      await new Promise(resolve => setTimeout(resolve, delayTime));
-      
-      // For new projects, make multiple attempts with verification
-      const maxAttempts = isNewProject ? 3 : 1;
-      
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        if (attempt > 1) {
-          // Additional delay between attempts for new projects
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-        
-        try {
-          const response = await api.post(buildApiUrl(`/api/v1/builder/${projectId}/versions/`), payload)
-          
-          // Check for explicit error in response data
-          if (response.data.error || response.data.success === false) {
-            // Special handling for "No changes to commit" which is actually not an error
-            // but a normal state we should handle gracefully
-            if (response.data.error === 'No changes to commit detected' || 
-                response.data.message === 'No changes to commit detected' ||
-                (response.data.error && response.data.error.includes('No changes to commit')) ||
-                (response.data.message && response.data.message.includes('No changes to commit'))) {
-              
-              // For new projects, this likely means files were included in initial commit
-              if (isNewProject) {
-                // Check if initial commit was created
-                try {
-                  const postHistory = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`));
-                  if (postHistory.data.success && postHistory.data.versions && postHistory.data.versions.length > 0) {
-                    return {
-                      success: true,
-                      message: 'Files were included in initial project commit',
-                      commitHash: postHistory.data.versions[0].hash,
-                      error: null
-                    };
-                  }
-                } catch (historyRecheckError: any) {
-                  // Continue with normal "no changes" handling
-                }
-              }
-              
-              console.log('No changes to commit - this is expected after certain operations');
-              return {
-                success: true, // Treat as success since this is not a real error
-                message: 'No file changes detected to commit',
-                commitHash: null,
-                error: null
-              };
-            }
-            
-            return {
-              success: false,
-              message: response.data.message || 'Failed to create version',
-              error: response.data.error || 'Server returned failure status'
-            }
-          }
-          
-          return {
-            success: true,
-            message: response.data.message || 'Version created successfully',
-            commitHash: response.data.commit_hash || null,
-            error: null
-          }
-        } catch (apiError: any) {
-          // Enhanced API error logging with more context
-          console.error('API error when creating version:', {
-            projectId,
-            filePath,
-            status: apiError.response?.status,
-            statusText: apiError.response?.statusText,
-            data: apiError.response?.data,
-            url: apiError.config?.url,
-            method: apiError.config?.method
-          });
-          
-          // Special handling for "No changes to commit" which is actually not an error
-          // but a normal state we should handle gracefully
-          if (apiError.response?.status === 400 && 
-              (apiError.response.data?.message?.includes('No changes to commit') ||
-               apiError.response.data?.error?.includes('No changes to commit') ||
-               apiError.response.data?.message === 'No changes to commit detected' ||
-               apiError.response.data?.error === 'No changes to commit detected')) {
-            
-            // For new projects, check if initial commit exists
-            if (isNewProject) {
-              try {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                const postErrorHistory = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/versions/`));
-                if (postErrorHistory.data.success && postErrorHistory.data.versions && postErrorHistory.data.versions.length > 0) {
-                  return {
-                    success: true,
-                    message: 'Files were included in initial project commit',
-                    commitHash: postErrorHistory.data.versions[0].hash,
-                    error: null
-                  };
-                }
-              } catch (historyRecheckError: any) {
-                // Continue with normal handling
-              }
-            }
-            
-            console.log('No changes to commit - this is expected after certain operations');
-            return {
-              success: true, // Treat as success since this is not a real error
-              message: 'No file changes detected to commit',
-              commitHash: null,
-              error: null
-            };
-          }
-          
-          // Handle 404 errors for files that don't exist
-          if (apiError.response?.status === 404) {
-            return {
-              success: false,
-              message: `File ${filePath} not found for commit`,
-              error: `File ${filePath} not found. The file may not have been created yet.`,
-              commitHash: null
-            };
-          }
-          
-          // For new projects, retry on other errors
-          if (isNewProject && attempt < maxAttempts) {
-            continue;
-          }
-          
-          // Re-throw other errors to be handled by the outer catch
-          throw apiError;
-        }
-      }
-      
-      // If all attempts failed, return a generic error
       return {
-        success: false,
-        error: 'All commit attempts failed'
-      };
-    } catch (error: any) {
-      // Special handling for specific error strings that should be treated as non-errors
-      if (typeof error === 'object' && error.message && 
-          (error.message.includes('No changes to commit') || 
-           error.message.includes('No changes to commit detected'))) {
-        return {
-          success: true, // Mark as success since this is an expected state
-          message: 'No file changes detected to commit',
-          commitHash: null,
-          error: null
-        };
+        success: response.data.success !== false,
+        message: response.data.message || 'Version created successfully',
+        commitHash: response.data.commit_hash || null,
+        error: response.data.error || null
       }
-
-      console.error('Error creating version:', error)
+    } catch (error: any) {
       return {
         success: false,
         error: this.formatError(error)

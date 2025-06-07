@@ -73,6 +73,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { PreviewService } from '../services/previewService'
+import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { useBalanceStore } from '@/shared/stores/balance'
@@ -181,107 +182,16 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
   return validMessages
 }
 
-// Add a function to create a git commit after successful code changes
-async function createCommitFromPrompt(filePath: string, prompt: string) {
-  try {
-    // Let's make sure we have a valid project ID before proceeding
-    if (!projectId.value) {
-      console.warn('Cannot create commit: missing project ID')
-      return
-    }
-    
-    // Create a summary from the prompt - limit to 50 chars for git message
-    const summary = prompt.length > 50 
-      ? prompt.substring(0, 47) + '...' 
-      : prompt;
-    
-    // Format file path properly for the backend
-    let filePathToUse;
-    if (filePath) {
-      // Make sure the file path starts with a forward slash
-      filePathToUse = filePath.startsWith('/') ? filePath : `/${filePath}`;
-    } else {
-      // Use root path if no file path provided
-      filePathToUse = '/';
-    }
-    
-    // Retry logic for git commit creation
-    const maxRetries = 2;
-    let lastError: any = null;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Progressive delay: longer wait for each retry attempt
-        const delay = attempt === 1 ? 3000 : 5000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        // Verify the file exists by trying to get project files
-        if (filePathToUse !== '/') {
-          try {
-            const files = await FileService.getProjectFiles(projectId.value);
-            const fileExists = files.some(f => f.path === filePath);
-            if (!fileExists && attempt < maxRetries) {
-              continue; // Try again with longer delay
-            }
-          } catch (fileCheckError) {
-            // Continue anyway - the backend will handle the error
-          }
-        }
-        
-        // Call the version control API to create a commit
-        const result = await AgentService.createVersion(
-          projectId.value, 
-          {
-            file_path: filePathToUse,
-            description: summary
-          }
-        );
-        
-        // Only log success if the operation actually succeeded
-        if (result.success) {
-          if (result.commitHash) {
-            // Git commit created successfully
-          } else if (result.message && result.message.includes('No file changes')) {
-            console.log('Version control: No file changes detected to commit');
-          }
-          return; // Success - exit the retry loop
-        } else {
-          // Skip logging errors containing "No changes to commit" as they're not really errors
-          if (result.error && result.error.includes('No changes to commit')) {
-            console.log('Version control: No changes needed to commit');
-            return; // This is not an error - exit the retry loop
-          } else {
-            lastError = new Error(result.error || 'Unknown error');
-            if (attempt === maxRetries) {
-              console.error('Failed to create version after all retries:', result.error);
-            }
-          }
-        }
-      } catch (versionError: any) {
-        lastError = versionError;
-        
-        // Check if this is a "no changes to commit" scenario which we don't consider an error
-        if (versionError.message && versionError.message.includes('No changes to commit')) {
-          console.log('Version control: No changes needed to commit');
-          return; // This is not an error - exit the retry loop
-        }
-        
-        if (attempt === maxRetries) {
-          console.error('Version control error after all retries:', versionError);
-        }
-        // Don't throw - attempt to continue even if version control fails
-      }
-    }
-    
-    // If we get here, all retries failed
-    if (lastError) {
-      console.error('All commit attempts failed. Last error:', lastError);
-    }
-    
-  } catch (error) {
-    console.error('Failed to create git commit:', error);
-    // Don't throw - this is a non-critical operation
-  }
+// Create a git commit after successful code changes
+function createCommitFromPrompt(filePath: string, prompt: string) {
+  if (!projectId.value || !filePath) return;
+  
+  // Use the version control service to handle commits in the background
+  VersionControlService.commitAfterFileOperation(
+    projectId.value,
+    filePath,
+    prompt
+  );
 }
 
 async function handlePrompt(eventData?: { timestamp: string }) {
@@ -389,8 +299,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 id: `assistant-response-${Date.now()}`
               });
               
-              // Create a git commit for the CSS changes - WAIT for applyCode to complete
-              await createCommitFromPrompt(store.selectedFile.path, prompt.value);
+              // Create a git commit for the CSS changes
+              createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying stylesheet changes:', applyError);
               store.addMessage({
@@ -455,8 +365,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 id: `assistant-response-${Date.now()}`
               })
               
-              // Create a git commit for the HTML changes - WAIT for applyCode to complete
-              await createCommitFromPrompt(store.selectedFile.path, prompt.value);
+              // Create a git commit for the HTML changes
+              createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying HTML template:', applyError)
               
@@ -518,8 +428,8 @@ async function handlePrompt(eventData?: { timestamp: string }) {
                 id: `assistant-response-${Date.now()}`
               })
               
-              // Create a git commit for the applied changes - WAIT for applyCode to complete
-              await createCommitFromPrompt(store.selectedFile.path, prompt.value);
+              // Create a git commit for the applied changes
+              createCommitFromPrompt(store.selectedFile.path, prompt.value);
             } catch (applyError) {
               console.error('Error applying generated code:', applyError)
               
@@ -671,6 +581,13 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     
     // Refresh file list after creating a new file
     await loadProjectFiles()
+    
+    // Automatically commit the file creation
+    VersionControlService.commitAfterFileOperation(
+      projectId.value,
+      data.name,
+      `Created ${data.name}`
+    )
   } catch (error) {
     console.error('Error creating file:', error)
   }
@@ -687,6 +604,13 @@ async function handleFileDelete(file: ProjectFile) {
     if (store.selectedFile && store.selectedFile.path === file.path) {
       store.setSelectedFile(null)
     }
+    
+    // Automatically commit the file deletion
+    VersionControlService.commitAfterFileOperation(
+      projectId.value,
+      file.path,
+      `Deleted ${file.path}`
+    )
   } catch (error) {
     console.error('Error deleting file:', error)
   }
