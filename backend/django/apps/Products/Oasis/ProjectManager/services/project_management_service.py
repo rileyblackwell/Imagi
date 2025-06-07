@@ -38,6 +38,9 @@ class ProjectManagementService:
             project_path = project.project_path
             project_id = project.id
             
+            # Stop any running preview server and delete PID file
+            self._stop_project_server_and_cleanup_pid(project_name)
+            
             # Delete project files using path (preferred) or name as fallback
             if project_path and os.path.exists(project_path):
                 self._delete_project_directory(project_path)
@@ -94,6 +97,93 @@ class ProjectManagementService:
                     logger.info(f"Deleting project directory: {project_path}")
                     import shutil
                     shutil.rmtree(project_path, ignore_errors=True)
+
+    def _stop_project_server_and_cleanup_pid(self, project_name):
+        """Stop any running development server and delete the PID file for the project.
+        
+        This matches the PID file naming convention used by PreviewService:
+        {settings.PROJECTS_ROOT}/{user.id}/{project.name}_server.pid
+        """
+        try:
+            # Primary PID file location (matches PreviewService exactly)
+            pid_file_path = os.path.join(self.base_directory, f"{project_name}_server.pid")
+            
+            # First, try to gracefully stop any running server process
+            if os.path.exists(pid_file_path):
+                try:
+                    with open(pid_file_path, 'r') as f:
+                        pid = int(f.read().strip())
+                    
+                    # Try to stop the process and its children
+                    try:
+                        import psutil
+                        process = psutil.Process(pid)
+                        # Kill all child processes first
+                        children = process.children(recursive=True)
+                        for child in children:
+                            try:
+                                child.terminate()
+                                child.wait(timeout=3)  # Wait up to 3 seconds
+                            except (psutil.TimeoutExpired, psutil.NoSuchProcess):
+                                try:
+                                    child.kill()  # Force kill if terminate doesn't work
+                                except psutil.NoSuchProcess:
+                                    pass
+                        
+                        # Now terminate the main process
+                        process.terminate()
+                        process.wait(timeout=3)  # Wait up to 3 seconds
+                        logger.info(f"Gracefully stopped server process {pid} for project '{project_name}'")
+                    except (psutil.TimeoutExpired, psutil.NoSuchProcess):
+                        try:
+                            process.kill()  # Force kill if terminate doesn't work
+                            logger.info(f"Force killed server process {pid} for project '{project_name}'")
+                        except psutil.NoSuchProcess:
+                            logger.debug(f"Server process {pid} was already stopped")
+                    except psutil.AccessDenied:
+                        logger.warning(f"Access denied when trying to stop server process {pid}")
+                    except ImportError:
+                        logger.warning("psutil not available, cannot gracefully stop server process")
+                    
+                except (ValueError, FileNotFoundError) as e:
+                    logger.warning(f"Invalid PID file content in {pid_file_path}: {str(e)}")
+            
+            # Now delete the PID file
+            if os.path.exists(pid_file_path):
+                try:
+                    os.remove(pid_file_path)
+                    logger.info(f"Deleted PID file: {pid_file_path}")
+                    return
+                except Exception as e:
+                    logger.warning(f"Failed to delete PID file {pid_file_path}: {str(e)}")
+            else:
+                # If the primary naming doesn't exist, try some fallback patterns
+                # This handles cases where project names might have been sanitized differently
+                from .project_creation_service import ProjectCreationService
+                creation_service = ProjectCreationService(self.user)
+                sanitized_name = creation_service._sanitize_project_name(project_name)
+                
+                fallback_pid_names = [
+                    f"{sanitized_name}_server.pid",
+                    f"{project_name.lower().replace(' ', '_')}_server.pid",
+                    f"{project_name.replace(' ', '-')}_server.pid"
+                ]
+                
+                for pid_name in fallback_pid_names:
+                    fallback_pid_path = os.path.join(self.base_directory, pid_name)
+                    if os.path.exists(fallback_pid_path):
+                        try:
+                            os.remove(fallback_pid_path)
+                            logger.info(f"Deleted fallback PID file: {fallback_pid_path}")
+                            return
+                        except Exception as e:
+                            logger.warning(f"Failed to delete fallback PID file {fallback_pid_path}: {str(e)}")
+                
+                logger.debug(f"No PID file found for project '{project_name}' (this is normal if the server wasn't running)")
+                
+        except Exception as e:
+            logger.warning(f"Error during server stop and PID file cleanup for project '{project_name}': {str(e)}")
+            # Don't raise the exception as PID file cleanup is not critical for project deletion
 
     def undo_last_action(self, project_or_id):
         """Undo the last action in a project."""
