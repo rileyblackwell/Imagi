@@ -43,17 +43,24 @@ class StylesheetAgentService(BaseAgentService):
         # Define base system prompt from get_system_prompt for easier access
         self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
     
-    def get_system_prompt(self):
+    def get_system_prompt(self, project_name=None):
         """
         Get a concise, optimized system prompt for CSS stylesheet generation.
 
+        Args:
+            project_name (str, optional): The name of the project
+            
         Returns:
             dict: Message with 'role' and 'content'.
         """
+        # Use provided project name or default
+        if not project_name:
+            project_name = "your project"
+            
         return {
             "role": "system",
             "content": (
-                "You are an expert web developer generating clean, valid CSS stylesheets for Imagi Oasis, a platform converting user input into professional stylesheets."
+                f"You are an expert web developer generating clean, valid CSS stylesheets for {project_name}, a project built with Imagi Oasis platform."
                 "\n\nInstructions:"
                 "\n- Provide only complete, valid CSS code with proper indentation; no explanations, plain text, or non-CSS comments."
                 "\n- Include CSS comments only when necessary for clarity within the stylesheet."
@@ -316,13 +323,23 @@ class StylesheetAgentService(BaseAgentService):
         if is_build_mode:
             # Preserve project information when modifying the history
             project_info = None
+            project_name = None
+            
             for i, msg in enumerate(history):
                 if msg.get('role') == 'system' and 'PROJECT INFORMATION:' in msg.get('content', ''):
                     project_info = msg
+                    # Extract project name from project info
+                    content = msg.get('content', '')
+                    if 'Project Name:' in content:
+                        lines = content.split('\n')
+                        for line in lines:
+                            if line.strip().startswith('Project Name:'):
+                                project_name = line.split(':', 1)[1].strip()
+                                break
                     break
                     
-            # Prepend only the unique system prompt for this agent
-            system_prompt = self.get_system_prompt()
+            # Prepend only the unique system prompt for this agent with project name
+            system_prompt = self.get_system_prompt(project_name=project_name)
             # Remove any other system prompt if present
             history = [msg for msg in history if msg.get('role') != 'system']
             

@@ -72,13 +72,23 @@ class TemplateAgentService(BaseAgentService):
         if is_build_mode:
             # Preserve project information when modifying the history
             project_info = None
+            project_name = None
+            
             for i, msg in enumerate(history):
                 if msg.get('role') == 'system' and 'PROJECT INFORMATION:' in msg.get('content', ''):
                     project_info = msg
+                    # Extract project name from project info
+                    content = msg.get('content', '')
+                    if 'Project Name:' in content:
+                        lines = content.split('\n')
+                        for line in lines:
+                            if line.strip().startswith('Project Name:'):
+                                project_name = line.split(':', 1)[1].strip()
+                                break
                     break
                     
-            # Prepend only the unique system prompt for this agent
-            system_prompt = self.get_system_prompt()
+            # Prepend only the unique system prompt for this agent with project name
+            system_prompt = self.get_system_prompt(project_name=project_name)
             # Remove any other system prompt if present
             history = [msg for msg in history if msg.get('role') != 'system']
             
@@ -100,17 +110,24 @@ class TemplateAgentService(BaseAgentService):
         # Define base system prompt from get_system_prompt for easier access
         self.BASE_SYSTEM_PROMPT = self.get_system_prompt()["content"]
 
-    def get_system_prompt(self):
+    def get_system_prompt(self, project_name=None):
         """
         Get a concise, optimized system prompt for Django template generation.
 
+        Args:
+            project_name (str, optional): The name of the project
+            
         Returns:
         dict: Message with 'role' and 'content'.
         """
+        # Use provided project name or default
+        if not project_name:
+            project_name = "your project"
+            
         return {
             "role": "system",
             "content": (
-                "You are an expert web developer generating only clean, valid Django HTML templates for Imagi Oasis, a platform converting user input into template code."
+                f"You are an expert web developer generating only clean, valid Django HTML templates. You are working on a project called {project_name}."
                 "\n\nInstructions:"
                 "\n- Provide only valid Django HTML templates; do not include explanations, comments, or additional text."
                 "\n- No CSS should be generated within templates; link only to external stylesheet at 'static/css/styles.css'."
@@ -131,13 +148,13 @@ class TemplateAgentService(BaseAgentService):
                 "\n- Name other templates logically (e.g., 'about.html' for '/about/')."
                 "\n- Views and URL patterns are auto-generated based on template names."
 
-                "\n\nExample template:"
+                f"\n\nExample template for {project_name}:"
                 "\n{% extends 'base.html' %}"
                 "\n{% load static %}"
                 "\n\n{% block title %}Home{% endblock %}"
                 "\n\n{% block content %}"
-                "\n  <div class=\"hero\">"
-                "\n    <h1>Welcome to Imagi Oasis</h1>"
+                f"\n  <div class=\"hero\">"
+                f"\n    <h1>Welcome to {project_name}</h1>"
                 "\n    <p>Transform your ideas into reality.</p>"
                 "\n  </div>"
                 "\n{% endblock %}"
@@ -146,7 +163,7 @@ class TemplateAgentService(BaseAgentService):
                 "\n{% endblock %}"
                 "\n\n{% block extra_js %}"
                 "\n  <script>"
-                "\n    console.log('Imagi Oasis Loaded');"
+                f"\n    console.log('{project_name} Loaded');"
                 "\n  </script>"
                 "\n{% endblock %}"
             )

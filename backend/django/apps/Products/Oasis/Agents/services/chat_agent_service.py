@@ -37,17 +37,25 @@ class ChatAgentService(BaseAgentService):
         # Standard timeout for general queries
         self.request_timeout = 45  # 45 seconds timeout for general queries
     
-    def get_system_prompt(self):
+    def get_system_prompt(self, project_name=None):
         """
         Get the system prompt for chat interactions.
+        
+        Args:
+            project_name (str, optional): The name of the project
         
         Returns:
             dict: A message dictionary with 'role' and 'content' keys
         """
+        # Use provided project name or default
+        if not project_name:
+            project_name = "your project"
+            
         return {
             "role": "system",
             "content": (
-                "You are an expert web designer and developer working within Imagi Oasis, a powerful platform for building web applications. "
+                f"You are an expert web designer and developer working within Imagi Oasis, a powerful platform for building web applications. "
+                f"You are currently helping the user with their project called {project_name}. "
                 "You assist users with understanding their project code, explaining concepts, and providing guidance "
                 "on web development using Django, Vue.js, and modern frontend technologies.\n\n"
                 
@@ -66,7 +74,7 @@ class ChatAgentService(BaseAgentService):
                 "6. For technical questions, provide specific, practical guidance.\n"
                 "7. Remember that users may be at different skill levels - adjust accordingly.\n"
                 
-                "The user's project uses:\n"
+                f"The project '{project_name}' uses:\n"
                 "- Backend: Django with REST framework\n"
                 "- Frontend: Vue.js 3 with Composition API\n"
                 "- Styling: TailwindCSS\n"
