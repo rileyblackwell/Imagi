@@ -1,292 +1,357 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Enhanced Background Effects matching other pages -->
-      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <!-- Gradient orbs -->
-        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
-        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
-        <!-- Grid pattern overlay -->
+      <!-- Enhanced Background Effects matching dashboard pages -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Enhanced Pattern Overlay -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <!-- Subtle noise texture -->
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+        
+        <!-- Enhanced Glowing Orbs Animation -->
+        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        
+        <!-- Animated Lines and Particles -->
+        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
       </div>
 
-      <!-- Hero Section with improved styling -->
-      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
-        <!-- Content -->
-        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <!-- Enhanced section header to match other pages -->
-          <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
-            <span class="text-primary-400 font-semibold text-sm tracking-wider">LEGAL & AGREEMENTS</span>
-          </div>
-          
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            <span class="text-white block mb-2 sm:mb-3">Terms of Service</span>
-            <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
-              Our Agreement
-            </GradientText>
-          </h1>
-          
-          <p class="text-xl text-gray-300 mb-12 sm:mb-16 max-w-3xl mx-auto leading-relaxed">
-            Please read these terms carefully before using our services.
-          </p>
-        </div>
-      </section>
-
-      <!-- Divider with animated line matching other pages -->
-      <div class="relative h-16 max-w-7xl mx-auto">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
-      <!-- Main Content -->
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
-        <!-- Introduction -->
-        <div class="relative mb-16">
-          <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-            <!-- Enhanced glass morphism effect with glow -->
-            <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-blue-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+      <!-- Enhanced Content Container -->
+      <div class="relative z-10">
+        <!-- Modern Welcome Header Section -->
+        <div class="pt-32 pb-12 px-6 sm:px-8 lg:px-12">
+          <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+              <div class="space-y-6 md:max-w-3xl">
+                <!-- Enhanced Badge -->
+                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
+                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">LEGAL & AGREEMENTS</span>
+                </div>
+                
+                <!-- Modern Title with Gradient Enhancement -->
+                <h1 class="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Terms of Service</span> 
+                  <br class="hidden sm:block" />Our Agreement
+                </h1>
+                
+                <!-- Enhanced Description -->
+                <p class="text-xl text-gray-300 max-w-2xl">
+                  Please read these terms carefully before using our services. By accessing our platform, you agree to be bound by these terms.
+                </p>
+              </div>
+            </div>
             
-            <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-              <!-- Card header with gradient -->
-              <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-blue-500"></div>
-              <div class="p-8">
-                <p class="text-lg text-gray-300 mb-4">
-                  Welcome to Imagi Oasis. Our Terms of Service govern your use of our platform and services. By using Imagi Oasis, you agree to these terms in their entirety.
-                </p>
-                <p class="text-lg text-gray-300">
-                  These terms were last updated on July 15, 2023. We may update these terms from time to time, so please check this page occasionally to ensure you're aware of any changes.
-                </p>
-              </div>
-            </div>
+            <!-- Animated Divider Line -->
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
           </div>
         </div>
 
-        <!-- Terms Content -->
-        <div class="space-y-12 relative z-10">
-          <SectionHeader 
-            title="Terms of Service" 
-            subtitle="Please familiarize yourself with our terms before using Imagi Oasis."
-          />
-          
-          <!-- Terms Sections -->
-          <div class="space-y-12">
-            <!-- Acceptance of Terms Section -->
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-              <div class="p-7">
-                <div class="flex items-center gap-4 mb-5">
-                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
-                    <i class="fas fa-check-circle text-white text-xl"></i>
-                  </div>
-                  <h2 class="text-2xl font-bold text-white">Acceptance of Terms</h2>
-                </div>
-                <p class="text-gray-300 mb-5">{{ termsSection[0].description }}</p>
-              </div>
-            </div>
-
-            <!-- Prohibited Uses Section -->
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-              <div class="p-7">
-                <div class="flex items-center gap-4 mb-5">
-                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-md">
-                    <i class="fas fa-ban text-white text-xl"></i>
-                  </div>
-                  <h2 class="text-2xl font-bold text-white">Prohibited Uses</h2>
-                </div>
-                <p class="text-gray-300 mb-5">{{ termsSection[1].description }}</p>
-              </div>
-              
-              <div class="px-7 pb-7">
-                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                  <ul class="space-y-4">
-                    <li v-for="(item, index) in termsSection[1].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-violet-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                      <span>{{ item }}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- Service Description Section -->
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-              <div class="p-7">
-                <div class="flex items-center gap-4 mb-5">
-                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-md">
-                    <i class="fas fa-cube text-white text-xl"></i>
-                  </div>
-                  <h2 class="text-2xl font-bold text-white">Service Description and Limitations</h2>
-                </div>
-                <p class="text-gray-300 mb-5">{{ termsSection[2].description }}</p>
-              </div>
-              
-              <div class="px-7 pb-7">
-                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                  <ul class="space-y-4">
-                    <li v-for="(item, index) in termsSection[2].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-indigo-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                      <span>{{ item }}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- User Responsibilities Section -->
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-purple-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-              <div class="p-7">
-                <div class="flex items-center gap-4 mb-5">
-                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-500 flex items-center justify-center shadow-md">
-                    <i class="fas fa-user-shield text-white text-xl"></i>
-                  </div>
-                  <h2 class="text-2xl font-bold text-white">User Responsibilities and Conduct</h2>
-                </div>
-                <p class="text-gray-300 mb-5">{{ termsSection[3].description }}</p>
-              </div>
-              
-              <div class="px-7 pb-7">
-                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                  <ul class="space-y-4">
-                    <li v-for="(item, index) in termsSection[3].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-purple-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                      <span>{{ item }}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Divider -->
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-dark-700"></div>
-            </div>
-            <div class="relative flex justify-center">
-              <span class="bg-dark-900 px-4 text-sm text-gray-400">Additional Information</span>
-            </div>
-          </div>
-
-          <!-- Additional Information -->
-          <SectionHeader 
-            title="Additional Terms" 
-            subtitle="Further important information about using our services."
-          />
-
-          <!-- Additional sections -->
-          <div class="space-y-12">
-            <!-- Payment Terms Section -->
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-green-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-              <div class="p-7">
-                <div class="flex items-center gap-4 mb-5">
-                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center shadow-md">
-                    <i class="fas fa-credit-card text-white text-xl"></i>
-                  </div>
-                  <h2 class="text-2xl font-bold text-white">Payment Terms and Billing</h2>
-                </div>
-              </div>
-              
-              <div class="px-7 pb-7">
-                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                  <ul class="space-y-4">
-                    <li v-for="(item, index) in termsSection[4].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-green-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                      <span>
-                        <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- Intellectual Property Rights -->
-            <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-primary-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-              <div class="p-7">
-                <div class="flex items-center gap-4 mb-5">
-                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-500 flex items-center justify-center shadow-md">
-                    <i class="fas fa-copyright text-white text-xl"></i>
-                  </div>
-                  <h2 class="text-2xl font-bold text-white">Intellectual Property Rights</h2>
-                </div>
-                <p class="text-gray-300 mb-5">{{ termsSection[5].description }}</p>
-              </div>
-              
-              <div class="px-7 pb-7">
-                <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                  <ul class="space-y-4">
-                    <li v-for="(item, index) in termsSection[5].items" :key="index" class="flex items-start">
-                      <div class="w-2 h-2 rounded-full bg-primary-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                      <span>
-                        <strong class="text-white">{{ item.title }}:</strong> {{ item.description }}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- Limitation of Liability and Termination (2 column) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <!-- Limitation of Liability -->
-              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-violet-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-                <div class="p-7">
-                  <div class="flex items-center gap-4 mb-5">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-md">
-                      <i class="fas fa-shield-halved text-white text-xl"></i>
+        <!-- Main Content with Modern Layout -->
+        <div class="px-6 sm:px-8 lg:px-12 pb-24">
+          <div class="max-w-7xl mx-auto">
+            <div class="space-y-16">
+              <!-- Introduction Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border border-indigo-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">Introduction</span>
+                      </div>
+                      
+                      <div class="space-y-4 text-gray-300 leading-relaxed">
+                        <p>
+                          Welcome to Imagi Oasis. Our Terms of Service govern your use of our platform and services. By using Imagi Oasis, you agree to these terms in their entirety.
+                        </p>
+                        <p>
+                          These terms were last updated on July 15, 2023. We may update these terms from time to time, so please check this page occasionally to ensure you're aware of any changes.
+                        </p>
+                      </div>
                     </div>
-                    <h2 class="text-2xl font-bold text-white">Limitation of Liability</h2>
-                  </div>
-                  <p class="text-gray-300 mb-5">{{ termsSection[6].description }}</p>
-                </div>
-                
-                <div class="px-7 pb-7">
-                  <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                    <ul class="space-y-4">
-                      <li v-for="(item, index) in termsSection[6].items" :key="index" class="flex items-start">
-                        <div class="w-2 h-2 rounded-full bg-violet-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                        <span>{{ item }}</span>
-                      </li>
-                    </ul>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Termination -->
-              <div class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl border border-dark-700/40 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]">
-                <div class="p-7">
-                  <div class="flex items-center gap-4 mb-5">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-md">
-                      <i class="fas fa-door-closed text-white text-xl"></i>
+              </section>
+
+              <!-- Acceptance of Terms Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-cyan-400/4 to-blue-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-cyan-500/15 to-blue-500/15 border border-cyan-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-cyan-300 font-medium text-xs tracking-wide uppercase">Acceptance of Terms</span>
+                      </div>
+                      
+                      <!-- Icon and Content -->
+                      <div class="flex items-start gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 flex items-center justify-center border border-cyan-400/20 flex-shrink-0">
+                          <i class="fas fa-check-circle text-cyan-300 text-lg"></i>
+                        </div>
+                        <div class="flex-1">
+                          <h2 class="text-2xl font-semibold text-white mb-3 leading-tight">Acceptance of Terms</h2>
+                          <p class="text-gray-300 text-sm leading-relaxed">By accessing or using Imagi's services, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.</p>
+                        </div>
+                      </div>
+                      
+                      <div class="space-y-4 text-gray-300 leading-relaxed">
+                        <p>
+                          By accessing or using Imagi's services, including our AI-powered website builder ("Imagi Oasis"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree to these terms, you must not access or use our services.
+                        </p>
+                        <p>
+                          By using our services, you represent that you have the legal capacity to enter into a binding agreement.
+                        </p>
+                      </div>
                     </div>
-                    <h2 class="text-2xl font-bold text-white">Termination</h2>
-                  </div>
-                  <p class="text-gray-300 mb-5">{{ termsSection[7].description }}</p>
-                </div>
-                
-                <div class="px-7 pb-7">
-                  <div class="bg-dark-900/50 backdrop-blur-sm rounded-xl p-5 border border-dark-800">
-                    <ul class="space-y-4">
-                      <li v-for="(item, index) in termsSection[7].items" :key="index" class="flex items-start">
-                        <div class="w-2 h-2 rounded-full bg-indigo-400 mt-2.5 mr-3 flex-shrink-0"></div>
-                        <span>{{ item }}</span>
-                      </li>
-                    </ul>
                   </div>
                 </div>
-              </div>
+              </section>
+
+              <!-- Prohibited Uses Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-red-400 via-orange-400 to-red-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-red-400/4 to-orange-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500/15 to-orange-500/15 border border-red-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-red-300 font-medium text-xs tracking-wide uppercase">Prohibited Uses</span>
+                      </div>
+                      
+                      <!-- Icon and Content -->
+                      <div class="flex items-start gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400/20 to-orange-400/20 flex items-center justify-center border border-red-400/20 flex-shrink-0">
+                          <i class="fas fa-ban text-red-300 text-lg"></i>
+                        </div>
+                        <div class="flex-1">
+                          <h2 class="text-2xl font-semibold text-white mb-3 leading-tight">Prohibited Uses</h2>
+                          <p class="text-gray-300 text-sm leading-relaxed">You are strictly prohibited from using Imagi's services for any unlawful or unauthorized purposes.</p>
+                        </div>
+                      </div>
+                      
+                      <!-- Modern separator -->
+                      <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                      
+                      <!-- Prohibited Activities List -->
+                      <div class="space-y-4">
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-red-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300">Creating any illegal products, services, applications, or content that violates applicable laws</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-red-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300">Developing applications that promote, facilitate, or enable illegal activities</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-red-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300">Building systems designed to harm, defraud, exploit, or harass others</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-red-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300">Attempting to reverse engineer, decompile, or access non-public parts of our services</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-red-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300">Using our services to spread malware, viruses, or other harmful code</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Service Description Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-emerald-400/4 to-teal-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 border border-emerald-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-emerald-300 font-medium text-xs tracking-wide uppercase">Service Description</span>
+                      </div>
+                      
+                      <!-- Icon and Content -->
+                      <div class="flex items-start gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400/20 to-teal-400/20 flex items-center justify-center border border-emerald-400/20 flex-shrink-0">
+                          <i class="fas fa-cube text-emerald-300 text-lg"></i>
+                        </div>
+                        <div class="flex-1">
+                          <h2 class="text-2xl font-semibold text-white mb-3 leading-tight">Service Description and Limitations</h2>
+                          <p class="text-gray-300 text-sm leading-relaxed">Imagi provides an AI-powered platform for generating code and websites.</p>
+                        </div>
+                      </div>
+                      
+                      <!-- Modern separator -->
+                      <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                      
+                      <!-- Service Limitations -->
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-emerald-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300 text-sm">Our services are provided "as is" without warranties</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-emerald-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300 text-sm">We may modify, suspend, or discontinue services</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-emerald-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300 text-sm">Generated code requires review and testing</span>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-emerald-400 mt-2.5 flex-shrink-0"></div>
+                          <span class="text-gray-300 text-sm">Usage limits may apply to maintain quality</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- User Responsibilities Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-amber-400/4 to-orange-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-amber-300 font-medium text-xs tracking-wide uppercase">User Responsibilities</span>
+                      </div>
+                      
+                      <!-- Icon and Content -->
+                      <div class="flex items-start gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center border border-amber-400/20 flex-shrink-0">
+                          <i class="fas fa-user-shield text-amber-300 text-lg"></i>
+                        </div>
+                        <div class="flex-1">
+                          <h2 class="text-2xl font-semibold text-white mb-3 leading-tight">User Responsibilities and Conduct</h2>
+                          <p class="text-gray-300 text-sm leading-relaxed">Users must adhere to our conduct guidelines and maintain responsible use of our platform.</p>
+                        </div>
+                      </div>
+                      
+                      <!-- Modern separator -->
+                      <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                      
+                      <!-- Responsibilities List -->
+                      <div class="space-y-4">
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-amber-400 mt-2.5 flex-shrink-0"></div>
+                          <div>
+                            <span class="text-white font-semibold">Account Security:</span>
+                            <span class="text-gray-300"> Maintain security and confidentiality of credentials</span>
+                          </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-amber-400 mt-2.5 flex-shrink-0"></div>
+                          <div>
+                            <span class="text-white font-semibold">Accurate Information:</span>
+                            <span class="text-gray-300"> Provide complete and up-to-date information</span>
+                          </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-amber-400 mt-2.5 flex-shrink-0"></div>
+                          <div>
+                            <span class="text-white font-semibold">Legal Compliance:</span>
+                            <span class="text-gray-300"> Comply with all applicable laws and regulations</span>
+                          </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-4 bg-white/5 rounded-xl border border-white/10">
+                          <div class="w-2 h-2 rounded-full bg-amber-400 mt-2.5 flex-shrink-0"></div>
+                          <div>
+                            <span class="text-white font-semibold">Security Measures:</span>
+                            <span class="text-gray-300"> Implement appropriate security for your applications</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Contact Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-rose-400 via-pink-400 to-rose-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-rose-400/4 to-pink-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-rose-500/15 to-pink-500/15 border border-rose-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-rose-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-rose-300 font-medium text-xs tracking-wide uppercase">Contact Us</span>
+                      </div>
+                      
+                      <!-- Icon and Content -->
+                      <div class="flex items-start gap-4 mb-6 text-center">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400/20 to-pink-400/20 flex items-center justify-center border border-rose-400/20 flex-shrink-0 mx-auto">
+                          <i class="fas fa-file-contract text-rose-300 text-lg"></i>
+                        </div>
+                      </div>
+                      
+                      <div class="text-center">
+                        <h2 class="text-2xl font-semibold text-white mb-3 leading-tight">Questions About Our Terms?</h2>
+                        <p class="text-gray-300 text-sm leading-relaxed mb-6">We're here to help you understand our terms and conditions. Reach out with any questions.</p>
+                        
+                        <!-- Contact Button -->
+                        <router-link 
+                          to="/contact"
+                          class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white font-medium rounded-xl shadow-lg shadow-rose-500/25 transition-all duration-200 transform hover:-translate-y-1"
+                        >
+                          <i class="fas fa-envelope mr-2"></i>
+                          Contact Us
+                        </router-link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
-
-          <!-- Enhanced CTA Section -->
-          <CTASection
-            title="Questions About"
-            highlightedText="Our Terms?"
-            description="We're here to help you understand our terms and conditions. Reach out with any questions."
-            primaryButtonText="Contact Us"
-            primaryButtonTo="/contact"
-            icon="fas fa-file-contract"
-          />
         </div>
       </div>
     </div>
@@ -296,133 +361,30 @@
 <script>
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { 
-  GradientText,
-  HeroBadge,
-  HomeNavbarButton,
-  CardContainer,
-  SectionHeader
-} from '@/apps/home/components'
-import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
-  name: 'Terms',
+  name: 'TermsOfService',
   components: {
-    DefaultLayout,
-    GradientText,
-    HeroBadge,
-    HomeNavbarButton,
-    CardContainer,
-    SectionHeader,
-    CTASection
-  },
-  setup() {
-    const termsSection = [
-      {
-        title: 'Acceptance of Terms',
-        icon: 'fas fa-check-circle',
-        description: 'By accessing or using Imagi\'s services, including our AI-powered website builder ("Imagi Oasis"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree to these terms, you must not access or use our services. By using our services, you represent that you have the legal capacity to enter into a binding agreement.'
-      },
-      {
-        title: 'Prohibited Uses',
-        icon: 'fas fa-ban',
-        description: 'You are strictly prohibited from using Imagi\'s services for any unlawful or unauthorized purposes. Violations may result in immediate account termination and potential legal action. Prohibited activities include:',
-        items: [
-          'Creating any illegal products, services, applications, or content that violates applicable laws',
-          'Developing applications that promote, facilitate, or enable illegal activities, including but not limited to fraud, terrorism, or trafficking',
-          'Generating content that violates laws, regulations, or third-party rights',
-          'Building systems designed to harm, defraud, exploit, or harass others',
-          'Any activities that violate intellectual property rights, export control laws, or data protection regulations',
-          'Attempting to reverse engineer, decompile, or access non-public parts of our services',
-          'Using our services to spread malware, viruses, or other harmful code',
-          'Engaging in activities that could damage Imagi\'s reputation or infrastructure'
-        ]
-      },
-      {
-        title: 'Service Description and Limitations',
-        icon: 'fas fa-cube',
-        description: 'Imagi provides an AI-powered platform for generating code and websites. While we strive for excellence, you acknowledge that:',
-        items: [
-          'Our services are provided "as is" without warranties of any kind',
-          'We may modify, suspend, or discontinue services at any time',
-          'We do not guarantee uninterrupted or error-free service',
-          'Generated code and applications require review and testing',
-          'You are responsible for compliance with applicable laws and regulations',
-          'We may impose usage limits or restrictions to maintain service quality'
-        ]
-      },
-      {
-        title: 'User Responsibilities and Conduct',
-        icon: 'fas fa-user-shield',
-        description: 'Users of Imagi\'s services have specific responsibilities and must adhere to our conduct guidelines:',
-        items: [
-          'Maintain account security and confidentiality of credentials',
-          'Provide accurate, complete, and up-to-date information',
-          'Comply with all applicable laws, regulations, and industry standards',
-          'Report any security vulnerabilities or suspicious activities',
-          'Take responsibility for all activities under your account',
-          'Implement appropriate security measures for your applications',
-          'Regularly backup your data and code',
-          'Respect the intellectual property rights of others'
-        ]
-      },
-      {
-        title: 'Payment Terms and Billing',
-        icon: 'fas fa-credit-card',
-        items: [
-          { title: 'Non-Refundable Payments', description: 'All payments are final and non-refundable unless explicitly required by law or stated otherwise' },
-          { title: 'Subscription Terms', description: 'Recurring fees are automatically charged at the start of each billing cycle until cancellation' },
-          { title: 'Price Changes', description: 'We reserve the right to modify pricing with 30 days notice for existing subscribers' },
-          { title: 'Payment Processing', description: 'You must provide valid payment information and authorize us to charge your payment method' },
-          { title: 'Failed Payments', description: 'Service access may be suspended or terminated for failed payments or chargebacks' },
-          { title: 'Taxes', description: 'You are responsible for all applicable taxes and governmental charges' }
-        ]
-      },
-      {
-        title: 'Intellectual Property Rights',
-        icon: 'fas fa-copyright',
-        description: 'Our intellectual property rights are fundamental to our business:',
-        items: [
-          { title: 'Ownership', description: 'All service-related intellectual property belongs to Imagi, including systems, code, and designs' },
-          { title: 'User Content', description: 'You retain rights to your content while granting us necessary licenses to provide services' },
-          { title: 'Restrictions', description: 'No right to copy, modify, or create derivative works without explicit permission' },
-          { title: 'Feedback', description: 'Any feedback or suggestions you provide may be used without obligation or compensation' }
-        ]
-      },
-      {
-        title: 'Limitation of Liability',
-        icon: 'fas fa-shield-halved',
-        description: 'To the maximum extent permitted by law:',
-        items: [
-          'We are not liable for indirect, incidental, special, or consequential damages',
-          'Our total liability is limited to the amount paid for services in the past 12 months',
-          'We do not warrant the accuracy, completeness, or reliability of generated code',
-          'You agree to indemnify us against claims arising from your use of services',
-          'We are not responsible for third-party services or content'
-        ]
-      },
-      {
-        title: 'Termination',
-        icon: 'fas fa-door-closed',
-        description: 'We reserve the right to terminate or suspend access to our services:',
-        items: [
-          'For violations of these terms or applicable laws',
-          'Without prior notice if necessary to protect our services or other users',
-          'For extended periods of account inactivity',
-          'When required by law or regulation',
-          'Upon account deletion, certain data may be permanently deleted'
-        ]
-      }
-    ]
-
-    return {
-      termsSection
-    }
+    DefaultLayout
   }
 })
 </script>
 
 <style scoped>
+/* Completely remove any browser default styling for form inputs */
+input, textarea {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+input:focus, textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Float animation for background orbs */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
@@ -447,41 +409,7 @@ export default defineComponent({
   animation: pulse 3s ease-in-out infinite;
 }
 
-/* Simple list styling without generated bullets */
-ul {
-  @apply pl-0 mb-4;
-  list-style: none;
-}
-
-ul li {
-  @apply mb-3 text-gray-300;
-}
-
-/* Remove any generated bullets */
-ul li::before, 
-ul li::marker {
-  content: none;
-}
-
-/* Styling for circular bullet points (handled in markup) */
-.w-2.h-2.rounded-full {
-  @apply bg-gradient-to-r from-primary-400 to-violet-400;
-  box-shadow: 0 0 6px rgba(139, 92, 246, 0.5);
-}
-
-h3 {
-  @apply text-xl font-bold text-white mb-4;
-}
-
-h4 {
-  @apply text-lg font-semibold text-white mb-3;
-}
-
-p {
-  @apply mb-4 text-gray-300;
-}
-
-p:last-child {
-  @apply mb-0;
+.delay-700 {
+  animation-delay: 700ms;
 }
 </style>

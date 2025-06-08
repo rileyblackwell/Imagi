@@ -1,274 +1,377 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Enhanced Background Effects matching Projects page -->
-      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <!-- Gradient orbs matching Projects page -->
-        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
-        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
-        <!-- Grid pattern overlay -->
+      <!-- Enhanced Background Effects matching dashboard pages -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Enhanced Pattern Overlay -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <!-- Subtle noise texture -->
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+        
+        <!-- Enhanced Glowing Orbs Animation -->
+        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        
+        <!-- Animated Lines and Particles -->
+        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
       </div>
 
-      <!-- Hero Section with improved styling -->
-      <section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pt-36 sm:pb-20">
-        <!-- Content -->
-        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <!-- Enhanced section header to match projects page -->
-          <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
-            <span class="text-primary-400 font-semibold text-sm tracking-wider">OUR COMPANY</span>
-          </div>
-          
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            <span class="text-white block mb-2 sm:mb-3">About</span>
-            <GradientText variant="primary" class="font-bold block text-5xl sm:text-6xl lg:text-7xl">
-              Our Story
-            </GradientText>
-          </h1>
-          
-          <p class="text-xl text-gray-300 mb-12 sm:mb-16 max-w-3xl mx-auto leading-relaxed">
-            We're pioneering the future of web development through AI-powered innovation and human-centric design.
-          </p>
-
-          <!-- Stats Grid - Enhanced styling with glass morphism -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto">
-            <div v-for="(stat, index) in stats" :key="index"
-                 class="group relative transform transition-all duration-300 hover:-translate-y-2"
-            >
-              <!-- Enhanced glass morphism effect with glow -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+      <!-- Enhanced Content Container -->
+      <div class="relative z-10">
+        <!-- Modern Welcome Header Section -->
+        <div class="pt-32 pb-12 px-6 sm:px-8 lg:px-12">
+          <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+              <div class="space-y-6 md:max-w-3xl">
+                <!-- Enhanced Badge -->
+                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
+                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">OUR COMPANY</span>
+                </div>
+                
+                <!-- Modern Title with Gradient Enhancement -->
+                <h1 class="text-4xl md:text-5xl font-bold text-white leading-tight">
+                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">About</span> 
+                  <br class="hidden sm:block" />Our Story
+                </h1>
+                
+                <!-- Enhanced Description -->
+                <p class="text-xl text-gray-300 max-w-2xl">
+                  We're pioneering the future of web development through AI-powered innovation and human-centric design.
+                </p>
+              </div>
               
-              <!-- Card content with enhanced styling -->
-              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                <!-- Card header with gradient -->
-                <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
-                <div class="p-4">
-                  <div class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-300 to-violet-300 bg-clip-text text-transparent mb-1">
-                    {{ stat.value }}
+              <!-- Stats Overview Cards -->
+              <div class="grid grid-cols-2 gap-4 justify-end">
+                <div v-for="(stat, index) in stats" :key="index"
+                     class="group relative transform transition-all duration-300">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-lg shadow-black/20 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/30">
+                    <!-- Sleek gradient header -->
+                    <div class="h-0.5 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+                    
+                    <div class="p-4 text-center">
+                      <div class="text-lg font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent mb-1">
+                        {{ stat.value }}
+                      </div>
+                      <div class="text-xs text-gray-400">{{ stat.label }}</div>
+                    </div>
                   </div>
-                  <div class="text-sm text-gray-400">{{ stat.label }}</div>
                 </div>
               </div>
             </div>
+            
+            <!-- Animated Divider Line -->
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
           </div>
         </div>
-      </section>
 
-      <!-- Divider with animated line matching Projects page -->
-      <div class="relative h-16 max-w-7xl mx-auto">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
-      <!-- Main Content -->
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative">
-        <div class="space-y-24 relative z-10">
-          <!-- Mission Section -->
-          <section>
-            <SectionHeader 
-              title="Our Mission" 
-              subtitle="We're transforming the world of web development through innovative AI solutions."
-            />
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+        <!-- Main Content with Modern Layout -->
+        <div class="px-6 sm:px-8 lg:px-12 pb-24">
+          <div class="max-w-7xl mx-auto">
+            <div class="space-y-16">
+              <!-- Mission Section -->
+              <section>
+                <div class="text-center mb-12">
+                  <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border border-indigo-400/20 rounded-full mb-6 backdrop-blur-sm">
+                    <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+                    <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">Our Mission</span>
+                  </div>
+                  <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+                    <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Transforming Web Development</span>
+                  </h2>
+                  <p class="text-gray-300 max-w-3xl mx-auto">We're transforming the world of web development through innovative AI solutions.</p>
+                </div>
                 
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
-                  <div class="p-7">
-                    <div class="flex items-center gap-4 mb-5">
-                      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20 shadow-lg shadow-primary-500/5">
-                        <i class="fas fa-bullseye text-primary-400 text-xl"></i>
-                      </div>
-                      <h3 class="text-xl font-bold text-white">Democratizing Web Development</h3>
-                    </div>
-                    <p class="text-gray-300">We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-                
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
-                  <div class="p-7">
-                    <div class="flex items-center gap-4 mb-5">
-                      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20 shadow-lg shadow-primary-500/5">
-                        <i class="fas fa-lightbulb text-primary-400 text-xl"></i>
-                      </div>
-                      <h3 class="text-xl font-bold text-white">Innovation Through AI</h3>
-                    </div>
-                    <p class="text-gray-300">We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- What We Do Section -->
-          <section>
-            <SectionHeader 
-              title="What We Do" 
-              subtitle="Our innovative platform transforms how web applications are built, deployed, and maintained."
-            />
-            
-            <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-              <!-- Enhanced glass morphism effect with glow -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-blue-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-              
-              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                <!-- Card header with gradient -->
-                <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-blue-500"></div>
-                <div class="p-7">
-                  <p class="text-lg text-gray-300 mb-10">Imagi is pioneering the future of web development with our flagship product, <span class="text-primary-400">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional Django web applications, making the development process more intuitive and efficient than ever before.</p>
-                  
-                  <h3 class="text-xl font-bold text-white mb-8 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                      <i class="fas fa-star text-primary-400"></i>
-                    </div>
-                    Key Features
-                  </h3>
-                  
-                  <div class="space-y-8">
-                    <div class="flex items-start gap-6">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center mt-1 flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                        <i class="fas fa-wand-magic-sparkles text-sm text-primary-400"></i>
-                      </div>
-                      <div class="flex-1">
-                        <strong class="text-white block mb-2">Natural Language Generation</strong>
-                        <span class="text-gray-300">Simply describe your vision in plain English, and watch as our AI transforms it into clean, professional code.</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                    <!-- Modern glassmorphism container -->
+                    <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                      <!-- Sleek gradient header -->
+                      <div class="h-1 w-full bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 opacity-80"></div>
+                      
+                      <!-- Subtle background effects -->
+                      <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-cyan-400/4 to-blue-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                      
+                      <div class="relative z-10 p-8">
+                        <!-- Icon and Content -->
+                        <div class="flex items-start gap-4 mb-6">
+                          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 flex items-center justify-center border border-cyan-400/20 flex-shrink-0">
+                            <i class="fas fa-bullseye text-cyan-300 text-lg"></i>
+                          </div>
+                          <div class="flex-1">
+                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">Democratizing Web Development</h3>
+                          </div>
+                        </div>
+                        
+                        <p class="text-gray-300 leading-relaxed">
+                          We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.
+                        </p>
                       </div>
                     </div>
-                    <div class="flex items-start gap-6">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center mt-1 flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                        <i class="fas fa-code text-sm text-primary-400"></i>
-                      </div>
-                      <div class="flex-1">
-                        <strong class="text-white block mb-2">Full-Stack Development</strong>
-                        <span class="text-gray-300">Generate both frontend and backend code, complete with database structures, API endpoints, and user interfaces.</span>
-                      </div>
-                    </div>
-                    <div class="flex items-start gap-6">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center mt-1 flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                        <i class="fas fa-arrows-rotate text-sm text-primary-400"></i>
-                      </div>
-                      <div class="flex-1">
-                        <strong class="text-white block mb-2">Iterative Refinement</strong>
-                        <span class="text-gray-300">Continuously refine and enhance your application through natural conversation with our AI.</span>
-                      </div>
-                    </div>
-                    <div class="flex items-start gap-6">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center mt-1 flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                        <i class="fas fa-shield-halved text-sm text-primary-400"></i>
-                      </div>
-                      <div class="flex-1">
-                        <strong class="text-white block mb-2">Best Practices Built-in</strong>
-                        <span class="text-gray-300">Every generated application follows industry standards for security, performance, and maintainability.</span>
-                      </div>
-                    </div>
-                    <div class="flex items-start gap-6">
-                      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center mt-1 flex-shrink-0 group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                        <i class="fas fa-coins text-sm text-primary-400"></i>
-                      </div>
-                      <div class="flex-1">
-                        <strong class="text-white block mb-2">Affordable Pricing</strong>
-                        <span class="text-gray-300">Pay only for what you use with our credit-based system. Build complete web apps for just a few dollars instead of thousands.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Vision Section -->
-          <section>
-            <SectionHeader 
-              title="Our Vision" 
-              subtitle="We're creating a future where technology enables creativity without barriers."
-            />
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div v-for="(item, index) in visionItems" :key="index"
-                   class="group relative transform transition-all duration-300 hover:-translate-y-2"
-              >
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-violet-500/50 to-fuchsia-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-                
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-                  <div class="p-7">
-                    <div class="flex items-center gap-4 mb-5">
-                      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-violet-500/20 shadow-lg shadow-violet-500/5">
-                        <i :class="['text-violet-400 text-xl', item.icon]"></i>
-                      </div>
-                      <h3 class="text-xl font-bold text-white">{{ item.title }}</h3>
-                    </div>
-                    <p class="text-gray-300">{{ item.description }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Technology Section -->
-          <section>
-            <SectionHeader 
-              title="Our Technology" 
-              subtitle="Powered by cutting-edge AI and a modern technology stack."
-            />
-            
-            <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-              <!-- Enhanced glass morphism effect with glow -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/50 to-blue-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-              
-              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                <!-- Card header with gradient -->
-                <div class="h-2 w-full bg-gradient-to-r from-cyan-500 to-blue-500"></div>
-                <!-- Content -->
-                <div class="p-7">
-                  <div class="text-center md:text-left">
-                    <h3 class="text-xl font-bold text-white mb-4">AI-Powered Development Platform</h3>
-                    <p class="text-gray-300 mb-6">
-                      Our technology stack combines the latest advancements in AI with robust, industry-standard web development frameworks and tools.
-                    </p>
                   </div>
                   
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mt-8">
-                    <div v-for="(tech, index) in ['Python', 'Django', 'Vue.js', 'TailwindCSS', 'PostgreSQL', 'Docker', 'OpenAI', 'Anthropic']" :key="index"
-                         class="bg-dark-800/50 backdrop-blur-sm border border-dark-700 rounded-lg p-4 text-center group-hover:border-primary-500/20 transition-all duration-300"
-                    >
-                      <div class="h-14 flex items-center justify-center mb-3">
-                        <i :class="['text-3xl', getTechIcon(tech)]"></i>
+                  <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                    <!-- Modern glassmorphism container -->
+                    <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                      <!-- Sleek gradient header -->
+                      <div class="h-1 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 opacity-80"></div>
+                      
+                      <!-- Subtle background effects -->
+                      <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-emerald-400/4 to-teal-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                      
+                      <div class="relative z-10 p-8">
+                        <!-- Icon and Content -->
+                        <div class="flex items-start gap-4 mb-6">
+                          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400/20 to-teal-400/20 flex items-center justify-center border border-emerald-400/20 flex-shrink-0">
+                            <i class="fas fa-lightbulb text-emerald-300 text-lg"></i>
+                          </div>
+                          <div class="flex-1">
+                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">Innovation Through AI</h3>
+                          </div>
+                        </div>
+                        
+                        <p class="text-gray-300 leading-relaxed">
+                          We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.
+                        </p>
                       </div>
-                      <h4 class="text-sm font-medium text-gray-200">{{ tech }}</h4>
                     </div>
                   </div>
                 </div>
-              </div>
+              </section>
+
+              <!-- What We Do Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-amber-400/4 to-orange-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-amber-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-amber-300 font-medium text-xs tracking-wide uppercase">What We Do</span>
+                      </div>
+                      
+                      <!-- Main Description -->
+                      <div class="mb-8">
+                        <h2 class="text-2xl font-semibold text-white mb-4 leading-tight">Our Innovative Platform</h2>
+                        <p class="text-gray-300 leading-relaxed mb-6">
+                          Imagi is pioneering the future of web development with our flagship product, <span class="text-amber-400 font-semibold">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional Django web applications, making the development process more intuitive and efficient than ever before.
+                        </p>
+                      </div>
+                      
+                      <!-- Modern separator -->
+                      <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8"></div>
+                      
+                      <!-- Key Features -->
+                      <div class="space-y-6">
+                        <h3 class="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center border border-amber-400/20">
+                            <i class="fas fa-star text-amber-400 text-sm"></i>
+                          </div>
+                          Key Features
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div class="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center mt-1 flex-shrink-0 border border-amber-400/20">
+                              <i class="fas fa-wand-magic-sparkles text-xs text-amber-400"></i>
+                            </div>
+                            <div class="flex-1">
+                              <span class="text-white font-semibold block mb-1">Natural Language Generation</span>
+                              <span class="text-gray-300 text-sm">Simply describe your vision in plain English, and watch as our AI transforms it into clean, professional code.</span>
+                            </div>
+                          </div>
+                          
+                          <div class="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center mt-1 flex-shrink-0 border border-amber-400/20">
+                              <i class="fas fa-code text-xs text-amber-400"></i>
+                            </div>
+                            <div class="flex-1">
+                              <span class="text-white font-semibold block mb-1">Full-Stack Development</span>
+                              <span class="text-gray-300 text-sm">Generate both frontend and backend code, complete with database structures, API endpoints, and user interfaces.</span>
+                            </div>
+                          </div>
+                          
+                          <div class="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center mt-1 flex-shrink-0 border border-amber-400/20">
+                              <i class="fas fa-arrows-rotate text-xs text-amber-400"></i>
+                            </div>
+                            <div class="flex-1">
+                              <span class="text-white font-semibold block mb-1">Iterative Refinement</span>
+                              <span class="text-gray-300 text-sm">Continuously refine and enhance your application through natural conversation with our AI.</span>
+                            </div>
+                          </div>
+                          
+                          <div class="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center mt-1 flex-shrink-0 border border-amber-400/20">
+                              <i class="fas fa-shield-halved text-xs text-amber-400"></i>
+                            </div>
+                            <div class="flex-1">
+                              <span class="text-white font-semibold block mb-1">Best Practices Built-in</span>
+                              <span class="text-gray-300 text-sm">Every generated application follows industry standards for security, performance, and maintainability.</span>
+                            </div>
+                          </div>
+                          
+                          <div class="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10 md:col-span-2">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400/20 to-orange-400/20 flex items-center justify-center mt-1 flex-shrink-0 border border-amber-400/20">
+                              <i class="fas fa-coins text-xs text-amber-400"></i>
+                            </div>
+                            <div class="flex-1">
+                              <span class="text-white font-semibold block mb-1">Affordable Pricing</span>
+                              <span class="text-gray-300 text-sm">Pay only for what you use with our credit-based system. Build complete web apps for just a few dollars instead of thousands.</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Vision Section -->
+              <section>
+                <div class="text-center mb-12">
+                  <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 border border-violet-400/20 rounded-full mb-6 backdrop-blur-sm">
+                    <div class="w-1.5 h-1.5 bg-violet-400 rounded-full mr-2 animate-pulse"></div>
+                    <span class="text-violet-300 font-medium text-xs tracking-wide uppercase">Our Vision</span>
+                  </div>
+                  <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+                    <span class="inline-block bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Creating a Future Without Barriers</span>
+                  </h2>
+                  <p class="text-gray-300 max-w-3xl mx-auto">We're creating a future where technology enables creativity without barriers.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div v-for="(item, index) in visionItems" :key="index"
+                       class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                    <!-- Modern glassmorphism container -->
+                    <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                      <!-- Sleek gradient header -->
+                      <div class="h-1 w-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 opacity-80"></div>
+                      
+                      <!-- Subtle background effects -->
+                      <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-violet-400/4 to-fuchsia-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                      
+                      <div class="relative z-10 p-8">
+                        <!-- Icon and Content -->
+                        <div class="flex items-start gap-4 mb-6">
+                          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 flex items-center justify-center border border-violet-400/20 flex-shrink-0">
+                            <i :class="['text-violet-300 text-lg', item.icon]"></i>
+                          </div>
+                          <div class="flex-1">
+                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">{{ item.title }}</h3>
+                          </div>
+                        </div>
+                        
+                        <p class="text-gray-300 leading-relaxed">{{ item.description }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Technology Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-cyan-400/4 to-blue-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-cyan-500/15 to-blue-500/15 border border-cyan-400/20 rounded-full mb-6 backdrop-blur-sm">
+                        <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-cyan-300 font-medium text-xs tracking-wide uppercase">Our Technology</span>
+                      </div>
+                      
+                      <div class="text-center mb-8">
+                        <h2 class="text-2xl font-semibold text-white mb-4 leading-tight">AI-Powered Development Platform</h2>
+                        <p class="text-gray-300 leading-relaxed max-w-3xl mx-auto">
+                          Our technology stack combines the latest advancements in AI with robust, industry-standard web development frameworks and tools.
+                        </p>
+                      </div>
+                      
+                      <!-- Modern separator -->
+                      <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8"></div>
+                      
+                      <!-- Technology Grid -->
+                      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div v-for="(tech, index) in technologies" :key="index"
+                             class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center hover:border-cyan-400/30 transition-all duration-300">
+                          <div class="h-12 flex items-center justify-center mb-3">
+                            <i :class="['text-2xl', getTechIcon(tech)]"></i>
+                          </div>
+                          <h4 class="text-sm font-medium text-gray-200">{{ tech }}</h4>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              
+              <!-- CTA Section -->
+              <section>
+                <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-1 w-full bg-gradient-to-r from-rose-400 via-pink-400 to-rose-400 opacity-80"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-rose-400/4 to-pink-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                    
+                    <div class="relative z-10 p-8">
+                      <!-- Modern pill badge -->
+                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-rose-500/15 to-pink-500/15 border border-rose-400/20 rounded-full mb-6 backdrop-blur-sm mx-auto">
+                        <div class="w-1.5 h-1.5 bg-rose-400 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-rose-300 font-medium text-xs tracking-wide uppercase">Get Started</span>
+                      </div>
+                      
+                      <div class="text-center">
+                        <h2 class="text-3xl font-semibold text-white mb-4 leading-tight">
+                          Ready to Transform Your 
+                          <span class="inline-block bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Development Process?</span>
+                        </h2>
+                        <p class="text-gray-300 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
+                          Create beautiful web apps in minutes for just a few dollars - not thousands. No coding required.
+                        </p>
+                        
+                        <!-- CTA Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                          <router-link 
+                            to="/products/oasis/builder/dashboard"
+                            class="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white font-medium rounded-xl shadow-lg shadow-rose-500/25 transition-all duration-200 transform hover:-translate-y-1"
+                          >
+                            <i class="fas fa-wand-magic-sparkles mr-2"></i>
+                            Start Building
+                          </router-link>
+                          
+                          <router-link 
+                            to="/docs"
+                            class="inline-flex items-center justify-center px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-400/30 text-white font-medium rounded-xl transition-all duration-200"
+                          >
+                            <i class="fas fa-book mr-2"></i>
+                            Learn More
+                          </router-link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
-          </section>
-          
-          <!-- CTA Section -->
-          <CTASection
-            title="Ready to Transform Your"
-            highlightedText="Development Process?"
-            description="Create beautiful web apps in minutes for just a few dollars - not thousands. No coding required."
-            primaryButtonText="Start Building"
-            primaryButtonTo="/products/oasis/builder/dashboard"
-            icon="fas fa-wand-magic-sparkles"
-            :showSecondaryButton="true"
-            secondaryButtonText="Learn More" 
-            secondaryButtonTo="/docs"
-          />
+          </div>
         </div>
       </div>
     </div>
@@ -276,24 +379,15 @@
 </template>
 
 <script>
-import { defineComponent, computed } from 'vue'
-import { useAuthStore } from '@/apps/auth/stores'
+import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { GradientText, HeroBadge, SectionHeader } from '@/apps/home/components'
-import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
   name: 'About',
   components: {
-    DefaultLayout,
-    GradientText,
-    HeroBadge,
-    SectionHeader,
-    CTASection
+    DefaultLayout
   },
   setup() {
-    const authStore = useAuthStore()
-    
     const stats = [
       { value: '10K+', label: 'Active Users' },
       { value: '50K+', label: 'Apps Generated' },
@@ -319,6 +413,8 @@ export default defineComponent({
       }
     ]
     
+    const technologies = ['Python', 'Django', 'Vue.js', 'TailwindCSS', 'PostgreSQL', 'Docker', 'OpenAI', 'Anthropic']
+    
     // Function to get icon for technology stack items
     const getTechIcon = (tech) => {
       const iconMap = {
@@ -328,17 +424,16 @@ export default defineComponent({
         'TailwindCSS': 'fab fa-css3 text-blue-500',
         'PostgreSQL': 'fas fa-database text-blue-400',
         'Docker': 'fab fa-docker text-blue-500',
-        'OpenAI': 'fas fa-brain text-primary-400',
-        'Anthropic': 'fas fa-robot text-violet-400',
-        'Google Cloud': 'fab fa-google text-blue-400',
+        'OpenAI': 'fas fa-brain text-indigo-400',
+        'Anthropic': 'fas fa-robot text-violet-400'
       }
       return iconMap[tech] || 'fas fa-code text-gray-400'
     }
     
     return {
-      isAuthenticated: computed(() => authStore.isAuthenticated),
       stats,
       visionItems,
+      technologies,
       getTechIcon
     }
   }
@@ -346,35 +441,18 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Remove all animation styles */
-
-/* Reset list styles */
-.prose ul {
-  padding-left: 0;
-  margin: 0;
-  list-style: none;
+/* Completely remove any browser default styling for form inputs */
+input, textarea {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
 }
 
-.prose li {
-  padding-left: 0;
-  margin: 0;
-}
-
-/* Remove default bullet points */
-.prose li::before {
-  display: none !important;
-}
-
-/* Ensure proper spacing for flex items */
-.prose li.flex {
-  padding: 0;
-  margin: 0;
-}
-
-/* Extra spacing for nested content */
-.prose li > div {
-  margin-top: 0;
-  margin-bottom: 0;
+input:focus, textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Float animation for background orbs */
@@ -399,5 +477,9 @@ export default defineComponent({
 
 .animate-pulse-slow {
   animation: pulse 3s ease-in-out infinite;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
 }
 </style>
