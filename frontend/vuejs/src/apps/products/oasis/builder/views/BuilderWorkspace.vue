@@ -7,7 +7,7 @@
   3. Editing project files through AI assistance
 -->
 <template>
-  <div>
+  <div class="relative">
     <!-- Fixed position account balance display -->
     <AccountBalanceDisplay />
     
@@ -38,52 +38,127 @@
         />
       </template>
 
-      <!-- Main Content Area -->
+      <!-- Main Content Area with Ultra-Modern Design and Enhanced Layout -->
       <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
-        <!-- Error State Display -->
-        <div v-if="store.error" class="flex-1 flex flex-col h-full overflow-hidden">
-          <div class="flex flex-col items-center justify-center h-full p-8 text-center">
-            <div class="w-20 h-20 bg-gradient-to-br from-red-500/15 to-orange-500/15 rounded-full flex items-center justify-center mb-6 border border-red-500/20 shadow-lg shadow-red-500/10">
-              <i class="fas fa-exclamation-triangle text-3xl text-red-400"></i>
-            </div>
-            <h2 class="text-2xl font-semibold text-white mb-4">Workspace Error</h2>
-            <p class="text-gray-300 mb-8 max-w-md">{{ store.error }}</p>
-            <div class="flex gap-4">
-              <router-link
-                to="/products/oasis/builder/dashboard"
-                class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
-              >
-                <i class="fas fa-arrow-left mr-2"></i>
-                Go to Dashboard
-              </router-link>
-              <button
-                @click="retryProjectLoad"
-                class="px-6 py-3 bg-dark-800/60 hover:bg-dark-700/60 border border-dark-800/60 hover:border-indigo-500/30 text-gray-300 hover:text-white rounded-xl shadow-md hover:shadow-lg shadow-dark-900/10 hover:shadow-indigo-500/20 transition-all duration-300 inline-flex items-center"
-              >
-                <i class="fas fa-sync-alt mr-2"></i>
-                Retry
-              </button>
+        <!-- Ultra-Premium Background Effects System -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+          <!-- Multi-layered sophisticated pattern system -->
+          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.015]"></div>
+          <div class="absolute inset-0 bg-noise opacity-[0.008] mix-blend-overlay"></div>
+          
+          <!-- Advanced gradient orchestration for depth -->
+          <div class="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-950/95 to-dark-950/90"></div>
+          <div class="absolute inset-0 bg-gradient-to-tr from-indigo-950/8 via-transparent to-violet-950/6"></div>
+          <div class="absolute inset-0 bg-gradient-to-bl from-transparent via-fuchsia-950/4 to-transparent"></div>
+          <div class="absolute inset-0 bg-gradient-to-tl from-dark-950/90 via-transparent to-dark-950/70"></div>
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,119,198,0.02),transparent_70%)]"></div>
+          
+          <!-- Premium floating orbs with sophisticated staggered choreography -->
+          <div class="absolute -top-[25%] right-[8%] w-[900px] h-[900px] rounded-full bg-gradient-to-br from-indigo-500/4 to-violet-600/3 blur-[160px] animate-float-orchestrated-1"></div>
+          <div class="absolute bottom-[-5%] left-[12%] w-[750px] h-[750px] rounded-full bg-gradient-to-br from-fuchsia-500/3 to-pink-600/2 blur-[140px] animate-float-orchestrated-2"></div>
+          <div class="absolute top-[35%] left-[75%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-cyan-500/3 to-blue-600/2 blur-[110px] animate-float-orchestrated-3"></div>
+          <div class="absolute top-[10%] left-[25%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-emerald-500/2 to-teal-600/2 blur-[90px] animate-float-orchestrated-4"></div>
+          
+          <!-- Sophisticated animated geometric elements -->
+          <div class="absolute left-0 right-0 top-[20%] h-px bg-gradient-to-r from-transparent via-indigo-400/15 to-transparent animate-pulse-sophisticated"></div>
+          <div class="absolute left-0 right-0 top-[45%] h-px bg-gradient-to-r from-transparent via-violet-400/12 to-transparent animate-pulse-sophisticated delay-1200"></div>
+          <div class="absolute left-0 right-0 top-[70%] h-px bg-gradient-to-r from-transparent via-fuchsia-400/10 to-transparent animate-pulse-sophisticated delay-2400"></div>
+          <div class="absolute left-0 right-0 bottom-[25%] h-px bg-gradient-to-r from-transparent via-cyan-400/8 to-transparent animate-pulse-sophisticated delay-3600"></div>
+          
+          <!-- Ultra-subtle mesh overlay for premium texture -->
+          <div class="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.001)_50%,transparent_100%)] bg-[length:120px_120px] opacity-60"></div>
+          <div class="absolute inset-0 bg-[linear-gradient(0deg,transparent_0%,rgba(255,255,255,0.001)_50%,transparent_100%)] bg-[length:120px_120px] opacity-40"></div>
+        </div>
+
+        <!-- Ultra-Modern Error State Display with Enhanced Layout -->
+        <div v-if="store.error" class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
+          <div class="flex flex-col items-center justify-center h-full p-12 text-center">
+            <!-- Sophisticated Error Container with Advanced Glassmorphism -->
+            <div class="relative group max-w-xl w-full">
+              <!-- Multi-layered glow system -->
+              <div class="absolute -inset-1.5 bg-gradient-to-r from-red-500/20 via-orange-500/15 to-red-500/20 rounded-4xl opacity-0 group-hover:opacity-70 blur-2xl transition-all duration-500"></div>
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-red-400/15 via-orange-400/10 to-red-400/15 rounded-4xl opacity-30 group-hover:opacity-50 blur transition-all duration-300"></div>
+              
+              <!-- Ultra-Premium Error Card with Advanced Effects -->
+              <div class="relative bg-gradient-to-br from-dark-900/95 via-dark-800/90 to-dark-900/85 backdrop-blur-2xl rounded-4xl border border-red-500/15 shadow-2xl shadow-black/40 overflow-hidden transition-all duration-500 hover:border-red-400/25 hover:shadow-black/60">
+                <!-- Sophisticated gradient header system -->
+                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-400/80 via-orange-400/70 to-red-400/80 opacity-90"></div>
+                <div class="absolute top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-300/30 to-transparent"></div>
+                
+                <!-- Premium floating background elements -->
+                <div class="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-red-500/8 to-orange-500/6 rounded-full blur-3xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+                <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-br from-orange-500/6 to-red-500/8 rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+                
+                <div class="relative z-10 p-16">
+                  <!-- Sophisticated Error Icon -->
+                  <div class="w-28 h-28 bg-gradient-to-br from-red-500/10 via-red-500/15 to-orange-500/10 rounded-4xl flex items-center justify-center mx-auto mb-10 border border-red-500/20 shadow-xl shadow-red-500/10 backdrop-blur-sm">
+                    <i class="fas fa-exclamation-triangle text-5xl text-red-400"></i>
+                  </div>
+                  
+                  <!-- Enhanced Error Content -->
+                  <h2 class="text-4xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent mb-8">Workspace Error</h2>
+                  <p class="text-gray-300 mb-12 leading-relaxed text-xl max-w-md mx-auto">{{ store.error }}</p>
+                  
+                  <!-- Modern Action Buttons -->
+                  <div class="flex flex-col sm:flex-row gap-6 justify-center">
+                    <router-link
+                      to="/products/oasis/builder/dashboard"
+                      class="group relative inline-flex items-center justify-center px-10 py-5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:via-indigo-400 hover:to-violet-500 text-white font-semibold rounded-2xl shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 transform hover:-translate-y-1 transition-all duration-300 overflow-hidden text-lg"
+                    >
+                      <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                      <i class="fas fa-arrow-left mr-4"></i>
+                      Go to Dashboard
+                    </router-link>
+                    <button
+                      @click="retryProjectLoad"
+                      class="group relative inline-flex items-center justify-center px-10 py-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/30 text-gray-300 hover:text-white font-semibold rounded-2xl shadow-md hover:shadow-xl shadow-dark-900/10 hover:shadow-indigo-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden text-lg"
+                    >
+                      <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                      <i class="fas fa-sync-alt mr-4"></i>
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         
-        <!-- Normal Chat UI when no error -->
-        <div v-else class="flex-1 flex flex-col h-full overflow-hidden">
-          <WorkspaceChat
-            :messages="ensureValidMessages(store.conversation || [])"
-            :is-processing="store.isProcessing"
-            :mode="store.mode || 'chat'"
-            :selected-file="store.selectedFile"
-            :selected-model-id="store.selectedModelId"
-            :available-models="store.availableModels || []"
-            :prompt-placeholder="promptPlaceholder"
-            :show-examples="false"
-            :prompt-examples="promptExamplesComputed"
-            v-model="prompt"
-            @submit="handlePrompt"
-            @use-example="handleExamplePrompt"
-            style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
-          />
+        <!-- Ultra-Enhanced Chat Interface with Modern Layout -->
+        <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
+          <!-- Premium Chat Container with Advanced Glassmorphism and Enhanced Layout -->
+          <div class="flex-1 flex flex-col h-full min-h-0 relative pb-safe">
+            <!-- Sophisticated decorative element system -->
+            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
+            <div class="absolute top-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/10 to-transparent"></div>
+            <div class="absolute bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent"></div>
+            <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/10 to-transparent"></div>
+            
+            <!-- Chat Component with Ultra-Premium Styling and Enhanced Proportions -->
+            <div class="flex-1 relative min-h-0">
+              <!-- Multi-layered premium background overlay system -->
+              <div class="absolute inset-0 bg-gradient-to-b from-dark-950/70 via-transparent to-dark-950/50 pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-tr from-indigo-950/3 via-transparent to-violet-950/2 pointer-events-none"></div>
+              <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.01),transparent_60%)] pointer-events-none"></div>
+              
+              <WorkspaceChat
+                :messages="ensureValidMessages(store.conversation || [])"
+                :is-processing="store.isProcessing"
+                :mode="store.mode || 'chat'"
+                :selected-file="store.selectedFile"
+                :selected-model-id="store.selectedModelId"
+                :available-models="store.availableModels || []"
+                :prompt-placeholder="promptPlaceholder"
+                :show-examples="false"
+                :prompt-examples="promptExamplesComputed"
+                v-model="prompt"
+                @submit="handlePrompt"
+                @use-example="handleExamplePrompt"
+                class="relative z-10 h-full w-full"
+                style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </BuilderLayout>
@@ -160,13 +235,24 @@ const promptExamplesComputed = computed(() => {
   return [] // Return empty array for examples
 })
 
-const promptPlaceholder = computed(() => 
-  store.mode === 'chat'
-    ? 'Ask a question about your project...'
-    : store.selectedFile
-      ? 'Describe the changes you want to make to this file...'
-      : 'Select a file to start making changes...'
-)
+const promptPlaceholder = computed(() => {
+  if (store.mode === 'chat') {
+    return store.selectedFile 
+      ? `Ask me anything about ${store.selectedFile.path} or your project...`
+      : 'Ask me anything about your project, get coding help, or discuss architecture...'
+  } else {
+    return store.selectedFile
+      ? `Describe the changes you want to make to ${getFileName(store.selectedFile.path)}...`
+      : 'Select a file from the sidebar to start building...'
+  }
+})
+
+// Helper function to get just the filename
+function getFileName(path: string): string {
+  if (!path) return 'this file'
+  const parts = path.split('/')
+  return parts[parts.length - 1]
+}
 
 // Methods
 function ensureValidMessages(messages: any[]): AIMessage[] {
@@ -949,14 +1035,104 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* Background grid pattern */
+/* Ultra-premium background effects */
 .bg-grid-pattern {
   background-image: linear-gradient(to right, theme('colors.dark.800') 1px, transparent 1px),
                     linear-gradient(to bottom, theme('colors.dark.800') 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
-/* Animation for floating orbs */
+/* Sophisticated orchestrated floating animations */
+@keyframes float-orchestrated-1 {
+  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
+  25% { transform: translateY(-40px) translateX(25px) rotate(0.8deg) scale(1.02); }
+  50% { transform: translateY(-20px) translateX(35px) rotate(-0.3deg) scale(1.05); }
+  75% { transform: translateY(-35px) translateX(-10px) rotate(0.5deg) scale(1.01); }
+}
+
+@keyframes float-orchestrated-2 {
+  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
+  30% { transform: translateY(-30px) translateX(-20px) rotate(-0.6deg) scale(1.03); }
+  60% { transform: translateY(10px) translateX(30px) rotate(0.4deg) scale(1.04); }
+  90% { transform: translateY(-15px) translateX(-5px) rotate(-0.2deg) scale(1.01); }
+}
+
+@keyframes float-orchestrated-3 {
+  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
+  40% { transform: translateY(25px) translateX(-25px) rotate(0.7deg) scale(1.06); }
+  70% { transform: translateY(-20px) translateX(15px) rotate(-0.4deg) scale(1.02); }
+}
+
+@keyframes float-orchestrated-4 {
+  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
+  35% { transform: translateY(-25px) translateX(20px) rotate(-0.5deg) scale(1.04); }
+  65% { transform: translateY(15px) translateX(-30px) rotate(0.3deg) scale(1.07); }
+}
+
+.animate-float-orchestrated-1 {
+  animation: float-orchestrated-1 28s ease-in-out infinite;
+}
+
+.animate-float-orchestrated-2 {
+  animation: float-orchestrated-2 35s ease-in-out infinite reverse;
+}
+
+.animate-float-orchestrated-3 {
+  animation: float-orchestrated-3 32s ease-in-out infinite;
+}
+
+.animate-float-orchestrated-4 {
+  animation: float-orchestrated-4 40s ease-in-out infinite reverse;
+}
+
+/* Sophisticated pulse animations for decorative elements */
+@keyframes pulse-sophisticated {
+  0%, 100% { 
+    opacity: 0.8; 
+    transform: scaleX(1); 
+  }
+  25% { 
+    opacity: 0.4; 
+    transform: scaleX(1.02); 
+  }
+  50% { 
+    opacity: 0.6; 
+    transform: scaleX(0.98); 
+  }
+  75% { 
+    opacity: 0.3; 
+    transform: scaleX(1.01); 
+  }
+}
+
+.animate-pulse-sophisticated {
+  animation: pulse-sophisticated 4s ease-in-out infinite;
+}
+
+/* Sophisticated delay system */
+.delay-1200 {
+  animation-delay: 1200ms;
+}
+
+.delay-2400 {
+  animation-delay: 2400ms;
+}
+
+.delay-3600 {
+  animation-delay: 3600ms;
+}
+
+/* Safe area padding for mobile */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure proper z-index layering */
+.relative {
+  position: relative;
+}
+
+/* Legacy animations for compatibility */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0) translateX(0); }
   50% { transform: translateY(-20px) translateX(10px); }

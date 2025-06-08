@@ -1,27 +1,34 @@
 <template>
   <div class="account-balance-display">
-    <div
-      class="balance-container group bg-dark-900/90 backdrop-blur-xl px-4 py-3 flex items-center rounded-xl border border-dark-700/50 hover:border-primary-500/30 transition-all duration-300 shadow-lg hover:shadow-primary-500/20 transform hover:scale-[1.02]"
-    >
-      <!-- Subtle glow effect on hover -->
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-xl blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+    <div class="relative group">
+      <!-- Premium glow effect -->
+      <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-fuchsia-500/30 rounded-2xl opacity-0 group-hover:opacity-60 blur transition-all duration-500"></div>
       
-      <!-- Professional gradient icon with improved styling -->
-      <div class="mr-3 flex-shrink-0 relative">
-        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-md ring-1 ring-white/10">
-          <i class="fas fa-wallet text-white text-xs"></i>
+      <!-- Main balance container with enhanced glassmorphism -->
+      <div class="balance-container relative bg-gradient-to-br from-dark-900/95 via-dark-850/90 to-dark-900/95 backdrop-blur-2xl px-4 py-2.5 flex items-center rounded-xl border border-white/15 hover:border-indigo-400/40 transition-all duration-300 shadow-2xl shadow-black/40 hover:shadow-indigo-500/20 transform hover:scale-[1.02] overflow-hidden">
+        <!-- Sleek gradient top accent -->
+        <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-400/60 via-violet-400/60 to-fuchsia-400/60 opacity-80"></div>
+        
+        <!-- Enhanced glassmorphism overlay -->
+        <div class="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-white/[0.01] pointer-events-none"></div>
+        
+        <!-- Premium gradient icon with enhanced styling -->
+        <div class="mr-3 flex-shrink-0 relative">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/90 via-violet-500/80 to-fuchsia-500/70 flex items-center justify-center shadow-lg ring-1 ring-white/20 transition-all duration-300 group-hover:shadow-indigo-500/30 group-hover:scale-105">
+            <i class="fas fa-wallet text-white text-xs"></i>
+          </div>
+          <!-- Enhanced pulse animation around the icon -->
+          <div class="absolute -inset-1 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
         </div>
-        <!-- Subtle pulse animation around the icon -->
-        <div class="absolute -inset-0.5 rounded-full bg-primary-500/20 animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-      </div>
-      
-      <div class="relative">
-        <div class="text-xs font-medium text-gray-400 tracking-wide uppercase">
-          Account Balance
-        </div>
-        <div class="text-sm font-semibold text-white leading-tight flex items-baseline">
-          <span class="highlight-text">{{ formattedBalance }}</span>
-          <span class="ml-1 text-[10px] font-normal text-gray-400">credits</span>
+        
+        <div class="relative flex-1">
+          <div class="text-[9px] font-semibold text-gray-400 tracking-wider uppercase mb-0.5">
+            Balance
+          </div>
+          <div class="text-sm font-bold text-white leading-tight flex items-baseline">
+            <span class="highlight-text">{{ formattedBalance }}</span>
+            <span class="ml-1 text-[10px] font-medium text-gray-400/80">credits</span>
+          </div>
         </div>
       </div>
     </div>
@@ -116,27 +123,27 @@ onBeforeUnmount(() => {
 .account-balance-display {
   position: fixed;
   top: 1rem;
-  right: 1.5rem;
+  right: 1rem;
   z-index: 1000;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .balance-container {
   position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-/* Highlight text with subtle gradient */
+/* Enhanced highlight text with premium gradient */
 .highlight-text {
-  background: linear-gradient(90deg, #ffffff, #e2e8f0);
+  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, #c084fc 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  color: white;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  color: transparent;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
 }
 
 /* Add subtle glass effect */

@@ -9,26 +9,21 @@
         <slot name="mode-indicator"></slot>
       </div>
       
-      <!-- Input form with improved design -->
+      <!-- Simplified Input form with clean styling -->
       <form @submit.prevent="handleSubmit" class="relative">
-        <div class="relative rounded-2xl bg-dark-850/90 border transition-all duration-200 shadow-md"
+        <div class="relative rounded-xl transition-all duration-200"
           :class="[
             isTyping || isFocused 
-              ? 'border-primary-500/50 ring-2 ring-primary-500/20' 
-              : 'border-dark-700/60 hover:border-dark-600/70'
+              ? 'bg-dark-800/60 ring-2 ring-violet-500/20' 
+              : 'bg-dark-800/40 hover:bg-dark-800/50'
           ]"
         >
-          <!-- Typing indicator dots removed from here -->
-          
-          <!-- Subtle gradient overlay for input area -->
-          <div class="absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent to-dark-900/20 pointer-events-none z-0"></div>
-          
           <div class="relative z-10">
             <textarea 
               ref="inputRef"
               v-model="localValue"
               :placeholder="isProcessing ? 'AI is thinking...' : placeholder"
-              class="w-full bg-transparent text-white resize-none p-4 pr-14 rounded-2xl focus:outline-none transition-all"
+              class="w-full bg-transparent text-white resize-none p-4 pr-14 rounded-xl transition-all placeholder-gray-400 border-0 focus:border-0 hover:border-0 backdrop-blur-sm focus:shadow-lg focus:shadow-violet-500/20 outline-none focus:outline-none focus:ring-0 ring-0"
               :class="{'min-h-[56px]': rows <= 1, 'max-h-56 overflow-y-auto': rows > 1}"
               :style="{'height': textareaHeight}"
               :disabled="isProcessing"
@@ -38,13 +33,13 @@
               @blur="isFocused = false"
             ></textarea>
             
-            <!-- Submit button with improved design and animation -->
+            <!-- Enhanced Submit button with modern design -->
             <button 
               type="submit"
-              class="absolute right-3 bottom-3 p-2.5 text-white rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              class="absolute right-3 bottom-3 p-2.5 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center outline-none focus:outline-none"
               :class="[
                 canSubmit && !isProcessing 
-                  ? 'bg-primary-500 hover:bg-primary-600 scale-100 shadow-md' 
+                  ? 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 scale-100 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/35 hover:scale-105' 
                   : 'bg-gray-600/70 scale-95'
               ]"
               :disabled="!canSubmit || isProcessing"
@@ -58,15 +53,17 @@
           </div>
         </div>
         
-        <!-- Keyboard shortcuts hint with improved styling -->
-        <div class="mt-2 flex justify-end">
-          <div class="text-xs text-gray-500/80 flex items-center gap-2 bg-dark-900/30 px-2.5 py-1 rounded-md backdrop-blur-sm">
+        <!-- Enhanced keyboard shortcuts hint with modern styling -->
+        <div class="mt-3 flex justify-center">
+          <div class="text-xs text-gray-400/80 flex items-center gap-2 bg-gradient-to-r from-dark-900/60 to-dark-800/60 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-dark-700/30">
             <span class="flex items-center">
-              <kbd class="mx-1 px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/70 text-gray-400 shadow-sm font-sans text-[10px]">Enter</kbd> to send
+              <kbd class="mx-1 px-2 py-1 bg-dark-800/80 rounded-lg border border-dark-700/70 text-gray-300 shadow-sm font-sans text-[10px] font-medium">Enter</kbd> 
+              <span class="text-gray-500">to send</span>
             </span>
             <span class="text-gray-600/50">•</span>
             <span class="flex items-center">
-              <kbd class="mx-1 px-1.5 py-0.5 bg-dark-800/80 rounded border border-dark-700/70 text-gray-400 shadow-sm font-sans text-[10px]">Shift+Enter</kbd> for new line
+              <kbd class="mx-1 px-2 py-1 bg-dark-800/80 rounded-lg border border-dark-700/70 text-gray-300 shadow-sm font-sans text-[10px] font-medium">Shift+Enter</kbd> 
+              <span class="text-gray-500">for new line</span>
             </span>
           </div>
         </div>
@@ -209,6 +206,89 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Completely remove any browser default styling for form inputs */
+input, textarea, button {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+input:focus, textarea:focus, button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  ring: none !important;
+}
+
+/* Remove any webkit/moz specific focus styling */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+textarea::-webkit-resizer {
+  display: none;
+}
+
+/* Remove default button styling */
+button::-moz-focus-inner {
+  border: 0;
+}
+
+/* Ensure textarea doesn't get browser default focus styles */
+.chat-input-wrapper textarea {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.chat-input-wrapper textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure buttons don't get browser default focus styles */
+.chat-input-wrapper button {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.chat-input-wrapper button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Legacy animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-20px) translateX(10px); }
+}
+
+@keyframes float-slow-reverse {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(20px) translateX(-10px); }
+}
+
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
+}
+
+.animate-float-slow-reverse {
+  animation: float-slow-reverse 25s ease-in-out infinite;
+}
+
 .chat-input-wrapper {
   position: relative;
   width: 100%;

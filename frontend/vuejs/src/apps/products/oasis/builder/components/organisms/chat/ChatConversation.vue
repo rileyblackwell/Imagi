@@ -2,35 +2,36 @@
   <div class="h-full flex flex-col relative z-10" :class="{'mode-transition': disableAllAnimations}">
     <!-- Messages Container -->
     <div ref="messagesContainer" class="flex-grow overflow-y-auto p-4 space-y-4" :class="{ 'justify-end': true }">
-      <!-- Empty state - Mode specific messages -->
-      <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-8 py-12 text-center">
-        <div class="max-w-lg">
-          <div class="mb-6">
+      <!-- Empty state - Mode specific messages with ChatGPT-like layout -->
+      <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-6 py-8 text-center">
+        <div class="max-w-2xl w-full">
+          <div class="mb-8">
             <div class="w-16 h-16 mx-auto bg-primary-500/20 text-primary-400 rounded-full flex items-center justify-center mb-4">
               <i :class="[mode === 'chat' ? 'fas fa-comment-dots text-2xl' : 'fas fa-code-branch text-2xl']"></i>
             </div>
-            <h3 class="text-xl font-medium text-white mb-2">
+            <h3 class="text-xl font-medium text-white mb-3">
               {{ mode === 'chat' ? 'Start a conversation' : 'Build your application' }}
             </h3>
-            <p class="text-gray-400 mb-6">
+            <p class="text-gray-400 mb-0 text-base leading-relaxed">
               {{ mode === 'chat' 
                  ? 'Ask me anything about your project, coding questions, or get help with a specific task.' 
                  : 'Tell me what you want to build, and I\'ll help you create it step by step.' }}
             </p>
           </div>
 
-          <div class="bg-dark-800/60 backdrop-blur rounded-xl p-5 border border-dark-700">
-            <h4 class="text-sm font-medium text-gray-300 mb-3">
+          <!-- ChatGPT-like examples grid -->
+          <div class="bg-dark-800/40 backdrop-blur rounded-2xl p-6 border border-dark-700/50">
+            <h4 class="text-base font-medium text-gray-300 mb-5 text-left">
               {{ mode === 'chat' ? 'Example questions:' : 'Example build commands:' }}
             </h4>
-            <div class="space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div 
                 v-for="(example, index) in (mode === 'chat' ? chatExamples : buildExamples)" 
                 :key="index"
-                class="bg-dark-700/50 px-3 py-2 rounded-lg text-sm text-gray-300 cursor-pointer hover:bg-dark-700 transition-colors"
+                class="group bg-dark-700/30 hover:bg-dark-700/60 border border-dark-600/30 hover:border-dark-500/50 px-4 py-3 rounded-xl text-sm text-gray-300 hover:text-white cursor-pointer transition-all duration-200 text-left"
                 @click="$emit('use-example', example)"
               >
-                "{{ example }}"
+                <span class="block leading-relaxed">"{{ example }}"</span>
               </div>
             </div>
           </div>
@@ -339,20 +340,20 @@ const getSystemMessageIcon = (content: string) => {
   return 'fa-info-circle'
 }
 
-// Chat examples for empty state
+// Enhanced chat examples for empty state
 const chatExamples = [
-  "Can you explain how the routing works in this project?",
-  "How can I improve the responsive design of this app?",
-  "What's the best way to implement authentication?",
-  "How should I structure the CSS for better maintainability?"
+  "How can I optimize this app's performance and loading speed?",
+  "What are the best practices for structuring this application?",
+  "Can you review my code architecture and suggest improvements?",
+  "How should I handle state management in this project?"
 ]
 
-// Build examples for empty state
+// Enhanced build examples for empty state
 const buildExamples = [
-  "Add a dark mode toggle to the header component",
-  "Create a responsive product grid layout for the home page",
-  "Implement a form validation system using Vue's composition API",
-  "Build a notification system for user actions"
+  "Create a modern dashboard with responsive cards and charts",
+  "Add smooth animations and transitions to improve user experience",
+  "Build a comprehensive search and filter system",
+  "Implement real-time notifications with elegant toast messages"
 ]
 </script>
 

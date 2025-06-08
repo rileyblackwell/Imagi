@@ -8,65 +8,74 @@
 -->
 <template>
   <div class="space-y-3">
-    <!-- Indicators - Removed the "Conversation History" and file path header -->
-    <div class="flex items-center gap-3 py-2 px-4 bg-dark-850/90 backdrop-blur-sm rounded-lg border border-dark-700/60 shadow-md">
-      <!-- Mode indicator with enhanced styling -->
-      <div class="flex items-center">
-        <div
-          :class="[
-            'flex items-center justify-center w-9 h-9 rounded-full mr-2.5',
-            mode === 'chat' 
-              ? 'bg-violet-500/20 text-violet-400 border border-violet-400/30' 
-              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-400/30'
-          ]"
-        >
-          <i :class="[mode === 'chat' ? 'fas fa-comment-alt' : 'fas fa-code']"></i>
-        </div>
-        <div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wide font-medium">Mode</div>
-          <div class="text-sm font-medium" :class="[
-            mode === 'chat' ? 'text-violet-400' : 'text-emerald-400'
-          ]">
-            {{ mode === 'chat' ? 'Chat' : 'Build' }}
-            <span v-if="mode === 'build' && selectedFile" class="text-xs ml-1 opacity-80">
-              ({{ fileTypeLabel }})
-            </span>
+    <!-- Enhanced Indicators with modern glassmorphism design -->
+    <div class="relative group">
+      <!-- Subtle glow effect -->
+      <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-2xl opacity-0 group-hover:opacity-50 blur transition-all duration-300 pointer-events-none"></div>
+      
+      <!-- Main indicator container -->
+      <div class="relative flex items-center gap-4 py-3 px-4 bg-gradient-to-br from-dark-850/90 via-dark-900/80 to-dark-850/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl transition-all duration-300 hover:border-white/20">
+        <!-- Sleek gradient top line -->
+        <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-400/30 via-violet-400/30 to-indigo-400/30 opacity-50 rounded-t-2xl"></div>
+        
+        <!-- Mode indicator with enhanced styling -->
+        <div class="flex items-center">
+          <div
+            :class="[
+              'flex items-center justify-center w-10 h-10 rounded-xl mr-3 border transition-all duration-200',
+              mode === 'chat' 
+                ? 'bg-gradient-to-br from-violet-500/20 to-indigo-500/20 text-violet-400 border-violet-400/30 shadow-lg shadow-violet-500/10' 
+                : 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-400/30 shadow-lg shadow-emerald-500/10'
+            ]"
+          >
+            <i :class="[mode === 'chat' ? 'fas fa-comment-alt' : 'fas fa-code', 'text-sm']"></i>
+          </div>
+          <div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Mode</div>
+            <div class="text-sm font-semibold" :class="[
+              mode === 'chat' ? 'text-violet-300' : 'text-emerald-300'
+            ]">
+              {{ mode === 'chat' ? 'Chat' : 'Build' }}
+              <span v-if="mode === 'build' && selectedFile" class="text-xs ml-1.5 opacity-70 font-normal">
+                ({{ fileTypeLabel }})
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- File information when available -->
-      <div v-if="selectedFile" class="flex items-center">
-        <div
-          class="flex items-center justify-center w-9 h-9 rounded-full mr-2.5 bg-blue-500/20 text-blue-400 border border-blue-400/30"
-        >
-          <i class="fas fa-file-code"></i>
-        </div>
-        <div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wide font-medium">File</div>
-          <div class="text-sm font-medium text-blue-400 truncate max-w-[120px]">
-            {{ getFilename(selectedFile.path) }}
+        <!-- File information when available -->
+        <div v-if="selectedFile" class="flex items-center">
+          <div
+            class="flex items-center justify-center w-10 h-10 rounded-xl mr-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-blue-400 border border-blue-400/30 shadow-lg shadow-blue-500/10 transition-all duration-200"
+          >
+            <i class="fas fa-file-code text-sm"></i>
+          </div>
+          <div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">File</div>
+            <div class="text-sm font-semibold text-blue-300 truncate max-w-[120px]">
+              {{ getFilename(selectedFile.path) }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Separator with gradient styling -->
-      <div class="h-8 w-px bg-gradient-to-b from-dark-700/10 via-dark-700/40 to-dark-700/10 mx-0.5"></div>
+        <!-- Enhanced separator with gradient styling -->
+        <div class="h-10 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent mx-1"></div>
 
-      <!-- Model information with enhanced styling -->
-      <div v-if="selectedModelId" class="flex items-center">
-        <div
-          class="flex items-center justify-center w-9 h-9 rounded-full mr-2.5 bg-primary-500/20 text-primary-400 border border-primary-400/30"
-        >
-          <i class="fas fa-robot"></i>
-        </div>
-        <div>
-          <div class="text-[10px] text-gray-500 uppercase tracking-wide font-medium">Model</div>
-          <div class="text-sm font-medium text-primary-400">
-            {{ formattedModelName }}
-            <span class="inline-flex items-center ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-primary-500/10 text-primary-300 border border-primary-500/20">
-              <i class="fas fa-bolt mr-1 text-[8px]"></i>AI
-            </span>
+        <!-- Model information with enhanced styling -->
+        <div v-if="selectedModelId" class="flex items-center">
+          <div
+            class="flex items-center justify-center w-10 h-10 rounded-xl mr-3 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 text-indigo-400 border border-indigo-400/30 shadow-lg shadow-indigo-500/10 transition-all duration-200"
+          >
+            <i class="fas fa-robot text-sm"></i>
+          </div>
+          <div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-0.5">Model</div>
+            <div class="text-sm font-semibold text-indigo-300 flex items-center">
+              {{ formattedModelName }}
+              <span class="inline-flex items-center ml-2 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gradient-to-r from-indigo-500/15 to-violet-500/15 text-indigo-200 border border-indigo-500/20 shadow-sm">
+                <i class="fas fa-bolt mr-1 text-[8px]"></i>AI
+              </span>
+            </div>
           </div>
         </div>
       </div>
