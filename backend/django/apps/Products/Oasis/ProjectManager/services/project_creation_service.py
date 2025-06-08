@@ -34,7 +34,7 @@ class ProjectCreationService:
                 project = name_or_project
                 
             # Generate project files
-            project_path = self._create_project_files(project.name)
+            project_path = self._create_project_files(project)
             
             # Update project with path
             project.project_path = project_path
@@ -56,19 +56,19 @@ class ProjectCreationService:
             sanitized = 'project_' + sanitized
         return sanitized
 
-    def _create_project_files(self, project_name):
+    def _create_project_files(self, project):
         """Create a new Django project using django-admin startproject"""
         # First, deactivate any existing active projects with the same name
         existing_projects = Project.objects.filter(
             user=self.user,
-            name=project_name,
+            name=project.name,
             is_active=True
         )
         if existing_projects.exists():
             existing_projects.update(is_active=False)
 
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        sanitized_name = self._sanitize_project_name(project_name)
+        sanitized_name = self._sanitize_project_name(project.name)
         unique_name = f"{sanitized_name}_{timestamp}"
         project_path = os.path.join(self.base_directory, unique_name)
         
@@ -105,10 +105,10 @@ class ProjectCreationService:
             
             # Create README.md
             with open(os.path.join(project_path, 'README.md'), 'w') as f:
-                f.write(self._generate_readme_content(project_name))
+                f.write(self._generate_readme_content(project.name))
             
             # Create template and static files
-            self._create_default_files(project_path)
+            self._create_default_files(project_path, project.name, project.description)
             
             # Update settings.py to include templates and static files directories
             self._update_settings(project_path, unique_name)
@@ -209,41 +209,51 @@ REST_FRAMEWORK = {
         with open(urls_path, 'w') as f:
             f.write(urls_content)
 
-    def _create_default_files(self, project_path):
+    def _create_default_files(self, project_path, project_name, project_description):
         """Create default files for a new project."""
+        # Generate personalized content
+        safe_project_name = project_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+        safe_description = (project_description or '').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+        
+        # Create description content for templates
+        description_content = ''
+        if project_description and project_description.strip():
+            description_content = f'    <p class="project-description">{safe_description}</p>'
+        
         default_files = {
-            'templates/base.html': '''
+            'templates/base.html': f'''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}My Oasis App{% endblock %}</title>
+    <title>{{% block title %}}{safe_project_name}{{% endblock %}}</title>
     <link rel="stylesheet" href="/static/css/styles.css">
-    {% block extra_css %}{% endblock %}
+    {{% block extra_css %}}{{% endblock %}}
 </head>
 <body>
-    {% block content %}{% endblock %}
+    {{% block content %}}{{% endblock %}}
     
-    {% block extra_js %}{% endblock %}
+    {{% block extra_js %}}{{% endblock %}}
 </body>
 </html>
 ''',
-            'templates/index.html': '''
-{% extends 'base.html' %}
-{% load static %}
+            'templates/index.html': f'''
+{{% extends 'base.html' %}}
+{{% load static %}}
 
-{% block title %}Welcome | My Oasis App{% endblock %}
+{{% block title %}}Welcome | {safe_project_name}{{% endblock %}}
 
-{% block content %}
+{{% block content %}}
 <div class="welcome-container">
-    <h1>Welcome to your new Oasis App</h1>
+    <h1>Welcome to {safe_project_name}</h1>
+{description_content}
     <p>This is your starting point for building amazing Django applications.</p>
     <div class="cta-button">
         <a href="/admin/">Go to Admin</a>
     </div>
 </div>
-{% endblock %}
+{{% endblock %}}
 ''',
             'static/css/styles.css': '''
 /* Base styles */
@@ -276,6 +286,14 @@ body {
 h1 {
     color: var(--primary-color);
     margin-bottom: 1rem;
+}
+
+.project-description {
+    font-size: 1.125rem;
+    color: #6b7280;
+    margin: 1.5rem 0;
+    font-style: italic;
+    line-height: 1.6;
 }
 
 .cta-button {
