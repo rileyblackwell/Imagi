@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { ProjectService } from '../services/projectService'
-import api, { buildApiUrl } from '@/shared/services/api'
 import type { Project } from '../types/components'
 import { normalizeProject } from '../types/components'
 import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
@@ -61,6 +60,11 @@ export const useProjectStore = defineStore('builder', () => {
     () => globalAuthStore.isAuthenticated,
     (newValue) => {
       setAuthenticated(newValue)
+      
+      // Clean up old deleted projects when auth state changes
+      if (newValue) {
+        cleanupDeletedProjects()
+      }
     },
     { immediate: true }
   )
@@ -125,21 +129,12 @@ export const useProjectStore = defineStore('builder', () => {
     
     isAuthenticated.value = status
     
-    if (status) {
-      // When authenticated, sync the auth token from global store to API
-      const token = globalAuthStore.token
-      if (token) {
-        api.defaults.headers.common['Authorization'] = `Token ${token}`
-      }
-    } else {
+    if (!status) {
       // Clear projects when user is not authenticated
       projects.value = []
       projectsMap.value.clear()
       initialized.value = false
       lastFetch.value = null
-      
-      // Remove Authorization header
-      delete api.defaults.headers.common['Authorization']
     }
   }
 
@@ -150,73 +145,34 @@ export const useProjectStore = defineStore('builder', () => {
     try {
       console.debug('Verifying authentication token...')
       
-      // First check global auth store - the source of truth
+      // Use the global auth store for token validation - it's the source of truth
       if (globalAuthStore.isAuthenticated && globalAuthStore.token) {
         console.debug('Token verified via global auth store')
-        // Ensure our local state matches
         setAuthenticated(true)
-        // Ensure API headers are set
-        api.defaults.headers.common['Authorization'] = `Token ${globalAuthStore.token}`
         return true
       }
       
-      // If global auth store says we're not authenticated, respect that
+      // If global auth store says we're not authenticated, but we need to check if there's a valid token
       if (!globalAuthStore.isAuthenticated) {
+        try {
+          // Try to validate auth through the auth store
+          await globalAuthStore.validateAuth()
+          if (globalAuthStore.isAuthenticated) {
+            setAuthenticated(true)
+            return true
+          }
+        } catch (error) {
+          console.debug('Auth validation failed:', error)
+        }
+        
         console.debug('Global auth store says not authenticated')
         setAuthenticated(false)
         return false
       }
       
-      // Fallback: Check if we have a token in localStorage
-      const tokenData = localStorage.getItem('token')
-      if (!tokenData) {
-        console.debug('No token in localStorage')
-        setAuthenticated(false)
-        return false
-      }
-      
-      try {
-        const parsedToken = JSON.parse(tokenData)
-        if (!parsedToken || !parsedToken.value) {
-          console.debug('Invalid token format in localStorage')
-          setAuthenticated(false)
-          return false
-        }
-        
-        // Check if token is expired
-        if (parsedToken.expires && Date.now() > parsedToken.expires) {
-          console.debug('Token is expired')
-          localStorage.removeItem('token')
-          setAuthenticated(false)
-          return false
-        }
-        
-        // Ensure token is set in API headers
-        api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
-        
-        // Try to verify the token with a quick API call
-        try {
-          await api.get(buildApiUrl('/auth/user/'))
-          setAuthenticated(true)
-          return true
-        } catch (apiError: any) {
-          // If we get a 401 error, the token is invalid
-          if (apiError.response?.status === 401) {
-            console.debug('Token verification failed with 401')
-            setAuthenticated(false)
-            return false
-          }
-          
-          // For other errors, assume the token is still valid
-          console.debug('Token verification API call failed, but continuing', apiError)
-          setAuthenticated(true)
-          return true
-        }
-      } catch (parseError) {
-        console.error('Error parsing token:', parseError)
-        setAuthenticated(false)
-        return false
-      }
+      // Fallback - should not reach here normally
+      setAuthenticated(globalAuthStore.isAuthenticated)
+      return globalAuthStore.isAuthenticated
     } catch (error) {
       console.error('Error verifying token:', error)
       setAuthenticated(false)
@@ -273,7 +229,7 @@ export const useProjectStore = defineStore('builder', () => {
         }
 
         console.debug('Fetching projects from API')
-        const projectsData = await ProjectService.getProjects()
+        const projectsData = await ProjectService.getProjects(force)
         
         if (!projectsData || !Array.isArray(projectsData)) {
           throw new Error('Invalid response from server')
@@ -417,12 +373,8 @@ export const useProjectStore = defineStore('builder', () => {
         // Don't rethrow - we want to return the created project even if initialization fails
       }
       
-      // Force refresh projects to ensure we have the most current data
-      setTimeout(() => {
-        fetchProjects(true).catch(error => {
-          console.error('Failed to refresh projects after creation:', error)
-        })
-      }, 1000)
+      // Don't automatically refresh here - let the calling component decide
+      // The ProjectService already clears the cache, and the component will refresh
       
       return normalizedProject
     } catch (err: any) {
@@ -570,14 +522,19 @@ export const useProjectStore = defineStore('builder', () => {
       // Keep track of deleted project IDs to prevent them from reappearing on refresh
       const deletedProjectId = String(projectId)
       
-      // Delete the project on the server
+      // Delete the project on the server (this will also clear the cache)
       await ProjectService.deleteProject(projectId)
       
-      // Remove from projects array
+      // Remove from projects array immediately to update UI
       projects.value = projects.value.filter(p => String(p.id) !== deletedProjectId)
       
       // Remove from map
       projectsMap.value.delete(deletedProjectId)
+      
+      // Clear current project if it's the one being deleted
+      if (currentProject.value && String(currentProject.value.id) === deletedProjectId) {
+        currentProject.value = null
+      }
       
       console.debug('Project deleted, store updated:', {
         remainingProjects: projects.value.length,
@@ -601,12 +558,9 @@ export const useProjectStore = defineStore('builder', () => {
         console.error('Failed to store deleted project ID in localStorage:', e)
       }
       
-      // Force refresh projects after a longer delay to ensure server has processed the deletion
-      setTimeout(() => {
-        fetchProjects(true).catch(error => {
-          console.error('Failed to refresh projects after deletion:', error)
-        })
-      }, 2000)
+      // Do NOT immediately refresh projects to avoid race conditions
+      // Let the calling component decide when to refresh if needed
+      // This prevents 404 errors during the deletion process
       
     } catch (err: any) {
       console.error('Project deletion error in store:', {
@@ -616,6 +570,24 @@ export const useProjectStore = defineStore('builder', () => {
         data: err.response?.data,
         projectId
       })
+      
+      // If we get a 404, the project was already deleted - treat as success
+      if (err.response?.status === 404) {
+        console.debug('Project already deleted (404), treating as success')
+        
+        // Still clean up local state
+        const deletedProjectId = String(projectId)
+        projects.value = projects.value.filter(p => String(p.id) !== deletedProjectId)
+        projectsMap.value.delete(deletedProjectId)
+        
+        if (currentProject.value && String(currentProject.value.id) === deletedProjectId) {
+          currentProject.value = null
+        }
+        
+        // Don't throw error for 404 - project is gone which is what we wanted
+        return
+      }
+      
       handleError(err, 'Failed to delete project')
       throw err
     } finally {
@@ -666,6 +638,17 @@ export const useProjectStore = defineStore('builder', () => {
   async function fetchProject(projectId: string, isNewProject = false): Promise<Project | null> {
     if (!projectId) {
       return null
+    }
+    
+    // Check if project is in the deleted projects list
+    try {
+      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+      if (deletedProjects.includes(String(projectId))) {
+        console.debug(`ProjectStore: Project ${projectId} is in deleted list, not fetching`)
+        throw new Error('Project not found')
+      }
+    } catch (e) {
+      // Handle parsing errors silently
     }
     
     // Check if there's an existing in-progress fetch for this project
@@ -748,8 +731,23 @@ export const useProjectStore = defineStore('builder', () => {
           // Update cache timestamp
           lastProjectFetch.value.set(projectId, now)
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('ProjectStore: Error fetching project', err)
+        
+        // If project not found (404), add it to deleted projects list to prevent future attempts
+        if (err.response?.status === 404 || err.message?.includes('Project not found')) {
+          console.debug(`ProjectStore: Project ${projectId} not found, adding to deleted list`)
+          try {
+            const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+            if (!deletedProjects.includes(String(projectId))) {
+              deletedProjects.push(String(projectId))
+              localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects))
+            }
+          } catch (e) {
+            // Handle localStorage errors silently
+          }
+        }
+        
         error = err
         throw err
       } finally {
@@ -878,6 +876,11 @@ export const useProjectStore = defineStore('builder', () => {
         updatedProject: normalizedProject
       })
       
+      // Immediately refresh projects to ensure we have the most current data
+      fetchProjects(true).catch(error => {
+        console.error('Failed to refresh projects after update:', error)
+      })
+      
       return normalizedProject
     } catch (err: any) {
       console.error('Project update error in store:', {
@@ -891,6 +894,48 @@ export const useProjectStore = defineStore('builder', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // Utility function to clean up old deleted project IDs
+  function cleanupDeletedProjects() {
+    try {
+      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+      const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
+      const now = Date.now()
+      const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+      
+      // Remove projects that were deleted more than 24 hours ago
+      const recentlyDeleted = deletedProjects.filter((projectId: string) => {
+        const deleteTime = deletedProjectsTimestamp[projectId]
+        return deleteTime && (now - deleteTime) < maxAge
+      })
+      
+      // Update localStorage if there were changes
+      if (recentlyDeleted.length !== deletedProjects.length) {
+        localStorage.setItem('deletedProjects', JSON.stringify(recentlyDeleted))
+        
+        // Also clean up timestamps
+        const cleanedTimestamps: Record<string, number> = {}
+        recentlyDeleted.forEach((projectId: string) => {
+          if (deletedProjectsTimestamp[projectId]) {
+            cleanedTimestamps[projectId] = deletedProjectsTimestamp[projectId]
+          }
+        })
+        localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(cleanedTimestamps))
+        
+        console.debug(`Cleaned up ${deletedProjects.length - recentlyDeleted.length} old deleted project IDs`)
+      }
+    } catch (e) {
+      console.debug('Error cleaning up deleted projects:', e)
+    }
+  }
+
+  /**
+   * Clear the projects cache
+   * Used when immediate cache invalidation is needed
+   */
+  function clearProjectsCache() {
+    ProjectService.clearProjectsCache()
   }
 
   return {
@@ -929,6 +974,7 @@ export const useProjectStore = defineStore('builder', () => {
     setSelectedModel,
     fetchAvailableModels,
     refreshProjectData,
-    updateProject
+    updateProject,
+    clearProjectsCache
   }
 })

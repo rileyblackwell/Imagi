@@ -40,8 +40,35 @@
 
       <!-- Main Content Area -->
       <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
-        <!-- Modern Chat UI using WorkspaceChat component -->
-        <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <!-- Error State Display -->
+        <div v-if="store.error" class="flex-1 flex flex-col h-full overflow-hidden">
+          <div class="flex flex-col items-center justify-center h-full p-8 text-center">
+            <div class="w-20 h-20 bg-gradient-to-br from-red-500/15 to-orange-500/15 rounded-full flex items-center justify-center mb-6 border border-red-500/20 shadow-lg shadow-red-500/10">
+              <i class="fas fa-exclamation-triangle text-3xl text-red-400"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-white mb-4">Workspace Error</h2>
+            <p class="text-gray-300 mb-8 max-w-md">{{ store.error }}</p>
+            <div class="flex gap-4">
+              <router-link
+                to="/products/oasis/builder/dashboard"
+                class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
+              >
+                <i class="fas fa-arrow-left mr-2"></i>
+                Go to Dashboard
+              </router-link>
+              <button
+                @click="retryProjectLoad"
+                class="px-6 py-3 bg-dark-800/60 hover:bg-dark-700/60 border border-dark-800/60 hover:border-indigo-500/30 text-gray-300 hover:text-white rounded-xl shadow-md hover:shadow-lg shadow-dark-900/10 hover:shadow-indigo-500/20 transition-all duration-300 inline-flex items-center"
+              >
+                <i class="fas fa-sync-alt mr-2"></i>
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Normal Chat UI when no error -->
+        <div v-else class="flex-1 flex flex-col h-full overflow-hidden">
           <WorkspaceChat
             :messages="ensureValidMessages(store.conversation || [])"
             :is-processing="store.isProcessing"
@@ -77,6 +104,7 @@ import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { useBalanceStore } from '@/shared/stores/balance'
+import { useNotification } from '@/shared/composables/useNotification'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
@@ -94,6 +122,7 @@ import type { AIMessage } from '../types/index'
 const AI_TIMEOUT = 90000 // 90 seconds for AI processing
 
 const route = useRoute()
+const router = useRouter()
 const store = useAgentStore()
 const projectStore = useProjectStore()
 const projectId = ref<string>('')
@@ -635,6 +664,38 @@ async function handlePreview() {
   }
 }
 
+// Retry loading the project when user clicks retry button
+async function retryProjectLoad() {
+  // Clear any existing error state
+  store.setError(null)
+  
+  try {
+    // Retry loading the project
+    await projectStore.fetchProject(projectId.value)
+    
+    // If successful, reload the workspace data
+    await loadModels()
+    await loadProjectFiles()
+    
+    // Set default model if needed
+    if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
+      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+        || store.availableModels[0];
+      if (defaultModel) {
+        store.setSelectedModelId(defaultModel.id);
+      }
+    }
+    
+    // Initialize mode if not set
+    if (!store.mode) {
+      store.setMode('chat');
+    }
+  } catch (error: any) {
+    console.error('Error retrying project load:', error)
+    store.setError(`Failed to load project: ${error.message || 'Unknown error'}`)
+  }
+}
+
 // Helper function to load project files
 async function loadProjectFiles() {
   try {
@@ -704,41 +765,80 @@ onMounted(async () => {
     await executeOnce('verifyAuth', () => authStore.validateAuth());
     
     // Critical request - project must be loaded first and only once
-    const project = await executeOnce('fetchProject', () => {
-      // Directly return the API call result, don't wrap in another promise
-      return projectStore.fetchProject(projectId.value);
-    });
-    
-    // Set project ID in store only after project data is loaded
-    if (project && typeof store.setProjectId === 'function') {
-      store.setProjectId(projectId.value);
+    try {
+      const project = await executeOnce('fetchProject', () => {
+        // Directly return the API call result, don't wrap in another promise
+        return projectStore.fetchProject(projectId.value);
+      });
       
-      // Now load models and files in sequence - files depend on project data
-      // IMPORTANT: We DON'T use Promise.all here to prevent race conditions
-      // between file fetching and the project data
-      await executeOnce('loadModels', loadModels);
-      await executeOnce('loadProjectFiles', loadProjectFiles);
-      
-      // Only fetch balance once at startup, with no auto-refresh
-      // Make sure it doesn't block the UI
-      executeOnce('fetchBalance', () => paymentsStore.fetchBalance(false, false))
-        .catch(err => console.error('Error fetching balance:', err));
-      
-      // Set default model if not already set
-      if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-        const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
-          || store.availableModels[0];
-        if (defaultModel) {
-          store.setSelectedModelId(defaultModel.id);
+      // Set project ID in store only after project data is loaded
+      if (project && typeof store.setProjectId === 'function') {
+        store.setProjectId(projectId.value);
+        
+        // Now load models and files in sequence - files depend on project data
+        // IMPORTANT: We DON'T use Promise.all here to prevent race conditions
+        // between file fetching and the project data
+        await executeOnce('loadModels', loadModels);
+        await executeOnce('loadProjectFiles', loadProjectFiles);
+        
+        // Only fetch balance once at startup, with no auto-refresh
+        // Make sure it doesn't block the UI
+        executeOnce('fetchBalance', () => paymentsStore.fetchBalance(false, false))
+          .catch(err => console.error('Error fetching balance:', err));
+        
+        // Set default model if not already set
+        if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
+          const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+            || store.availableModels[0];
+          if (defaultModel) {
+            store.setSelectedModelId(defaultModel.id);
+          }
         }
+        
+        // Initialize mode if not set
+        if (!store.mode) {
+          store.setMode('chat');
+        }
+      } else {
+        console.error('Failed to load project or set project ID');
+        // Don't redirect - let the workspace show an error state
       }
+    } catch (projectError: any) {
+      console.error('Error loading project:', projectError);
       
-      // Initialize mode if not set
-      if (!store.mode) {
-        store.setMode('chat');
+      // Handle specific cases for missing projects
+      if (projectError.message?.includes('Project not found') || 
+          projectError.response?.status === 404) {
+        console.log('Project not found - redirecting to dashboard');
+        
+        // Show a notification but redirect to dashboard to prevent further errors
+        const { showNotification } = useNotification();
+        showNotification({
+          type: 'warning',
+          message: 'Project not found. This project may have been deleted. Redirecting to dashboard...',
+          duration: 4000
+        });
+        
+        // Redirect to dashboard to prevent further 404 errors
+        setTimeout(() => {
+          router.push({ name: 'builder-dashboard' });
+        }, 1500); // Give user time to read the notification
+        
+        // Set the workspace to an error state
+        store.setError('Project not found. Redirecting to dashboard...');
+      } else {
+        // For other errors, stay on the page and show an error state
+        console.error('Unexpected error during project initialization:', projectError);
+        store.setError(`Error loading project: ${projectError.message || 'Unknown error'}`);
+        
+        // Show notification for other errors
+        const { showNotification } = useNotification();
+        showNotification({
+          type: 'error',
+          message: `Failed to load project: ${projectError.message || 'Unknown error'}`,
+          duration: 5000
+        });
       }
-    } else {
-      console.error('Failed to load project or set project ID');
     }
   } catch (error) {
     console.error('Error initializing workspace:', error);

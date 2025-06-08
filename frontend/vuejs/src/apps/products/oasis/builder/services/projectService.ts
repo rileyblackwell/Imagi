@@ -58,15 +58,16 @@ export const ProjectService = {
   /**
    * Get all projects for the current user
    * Used by dashboard for project listing
-   * Tries multiple API paths to find the correct endpoint
+   * Uses the correct Django API endpoint
    */
-  async getProjects() {
+  async getProjects(force = false) {
     // Check auth token before making requests
     const authHeader = api.defaults.headers.common['Authorization']
     
     console.debug('Project API - getProjects starting:', {
       baseURL: api.defaults.baseURL,
-      authHeaderPresent: !!authHeader
+      authHeaderPresent: !!authHeader,
+      windowLocation: window.location.origin
     })
     
     if (!authHeader) {
@@ -97,147 +98,83 @@ export const ProjectService = {
       }
     }
     
-    // Try to get projects from local cache while waiting for API
-    const cachedProjects = this._getCachedProjects()
-    if (cachedProjects) {
-      // We'll still try the API, but return the cached data immediately
-      setTimeout(() => this._refreshProjectsInBackground(api.defaults.headers.common['Authorization']), 100)
-      return cachedProjects
-    }
-    
-    // Update the order of API paths to try the project_manager endpoint first
-    const apiPaths = [
-      '/api/v1/project-manager/projects/',  // Primary endpoint matching Django backend URLs
-      API_PATHS.PROJECT_MANAGER + '/projects/',
-      '/api/v1/builder/builder/',          // Fallback endpoint using new URL structure
-      API_PATHS.BUILDER + '/builder/',
-    ]
-    
-    let lastError: any = null
-    
-    // Log API configuration details and auth state
-    console.debug('Project API - getProjects paths to try:', apiPaths)
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        const cleanPath = buildApiUrl(path);
-        console.debug(`Making API request to get projects from path: ${cleanPath}`)
-        
-        // Debug log auth header to verify it's being sent
-        console.debug('Auth header present in request:', !!api.defaults.headers.common['Authorization'])
-        
-        const response = await api.get(cleanPath)
-        
-        console.debug(`Project API - getProjects response from ${path}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          dataType: typeof response.data
-        })
-        
-        // Handle both array response and paginated response
-        if (Array.isArray(response.data)) {
-          console.debug('Response is an array with length:', response.data.length)
-          this._cacheProjects(response.data) // Cache the successful response
-          return response.data
-        } else if (response.data?.results && Array.isArray(response.data.results)) {
-          console.debug('Response has results array with length:', response.data.results.length)
-          this._cacheProjects(response.data.results) // Cache the successful response
-          return response.data.results
-        } else if (response.data?.projects && Array.isArray(response.data.projects)) {
-          console.debug('Response has projects array with length:', response.data.projects.length)
-          this._cacheProjects(response.data.projects) // Cache the successful response
-          return response.data.projects
-        } else {
-          console.warn(`Unexpected response format from ${path}:`, response.data)
-          // Try to extract any array from the response as a fallback
-          const possibleArrays = Object.values(response.data || {}).filter(val => Array.isArray(val))
-          if (possibleArrays.length > 0) {
-            console.debug('Found a possible array in response:', possibleArrays[0])
-            this._cacheProjects(possibleArrays[0] as any[]) // Cache the successful response
-            return possibleArrays[0]
-          }
-        }
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.error('Authentication error when fetching projects')
-          // Try one more time with a direct approach
-          try {
-            // Attempt to refresh the token from localStorage
-            const tokenData = localStorage.getItem('token')
-            if (tokenData) {
-              const parsedToken = JSON.parse(tokenData)
-              if (parsedToken && parsedToken.value) {
-                // Update the token in the API headers
-                api.defaults.headers.common['Authorization'] = `Token ${parsedToken.value}`
-                // Try again with the first path only
-                const retryResponse = await api.get(buildApiUrl(apiPaths[0]))
-                if (Array.isArray(retryResponse.data)) {
-                  return retryResponse.data
-                } else if (retryResponse.data?.results && Array.isArray(retryResponse.data.results)) {
-                  return retryResponse.data.results
-                }
-              }
-            }
-          } catch (retryError) {
-            console.error('Retry with refreshed token failed:', retryError)
-          }
-          
-          throw new Error('You must be logged in to view projects')
-        }
+    // Only use cache if not forcing a fresh fetch
+    if (!force) {
+      const cachedProjects = this._getCachedProjects()
+      if (cachedProjects) {
+        // Return cached data immediately - don't run background refresh
+        // This prevents interference with explicit refresh operations
+        console.debug('Returning cached projects without background refresh')
+        return cachedProjects
       }
     }
     
-    // Try direct API call as last resort
+    // Use the correct Django API endpoint based on URL patterns
+    const endpoint = '/api/v1/project-manager/projects/'
+    
     try {
-              console.debug('Making direct API call to /api/v1/project-manager/projects/')
-        const response = await api.get(buildApiUrl('/api/v1/project-manager/projects/'))
+      const cleanPath = buildApiUrl(endpoint);
+      console.debug(`Making API request to get projects from path: ${cleanPath}`)
+      console.debug('Full request config:', {
+        url: cleanPath,
+        baseURL: api.defaults.baseURL,
+        authHeader: !!api.defaults.headers.common['Authorization'],
+        timeout: api.defaults.timeout
+      })
       
-              console.debug('Direct API call response:', {
-          status: response.status,
-          data: response.data
-        })
+      const response = await api.get(cleanPath)
       
+      console.debug(`Project API - getProjects response:`, {
+        status: response.status,
+        statusText: response.statusText,
+        dataType: typeof response.data,
+        url: response.config?.url
+      })
+      
+      // Handle both array response and paginated response
       if (Array.isArray(response.data)) {
-        this._cacheProjects(response.data)
+        console.debug('Response is an array with length:', response.data.length)
+        this._cacheProjects(response.data) // Cache the successful response
         return response.data
       } else if (response.data?.results && Array.isArray(response.data.results)) {
-        this._cacheProjects(response.data.results)
+        console.debug('Response has results array with length:', response.data.results.length)
+        this._cacheProjects(response.data.results) // Cache the successful response
         return response.data.results
+      } else if (response.data?.projects && Array.isArray(response.data.projects)) {
+        console.debug('Response has projects array with length:', response.data.projects.length)
+        this._cacheProjects(response.data.projects) // Cache the successful response
+        return response.data.projects
+      } else {
+        console.warn(`Unexpected response format from ${endpoint}:`, response.data)
+        // Try to extract any array from the response as a fallback
+        const possibleArrays = Object.values(response.data || {}).filter(val => Array.isArray(val))
+        if (possibleArrays.length > 0) {
+          console.debug('Found a possible array in response:', possibleArrays[0])
+          this._cacheProjects(possibleArrays[0] as any[]) // Cache the successful response
+          return possibleArrays[0]
+        }
       }
-    } catch (directError: any) {
-      console.error('Direct API call failed:', directError)
-    }
-    
-    // If we got here after trying everything, check if we have cached projects as a last resort
-    const lastResortCache = this._getCachedProjects()
-    if (lastResortCache && Array.isArray(lastResortCache) && lastResortCache.length > 0) {
-      console.debug('Using cached projects as last resort after API failures')
-      return lastResortCache
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      if (lastError.response?.status === 403) {
-        throw new Error('You do not have permission to view projects.')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(`API Error: ${lastError.response.data.detail}`)
+    } catch (error: any) {
+      console.error(`API request failed for path ${endpoint}:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config,
+        message: error.message
+      })
+      
+      // If it's a 401/403 error, handle authentication
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error('Authentication error when fetching projects')
+        throw new Error('You must be logged in to view projects')
       }
       
-      throw lastError
+      // Re-throw the error for the calling code to handle
+      throw error
     }
     
-    // If we got here, all paths failed but we didn't have a specific error
-    console.warn('All API paths failed without specific errors - returning empty array')
-    return []
+    // If we reach here, something went wrong
+    throw new Error('Failed to fetch projects - no data received')
   },
 
   /**
@@ -303,6 +240,10 @@ export const ProjectService = {
       if (response.data.id) {
         response.data.id = String(response.data.id);
       }
+      
+      // Clear cache after project creation to ensure fresh data on next fetch
+      this._clearProjectsCache()
+      console.debug('Projects cache cleared after creation')
       
       return response.data
     } catch (error: any) {
@@ -400,6 +341,10 @@ export const ProjectService = {
         data: response.data
       })
       
+      // Clear cache after project update to ensure fresh data on next fetch
+      this._clearProjectsCache()
+      console.debug('Projects cache cleared after update')
+      
       return response.data
     } catch (error: any) {
       console.error('Project API - updateProject error:', error)
@@ -435,10 +380,17 @@ export const ProjectService = {
       console.debug('Project API - deleteProject response:', {
         status: response.status
       })
+      
+      // Clear cache immediately after successful deletion to prevent showing stale data
+      this._clearProjectsCache()
+      console.debug('Project cache cleared after deletion')
+      
     } catch (error: any) {
       console.error('Project API - deleteProject error:', error)
       
       if (error.response?.status === 404) {
+        // Project was already deleted, clear cache anyway
+        this._clearProjectsCache()
         throw new Error('Project not found or already deleted')
       } else if (error.response?.status === 401) {
         throw new Error('You must be logged in to delete a project')
@@ -453,6 +405,27 @@ export const ProjectService = {
   },
 
   /**
+   * Clear the projects cache
+   * Used when projects need to be refreshed from server
+   */
+  _clearProjectsCache() {
+    try {
+      localStorage.removeItem(CACHE_KEYS.PROJECTS)
+      console.debug('Projects cache cleared')
+    } catch (e) {
+      console.warn('Error clearing projects cache:', e)
+    }
+  },
+
+  /**
+   * Public method to clear projects cache
+   * Used by store when immediate cache invalidation is needed
+   */
+  clearProjectsCache() {
+    this._clearProjectsCache()
+  },
+
+  /**
    * Get details for a specific project
    * Used by workspace to load project data
    */
@@ -462,118 +435,64 @@ export const ProjectService = {
     // Ensure projectId is a string
     const projectIdStr = String(projectId);
     
-    // Try multiple API paths, starting with project-manager
-    const apiPaths = [
-      // Try direct paths first with explicit API endpoint
-      '/api/v1/project-manager/projects/' + projectIdStr + '/',
-      '/api/v1/project-manager/projects/detail/' + projectIdStr + '/',
-      '/api/v1/builder/builder/' + projectIdStr + '/',
+    // Use the primary Django API endpoint for project details
+    const endpoint = `/api/v1/project-manager/projects/${projectIdStr}/`
+    
+    try {
+      const cleanPath = buildApiUrl(endpoint);
+      console.debug(`Making API request to get project from path: ${cleanPath}`)
+      console.debug('Full request config:', {
+        url: cleanPath,
+        baseURL: api.defaults.baseURL,
+        authHeader: !!api.defaults.headers.common['Authorization'],
+        params: fullData ? { full_data: true } : {}
+      })
       
-      // Then try the standard paths
-      API_PATHS.PROJECT_MANAGER + '/projects/' + projectIdStr + '/',
-      API_PATHS.BUILDER + '/projects/' + projectIdStr + '/',
-    ]
-    
-    let lastError: any = null;
-    
-    // Try each path in sequence
-    for (const path of apiPaths) {
-      try {
-        const cleanPath = buildApiUrl(path);
-        console.debug(`Making API request to get project from path: ${cleanPath}`)
-        
-        const response = await api.get(cleanPath, {
-          params: fullData ? { full_data: true } : {}
-        })
+      const response = await api.get(cleanPath, {
+        params: fullData ? { full_data: true } : {}
+      })
 
-        // Check if response is HTML instead of JSON
-        const contentType = response.headers['content-type'] || '';
-        if (contentType.includes('text/html') || 
-            (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
-          console.error('Received HTML response instead of JSON:', {
-            url: cleanPath,
-            contentType,
-            dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
-          });
-          throw new Error('Invalid response format: received HTML instead of JSON');
-        }
-        
-        console.debug(`Project API - getProject response from ${cleanPath}:`, {
-          status: response.status,
-          dataSize: JSON.stringify(response.data).length
-        })
-        
-        return response.data
-      } catch (error: any) {
-        lastError = error
-        console.warn(`API request failed for project detail path ${path}:`, {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          message: error.message
-        })
-        
-        // If it's a 401/403 error, no need to try other paths
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          if (error.response?.status === 401) {
-            throw new Error('You must be logged in to view this project')
-          } else {
-            throw new Error('You do not have permission to view this project')
-          }
-        }
-      }
-    }
-    
-    // Try direct API call as last resort with both endpoints
-    for (const baseEndpoint of ['project-manager', 'builder']) {
-      try {
-        const absolutePath = buildApiUrl(`/api/v1/${baseEndpoint}/projects/${projectIdStr}/`)
-        console.debug(`Making direct API call to ${absolutePath}`)
-        
-        const response = await api.get(absolutePath, {
-          params: fullData ? { full_data: true } : {},
-          // Set validateStatus to prevent axios from rejecting non-2xx responses
-          validateStatus: (status: number) => status < 500
-        })
-        
-        // Log the content type and check if response is HTML
-        const contentType = response.headers['content-type'] || '';
-        console.debug('Direct API call response:', {
-          status: response.status,
+      // Check if response is HTML instead of JSON
+      const contentType = response.headers['content-type'] || '';
+      if (contentType.includes('text/html') || 
+          (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
+        console.error('Received HTML response instead of JSON:', {
+          url: cleanPath,
           contentType,
-          dataType: typeof response.data,
           dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
-        })
-
-        // Check if response is HTML instead of JSON
-        if (contentType.includes('text/html') || 
-            (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
-          console.error('Received HTML response instead of JSON');
-          continue; // Skip this endpoint and try the next one
-        }
-        
-        if (response.status >= 200 && response.status < 300) {
-          return response.data;
-        }
-              } catch (directError: any) {
-          console.error(`Direct API call to ${baseEndpoint} failed:`, directError)
-        }
-    }
-    
-    // If we've tried all paths and none worked, throw the last error
-    if (lastError) {
-      console.error('Project API - getProject error:', lastError)
-      
-      if (lastError.response?.status === 404) {
-        throw new Error('Project not found')
-      } else if (lastError.response?.data?.detail) {
-        throw new Error(lastError.response.data.detail)
+        });
+        throw new Error('Invalid response format: received HTML instead of JSON');
       }
       
-      throw lastError
+      console.debug(`Project API - getProject response:`, {
+        status: response.status,
+        dataSize: JSON.stringify(response.data).length,
+        url: response.config?.url
+      })
+      
+      return response.data
+    } catch (error: any) {
+      console.error(`API request failed for project detail path ${endpoint}:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config,
+        message: error.message
+      })
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        throw new Error('You must be logged in to view this project')
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to view this project')
+      } else if (error.response?.status === 404) {
+        throw new Error('Project not found')
+      } else if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail)
+      }
+      
+      throw error
     }
-    
-    throw new Error('Failed to fetch project data')
   },
 
   /**
@@ -617,6 +536,111 @@ export const ProjectService = {
         totalBuilds: 0,
         successRate: 0,
         lastUpdateTime: new Date().toISOString()
+      }
+    }
+  },
+
+  /**
+   * Test API connection by trying multiple endpoints
+   * Used for diagnostics when there are connection issues
+   */
+  async testApiConnection(): Promise<{ success: boolean; endpoint?: string; projects?: any[] }> {
+    try {
+      // Get token
+      const tokenData = localStorage.getItem('token')
+      if (!tokenData) {
+        return { success: false }
+      }
+      
+      const parsedToken = JSON.parse(tokenData)
+      if (!parsedToken || !parsedToken.value) {
+        return { success: false }
+      }
+      
+      const token = parsedToken.value
+      
+      // Try different API endpoints - use only standardized endpoints
+      const endpoints = [
+        'api/v1/project-manager/projects/',  // Primary endpoint
+        'api/v1/builder/builder/',          // Fallback endpoint
+        'api/v1/agents/projects/'            // Another possible endpoint
+      ]
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await api.get(endpoint, {
+            headers: {
+              'Authorization': `Token ${token}`
+            }
+          })
+          
+          if (Array.isArray(response.data) || response.data?.results) {
+            const projectData = Array.isArray(response.data) ? response.data : response.data.results
+            console.debug(`Successfully fetched ${projectData.length} projects from ${endpoint}`)
+            return { 
+              success: true, 
+              endpoint, 
+              projects: projectData 
+            }
+          }
+        } catch (error) {
+          console.debug(`API test failed for endpoint ${endpoint}:`, error)
+        }
+      }
+      
+      return { success: false }
+    } catch (error) {
+      console.debug('API test failed:', error)
+      return { success: false }
+    }
+  },
+
+  /**
+   * Run comprehensive diagnostics for project loading issues
+   * Returns diagnostic information and attempts to resolve issues
+   */
+  async runDiagnostics(): Promise<{ success: boolean; details: any }> {
+    console.debug('Running project loading diagnostics...')
+    
+    const diagnostics = {
+      authToken: null as string | null,
+      apiHeadersSet: false,
+      connectionTest: null as any,
+      errors: [] as string[]
+    }
+    
+    try {
+      // Check authentication state
+      const authStore = (await import('@/shared/stores/auth')).useAuthStore()
+      
+      diagnostics.authToken = authStore.token ? 'exists' : 'missing'
+      diagnostics.apiHeadersSet = !!api.defaults.headers.common['Authorization']
+      
+      console.debug('Auth diagnostics:', {
+        authStoreAuthenticated: authStore.isAuthenticated,
+        token: diagnostics.authToken,
+        apiHeadersSet: diagnostics.apiHeadersSet
+      })
+      
+      // Ensure token is set in API headers
+      if (authStore.token && !diagnostics.apiHeadersSet) {
+        api.defaults.headers.common['Authorization'] = `Token ${authStore.token}`
+        diagnostics.apiHeadersSet = true
+        console.debug('Set Authorization header for diagnostics')
+      }
+      
+      // Try direct access to API
+      diagnostics.connectionTest = await this.testApiConnection()
+      
+      return {
+        success: diagnostics.connectionTest.success,
+        details: diagnostics
+      }
+    } catch (error: any) {
+      diagnostics.errors.push(error.message || 'Unknown error during diagnostics')
+      return {
+        success: false,
+        details: diagnostics
       }
     }
   },

@@ -139,6 +139,13 @@ api.interceptors.response.use(
       }
     }
     
+    // Handle 404 Not Found specifically for project resources
+    if (error.response?.status === 404 && error.config?.url?.includes('/projects/')) {
+      console.warn(`Project resource not found: ${error.config.url}`)
+      // Don't log the full error for project 404s as they're often expected
+      // (e.g., when a project is deleted or user navigates to non-existent project)
+    }
+    
     // Handle network errors
     if (!error.response) {
       console.error('Network error:', error.message)

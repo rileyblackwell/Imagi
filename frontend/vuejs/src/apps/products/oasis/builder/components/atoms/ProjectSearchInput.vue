@@ -1,14 +1,16 @@
 <template>
   <div class="relative group flex-1 max-w-md">
-    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within:opacity-100 transition-all duration-300 pointer-events-none"></div>
     <div class="relative flex items-center">
-      <i class="fas fa-search text-gray-500 absolute left-4"></i>
+      <div class="absolute left-4 flex items-center justify-center w-4 h-4 z-20">
+        <i class="fas fa-search text-white text-sm search-light-glow"></i>
+      </div>
       <input
         :value="modelValue"
         @input="handleInput"
         type="text"
         :placeholder="placeholder || 'Search projects by name...'"
-        class="relative z-10 w-full pl-10 pr-4 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+        class="relative z-10 w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 focus:border-violet-400/50 hover:border-white/15 rounded-xl text-white placeholder-gray-400 transition-all duration-300 backdrop-blur-sm hover:bg-white/8 focus:bg-white/8 focus:shadow-lg focus:shadow-violet-500/20"
+        style="outline: none !important; box-shadow: none !important;"
       >
     </div>
   </div>
@@ -33,3 +35,29 @@ function handleInput(event: Event): void {
   emit('update:modelValue', target.value);
 }
 </script>
+
+<style scoped>
+/* Completely remove any browser default styling */
+input {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Search light glow effect */
+.search-light-glow {
+  text-shadow: 
+    0 0 5px rgba(255, 255, 255, 0.8),
+    0 0 10px rgba(255, 255, 255, 0.6),
+    0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 20px rgba(255, 255, 255, 0.2);
+  filter: brightness(1.1);
+}
+</style>

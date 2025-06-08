@@ -267,7 +267,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onActivated, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts';
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore';
@@ -373,18 +373,52 @@ async function confirmDelete(project) {
   if (!confirmed) return;
 
   try {
+    // First clear the cache to ensure fresh data
+    projectStore.clearProjectsCache();
+    
     await projectStore.deleteProject(project.id);
+    
+    // Immediately refresh the projects list to show updated state
+    try {
+      await fetchProjects(true); // Force refresh to get latest state from API
+    } catch (refreshError) {
+      console.warn('Failed to refresh projects after deletion:', refreshError);
+    }
+    
     showNotification({
       type: 'success',
       message: `Project "${project.name}" deleted successfully`,
       duration: 4000
     });
   } catch (err) {
-    showNotification({
-      type: 'error',
-      message: err.response?.data?.error || `Failed to delete project "${project.name}"`,
-      duration: 5000
-    });
+    console.error('Error deleting project:', err);
+    
+    // Check if the error is actually a success (project was deleted but API returned unexpected response)
+    if (err.response?.status === 404) {
+      // Project is gone, which means deletion was successful
+      // Clear cache and refresh
+      projectStore.clearProjectsCache();
+      
+      showNotification({
+        type: 'success',
+        message: `Project "${project.name}" deleted successfully`,
+        duration: 4000
+      });
+      
+      // Still refresh the projects list
+      try {
+        await fetchProjects(true);
+      } catch (refreshError) {
+        console.warn('Failed to refresh projects after deletion:', refreshError);
+      }
+    } else {
+      // Actual error occurred
+      showNotification({
+        type: 'error',
+        message: err?.message || `Failed to delete project "${project.name}"`,
+        duration: 5000
+      });
+    }
   }
 }
 
@@ -403,6 +437,13 @@ async function saveDescription(project) {
     await projectStore.updateProject(project.id, {
       description: editedDescription.value.trim()
     });
+    
+    // Immediately refresh the projects list to show updated state
+    try {
+      await fetchProjects(true); // Force refresh to get latest state from API
+    } catch (refreshError) {
+      console.warn('Failed to refresh projects after description update:', refreshError);
+    }
     
     showNotification({
       type: 'success',
@@ -423,9 +464,10 @@ async function retryFetch() {
   await fetchProjects();
 }
 
-async function fetchProjects() {
+async function fetchProjects(force = true) {
   try {
-    await projectStore.fetchProjects();
+    // Always force refresh to get the latest state from API
+    await projectStore.fetchProjects(force);
   } catch (err) {
     showNotification({
       type: 'error',
@@ -453,13 +495,25 @@ function openProject(project) {
 
 onMounted(async () => {
   try {
-    await fetchProjects();
+    // Always force refresh to get the latest projects from API
+    await fetchProjects(true);
   } catch (err) {
     console.error('Failed to fetch projects on mount:', err);
     showNotification({
       type: 'error',
       message: 'Failed to load projects. Please try again.'
     });
+  }
+});
+
+// Add support for keep-alive to refresh when component is re-activated
+onActivated(async () => {
+  console.debug('Projects page activated - refreshing projects from API');
+  try {
+    // Always force refresh projects when the component is activated
+    await fetchProjects(true); // Force refresh to get latest state from API
+  } catch (error) {
+    console.error('Failed to refresh projects on activation:', error);
   }
 });
 </script>
