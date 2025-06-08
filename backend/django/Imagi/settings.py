@@ -301,6 +301,17 @@ CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = True  # Required when SameSite=None
 
+# Set CSRF cookie domain to allow cross-subdomain requests in production
+if not DEBUG:
+    CSRF_COOKIE_DOMAIN = '.railway.app'  # Allow cookies across Railway subdomains
+    # Additional CSRF settings for Railway production environment
+    CSRF_COOKIE_PATH = '/'
+    CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+    
+    # For Railway proxy architecture, we might need to trust certain origins
+    # for CSRF token validation
+    CSRF_FAILURE_VIEW = 'apps.Auth.views.csrf_failure'
+
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-domain session cookies
 SESSION_COOKIE_HTTPONLY = True

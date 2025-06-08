@@ -83,24 +83,9 @@ api.interceptors.request.use(
       const csrfToken = getCSRFToken()
       if (csrfToken) {
         config.headers['X-CSRFToken'] = csrfToken
-      } else {
-        // Fetch CSRF token if not available
-        try {
-          // Use a separate axios instance to avoid infinite recursion
-          const csrfClient = axios.create({
-            baseURL: API_CONFIG.BASE_URL,
-            withCredentials: true,
-            timeout: 10000
-          })
-          await csrfClient.get(buildApiUrl('/api/v1/csrf/'))
-          const newCSRFToken = getCSRFToken()
-          if (newCSRFToken) {
-            config.headers['X-CSRFToken'] = newCSRFToken
-          }
-        } catch (error) {
-          console.warn('Failed to fetch CSRF token:', error)
-        }
       }
+      // Note: CSRF token will be handled by the specific auth service methods
+      // No longer fetching CSRF token here to prevent recursive requests and timeouts
     }
     
     return config

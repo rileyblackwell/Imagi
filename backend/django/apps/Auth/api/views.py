@@ -45,12 +45,42 @@ class CSRFTokenView(APIView):
     """Get CSRF token for the frontend."""
     permission_classes = [AllowAny]
     
+    def options(self, request, *args, **kwargs):
+        """Handle CORS preflight requests for CSRF token endpoint."""
+        response = Response()
+        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, X-Requested-With'
+        response['Access-Control-Allow-Credentials'] = 'true'
+        return response
+    
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
-        return Response({
-            'csrfToken': get_token(request),
-            'details': 'CSRF cookie set'
-        })
+        """
+        Provide CSRF token for frontend authentication.
+        This endpoint is especially important for Railway production environment
+        where frontend and backend are on different domains.
+        """
+        try:
+            csrf_token = get_token(request)
+            logger.info(f"CSRF token requested from {request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))}")
+            
+            response = Response({
+                'csrfToken': csrf_token,
+                'details': 'CSRF cookie set',
+                'success': True
+            })
+            
+            # Ensure CORS headers are set for cross-domain requests
+            response['Access-Control-Allow-Credentials'] = 'true'
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error generating CSRF token: {str(e)}")
+            return Response({
+                'error': 'Unable to generate CSRF token',
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class InitView(APIView):
     """Initialize session and CSRF token."""
@@ -73,6 +103,12 @@ class RegisterView(generics.CreateAPIView):
     throttle_classes = [RegistrationRateThrottle]
 
     def create(self, request, *args, **kwargs):
+        """
+        Handle user registration with enhanced error handling for CSRF and proxy issues.
+        """
+        # Log registration attempt for debugging
+        logger.info(f"Registration attempt from {request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))}")
+        logger.debug(f"Request headers: {dict(request.headers)}")
         serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)

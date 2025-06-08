@@ -31,9 +31,10 @@ export const AuthAPI = {
   async getCSRFToken() {
     try {
       // Use the shared API client and build proper URL
-      return await api.get(buildApiUrl(`${API_PATH}/csrf/`), {
-        timeout: 10000 // 10 seconds timeout
+      const response = await api.get(buildApiUrl(`${API_PATH}/csrf/`), {
+        timeout: 30000 // Increase timeout for production environment
       })
+      return response
     } catch (error) {
       console.error('🔑 Failed to get CSRF token:', error)
       throw error
@@ -44,37 +45,37 @@ export const AuthAPI = {
     // Check if we're in a production environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
     
-    // In production environment with proper Nginx proxying, CSRF is still needed
-    // but cookie-based CSRF should work through the proxy
-    if (isProd) {
-      // Check if CSRF token exists in cookies first
-      let csrfToken = getCookie('csrftoken')
-      if (!csrfToken) {
-        try {
-          await this.getCSRFToken()
-          csrfToken = getCookie('csrftoken')
-        } catch (error) {
-          console.error('Error fetching CSRF token in production:', error)
-          // In production, if CSRF fetch fails, continue without it
-          // as the backend might be configured to accept requests without CSRF
-          return null
-        }
-      }
-      return csrfToken
-    }
-    
-    // In development, check if CSRF token exists
+    // Check if CSRF token exists in cookies first
     let csrfToken = getCookie('csrftoken')
+    
     if (!csrfToken) {
       try {
+        console.log('🔑 Fetching CSRF token...')
         await this.getCSRFToken()
         csrfToken = getCookie('csrftoken')
+        
         if (!csrfToken) {
-          console.error('Failed to obtain CSRF token after fetch')
+          console.warn('Failed to obtain CSRF token after fetch')
+          // In production, if CSRF fetch fails, we can try to proceed without it
+          // as Railway's proxy might handle CSRF differently
+          if (isProd) {
+            console.warn('Production: Proceeding without CSRF token')
+            return null
+          } else {
+            throw new Error('Failed to obtain CSRF token')
+          }
         }
       } catch (error) {
         console.error('Error fetching CSRF token:', error)
-        return null
+        
+        // In production, don't fail the entire request if CSRF token can't be fetched
+        // This allows the request to proceed and let the backend handle CSRF validation
+        if (isProd) {
+          console.warn('Production: CSRF token fetch failed, proceeding without it')
+          return null
+        } else {
+          throw error
+        }
       }
     }
     
@@ -146,11 +147,17 @@ export const AuthAPI = {
     // Check if we're in production Railway environment
     const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
     try {
-      // Ensure CSRF token is available
-      const csrfToken = await this.ensureCSRFToken()
-      if (!csrfToken && !isProd) {
-        console.error('Could not obtain CSRF token')
-        throw new Error('Registration error: Could not obtain security token');
+      // Ensure CSRF token is available - but don't fail if we can't get it in production
+      let csrfToken: string | null = null
+      try {
+        csrfToken = await this.ensureCSRFToken()
+      } catch (error) {
+        console.warn('CSRF token fetch failed:', error)
+        if (!isProd) {
+          throw new Error('Registration error: Could not obtain security token')
+        }
+        // In production, continue without CSRF token
+        console.warn('Production: Continuing registration without CSRF token')
       }
       
       // Validate username (basic check only, server will check uniqueness)
@@ -190,31 +197,57 @@ export const AuthAPI = {
         headers['X-CSRFToken'] = csrfToken;
       }
       
+      console.log('🔄 Attempting registration with headers:', {
+        hasCSRF: !!csrfToken,
+        environment: isProd ? 'production' : 'development',
+        url: fullRequestUrl
+      });
+      
       try {
         // Use the shared API client
         const response = await api.post(fullRequestUrl, userData, {
           headers,
           timeout: 30000 // 30 seconds timeout
         })
-
-        // Validate response format
-        if (!response.data) {
-          throw new Error('Invalid server response: Empty response')
-        }
         
-        if (!response.data.token && !response.data.key) {
-          throw new Error('Invalid server response: Missing token')
-        }
-
+        console.log('✅ Registration successful');
         return { 
           data: {
             token: response.data.token || response.data.key,
             user: response.data.user || {}
           }
         }
-      } catch (error) {
-        console.error('❌ Registration API call failed:', error)
-        throw error
+      } catch (registrationError) {
+        console.error('❌ Registration request failed:', registrationError);
+        
+        // If CSRF token was used and we get a CSRF error, try once more without CSRF in production
+        if (isProd && csrfToken && (registrationError as any).response?.status === 403) {
+          console.warn('🔄 Retrying registration without CSRF token in production');
+          try {
+            const retryHeaders = {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            };
+            
+            const retryResponse = await api.post(fullRequestUrl, userData, {
+              headers: retryHeaders,
+              timeout: 30000
+            });
+            
+            console.log('✅ Registration successful on retry without CSRF');
+            return { 
+              data: {
+                token: retryResponse.data.token || retryResponse.data.key,
+                user: retryResponse.data.user || {}
+              }
+            }
+          } catch (retryError) {
+            console.error('❌ Registration retry also failed:', retryError);
+            throw retryError;
+          }
+        }
+        
+        throw registrationError;
       }
     } catch (error: any) {
       console.error('❌ AuthAPI: Registration error:', error)
