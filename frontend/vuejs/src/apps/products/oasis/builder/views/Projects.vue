@@ -123,7 +123,7 @@
                     <div class="w-full max-w-md">
                       <ProjectSearchInput 
                         v-model="searchQuery"
-                        placeholder="Search projects by name or description..."
+                        placeholder="Search projects"
                       />
                     </div>
                   </div>
@@ -189,57 +189,7 @@
                       <p class="text-gray-300 text-center max-w-md">No projects found matching "{{ searchQuery }}"</p>
                     </div>
                     
-                    <!-- Recent Projects Section -->
-                    <div v-else-if="recentProjects.length > 0" class="space-y-8">
-                      <div class="mb-8">
-                        <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-6">
-                          <i class="fas fa-clock text-indigo-400 mr-3"></i>
-                          <h3 class="text-sm font-medium text-white uppercase tracking-wider">Recently Opened</h3>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          <ProjectCardWithDescription
-                            v-for="project in recentProjects"
-                            :key="project.id"
-                            :project="project"
-                            :editing-description="editingDescription"
-                            :edited-description="editedDescription"
-                            @start-edit="startEditDescription"
-                            @save-description="saveDescription"
-                            @cancel-edit="cancelEditDescription"
-                            @delete="confirmDelete"
-                            @open="openProject"
-                            @update:edited-description="editedDescription = $event"
-                          />
-                        </div>
-                      </div>
-
-                      <!-- All Other Projects -->
-                      <div v-if="otherProjects.length > 0">
-                        <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-6">
-                          <i class="fas fa-folder text-indigo-400 mr-3"></i>
-                          <h3 class="text-sm font-medium text-white uppercase tracking-wider">All Projects</h3>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                          <ProjectCardWithDescription
-                            v-for="project in otherProjects"
-                            :key="project.id"
-                            :project="project"
-                            :editing-description="editingDescription"
-                            :edited-description="editedDescription"
-                            @start-edit="startEditDescription"
-                            @save-description="saveDescription"
-                            @cancel-edit="cancelEditDescription"
-                            @delete="confirmDelete"
-                            @open="openProject"
-                            @update:edited-description="editedDescription = $event"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <!-- All Projects (when no recent projects or search active) -->
+                    <!-- All Projects Grid -->
                     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       <ProjectCardWithDescription
                         v-for="project in displayedProjects"
@@ -299,39 +249,7 @@ const displayedProjects = computed(() => {
   return filteredProjects.value;
 });
 
-// Get 3 most recently updated projects for display
-const recentProjects = computed(() => {
-  if (!displayedProjects.value?.length || searchQuery.value) return []
-  
-  return [...displayedProjects.value]
-    .sort((a, b) => {
-      if (!a.updated_at) return 1;
-      if (!b.updated_at) return -1;
-      
-      const dateA = new Date(a.updated_at).getTime()
-      const dateB = new Date(b.updated_at).getTime()
-      return dateB - dateA
-    })
-    .slice(0, 3)
-});
-
-// Get all projects except the recent ones
-const otherProjects = computed(() => {
-  if (!displayedProjects.value?.length || searchQuery.value) return []
-  
-  const recentIds = new Set(recentProjects.value.map(p => p.id))
-  
-  return [...displayedProjects.value]
-    .filter(project => !recentIds.has(project.id))
-    .sort((a, b) => {
-      if (!a.updated_at) return 1;
-      if (!b.updated_at) return -1;
-      
-      const dateA = new Date(a.updated_at).getTime()
-      const dateB = new Date(b.updated_at).getTime()
-      return dateB - dateA
-    })
-});
+// Projects are displayed through displayedProjects computed property from useProjectSearch
 
 const navigationItems = [
   { 

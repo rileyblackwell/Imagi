@@ -8,7 +8,7 @@
         :value="modelValue"
         @input="handleInput"
         type="text"
-        :placeholder="placeholder || 'Search projects by name...'"
+        :placeholder="placeholder || 'Search projects'"
         class="relative z-10 w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 focus:border-violet-400/50 hover:border-white/15 rounded-xl text-white placeholder-gray-400 transition-all duration-300 backdrop-blur-sm hover:bg-white/8 focus:bg-white/8 focus:shadow-lg focus:shadow-violet-500/20"
         style="outline: none !important; box-shadow: none !important;"
       >

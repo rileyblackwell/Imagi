@@ -239,7 +239,7 @@
                         <div class="w-full max-w-md">
                           <ProjectSearchInput 
                             v-model="searchQuery"
-                            placeholder="Search projects by name or description..."
+                            placeholder="Search projects"
                           />
                         </div>
                       </div>
