@@ -51,13 +51,13 @@ input:focus {
   box-shadow: none !important;
 }
 
-/* Search light glow effect */
+/* Search light glow effect - dimmed */
 .search-light-glow {
   text-shadow: 
-    0 0 5px rgba(255, 255, 255, 0.8),
-    0 0 10px rgba(255, 255, 255, 0.6),
-    0 0 15px rgba(255, 255, 255, 0.4),
-    0 0 20px rgba(255, 255, 255, 0.2);
-  filter: brightness(1.1);
+    0 0 3px rgba(255, 255, 255, 0.4),
+    0 0 6px rgba(255, 255, 255, 0.3),
+    0 0 9px rgba(255, 255, 255, 0.2),
+    0 0 12px rgba(255, 255, 255, 0.1);
+  filter: brightness(1.05);
 }
 </style>

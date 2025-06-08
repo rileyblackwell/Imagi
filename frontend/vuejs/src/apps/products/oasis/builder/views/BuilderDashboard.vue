@@ -9,7 +9,6 @@
   
   It should NOT be responsible for:
   - Project file editing (handled by BuilderWorkspace.vue)
-  - File creation/deletion/updates (handled by BuilderWorkspace.vue)
 -->
 <template>
   <BuilderLayout 
@@ -119,7 +118,7 @@
                       </div>
                       
                       <!-- Elegant title section -->
-                      <div class="relative mb-4">
+                      <div class="relative mb-4 text-center">
                         <h3 class="text-xl font-semibold text-white leading-tight">Create a Project</h3>
                         <p class="text-gray-400 text-sm mt-1 leading-relaxed">Build a new web application with AI assistance</p>
                       </div>
@@ -231,16 +230,18 @@
                           </div>
                         </div>
                         
-                        <h3 class="text-xl font-semibold text-white leading-tight pr-20">Project Library</h3>
-                        <p class="text-gray-400 text-sm mt-1 leading-relaxed">Continue working on your existing applications</p>
+                        <h3 class="text-xl font-semibold text-white leading-tight pr-20 text-center">Project Library</h3>
+                        <p class="text-gray-400 text-sm mt-1 leading-relaxed text-center">Continue working on your existing applications</p>
                       </div>
                       
                       <!-- Modern Search Input -->
-                      <div class="mb-4">
-                        <ProjectSearchInput 
-                          v-model="searchQuery"
-                          placeholder="Search projects by name or description..."
-                        />
+                      <div class="mb-4 flex justify-center">
+                        <div class="w-full max-w-md">
+                          <ProjectSearchInput 
+                            v-model="searchQuery"
+                            placeholder="Search projects by name or description..."
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -335,7 +336,7 @@
                           v-for="project in displayedProjects"
                           :key="project.id"
                           :project="project"
-                          @delete="(project) => confirmDelete(String(project.id), project.name)"
+                          @delete="confirmDelete"
                         />
                       </div>
                       
@@ -417,31 +418,47 @@ const { searchQuery, filteredProjects } = useProjectSearch(normalizedProjects, {
 
 
 // Compute displayed projects - show search results if searching, otherwise show 3 most recent
+// Also filter out any projects that are in the deleted list
 const displayedProjects = computed<Project[]>(() => {
+  // Get deleted projects list for filtering
+  let deletedProjects: string[] = [];
+  try {
+    deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]');
+  } catch (e) {
+    // Handle localStorage errors silently
+  }
+  
   // Check if we have a meaningful search query (not just whitespace)
   const hasSearchQuery = searchQuery.value?.trim().length > 0;
   
+  let baseProjects: Project[] = [];
+  
   if (hasSearchQuery) {
     // Return filtered search results
-    return filteredProjects.value || [];
+    baseProjects = filteredProjects.value || [];
+  } else {
+    // Show 3 most recently updated projects when not searching
+    if (!normalizedProjects.value?.length) {
+      return [];
+    }
+    
+    baseProjects = [...normalizedProjects.value]
+      .sort((a, b) => {
+        // Handle cases where updated_at might be undefined
+        if (!a.updated_at) return 1;  // If a's date is missing, b comes first
+        if (!b.updated_at) return -1; // If b's date is missing, a comes first
+        
+        const dateA = new Date(a.updated_at).getTime()
+        const dateB = new Date(b.updated_at).getTime()
+        return dateB - dateA
+      })
+      .slice(0, 3);
   }
   
-  // Show 3 most recently updated projects when not searching
-  if (!normalizedProjects.value?.length) {
-    return [];
-  }
-  
-  return [...normalizedProjects.value]
-    .sort((a, b) => {
-      // Handle cases where updated_at might be undefined
-      if (!a.updated_at) return 1;  // If a's date is missing, b comes first
-      if (!b.updated_at) return -1; // If b's date is missing, a comes first
-      
-      const dateA = new Date(a.updated_at).getTime()
-      const dateB = new Date(b.updated_at).getTime()
-      return dateB - dateA
-    })
-    .slice(0, 3);
+  // Filter out deleted projects to prevent UI issues
+  return baseProjects.filter(project => 
+    project && project.id && !deletedProjects.includes(String(project.id))
+  );
 });
 
 // Navigation items
@@ -517,9 +534,9 @@ async function createProject() {
     
     // Show success notification
     showNotification({
-      message: `Project "${newProject.name}" created successfully!`,
+      message: `Project "${newProject.name}" created successfully! Opening workspace...`,
       type: 'success',
-      duration: 4000
+      duration: 3000
     })
     
     // Force refresh projects list after creation
@@ -531,8 +548,14 @@ async function createProject() {
       console.warn('Failed to refresh projects after creation:', refreshError)
     }
     
-    // Do NOT automatically navigate to workspace - let user decide when to open it
-    // The ProjectCard component will handle navigation when user clicks "Open"
+    // Navigate to the workspace for the newly created project
+    // Give a brief moment for the success notification to be seen
+    setTimeout(() => {
+      router.push({ 
+        name: 'builder-workspace', 
+        params: { projectId: String(newProject.id) } 
+      })
+    }, 1500)
     
   } catch (error: any) {
     showNotification({
@@ -585,7 +608,7 @@ const retryFetch = () => {
  * Confirm and delete a project
  * This is the ONLY place in the application that should call projectStore.deleteProject
  */
-const confirmDelete = async (projectId: string, projectName: string) => {
+const confirmDelete = async (project: Project) => {
   if (!authStore.isAuthenticated) {
     showNotification({
       message: 'Please log in to delete projects',
@@ -597,7 +620,7 @@ const confirmDelete = async (projectId: string, projectName: string) => {
   // Use confirm dialog
   const confirmed = await confirm({
     title: 'Delete Project',
-    message: `Are you sure you want to delete "${projectName}"? This action cannot be undone.`,
+    message: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
     confirmText: 'Delete',
     cancelText: 'Cancel',
     type: 'danger'
@@ -607,18 +630,37 @@ const confirmDelete = async (projectId: string, projectName: string) => {
     return
   }
   
+  // Capture the project name before deletion to ensure we have it for the notification
+  const projectName = project.name || `Project ${project.id}` || 'Unknown Project'
+  
   // Check if user is currently in the workspace for this project
   const isCurrentlyInWorkspace = router.currentRoute.value.name === 'builder-workspace' && 
-                                 router.currentRoute.value.params.projectId === projectId
-  
-  // Use projectStore.setLoading instead of modifying the computed property
-  projectStore.setLoading(true)
+                                 router.currentRoute.value.params.projectId === String(project.id)
   
   try {
     // First clear the cache to ensure fresh data
     projectStore.clearProjectsCache()
     
-    await projectStore.deleteProject(projectId)
+    // Mark project as deleted BEFORE making the API call to prevent race conditions
+    const deletedProjectId = String(project.id)
+    
+    // Add to deleted projects list immediately to prevent any fetching attempts
+    try {
+      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+      if (!deletedProjects.includes(deletedProjectId)) {
+        deletedProjects.push(deletedProjectId)
+        localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects))
+        
+        // Also store timestamp for cleanup purposes
+        const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
+        deletedProjectsTimestamp[deletedProjectId] = Date.now()
+        localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
+      }
+    } catch (e) {
+      console.error('Failed to store deleted project ID in localStorage:', e)
+    }
+    
+    await projectStore.deleteProject(String(project.id))
     
     // If user was in the workspace for this project, navigate away from it
     if (isCurrentlyInWorkspace) {
@@ -633,11 +675,13 @@ const confirmDelete = async (projectId: string, projectName: string) => {
       console.warn('Failed to refresh projects after deletion:', refreshError)
     }
     
+    // Show success notification with captured project name
     showNotification({
-      message: `Project "${projectName}" deleted successfully`,
       type: 'success',
-      duration: 4000 // Shorter duration for better UX
+      message: `"${projectName}" deleted successfully`,
+      duration: 4000
     })
+
   } catch (error: any) {
     console.error('Error deleting project:', error)
     
@@ -647,11 +691,7 @@ const confirmDelete = async (projectId: string, projectName: string) => {
       // Clear cache and refresh
       projectStore.clearProjectsCache()
       
-      showNotification({
-        message: `Project "${projectName}" deleted successfully`,
-        type: 'success',
-        duration: 4000
-      })
+
       
       // If user was in the workspace for this project, navigate away from it
       if (isCurrentlyInWorkspace) {
@@ -659,22 +699,40 @@ const confirmDelete = async (projectId: string, projectName: string) => {
         await router.push({ name: 'builder-dashboard' })
       }
       
-      // Still refresh the projects list
+            // Still refresh the projects list to ensure clean state
       try {
         await fetchProjects(true)
       } catch (refreshError) {
         console.warn('Failed to refresh projects after deletion:', refreshError)
       }
-    } else {
-      // Actual error occurred
+      
+      // Show success notification with captured project name
       showNotification({
-        message: error?.message || `Failed to delete project "${projectName}"`,
-        type: 'error'
-      })
+        type: 'success',
+        message: `"${projectName}" deleted successfully`,
+        duration: 4000
+      })    } else {
+      // Actual error occurred - remove the project from deleted list if it was added
+      try {
+        const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+        const updatedDeletedProjects = deletedProjects.filter((id: string) => id !== String(project.id))
+        localStorage.setItem('deletedProjects', JSON.stringify(updatedDeletedProjects))
+        
+        // Also remove timestamp
+        const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
+        delete deletedProjectsTimestamp[String(project.id)]
+        localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
+      } catch (e) {
+        console.warn('Failed to remove project from deleted list after error:', e)
+      }
+      
+              // Show actual error with captured project name
+        showNotification({
+          message: error?.message || `Failed to delete "${projectName}"`,
+          type: 'error',
+          duration: 5000
+        })
     }
-  } finally {
-    // Use projectStore.setLoading instead of modifying the computed property
-    projectStore.setLoading(false)
   }
 }
 

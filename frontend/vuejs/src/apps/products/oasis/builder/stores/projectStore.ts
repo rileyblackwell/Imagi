@@ -519,30 +519,10 @@ export const useProjectStore = defineStore('builder', () => {
         existingProject: projectsMap.value.get(String(projectId))
       })
 
-      // Keep track of deleted project IDs to prevent them from reappearing on refresh
       const deletedProjectId = String(projectId)
       
-      // Delete the project on the server (this will also clear the cache)
-      await ProjectService.deleteProject(projectId)
-      
-      // Remove from projects array immediately to update UI
-      projects.value = projects.value.filter(p => String(p.id) !== deletedProjectId)
-      
-      // Remove from map
-      projectsMap.value.delete(deletedProjectId)
-      
-      // Clear current project if it's the one being deleted
-      if (currentProject.value && String(currentProject.value.id) === deletedProjectId) {
-        currentProject.value = null
-      }
-      
-      console.debug('Project deleted, store updated:', {
-        remainingProjects: projects.value.length,
-        deletedId: deletedProjectId
-      })
-      
-      // Store deleted project IDs in localStorage to prevent them from reappearing
-      // during periodic refreshes before the server fully processes the deletion
+      // Store deleted project IDs in localStorage FIRST to prevent any race conditions
+      // This ensures no other part of the app tries to fetch this project during deletion
       try {
         const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
         if (!deletedProjects.includes(deletedProjectId)) {
@@ -557,6 +537,29 @@ export const useProjectStore = defineStore('builder', () => {
       } catch (e) {
         console.error('Failed to store deleted project ID in localStorage:', e)
       }
+      
+      // Remove from local state IMMEDIATELY to update the UI
+      projects.value = projects.value.filter(p => String(p.id) !== deletedProjectId)
+      projectsMap.value.delete(deletedProjectId)
+      
+      // Clear current project if it's the one being deleted
+      if (currentProject.value && String(currentProject.value.id) === deletedProjectId) {
+        currentProject.value = null
+      }
+      
+      // Clear any cached fetch promises for this project
+      projectFetchPromises.value.delete(deletedProjectId)
+      lastProjectFetch.value.delete(deletedProjectId)
+      
+      console.debug('Project removed from local state:', {
+        remainingProjects: projects.value.length,
+        deletedId: deletedProjectId
+      })
+      
+      // Now delete the project on the server (this will also clear the cache)
+      await ProjectService.deleteProject(projectId)
+      
+      console.debug('Project deleted from server successfully')
       
       // Do NOT immediately refresh projects to avoid race conditions
       // Let the calling component decide when to refresh if needed
@@ -575,18 +578,33 @@ export const useProjectStore = defineStore('builder', () => {
       if (err.response?.status === 404) {
         console.debug('Project already deleted (404), treating as success')
         
-        // Still clean up local state
-        const deletedProjectId = String(projectId)
-        projects.value = projects.value.filter(p => String(p.id) !== deletedProjectId)
-        projectsMap.value.delete(deletedProjectId)
-        
-        if (currentProject.value && String(currentProject.value.id) === deletedProjectId) {
-          currentProject.value = null
-        }
-        
+        // Local state cleanup was already done above, so just return success
         // Don't throw error for 404 - project is gone which is what we wanted
         return
       }
+      
+      // For other errors, restore the project to local state since deletion failed
+      // and remove it from the deleted projects list
+      const deletedProjectId = String(projectId)
+      
+      try {
+        // Remove from deleted projects list since deletion failed
+        const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+        const updatedDeletedProjects = deletedProjects.filter((id: string) => id !== deletedProjectId)
+        localStorage.setItem('deletedProjects', JSON.stringify(updatedDeletedProjects))
+        
+        // Also remove timestamp
+        const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
+        delete deletedProjectsTimestamp[deletedProjectId]
+        localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
+        
+        console.debug('Removed project from deleted list due to deletion failure')
+      } catch (e) {
+        console.warn('Failed to remove project from deleted list after error:', e)
+      }
+      
+      // We don't need to restore to projects array since we need to refresh from API anyway
+      // The calling component will handle refreshing the project list
       
       handleError(err, 'Failed to delete project')
       throw err
@@ -640,15 +658,19 @@ export const useProjectStore = defineStore('builder', () => {
       return null
     }
     
-    // Check if project is in the deleted projects list
+    // Check if project is in the deleted projects list - fail fast
     try {
       const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
       if (deletedProjects.includes(String(projectId))) {
         console.debug(`ProjectStore: Project ${projectId} is in deleted list, not fetching`)
+        error.value = 'Project not found'
         throw new Error('Project not found')
       }
-    } catch (e) {
-      // Handle parsing errors silently
+    } catch (parseError) {
+      if (parseError instanceof Error && parseError.message === 'Project not found') {
+        throw parseError
+      }
+      // Handle JSON parsing errors silently and continue
     }
     
     // Check if there's an existing in-progress fetch for this project

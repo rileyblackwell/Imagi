@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
@@ -730,6 +730,35 @@ onMounted(async () => {
   // Get project ID from route params
   projectId.value = String(route.params.projectId)
   
+  // IMPORTANT: Check if project is in deleted list BEFORE doing anything else
+  // This prevents any API calls or initialization for deleted projects
+  try {
+    const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+    if (deletedProjects.includes(projectId.value)) {
+      // Try to get project name from store if available
+      let projectName = projectId.value;
+      const existingProject = projectStore.getProjectById(projectId.value);
+      if (existingProject?.name) {
+        projectName = existingProject.name;
+      }
+      
+      // Show notification and redirect immediately
+      const { showNotification } = useNotification();
+      showNotification({
+        type: 'error',
+        message: `Project "${projectName}" has been deleted.`,
+        duration: 3000
+      });
+      
+      // Immediate redirect without waiting
+      router.replace({ name: 'builder-dashboard' });
+      return; // Exit early to prevent any further initialization
+    }
+  } catch (e) {
+    // Handle localStorage errors silently and continue
+    console.warn('Error checking deleted projects list:', e)
+  }
+  
   try {
     // Get stores for easier access
     const paymentsStore = usePaymentStore();
@@ -811,6 +840,21 @@ onMounted(async () => {
           projectError.response?.status === 404) {
         console.log('Project not found - redirecting to dashboard');
         
+        // Add project to deleted list if it resulted in 404
+        try {
+          const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+          if (!deletedProjects.includes(projectId.value)) {
+            deletedProjects.push(projectId.value)
+            localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects))
+            
+            const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
+            deletedProjectsTimestamp[projectId.value] = Date.now()
+            localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
+          }
+        } catch (e) {
+          console.warn('Failed to add project to deleted list:', e)
+        }
+        
         // Show a notification but redirect to dashboard to prevent further errors
         const { showNotification } = useNotification();
         showNotification({
@@ -844,6 +888,48 @@ onMounted(async () => {
     console.error('Error initializing workspace:', error);
   }
 })
+
+// Watch for route parameter changes (e.g., if user navigates to different project)
+watch(
+  () => route.params.projectId,
+  (newProjectId, oldProjectId) => {
+    if (newProjectId && newProjectId !== oldProjectId) {
+      console.debug('BuilderWorkspace: Project ID changed in route:', { oldProjectId, newProjectId })
+      
+      // Check if the new project is in the deleted list
+      try {
+        const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+        if (deletedProjects.includes(String(newProjectId))) {
+          // Try to get project name from store if available
+          let projectName = String(newProjectId);
+          const existingProject = projectStore.getProjectById(String(newProjectId));
+          if (existingProject?.name) {
+            projectName = existingProject.name;
+          }
+          
+          // Show notification and redirect immediately
+          const { showNotification } = useNotification();
+          showNotification({
+            type: 'error',
+            message: `Project "${projectName}" has been deleted.`,
+            duration: 3000
+          });
+          
+          // Immediate redirect without waiting
+          router.replace({ name: 'builder-dashboard' });
+          return;
+        }
+      } catch (e) {
+        console.warn('Error checking deleted projects list during route change:', e)
+      }
+      
+      // If not deleted, update the project ID and reload
+      projectId.value = String(newProjectId)
+      // Could add logic here to reload the project if needed
+    }
+  },
+  { immediate: false } // Don't run immediately since onMounted handles the initial load
+)
 
 onBeforeUnmount(() => {
   // Clean up resources

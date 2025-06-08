@@ -386,8 +386,8 @@ async function confirmDelete(project) {
     }
     
     showNotification({
-      type: 'success',
-      message: `Project "${project.name}" deleted successfully`,
+      type: 'error',
+      message: `Project "${project.name}" deleted`,
       duration: 4000
     });
   } catch (err) {
@@ -400,8 +400,8 @@ async function confirmDelete(project) {
       projectStore.clearProjectsCache();
       
       showNotification({
-        type: 'success',
-        message: `Project "${project.name}" deleted successfully`,
+        type: 'error',
+        message: `Project "${project.name}" deleted`,
         duration: 4000
       });
       
