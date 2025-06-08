@@ -1,76 +1,77 @@
 <!-- Testimonials Section with Immersive 3D Cards -->
 <template>
-  <section class="py-24 md:py-36 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+  <section class="py-24 md:py-36 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <!-- Decorative background elements -->
     <div class="absolute inset-0 pointer-events-none">
       <!-- Subtle pattern overlay -->
       <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
       
       <!-- Glowing orbs -->
-      <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-primary-600/5 blur-[150px] animate-pulse-slow"></div>
+      <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-pulse-slow"></div>
       <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[120px] animate-pulse-slow animation-delay-150"></div>
     </div>
 
     <div class="max-w-7xl mx-auto relative z-10">
       <!-- Enhanced section header -->
       <div class="text-center mb-16">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">SUCCESS STORIES</span>
+        <!-- Modern pill badge -->
+        <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full border border-indigo-400/20 backdrop-blur-sm mb-6">
+          <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+          <span class="text-indigo-300 font-medium text-sm tracking-wide uppercase">Success Stories</span>
         </div>
         <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{{ title }}</h2>
         <p class="text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
         
-        <!-- Decorative element -->
-        <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-8"></div>
+        <!-- Modern divider -->
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent mt-8"></div>
       </div>
 
       <!-- 3D Testimonial Cards Showcase -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-12 relative">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 relative">
         <div 
           v-for="(testimonial, index) in testimonials" 
           :key="index"
-          class="group relative transform transition-all duration-300 hover:-translate-y-2"
-          :class="{ 'md:mt-12': index === 1 }"
+          class="group relative transform transition-all duration-300 hover:-translate-y-1"
+          :class="{ 'md:mt-8': index === 1 }"
         >
-          <!-- Enhanced glass morphism effect with glow -->
-          <div class="absolute -inset-0.5 rounded-xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"
-               :class="getGlowBorderClass(testimonial.color)"></div>
-          
-          <!-- Testimonial card with enhanced glass morphism -->
-          <div class="relative h-full bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300">
-            <!-- Card header with gradient -->
-            <div class="h-2 w-full transition-all duration-300"
+          <!-- Modern glassmorphism container -->
+          <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+            <!-- Sleek gradient header -->
+            <div class="h-1 w-full transition-all duration-300"
                  :class="getHeaderGradientClass(testimonial.color)"></div>
             
+            <!-- Subtle background effects -->
+            <div class="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"
+                 :class="getCardBackgroundClass(testimonial.color)"></div>
+            
             <!-- Card content -->
-            <div class="p-6 sm:p-8">
-              <!-- Star rating and quote marks -->
-              <div class="flex justify-between items-start mb-6">
-                <!-- Star rating -->
-                <div class="flex space-x-1">
-                  <i v-for="n in 5" :key="n" class="fas fa-star text-sm" 
-                     :class="n <= testimonial.rating ? getStarClass(testimonial.color) : 'text-gray-600'"></i>
-                </div>
+            <div class="relative z-10 p-6 sm:p-8 h-full flex flex-col">
+              <!-- Star rating -->
+              <div class="flex space-x-1 mb-6">
+                <i v-for="n in 5" :key="n" class="fas fa-star text-sm" 
+                   :class="n <= testimonial.rating ? getStarClass(testimonial.color) : 'text-gray-600'"></i>
               </div>
               
               <!-- Testimonial text -->
-              <p class="text-gray-300 mb-6 text-lg leading-relaxed">{{ testimonial.text }}</p>
+              <p class="text-gray-300 mb-6 text-base leading-relaxed flex-1">{{ testimonial.text }}</p>
+              
+              <!-- Modern separator -->
+              <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
               
               <!-- Author info with enhanced layout -->
-              <div class="flex items-center mt-auto">
+              <div class="flex items-center">
                 <!-- Author avatar with enhanced styling -->
-                <div class="mr-4 w-14 h-14 relative overflow-hidden rounded-xl flex-shrink-0 border border-dark-700/70">
-                  <div class="absolute inset-0 bg-gradient-to-br w-full h-full opacity-10" 
-                       :class="getGradientClass(testimonial.color)"></div>
+                <div class="mr-4 w-12 h-12 relative overflow-hidden rounded-xl flex-shrink-0 border"
+                     :class="getAvatarContainerClass(testimonial.color)">
                   <div class="relative w-full h-full flex items-center justify-center">
-                    <i class="fas fa-user text-lg" :class="getAuthorIconClass(testimonial.color)"></i>
+                    <i class="fas fa-user text-sm" :class="getAuthorIconClass(testimonial.color)"></i>
                   </div>
                 </div>
                 
                 <!-- Author details with enhanced styling -->
                 <div>
-                  <h4 class="font-bold text-white">{{ testimonial.author }}</h4>
-                  <p class="text-sm" :class="getPositionClass(testimonial.color)">{{ testimonial.position }}</p>
+                  <h4 class="font-semibold text-white text-sm leading-tight">{{ testimonial.author }}</h4>
+                  <p class="text-xs leading-relaxed" :class="getPositionClass(testimonial.color)">{{ testimonial.position }}</p>
                 </div>
               </div>
             </div>
@@ -78,20 +79,17 @@
         </div>
       </div>
       
-      <!-- Enhanced CTA -->
-      <div class="mt-20 text-center">
-        <div class="inline-block group relative transform transition-all duration-300 hover:-translate-y-1">
-          <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-xl opacity-30 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-          <HomeNavbarButton
-            :to="{ name: 'about' }"
-            class="relative !h-12 sm:!h-14 min-w-[160px] sm:min-w-[200px] px-6 sm:px-8 rounded-xl bg-dark-900/70 backdrop-blur-lg border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300"
-          >
-            <span class="relative z-10 flex items-center justify-center text-base sm:text-lg font-medium text-white">
-              View More Stories
-              <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-            </span>
-          </HomeNavbarButton>
-        </div>
+      <!-- Simple CTA Button -->
+      <div class="mt-16 text-center">
+        <HomeNavbarButton
+          :to="{ name: 'about' }"
+          class="group relative !h-12 sm:!h-14 px-8 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium transition-all duration-300 transform hover:-translate-y-1 shadow-lg shadow-indigo-500/25"
+        >
+          <span class="flex items-center justify-center text-lg">
+            View More Stories
+            <i class="fas fa-arrow-right ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
+          </span>
+        </HomeNavbarButton>
       </div>
     </div>
   </section>
@@ -151,67 +149,51 @@ export default defineComponent({
     }
   },
   methods: {
-    getTestimonialColor(color) {
-      const colors = {
-        primary: 'rgba(59, 130, 246, 0.5)',
-        violet: 'rgba(139, 92, 246, 0.5)',
-        blue: 'rgba(37, 99, 235, 0.5)',
-      }
-      return colors[color] || colors.primary
-    },
-    getGradientClass(color) {
+    getCardBackgroundClass(color) {
       const classes = {
-        primary: 'from-primary-600 to-primary-800',
-        violet: 'from-violet-600 to-violet-800',
-        blue: 'from-blue-600 to-blue-800',
-      }
-      return classes[color] || classes.primary
-    },
-    getGlowBorderClass(color) {
-      const classes = {
-        primary: 'bg-gradient-to-r from-primary-500/50 to-violet-500/50',
-        violet: 'bg-gradient-to-r from-violet-500/50 to-purple-500/50',
-        blue: 'bg-gradient-to-r from-blue-500/50 to-violet-500/50',
+        primary: 'bg-gradient-to-br from-indigo-400/4 to-violet-400/4',
+        violet: 'bg-gradient-to-br from-violet-400/4 to-purple-400/4',
+        blue: 'bg-gradient-to-br from-blue-400/4 to-cyan-400/4',
       }
       return classes[color] || classes.primary
     },
     getHeaderGradientClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-r from-primary-500 to-violet-500',
-        violet: 'bg-gradient-to-r from-violet-500 to-purple-500',
-        blue: 'bg-gradient-to-r from-blue-500 to-violet-500',
+        primary: 'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80',
+        violet: 'bg-gradient-to-r from-violet-400 via-purple-400 to-violet-400 opacity-80',
+        blue: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-80',
       }
       return classes[color] || classes.primary
     },
     getStarClass(color) {
       const classes = {
-        primary: 'text-primary-400',
+        primary: 'text-indigo-400',
         violet: 'text-violet-400',
         blue: 'text-blue-400',
-      }
-      return classes[color] || classes.primary
-    },
-    getQuoteClass(color) {
-      const classes = {
-        primary: 'text-primary-500',
-        violet: 'text-violet-500',
-        blue: 'text-blue-500',
       }
       return classes[color] || classes.primary
     },
     getAuthorIconClass(color) {
       const classes = {
-        primary: 'text-primary-400',
-        violet: 'text-violet-400',
-        blue: 'text-blue-400',
+        primary: 'text-indigo-300',
+        violet: 'text-violet-300',
+        blue: 'text-blue-300',
       }
       return classes[color] || classes.primary
     },
     getPositionClass(color) {
       const classes = {
-        primary: 'text-primary-400',
+        primary: 'text-indigo-400',
         violet: 'text-violet-400',
         blue: 'text-blue-400',
+      }
+      return classes[color] || classes.primary
+    },
+    getAvatarContainerClass(color) {
+      const classes = {
+        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
+        violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
+        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
       }
       return classes[color] || classes.primary
     }

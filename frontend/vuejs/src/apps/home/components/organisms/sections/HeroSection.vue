@@ -1,6 +1,6 @@
 <!-- Hero Section Component -->
 <template>
-  <section class="relative min-h-[80vh] sm:min-h-[85vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden py-12 sm:py-16 md:py-24 pb-28 sm:pb-32 md:pb-40 mt-20 sm:mt-16 md:mt-0">
+  <section class="relative min-h-[80vh] sm:min-h-[85vh] md:min-h-[90vh] flex items-center justify-center overflow-hidden pt-32 pb-16 sm:pb-20 md:pb-24">
     <!-- Enhanced Background Effects -->
     <div class="absolute inset-0">
       <!-- Base gradient background -->
@@ -14,30 +14,29 @@
     </div>
 
     <!-- Content -->
-    <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="relative w-full max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
       <div class="flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-20">
         <!-- Left side - Main content -->
         <div class="flex-1 text-center lg:text-left pt-6 sm:pt-0">
-          <!-- Enhanced badge with glass morphism styling -->
-          <div class="mb-4 sm:mb-6 inline-block animate-fade-in-up">
-            <div class="inline-block p-[1px] rounded-full bg-gradient-to-r from-violet-500/70 to-purple-500/70 purple-glow-border">
-              <div class="inline-block px-4 py-1.5 bg-dark-900/95 backdrop-blur-xl rounded-full">
-                <span class="text-primary-400 font-semibold text-sm tracking-wider">AI-POWERED WEB DEVELOPMENT</span>
-              </div>
+          <!-- Modern pill badge -->
+          <div class="mb-6 inline-block animate-fade-in-up">
+            <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full border border-indigo-400/20 backdrop-blur-sm">
+              <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+              <span class="text-indigo-300 font-medium text-sm tracking-wide uppercase">AI-Powered Web Development</span>
             </div>
           </div>
 
           <!-- Enhanced title with animation - responsive sizes -->
-          <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-8 animate-fade-in-up animation-delay-150">
+          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 sm:mb-8 animate-fade-in-up animation-delay-150">
             <span class="text-white block mb-2">{{ titleLine1 }}</span>
             <span class="text-white block mb-2">{{ titleLine2 }}</span>
-            <span class="text-primary-400 font-bold block text-3xl sm:text-4xl md:text-5xl lg:text-7xl tracking-tighter mt-2 mb-8 py-1 text-shadow-sm">
+            <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-tighter mt-2 mb-8 py-1">
               {{ highlightedTitle }}
             </span>
           </h1>
 
           <!-- Enhanced description with animation -->
-          <p class="text-base sm:text-lg md:text-xl text-gray-300 mb-6 sm:mb-10 max-w-2xl mx-auto lg:mx-0 animate-fade-in-up animation-delay-300 leading-relaxed">
+          <p class="text-lg sm:text-xl text-gray-300 mb-8 sm:mb-10 max-w-2xl mx-auto lg:mx-0 animate-fade-in-up animation-delay-300 leading-relaxed">
             {{ description }}
           </p>
 
@@ -46,26 +45,23 @@
             <!-- Primary button with enhanced styling -->
             <HomeNavbarButton
               :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-              class="group relative w-full sm:w-auto !h-12 sm:!h-14 px-6 sm:px-8 rounded-xl bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 border border-primary-500/40 hover:border-primary-400/70 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-primary-600/30"
+              class="group relative w-full sm:w-auto !h-12 sm:!h-14 px-8 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 transition-all duration-300 transform hover:-translate-y-1 shadow-lg shadow-indigo-500/25"
             >
-              <span class="relative z-10 flex items-center justify-center text-base sm:text-lg font-medium text-white">
+              <span class="relative z-10 flex items-center justify-center text-lg font-medium text-white">
                 {{ primaryButtonText }}
-                <i class="fas fa-arrow-right ml-2 sm:ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
+                <i class="fas fa-arrow-right ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
               </span>
             </HomeNavbarButton>
 
             <!-- Secondary button with glass morphism -->
             <a 
               :href="secondaryButtonHref" 
-              class="group relative flex items-center gap-2 sm:gap-3 text-gray-300 hover:text-white transition-all duration-300 px-6 sm:px-8 py-3 sm:py-4 rounded-xl border border-gray-700/30 hover:border-primary-500/30 bg-dark-800/50 hover:bg-dark-700/50 backdrop-blur-sm transform hover:-translate-y-1"
+              class="group relative flex items-center gap-3 text-gray-300 hover:text-white transition-all duration-300 px-8 py-3 sm:py-4 rounded-xl border border-white/10 hover:border-violet-400/30 bg-white/5 hover:bg-white/8 backdrop-blur-sm transform hover:-translate-y-1"
             >
-              <!-- Enhanced glow effect on hover -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-xl opacity-0 group-hover:opacity-100 blur-sm transition-all duration-300 -z-10"></div>
-              
-              <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-dark-700/80 group-hover:bg-primary-500/20 flex items-center justify-center transition-all duration-300">
-                <i class="fas fa-play text-xs text-primary-400"></i>
+              <div class="w-8 h-8 rounded-full bg-white/5 group-hover:bg-violet-400/20 flex items-center justify-center transition-all duration-300 border border-white/10">
+                <i class="fas fa-play text-xs text-violet-400"></i>
               </div>
-              <span class="font-medium text-base sm:text-lg">{{ secondaryButtonText }}</span>
+              <span class="font-medium text-lg">{{ secondaryButtonText }}</span>
             </a>
           </div>
         </div>
@@ -73,16 +69,22 @@
         <!-- Right side - Interactive Demo with glass morphism -->
         <div class="flex-1 w-full max-w-xl mx-auto lg:mx-0 mt-10 lg:mt-0 animate-fade-in-up animation-delay-300">
           <div class="group relative transform transition-all duration-300 hover:-translate-y-2">
-            <!-- Enhanced glass morphism effect with glow -->
-            <div class="absolute -inset-1 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-xl opacity-30 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-            
-            <!-- Terminal component with enhanced border -->
-            <div class="relative rounded-xl overflow-hidden border border-dark-700/50 shadow-2xl backdrop-blur-sm bg-dark-900/70">
-              <AnimatedTerminal />
+            <!-- Modern glassmorphism container -->
+            <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden">
+              <!-- Sleek gradient header -->
+              <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+              
+              <!-- Subtle background effects -->
+              <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+              
+              <!-- Terminal component with enhanced styling -->
+              <div class="relative z-10">
+                <AnimatedTerminal />
+              </div>
             </div>
             
             <!-- Enhanced decorative elements -->
-            <div class="absolute -z-10 -bottom-6 -right-6 w-20 sm:w-28 h-20 sm:h-28 bg-primary-500/15 rounded-full blur-xl animate-pulse-slow"></div>
+            <div class="absolute -z-10 -bottom-6 -right-6 w-20 sm:w-28 h-20 sm:h-28 bg-indigo-500/15 rounded-full blur-xl animate-pulse-slow"></div>
             <div class="absolute -z-10 -top-6 -left-6 w-28 sm:w-36 h-28 sm:h-36 bg-violet-500/15 rounded-full blur-xl animate-pulse-slow animation-delay-150"></div>
           </div>
         </div>

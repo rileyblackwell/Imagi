@@ -1,66 +1,65 @@
 <!-- Features Section Component with Modern UI -->
 <template>
-  <section class="py-16 sm:py-20 md:py-32 px-4 sm:px-6 lg:px-8 relative">
+  <section class="py-16 sm:py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative">
     <!-- Background decorative elements -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <div class="absolute top-[30%] right-[5%] w-[300px] sm:w-[400px] md:w-[500px] h-[300px] sm:h-[400px] md:h-[500px] rounded-full bg-primary-600/10 blur-[100px] animate-pulse-slow"></div>
-      <div class="absolute bottom-[20%] left-[10%] w-[250px] sm:w-[300px] md:w-[400px] h-[250px] sm:h-[300px] md:h-[400px] rounded-full bg-violet-600/10 blur-[80px] animate-pulse-slow animation-delay-150"></div>
+      <div class="absolute top-[30%] right-[5%] w-[400px] h-[400px] rounded-full bg-indigo-600/5 blur-[100px] animate-pulse-slow"></div>
+      <div class="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] rounded-full bg-violet-600/5 blur-[80px] animate-pulse-slow animation-delay-150"></div>
     </div>
     
     <div class="max-w-7xl mx-auto relative">
-      <!-- Enhanced section header with animation -->
-      <div class="text-center mb-10 sm:mb-16 relative">
-        <div class="inline-block px-3 sm:px-4 py-1 sm:py-1.5 bg-primary-500/10 rounded-full mb-3">
-          <span class="text-primary-400 font-semibold text-xs sm:text-sm tracking-wider">POWERFUL FEATURES</span>
+      <!-- Enhanced section header with modern badge -->
+      <div class="text-center mb-12 sm:mb-16 relative">
+        <!-- Modern pill badge -->
+        <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full border border-indigo-400/20 backdrop-blur-sm mb-6">
+          <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+          <span class="text-indigo-300 font-medium text-sm tracking-wide uppercase">Powerful Features</span>
         </div>
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">{{ title }}</h2>
-        <p class="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
         
-        <!-- Decorative element -->
-        <div class="w-16 sm:w-24 h-1 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-6 sm:mt-8"></div>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{{ title }}</h2>
+        <p class="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
+        
+        <!-- Modern divider -->
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent mt-8"></div>
       </div>
 
-      <!-- Enhanced 3D-like feature cards with improved glassmorphism -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
+      <!-- Enhanced feature cards with modern glassmorphism -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
         <div 
           v-for="(feature, index) in features" 
           :key="index"
-          class="feature-card group relative transform transition-all duration-300 hover:-translate-y-2"
+          class="group relative transform transition-all duration-300 hover:-translate-y-1"
         >
-          <!-- Enhanced glass morphism effect with glow -->
-          <div class="absolute -inset-0.5 rounded-2xl opacity-0 blur group-hover:blur-md transition-all duration-300"
-               :class="getGradientBorderClass(feature.color)"></div>
-               
-          <!-- Card with enhanced glass morphism effect -->
-          <div class="relative h-full bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden p-6 sm:p-8 border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300">
-            
-            <!-- Card header with gradient -->
-            <div class="absolute top-0 inset-x-0 h-1.5 w-full transition-all duration-300"
+          <!-- Modern glassmorphism container -->
+          <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+            <!-- Sleek gradient header -->
+            <div class="h-1 w-full transition-all duration-300"
                  :class="getHeaderGradientClass(feature.color)"></div>
             
-            <!-- Subtle gradient background -->
-            <div class="absolute inset-0 bg-gradient-to-br opacity-10 -z-10 transition-opacity duration-300 group-hover:opacity-20"
-                 :class="getGradientClass(feature.color)"></div>
-            
-            <!-- Glowing orb in corner -->
-            <div class="absolute -top-20 -right-20 w-32 sm:w-40 h-32 sm:h-40 rounded-full opacity-20 blur-2xl transition-all duration-300 group-hover:opacity-40 group-hover:scale-125"
+            <!-- Subtle background effects -->
+            <div class="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"
                  :class="getOrbClass(feature.color)"></div>
-                 
-            <!-- Icon container with enhanced 3D effect -->
-            <div class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-xl mb-4 sm:mb-6 transform transition-all duration-300 shadow-lg group-hover:shadow-xl group-hover:scale-110"
-                 :class="getIconContainerClass(feature.color)">
-              <i :class="[feature.icon, 'text-xl sm:text-2xl transition-all duration-300', getIconClass(feature.color)]"></i>
-            </div>
             
-            <h3 class="text-lg sm:text-xl font-bold mb-2 sm:mb-3 transition-all duration-300 group-hover:text-white">{{ feature.title }}</h3>
-            <p class="text-sm sm:text-base text-gray-400 transition-all duration-300 group-hover:text-gray-300">{{ feature.description }}</p>
-            
-            <!-- Learn more button with subtle styling -->
-            <div class="mt-4 pt-3 border-t border-dark-700/50 flex items-center">
-              <a href="#" class="text-sm font-medium flex items-center group/btn transition-all duration-300" :class="getLinkClass(feature.color)">
-                <span>Learn more</span>
-                <i class="fas fa-arrow-right ml-2 text-xs transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
-              </a>
+            <div class="relative z-10 p-6 sm:p-8 h-full flex flex-col">
+              <!-- Icon container with enhanced styling -->
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-6 border transition-all duration-300"
+                   :class="getIconContainerClass(feature.color)">
+                <i :class="[feature.icon, 'text-lg', getIconClass(feature.color)]"></i>
+              </div>
+              
+              <h3 class="text-xl font-semibold text-white mb-3 leading-tight">{{ feature.title }}</h3>
+              <p class="text-gray-300 leading-relaxed flex-1">{{ feature.description }}</p>
+              
+              <!-- Modern separator -->
+              <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-6"></div>
+              
+              <!-- Learn more link with modern styling -->
+              <div class="flex items-center">
+                <a href="#" class="text-sm font-medium flex items-center group/btn transition-all duration-300" :class="getLinkClass(feature.color)">
+                  <span>Learn more</span>
+                  <i class="fas fa-arrow-right ml-2 text-xs transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -150,12 +149,12 @@ export default defineComponent({
     },
     getHeaderGradientClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-r from-primary-500 to-primary-600',
-        blue: 'bg-gradient-to-r from-blue-500 to-blue-600',
-        indigo: 'bg-gradient-to-r from-indigo-500 to-indigo-600',
-        purple: 'bg-gradient-to-r from-purple-500 to-purple-600',
-        violet: 'bg-gradient-to-r from-violet-500 to-violet-600',
-        teal: 'bg-gradient-to-r from-teal-500 to-teal-600'
+        primary: 'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80',
+        blue: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-80',
+        indigo: 'bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 opacity-80',
+        purple: 'bg-gradient-to-r from-purple-400 via-violet-400 to-purple-400 opacity-80',
+        violet: 'bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 opacity-80',
+        teal: 'bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-400 opacity-80'
       }
       return classes[color] || classes.primary
     },
@@ -172,40 +171,40 @@ export default defineComponent({
     },
     getOrbClass(color) {
       const classes = {
-        primary: 'bg-primary-500',
-        blue: 'bg-blue-500',
-        indigo: 'bg-indigo-500',
-        purple: 'bg-purple-500',
-        violet: 'bg-violet-500',
-        teal: 'bg-teal-500'
+        primary: 'bg-gradient-to-br from-indigo-400/4 to-violet-400/4',
+        blue: 'bg-gradient-to-br from-blue-400/4 to-cyan-400/4',
+        indigo: 'bg-gradient-to-br from-indigo-400/4 to-purple-400/4',
+        purple: 'bg-gradient-to-br from-purple-400/4 to-violet-400/4',
+        violet: 'bg-gradient-to-br from-violet-400/4 to-fuchsia-400/4',
+        teal: 'bg-gradient-to-br from-teal-400/4 to-emerald-400/4'
       }
       return classes[color] || classes.primary
     },
     getIconContainerClass(color) {
       const classes = {
-        primary: 'bg-primary-500/10 border border-primary-500/20',
-        blue: 'bg-blue-500/10 border border-blue-500/20',
-        indigo: 'bg-indigo-500/10 border border-indigo-500/20',
-        purple: 'bg-purple-500/10 border border-purple-500/20',
-        violet: 'bg-violet-500/10 border border-violet-500/20',
-        teal: 'bg-teal-500/10 border border-teal-500/20'
+        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
+        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
+        indigo: 'bg-gradient-to-br from-indigo-400/20 to-purple-400/20 border-indigo-400/20',
+        purple: 'bg-gradient-to-br from-purple-400/20 to-violet-400/20 border-purple-400/20',
+        violet: 'bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 border-violet-400/20',
+        teal: 'bg-gradient-to-br from-teal-400/20 to-emerald-400/20 border-teal-400/20'
       }
       return classes[color] || classes.primary
     },
     getIconClass(color) {
       const classes = {
-        primary: 'text-primary-400 group-hover:text-primary-300',
-        blue: 'text-blue-400 group-hover:text-blue-300',
-        indigo: 'text-indigo-400 group-hover:text-indigo-300',
-        purple: 'text-purple-400 group-hover:text-purple-300',
-        violet: 'text-violet-400 group-hover:text-violet-300',
-        teal: 'text-teal-400 group-hover:text-teal-300'
+        primary: 'text-indigo-300',
+        blue: 'text-blue-300',
+        indigo: 'text-indigo-300',
+        purple: 'text-purple-300',
+        violet: 'text-violet-300',
+        teal: 'text-teal-300'
       }
       return classes[color] || classes.primary
     },
     getLinkClass(color) {
       const classes = {
-        primary: 'text-primary-400 hover:text-primary-300',
+        primary: 'text-indigo-400 hover:text-indigo-300',
         blue: 'text-blue-400 hover:text-blue-300',
         indigo: 'text-indigo-400 hover:text-indigo-300',
         purple: 'text-purple-400 hover:text-purple-300',

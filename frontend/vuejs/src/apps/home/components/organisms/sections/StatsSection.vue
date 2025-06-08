@@ -1,13 +1,13 @@
 <!-- Stats Section with Modern 3D Visualization -->
 <template>
-  <section class="py-28 md:py-36 relative overflow-hidden">
+  <section class="py-24 md:py-36 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <!-- Enhanced decorative background elements -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <!-- 3D grid effect -->
       <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
       
       <!-- Large gradient orbs -->
-      <div class="absolute top-[10%] right-[15%] w-[700px] h-[700px] rounded-full bg-primary-600/5 blur-[150px] animate-pulse-slow"></div>
+      <div class="absolute top-[10%] right-[15%] w-[700px] h-[700px] rounded-full bg-indigo-600/5 blur-[150px] animate-pulse-slow"></div>
       <div class="absolute bottom-[15%] left-[10%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[130px] animate-pulse-slow animation-delay-150"></div>
       
       <!-- Particle effect (static representation) -->
@@ -16,113 +16,111 @@
       </div>
     </div>
     
-    <div class="container mx-auto px-6 relative z-10">
+    <div class="max-w-7xl mx-auto relative z-10">
       <!-- Modern Section Header -->
-      <div class="max-w-3xl mx-auto text-center mb-20">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-3">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">BY THE NUMBERS</span>
+      <div class="text-center mb-16">
+        <!-- Modern pill badge -->
+        <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-full border border-cyan-400/20 backdrop-blur-sm mb-6">
+          <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full mr-2 animate-pulse"></div>
+          <span class="text-cyan-300 font-medium text-sm tracking-wide uppercase">By The Numbers</span>
         </div>
-        <h2 class="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">{{ title }}</h2>
-        <p class="text-xl text-gray-300 leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{{ title }}</h2>
+        <p class="text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
         
-        <!-- Animated decorative line -->
-        <div class="w-32 h-1.5 bg-gradient-to-r from-primary-500 to-violet-500 rounded-full mx-auto mt-10 opacity-80"></div>
+        <!-- Modern divider -->
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent mt-8"></div>
       </div>
       
-      <!-- 3D Stats Dashboard -->
-      <div class="relative max-w-7xl mx-auto">
-        <!-- Animated connection lines between stats -->
-        <div class="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent -z-10 hidden lg:block animate-pulse-slow"></div>
-        <div class="absolute top-[calc(50%-10px)] left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent -z-10 hidden lg:block animate-pulse-slow animation-delay-150"></div>
-        <div class="absolute top-[calc(50%+10px)] left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent -z-10 hidden lg:block animate-pulse-slow animation-delay-300"></div>
-        
-        <!-- Stats Grid with enhanced glass morphism cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
-          <div 
-            v-for="(stat, index) in stats"
-            :key="index"
-            class="group relative transform transition-all duration-300 hover:-translate-y-2"
-          >
-            <!-- Enhanced glass morphism effect with glow -->
-            <div class="absolute -inset-0.5 rounded-xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"
-                 :class="getGlowBorderClass(stat.color)"></div>
+      <!-- Stats Grid with enhanced glass morphism cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
+        <div 
+          v-for="(stat, index) in stats"
+          :key="index"
+          class="group relative transform transition-all duration-300 hover:-translate-y-1"
+        >
+          <!-- Modern glassmorphism container -->
+          <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+            <!-- Sleek gradient header -->
+            <div class="h-1 w-full transition-all duration-300"
+                 :class="getHeaderGradientClass(stat.color)"></div>
             
-            <!-- Stat card with enhanced glass morphism -->
-            <div class="relative h-full bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300">
-              <!-- Card header with gradient -->
-              <div class="h-2 w-full transition-all duration-300"
-                   :class="getHeaderGradientClass(stat.color)"></div>
+            <!-- Subtle background effects -->
+            <div class="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"
+                 :class="getCardBackgroundClass(stat.color)"></div>
+            
+            <!-- Card content -->
+            <div class="relative z-10 p-6">
+              <!-- Icon with enhanced styling -->
+              <div class="w-12 h-12 rounded-xl mb-5 flex items-center justify-center border transition-all duration-300"
+                   :class="getIconContainerClass(stat.color)">
+                <i :class="[stat.icon, 'text-lg', getIconClass(stat.color)]"></i>
+              </div>
               
-              <!-- Card content -->
-              <div class="p-6">
-                <!-- Icon with enhanced styling -->
-                <div class="w-12 h-12 rounded-lg mb-4 flex items-center justify-center transform transition-all duration-300 group-hover:scale-110"
-                     :class="getIconContainerClass(stat.color)">
-                  <i :class="[stat.icon, 'text-xl', getIconClass(stat.color)]"></i>
-                </div>
-                
-                <!-- Value with enhanced gradient text -->
-                <div class="flex items-baseline gap-1 mb-1">
-                  <div class="text-4xl font-bold bg-gradient-to-r bg-clip-text text-transparent"
-                       :class="getValueGradientClass(stat.color)">{{ stat.value }}</div>
-                  <div class="text-sm font-medium" :class="getUnitClass(stat.color)">{{ stat.unit }}</div>
-                </div>
-                
-                <!-- Label -->
-                <div class="text-base text-gray-300">{{ stat.label }}</div>
-                
-                <!-- Growth indicator with arrow -->
-                <div v-if="stat.growth" class="mt-3 flex items-center text-sm font-medium" 
-                     :class="getGrowthClass(stat.growth > 0 ? 'positive' : 'negative')">
-                  <i :class="[
-                    stat.growth > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down',
-                    'mr-1'
-                  ]"></i>
-                  {{ Math.abs(stat.growth) }}% <span class="ml-1 opacity-70">from last month</span>
-                </div>
+              <!-- Value with enhanced gradient text -->
+              <div class="flex items-baseline gap-1 mb-3">
+                <div class="text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent"
+                     :class="getValueGradientClass(stat.color)">{{ stat.value }}</div>
+                <div v-if="stat.unit" class="text-sm font-medium" :class="getUnitClass(stat.color)">{{ stat.unit }}</div>
+              </div>
+              
+              <!-- Label -->
+              <div class="text-sm text-gray-300 leading-relaxed">{{ stat.label }}</div>
+              
+              <!-- Growth indicator with arrow -->
+              <div v-if="stat.growth" class="mt-3 flex items-center text-xs font-medium" 
+                   :class="getGrowthClass(stat.growth > 0 ? 'positive' : 'negative')">
+                <i :class="[
+                  stat.growth > 0 ? 'fas fa-arrow-up' : 'fas fa-arrow-down',
+                  'mr-1'
+                ]"></i>
+                {{ Math.abs(stat.growth) }}% <span class="ml-1 opacity-70">from last month</span>
               </div>
             </div>
           </div>
         </div>
-        
-        <!-- Secondary Stats Row with enhanced styling -->
-        <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div v-for="(metric, index) in metrics" :key="index"
-               class="group relative transform transition-all duration-300 hover:-translate-y-1">
-            <!-- Subtle glow effect -->
-            <div class="absolute -inset-0.5 rounded-xl opacity-0 group-hover:opacity-50 blur group-hover:blur-sm transition-all duration-300"
-                 :class="getGlowBorderClass(metric.color)"></div>
-                 
-            <div class="relative bg-dark-900/60 backdrop-blur-md rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-opacity-0 transition-all duration-300 p-6">
-              <div class="flex items-center gap-4">
+      </div>
+      
+      <!-- Secondary Stats Row with enhanced styling -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div v-for="(metric, index) in metrics" :key="index"
+             class="group relative transform transition-all duration-300 hover:-translate-y-1">
+          <!-- Modern glassmorphism container -->
+          <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+            <!-- Sleek gradient header -->
+            <div class="h-1 w-full transition-all duration-300"
+                 :class="getHeaderGradientClass(metric.color)"></div>
+            
+            <!-- Subtle background effects -->
+            <div class="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"
+                 :class="getCardBackgroundClass(metric.color)"></div>
+            
+            <div class="relative z-10 p-6">
+              <div class="flex items-center gap-4 mb-4">
                 <!-- Icon with enhanced styling -->
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center border"
                      :class="getIconContainerClass(metric.color)">
-                  <i :class="[metric.icon, 'text-lg', getIconClass(metric.color)]"></i>
+                  <i :class="[metric.icon, 'text-sm', getIconClass(metric.color)]"></i>
                 </div>
                 
                 <div>
                   <!-- Value with enhanced styling -->
-                  <div class="text-2xl font-bold text-white">{{ metric.value }}</div>
+                  <div class="text-lg font-semibold text-white leading-tight">{{ metric.value }}</div>
                   
                   <!-- Label -->
-                  <div class="text-sm text-gray-400">{{ metric.label }}</div>
+                  <div class="text-xs text-gray-400">{{ metric.label }}</div>
                 </div>
               </div>
               
+              <!-- Modern separator -->
+              <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
+              
               <!-- Detail text -->
-              <div class="mt-3 pt-3 border-t border-dark-700/30 text-xs text-gray-400 leading-relaxed">
+              <div class="text-xs text-gray-400 leading-relaxed">
                 {{ metric.detail }}
               </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Enhanced Rainbow Gradient Decorative Line -->
-      <div class="w-full max-w-6xl h-px mx-auto mt-28 overflow-hidden relative">
-        <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 via-indigo-500/70 to-primary-500/0 animate-pulse-slow"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-fuchsia-500/0 via-violet-500/50 to-fuchsia-500/0 animate-pulse-slower opacity-70"></div>
       </div>
     </div>
   </section>
@@ -203,63 +201,54 @@ export default defineComponent({
     }
   },
   methods: {
-    getGlowBorderClass(color) {
-      const classes = {
-        primary: 'bg-gradient-to-r from-primary-500/50 to-violet-500/50',
-        violet: 'bg-gradient-to-r from-violet-500/50 to-purple-500/50',
-        purple: 'bg-gradient-to-r from-purple-500/50 to-primary-500/50',
-        blue: 'bg-gradient-to-r from-blue-500/50 to-violet-500/50',
-      }
-      return classes[color] || classes.primary
-    },
     getHeaderGradientClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-r from-primary-500 to-violet-500',
-        violet: 'bg-gradient-to-r from-violet-500 to-purple-500',
-        purple: 'bg-gradient-to-r from-purple-500 to-primary-500',
-        blue: 'bg-gradient-to-r from-blue-500 to-violet-500',
+        primary: 'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80',
+        violet: 'bg-gradient-to-r from-violet-400 via-purple-400 to-violet-400 opacity-80',
+        purple: 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400 opacity-80',
+        blue: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-80',
       }
       return classes[color] || classes.primary
     },
-    getGradientClass(color) {
+    getCardBackgroundClass(color) {
       const classes = {
-        primary: 'from-primary-900 to-primary-700',
-        violet: 'from-violet-900 to-violet-700',
-        purple: 'from-purple-900 to-purple-700',
-        blue: 'from-blue-900 to-blue-700',
+        primary: 'bg-gradient-to-br from-indigo-400/4 to-violet-400/4',
+        violet: 'bg-gradient-to-br from-violet-400/4 to-purple-400/4',
+        purple: 'bg-gradient-to-br from-purple-400/4 to-fuchsia-400/4',
+        blue: 'bg-gradient-to-br from-blue-400/4 to-cyan-400/4',
       }
       return classes[color] || classes.primary
     },
     getIconContainerClass(color) {
       const classes = {
-        primary: 'bg-primary-500/10 border border-primary-500/20',
-        violet: 'bg-violet-500/10 border border-violet-500/20',
-        purple: 'bg-purple-500/10 border border-purple-500/20',
-        blue: 'bg-blue-500/10 border border-blue-500/20',
+        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
+        violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
+        purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
+        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
       }
       return classes[color] || classes.primary
     },
     getIconClass(color) {
       const classes = {
-        primary: 'text-primary-400',
-        violet: 'text-violet-400',
-        purple: 'text-purple-400',
-        blue: 'text-blue-400',
+        primary: 'text-indigo-300',
+        violet: 'text-violet-300',
+        purple: 'text-purple-300',
+        blue: 'text-blue-300',
       }
       return classes[color] || classes.primary
     },
     getValueGradientClass(color) {
       const classes = {
-        primary: 'from-primary-300 to-violet-300',
+        primary: 'from-indigo-300 to-violet-300',
         violet: 'from-violet-300 to-purple-300',
-        purple: 'from-purple-300 to-primary-300',
-        blue: 'from-blue-300 to-violet-300',
+        purple: 'from-purple-300 to-fuchsia-300',
+        blue: 'from-blue-300 to-cyan-300',
       }
       return classes[color] || classes.primary
     },
     getUnitClass(color) {
       const classes = {
-        primary: 'text-primary-400',
+        primary: 'text-indigo-400',
         violet: 'text-violet-400',
         purple: 'text-purple-400',
         blue: 'text-blue-400',

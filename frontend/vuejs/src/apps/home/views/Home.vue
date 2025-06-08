@@ -2,25 +2,32 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Decorative Elements -->
-      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <!-- Gradient orbs -->
-        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
-        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
-        <!-- Grid pattern overlay -->
+      <!-- Enhanced Background Effects matching dashboard pages -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Enhanced Pattern Overlay -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <!-- Subtle noise texture -->
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+        
+        <!-- Enhanced Glowing Orbs Animation -->
+        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        <div class="absolute top-[40%] left-[10%] w-[400px] h-[400px] rounded-full bg-cyan-600/3 blur-[100px] animate-float-slow"></div>
+        
+        <!-- Animated Lines and Particles -->
+        <div class="absolute left-0 right-0 top-1/4 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+        <div class="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-transparent via-violet-500/15 to-transparent animate-pulse-slow delay-1000"></div>
+        <div class="absolute left-0 right-0 top-3/4 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse-slow delay-2000"></div>
       </div>
 
       <!-- Main Content -->
-      <main class="relative z-10 overflow-x-hidden">
+      <main class="relative z-10">
         <!-- Hero Section with enhanced design -->
         <HeroSection />
         
-        <!-- Divider with animated line -->
-        <div class="relative h-16 sm:h-24 max-w-7xl mx-auto">
-          <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
+        <!-- Modern Divider with animated line -->
+        <div class="relative py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
         </div>
         
         <!-- Features Section with improved cards -->
@@ -91,25 +98,50 @@ export default defineComponent({
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
 }
 
-/* Floating animations for background elements */
+/* Float animation for background orbs */
 @keyframes float {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(-15px, 15px) rotate(1deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
 
 @keyframes float-delay {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(15px, -15px) rotate(-1deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(20px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-15px) translateX(10px); }
 }
 
 .animate-float {
-  animation: float 20s ease-in-out infinite;
+  animation: float 15s ease-in-out infinite;
 }
 
 .animate-float-delay {
-  animation: float-delay 25s ease-in-out infinite;
+  animation: float-delay 18s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 22s ease-in-out infinite;
+}
+
+/* Add subtle animation for pulse effects */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.delay-1000 {
+  animation-delay: 1000ms;
+}
+
+.delay-2000 {
+  animation-delay: 2000ms;
 }
 
 /* Gradient animation for connecting lines */
@@ -122,16 +154,6 @@ export default defineComponent({
 .bg-gradient-to-r {
   background-size: 200% 100%;
   animation: gradient-shift 8s ease infinite;
-}
-
-/* Pulsing animation for highlights */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.5; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
 }
 
 /* Add subtle scrollbar styling */
