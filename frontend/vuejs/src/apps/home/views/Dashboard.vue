@@ -1,166 +1,238 @@
 <template>
   <DashboardLayout :navigationItems="navigationItems">
-    <div class="flex flex-col w-full min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Decorative/Animated Background -->
-      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-[10%] left-[5%] w-[300px] sm:w-[500px] md:w-[800px] h-[300px] sm:h-[500px] md:h-[800px] rounded-full bg-primary-500/5 blur-[80px] sm:blur-[120px] animate-float"></div>
-        <div class="absolute bottom-[20%] right-[10%] w-[200px] sm:w-[400px] md:w-[600px] h-[200px] sm:h-[400px] md:h-[600px] rounded-full bg-violet-500/5 blur-[60px] sm:blur-[100px] animate-float-delay"></div>
+    <!-- Enhanced Main Content with Dynamic Background -->
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
+      <!-- Improved Decorative Background Elements -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Enhanced Pattern Overlay -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
         <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+        
+        <!-- Enhanced Glowing Orbs Animation -->
+        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        
+        <!-- Animated Lines and Particles -->
+        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
       </div>
-      <!-- Main Content -->
+
+      <!-- Enhanced Content Container -->
       <div class="relative z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <!-- Hero Section -->
-          <section class="relative pt-16 pb-12 px-6 sm:px-8 lg:px-12">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 sm:py-20">
+          <!-- Modern Welcome Header Section -->
+          <div class="pt-16 pb-16">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
               <div class="space-y-6 md:max-w-3xl">
+                <!-- Enhanced Badge -->
                 <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
-                  <div class="w-2 h-2 rounded-full bg-indigo-400 mr-2 animate-pulse"></div>
                   <span class="text-indigo-400 font-semibold text-sm tracking-wider">DASHBOARD</span>
                 </div>
+                
+                <!-- Modern Title with Gradient Enhancement -->
                 <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
                   Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋<br class="hidden sm:block" />
                   <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Imagi Oasis</span>
                 </h2>
+                
+                <!-- Enhanced Description -->
                 <p class="text-xl text-gray-300 max-w-2xl">
-                  Your AI-powered app builder dashboard.
+                  Your AI-powered app builder dashboard. Create, manage, and deploy applications with ease.
                 </p>
               </div>
-              <!-- Quick Actions removed as requested -->
             </div>
-          </section>
-
-          <!-- Divider with animated line matching Projects page -->
-          <div class="relative h-16 max-w-7xl mx-auto mb-8">
-            <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
+            
+            <!-- Animated Divider Line -->
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
           </div>
 
-          <!-- Stats Overview with Enhanced Cards and Consistent Styling -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
+          <!-- Enhanced Stats Overview with Modern Glassmorphism -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
             <div 
               v-for="stat in statsData" 
               :key="stat.title"
-              class="group relative transform transition-all duration-300 hover:-translate-y-2"
+              class="group relative transform transition-all duration-300 hover:-translate-y-1"
             >
-              <!-- Enhanced glass morphism effect with glow -->
-              <div class="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"
-                :class="{
-                  'bg-gradient-to-r from-primary-500/50 to-violet-500/50': stat.color === 'primary',
-                  'bg-gradient-to-r from-green-500/50 to-emerald-500/50': stat.color === 'success',
-                  'bg-gradient-to-r from-yellow-500/50 to-amber-500/50': stat.color === 'warning',
-                  'bg-gradient-to-r from-blue-500/50 to-sky-500/50': stat.color === 'info'
-                }"
-              ></div>
-              
-              <!-- Card content with enhanced styling -->
-              <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                <!-- Card header with gradient matching project color -->
-                <div class="h-2 w-full"
+              <!-- Modern glassmorphism container -->
+              <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                <!-- Sleek gradient header -->
+                <div class="h-1 w-full"
                   :class="{
-                    'bg-gradient-to-r from-primary-500 to-violet-500': stat.color === 'primary',
-                    'bg-gradient-to-r from-green-500 to-emerald-500': stat.color === 'success',
-                    'bg-gradient-to-r from-yellow-500 to-amber-500': stat.color === 'warning',
-                    'bg-gradient-to-r from-blue-500 to-sky-500': stat.color === 'info'
+                    'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400': stat.color === 'primary',
+                    'bg-gradient-to-r from-green-400 via-emerald-400 to-green-400': stat.color === 'success',
+                    'bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400': stat.color === 'warning',
+                    'bg-gradient-to-r from-blue-400 via-sky-400 to-blue-400': stat.color === 'info'
                   }"
                 ></div>
                 
-                <div class="p-5">
+                <!-- Subtle background effects -->
+                <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full blur-2xl opacity-30 transition-opacity duration-500 group-hover:opacity-40"
+                  :class="{
+                    'bg-gradient-to-br from-indigo-400/20 to-violet-400/20': stat.color === 'primary',
+                    'bg-gradient-to-br from-green-400/20 to-emerald-400/20': stat.color === 'success',
+                    'bg-gradient-to-br from-yellow-400/20 to-amber-400/20': stat.color === 'warning',
+                    'bg-gradient-to-br from-blue-400/20 to-sky-400/20': stat.color === 'info'
+                  }"
+                ></div>
+                
+                <div class="relative z-10 p-6">
                   <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-medium text-gray-300">{{ stat.title }}</h3>
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-all duration-300"
+                    <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">{{ stat.title }}</h3>
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110"
                       :class="{
-                        'bg-primary-500/15 text-primary-400': stat.color === 'primary',
-                        'bg-green-500/15 text-green-400': stat.color === 'success',
-                        'bg-yellow-500/15 text-yellow-400': stat.color === 'warning',
-                        'bg-blue-500/15 text-blue-400': stat.color === 'info'
+                        'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20': stat.color === 'primary',
+                        'bg-gradient-to-br from-green-400/20 to-emerald-400/20 border-green-400/20': stat.color === 'success',
+                        'bg-gradient-to-br from-yellow-400/20 to-amber-400/20 border-yellow-400/20': stat.color === 'warning',
+                        'bg-gradient-to-br from-blue-400/20 to-sky-400/20 border-blue-400/20': stat.color === 'info'
                       }"
                     >
-                      <i :class="[stat.icon, 'text-lg']"></i>
+                                             <i :class="[
+                           stat.icon, 
+                           'text-sm',
+                           {
+                             'text-indigo-300': stat.color === 'primary',
+                             'text-green-300': stat.color === 'success',
+                             'text-yellow-300': stat.color === 'warning',
+                             'text-blue-300': stat.color === 'info'
+                           }
+                         ]"
+                       ></i>
                     </div>
                   </div>
-                  <div class="flex items-end justify-between">
-                    <div class="text-3xl font-bold text-white">{{ stat.value }}</div>
-                    <div class="text-sm font-medium"
-                      :class="{
-                        'text-green-400': stat.trend.startsWith('+'),
-                        'text-red-400': stat.trend.startsWith('-')
-                      }"
-                    >
-                      {{ stat.trend }}
-                    </div>
+                  <div class="text-2xl font-bold text-white mb-1">{{ stat.value }}</div>
+                  <div v-if="stat.trend" class="text-xs font-medium"
+                    :class="{
+                      'text-green-400': stat.trend.startsWith('+'),
+                      'text-red-400': stat.trend.startsWith('-'),
+                      'text-gray-400': !stat.trend.startsWith('+') && !stat.trend.startsWith('-')
+                    }"
+                  >
+                    {{ stat.trend }}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Main Grid with Enhanced Cards -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Enhanced Main Grid with Modern Glassmorphism -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
             <!-- Projects & Activity Column -->
-            <div class="lg:col-span-2 space-y-8">
+            <div class="lg:col-span-2 space-y-10">
               <!-- Recent Projects -->
               <div class="group relative">
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-                
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-primary-500 to-violet-500"></div>
-                  <div class="p-8">
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                  <!-- Sleek gradient header -->
+                  <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+                  
+                  <!-- Subtle background effects -->
+                  <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  
+                  <div class="relative z-10 p-8">
+                    <!-- Modern header section -->
                     <div class="flex items-center justify-between mb-6">
-                      <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500/20 to-violet-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/10 transform hover:scale-105 transition-all duration-300 border border-primary-500/20">
-                          <i class="fas fa-folder-open text-xl text-primary-400"></i>
+                      <div class="flex items-center gap-3">
+                        <!-- Modern icon with subtle gradient -->
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400/20 to-violet-400/20 flex items-center justify-center border border-indigo-400/20 flex-shrink-0">
+                          <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                          </svg>
                         </div>
-                        <h2 class="text-xl font-bold text-white">Recent Projects</h2>
+                        <h2 class="text-xl font-semibold text-white">Recent Projects</h2>
                       </div>
                       <router-link 
                         to="/products/oasis/builder/projects"
-                        class="text-primary-400 hover:text-primary-300 transition-colors text-sm font-medium flex items-center"
+                        class="inline-flex items-center px-3 py-1.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-indigo-400/30 text-gray-400 hover:text-gray-300 rounded-xl transition-all duration-200 text-sm font-medium"
                       >
                         View All
-                        <i class="fas fa-arrow-right ml-2"></i>
+                        <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
                       </router-link>
                     </div>
                     
-                    <div class="space-y-4">
+                    <!-- Modern separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    
+                    <div class="space-y-5">
                       <div 
                         v-for="project in recentProjects"
                         :key="project.id"
-                        class="group bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl p-4 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-                        @click="goToProject(project.id)"
+                        class="group relative transform transition-all duration-300"
                       >
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                              <i class="fas fa-cube text-primary-400"></i>
+                        <!-- Modern glassmorphism container matching ProjectCardWithDescription -->
+                        <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full flex flex-col transition-all duration-300 hover:border-white/20 hover:shadow-black/40 transform hover:-translate-y-1 cursor-pointer"
+                             @click="goToProject(project.id)">
+                          <!-- Sleek gradient header -->
+                          <div class="h-1 w-full bg-gradient-to-r from-violet-400 via-indigo-400 to-violet-400 opacity-80"></div>
+                          
+                          <!-- Subtle background effects -->
+                          <div class="absolute -top-16 -left-16 w-32 h-32 bg-gradient-to-br from-violet-400/4 to-indigo-400/4 rounded-full blur-2xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                          
+                          <!-- Content with padding matching ProjectCardWithDescription -->
+                          <div class="relative z-10 p-5 flex flex-col h-full">
+                            <!-- Modern project header -->
+                            <div class="flex items-center gap-3 mb-4">
+                              <!-- Modern icon with subtle gradient -->
+                              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400/20 to-indigo-400/20 flex items-center justify-center border border-violet-400/20 flex-shrink-0">
+                                <svg class="w-4 h-4 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                              </div>
+                              
+                              <!-- Project name with improved typography -->
+                              <div class="flex-1 min-w-0">
+                                <h3 class="text-base font-semibold text-white truncate leading-tight">{{ project.name }}</h3>
+                                <div class="flex items-center text-xs text-gray-400 mt-1">
+                                  <svg class="w-3 h-3 mr-1.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                  </svg>
+                                  {{ formatDate(project.updated_at) }}
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <h3 class="text-white font-medium group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
-                              <p class="text-gray-400 text-sm line-clamp-1 mt-0.5">{{ project.description || 'No description provided' }}</p>
-                              <p class="text-gray-400 text-sm">Last updated {{ formatDate(project.updated_at) }}</p>
+                            
+                            <!-- Modern separator -->
+                            <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
+                            
+                            <!-- Project description -->
+                            <div class="mb-4 flex-grow">
+                              <p class="text-gray-300 text-sm line-clamp-2 leading-relaxed">
+                                {{ project.description || 'No description provided' }}
+                              </p>
                             </div>
-                          </div>
-                          <div class="text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fas fa-arrow-right"></i>
+                            
+                            <!-- Footer section with modern styling -->
+                            <div class="mt-auto">
+                              <!-- Sleek Open button -->
+                              <div class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-violet-400/30 text-white rounded-xl transition-all duration-300 text-sm font-medium group/button">
+                                <svg class="w-4 h-4 mr-2 group-hover/button:text-violet-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                                Open Project
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                       
-                      <div v-if="!recentProjects.length" class="flex flex-col items-center justify-center py-10 bg-dark-800/30 rounded-xl border border-dark-700/50">
-                        <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5">
-                          <i class="fas fa-folder-open text-2xl text-primary-400"></i>
+                      <div v-if="!recentProjects.length" class="flex flex-col items-center justify-center py-12">
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-400/20 to-violet-400/20 rounded-2xl flex items-center justify-center mb-4 border border-indigo-400/20">
+                          <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                          </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
-                        <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
-                        <button
-                          @click="$router.push({ name: 'builder-dashboard' })"
-                          class="px-6 py-3 bg-gradient-to-r from-primary-500 to-violet-500 hover:from-primary-600 hover:to-violet-600 text-white rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
-                        >
-                          <i class="fas fa-plus mr-2"></i>
-                          Create Your First Project
-                        </button>
+                        <h3 class="text-lg font-medium text-white mb-1">No projects yet</h3>
+                        <p class="text-gray-400 text-center max-w-md mb-4 text-sm">Create your first project to start building with Imagi</p>
+                        
+                        <!-- Elegant directional hint -->
+                        <div class="flex items-center text-indigo-400 text-sm">
+                          <svg class="w-4 h-4 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                          </svg>
+                          <span>Get started with a new project</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -169,28 +241,39 @@
 
               <!-- Payment Transactions -->
               <div class="group relative">
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-green-500/50 to-teal-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-                
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-green-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-green-500 to-teal-500"></div>
-                  <div class="p-8">
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                  <!-- Sleek gradient header -->
+                  <div class="h-1 w-full bg-gradient-to-r from-green-400 via-emerald-400 to-green-400 opacity-80"></div>
+                  
+                  <!-- Subtle background effects -->
+                  <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-green-400/4 to-emerald-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  
+                  <div class="relative z-10 p-8">
+                    <!-- Modern header section -->
                     <div class="flex items-center justify-between mb-6">
-                      <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/10 transform hover:scale-105 transition-all duration-300 border border-green-500/20">
-                          <i class="fas fa-money-bill-wave text-xl text-green-400"></i>
+                      <div class="flex items-center gap-3">
+                        <!-- Modern icon with subtle gradient -->
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400/20 to-emerald-400/20 flex items-center justify-center border border-green-400/20 flex-shrink-0">
+                          <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                          </svg>
                         </div>
-                        <h2 class="text-xl font-bold text-white">Payment Transactions</h2>
+                        <h2 class="text-xl font-semibold text-white">Payment Transactions</h2>
                       </div>
                       <router-link 
                         :to="{ name: 'PaymentHistory' }"
-                        class="text-green-400 hover:text-green-300 transition-colors text-sm font-medium flex items-center"
+                        class="inline-flex items-center px-3 py-1.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-green-400/30 text-gray-400 hover:text-gray-300 rounded-xl transition-all duration-200 text-sm font-medium"
                       >
                         View All
-                        <i class="fas fa-arrow-right ml-2"></i>
+                        <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
                       </router-link>
                     </div>
+                    
+                    <!-- Modern separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
                     
                     <div class="space-y-3">
                       <div v-if="recentTransactions.length" class="overflow-x-auto">
@@ -217,19 +300,22 @@
                           </tbody>
                         </table>
                       </div>
-                      <div v-else class="flex flex-col items-center justify-center py-10 bg-dark-800/30 rounded-xl border border-dark-700/50">
-                        <div class="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-5">
-                          <i class="fas fa-money-bill-wave text-2xl text-green-400"></i>
+                      <div v-else class="flex flex-col items-center justify-center py-12">
+                        <div class="w-14 h-14 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-2xl flex items-center justify-center mb-4 border border-green-400/20">
+                          <svg class="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                          </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-white mb-2">No transactions yet</h3>
-                        <p class="text-gray-300 text-center max-w-md mb-6">Add funds to your account to see transactions here</p>
-                        <button
-                          @click="$router.push({ path: '/payments/checkout' })"
-                          class="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white rounded-xl shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transform hover:-translate-y-1 transition-all duration-300"
-                        >
-                          <i class="fas fa-plus mr-2"></i>
-                          Add Funds
-                        </button>
+                        <h3 class="text-lg font-medium text-white mb-1">No transactions yet</h3>
+                        <p class="text-gray-400 text-center max-w-md mb-4 text-sm">Add funds to your account to see transactions here</p>
+                        
+                        <!-- Elegant directional hint -->
+                        <div class="flex items-center text-green-400 text-sm">
+                          <svg class="w-4 h-4 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                          </svg>
+                          <span>Get started by adding funds</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -238,37 +324,48 @@
             </div>
 
             <!-- Quick Actions & Resources Column -->
-            <div class="space-y-8">
+            <div class="space-y-10">
               <!-- Quick Actions -->
               <div class="group relative">
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-blue-500/50 to-cyan-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-                
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-blue-500 to-cyan-500"></div>
-                  <div class="p-8">
-                    <div class="flex items-center gap-4 mb-6">
-                      <div class="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/10 transform hover:scale-105 transition-all duration-300 border border-blue-500/20">
-                        <i class="fas fa-bolt text-xl text-blue-400"></i>
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                  <!-- Sleek gradient header -->
+                  <div class="h-1 w-full bg-gradient-to-r from-orange-400 via-amber-400 to-orange-400 opacity-80"></div>
+                  
+                  <!-- Subtle background effects -->
+                  <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-orange-400/4 to-amber-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  
+                  <div class="relative z-10 p-8">
+                    <!-- Modern header section -->
+                    <div class="flex items-center gap-3 mb-6">
+                      <!-- Modern icon with subtle gradient -->
+                      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400/20 to-amber-400/20 flex items-center justify-center border border-orange-400/20 flex-shrink-0">
+                        <svg class="w-4 h-4 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
                       </div>
-                      <h2 class="text-xl font-bold text-white">Quick Actions</h2>
+                      <h2 class="text-xl font-semibold text-white">Quick Actions</h2>
                     </div>
                     
-                    <div class="space-y-3">
+                    <!-- Modern separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    
+                    <div class="space-y-4">
                       <button
                         v-for="action in quickActions"
                         :key="action.title"
                         @click="$router.push(action.route)"
-                        class="w-full flex items-center justify-between p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 text-white hover:text-primary-400 group"
+                        class="w-full flex items-center justify-between p-5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-orange-400/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 text-white hover:text-orange-400 group"
                       >
-                        <div class="flex items-center gap-3">
-                          <div class="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                            <i :class="[action.icon, 'text-primary-400']"></i>
+                                                  <div class="flex items-center gap-4">
+                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400/20 to-amber-400/20 border border-orange-400/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                              <i :class="[action.icon, 'text-orange-300 text-sm']"></i>
+                            </div>
+                            <span class="font-medium">{{ action.title }}</span>
                           </div>
-                          <span>{{ action.title }}</span>
-                        </div>
-                        <i class="fas fa-chevron-right text-gray-500 group-hover:text-primary-400 transition-colors"></i>
+                          <svg class="w-4 h-4 text-gray-500 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                          </svg>
                       </button>
                     </div>
                   </div>
@@ -277,38 +374,49 @@
 
               <!-- Resources -->
               <div class="group relative">
-                <!-- Enhanced glass morphism effect with glow -->
-                <div class="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/50 to-teal-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
-                
-                <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden border border-dark-800/50 group-hover:border-primary-500/30 transition-all duration-300">
-                  <!-- Card header with gradient -->
-                  <div class="h-2 w-full bg-gradient-to-r from-emerald-500 to-teal-500"></div>
-                  <div class="p-8">
-                    <div class="flex items-center gap-4 mb-6">
-                      <div class="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/10 transform hover:scale-105 transition-all duration-300 border border-emerald-500/20">
-                        <i class="fas fa-book text-xl text-emerald-400"></i>
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                  <!-- Sleek gradient header -->
+                  <div class="h-1 w-full bg-gradient-to-r from-blue-400 via-sky-400 to-blue-400 opacity-80"></div>
+                  
+                  <!-- Subtle background effects -->
+                  <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-blue-400/4 to-sky-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  
+                  <div class="relative z-10 p-8">
+                    <!-- Modern header section -->
+                    <div class="flex items-center gap-3 mb-6">
+                      <!-- Modern icon with subtle gradient -->
+                      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400/20 to-sky-400/20 flex items-center justify-center border border-blue-400/20 flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
                       </div>
-                      <h2 class="text-xl font-bold text-white">Resources</h2>
+                      <h2 class="text-xl font-semibold text-white">Resources</h2>
                     </div>
                     
-                    <div class="space-y-3">
+                    <!-- Modern separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    
+                    <div class="space-y-4">
                       <template v-for="resource in resourceLinks" :key="resource.title">
                         <router-link 
                           v-if="resource.url.startsWith('/')"
                           :to="resource.url" 
-                          class="block p-4 bg-dark-800/50 hover:bg-dark-800/80 border border-dark-700/50 hover:border-emerald-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                          class="block p-5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-blue-400/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
                         >
-                          <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                              <div class="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                                <i :class="[resource.icon, 'text-emerald-400']"></i>
-                              </div>
-                              <div>
-                                <h3 class="text-white group-hover:text-emerald-400 transition-colors font-medium">{{ resource.title }}</h3>
-                                <p class="text-sm text-gray-400">{{ resource.description }}</p>
-                              </div>
-                            </div>
-                            <i class="fas fa-arrow-right text-gray-500 group-hover:text-emerald-400 transition-colors"></i>
+                                                      <div class="flex items-center justify-between">
+                                                              <div class="flex items-center gap-4">
+                                  <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400/20 to-sky-400/20 border border-blue-400/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                                    <i :class="[resource.icon, 'text-blue-300 text-sm']"></i>
+                                  </div>
+                                  <div>
+                                    <h3 class="text-white group-hover:text-blue-400 transition-colors font-medium">{{ resource.title }}</h3>
+                                    <p class="text-sm text-gray-400">{{ resource.description }}</p>
+                                  </div>
+                                </div>
+                                <svg class="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
                           </div>
                         </router-link>
                       </template>
@@ -431,6 +539,8 @@ const goToProject = (id) => {
     })
   })
 }
+
+
 
 // Enhanced data fetching
 async function fetchDashboardData() {
@@ -561,5 +671,18 @@ const formatTransactionAmount = (amount) => {
 
 .animate-float-delay {
   animation: float 18s ease-in-out infinite reverse;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
+}
+
+/* Line clamp for description */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
