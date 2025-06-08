@@ -38,83 +38,71 @@
         />
       </template>
 
-      <!-- Main Content Area with Ultra-Modern Design and Enhanced Layout -->
+      <!-- Modern Dark-themed Main Content Area -->
       <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
-        <!-- Ultra-Premium Background Effects System -->
+        <!-- Enhanced sophisticated dark background with enhanced effects matching About page -->
         <div class="absolute inset-0 pointer-events-none overflow-hidden">
-          <!-- Multi-layered sophisticated pattern system -->
-          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.015]"></div>
-          <div class="absolute inset-0 bg-noise opacity-[0.008] mix-blend-overlay"></div>
+          <!-- Enhanced Pattern Overlay -->
+          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
+          <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+          <div class="absolute inset-0 bg-gradient-to-br from-dark-950/10 via-dark-900 to-violet-950/10"></div>
           
-          <!-- Advanced gradient orchestration for depth -->
-          <div class="absolute inset-0 bg-gradient-to-br from-dark-950 via-dark-950/95 to-dark-950/90"></div>
-          <div class="absolute inset-0 bg-gradient-to-tr from-indigo-950/8 via-transparent to-violet-950/6"></div>
-          <div class="absolute inset-0 bg-gradient-to-bl from-transparent via-fuchsia-950/4 to-transparent"></div>
-          <div class="absolute inset-0 bg-gradient-to-tl from-dark-950/90 via-transparent to-dark-950/70"></div>
-          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(120,119,198,0.02),transparent_70%)]"></div>
+          <!-- Enhanced Glowing Orbs Animation -->
+          <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+          <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[120px] animate-float-delay"></div>
           
-          <!-- Premium floating orbs with sophisticated staggered choreography -->
-          <div class="absolute -top-[25%] right-[8%] w-[900px] h-[900px] rounded-full bg-gradient-to-br from-indigo-500/4 to-violet-600/3 blur-[160px] animate-float-orchestrated-1"></div>
-          <div class="absolute bottom-[-5%] left-[12%] w-[750px] h-[750px] rounded-full bg-gradient-to-br from-fuchsia-500/3 to-pink-600/2 blur-[140px] animate-float-orchestrated-2"></div>
-          <div class="absolute top-[35%] left-[75%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-cyan-500/3 to-blue-600/2 blur-[110px] animate-float-orchestrated-3"></div>
-          <div class="absolute top-[10%] left-[25%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-emerald-500/2 to-teal-600/2 blur-[90px] animate-float-orchestrated-4"></div>
-          
-          <!-- Sophisticated animated geometric elements -->
-          <div class="absolute left-0 right-0 top-[20%] h-px bg-gradient-to-r from-transparent via-indigo-400/15 to-transparent animate-pulse-sophisticated"></div>
-          <div class="absolute left-0 right-0 top-[45%] h-px bg-gradient-to-r from-transparent via-violet-400/12 to-transparent animate-pulse-sophisticated delay-1200"></div>
-          <div class="absolute left-0 right-0 top-[70%] h-px bg-gradient-to-r from-transparent via-fuchsia-400/10 to-transparent animate-pulse-sophisticated delay-2400"></div>
-          <div class="absolute left-0 right-0 bottom-[25%] h-px bg-gradient-to-r from-transparent via-cyan-400/8 to-transparent animate-pulse-sophisticated delay-3600"></div>
-          
-          <!-- Ultra-subtle mesh overlay for premium texture -->
-          <div class="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.001)_50%,transparent_100%)] bg-[length:120px_120px] opacity-60"></div>
-          <div class="absolute inset-0 bg-[linear-gradient(0deg,transparent_0%,rgba(255,255,255,0.001)_50%,transparent_100%)] bg-[length:120px_120px] opacity-40"></div>
+          <!-- Animated Lines and Particles -->
+          <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+          <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
         </div>
+        
+        <!-- Subtle top border for definition -->
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
 
-        <!-- Ultra-Modern Error State Display with Enhanced Layout -->
+        <!-- Enhanced Error State Display -->
         <div v-if="store.error" class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
           <div class="flex flex-col items-center justify-center h-full p-12 text-center">
-            <!-- Sophisticated Error Container with Advanced Glassmorphism -->
-            <div class="relative group max-w-xl w-full">
-              <!-- Multi-layered glow system -->
-              <div class="absolute -inset-1.5 bg-gradient-to-r from-red-500/20 via-orange-500/15 to-red-500/20 rounded-4xl opacity-0 group-hover:opacity-70 blur-2xl transition-all duration-500"></div>
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-red-400/15 via-orange-400/10 to-red-400/15 rounded-4xl opacity-30 group-hover:opacity-50 blur transition-all duration-300"></div>
-              
-              <!-- Ultra-Premium Error Card with Advanced Effects -->
-              <div class="relative bg-gradient-to-br from-dark-900/95 via-dark-800/90 to-dark-900/85 backdrop-blur-2xl rounded-4xl border border-red-500/15 shadow-2xl shadow-black/40 overflow-hidden transition-all duration-500 hover:border-red-400/25 hover:shadow-black/60">
-                <!-- Sophisticated gradient header system -->
-                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-400/80 via-orange-400/70 to-red-400/80 opacity-90"></div>
-                <div class="absolute top-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-300/30 to-transparent"></div>
+            <!-- Modern Error Container -->
+            <div class="relative group max-w-xl w-full transform transition-all duration-300 hover:-translate-y-1">
+              <!-- Enhanced glassmorphism Error Card -->
+              <div class="absolute -inset-0.5 rounded-2xl opacity-70 bg-gradient-to-r from-red-500/50 to-rose-500/50 blur-md"></div>
+              <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/95 via-dark-900/90 to-dark-800/95 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                <!-- Sleek gradient header -->
+                <div class="h-1 w-full bg-gradient-to-r from-red-400 via-rose-400 to-red-400 opacity-80"></div>
                 
-                <!-- Premium floating background elements -->
-                <div class="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-red-500/8 to-orange-500/6 rounded-full blur-3xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
-                <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-br from-orange-500/6 to-red-500/8 rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+                <!-- Subtle background effects -->
+                <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-red-400/4 to-rose-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
                 
-                <div class="relative z-10 p-16">
-                  <!-- Sophisticated Error Icon -->
-                  <div class="w-28 h-28 bg-gradient-to-br from-red-500/10 via-red-500/15 to-orange-500/10 rounded-4xl flex items-center justify-center mx-auto mb-10 border border-red-500/20 shadow-xl shadow-red-500/10 backdrop-blur-sm">
-                    <i class="fas fa-exclamation-triangle text-5xl text-red-400"></i>
+                <div class="relative z-10 p-8">
+                  <!-- Modern pill badge -->
+                  <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500/15 to-rose-500/15 border border-red-400/20 rounded-full mb-6 backdrop-blur-sm mx-auto">
+                    <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2 animate-pulse"></div>
+                    <span class="text-red-300 font-medium text-xs tracking-wide uppercase">Workspace Error</span>
                   </div>
                   
-                  <!-- Enhanced Error Content -->
-                  <h2 class="text-4xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent mb-8">Workspace Error</h2>
-                  <p class="text-gray-300 mb-12 leading-relaxed text-xl max-w-md mx-auto">{{ store.error }}</p>
+                  <!-- Error Icon -->
+                  <div class="w-16 h-16 bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
+                  </div>
                   
-                  <!-- Modern Action Buttons -->
-                  <div class="flex flex-col sm:flex-row gap-6 justify-center">
+                  <!-- Error Content -->
+                  <h2 class="text-2xl font-semibold text-white mb-4">Something went wrong</h2>
+                  <p class="text-gray-300 mb-8 leading-relaxed">{{ store.error }}</p>
+                  
+                  <!-- Action Buttons -->
+                  <div class="flex flex-col sm:flex-row gap-4 justify-center">
                     <router-link
                       to="/products/oasis/builder/dashboard"
-                      class="group relative inline-flex items-center justify-center px-10 py-5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:via-indigo-400 hover:to-violet-500 text-white font-semibold rounded-2xl shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 transform hover:-translate-y-1 transition-all duration-300 overflow-hidden text-lg"
+                      class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 transform hover:-translate-y-1"
                     >
-                      <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                      <i class="fas fa-arrow-left mr-4"></i>
+                      <i class="fas fa-arrow-left mr-2"></i>
                       Go to Dashboard
                     </router-link>
                     <button
                       @click="retryProjectLoad"
-                      class="group relative inline-flex items-center justify-center px-10 py-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-500/30 text-gray-300 hover:text-white font-semibold rounded-2xl shadow-md hover:shadow-xl shadow-dark-900/10 hover:shadow-indigo-500/20 transition-all duration-300 backdrop-blur-sm overflow-hidden text-lg"
+                      class="inline-flex items-center justify-center px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-400/30 text-gray-300 hover:text-white font-medium rounded-xl transition-all duration-200"
                     >
-                      <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                      <i class="fas fa-sync-alt mr-4"></i>
+                      <i class="fas fa-sync-alt mr-2"></i>
                       Retry
                     </button>
                   </div>
@@ -124,23 +112,12 @@
           </div>
         </div>
         
-        <!-- Ultra-Enhanced Chat Interface with Modern Layout -->
+        <!-- Enhanced ChatGPT-like Interface -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
-          <!-- Premium Chat Container with Advanced Glassmorphism and Enhanced Layout -->
-          <div class="flex-1 flex flex-col h-full min-h-0 relative pb-safe">
-            <!-- Sophisticated decorative element system -->
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
-            <div class="absolute top-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/10 to-transparent"></div>
-            <div class="absolute bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent"></div>
-            <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/10 to-transparent"></div>
-            
-            <!-- Chat Component with Ultra-Premium Styling and Enhanced Proportions -->
+          <!-- Main Chat Container -->
+          <div class="flex-1 flex flex-col h-full min-h-0 relative">
+            <!-- Chat Component with Enhanced Styling -->
             <div class="flex-1 relative min-h-0">
-              <!-- Multi-layered premium background overlay system -->
-              <div class="absolute inset-0 bg-gradient-to-b from-dark-950/70 via-transparent to-dark-950/50 pointer-events-none"></div>
-              <div class="absolute inset-0 bg-gradient-to-tr from-indigo-950/3 via-transparent to-violet-950/2 pointer-events-none"></div>
-              <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.01),transparent_60%)] pointer-events-none"></div>
-              
               <WorkspaceChat
                 :messages="ensureValidMessages(store.conversation || [])"
                 :is-processing="store.isProcessing"
@@ -154,7 +131,7 @@
                 v-model="prompt"
                 @submit="handlePrompt"
                 @use-example="handleExamplePrompt"
-                class="relative z-10 h-full w-full"
+                class="h-full w-full"
                 style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
               />
             </div>
@@ -1130,6 +1107,34 @@ onBeforeUnmount(() => {
 /* Ensure proper z-index layering */
 .relative {
   position: relative;
+}
+
+/* Enhanced animations matching About page */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float 18s ease-in-out infinite reverse;
+}
+
+/* Add subtle animation for loading state */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
 }
 
 /* Legacy animations for compatibility */

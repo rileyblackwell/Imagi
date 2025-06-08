@@ -14,7 +14,7 @@
       <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-2xl opacity-0 group-hover:opacity-50 blur transition-all duration-300 pointer-events-none"></div>
       
       <!-- Main indicator container -->
-      <div class="relative flex items-center gap-4 py-3 px-4 bg-gradient-to-br from-dark-850/90 via-dark-900/80 to-dark-850/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl transition-all duration-300 hover:border-white/20">
+      <div class="relative flex items-center gap-4 py-3 px-4 bg-gradient-to-br from-dark-850/90 via-dark-900/80 to-dark-850/90 backdrop-blur-xl rounded-2xl border border-dark-700/40 shadow-xl transition-all duration-300 hover:border-dark-600/60">
         <!-- Sleek gradient top line -->
         <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-400/30 via-violet-400/30 to-indigo-400/30 opacity-50 rounded-t-2xl"></div>
         

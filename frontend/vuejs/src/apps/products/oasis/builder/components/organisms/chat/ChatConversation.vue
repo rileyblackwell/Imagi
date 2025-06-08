@@ -1,37 +1,43 @@
 <template>
   <div class="h-full flex flex-col relative z-10" :class="{'mode-transition': disableAllAnimations}">
     <!-- Messages Container -->
-    <div ref="messagesContainer" class="flex-grow overflow-y-auto p-4 space-y-4" :class="{ 'justify-end': true }">
-      <!-- Empty state - Mode specific messages with ChatGPT-like layout -->
-      <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-6 py-8 text-center">
-        <div class="max-w-2xl w-full">
-          <div class="mb-8">
-            <div class="w-16 h-16 mx-auto bg-primary-500/20 text-primary-400 rounded-full flex items-center justify-center mb-4">
-              <i :class="[mode === 'chat' ? 'fas fa-comment-dots text-2xl' : 'fas fa-code-branch text-2xl']"></i>
+    <div ref="messagesContainer" class="flex-grow overflow-y-auto p-6 space-y-4">
+      <!-- Empty state - Enhanced sophisticated dark design -->
+      <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-start px-6 py-4 pt-32 text-center min-h-0">
+        <div class="max-w-4xl w-full flex-1 flex flex-col justify-center">
+          <div class="mb-6">
+            <!-- Enhanced icon container with glassmorphism -->
+            <div class="w-12 h-12 mx-auto bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-400/20 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
+              <i :class="[mode === 'chat' ? 'fas fa-comment-dots text-lg' : 'fas fa-code-branch text-lg', 'text-indigo-300']"></i>
             </div>
-            <h3 class="text-xl font-medium text-white mb-3">
+            <h3 class="text-xl font-semibold text-white mb-3 bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
               {{ mode === 'chat' ? 'Start a conversation' : 'Build your application' }}
             </h3>
-            <p class="text-gray-400 mb-0 text-base leading-relaxed">
+            <p class="text-gray-300 mb-0 text-sm leading-relaxed max-w-lg mx-auto">
               {{ mode === 'chat' 
                  ? 'Ask me anything about your project, coding questions, or get help with a specific task.' 
                  : 'Tell me what you want to build, and I\'ll help you create it step by step.' }}
             </p>
           </div>
 
-          <!-- ChatGPT-like examples grid -->
-          <div class="bg-dark-800/40 backdrop-blur rounded-2xl p-6 border border-dark-700/50">
-            <h4 class="text-base font-medium text-gray-300 mb-5 text-left">
-              {{ mode === 'chat' ? 'Example questions:' : 'Example build commands:' }}
-            </h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div 
-                v-for="(example, index) in (mode === 'chat' ? chatExamples : buildExamples)" 
-                :key="index"
-                class="group bg-dark-700/30 hover:bg-dark-700/60 border border-dark-600/30 hover:border-dark-500/50 px-4 py-3 rounded-xl text-sm text-gray-300 hover:text-white cursor-pointer transition-all duration-200 text-left"
-                @click="$emit('use-example', example)"
-              >
-                <span class="block leading-relaxed">"{{ example }}"</span>
+          <!-- Enhanced examples grid with glassmorphism - more compact -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div v-for="(example, index) in (mode === 'chat' ? chatExamples : buildExamples)" :key="index"
+                 class="group relative transform transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                 @click="$emit('use-example', example)">
+              <!-- Enhanced glassmorphism card -->
+              <div class="absolute -inset-0.5 rounded-lg opacity-30 group-hover:opacity-60 bg-gradient-to-r from-indigo-500/30 to-violet-500/30 blur transition-all duration-300"></div>
+              <div class="relative rounded-lg border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-lg shadow-black/20 p-3 text-left transition-all duration-300 hover:border-white/20 hover:shadow-black/30">
+                <!-- Sleek gradient header -->
+                <div class="h-0.5 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-60 rounded-full mb-2"></div>
+                
+                <!-- Icon -->
+                <div class="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center mb-2 border border-indigo-400/20">
+                  <i class="fas fa-lightbulb text-indigo-300 text-xs"></i>
+                </div>
+                
+                <!-- Content -->
+                <p class="text-gray-200 text-xs leading-relaxed group-hover:text-white transition-colors">{{ example }}</p>
               </div>
             </div>
           </div>
@@ -39,100 +45,159 @@
       </div>
       
       <template v-if="processedMessages.length > 0">
-        <div class="space-y-6 max-w-3xl mx-auto pb-4">
+        <div class="space-y-8 max-w-4xl mx-auto pb-4">
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
             <!-- User Message -->
-            <div v-if="message.role === 'user'" class="flex justify-end gap-2 items-end mb-4" 
-              :class="{ 'animate-message-in': message.isNew, 'no-animation': !message.isNew }" 
+            <div v-if="message.role === 'user'" class="flex justify-end gap-4 items-end mb-8" 
+              :class="{ 'animate-message-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <!-- User Message Bubble -->
-              <div class="max-w-[75%] bg-primary-500 text-white px-4 py-2.5 rounded-2xl rounded-br-md shadow-sm">
-                <p class="whitespace-pre-wrap break-words text-sm">{{ message.content }}</p>
-                <div class="text-right mt-1">
-                  <span class="text-[9px] opacity-70">{{ formatTimestamp(message.timestamp) }}</span>
+              <!-- User Message Bubble with enhanced glassmorphism -->
+              <div class="relative group max-w-[80%]">
+                <!-- Enhanced glow effect -->
+                <div class="absolute -inset-0.5 rounded-2xl opacity-40 group-hover:opacity-70 bg-gradient-to-r from-indigo-500/40 to-violet-500/40 blur transition-all duration-300"></div>
+                
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-2xl rounded-br-lg border border-white/10 bg-gradient-to-br from-indigo-500/90 via-violet-500/85 to-indigo-600/90 backdrop-blur-xl shadow-2xl shadow-indigo-500/25 overflow-hidden transition-all duration-300 hover:shadow-indigo-500/40">
+                  <!-- Sleek gradient header -->
+                  <div class="h-0.5 w-full bg-gradient-to-r from-white/40 via-white/60 to-white/40"></div>
+                  
+                  <!-- Content -->
+                  <div class="p-4">
+                    <p class="whitespace-pre-wrap break-words text-sm leading-relaxed text-white font-medium">{{ message.content }}</p>
+                    <div class="text-right mt-3">
+                      <span class="text-xs text-white/80 font-medium">{{ formatTimestamp(message.timestamp) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <!-- User Avatar - Only show on first message or after AI response -->
+              <!-- Enhanced User Avatar -->
               <div 
                 v-if="index === 0 || (index > 0 && processedMessages[index-1].role !== 'user')"
-                class="shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white shadow-sm"
+                class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/90 to-violet-500/90 border border-white/20 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 backdrop-blur-sm"
               >
-                <i class="fas fa-user text-xs"></i>
+                <i class="fas fa-user text-sm"></i>
               </div>
-              <!-- Empty space placeholder when avatar is hidden -->
-              <div v-else class="w-8"></div>
+              <div v-else class="w-10"></div>
             </div>
             
             <!-- Assistant Message -->
-            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-2 items-start mb-4" 
-              :class="{ 'animate-message-in': message.isNew, 'no-animation': !message.isNew }" 
+            <div v-else-if="message.role === 'assistant'" class="flex justify-start gap-4 items-start mb-8" 
+              :class="{ 'animate-message-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <!-- AI Avatar - Only show on first message or after user/system response -->
+              <!-- Enhanced AI Avatar -->
               <div 
                 v-if="index === 0 || (index > 0 && processedMessages[index-1].role !== 'assistant')"
-                class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm mt-1"
+                class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-gray-600/90 to-gray-700/90 border border-white/20 flex items-center justify-center text-white mt-1 shadow-lg shadow-gray-600/30 backdrop-blur-sm"
               >
-                <i class="fas fa-robot text-xs"></i>
+                <i class="fas fa-robot text-sm"></i>
               </div>
-              <!-- Empty space placeholder when avatar is hidden -->
-              <div v-else class="w-8"></div>
+              <div v-else class="w-10"></div>
               
-              <!-- Assistant Message Bubble -->
-              <div class="max-w-[75%]">
-                <!-- Message container with ChatGPT-like styling -->
-                <div class="bg-dark-850 text-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-md shadow-sm">
-                  <!-- Content with better markdown rendering -->
-                  <div 
-                    class="prose prose-invert max-w-none prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3"
-                    v-if="message.content && message.content.trim().length > 0"
-                    v-html="formatMessage(message.content)"
-                  />
+              <!-- Assistant Message Bubble with enhanced glassmorphism -->
+              <div class="max-w-[80%]">
+                <div class="relative group">
+                  <!-- Enhanced glow effect -->
+                  <div class="absolute -inset-0.5 rounded-2xl opacity-30 group-hover:opacity-60 bg-gradient-to-r from-gray-500/30 to-slate-500/30 blur transition-all duration-300"></div>
                   
-                  <!-- Timestamp -->
-                  <div class="text-left mt-1">
-                    <span class="text-[9px] text-gray-500">{{ formatTimestamp(message.timestamp) }}</span>
+                  <!-- Modern glassmorphism container -->
+                  <div class="relative rounded-2xl rounded-tl-lg border border-white/10 bg-gradient-to-br from-dark-900/95 via-dark-800/90 to-dark-900/95 backdrop-blur-xl shadow-2xl shadow-black/30 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
+                    <!-- Sleek gradient header -->
+                    <div class="h-0.5 w-full bg-gradient-to-r from-gray-400/30 via-slate-400/40 to-gray-400/30"></div>
+                    
+                    <!-- Subtle background effects -->
+                    <div class="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-gray-400/3 to-slate-400/2 rounded-full blur-2xl opacity-50"></div>
+                    
+                    <!-- Content -->
+                    <div class="relative z-10 p-4">
+                      <div 
+                        class="prose prose-gray max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm prose-invert"
+                        v-if="message.content && message.content.trim().length > 0"
+                        v-html="formatMessage(message.content)"
+                      />
+                      
+                      <!-- Enhanced Timestamp -->
+                      <div class="text-left mt-3">
+                        <span class="text-xs text-gray-400 font-medium">{{ formatTimestamp(message.timestamp) }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <!-- System Message - More subtle iMessage-like info bubble -->
-            <div v-else-if="message.role === 'system'" class="flex justify-center my-3" 
-              :class="{ 'animate-fade-in': message.isNew, 'no-animation': !message.isNew }" 
+            <!-- Enhanced System Message -->
+            <div v-else-if="message.role === 'system'" class="flex justify-center my-6" 
+              :class="{ 'animate-fade-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <div class="bg-dark-900/60 text-gray-400 px-3 py-1.5 rounded-full text-xs shadow-sm border border-dark-800/30 flex items-center backdrop-blur-sm">
-                <div class="mr-1.5 text-blue-400">
-                  <i class="fas text-xs" :class="getSystemMessageIcon(message.content)"></i>
+              <div class="relative group">
+                <!-- Enhanced glow effect -->
+                <div class="absolute -inset-0.5 rounded-xl opacity-30 group-hover:opacity-50 bg-gradient-to-r from-amber-500/30 to-orange-500/30 blur transition-all duration-300"></div>
+                
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-xl border border-white/10 bg-gradient-to-br from-dark-900/80 via-dark-800/75 to-dark-900/80 backdrop-blur-xl shadow-lg shadow-black/20 overflow-hidden">
+                  <!-- Sleek gradient header -->
+                  <div class="h-0.5 w-full bg-gradient-to-r from-amber-400/40 via-orange-400/50 to-amber-400/40"></div>
+                  
+                  <!-- Content -->
+                  <div class="px-4 py-3 flex items-center">
+                    <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mr-3 border border-amber-400/20">
+                      <i class="fas text-xs text-amber-400" :class="getSystemMessageIcon(message.content)"></i>
+                    </div>
+                    <span class="text-sm text-gray-300 font-medium">{{ message.content }}</span>
+                  </div>
                 </div>
-                <span class="text-gray-400">{{ message.content }}</span>
               </div>
             </div>
             
-            <!-- Other message types (if needed) -->
-            <div v-else class="flex justify-center mb-4" 
-              :class="{ 'animate-message-in': message.isNew, 'no-animation': !message.isNew }" 
+            <!-- Enhanced Other message types -->
+            <div v-else class="flex justify-center mb-6" 
+              :class="{ 'animate-message-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <div class="max-w-[90%] bg-dark-800/70 text-gray-400 px-4 py-2 rounded-full text-xs shadow-sm border border-dark-700/50">
-                <span>{{ message.content }}</span>
+              <div class="relative group max-w-[90%]">
+                <!-- Enhanced glow effect -->
+                <div class="absolute -inset-0.5 rounded-xl opacity-30 group-hover:opacity-50 bg-gradient-to-r from-slate-500/30 to-gray-500/30 blur transition-all duration-300"></div>
+                
+                <!-- Modern glassmorphism container -->
+                <div class="relative rounded-xl border border-white/10 bg-gradient-to-br from-dark-900/70 via-dark-800/65 to-dark-900/70 backdrop-blur-xl shadow-lg shadow-black/20 overflow-hidden">
+                  <!-- Content -->
+                  <div class="px-4 py-3 text-center">
+                    <span class="text-sm text-gray-300">{{ message.content }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </template>
           
-          <!-- "AI is typing" indicator - shown whenever processing is happening -->
+          <!-- Enhanced "AI is typing" indicator -->
           <div v-if="props.isProcessing" 
-            class="flex justify-start gap-2 items-start animate-fade-in mb-4"> 
-            <div class="shrink-0 w-8 h-8 bg-violet-600 rounded-full flex items-center justify-center text-white shadow-sm">
-              <i class="fas fa-robot text-xs"></i>
+            class="flex justify-start gap-4 items-start animate-fade-in mb-8"> 
+            <!-- Enhanced AI Avatar -->
+            <div class="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-gray-600/90 to-gray-700/90 border border-white/20 flex items-center justify-center text-white shadow-lg shadow-gray-600/30 backdrop-blur-sm">
+              <i class="fas fa-robot text-sm"></i>
             </div>
-            <div class="bg-dark-850 text-gray-100 px-4 py-3 rounded-2xl rounded-tl-md shadow-sm border border-dark-700/50">
-              <div class="flex items-center">
-                <div class="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+            
+            <!-- Enhanced typing indicator container -->
+            <div class="relative group">
+              <!-- Enhanced glow effect -->
+              <div class="absolute -inset-0.5 rounded-2xl opacity-40 group-hover:opacity-70 bg-gradient-to-r from-violet-500/30 to-indigo-500/30 blur transition-all duration-300"></div>
+              
+              <!-- Modern glassmorphism container -->
+              <div class="relative rounded-2xl rounded-tl-lg border border-white/10 bg-gradient-to-br from-dark-900/95 via-dark-800/90 to-dark-900/95 backdrop-blur-xl shadow-2xl shadow-black/30 overflow-hidden">
+                <!-- Sleek gradient header -->
+                <div class="h-0.5 w-full bg-gradient-to-r from-violet-400/40 via-indigo-400/50 to-violet-400/40"></div>
+                
+                <!-- Content -->
+                <div class="p-4">
+                  <div class="flex items-center">
+                    <div class="typing-indicator mr-4">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <span class="text-sm text-gray-300 font-medium">{{ mode === 'chat' ? 'AI is thinking...' : 'Generating code...' }}</span>
+                  </div>
                 </div>
-                <span class="ml-2 text-sm text-gray-300">{{ mode === 'chat' ? 'AI is thinking...' : 'Generating code...' }}</span>
               </div>
             </div>
           </div>
@@ -359,25 +424,28 @@ const buildExamples = [
 
 <style scoped>
 .prose {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
 .prose pre {
-  background-color: theme('colors.dark.950');
-  border: 1px solid theme('colors.dark.700');
-  border-radius: 0.375rem;
+  background: linear-gradient(to br, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .prose code {
-  color: theme('colors.primary.400');
-  background-color: theme('colors.dark.800');
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
+  color: theme('colors.indigo.300');
+  background: linear-gradient(to br, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1));
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 .prose p {
@@ -388,7 +456,7 @@ const buildExamples = [
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   font-weight: 600;
-  color: theme('colors.gray.200');
+  color: theme('colors.gray.100');
 }
 
 .prose ul, .prose ol {
@@ -400,11 +468,22 @@ const buildExamples = [
   margin-bottom: 0.5rem;
 }
 
-/* Message animation */
+/* Enhanced message animations */
 @keyframes message-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
@@ -412,41 +491,43 @@ const buildExamples = [
   }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .animate-message-in {
-  animation: message-in 0.25s ease-out forwards;
-  will-change: opacity, transform;
+  animation: message-in 0.5s ease-out forwards;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
-  will-change: opacity;
+  animation: fade-in 0.4s ease-out forwards;
 }
 
-/* Add a no-animation class to prevent animations on existing messages */
-.no-animation {
-  animation: none !important;
-  opacity: 1 !important;
-  transform: translateY(0) !important;
-  transition: none !important;
+/* Enhanced glassmorphism effects */
+.backdrop-blur-xl {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-/* Add an ultra-stable class for mode transitions */
-.mode-transition * {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-  opacity: 1 !important;
+/* Improved message container hover effects */
+.group:hover .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* Hide scrollbar but allow scrolling */
+/* Enhanced border glow animations */
+@keyframes border-glow {
+  0%, 100% { 
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  50% { 
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.animate-border-glow {
+  animation: border-glow 2s ease-in-out infinite;
+}
+
+/* Sophisticated dark scrollbar */
 .overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.dark.700') transparent;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
 }
 
 .overflow-y-auto::-webkit-scrollbar {
@@ -458,26 +539,30 @@ const buildExamples = [
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: theme('colors.dark.700');
-  border-radius: 9999px;
+  background: linear-gradient(to bottom, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.3));
+  border-radius: 2px;
 }
 
-/* Typing indicator animation */
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(139, 92, 246, 0.6), rgba(124, 58, 237, 0.5));
+}
+
+/* Enhanced modern typing indicator */
 .typing-indicator {
   display: flex;
   align-items: center;
-  margin: 0 0.25rem;
+  gap: 4px;
 }
 
 .typing-indicator span {
-  height: 8px;
-  width: 8px;
-  background: #a78bfa; /* Use a brighter violet color */
+  height: 6px;
+  width: 6px;
+  background: linear-gradient(45deg, #8b5cf6, #a855f7);
   display: block;
   border-radius: 50%;
-  opacity: 0.7;
-  margin: 0 2px;
-  animation: typing 1.4s infinite ease-in-out both;
+  opacity: 0.4;
+  animation: typing 1.6s infinite ease-in-out both;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
 }
 
 .typing-indicator span:nth-child(1) {
@@ -485,53 +570,88 @@ const buildExamples = [
 }
 
 .typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.3s;
 }
 
 .typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 0.6s;
 }
 
 @keyframes typing {
-  0%, 100% {
-    transform: scale(0.7);
-    opacity: 0.5;
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+    box-shadow: 0 0 4px rgba(139, 92, 246, 0.2);
   }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.9;
+  40% {
+    transform: scale(1.3);
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
   }
 }
 
-/* Code styling */
-.language-code {
-  color: theme('colors.gray.300');
-  background-color: theme('colors.dark.900');
+/* Enhanced prose styling for better message formatting */
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3,
+.prose-invert h4,
+.prose-invert h5,
+.prose-invert h6 {
+  color: #f3f4f6;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-invert p {
+  color: #e5e7eb;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.prose-invert strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-invert code {
+  color: #fbbf24;
+  background-color: rgba(31, 41, 55, 0.7);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.prose-invert blockquote {
+  color: #d1d5db;
+  border-left-color: #8b5cf6;
+  border-left-width: 4px;
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.prose-invert ul,
+.prose-invert ol {
+  color: #e5e7eb;
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose-invert li {
+  margin: 0.375rem 0;
   line-height: 1.5;
 }
 
-/* Thinking text animation */
-.thinking-text {
-  display: inline-block;
-  position: relative;
-  font-weight: 500;
-  color: #d1d5db;
-  background: linear-gradient(90deg, rgba(146, 100, 245, 0.2), rgba(146, 100, 245, 0.05));
-  padding: 2px 6px;
-  border-radius: 4px;
-  min-width: 80px;
-  text-align: center;
+.prose-invert a {
+  color: #a78bfa;
+  text-decoration: underline;
+  text-decoration-color: rgba(167, 139, 250, 0.4);
 }
 
-.thinking-text:after {
-  content: "Thinking";
-  animation: thinking-text 2s infinite ease;
-}
-
-@keyframes thinking-text {
-  0%, 100% { content: "Thinking"; }
-  25% { content: "Thinking."; }
-  50% { content: "Thinking.."; }
-  75% { content: "Thinking..."; }
+.prose-invert a:hover {
+  color: #c4b5fd;
+  text-decoration-color: rgba(196, 181, 253, 0.6);
 }
 </style> 

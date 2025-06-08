@@ -9,65 +9,55 @@
         <slot name="mode-indicator"></slot>
       </div>
       
-      <!-- Simplified Input form with clean styling -->
-      <form @submit.prevent="handleSubmit" class="relative">
-        <div class="relative rounded-xl transition-all duration-200"
-          :class="[
-            isTyping || isFocused 
-              ? 'bg-dark-800/60 ring-2 ring-violet-500/20' 
-              : 'bg-dark-800/40 hover:bg-dark-800/50'
-          ]"
-        >
-          <div class="relative z-10">
-            <textarea 
-              ref="inputRef"
-              v-model="localValue"
-              :placeholder="isProcessing ? 'AI is thinking...' : placeholder"
-              class="w-full bg-transparent text-white resize-none p-4 pr-14 rounded-xl transition-all placeholder-gray-400 border-0 focus:border-0 hover:border-0 backdrop-blur-sm focus:shadow-lg focus:shadow-violet-500/20 outline-none focus:outline-none focus:ring-0 ring-0"
-              :class="{'min-h-[56px]': rows <= 1, 'max-h-56 overflow-y-auto': rows > 1}"
-              :style="{'height': textareaHeight}"
-              :disabled="isProcessing"
-              @input="autoGrow"
-              @keydown="handleKeydown"
-              @focus="isFocused = true"
-              @blur="isFocused = false"
-            ></textarea>
-            
-            <!-- Enhanced Submit button with modern design -->
-            <button 
-              type="submit"
-              class="absolute right-3 bottom-3 p-2.5 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center outline-none focus:outline-none"
-              :class="[
-                canSubmit && !isProcessing 
-                  ? 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 scale-100 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/35 hover:scale-105' 
-                  : 'bg-gray-600/70 scale-95'
-              ]"
-              :disabled="!canSubmit || isProcessing"
-              aria-label="Send message"
-            >
-              <i 
-                class="fas fa-paper-plane text-sm transition-transform"
-                :class="{'hover:translate-x-0.5': canSubmit && !isProcessing}"
-              ></i>
-            </button>
+      <!-- Simplified chat input matching dashboard input styling -->
+      <div class="chat-input-area w-full">
+        <!-- Enhanced Input Container -->
+        <div class="relative w-full">
+          <!-- Main chat input section -->
+          <div class="relative">
+            <div class="flex items-end w-full">
+              <!-- Enhanced Form Container -->
+              <form @submit.prevent="handleSubmit" class="relative z-10 w-full">
+                <!-- Input container with dashboard-style background -->
+                <div class="relative bg-white/5 border border-white/10 focus-within:border-violet-400/50 hover:border-white/15 rounded-xl transition-all duration-300 backdrop-blur-sm hover:bg-white/8 focus-within:bg-white/8 focus-within:shadow-lg focus-within:shadow-violet-500/20">
+                  <!-- Modern textarea with enhanced styling -->
+                  <textarea 
+                    ref="inputRef"
+                    v-model="localValue"
+                    :placeholder="isProcessing ? 'AI is thinking...' : placeholder"
+                    class="w-full bg-transparent text-white resize-none pr-14 p-4 rounded-xl transition-all placeholder-gray-400 border-0 focus:border-0 hover:border-0 outline-none focus:outline-none focus:ring-0 ring-0 leading-relaxed text-sm"
+                    :class="{'min-h-[56px]': rows <= 1, 'max-h-48 overflow-y-auto': rows > 1}"
+                    :style="{'height': textareaHeight}"
+                    :disabled="isProcessing"
+                    @input="autoGrow"
+                    @keydown="handleKeydown"
+                    @focus="isFocused = true"
+                    @blur="isFocused = false"
+                  ></textarea>
+                  
+                  <!-- Enhanced Submit button with improved glassmorphism -->
+                  <button 
+                    type="submit"
+                    class="absolute right-3 bottom-3 p-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center outline-none focus:outline-none border backdrop-blur-sm"
+                    :class="[
+                      canSubmit && !isProcessing 
+                        ? 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 border-indigo-400/20 hover:border-indigo-300/30 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 text-white hover:scale-105 active:scale-95 transform' 
+                        : 'bg-white/5 border-white/10 text-gray-400 scale-95'
+                    ]"
+                    :disabled="!canSubmit || isProcessing"
+                    aria-label="Send message"
+                  >
+                    <i 
+                      class="fas text-sm transition-all duration-200" 
+                      :class="isProcessing ? 'fa-spinner fa-spin' : 'fa-paper-plane'"
+                    ></i>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-        
-        <!-- Enhanced keyboard shortcuts hint with modern styling -->
-        <div class="mt-3 flex justify-center">
-          <div class="text-xs text-gray-400/80 flex items-center gap-2 bg-gradient-to-r from-dark-900/60 to-dark-800/60 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-dark-700/30">
-            <span class="flex items-center">
-              <kbd class="mx-1 px-2 py-1 bg-dark-800/80 rounded-lg border border-dark-700/70 text-gray-300 shadow-sm font-sans text-[10px] font-medium">Enter</kbd> 
-              <span class="text-gray-500">to send</span>
-            </span>
-            <span class="text-gray-600/50">•</span>
-            <span class="flex items-center">
-              <kbd class="mx-1 px-2 py-1 bg-dark-800/80 rounded-lg border border-dark-700/70 text-gray-300 shadow-sm font-sans text-[10px] font-medium">Shift+Enter</kbd> 
-              <span class="text-gray-500">for new line</span>
-            </span>
-          </div>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </template>
@@ -170,7 +160,7 @@ function autoGrow() {
   const scrollHeight = inputRef.value.scrollHeight
   
   // Set the new height with proper constraints
-  const minHeight = 60
+  const minHeight = 48  // Reduced to match the new min-height
   const maxHeight = 200
   const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight)
   
@@ -295,15 +285,17 @@ button::-moz-focus-inner {
   z-index: 10;
 }
 
-/* Custom scrollbar for textarea */
+/* Ultra-premium custom scrollbar for textarea */
 textarea {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.dark.700') transparent;
-  transition: height 0.15s ease;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+  transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
 }
 
 textarea::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 textarea::-webkit-scrollbar-track {
@@ -311,8 +303,13 @@ textarea::-webkit-scrollbar-track {
 }
 
 textarea::-webkit-scrollbar-thumb {
-  background-color: theme('colors.dark.700');
-  border-radius: 9999px;
+  background: linear-gradient(to bottom, rgba(139, 92, 246, 0.25), rgba(124, 58, 237, 0.3));
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.5));
 }
 
 /* Animated typing indicator */
@@ -334,10 +331,76 @@ button:hover .hover-animate {
   transform: translateX(1px) translateY(-1px) scale(1.05);
 }
 
-/* Better styling for the kbd elements */
+/* Ultra-premium styling for the kbd elements */
 kbd {
   display: inline-block;
-  line-height: 1;
+  line-height: 1.2;
   font-weight: 500;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+}
+
+/* Enhanced interaction animations */
+@keyframes gentle-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+.group\/textarea-container:focus-within .blur-lg {
+  animation: gentle-glow 2s ease-in-out infinite;
+}
+
+/* Premium placeholder animations */
+textarea::placeholder {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.6;
+}
+
+textarea:focus::placeholder {
+  opacity: 0.4;
+  transform: translateY(-1px);
+}
+
+/* Enhanced button interactions with sophisticated effects */
+.group\/button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.group\/button:hover {
+  transform: scale(1.02) translateY(-0.5px);
+}
+
+.group\/button:active {
+  transform: scale(0.98) translateY(0);
+}
+
+/* Premium hint container interactions */
+.group\/hint {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.group\/hint:hover {
+  transform: translateY(-1px);
+}
+
+/* Enhanced focus states for accessibility */
+.group\/textarea-container:focus-within {
+  transform: translateY(-0.5px);
+}
+
+/* Sophisticated typing indicator animations */
+@keyframes sophisticated-typing {
+  0%, 100% { opacity: 0.3; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.animate-sophisticated-typing {
+  animation: sophisticated-typing 1.8s ease-in-out infinite;
+}
+
+/* Ultra-smooth transitions for all interactive elements */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style> 

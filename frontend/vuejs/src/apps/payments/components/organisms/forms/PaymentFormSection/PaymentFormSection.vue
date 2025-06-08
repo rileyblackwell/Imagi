@@ -1,8 +1,10 @@
 <template>
   <div>
-    <h2 class="text-xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
-      {{ title }}
-    </h2>
+    <!-- Modern pill badge -->
+    <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border border-indigo-400/20 rounded-full mb-6 backdrop-blur-sm">
+      <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+      <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">{{ title }}</span>
+    </div>
     
     <!-- Custom Amount Input -->
     <div class="mb-8">
@@ -19,7 +21,7 @@
             :min="minAmount"
             :max="maxAmount"
             :step="step"
-            class="block w-full rounded-xl border-white/20 bg-dark-800/60 py-3 pl-8 pr-12 text-white placeholder-white/40 backdrop-blur-sm focus:border-primary-500 focus:ring-primary-500 transition-all duration-300"
+            class="block w-full rounded-xl border-white/20 bg-white/5 py-3 pl-8 pr-12 text-white placeholder-white/40 backdrop-blur-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-300"
             :placeholder="placeholder"
           />
           <div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -29,7 +31,7 @@
             <button 
               type="button" 
               @click="incrementAmount"
-              class="flex-1 px-1 text-white/60 hover:text-primary-400 transition-colors duration-200 flex items-center justify-center"
+              class="flex-1 px-1 text-white/60 hover:text-indigo-400 transition-colors duration-200 flex items-center justify-center"
               tabindex="-1"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -39,7 +41,7 @@
             <button 
               type="button" 
               @click="decrementAmount"
-              class="flex-1 px-1 text-white/60 hover:text-primary-400 transition-colors duration-200 flex items-center justify-center"
+              class="flex-1 px-1 text-white/60 hover:text-indigo-400 transition-colors duration-200 flex items-center justify-center"
               tabindex="-1"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -54,7 +56,7 @@
     
     <!-- Payment Form -->
     <div>
-      <h3 class="text-lg font-medium mb-6 bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
+      <h3 class="text-lg font-medium mb-6 bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
         {{ paymentSectionTitle }}
       </h3>
       <form @submit.prevent="submitPayment">
@@ -66,7 +68,7 @@
             <div 
               id="card-element" 
               ref="cardElement"
-              class="block w-full rounded-xl border border-white/20 bg-dark-800/60 py-3 px-4 text-white backdrop-blur-sm transition-all duration-300 focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 min-h-[45px]"
+              class="block w-full rounded-xl border border-white/20 bg-white/5 py-3 px-4 text-white backdrop-blur-sm transition-all duration-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 min-h-[45px]"
             ></div>
             <div id="card-errors" class="mt-2 text-sm text-red-400"></div>
           </div>
@@ -77,7 +79,7 @@
               type="checkbox" 
               id="save-card" 
               v-model="saveCard" 
-              class="w-4 h-4 text-primary-500 bg-dark-900 border-white/20 rounded focus:ring-primary-500 focus:ring-offset-dark-900"
+              class="w-4 h-4 text-indigo-500 bg-dark-900 border-white/20 rounded focus:ring-indigo-500 focus:ring-offset-dark-900"
             />
             <label for="save-card" class="ml-2 text-sm text-white/80">
               {{ saveCardLabel }}
@@ -86,8 +88,8 @@
         </div>
         
         <!-- Order Summary -->
-        <div class="mb-8 rounded-xl border border-white/10 bg-dark-800/40 backdrop-blur-sm overflow-hidden">
-          <div class="p-4 border-b border-white/10 bg-gradient-to-r from-primary-900/40 to-violet-900/40">
+        <div class="mb-8 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
+          <div class="p-4 border-b border-white/10 bg-gradient-to-r from-indigo-900/40 to-violet-900/40">
             <h4 class="font-medium text-white">{{ summaryTitle }}</h4>
             <p class="text-sm text-white/60">{{ summarySubtitle }}</p>
           </div>
@@ -105,11 +107,11 @@
         
         <!-- Submit Button with modern styling -->
         <div class="relative group transform transition-all duration-300 hover:-translate-y-1">
-          <div class="absolute -inset-0.5 rounded-xl opacity-40 group-hover:opacity-70 bg-gradient-to-r from-primary-500/70 to-violet-500/70 blur group-hover:blur-md transition-all duration-300"></div>
+          <div class="absolute -inset-0.5 rounded-xl opacity-40 group-hover:opacity-70 bg-gradient-to-r from-indigo-500/70 to-violet-500/70 blur group-hover:blur-md transition-all duration-300"></div>
           <button 
             type="submit"
             :disabled="!isValidAmount || isLoading || !cardComplete"
-            class="relative w-full py-3 px-6 font-medium rounded-xl text-white backdrop-blur-sm border border-dark-800/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden bg-dark-900/70"
+            class="relative w-full py-3 px-6 font-medium rounded-xl text-white backdrop-blur-sm border border-white/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
           >
             <span v-if="isLoading" class="flex items-center justify-center">
               <span class="h-5 w-5 mr-2">
