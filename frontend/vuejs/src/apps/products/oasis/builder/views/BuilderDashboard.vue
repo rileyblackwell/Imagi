@@ -17,7 +17,7 @@
     :navigation-items="navigationItems"
   >
     <!-- Enhanced Main Content with Dynamic Background -->
-    <div class="min-h-screen bg-dark-900 relative overflow-hidden">
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
       <!-- Improved Decorative Background Elements -->
       <div class="absolute inset-0 pointer-events-none">
         <!-- Enhanced Pattern Overlay -->
@@ -43,7 +43,6 @@
               <div class="space-y-6 md:max-w-3xl">
                 <!-- Enhanced Badge -->
                 <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
-                  <div class="w-2 h-2 rounded-full bg-indigo-400 mr-2 animate-pulse"></div>
                   <span class="text-indigo-400 font-semibold text-sm tracking-wider">PROJECT WORKSPACE</span>
                 </div>
                 
@@ -99,7 +98,7 @@
         <div v-else class="px-6 sm:px-8 lg:px-12 pb-24">
           <div class="max-w-7xl mx-auto">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-              <!-- New Project Card with Modern Positioning -->
+              <!-- New Project Card with Modern Positioning - Hover effect removed to match project library -->
               <div class="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-8">
                 <ProjectCard
                   v-model="newProjectName"
@@ -110,41 +109,38 @@
                 />
               </div>
 
-              <!-- Combined Project Library and Search -->
+              <!-- Combined Project Library and Search with updated styling to match cards-->
               <div class="lg:col-span-7 xl:col-span-8">
-                <!-- Unified Project Library Container -->
-                <div class="relative rounded-2xl border border-gray-800/60 bg-dark-900/40 backdrop-blur-sm transition-all duration-500 hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.5)] overflow-hidden p-8">
-                  <!-- Background gradient -->
-                  <div class="absolute inset-0 bg-gradient-to-br opacity-10 -z-10 transition-opacity duration-300 group-hover:opacity-20 from-indigo-900 to-violet-900"></div>
+                <!-- Unified Project Library Container with modern styling -->
+                <div class="relative rounded-2xl border border-dark-800/60 bg-dark-900/80 backdrop-blur-lg shadow-lg shadow-dark-900/20 overflow-hidden">
+                  <!-- Purple gradient header line at the top of the project library -->
+                  <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
                   
-                  <!-- Glowing orb effect -->
-                  <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-10 blur-3xl transition-opacity duration-500 group-hover:opacity-20 bg-indigo-500"></div>
+                  <div class="p-8">
+                  <!-- Subtle background gradient -->
+                  <div class="absolute inset-0 bg-gradient-to-br opacity-5 -z-10 from-indigo-900 to-violet-900"></div>
+                  
+                  <!-- Subtle glowing orb effect -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-5 blur-3xl bg-indigo-500"></div>
                   
                   <!-- Header Section -->
                   <div class="relative z-10 mb-8">
                     <!-- Badge -->
-                    <div class="inline-block px-4 py-1.5 bg-indigo-500/10 rounded-full mb-4">
+                    <div class="inline-flex items-center px-4 py-1.5 bg-indigo-500/10 rounded-full mb-4">
                       <span class="text-indigo-400 font-semibold text-sm tracking-wider">YOUR PROJECTS</span>
                     </div>
                     
-                    <!-- Title and Stats -->
-                    <div class="flex items-center justify-between mb-6">
-                      <div>
-                        <h2 class="text-2xl font-bold text-white mb-2">Project Library</h2>
-                        <p class="text-gray-300">Continue working on your existing web applications</p>
-                        <!-- Decorative element -->
-                        <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mt-4"></div>
-                      </div>
-                      
-                      <!-- Project count with enhanced styling -->
-                      <div class="group relative">
+                    <!-- Header with title and project count -->
+                    <div class="relative mb-6">
+                      <!-- Project count positioned in top-right corner -->
+                      <div class="absolute top-0 right-0 group">
                         <!-- Glow effect on hover -->
                         <div class="absolute -inset-1 rounded-xl bg-gradient-to-r from-indigo-500/30 to-violet-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-all duration-300"></div>
                         
-                        <!-- Icon container -->
-                        <div class="relative bg-dark-800/60 backdrop-blur-sm rounded-xl border border-gray-800/60 px-4 py-2 hover:border-indigo-500/30 transition-all duration-300 flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-lg bg-indigo-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
-                            <i class="fas fa-folder-open text-indigo-400 text-lg"></i>
+                        <!-- Icon container with updated styling -->
+                        <div class="relative bg-dark-800/60 backdrop-blur-sm rounded-xl border border-dark-800/60 hover:border-indigo-500/30 transition-all duration-300 p-3 flex items-center gap-3 shadow-lg shadow-dark-900/20">
+                          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
+                            <i class="fas fa-folder-open text-indigo-300 text-sm"></i>
                           </div>
                           <div>
                             <p class="text-xs text-gray-400 uppercase">Total</p>
@@ -152,14 +148,26 @@
                           </div>
                         </div>
                       </div>
+                      
+                      <!-- Centered title and description -->
+                      <div class="flex flex-col items-center justify-center pt-2 pb-2">
+                        <div class="space-y-4 text-center w-full">
+                          <h2 class="text-2xl font-bold text-white mb-2">Project Library</h2>
+                          <p class="text-gray-300">Continue working on your existing web applications</p>
+                          <!-- Decorative element - centered on all screen sizes -->
+                          <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mx-auto"></div>
+                        </div>
+                      </div>
                     </div>
                     
-                    <!-- Search Input -->
-                    <div class="mb-6">
-                      <ProjectSearchInput 
-                        v-model="searchQuery"
-                        placeholder="Search projects by name or description..."
-                      />
+                    <!-- Search Input - Centered below title -->
+                    <div class="mb-6 flex justify-center">
+                      <div class="w-full max-w-md">
+                        <ProjectSearchInput 
+                          v-model="searchQuery"
+                          placeholder="Search projects by name or description..."
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -167,7 +175,7 @@
                   <div class="relative z-10">
                     <!-- Loading State -->
                     <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
-                      <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5 animate-pulse">
+                      <div class="w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-violet-500/15 rounded-full flex items-center justify-center mb-5 animate-pulse border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
                         <i class="fas fa-spinner fa-spin text-2xl text-indigo-400"></i>
                       </div>
                       <p class="text-gray-300 text-lg">Loading your projects...</p>
@@ -175,7 +183,7 @@
 
                     <!-- Error State -->
                     <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
-                      <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-5">
+                      <div class="w-16 h-16 bg-gradient-to-r from-red-500/15 to-orange-500/15 rounded-full flex items-center justify-center mb-5 border border-red-500/20 shadow-lg shadow-red-500/10">
                         <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
                       </div>
                       <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
@@ -199,7 +207,7 @@
 
                     <!-- No Search Results -->
                     <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex flex-col items-center justify-center py-16">
-                      <div class="w-16 h-16 bg-gray-500/10 rounded-full flex items-center justify-center mb-5">
+                      <div class="w-16 h-16 bg-gradient-to-br from-gray-500/15 to-gray-700/15 rounded-full flex items-center justify-center mb-5 border border-gray-500/20 shadow-lg shadow-dark-900/20">
                         <i class="fas fa-search text-2xl text-gray-400"></i>
                       </div>
                       <h3 class="text-xl font-semibold text-white mb-2">No matching projects</h3>
@@ -208,8 +216,8 @@
 
                     <!-- Empty State -->
                     <div v-else-if="!projects.length" class="flex flex-col items-center justify-center py-16">
-                      <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
-                        <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
+                      <div class="w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-violet-500/15 rounded-full flex items-center justify-center mb-5 border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
+                        <i class="fas fa-folder-open text-2xl text-indigo-300"></i>
                       </div>
                       <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
                       <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
@@ -223,15 +231,17 @@
 
                     <!-- Recent Projects Display -->
                     <div v-else-if="displayedProjects.length > 0">
-                      <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-6">
-                        <i class="fas fa-clock text-indigo-400 mr-3"></i>
+                      <div class="flex items-center bg-gradient-to-r from-indigo-500/5 to-violet-500/5 rounded-lg px-4 py-3 mb-6 border border-indigo-500/10">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/15 to-violet-500/15 flex items-center justify-center mr-3 border border-indigo-500/20">
+                          <i class="fas fa-clock text-indigo-300"></i>
+                        </div>
                         <h3 class="text-sm font-medium text-white uppercase tracking-wider">
                           {{ searchQuery ? `Search Results (${displayedProjects.length})` : 'Recently Opened' }}
                         </h3>
                       </div>
                       
-                      <!-- Project Cards -->
-                      <div class="space-y-4">
+                      <!-- Enhanced Project Cards with consistent styling -->
+                      <div class="space-y-6">
                         <ProjectCard
                           v-for="project in displayedProjects"
                           :key="project.id"
@@ -241,16 +251,17 @@
                       </div>
                       
                       <!-- Show All Projects Link (when not searching) -->
-                      <div v-if="!searchQuery && projects.length > 3" class="mt-6 text-center">
+                      <div v-if="!searchQuery && projects.length > 3" class="mt-8 text-center">
                         <router-link
                           to="/products/oasis/builder/projects"
-                          class="inline-flex items-center px-6 py-3 bg-dark-800/60 hover:bg-dark-700/60 border border-gray-800/60 hover:border-indigo-500/30 text-gray-300 hover:text-white rounded-xl transition-all duration-300"
+                          class="inline-flex items-center px-6 py-3 bg-dark-800/60 hover:bg-dark-700/60 border border-dark-800/60 hover:border-indigo-500/30 text-gray-300 hover:text-white rounded-xl shadow-md hover:shadow-lg shadow-dark-900/10 hover:shadow-indigo-500/20 transition-all duration-300"
                         >
                           <i class="fas fa-folder-open mr-2"></i>
                           View All Projects ({{ projects.length }})
                         </router-link>
                       </div>
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -265,7 +276,7 @@
 <script setup lang="ts">
 
 
-import { ref, computed, onMounted, watch, onBeforeUnmount, type ComputedRef } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
@@ -712,10 +723,11 @@ onMounted(async () => {
     }
   }
   
-  // Fetch projects when the dashboard loads, but let store handle caching
+  // Always force refresh projects when the dashboard loads to ensure we have the latest data
   try {
-    // Don't force - let the store decide if fetch is needed based on cache
-    await fetchProjects(false)
+    console.debug('Forcing refresh of projects on dashboard load')
+    // Force refresh to always get the latest projects
+    await fetchProjects(true)
   } catch (error) {
     console.error('Initial project fetch failed:', error)
     
@@ -729,6 +741,19 @@ onMounted(async () => {
           console.error('Retry fetch also failed:', retryError)
         }
       }, 2000)
+    }
+  }
+})
+
+// Add support for keep-alive to refresh when component is re-activated
+onActivated(async () => {
+  console.debug('BuilderDashboard activated')
+  if (authStore.isAuthenticated) {
+    // Always refresh projects when the component is activated (tab switch, navigation back, etc.)
+    try {
+      await fetchProjects(true)
+    } catch (error) {
+      console.error('Failed to refresh projects on activation:', error)
     }
   }
 })

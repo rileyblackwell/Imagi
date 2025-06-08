@@ -3,42 +3,43 @@
     storage-key="projectsViewSidebarCollapsed"
     :navigation-items="navigationItems"
   >
+    <!-- Enhanced Main Content with Dynamic Background -->
     <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Enhanced Background Effects with animated elements -->
-      <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <!-- Improved gradient orbs with subtle animations -->
-        <div class="absolute top-[5%] left-[5%] w-[400px] sm:w-[600px] md:w-[900px] h-[400px] sm:h-[600px] md:h-[900px] rounded-full bg-indigo-600/5 blur-[100px] sm:blur-[150px] animate-float"></div>
-        <div class="absolute bottom-[10%] right-[5%] w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-violet-500/5 blur-[80px] sm:blur-[120px] animate-float-delay"></div>
-        
-        <!-- Subtle grid pattern and noise -->
+      <!-- Improved Decorative Background Elements -->
+      <div class="absolute inset-0 pointer-events-none">
+        <!-- Enhanced Pattern Overlay -->
         <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <div class="absolute inset-0 bg-noise opacity-[0.02]"></div>
+        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
         
-        <!-- Animated accent lines -->
-        <div class="absolute left-0 right-0 top-1/4 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
+        <!-- Enhanced Glowing Orbs Animation -->
+        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
+        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        
+        <!-- Animated Lines and Particles -->
+        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
         <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
       </div>
 
-      <!-- Content Container -->
+      <!-- Enhanced Content Container -->
       <div class="relative z-10">
-        <!-- Modern Header with enhanced layout -->
-        <div class="pt-16 pb-10 px-6 sm:px-8 lg:px-12">
+        <!-- Modern Welcome Header Section -->
+        <div class="pt-16 pb-12 px-6 sm:px-8 lg:px-12">
           <div class="max-w-7xl mx-auto">
             <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
               <div class="space-y-6 md:max-w-3xl">
-                <!-- Enhanced badge with animated dot -->
+                <!-- Enhanced Badge -->
                 <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
-                  <div class="w-2 h-2 rounded-full bg-indigo-400 mr-2 animate-pulse"></div>
                   <span class="text-indigo-400 font-semibold text-sm tracking-wider">PROJECT COLLECTION</span>
                 </div>
                 
-                <!-- Modern title with gradient text -->
+                <!-- Modern Title with Gradient Enhancement -->
                 <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
                   <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Manage & Organize</span> 
                   <br class="hidden sm:block" />Your Applications
                 </h2>
                 
-                <!-- Enhanced description -->
+                <!-- Enhanced Description -->
                 <p class="text-xl text-gray-300 max-w-2xl">
                   Access all your web applications in one place. Edit descriptions, track updates, and continue building.
                 </p>
@@ -61,194 +62,198 @@
             </div>
             
             <!-- Animated Divider Line -->
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent my-10 animate-pulse-slow"></div>
+            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
           </div>
         </div>
 
-        <!-- Project Grid with Enhanced Layout and Filters -->
-        <div class="px-6 sm:px-8 lg:px-12 pb-20">
+        <!-- Enhanced Project Section with Modern Layout -->
+        <div class="px-6 sm:px-8 lg:px-12 pb-24">
           <div class="max-w-7xl mx-auto">
-            <!-- Project Tools and Search Bar -->
-            <div v-if="projects.length > 0" class="mb-8">
-              <div class="bg-dark-900/60 backdrop-blur-sm rounded-xl border border-gray-800/60 p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                <!-- Project stats -->
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-lg bg-indigo-500/15 flex items-center justify-center">
-                    <i class="fas fa-folder text-indigo-400"></i>
-                  </div>
-                  <div>
-                    <p class="text-gray-400 text-sm">Total Projects</p>
-                    <p class="text-white font-bold text-xl">{{ projects.length }}</p>
-                  </div>
-                </div>
-                
-                <!-- Modern search input -->
-                <!-- Use the new atomic search component -->
-                <ProjectSearchInput 
-                  v-model="searchQuery"
-                  placeholder="Search projects by name..."
-                />
-              </div>
-            </div>
-
-            <!-- Loading State with Enhanced Animation -->
-            <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
-              <div class="relative w-20 h-20">
-                <div class="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 opacity-20 blur-md animate-pulse"></div>
-                <div class="relative w-full h-full flex items-center justify-center">
-                  <i class="fas fa-spinner fa-spin text-3xl text-indigo-400"></i>
-                </div>
-              </div>
-              <p class="text-gray-300 text-lg mt-6">Loading your projects...</p>
-            </div>
-
-            <!-- Error State with Enhanced Design -->
-            <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
-              <div class="relative w-20 h-20 mb-6">
-                <div class="absolute inset-0 rounded-full bg-red-500/20 blur-md"></div>
-                <div class="relative w-full h-full flex items-center justify-center">
-                  <i class="fas fa-exclamation-circle text-3xl text-red-400"></i>
-                </div>
-              </div>
-              <h3 class="text-xl font-semibold text-white mb-2">Connection Error</h3>
-              <p class="text-gray-300 mb-8 text-center max-w-md">{{ error }}</p>
-              <button
-                @click="retryFetch"
-                class="group relative overflow-hidden px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300"
-              >
-                <span class="absolute inset-0 bg-white/20 blur-md opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
-                <span class="relative flex items-center">
-                  <i class="fas fa-sync-alt mr-2.5"></i>
-                  Try Again
-                </span>
-              </button>
-            </div>
-
-            <!-- Empty State with Enhanced Design -->
-            <div v-else-if="projects.length === 0" class="flex flex-col items-center justify-center py-16">
-              <div class="relative w-20 h-20 mb-6">
-                <div class="absolute inset-0 rounded-full bg-indigo-500/20 blur-md"></div>
-                <div class="relative w-full h-full flex items-center justify-center">
-                  <i class="fas fa-folder-open text-3xl text-indigo-400"></i>
-                </div>
-              </div>
-              <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
-              <p class="text-gray-300 text-center max-w-md mb-8">Create your first project to start building with Imagi</p>
-              <button
-                @click="$router.push({ name: 'builder-dashboard' })"
-                class="group relative overflow-hidden px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300"
-              >
-                <span class="absolute inset-0 bg-white/20 blur-md opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
-                <span class="relative flex items-center">
-                  <i class="fas fa-plus mr-2.5"></i>
-                  Create Your First Project
-                </span>
-              </button>
-            </div>
-
-            <!-- Enhanced Project Grid with Search Filtering -->
-            <div v-else>
-              <!-- If searching, show message -->
-              <div v-if="searchQuery && filteredProjects.length === 0" class="flex flex-col items-center justify-center py-16 bg-dark-900/40 backdrop-blur-sm border border-gray-800/60 rounded-xl">
-                <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
-                  <i class="fas fa-search text-2xl text-indigo-400"></i>
-                </div>
-                <h3 class="text-xl font-semibold text-white mb-2">No matching projects</h3>
-                <p class="text-gray-300 text-center max-w-md">No projects found with names starting with "{{ searchQuery }}"</p>
-              </div>
+            <!-- Unified Project Library Container with modern styling -->
+            <div class="relative rounded-2xl border border-dark-800/60 bg-dark-900/80 backdrop-blur-lg shadow-lg shadow-dark-900/20 overflow-hidden">
+              <!-- Purple gradient header line at the top of the project library -->
+              <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
               
-              <!-- Project Grid with Modern Cards -->
-              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div
-                  v-for="project in displayedProjects"
-                  :key="project.id"
-                  class="group relative transform transition-all duration-300 hover:-translate-y-2"
-                >
-                  <!-- Enhanced glass morphism effect with glow -->
-                  <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/50 to-violet-500/50 rounded-2xl opacity-0 group-hover:opacity-70 blur group-hover:blur-md transition-all duration-300"></div>
+              <div class="p-8">
+                <!-- Subtle background gradient -->
+                <div class="absolute inset-0 bg-gradient-to-br opacity-5 -z-10 from-indigo-900 to-violet-900"></div>
+                
+                <!-- Subtle glowing orb effect -->
+                <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-5 blur-3xl bg-indigo-500"></div>
+                
+                <!-- Header Section -->
+                <div class="relative z-10 mb-8">
+                  <!-- Badge -->
+                  <div class="inline-flex items-center px-4 py-1.5 bg-indigo-500/10 rounded-full mb-4">
+                    <span class="text-indigo-400 font-semibold text-sm tracking-wider">YOUR PROJECTS</span>
+                  </div>
                   
-                  <!-- Card content with enhanced styling -->
-                  <div class="relative bg-dark-900/70 backdrop-blur-lg rounded-xl overflow-hidden h-full flex flex-col border border-dark-800/50 group-hover:border-indigo-500/30 transition-all duration-300">
-                    <!-- Card header with gradient -->
-                    <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+                  <!-- Header with title and project count -->
+                  <div class="relative mb-6">
+                    <!-- Project count positioned in top-right corner -->
+                    <div class="absolute top-0 right-0 group">
+                      <!-- Glow effect on hover -->
+                      <div class="absolute -inset-1 rounded-xl bg-gradient-to-r from-indigo-500/30 to-violet-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-all duration-300"></div>
+                      
+                      <!-- Icon container with updated styling -->
+                      <div class="relative bg-dark-800/60 backdrop-blur-sm rounded-xl border border-dark-800/60 hover:border-indigo-500/30 transition-all duration-300 p-3 flex items-center gap-3 shadow-lg shadow-dark-900/20">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
+                          <i class="fas fa-folder-open text-indigo-300 text-sm"></i>
+                        </div>
+                        <div>
+                          <p class="text-xs text-gray-400 uppercase">Total</p>
+                          <p class="text-xl font-bold text-white">{{ projects.length || 0 }}</p>
+                        </div>
+                      </div>
+                    </div>
                     
-                    <div class="p-6">
-                      <div class="flex items-center gap-4 mb-4">
-                        <!-- Enhanced icon with glowing effect -->
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
-                          <i class="fas fa-cube text-indigo-400 text-lg"></i>
-                        </div>
-                        <h3 class="text-xl font-semibold text-white truncate group-hover:text-indigo-400 transition-colors">
-                          {{ project.name }}
-                        </h3>
+                    <!-- Centered title and description -->
+                    <div class="flex flex-col items-center justify-center pt-2 pb-2">
+                      <div class="space-y-4 text-center w-full">
+                        <h2 class="text-2xl font-bold text-white mb-2">Project Library</h2>
+                        <p class="text-gray-300">Continue working on your existing web applications</p>
+                        <!-- Decorative element - centered on all screen sizes -->
+                        <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mx-auto"></div>
                       </div>
-                      
-                      <!-- Description with edit capability -->
-                      <div class="mb-6">
-                        <div v-if="editingDescription === project.id" class="relative group/input w-full mb-2">
-                          <textarea
-                            v-model="editedDescription"
-                            placeholder="Project description..."
-                            class="w-full px-3 py-2 bg-dark-800/60 border border-indigo-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all duration-200 min-h-[80px] resize-y"
-                            rows="3"
-                            @keydown.esc="cancelEditDescription()"
-                          ></textarea>
-                          <div class="flex items-center gap-2 mt-2">
-                            <button 
-                              @click="saveDescription(project)"
-                              class="px-3 py-1.5 text-sm bg-indigo-500/20 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded-lg transition-all duration-200 flex items-center"
-                            >
-                              <i class="fas fa-check mr-1.5"></i> Save
-                            </button>
-                            <button 
-                              @click="cancelEditDescription()"
-                              class="px-3 py-1.5 text-sm bg-dark-700/50 hover:bg-dark-600 text-gray-400 hover:text-white rounded-lg transition-all duration-200 flex items-center"
-                            >
-                              <i class="fas fa-times mr-1.5"></i> Cancel
-                            </button>
-                          </div>
-                        </div>
-                        <div v-else class="flex items-center justify-between">
-                          <p class="text-gray-400 line-clamp-2 text-sm">
-                            {{ project.description || 'No description provided' }}
-                          </p>
-                          <button 
-                            @click="startEditDescription(project)"
-                            class="ml-2 text-indigo-400 hover:text-indigo-300 transition-colors"
-                            title="Edit description"
-                          >
-                            <i class="fas fa-edit"></i>
-                          </button>
-                        </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Search Input - Centered below title -->
+                  <div v-if="projects.length > 0" class="mb-6 flex justify-center">
+                    <div class="w-full max-w-md">
+                      <ProjectSearchInput 
+                        v-model="searchQuery"
+                        placeholder="Search projects by name or description..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Content Section -->
+                <div class="relative z-10">
+                  <!-- Loading State -->
+                  <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
+                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-violet-500/15 rounded-full flex items-center justify-center mb-5 animate-pulse border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
+                      <i class="fas fa-spinner fa-spin text-2xl text-indigo-400"></i>
+                    </div>
+                    <p class="text-gray-300 text-lg">Loading your projects...</p>
+                  </div>
+
+                  <!-- Error State -->
+                  <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
+                    <div class="w-16 h-16 bg-gradient-to-r from-red-500/15 to-orange-500/15 rounded-full flex items-center justify-center mb-5 border border-red-500/20 shadow-lg shadow-red-500/10">
+                      <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">Connection Error</h3>
+                    <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
+                    <button
+                      @click="retryFetch"
+                      class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 text-white rounded-xl shadow-lg hover:shadow-indigo-500/20 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
+                    >
+                      <i class="fas fa-sync-alt mr-2"></i>
+                      Try Again
+                    </button>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-else-if="projects.length === 0" class="flex flex-col items-center justify-center py-16">
+                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-violet-500/15 rounded-full flex items-center justify-center mb-5 border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
+                      <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
+                    <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
+                    
+                    <!-- Directional hint -->
+                    <div class="flex items-center text-indigo-400 animate-pulse-slow mb-8">
+                      <i class="fas fa-long-arrow-alt-up text-lg mr-2"></i>
+                      <span>Get started with a new project</span>
+                    </div>
+                    
+                    <button
+                      @click="$router.push({ name: 'builder-dashboard' })"
+                      class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
+                    >
+                      <i class="fas fa-plus mr-2"></i>
+                      Create Your First Project
+                    </button>
+                  </div>
+
+                  <!-- Projects Grid -->
+                  <div v-else>
+                    <!-- If searching, show message -->
+                    <div v-if="searchQuery && filteredProjects.length === 0" class="flex flex-col items-center justify-center py-16">
+                      <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
+                        <i class="fas fa-search text-2xl text-indigo-400"></i>
                       </div>
-                      
-                      <div class="mt-auto">
-                        <div class="flex items-center text-sm text-gray-500 mb-4">
-                          <i class="fas fa-clock text-xs opacity-70 mr-2"></i>
-                          Last updated {{ formatDate(project.updated_at) }}
+                      <h3 class="text-xl font-semibold text-white mb-2">No matching projects</h3>
+                      <p class="text-gray-300 text-center max-w-md">No projects found matching "{{ searchQuery }}"</p>
+                    </div>
+                    
+                    <!-- Recent Projects Section -->
+                    <div v-else-if="recentProjects.length > 0" class="space-y-8">
+                      <div class="mb-8">
+                        <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-6">
+                          <i class="fas fa-clock text-indigo-400 mr-3"></i>
+                          <h3 class="text-sm font-medium text-white uppercase tracking-wider">Recently Opened</h3>
                         </div>
                         
-                        <div class="flex items-center gap-3">
-                          <!-- Open project button with enhanced hover effect -->
-                          <button
-                            @click="openProject(project)"
-                            class="flex-1 py-3 px-4 text-indigo-400 hover:text-white transition-all duration-200 rounded-lg bg-indigo-500/10 hover:bg-gradient-to-r hover:from-indigo-500 hover:to-violet-500 transform hover:scale-105 shadow-md shadow-indigo-500/5 hover:shadow-lg hover:shadow-indigo-500/20"
-                            title="Open project"
-                          >
-                            <i class="fas fa-arrow-right mr-2"></i>
-                            Open Project
-                          </button>
-                          
-                          <!-- Delete button with enhanced hover effect -->
-                          <button
-                            @click="confirmDelete(project)"
-                            class="p-3 text-red-400 hover:text-white transition-all duration-200 rounded-lg bg-red-500/10 hover:bg-red-500 transform hover:scale-105 shadow-md shadow-red-500/5 hover:shadow-lg hover:shadow-red-500/20"
-                            title="Delete project"
-                          >
-                            <i class="fas fa-trash"></i>
-                          </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <ProjectCardWithDescription
+                            v-for="project in recentProjects"
+                            :key="project.id"
+                            :project="project"
+                            :editing-description="editingDescription"
+                            :edited-description="editedDescription"
+                            @start-edit="startEditDescription"
+                            @save-description="saveDescription"
+                            @cancel-edit="cancelEditDescription"
+                            @delete="confirmDelete"
+                            @open="openProject"
+                            @update:edited-description="editedDescription = $event"
+                          />
                         </div>
                       </div>
+
+                      <!-- All Other Projects -->
+                      <div v-if="otherProjects.length > 0">
+                        <div class="flex items-center bg-indigo-500/5 rounded-lg px-4 py-2 mb-6">
+                          <i class="fas fa-folder text-indigo-400 mr-3"></i>
+                          <h3 class="text-sm font-medium text-white uppercase tracking-wider">All Projects</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                          <ProjectCardWithDescription
+                            v-for="project in otherProjects"
+                            :key="project.id"
+                            :project="project"
+                            :editing-description="editingDescription"
+                            :edited-description="editedDescription"
+                            @start-edit="startEditDescription"
+                            @save-description="saveDescription"
+                            @cancel-edit="cancelEditDescription"
+                            @delete="confirmDelete"
+                            @open="openProject"
+                            @update:edited-description="editedDescription = $event"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- All Projects (when no recent projects or search active) -->
+                    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <ProjectCardWithDescription
+                        v-for="project in displayedProjects"
+                        :key="project.id"
+                        :project="project"
+                        :editing-description="editingDescription"
+                        :edited-description="editedDescription"
+                        @start-edit="startEditDescription"
+                        @save-description="saveDescription"
+                        @cancel-edit="cancelEditDescription"
+                        @delete="confirmDelete"
+                        @open="openProject"
+                        @update:edited-description="editedDescription = $event"
+                      />
                     </div>
                   </div>
                 </div>
@@ -269,6 +274,7 @@ import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectSto
 import { useNotification } from '@/shared/composables/useNotification';
 import { useConfirm } from '../composables/useConfirm';
 import ProjectSearchInput from '../components/atoms/ProjectSearchInput.vue';
+import ProjectCardWithDescription from '../components/molecules/cards/ProjectCardWithDescription.vue';
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -291,6 +297,40 @@ const { searchQuery, filteredProjects } = useProjectSearch(sortedProjects);
 // Computed property for displayed projects
 const displayedProjects = computed(() => {
   return filteredProjects.value;
+});
+
+// Get 3 most recently updated projects for display
+const recentProjects = computed(() => {
+  if (!displayedProjects.value?.length || searchQuery.value) return []
+  
+  return [...displayedProjects.value]
+    .sort((a, b) => {
+      if (!a.updated_at) return 1;
+      if (!b.updated_at) return -1;
+      
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    })
+    .slice(0, 3)
+});
+
+// Get all projects except the recent ones
+const otherProjects = computed(() => {
+  if (!displayedProjects.value?.length || searchQuery.value) return []
+  
+  const recentIds = new Set(recentProjects.value.map(p => p.id))
+  
+  return [...displayedProjects.value]
+    .filter(project => !recentIds.has(project.id))
+    .sort((a, b) => {
+      if (!a.updated_at) return 1;
+      if (!b.updated_at) return -1;
+      
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    })
 });
 
 const navigationItems = [
@@ -320,15 +360,6 @@ const navigationItems = [
   }
 ];
 
-function formatDate(date) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(date));
-}
-
 async function confirmDelete(project) {
   // Use confirm dialog
   const confirmed = await confirm({
@@ -346,7 +377,7 @@ async function confirmDelete(project) {
     showNotification({
       type: 'success',
       message: `Project "${project.name}" deleted successfully`,
-      duration: 4000 // Shorter duration for better UX
+      duration: 4000
     });
   } catch (err) {
     showNotification({
@@ -369,7 +400,6 @@ function cancelEditDescription() {
 
 async function saveDescription(project) {
   try {
-    // Call API to update the project description
     await projectStore.updateProject(project.id, {
       description: editedDescription.value.trim()
     });
@@ -379,7 +409,6 @@ async function saveDescription(project) {
       message: 'Project description updated'
     });
     
-    // Reset edit state
     cancelEditDescription();
   } catch (err) {
     showNotification({
@@ -414,10 +443,8 @@ function openProject(project) {
     return;
   }
 
-  // Convert ID to string to ensure consistent typing
   const projectId = String(project.id);
   
-  // Navigate to the workspace with the project ID
   router.push({
     name: 'builder-workspace',
     params: { projectId }
@@ -425,7 +452,6 @@ function openProject(project) {
 }
 
 onMounted(async () => {
-  // Initialize projects on mount
   try {
     await fetchProjects();
   } catch (err) {
@@ -446,7 +472,7 @@ onMounted(async () => {
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -455,30 +481,11 @@ onMounted(async () => {
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: theme('colors.gray.700');
-  border-radius: 9999px;
+  border-radius: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: theme('colors.gray.600');
-}
-
-.animate-gradient {
-  background-size: 200% auto;
-  animation: gradient-shift 4s ease infinite;
-}
-
-/* Add subtle animation for loading state */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-pulse {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.animate-pulse-slow {
-  animation: pulse 3s ease-in-out infinite;
 }
 
 /* Float animation for background orbs */
@@ -499,18 +506,12 @@ onMounted(async () => {
   animation-delay: 700ms;
 }
 
-/* Line clamp for description */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
 }
 
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 </style>
