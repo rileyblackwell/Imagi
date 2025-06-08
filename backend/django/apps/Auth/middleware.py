@@ -7,11 +7,13 @@ from django.conf import settings
 from django.http import HttpResponse
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils.deprecation import MiddlewareMixin
 import logging
 import time
 
 logger = logging.getLogger(__name__)
 api_logger = logging.getLogger('django.request')
+
 
 class CacheControlMiddleware:
     """Middleware to handle caching and security headers."""

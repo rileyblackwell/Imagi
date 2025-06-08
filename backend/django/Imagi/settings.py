@@ -311,6 +311,13 @@ if not DEBUG:
     # For Railway proxy architecture, we might need to trust certain origins
     # for CSRF token validation
     CSRF_FAILURE_VIEW = 'apps.Auth.views.csrf_failure'
+    
+    # Add Railway-specific trusted origins for better CSRF handling
+    CSRF_TRUSTED_ORIGINS.extend([
+        'https://*.railway.app',
+        'http://*.railway.internal',
+        'https://*.railway.internal'
+    ])
 
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-domain session cookies

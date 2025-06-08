@@ -42,40 +42,22 @@ export const AuthAPI = {
   },
 
   async ensureCSRFToken(): Promise<string | null> {
-    // Check if we're in a production environment
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
-    
     // Check if CSRF token exists in cookies first
     let csrfToken = getCookie('csrftoken')
     
     if (!csrfToken) {
       try {
-        console.log('🔑 Fetching CSRF token...')
+        console.log('🔑 Fetching CSRF token from /api/v1/auth/csrf/...')
         await this.getCSRFToken()
         csrfToken = getCookie('csrftoken')
         
         if (!csrfToken) {
           console.warn('Failed to obtain CSRF token after fetch')
-          // In production, if CSRF fetch fails, we can try to proceed without it
-          // as Railway's proxy might handle CSRF differently
-          if (isProd) {
-            console.warn('Production: Proceeding without CSRF token')
-            return null
-          } else {
-            throw new Error('Failed to obtain CSRF token')
-          }
+          throw new Error('Failed to obtain CSRF token')
         }
       } catch (error) {
         console.error('Error fetching CSRF token:', error)
-        
-        // In production, don't fail the entire request if CSRF token can't be fetched
-        // This allows the request to proceed and let the backend handle CSRF validation
-        if (isProd) {
-          console.warn('Production: CSRF token fetch failed, proceeding without it')
-          return null
-        } else {
-          throw error
-        }
+        throw error
       }
     }
     
@@ -92,7 +74,7 @@ export const AuthAPI = {
         throw new Error('Username and password are required')
       }
 
-      // Make sure we have a CSRF token before attempting login
+      // Ensure CSRF token is available for all environments
       const csrfToken = await this.ensureCSRFToken();
       if (!csrfToken) {
         console.error('Could not obtain CSRF token');
@@ -144,20 +126,11 @@ export const AuthAPI = {
   },
 
   async register(userData: UserRegistrationData): Promise<{ data: AuthResponse }> {
-    // Check if we're in production Railway environment
-    const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
     try {
-      // Ensure CSRF token is available - but don't fail if we can't get it in production
-      let csrfToken: string | null = null
-      try {
-        csrfToken = await this.ensureCSRFToken()
-      } catch (error) {
-        console.warn('CSRF token fetch failed:', error)
-        if (!isProd) {
-          throw new Error('Registration error: Could not obtain security token')
-        }
-        // In production, continue without CSRF token
-        console.warn('Production: Continuing registration without CSRF token')
+      // Ensure CSRF token is available for all environments
+      const csrfToken = await this.ensureCSRFToken()
+      if (!csrfToken) {
+        throw new Error('Registration error: Could not obtain security token')
       }
       
       // Validate username (basic check only, server will check uniqueness)
@@ -199,7 +172,7 @@ export const AuthAPI = {
       
       console.log('🔄 Attempting registration with headers:', {
         hasCSRF: !!csrfToken,
-        environment: isProd ? 'production' : 'development',
+        environment: import.meta.env.PROD ? 'production' : 'development',
         url: fullRequestUrl
       });
       
@@ -219,34 +192,6 @@ export const AuthAPI = {
         }
       } catch (registrationError) {
         console.error('❌ Registration request failed:', registrationError);
-        
-        // If CSRF token was used and we get a CSRF error, try once more without CSRF in production
-        if (isProd && csrfToken && (registrationError as any).response?.status === 403) {
-          console.warn('🔄 Retrying registration without CSRF token in production');
-          try {
-            const retryHeaders = {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            };
-            
-            const retryResponse = await api.post(fullRequestUrl, userData, {
-              headers: retryHeaders,
-              timeout: 30000
-            });
-            
-            console.log('✅ Registration successful on retry without CSRF');
-            return { 
-              data: {
-                token: retryResponse.data.token || retryResponse.data.key,
-                user: retryResponse.data.user || {}
-              }
-            }
-          } catch (retryError) {
-            console.error('❌ Registration retry also failed:', retryError);
-            throw retryError;
-          }
-        }
-        
         throw registrationError;
       }
     } catch (error: any) {

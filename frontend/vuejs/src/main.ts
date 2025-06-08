@@ -39,8 +39,9 @@ library.add(
 // Configure axios
 axios.defaults.baseURL = config.apiUrl
 axios.defaults.withCredentials = true
-axios.defaults.xsrfCookieName = 'csrftoken'
-axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+// Remove automatic CSRF handling as we're using a custom API client
+// axios.defaults.xsrfCookieName = 'csrftoken'
+// axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
 // Add axios debug interceptors
