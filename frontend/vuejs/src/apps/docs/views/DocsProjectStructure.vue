@@ -1,36 +1,24 @@
 <template>
   <DocsLayout>
-    <div class="max-w-4xl mx-auto">
-      <!-- Page header with attractive styling -->
-      <div class="mb-10">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">DOCUMENTATION</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-          Project Structure
-        </h1>
-        <p class="text-xl text-gray-300 leading-relaxed">
-          Understanding the organization and architecture of Imagi Oasis generated projects.
-        </p>
-      </div>
-
-      <!-- Attractive divider -->
-      <div class="relative h-16 mb-10">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
-      <!-- Main content with sections -->
-      <div class="prose prose-invert prose-lg max-w-none">
-        <h2>Overview</h2>
-        <p>
+    <DocsContentWrapper
+      title="Project Structure"
+      description="Understanding the organization and architecture of Imagi Oasis generated projects."
+      badge-text="ARCHITECTURE"
+    >
+      <!-- Overview -->
+      <DocsCard color-variant="primary">
+        <DocsCardHeader title="Overview" icon="fas fa-sitemap" color="primary" />
+        <p class="text-gray-300 leading-relaxed">
           Imagi Oasis generates full-stack applications with a clear, maintainable project structure.
           Understanding this structure will help you navigate, customize, and extend your application.
         </p>
+      </DocsCard>
 
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-6 my-8">
-          <h3 class="text-primary-400 mt-0">Standard Project Structure</h3>
-          <div class="bg-dark-800 p-3 rounded-md overflow-x-auto font-mono text-sm">
-            <pre class="text-gray-300 m-0">project-root/
+      <!-- Project Structure -->
+      <DocsCard color-variant="blue">
+        <DocsCardHeader title="Standard Project Structure" icon="fas fa-folder-tree" color="blue" />
+        <div class="bg-dark-800/60 border border-white/10 rounded-xl p-4 mt-4 overflow-x-auto">
+          <pre class="text-gray-300 text-sm leading-relaxed"><code>project-root/
 ├── frontend/           # Vue.js frontend application
 │   ├── public/         # Static assets
 │   ├── src/
@@ -56,106 +44,135 @@
 │   └── requirements.txt # Backend dependencies
 │
 ├── README.md           # Project documentation
-└── docker-compose.yml  # Docker configuration</pre>
-          </div>
+└── docker-compose.yml  # Docker configuration</code></pre>
         </div>
+      </DocsCard>
 
-        <h2>Frontend Architecture</h2>
-        <p>
+      <!-- Frontend Architecture -->
+      <DocsCard color-variant="violet">
+        <DocsCardHeader title="Frontend Architecture" icon="fas fa-layer-group" color="violet" />
+        <p class="text-gray-300 leading-relaxed mb-6">
           The frontend follows a modular architecture based on Vue.js 3 with the Composition API.
           Components are organized following atomic design principles, allowing for reusability and maintainability.
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-          <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-6">
-            <h3 class="text-primary-400 mt-0 flex items-center">
-              <div class="w-8 h-8 bg-primary-500/20 rounded-full flex items-center justify-center mr-3">
-                <i class="fas fa-cubes text-primary-400"></i>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Components Card -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-center mb-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center mr-3">
+                <i class="fas fa-cubes text-violet-300"></i>
               </div>
-              Components
-            </h3>
-            <p class="text-gray-300 text-sm">
+              <h3 class="text-white font-semibold">Components</h3>
+            </div>
+            <p class="text-gray-300 text-sm mb-4">
               UI building blocks organized by complexity:
             </p>
-            <ul class="mt-2 space-y-2 text-sm">
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-atom text-primary-400 text-xs"></i>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-atom text-violet-300 text-xs"></i>
                 </div>
-                <span><code class="text-primary-400">atoms/</code> - Basic UI elements (buttons, inputs)</span>
+                <div>
+                  <code class="text-violet-300 text-xs">atoms/</code>
+                  <p class="text-gray-400 text-xs mt-0.5">Basic UI elements (buttons, inputs)</p>
+                </div>
               </li>
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-puzzle-piece text-primary-400 text-xs"></i>
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-puzzle-piece text-blue-300 text-xs"></i>
                 </div>
-                <span><code class="text-primary-400">molecules/</code> - Combinations of atoms (form fields, cards)</span>
+                <div>
+                  <code class="text-blue-300 text-xs">molecules/</code>
+                  <p class="text-gray-400 text-xs mt-0.5">Combinations of atoms (form fields, cards)</p>
+                </div>
               </li>
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-microscope text-primary-400 text-xs"></i>
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-microscope text-cyan-300 text-xs"></i>
                 </div>
-                <span><code class="text-primary-400">organisms/</code> - Complex UI sections (forms, headers)</span>
+                <div>
+                  <code class="text-cyan-300 text-xs">organisms/</code>
+                  <p class="text-gray-400 text-xs mt-0.5">Complex UI sections (forms, headers)</p>
+                </div>
               </li>
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-clone text-primary-400 text-xs"></i>
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400/20 to-green-400/20 border border-emerald-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-clone text-emerald-300 text-xs"></i>
                 </div>
-                <span><code class="text-primary-400">templates/</code> - Page layouts and structures</span>
+                <div>
+                  <code class="text-emerald-300 text-xs">templates/</code>
+                  <p class="text-gray-400 text-xs mt-0.5">Page layouts and structures</p>
+                </div>
               </li>
             </ul>
           </div>
           
-          <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-6">
-            <h3 class="text-primary-400 mt-0 flex items-center">
-              <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mr-3">
-                <i class="fas fa-sitemap text-blue-400"></i>
+          <!-- State Management Card -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-center mb-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center mr-3">
+                <i class="fas fa-sitemap text-blue-300"></i>
               </div>
-              State Management
-            </h3>
-            <p class="text-gray-300 text-sm">
+              <h3 class="text-white font-semibold">State Management</h3>
+            </div>
+            <p class="text-gray-300 text-sm mb-4">
               Pinia stores are organized by feature:
             </p>
-            <ul class="mt-2 space-y-2 text-sm">
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-user-shield text-blue-400 text-xs"></i>
+            <ul class="space-y-3">
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-user-shield text-blue-300 text-xs"></i>
                 </div>
-                <span><code class="text-blue-400">auth.ts</code> - Authentication state</span>
+                <div>
+                  <code class="text-blue-300 text-xs">auth.ts</code>
+                  <p class="text-gray-400 text-xs mt-0.5">Authentication state</p>
+                </div>
               </li>
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-database text-blue-400 text-xs"></i>
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-database text-cyan-300 text-xs"></i>
                 </div>
-                <span><code class="text-blue-400">entities/</code> - Data models (users, products, etc.)</span>
+                <div>
+                  <code class="text-cyan-300 text-xs">entities/</code>
+                  <p class="text-gray-400 text-xs mt-0.5">Data models (users, products, etc.)</p>
+                </div>
               </li>
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center mr-2 mt-0.5">
-                  <i class="fas fa-cog text-blue-400 text-xs"></i>
+              <li class="flex items-start gap-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <i class="fas fa-cog text-violet-300 text-xs"></i>
                 </div>
-                <span><code class="text-blue-400">ui.ts</code> - UI state (theme, layout preferences)</span>
+                <div>
+                  <code class="text-violet-300 text-xs">ui.ts</code>
+                  <p class="text-gray-400 text-xs mt-0.5">UI state (theme, layout preferences)</p>
+                </div>
               </li>
             </ul>
           </div>
         </div>
+      </DocsCard>
 
-        <h2>Backend Architecture</h2>
-        <p>
+      <!-- Backend Architecture -->
+      <DocsCard color-variant="cyan">
+        <DocsCardHeader title="Backend Architecture" icon="fas fa-server" color="cyan" />
+        <p class="text-gray-300 leading-relaxed mb-6">
           The backend follows Django and Django REST Framework best practices, with a clear separation of concerns.
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-          <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-6">
-            <h3 class="text-green-400 mt-0 flex items-center">
-              <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mr-3">
-                <i class="fas fa-database text-green-400"></i>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Data Models Card -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-center mb-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400/20 to-green-400/20 border border-emerald-400/20 flex items-center justify-center mr-3">
+                <i class="fas fa-database text-emerald-300"></i>
               </div>
-              Data Models
-            </h3>
-            <p class="text-gray-300 text-sm">
+              <h3 class="text-white font-semibold">Data Models</h3>
+            </div>
+            <p class="text-gray-300 text-sm mb-4">
               Django models defined with proper relationships:
             </p>
-            <div class="mt-3 bg-dark-800 p-3 rounded-md overflow-x-auto">
-              <pre class="text-sm text-gray-300 m-0"><code class="language-python">class Project(models.Model):
+            <div class="bg-dark-800/60 border border-white/10 rounded-lg p-3 overflow-x-auto">
+              <pre class="text-sm text-gray-300 leading-relaxed"><code class="language-python">class Project(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(
@@ -170,18 +187,19 @@
             </div>
           </div>
           
-          <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-6">
-            <h3 class="text-green-400 mt-0 flex items-center">
-              <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mr-3">
-                <i class="fas fa-exchange-alt text-green-400"></i>
+          <!-- API Endpoints Card -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-center mb-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center mr-3">
+                <i class="fas fa-exchange-alt text-cyan-300"></i>
               </div>
-              API Endpoints
-            </h3>
-            <p class="text-gray-300 text-sm">
+              <h3 class="text-white font-semibold">API Endpoints</h3>
+            </div>
+            <p class="text-gray-300 text-sm mb-4">
               RESTful APIs using Django REST Framework:
             </p>
-            <div class="mt-3 bg-dark-800 p-3 rounded-md overflow-x-auto">
-              <pre class="text-sm text-gray-300 m-0"><code class="language-python">class ProjectViewSet(viewsets.ModelViewSet):
+            <div class="bg-dark-800/60 border border-white/10 rounded-lg p-3 overflow-x-auto">
+              <pre class="text-sm text-gray-300 leading-relaxed"><code class="language-python">class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     
@@ -195,32 +213,58 @@
             </div>
           </div>
         </div>
+      </DocsCard>
 
-        <h2>Customizing Your Project</h2>
-        <p>
+      <!-- Best Practices -->
+      <DocsCard color-variant="primary">
+        <DocsCardHeader title="Best Practices for Customization" icon="fas fa-lightbulb" color="primary" />
+        <p class="text-gray-300 leading-relaxed mb-6">
           Imagi Oasis generates code that follows best practices, but you have complete freedom to customize and extend it to meet your specific needs.
         </p>
-
-        <div class="bg-primary-500/10 border border-primary-500/20 rounded-xl p-6 my-8">
-          <h3 class="text-primary-400 mt-0 flex items-center">
-            <i class="fas fa-lightbulb mr-2"></i>
-            Best Practices for Customization
-          </h3>
-          <ul class="mb-0">
-            <li>Keep components modular and focused on a single responsibility</li>
-            <li>Follow the established naming conventions for consistency</li>
-            <li>Add comments to explain complex logic or business rules</li>
-            <li>When adding new features, create appropriate tests</li>
-            <li>Consider performance implications when modifying database models</li>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ul class="space-y-3">
+            <DocsListItem icon="fas fa-puzzle-piece" color="primary" size="sm">
+              Keep components modular and focused on a single responsibility
+            </DocsListItem>
+            <DocsListItem icon="fas fa-tag" color="blue" size="sm">
+              Follow the established naming conventions for consistency
+            </DocsListItem>
+            <DocsListItem icon="fas fa-comment" color="cyan" size="sm">
+              Add comments to explain complex logic or business rules
+            </DocsListItem>
+          </ul>
+          
+          <ul class="space-y-3">
+            <DocsListItem icon="fas fa-flask" color="violet" size="sm">
+              When adding new features, create appropriate tests
+            </DocsListItem>
+            <DocsListItem icon="fas fa-tachometer-alt" color="emerald" size="sm">
+              Consider performance implications when modifying database models
+            </DocsListItem>
+            <DocsListItem icon="fas fa-shield-alt" color="orange" size="sm">
+              Maintain security best practices in all customizations
+            </DocsListItem>
           </ul>
         </div>
-      </div>
-    </div>
+      </DocsCard>
+
+      <!-- CTA -->
+      <DocsCTASection 
+        title="Ready to Build?" 
+        icon="fas fa-rocket" 
+        description="Now that you understand the project structure, create your first application and explore the generated code."
+        buttonText="Create Project"
+        buttonLink="/products/oasis/builder/dashboard"
+        buttonIcon="fas fa-plus-circle"
+      />
+    </DocsContentWrapper>
   </DocsLayout>
 </template>
 
 <script setup>
 import DocsLayout from '../layouts/DocsLayout.vue'
+import { DocsContentWrapper, DocsCard, DocsCardHeader, DocsListItem, DocsCTASection } from '../components'
 </script>
 
 <style scoped>

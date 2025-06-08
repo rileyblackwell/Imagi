@@ -1,140 +1,134 @@
 <template>
   <DocsLayout>
-    <div class="max-w-4xl mx-auto">
-      <!-- Page header with attractive styling -->
-      <div class="mb-10">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">DOCUMENTATION</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-          Deployment Guide
-        </h1>
-        <p class="text-xl text-gray-300 leading-relaxed">
-          Learn how to share your Imagi Oasis applications with the world.
+    <DocsContentWrapper
+      title="Deployment Guide"
+      description="Learn how to share your Imagi Oasis applications with the world."
+      badge-text="DEPLOYMENT"
+    >
+      <!-- What is Deployment -->
+      <DocsCard color-variant="primary">
+        <DocsCardHeader title="What is Deployment?" icon="fas fa-rocket" color="primary" />
+        <p class="text-gray-300 leading-relaxed mb-4">
+          Deployment is the process of making your application available online for others to use. 
+          It's like moving from designing a house to actually building it so people can move in.
         </p>
-      </div>
-
-      <!-- Attractive divider -->
-      <div class="relative h-16 mb-10">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
-      <!-- Main content -->
-      <div class="prose prose-invert prose-lg max-w-none">
-        <!-- Introduction -->
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-8 mb-8">
-          <h2 class="text-2xl font-bold text-white mb-4">What is Deployment?</h2>
-          <p class="text-gray-300">
-            Deployment is the process of making your application available online for others to use. 
-            It's like moving from designing a house to actually building it so people can move in.
-          </p>
-          <p class="text-gray-300">
-            With Imagi Oasis, we're working to make deployment simple so you can share your creation with the world without needing technical expertise.
-          </p>
-          <div class="mt-6 bg-primary-500/10 border border-primary-500/20 rounded-lg p-4">
-            <h4 class="text-primary-400 mt-0 mb-2 flex items-center text-base font-medium">
-              <i class="fas fa-lightbulb mr-2"></i>
-              Why deployment matters
-            </h4>
-            <p class="text-gray-300 text-sm mb-0">
-              Until your app is deployed, it only exists in your Imagi workspace. Deployment makes your app available on the internet with its own address (URL) that anyone can access.
-            </p>
-          </div>
-        </div>
-
-        <!-- Coming Soon Section -->
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-8 my-8">
-          <div class="flex flex-col items-center text-center">
-            <div class="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mb-5">
-              <i class="fas fa-rocket text-2xl text-primary-400"></i>
+        <p class="text-gray-300 leading-relaxed mb-6">
+          With Imagi Oasis, we're working to make deployment simple so you can share your creation with the world without needing technical expertise.
+        </p>
+        
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border border-indigo-400/20 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-lightbulb text-indigo-300 text-sm"></i>
             </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Deployment Features Coming Soon</h3>
-            <p class="text-gray-300 text-center max-w-md mb-6">
-              We're currently building our deployment pipeline to make it easy for you to take your Imagi Oasis applications live. Soon you'll be able to deploy your applications with just a few clicks.
-            </p>
-            <div class="mt-6 bg-dark-800/50 p-6 rounded-lg w-full max-w-2xl">
-              <h4 class="text-lg font-medium text-white mb-4">Planned Deployment Options</h4>
-              <ul class="space-y-4 text-left">
-                <li class="flex items-start">
-                  <div class="flex-shrink-0 w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center mr-3 mt-1">
-                    <i class="fas fa-bolt text-primary-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <strong class="text-white">One-Click Deployment</strong>
-                    <p class="text-gray-300 text-sm mt-1">
-                      Deploy your application with minimal configuration to our secure cloud infrastructure.
-                    </p>
-                  </div>
-                </li>
-                <li class="flex items-start">
-                  <div class="flex-shrink-0 w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center mr-3 mt-1">
-                    <i class="fas fa-download text-primary-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <strong class="text-white">Code Export</strong>
-                    <p class="text-gray-300 text-sm mt-1">
-                      Download your application code to deploy it to your preferred hosting provider.
-                    </p>
-                  </div>
-                </li>
-                <li class="flex items-start">
-                  <div class="flex-shrink-0 w-7 h-7 rounded-full bg-primary-500/20 flex items-center justify-center mr-3 mt-1">
-                    <i class="fas fa-globe text-primary-400 text-xs"></i>
-                  </div>
-                  <div>
-                    <strong class="text-white">Custom Domains</strong>
-                    <p class="text-gray-300 text-sm mt-1">
-                      Use your own domain name for a professional touch.
-                    </p>
-                  </div>
-                </li>
-              </ul>
+            <div>
+              <h4 class="text-indigo-300 font-semibold mb-2">Why deployment matters</h4>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                Until your app is deployed, it only exists in your Imagi workspace. Deployment makes your app available on the internet with its own address (URL) that anyone can access.
+              </p>
             </div>
           </div>
         </div>
+      </DocsCard>
 
-        <!-- What's Next -->
-        <h2>What's Next?</h2>
-        <p>
-          While waiting for deployment features, explore these resources:
+      <!-- Coming Soon Section -->
+      <DocsCard color-variant="cyan">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-rocket text-2xl text-cyan-300"></i>
+          </div>
+          
+          <DocsCardHeader title="Deployment Features Coming Soon!" icon="fas fa-clock" color="cyan" />
+          <p class="text-gray-300 text-center max-w-md mx-auto mb-8 leading-relaxed">
+            We're currently building our deployment pipeline to make it easy for you to take your Imagi Oasis applications live. Soon you'll be able to deploy your applications with just a few clicks.
+          </p>
+          
+          <!-- Planned Features -->
+          <div class="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+            <h4 class="text-lg font-semibold text-white mb-6">Planned Deployment Options</h4>
+            <div class="space-y-6">
+              <div class="flex items-start gap-4 text-left">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-bolt text-cyan-300"></i>
+                </div>
+                <div>
+                  <h5 class="text-white font-semibold mb-1">One-Click Deployment</h5>
+                  <p class="text-gray-300 text-sm leading-relaxed">
+                    Deploy your application with minimal configuration to our secure cloud infrastructure.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="flex items-start gap-4 text-left">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-download text-violet-300"></i>
+                </div>
+                <div>
+                  <h5 class="text-white font-semibold mb-1">Code Export</h5>
+                  <p class="text-gray-300 text-sm leading-relaxed">
+                    Download your application code to deploy it to your preferred hosting provider.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="flex items-start gap-4 text-left">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400/20 to-green-400/20 border border-emerald-400/20 flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-globe text-emerald-300"></i>
+                </div>
+                <div>
+                  <h5 class="text-white font-semibold mb-1">Custom Domains</h5>
+                  <p class="text-gray-300 text-sm leading-relaxed">
+                    Use your own domain name for a professional touch.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DocsCard>
+
+      <!-- What's Next -->
+      <DocsCard color-variant="violet">
+        <DocsCardHeader title="What's Next?" icon="fas fa-arrow-right" color="violet" />
+        <p class="text-gray-300 leading-relaxed mb-6">
+          While waiting for deployment features, explore these resources to prepare your application:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <router-link 
             to="/docs/best-practices" 
-            class="block p-4 bg-dark-900/50 border border-dark-800 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 mr-4 mb-4"
           >
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                <i class="fas fa-check-circle text-xl text-primary-400"></i>
-              </div>
-              <div>
-                <h3 class="text-white group-hover:text-primary-400 transition-colors font-medium text-lg">Best Practices</h3>
-                <p class="text-gray-400 text-sm">Learn how to optimize your app for production</p>
-              </div>
-            </div>
+            <i class="fas fa-check-circle mr-2 text-sm"></i>
+            Best Practices
           </router-link>
+          
           <router-link 
             to="/docs/troubleshooting" 
-            class="block p-4 bg-dark-900/50 border border-dark-800 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 mb-4"
           >
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                <i class="fas fa-bug text-xl text-primary-400"></i>
-              </div>
-              <div>
-                <h3 class="text-white group-hover:text-primary-400 transition-colors font-medium text-lg">Troubleshooting</h3>
-                <p class="text-gray-400 text-sm">Solutions to common development issues</p>
-              </div>
-            </div>
+            <i class="fas fa-bug mr-2 text-sm"></i>
+            Troubleshooting
           </router-link>
         </div>
-      </div>
-    </div>
+      </DocsCard>
+
+      <!-- CTA -->
+      <DocsCTASection 
+        title="Get Notified When Deployment is Ready" 
+        icon="fas fa-bell" 
+        description="Want to be the first to know when one-click deployment is available? Start building your project now and we'll notify you when it's time to go live."
+        buttonText="Start Building"
+        buttonLink="/products/oasis/builder/dashboard"
+        buttonIcon="fas fa-rocket"
+      />
+    </DocsContentWrapper>
   </DocsLayout>
 </template>
 
 <script setup>
 import DocsLayout from '../layouts/DocsLayout.vue'
+import { DocsContentWrapper, DocsCard, DocsCardHeader, DocsCTASection } from '../components'
 </script>
 
 <style scoped>

@@ -1,12 +1,10 @@
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-5xl mx-auto">
     <DocsPageHeader 
       :title="title" 
       :description="description" 
       :badge-text="badgeText" 
     />
-    
-    <DocsDivider v-if="useDivider" />
     
     <div class="prose prose-invert prose-lg max-w-none">
       <slot></slot>
@@ -16,16 +14,13 @@
 
 <script setup lang="ts">
 import DocsPageHeader from '../../molecules/headers/DocsPageHeader.vue';
-import DocsDivider from '../../atoms/dividers/DocsDivider.vue';
 
 withDefaults(defineProps<{
   title: string;
   description: string;
   badgeText?: string;
-  useDivider?: boolean;
 }>(), {
-  badgeText: 'DOCUMENTATION',
-  useDivider: true
+  badgeText: 'DOCUMENTATION'
 });
 </script>
 
@@ -38,5 +33,27 @@ withDefaults(defineProps<{
 
 :deep(.prose ol) {
   padding-left: 1.75rem;
+}
+
+/* Enhanced prose styling for better hierarchy */
+:deep(.prose h2) {
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:deep(.prose h3) {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+:deep(.prose p) {
+  margin-bottom: 1.5rem;
+  line-height: 1.75;
+}
+
+:deep(.prose li) {
+  margin-bottom: 0.5rem;
 }
 </style> 

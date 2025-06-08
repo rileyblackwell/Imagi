@@ -4,23 +4,23 @@
       <!-- Categories -->
       <div class="p-4">
         <div v-for="category in navigation" :key="category.title" class="mb-6">
-          <div class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3" v-if="!isSidebarCollapsed">
+          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3" v-if="!isSidebarCollapsed">
             {{ category.title }}
           </div>
-          <ul class="space-y-2">
+          <ul class="space-y-1">
             <li v-for="item in category.items" :key="item.title">
               <router-link
                 :to="item.to"
-                class="block px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                class="group block px-3 py-2 rounded-xl transition-all duration-200 cursor-pointer"
                 :class="[
                   isActiveRoute(item.to) 
-                    ? 'bg-primary-500/20 text-primary-400' 
-                    : 'hover:bg-dark-800 text-gray-300 hover:text-white'
+                    ? 'bg-gradient-to-r from-indigo-500/20 to-violet-500/20 text-indigo-300 border border-indigo-400/20' 
+                    : 'hover:bg-white/5 text-gray-300 hover:text-white border border-transparent hover:border-white/10'
                 ]"
               >
                 <div class="flex items-center">
-                  <i :class="[item.icon, isSidebarCollapsed ? '' : 'mr-3', 'w-5 text-center']"></i>
-                  <span v-if="!isSidebarCollapsed">{{ item.title }}</span>
+                  <i :class="[item.icon, isSidebarCollapsed ? '' : 'mr-3', 'w-4 text-center text-sm']"></i>
+                  <span v-if="!isSidebarCollapsed" class="text-sm font-medium">{{ item.title }}</span>
                 </div>
               </router-link>
             </li>
@@ -34,9 +34,22 @@
       <DocsNavbar />
     </template>
     
-    <!-- Main Content -->
-    <div class="p-4 md:p-8 lg:p-10 docs-content">
-      <slot></slot>
+    <!-- Main Content with enhanced background -->
+    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
+      <!-- Enhanced Background Effects -->
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/5 via-dark-900 to-violet-950/5"></div>
+        
+        <!-- Subtle floating orbs -->
+        <div class="absolute top-[20%] right-[10%] w-[600px] h-[600px] rounded-full bg-indigo-600/3 blur-[120px] animate-pulse-slow"></div>
+        <div class="absolute bottom-[30%] left-[15%] w-[400px] h-[400px] rounded-full bg-violet-600/3 blur-[100px] animate-pulse-slow animation-delay-150"></div>
+      </div>
+      
+      <!-- Content with better spacing -->
+      <div class="relative z-10 p-6 md:p-8 lg:p-12 docs-content">
+        <slot></slot>
+      </div>
     </div>
   </DashboardLayout>
 </template>
@@ -48,8 +61,6 @@ import DocsNavbar from '../components/molecules/navbars/DocsNavbar.vue'
 
 const route = useRoute()
 const router = useRouter()
-
-
 
 // Navigation structure
 const navigation = [
@@ -115,15 +126,29 @@ const isActiveRoute = (path) => {
   background-color: theme('colors.gray.600');
 }
 
+/* Float animation for background orbs */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
 /* Global styles for documentation content */
 .docs-content :deep(a) {
   text-decoration: none;
-  color: theme('colors.primary.400');
+  color: theme('colors.indigo.400');
   transition: color 0.2s;
 }
 
 .docs-content :deep(a:hover) {
-  color: theme('colors.primary.300');
+  color: theme('colors.indigo.300');
 }
 
 /* Fix for Tailwind prose default styling of links */
@@ -133,6 +158,40 @@ const isActiveRoute = (path) => {
 }
 
 .docs-content :deep(.prose a:hover) {
-  color: theme('colors.primary.300');
+  color: theme('colors.indigo.300');
+}
+
+/* Enhanced prose styling for better readability */
+.docs-content :deep(.prose) {
+  color: theme('colors.gray.300');
+}
+
+.docs-content :deep(.prose h1),
+.docs-content :deep(.prose h2),
+.docs-content :deep(.prose h3),
+.docs-content :deep(.prose h4) {
+  color: theme('colors.white');
+}
+
+.docs-content :deep(.prose code) {
+  background-color: theme('colors.dark.800');
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: theme('colors.indigo.300');
+}
+
+.docs-content :deep(.prose pre) {
+  background-color: theme('colors.dark.900');
+  border: 1px solid theme('colors.white' / 0.1);
+  border-radius: 0.75rem;
+}
+
+.docs-content :deep(.prose blockquote) {
+  border-left: 4px solid theme('colors.indigo.500');
+  background-color: theme('colors.indigo.500' / 0.05);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
 }
 </style> 

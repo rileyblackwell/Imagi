@@ -1,23 +1,31 @@
 <template>
   <DocsCard color-variant="primary">
     <DocsCardHeader :title="title" :icon="icon" />
-    <p class="mb-4">
+    <p class="text-gray-300 mb-6 leading-relaxed">
       {{ description }}
     </p>
+    
+    <!-- Modern separator -->
+    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+    
+    <!-- Updated button to match QuickStart create project style -->
     <router-link 
       :to="buttonLink" 
-      class="relative group inline-flex items-center justify-center"
+      class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 group"
     >
-      <!-- Blurred gradient background -->
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-violet-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
-      
-      <!-- Button content -->
-      <div class="relative flex items-center justify-center px-6 py-3 bg-dark-900 rounded-xl transition-all duration-300">
-        <i :class="[buttonIcon, 'mr-2 text-primary-400 group-hover:text-primary-300']"></i>
-        <span class="font-medium text-white">{{ buttonText }}</span>
-        <i class="fas fa-arrow-right ml-2 text-primary-400 group-hover:text-primary-300 group-hover:translate-x-0.5 transition-transform duration-300"></i>
-      </div>
+      <i :class="buttonIcon" class="mr-2.5 text-base transition-colors duration-300"></i>
+      {{ buttonText }}
+      <svg class="w-4 h-4 ml-2.5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+      </svg>
     </router-link>
+    
+    <p class="text-xs text-gray-500 mt-4 text-center leading-relaxed">
+      <svg class="w-3 h-3 inline mr-1.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+      </svg>
+      Start building in minutes, not months
+    </p>
   </DocsCard>
 </template>
 
@@ -37,7 +45,7 @@ withDefaults(defineProps<{
   description: 'Follow our step-by-step guide to create your first project and see Imagi Oasis in action.',
   buttonText: 'Quick Start Guide',
   buttonLink: '/docs/quickstart',
-  buttonIcon: 'fas fa-rocket'
+  buttonIcon: 'fas fa-arrow-right'
 });
 </script>
 

@@ -1,337 +1,346 @@
 <template>
   <DocsLayout>
-    <div class="max-w-4xl mx-auto">
-      <!-- Page header with attractive styling -->
-      <div class="mb-10">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">DOCUMENTATION</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-          Backend Basics
-        </h1>
-        <p class="text-xl text-gray-300 leading-relaxed">
-          Understanding how data and business logic work in your Imagi Oasis application.
+    <DocsContentWrapper
+      title="Adding Backend Logic"
+      description="Understanding how data and business logic work in your Imagi Oasis application."
+      badge-text="BACKEND GUIDE"
+    >
+      <!-- Introduction -->
+      <DocsCard color-variant="primary">
+        <DocsCardHeader title="What is a Backend?" icon="fas fa-server" color="primary" />
+        <p class="text-gray-300 leading-relaxed mb-4">
+          Think of your application as having two main parts:
         </p>
-      </div>
-
-      <!-- Attractive divider -->
-      <div class="relative h-16 mb-10">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
-      <!-- Main content -->
-      <div class="prose prose-invert prose-lg max-w-none">
-        <!-- Introduction -->
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-8 mb-8">
-          <h2 class="text-2xl font-bold text-white mb-4">What is a Backend?</h2>
-          <p class="text-gray-300">
-            Think of your application as having two main parts:
-          </p>
-          <ul class="space-y-2 mt-4">
-            <li class="flex items-start">
-              <div class="flex-shrink-0 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center mr-3 mt-1">
-                <i class="fas fa-desktop text-primary-400 text-xs"></i>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div class="flex items-center mb-3">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-400/20 to-indigo-400/20 border border-primary-400/20 flex items-center justify-center mr-3">
+                <i class="fas fa-desktop text-primary-300 text-sm"></i>
               </div>
-              <div>
-                <span><strong>Frontend</strong>: What users see and interact with (buttons, forms, pages)</span>
-              </div>
-            </li>
-            <li class="flex items-start">
-              <div class="flex-shrink-0 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center mr-3 mt-1">
-                <i class="fas fa-server text-primary-400 text-xs"></i>
-              </div>
-              <div>
-                <span><strong>Backend</strong>: Where data is stored and processed (like the engine under a car's hood)</span>
-              </div>
-            </li>
-          </ul>
-          <p class="text-gray-300 mt-4">
-            With Imagi Oasis, you don't need to write code for your backend. Instead, you describe what you want your application to do, and Imagi creates both the frontend and backend for you.
-          </p>
-        </div>
-
-        <!-- Section 1: Data Models -->
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-8 my-8 relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-primary-500 to-violet-500"></div>
-          <div class="pl-4">
-            <h2 class="text-2xl font-bold text-white mb-4">1. Understanding Data Models</h2>
-            <p class="text-gray-300">
-              Data models are the blueprints for how information is organized in your application. They define what types of information you'll store and how different pieces of data relate to each other.
-            </p>
-            <div class="mt-6 bg-dark-800/70 p-6 rounded-lg">
-              <h4 class="text-primary-400 font-medium mb-4">Example: Task Management App</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-dark-700/50 p-4 rounded-lg border border-dark-600/50">
-                  <h5 class="text-white font-medium mb-2 flex items-center">
-                    <div class="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center mr-2">
-                      <i class="fas fa-user text-primary-400 text-xs"></i>
-                    </div>
-                    User Model
-                  </h5>
-                  <p class="text-sm text-gray-300 mb-2">Stores information about your users</p>
-                  <ul class="text-sm text-gray-400 space-y-1">
-                    <li>• Name</li>
-                    <li>• Email</li>
-                    <li>• Password (securely stored)</li>
-                    <li>• Profile picture</li>
-                  </ul>
-                </div>
-                <div class="bg-dark-700/50 p-4 rounded-lg border border-dark-600/50">
-                  <h5 class="text-white font-medium mb-2 flex items-center">
-                    <div class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mr-2">
-                      <i class="fas fa-th-list text-blue-400 text-xs"></i>
-                    </div>
-                    Project Model
-                  </h5>
-                  <p class="text-sm text-gray-300 mb-2">Groups related tasks together</p>
-                  <ul class="text-sm text-gray-400 space-y-1">
-                    <li>• Title</li>
-                    <li>• Description</li>
-                    <li>• Created date</li>
-                    <li>• Owner (connects to User)</li>
-                  </ul>
-                </div>
-                <div class="bg-dark-700/50 p-4 rounded-lg border border-dark-600/50">
-                  <h5 class="text-white font-medium mb-2 flex items-center">
-                    <div class="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mr-2">
-                      <i class="fas fa-tasks text-green-400 text-xs"></i>
-                    </div>
-                    Task Model
-                  </h5>
-                  <p class="text-sm text-gray-300 mb-2">Individual tasks to be completed</p>
-                  <ul class="text-sm text-gray-400 space-y-1">
-                    <li>• Title</li>
-                    <li>• Description</li>
-                    <li>• Due date</li>
-                    <li>• Status (New, In Progress, Complete)</li>
-                    <li>• Priority (Low, Medium, High)</li>
-                    <li>• Project (connects to Project)</li>
-                    <li>• Assigned to (connects to User)</li>
-                  </ul>
-                </div>
-                <div class="bg-dark-700/50 p-4 rounded-lg border border-dark-600/50">
-                  <h5 class="text-white font-medium mb-2 flex items-center">
-                    <div class="w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center mr-2">
-                      <i class="fas fa-comment text-yellow-400 text-xs"></i>
-                    </div>
-                    Comment Model
-                  </h5>
-                  <p class="text-sm text-gray-300 mb-2">Discussion about specific tasks</p>
-                  <ul class="text-sm text-gray-400 space-y-1">
-                    <li>• Content</li>
-                    <li>• Created date</li>
-                    <li>• Author (connects to User)</li>
-                    <li>• Task (connects to Task)</li>
-                  </ul>
-                </div>
-              </div>
+              <h4 class="text-white font-semibold">Frontend</h4>
             </div>
-            <div class="mt-6 bg-primary-500/10 border border-primary-500/20 rounded-lg p-4">
-              <h4 class="text-primary-400 mt-0 mb-2 flex items-center text-base font-medium">
-                <i class="fas fa-lightbulb mr-2"></i>
-                How to describe your data models to Imagi
-              </h4>
-              <p class="text-gray-300 text-sm mb-0">
-                When creating your application, clearly describe what information you need to store and how different types of data relate to each other. For example: "I need to store users who can create multiple projects. Each project can have many tasks, and tasks can have comments from users."
-              </p>
+            <p class="text-gray-300 text-sm leading-relaxed">What users see and interact with (buttons, forms, pages)</p>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div class="flex items-center mb-3">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center mr-3">
+                <i class="fas fa-server text-blue-300 text-sm"></i>
+              </div>
+              <h4 class="text-white font-semibold">Backend</h4>
+            </div>
+            <p class="text-gray-300 text-sm leading-relaxed">Where data is stored and processed (like the engine under a car's hood)</p>
+          </div>
+        </div>
+        <p class="text-gray-300 leading-relaxed mt-4">
+          With Imagi Oasis, you don't need to write code for your backend. Instead, you describe what you want your application to do, and Imagi creates both the frontend and backend for you.
+        </p>
+      </DocsCard>
+
+      <!-- Data Models Section -->
+      <DocsCard color-variant="violet">
+        <DocsCardHeader title="Understanding Data Models" icon="fas fa-database" color="violet" />
+        <p class="text-gray-300 leading-relaxed mb-6">
+          Data models are the blueprints for how information is organized in your application. They define what types of information you'll store and how different pieces of data relate to each other.
+        </p>
+        
+        <div class="bg-gradient-to-r from-violet-400/8 to-purple-400/8 rounded-2xl p-6 border border-violet-400/15 mb-6">
+          <h4 class="text-violet-300 font-semibold text-lg mb-4 flex items-center">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center mr-3">
+              <i class="fas fa-tasks text-violet-300 text-sm"></i>
+            </div>
+            Example: Task Management App
+          </h4>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+              <div class="flex items-center mb-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-primary-400/20 to-indigo-400/20 border border-primary-400/20 flex items-center justify-center mr-2">
+                  <i class="fas fa-user text-primary-300 text-xs"></i>
+                </div>
+                <h5 class="text-white font-medium text-sm">User Model</h5>
+              </div>
+              <p class="text-gray-300 text-xs mb-2">Stores information about your users</p>
+              <ul class="space-y-1">
+                <DocsListItem icon="fas fa-circle" color="primary" size="xs">Name</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="primary" size="xs">Email</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="primary" size="xs">Password (securely stored)</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="primary" size="xs">Profile picture</DocsListItem>
+              </ul>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+              <div class="flex items-center mb-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center mr-2">
+                  <i class="fas fa-th-list text-blue-300 text-xs"></i>
+                </div>
+                <h5 class="text-white font-medium text-sm">Project Model</h5>
+              </div>
+              <p class="text-gray-300 text-xs mb-2">Groups related tasks together</p>
+              <ul class="space-y-1">
+                <DocsListItem icon="fas fa-circle" color="blue" size="xs">Title</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="blue" size="xs">Description</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="blue" size="xs">Created date</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="blue" size="xs">Owner (connects to User)</DocsListItem>
+              </ul>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+              <div class="flex items-center mb-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-green-400/20 to-emerald-400/20 border border-green-400/20 flex items-center justify-center mr-2">
+                  <i class="fas fa-tasks text-green-300 text-xs"></i>
+                </div>
+                <h5 class="text-white font-medium text-sm">Task Model</h5>
+              </div>
+              <p class="text-gray-300 text-xs mb-2">Individual tasks to be completed</p>
+              <ul class="space-y-1">
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Title</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Description</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Due date</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Status (New, In Progress, Complete)</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Priority (Low, Medium, High)</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Project (connects to Project)</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="emerald" size="xs">Assigned to (connects to User)</DocsListItem>
+              </ul>
+            </div>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+              <div class="flex items-center mb-3">
+                <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-yellow-400/20 to-orange-400/20 border border-yellow-400/20 flex items-center justify-center mr-2">
+                  <i class="fas fa-comment text-yellow-300 text-xs"></i>
+                </div>
+                <h5 class="text-white font-medium text-sm">Comment Model</h5>
+              </div>
+              <p class="text-gray-300 text-xs mb-2">Discussion about specific tasks</p>
+              <ul class="space-y-1">
+                <DocsListItem icon="fas fa-circle" color="yellow" size="xs">Content</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="yellow" size="xs">Created date</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="yellow" size="xs">Author (connects to User)</DocsListItem>
+                <DocsListItem icon="fas fa-circle" color="yellow" size="xs">Task (connects to Task)</DocsListItem>
+              </ul>
             </div>
           </div>
         </div>
+        
+        <div class="bg-gradient-to-r from-primary-400/8 to-indigo-400/8 rounded-2xl p-4 border border-primary-400/15">
+          <h4 class="text-primary-300 font-medium mb-2 flex items-center">
+            <i class="fas fa-lightbulb mr-2"></i>
+            How to describe your data models to Imagi
+          </h4>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            When creating your application, clearly describe what information you need to store and how different types of data relate to each other. For example: "I need to store users who can create multiple projects. Each project can have many tasks, and tasks can have comments from users."
+          </p>
+        </div>
+      </DocsCard>
 
-        <!-- Section 2: Business Logic -->
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-8 my-8 relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-500 to-sky-500"></div>
-          <div class="pl-4">
-            <h2 class="text-2xl font-bold text-white mb-4">2. Business Logic & App Behavior</h2>
-            <p class="text-gray-300">
-              Business logic defines how your application behaves - what happens when users perform certain actions. Imagi can create this logic based on your descriptions.
-            </p>
-            <div class="mt-6 space-y-6">
-              <div class="bg-dark-800/50 p-5 rounded-lg border border-dark-700">
-                <h4 class="text-white font-medium mb-3 flex items-center">
-                  <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-3">
-                    <i class="fas fa-shield-alt text-blue-400 text-sm"></i>
-                  </div>
-                  Authentication & Authorization
-                </h4>
-                <p class="text-gray-300 text-sm">
+      <!-- Business Logic Section -->
+      <DocsCard color-variant="blue">
+        <DocsCardHeader title="Business Logic & App Behavior" icon="fas fa-cogs" color="blue" />
+        <p class="text-gray-300 leading-relaxed mb-6">
+          Business logic defines how your application behaves - what happens when users perform certain actions. Imagi can create this logic based on your descriptions.
+        </p>
+        
+        <div class="space-y-4">
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-shield-alt text-blue-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-semibold mb-2">Authentication & Authorization</h4>
+                <p class="text-gray-300 text-sm mb-3">
                   Controls who can access your application and what they can do:
                 </p>
-                <ul class="text-sm text-gray-400 space-y-1 mt-2">
-                  <li>• Sign up, login, and logout</li>
-                  <li>• Password reset functionality</li>
-                  <li>• Role-based permissions (admin, regular user, etc.)</li>
-                  <li>• Limiting access to certain features based on user role</li>
+                <ul class="space-y-2">
+                  <DocsListItem icon="fas fa-arrow-right" color="blue" size="sm">Sign up, login, and logout</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="blue" size="sm">Password reset functionality</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="blue" size="sm">Role-based permissions (admin, regular user, etc.)</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="blue" size="sm">Limiting access to certain features based on user role</DocsListItem>
                 </ul>
-                <div class="mt-3 text-sm">
-                  <strong class="text-blue-400">Example request:</strong> "Users should be able to register and log in. Only project owners should be able to delete their projects."
+                <div class="mt-3 p-3 bg-blue-500/10 border border-blue-400/20 rounded-lg">
+                  <p class="text-blue-300 text-sm font-medium">Example request:</p>
+                  <p class="text-gray-300 text-sm mt-1">"Users should be able to register and log in. Only project owners should be able to delete their projects."</p>
                 </div>
               </div>
-              
-              <div class="bg-dark-800/50 p-5 rounded-lg border border-dark-700">
-                <h4 class="text-white font-medium mb-3 flex items-center">
-                  <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center mr-3">
-                    <i class="fas fa-cogs text-green-400 text-sm"></i>
-                  </div>
-                  Data Operations
-                </h4>
-                <p class="text-gray-300 text-sm">
+            </div>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400/20 to-emerald-400/20 border border-green-400/20 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-cogs text-green-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-semibold mb-2">Data Operations</h4>
+                <p class="text-gray-300 text-sm mb-3">
                   Defines how data can be created, read, updated, and deleted (CRUD):
                 </p>
-                <ul class="text-sm text-gray-400 space-y-1 mt-2">
-                  <li>• Creating new records (e.g., adding a new task)</li>
-                  <li>• Viewing existing data (e.g., listing all projects)</li>
-                  <li>• Updating information (e.g., marking a task complete)</li>
-                  <li>• Deleting records (e.g., removing a project)</li>
+                <ul class="space-y-2">
+                  <DocsListItem icon="fas fa-arrow-right" color="emerald" size="sm">Creating new records (e.g., adding a new task)</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="emerald" size="sm">Viewing existing data (e.g., listing all projects)</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="emerald" size="sm">Updating information (e.g., marking a task complete)</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="emerald" size="sm">Deleting records (e.g., removing a project)</DocsListItem>
                 </ul>
-                <div class="mt-3 text-sm">
-                  <strong class="text-green-400">Example request:</strong> "Users should be able to create, view, edit, and delete tasks. When a task is marked complete, its completion date should be automatically recorded."
+                <div class="mt-3 p-3 bg-green-500/10 border border-green-400/20 rounded-lg">
+                  <p class="text-green-300 text-sm font-medium">Example request:</p>
+                  <p class="text-gray-300 text-sm mt-1">"Users should be able to create, view, edit, and delete tasks. When a task is marked complete, its completion date should be automatically recorded."</p>
                 </div>
               </div>
-              
-              <div class="bg-dark-800/50 p-5 rounded-lg border border-dark-700">
-                <h4 class="text-white font-medium mb-3 flex items-center">
-                  <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center mr-3">
-                    <i class="fas fa-filter text-yellow-400 text-sm"></i>
-                  </div>
-                  Filtering & Search
-                </h4>
-                <p class="text-gray-300 text-sm">
+            </div>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400/20 to-orange-400/20 border border-yellow-400/20 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-filter text-yellow-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-semibold mb-2">Filtering & Search</h4>
+                <p class="text-gray-300 text-sm mb-3">
                   Helps users find specific information in your app:
                 </p>
-                <ul class="text-sm text-gray-400 space-y-1 mt-2">
-                  <li>• Searching by keywords or phrases</li>
-                  <li>• Filtering based on properties (e.g., tasks due today)</li>
-                  <li>• Sorting information (e.g., newest first)</li>
+                <ul class="space-y-2">
+                  <DocsListItem icon="fas fa-arrow-right" color="yellow" size="sm">Searching by keywords or phrases</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="yellow" size="sm">Filtering based on properties (e.g., tasks due today)</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="yellow" size="sm">Sorting information (e.g., newest first)</DocsListItem>
                 </ul>
-                <div class="mt-3 text-sm">
-                  <strong class="text-yellow-400">Example request:</strong> "Users should be able to search for tasks by title or description. They should also be able to filter tasks by status (complete/incomplete) and due date."
+                <div class="mt-3 p-3 bg-yellow-500/10 border border-yellow-400/20 rounded-lg">
+                  <p class="text-yellow-300 text-sm font-medium">Example request:</p>
+                  <p class="text-gray-300 text-sm mt-1">"Users should be able to search for tasks by title or description. They should also be able to filter tasks by status (complete/incomplete) and due date."</p>
                 </div>
               </div>
-              
-              <div class="bg-dark-800/50 p-5 rounded-lg border border-dark-700">
-                <h4 class="text-white font-medium mb-3 flex items-center">
-                  <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center mr-3">
-                    <i class="fas fa-bell text-purple-400 text-sm"></i>
-                  </div>
-                  Notifications & Events
-                </h4>
-                <p class="text-gray-300 text-sm">
+            </div>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400/20 to-violet-400/20 border border-purple-400/20 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-bell text-purple-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-white font-semibold mb-2">Notifications & Events</h4>
+                <p class="text-gray-300 text-sm mb-3">
                   Automates communication in your app:
                 </p>
-                <ul class="text-sm text-gray-400 space-y-1 mt-2">
-                  <li>• Email notifications for important events</li>
-                  <li>• In-app notifications and alerts</li>
-                  <li>• Scheduled reminders (e.g., for approaching due dates)</li>
+                <ul class="space-y-2">
+                  <DocsListItem icon="fas fa-arrow-right" color="purple" size="sm">Email notifications for important events</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="purple" size="sm">In-app notifications and alerts</DocsListItem>
+                  <DocsListItem icon="fas fa-arrow-right" color="purple" size="sm">Scheduled reminders (e.g., for approaching due dates)</DocsListItem>
                 </ul>
-                <div class="mt-3 text-sm">
-                  <strong class="text-purple-400">Example request:</strong> "Send email notifications when tasks are assigned to users. Send reminder notifications one day before a task is due."
+                <div class="mt-3 p-3 bg-purple-500/10 border border-purple-400/20 rounded-lg">
+                  <p class="text-purple-300 text-sm font-medium">Example request:</p>
+                  <p class="text-gray-300 text-sm mt-1">"Send email notifications when tasks are assigned to users. Send reminder notifications one day before a task is due."</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </DocsCard>
 
-        <!-- Section 3: Backend Tips -->
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-8 my-8 relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-purple-500 to-violet-500"></div>
-          <div class="pl-4">
-            <h2 class="text-2xl font-bold text-white mb-4">3. Tips for Designing Your Backend</h2>
-            
-            <ul class="space-y-4 mt-4">
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center mr-3 mt-1">
-                  <i class="fas fa-sitemap text-purple-400 text-xs"></i>
-                </div>
-                <div>
-                  <strong class="text-white">Plan your data relationships</strong>
-                  <p class="text-gray-300 text-sm mt-1">
-                    Think about how different types of data in your app relate to each other. For example, does each task belong to exactly one project, or can it belong to multiple projects?
-                  </p>
-                </div>
-              </li>
-              
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center mr-3 mt-1">
-                  <i class="fas fa-lock text-purple-400 text-xs"></i>
-                </div>
-                <div>
-                  <strong class="text-white">Consider privacy and permissions</strong>
-                  <p class="text-gray-300 text-sm mt-1">
-                    Decide who should be able to see and modify different types of data. Be clear about this when describing your application to Imagi.
-                  </p>
-                </div>
-              </li>
-              
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center mr-3 mt-1">
-                  <i class="fas fa-calendar-alt text-purple-400 text-xs"></i>
-                </div>
-                <div>
-                  <strong class="text-white">Think about time-based operations</strong>
-                  <p class="text-gray-300 text-sm mt-1">
-                    Consider if your app needs any time-based functionality like scheduling, reminders, or displaying "recently added" items.
-                  </p>
-                </div>
-              </li>
-              
-              <li class="flex items-start">
-                <div class="flex-shrink-0 w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center mr-3 mt-1">
-                  <i class="fas fa-search text-purple-400 text-xs"></i>
-                </div>
-                <div>
-                  <strong class="text-white">Prioritize searchability</strong>
-                  <p class="text-gray-300 text-sm mt-1">
-                    Think about how users will find information in your application. Specify which fields should be searchable or filterable.
-                  </p>
-                </div>
-              </li>
-            </ul>
+      <!-- Backend Design Tips -->
+      <DocsCard color-variant="cyan">
+        <DocsCardHeader title="Tips for Designing Your Backend" icon="fas fa-lightbulb" color="cyan" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i class="fas fa-sitemap text-cyan-300 text-sm"></i>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold text-sm">Plan your data relationships</h4>
+              </div>
+            </div>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Think about how different types of data in your app relate to each other. For example, does each task belong to exactly one project, or can it belong to multiple projects?
+            </p>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-blue-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i class="fas fa-lock text-blue-300 text-sm"></i>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold text-sm">Consider privacy and permissions</h4>
+              </div>
+            </div>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Decide who should be able to see and modify different types of data. Be clear about this when describing your application to Imagi.
+            </p>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i class="fas fa-calendar-alt text-violet-300 text-sm"></i>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold text-sm">Think about time-based operations</h4>
+              </div>
+            </div>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Consider if your app needs any time-based functionality like scheduling, reminders, or displaying "recently added" items.
+            </p>
+          </div>
+          
+          <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400/20 to-green-400/20 border border-emerald-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i class="fas fa-search text-emerald-300 text-sm"></i>
+              </div>
+              <div>
+                <h4 class="text-white font-semibold text-sm">Prioritize searchability</h4>
+              </div>
+            </div>
+            <p class="text-gray-300 text-xs leading-relaxed">
+              Think about how users will find information in your application. Specify which fields should be searchable or filterable.
+            </p>
           </div>
         </div>
+      </DocsCard>
 
-        <!-- What's Next -->
-        <h2>What's Next?</h2>
-        <p>
+      <!-- What's Next Navigation -->
+      <DocsCard>
+        <DocsCardHeader title="What's Next?" icon="fas fa-arrow-right" />
+        <p class="text-gray-300 leading-relaxed mb-6">
           Now that you understand backend basics, explore these related resources:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <router-link 
             to="/docs/project-structure" 
-            class="block p-4 bg-dark-900/50 border border-dark-800 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 mr-4 mb-4"
           >
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                <i class="fas fa-sitemap text-xl text-primary-400"></i>
-              </div>
-              <div>
-                <h3 class="text-white group-hover:text-primary-400 transition-colors font-medium text-lg">Project Structure</h3>
-                <p class="text-gray-400 text-sm">Understand how your application is organized</p>
-              </div>
-            </div>
+            <i class="fas fa-sitemap mr-2 text-sm"></i>
+            Project Structure
           </router-link>
+          
           <router-link 
             to="/docs/deployment" 
-            class="block p-4 bg-dark-900/50 border border-dark-800 hover:border-primary-500/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 mb-4"
           >
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500/20 to-violet-500/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-primary-500/20">
-                <i class="fas fa-cloud-upload-alt text-xl text-primary-400"></i>
-              </div>
-              <div>
-                <h3 class="text-white group-hover:text-primary-400 transition-colors font-medium text-lg">Deployment Guide</h3>
-                <p class="text-gray-400 text-sm">Learn how to take your application live</p>
-              </div>
-            </div>
+            <i class="fas fa-cloud-upload-alt mr-2 text-sm"></i>
+            Deployment Guide
           </router-link>
         </div>
-      </div>
-    </div>
+      </DocsCard>
+
+      <!-- CTA Section -->
+      <DocsCTASection 
+        title="Ready to Build Your Backend?" 
+        icon="fas fa-server" 
+        description="Start creating your backend logic with clear descriptions and let Imagi handle the implementation."
+        buttonText="Create a Project"
+        buttonLink="/products/oasis/builder/dashboard"
+        buttonIcon="fas fa-plus-circle"
+      />
+    </DocsContentWrapper>
   </DocsLayout>
 </template>
 
 <script setup>
 import DocsLayout from '../layouts/DocsLayout.vue'
+import { DocsContentWrapper, DocsCard, DocsCardHeader, DocsListItem, DocsCTASection } from '../components'
 </script>
 
 <style scoped>
