@@ -28,10 +28,9 @@ function safeDecodeMiddleware(req: any, res: any, next: any) {
 }
 
 // Set base path depending on environment
-// '/' for development, '/products/oasis/builder/' for production deploys (e.g., on Railway)
-// Force base path to '/' in development, regardless of env vars or CLI flags
-// Only use '/products/oasis/builder/' in production deploys
-const BASE_PATH = process.env.NODE_ENV === 'production' ? '/products/oasis/builder/' : '/';
+// Use '/' for both development and production unless specifically deploying to a subdirectory
+// If you need to deploy to a subdirectory, set VITE_BASE_PATH environment variable
+const BASE_PATH = process.env.VITE_BASE_PATH || '/';
 
 export default defineConfig({
   base: BASE_PATH,
