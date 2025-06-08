@@ -1,5 +1,34 @@
 <template>
-  <DashboardLayout :navigationItems="navigationItems">
+  <DashboardLayout>
+    <!-- Custom Sidebar Content with docs-style design -->
+    <template #sidebar-content="{ isSidebarCollapsed }">
+      <div class="p-4">
+        <div class="mb-6">
+          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3" v-if="!isSidebarCollapsed">
+            Navigation
+          </div>
+          <ul class="space-y-1">
+            <li v-for="item in navigationItems" :key="item.name">
+              <router-link
+                :to="item.to"
+                class="group block px-3 py-2 rounded-xl transition-all duration-200 cursor-pointer"
+                :class="[
+                  isActiveRoute(item.to, item.exact) 
+                    ? 'bg-gradient-to-r from-indigo-500/20 to-violet-500/20 text-indigo-300 border border-indigo-400/20' 
+                    : 'hover:bg-white/5 text-gray-300 hover:text-white border border-transparent hover:border-white/10'
+                ]"
+              >
+                <div class="flex items-center">
+                  <i :class="[item.icon, isSidebarCollapsed ? '' : 'mr-3', 'w-4 text-center text-sm']"></i>
+                  <span v-if="!isSidebarCollapsed" class="text-sm font-medium">{{ item.name }}</span>
+                </div>
+              </router-link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </template>
+
     <!-- Enhanced Main Content with Dynamic Background -->
     <div class="min-h-screen bg-dark-950 relative overflow-hidden">
       <!-- Improved Decorative Background Elements -->
@@ -445,7 +474,7 @@ function mapRequestType(type) {
 }
 
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import { useAuthStore } from '@/apps/auth/stores'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
@@ -453,6 +482,8 @@ import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { useNotification } from '@/shared/composables/useNotification'
 
 // Store initialization
+const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const projectStore = useProjectStore()
 const paymentsStore = usePaymentStore()
@@ -515,6 +546,14 @@ const resourceLinks = [
   { title: 'Community', icon: 'fas fa-users', url: 'https://discord.gg/imagioasis', description: 'Join our Discord community' }
 ]
 
+// Check if a route is active (exact match or starts with path for nested routes)
+const isActiveRoute = (path, exact) => {
+  if (exact) {
+    return route.path === path
+  }
+  return route.path.startsWith(path)
+}
+
 // Format date helper
 function formatDate(date) {
   return new Intl.DateTimeFormat('en-US', {
@@ -526,7 +565,6 @@ function formatDate(date) {
 }
 
 // Add navigation method
-const router = useRouter()
 const goToProject = (id) => {
   router.push({
     name: 'builder-workspace',
@@ -539,8 +577,6 @@ const goToProject = (id) => {
     })
   })
 }
-
-
 
 // Enhanced data fetching
 async function fetchDashboardData() {
