@@ -254,7 +254,8 @@ const filteredTransactions = computed(() => {
     return sortOrder.value === 'desc' ? dateB - dateA : dateA - dateB
   })
   
-  return filtered
+  // Limit to 10 most recent transactions
+  return filtered.slice(0, 10)
 })
 
 // Computed statistics
