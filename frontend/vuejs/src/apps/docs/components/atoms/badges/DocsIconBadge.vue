@@ -28,7 +28,7 @@ const getIconContainerClass = (color: string) => {
     green: 'bg-gradient-to-br from-emerald-400/20 to-green-400/20 border-emerald-400/20',
     purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
     cyan: 'bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border-cyan-400/20',
-  }
+  } as Record<string, string>
   return classes[color] || classes.primary
 }
 
@@ -40,7 +40,7 @@ const getIconClass = (color: string) => {
     green: 'text-emerald-300',
     purple: 'text-purple-300',
     cyan: 'text-cyan-300',
-  }
+  } as Record<string, string>
   return classes[color] || classes.primary
 }
 </script>

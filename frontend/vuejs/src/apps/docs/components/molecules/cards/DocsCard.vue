@@ -33,7 +33,7 @@ const getHeaderGradientClass = (color: string) => {
     violet: 'bg-gradient-to-r from-violet-400 via-purple-400 to-violet-400 opacity-80',
     blue: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-80',
     cyan: 'bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 opacity-80',
-  }
+  } as Record<string, string>
   return classes[color] || classes.default
 }
 
@@ -44,7 +44,7 @@ const getCardBackgroundClass = (color: string) => {
     violet: 'bg-gradient-to-br from-violet-400/4 to-purple-400/4',
     blue: 'bg-gradient-to-br from-blue-400/4 to-cyan-400/4',
     cyan: 'bg-gradient-to-br from-cyan-400/4 to-blue-400/4',
-  }
+  } as Record<string, string>
   return classes[color] || classes.default
 }
 </script> 
