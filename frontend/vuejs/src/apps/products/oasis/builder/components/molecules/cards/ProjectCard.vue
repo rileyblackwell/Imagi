@@ -1,91 +1,92 @@
 <template>
   <div class="group relative transform transition-all duration-300">
-    <!-- Card Container with removed hover effects -->  
     <!-- New Project Card -->
     <div v-if="isNew" class="relative">
-      
-      <!-- Card content with sleeker styling - matching project library container -->
-      <div class="relative bg-dark-900/80 backdrop-blur-lg rounded-2xl overflow-hidden h-full border border-dark-800/60 shadow-lg shadow-dark-900/20 transition-all duration-300">
-        <!-- Card header with gradient -->
-        <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+      <!-- Modern glassmorphism container matching dashboard style -->
+      <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full flex flex-col">
+        <!-- Sleek gradient header -->
+        <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
         
-        <!-- Subtle glowing orb effect -->
-        <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-5 blur-3xl transition-opacity duration-500 group-hover:opacity-10 bg-indigo-500"></div>
+        <!-- Subtle background effects -->
+        <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50"></div>
         
-        <div class="p-6 relative z-10">
-          <!-- Enhanced New Project Card Layout -->
-          <div class="flex flex-col space-y-6">
-            <!-- Enhanced header with badge -->
-            <div class="flex items-center justify-between">
-              <div class="inline-block px-4 py-1.5 bg-indigo-500/10 rounded-full">
-                <span class="text-indigo-400 font-semibold text-sm tracking-wider">NEW PROJECT</span>
-              </div>
-              
-              <!-- Icon with animation -->
-              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
-                <i class="fas fa-plus text-indigo-400 text-lg"></i>
-              </div>
+        <!-- Content with reduced padding for slender look -->
+        <div class="flex-1 p-5">
+          <!-- Sleek Header Section -->
+          <div class="relative z-10 mb-5">
+            <!-- Modern pill badge -->
+            <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border border-indigo-400/20 rounded-full mb-3 backdrop-blur-sm">
+              <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
+              <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">New Project</span>
             </div>
             
-            <!-- Enhanced title section -->
-            <div class="text-center">
-              <h3 class="text-2xl font-bold text-white mb-2">Create New Project</h3>
-              <p class="text-gray-300 text-sm mb-4">Build a new web application with AI assistance</p>
-              
-              <!-- Decorative element matching home sections -->
-              <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mx-auto"></div>
+            <!-- Elegant title section -->
+            <div class="relative mb-4 text-center">
+              <h3 class="text-lg font-semibold text-white leading-tight">Create Project</h3>
+              <p class="text-gray-400 text-xs mt-1 leading-relaxed">Build with AI assistance</p>
             </div>
-            
-            <!-- Enhanced Project Name Input with animated focus state -->
+          </div>
+          
+          <!-- Sleek Create Form -->
+          <div class="relative z-10 space-y-3">
+            <!-- Modern Project Name Input -->
             <div class="relative group/input w-full">
-              <label class="block text-sm font-medium text-gray-300 mb-2 ml-1">Project Name</label>
-              <div class="absolute inset-0 mt-7 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-violet-500/12 to-indigo-500/12 rounded-xl blur-sm opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+              
+              <label class="block text-xs font-medium text-gray-400 mb-1.5 ml-0.5 uppercase tracking-wider relative z-10">Project Name</label>
               <input
                 :value="modelValue"
                 @input="(e) => $emit('update:modelValue', (e.target as HTMLInputElement).value)"
                 type="text"
                 placeholder="Enter project name..."
-                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
+                class="relative z-10 w-full px-4 py-2.5 bg-white/5 border border-white/10 focus:border-violet-400/50 hover:border-white/15 rounded-xl text-white placeholder-gray-400 transition-all duration-300 backdrop-blur-sm hover:bg-white/8 focus:bg-white/8 focus:shadow-lg focus:shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                style="outline: none !important; box-shadow: none !important;"
                 :disabled="isLoading"
               >
             </div>
             
-            <!-- Project Description Input -->
+            <!-- Modern Project Description Input -->
             <div class="relative group/input w-full">
-              <label class="block text-sm font-medium text-gray-300 mb-2 ml-1">Project Description <span class="text-gray-500">(optional)</span></label>
-              <div class="absolute inset-0 mt-7 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-violet-500/12 to-indigo-500/12 rounded-xl blur-sm opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+              
+              <label class="block text-xs font-medium text-gray-400 mb-1.5 ml-0.5 uppercase tracking-wider relative z-10">Description <span class="text-gray-500 normal-case">(optional)</span></label>
               <textarea
                 :value="description"
                 @input="(e) => $emit('update:description', (e.target as HTMLTextAreaElement).value)"
-                placeholder="Brief description of your project..."
-                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 resize-none"
+                placeholder="Brief description..."
+                class="relative z-10 w-full px-4 py-2.5 bg-white/5 border border-white/10 focus:border-violet-400/50 hover:border-white/15 rounded-xl text-white placeholder-gray-400 transition-all duration-300 resize-none backdrop-blur-sm hover:bg-white/8 focus:bg-white/8 focus:shadow-lg focus:shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                style="outline: none !important; box-shadow: none !important;"
                 :disabled="isLoading"
-                rows="3"
+                rows="2"
               ></textarea>
             </div>
             
-            <!-- Create Button -->
-            <div class="pt-2">
+            <!-- Sleek Create Button -->
+            <div class="pt-1">
               <button
                 @click="$emit('submit')"
                 :disabled="!modelValue?.trim() || isLoading"
-                class="w-full flex justify-center items-center px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-lg shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+                class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
-                <span class="relative flex items-center">
+                <span class="relative flex items-center justify-center">
                   <template v-if="isLoading">
-                    <i class="fas fa-circle-notch fa-spin mr-2.5"></i>
+                    <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
                     Creating...
                   </template>
                   <template v-else>
-                    <i class="fas fa-magic mr-2.5"></i>
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
                     Create Project
                   </template>
                 </span>
               </button>
               
-              <p class="text-xs text-gray-400 mt-4 text-center">
-                <i class="fas fa-info-circle mr-1"></i>
-                Your project will be created with our recommended starter template
+              <p class="text-xs text-gray-500 mt-2 text-center leading-relaxed">
+                <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                Created with starter template
               </p>
             </div>
           </div>
@@ -94,156 +95,75 @@
     </div>
     
     <!-- Existing Project Card -->
-    <div v-else-if="project && !isNew">
-      
-      <router-link :to="{ name: 'builder-workspace', params: { projectId: project.id.toString() }}" class="block">
-        <div 
-          class="relative bg-dark-900/80 backdrop-blur-lg rounded-2xl overflow-hidden border border-dark-800/60 shadow-lg shadow-dark-900/20 transition-all duration-300 hover:translate-y-[-2px]"
-          >
-          <!-- Card header with gradient - made slightly taller for consistency -->
-          <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
-
-          <!-- Subtle glowing orb effect -->
-          <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-5 blur-3xl transition-opacity duration-500 group-hover:opacity-10 bg-violet-500"></div>
-      
-          <div class="relative z-10 p-6">
-            <template v-if="isNew">
-          <!-- Enhanced New Project Card Layout -->
-          <div class="flex flex-col space-y-6">
-            <!-- Enhanced header with badge -->
-            <div class="flex items-center justify-between">
-              <div class="inline-block px-4 py-1.5 bg-indigo-500/10 rounded-full">
-                <span class="text-indigo-400 font-semibold text-sm tracking-wider">NEW PROJECT</span>
+    <div v-else-if="project && !isNew" class="relative group">
+      <!-- Modern glassmorphism container matching dashboard style -->
+      <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40 transform hover:-translate-y-1">
+        <!-- Sleek gradient header -->
+        <div class="h-1 w-full bg-gradient-to-r from-violet-400 via-indigo-400 to-violet-400 opacity-80"></div>
+        
+        <!-- Subtle background effects -->
+        <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-violet-400/4 to-indigo-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+        
+        <!-- Content with reduced padding for slender look -->
+        <div class="relative z-10 p-5">
+          <!-- Modern project header -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <!-- Modern icon with subtle gradient -->
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400/20 to-indigo-400/20 flex items-center justify-center border border-violet-400/20 flex-shrink-0">
+                <svg class="w-4 h-4 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
               </div>
               
-              <!-- Icon with animation -->
-              <div class="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
-                <i class="fas fa-plus text-indigo-400 text-lg"></i>
-              </div>
-            </div>
-            
-            <!-- Enhanced title section -->
-            <div class="text-center">
-              <h3 class="text-2xl font-bold text-white mb-2">Create New Project</h3>
-              <p class="text-gray-300 text-sm mb-4">Build a new web application with AI assistance</p>
-              
-              <!-- Decorative element matching home sections -->
-              <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mx-auto"></div>
-            </div>
-            
-            <!-- Enhanced Project Name Input with animated focus state -->
-            <div class="relative group/input w-full">
-              <label class="block text-sm font-medium text-gray-300 mb-2 ml-1">Project Name</label>
-              <div class="absolute inset-0 mt-7 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
-              <input
-                :value="modelValue"
-                @input="(e) => $emit('update:modelValue', (e.target as HTMLInputElement).value)"
-                type="text"
-                placeholder="Enter project name..."
-                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200"
-                :disabled="isLoading"
-              >
-            </div>
-            
-            <!-- Project Description Input -->
-            <div class="relative group/input w-full">
-              <label class="block text-sm font-medium text-gray-300 mb-2 ml-1">Project Description <span class="text-gray-500">(optional)</span></label>
-              <div class="absolute inset-0 mt-7 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-lg blur-[2px] opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
-              <textarea
-                :value="description"
-                @input="(e) => $emit('update:description', (e.target as HTMLTextAreaElement).value)"
-                placeholder="Brief description of your project..."
-                class="relative z-10 w-full px-5 py-3 bg-dark-900/90 border border-dark-600 focus:border-transparent rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-200 min-h-[80px] resize-y"
-                :disabled="isLoading"
-                rows="3"
-              ></textarea>
-            </div>
-            
-            <!-- Create Button -->
-            <div class="pt-2">
-              <button
-                @click="$emit('submit')"
-                :disabled="!modelValue?.trim() || isLoading"
-                class="w-full px-5 py-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 disabled:bg-dark-700 disabled:border-dark-600 disabled:text-gray-500 text-white rounded-lg flex items-center justify-center gap-2.5 shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 transform hover:-translate-y-1 font-medium"
-              >
-                <i class="fas fa-spinner fa-spin" v-if="isLoading"></i>
-                <span v-else class="flex items-center">
-                  <i class="fas fa-rocket mr-2"></i>
-                  Start Building
-                </span>
-              </button>
-              
-              <!-- Helper text -->
-              <p class="text-xs text-gray-400 mt-4 text-center">
-                <i class="fas fa-info-circle mr-1"></i>
-                Your project will be created with our recommended starter template
-              </p>
-            </div>
-              </div>
-            </template>
-            
-            <template v-else-if="project">
-                <!-- Modernized Project Card Layout with enhanced design -->
-              <div class="flex flex-col space-y-4">
-                <!-- Modern project header with subtle badges -->
-                <div class="flex items-center mb-2">
-                  <div class="flex items-center gap-3 w-full">
-                    <!-- Modern icon with subtle effect -->
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500/15 to-violet-500/15 flex items-center justify-center transition-all duration-300 border border-indigo-500/10 shadow-md">
-                      <i class="fas fa-cube text-indigo-300 text-base"></i>
-                    </div>
-                    
-                    <!-- Project name with improved typography -->
-                    <h3 class="text-lg font-semibold text-white truncate">{{ project.name }}</h3>
-                  </div>
-                  
-                  <!-- Project status indicator removed -->
-                </div>
-                
-                <!-- Last modified date with improved design -->
-                <div class="flex items-center text-xs text-gray-400">
-                  <i class="fas fa-history text-xs opacity-70 mr-1.5"></i>
-                  Updated {{ formatDate(project.updated_at) }}
-                </div>
-            
-                <!-- Project metadata with modern design -->
-                <div class="my-3 w-full">
-                  <!-- Modern separator -->
-                  <div class="w-full h-px bg-dark-700/50 my-3"></div>
-                  
-                  <!-- Project description with improved visibility and full width -->
-                  <p v-if="project.description" class="text-gray-300 text-sm line-clamp-2 w-full">
-                    {{ project.description }}
-                  </p>
-                  <p v-else class="text-gray-500 text-sm italic w-full">No description provided</p>
-                </div>
-
-                <!-- Modern action buttons with improved layout -->
-                <div class="flex items-center gap-2 mt-2 justify-between">
-                  <!-- Professional Open project button -->
-                  <router-link
-                    :to="{ name: 'builder-workspace', params: { projectId: project.id.toString() }}"
-                    class="py-2 px-4 text-white text-xs font-medium transition-all duration-200 rounded-md bg-indigo-600 hover:bg-indigo-500 shadow-sm text-center flex items-center justify-center flex-1"
-                    title="Open project workspace"
-                  >
-                    <i class="fas fa-code mr-1.5"></i>
-                    Open Project
-                  </router-link>
-                  
-                  <!-- Sleek Delete button with better styling -->
-                  <button
-                    @click.stop="confirmDelete"
-                    class="p-2 text-gray-400 hover:text-red-400 transition-all duration-200 rounded-md hover:bg-dark-800 border border-dark-700 flex items-center justify-center h-9 w-9"
-                    title="Delete this project"
-                  >
-                    <i class="fas fa-trash-alt text-xs"></i>
-                  </button>
+              <!-- Project name with improved typography -->
+              <div class="flex-1 min-w-0">
+                <h3 class="text-base font-semibold text-white truncate leading-tight">{{ project.name }}</h3>
+                <div class="flex items-center text-xs text-gray-400 mt-1">
+                  <svg class="w-3 h-3 mr-1.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  {{ formatDate(project.updated_at) }}
                 </div>
               </div>
-            </template>
+            </div>
+            
+            <!-- Sleek Delete button -->
+            <button
+              @click.stop="confirmDelete"
+              class="p-2 text-gray-400 hover:text-red-400 transition-all duration-200 rounded-lg hover:bg-white/5 border border-white/10 hover:border-red-400/30 flex items-center justify-center w-8 h-8 flex-shrink-0"
+              title="Delete project"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
           </div>
+          
+          <!-- Modern separator -->
+          <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
+          
+          <!-- Project description -->
+          <div class="mb-4">
+            <p v-if="project.description" class="text-gray-300 text-sm line-clamp-2 leading-relaxed">
+              {{ project.description }}
+            </p>
+            <p v-else class="text-gray-500 text-sm italic">No description provided</p>
+          </div>
+          
+          <!-- Sleek Open button -->
+          <router-link
+            :to="{ name: 'builder-workspace', params: { projectId: project.id.toString() }}"
+            class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-violet-400/30 text-white rounded-xl transition-all duration-300 text-sm font-medium group/button"
+            title="Open project workspace"
+          >
+            <svg class="w-4 h-4 mr-2 group-hover/button:text-violet-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+            Open Project
+          </router-link>
         </div>
-      </router-link>
+      </div>
     </div>
   </div>
 </template>
