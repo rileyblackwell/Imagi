@@ -60,7 +60,7 @@ class StylesheetAgentService(BaseAgentService):
         return {
             "role": "system",
             "content": (
-                f"You are an expert web developer generating clean, valid CSS stylesheets for {project_name}, a project built with Imagi Oasis platform."
+                f"You are an expert web developer generating clean, valid CSS stylesheets for {project_name}."
                 "\n\nInstructions:"
                 "\n- Provide only complete, valid CSS code with proper indentation; no explanations, plain text, or non-CSS comments."
                 "\n- Include CSS comments only when necessary for clarity within the stylesheet."

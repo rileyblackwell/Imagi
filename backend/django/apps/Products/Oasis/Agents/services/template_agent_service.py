@@ -133,7 +133,7 @@ class TemplateAgentService(BaseAgentService):
                 "\n- No CSS should be generated within templates; link only to external stylesheet at 'static/css/styles.css'."
                 "\n- Templates must always extend 'base.html' and load static files properly."
                 "\n- Use Django blocks: 'title', 'content', 'extra_css', and 'extra_js'."
-                "\n- Follow minimalist, responsive design inspired by Stripe, AirBnB, Apple, and Google, using semantic HTML5 and clear, intuitive CSS classes."
+                "\n- Follow minimalist, responsive design inspired by companies like Stripe, AirBnB, Apple, using semantic HTML5."
                 "\n- Always use {% static %} tags for asset references."
                 "\n- Employ responsive, mobile-first layouts (flexbox/grid); include viewport meta tag."
                 "\n- Maintain consistent 2-space indentation."
