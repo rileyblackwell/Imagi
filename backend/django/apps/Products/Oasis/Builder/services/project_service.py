@@ -92,16 +92,30 @@ class ProjectService:
             if not project_path or not os.path.exists(project_path):
                 logger.error(f"Project path does not exist: {project_path}")
                 return []
+
+            # Check if this is a dual-stack project
+            is_dual_stack = self._is_dual_stack_project(project_path)
             
-            templates_dir = os.path.join(project_path, 'templates')
+            if is_dual_stack:
+                # For dual-stack projects, look in backend/django/templates
+                templates_dir = os.path.join(project_path, 'backend', 'django', 'templates')
+            else:
+                # For legacy projects, use project root templates
+                templates_dir = os.path.join(project_path, 'templates')
+            
             if not os.path.exists(templates_dir):
-                # Create templates directory if it doesn't exist
-                try:
-                    os.makedirs(templates_dir, exist_ok=True)
-                    logger.info(f"Created templates directory for project: {project_path}")
-                except Exception as e:
-                    logger.error(f"Error creating templates directory: {str(e)}")
-                return []
+                # For dual-stack projects, don't create directories - they should exist from project creation
+                if is_dual_stack:
+                    logger.info(f"Templates directory not found in dual-stack project: {templates_dir}")
+                    return []
+                else:
+                    # Create templates directory if it doesn't exist (legacy projects only)
+                    try:
+                        os.makedirs(templates_dir, exist_ok=True)
+                        logger.info(f"Created templates directory for legacy project: {project_path}")
+                    except Exception as e:
+                        logger.error(f"Error creating templates directory: {str(e)}")
+                    return []
             
             template_files = []
             
@@ -147,20 +161,34 @@ class ProjectService:
             if not project_path or not os.path.exists(project_path):
                 logger.error(f"Project path does not exist: {project_path}")
                 return []
+
+            # Check if this is a dual-stack project
+            is_dual_stack = self._is_dual_stack_project(project_path)
             
-            static_dir = os.path.join(project_path, 'static')
+            if is_dual_stack:
+                # For dual-stack projects, look in backend/django/static
+                static_dir = os.path.join(project_path, 'backend', 'django', 'static')
+            else:
+                # For legacy projects, use project root static
+                static_dir = os.path.join(project_path, 'static')
+            
             if not os.path.exists(static_dir):
-                # Create static directory if it doesn't exist
-                try:
-                    os.makedirs(static_dir, exist_ok=True)
-                    # Also create common subdirectories
-                    os.makedirs(os.path.join(static_dir, 'css'), exist_ok=True)
-                    os.makedirs(os.path.join(static_dir, 'js'), exist_ok=True)
-                    os.makedirs(os.path.join(static_dir, 'img'), exist_ok=True)
-                    logger.info(f"Created static directories for project: {project_path}")
-                except Exception as e:
-                    logger.error(f"Error creating static directories: {str(e)}")
-                return []
+                # For dual-stack projects, don't create directories - they should exist from project creation
+                if is_dual_stack:
+                    logger.info(f"Static directory not found in dual-stack project: {static_dir}")
+                    return []
+                else:
+                    # Create static directory if it doesn't exist (legacy projects only)
+                    try:
+                        os.makedirs(static_dir, exist_ok=True)
+                        # Also create common subdirectories
+                        os.makedirs(os.path.join(static_dir, 'css'), exist_ok=True)
+                        os.makedirs(os.path.join(static_dir, 'js'), exist_ok=True)
+                        os.makedirs(os.path.join(static_dir, 'img'), exist_ok=True)
+                        logger.info(f"Created static directories for legacy project: {project_path}")
+                    except Exception as e:
+                        logger.error(f"Error creating static directories: {str(e)}")
+                    return []
             
             static_files = []
             
@@ -206,11 +234,27 @@ class ProjectService:
         except Exception as e:
             logger.error(f"Error listing static files: {str(e)}")
             return []
+
+    def _is_dual_stack_project(self, project_path):
+        """Check if this is a dual-stack project (has frontend/vuejs and backend/django directories)."""
+        frontend_vuejs_path = os.path.join(project_path, 'frontend', 'vuejs')
+        backend_django_path = os.path.join(project_path, 'backend', 'django')
+        return os.path.exists(frontend_vuejs_path) and os.path.exists(backend_django_path)
     
     def initialize_project_files(self, project_id=None):
         """Initialize a project with basic template and static files."""
         try:
-            # Get templates and static files
+            project_path = self.get_project_path(project_id)
+            
+            # Check if this is a dual-stack project
+            is_dual_stack = self._is_dual_stack_project(project_path)
+            
+            if is_dual_stack:
+                # For dual-stack projects, don't initialize files - they should already exist
+                logger.info(f"Skipping file initialization for dual-stack project: {project_path}")
+                return True
+            
+            # Get templates and static files (legacy projects only)
             template_files = self.list_template_files(project_id)
             static_files = self.list_static_files(project_id)
             

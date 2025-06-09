@@ -56,7 +56,7 @@ class FileService:
             return None
     
     def list_files(self, project_id=None):
-        """List all files in the project."""
+        """List all files in the project - for dual-stack projects, only show VueJS frontend files."""
         try:
             project_path = self.get_project_path(project_id)
             
@@ -64,52 +64,135 @@ class FileService:
             if not project_path or not os.path.exists(project_path):
                 logger.error(f"Project path does not exist: {project_path}")
                 return []
-                
-            files = []
             
-            for root, dirs, filenames in os.walk(project_path):
-                # Skip hidden directories
-                dirs[:] = [d for d in dirs if not d.startswith('.')]
+            # Check if this is a dual-stack project
+            frontend_path = os.path.join(project_path, 'frontend', 'vuejs')
+            backend_path = os.path.join(project_path, 'backend', 'django')
+            
+            if os.path.exists(frontend_path) and os.path.exists(backend_path):
+                # This is a dual-stack project - only show VueJS frontend files
+                return self._list_vuejs_files(frontend_path, project_path)
+            else:
+                # This is a legacy single Django project - show all relevant files
+                return self._list_legacy_files(project_path)
                 
-                for filename in filenames:
-                    full_path = os.path.join(root, filename)
-                    rel_path = os.path.relpath(full_path, project_path)
-                    
-                    # Skip hidden files and directories
-                    if any(part.startswith('.') for part in rel_path.split(os.sep)):
-                        continue
-                    
-                    # Get file extension
-                    file_extension = os.path.splitext(filename)[1].lower()
-                    
-                    # Focus on relevant project files - adjust these filters based on your application needs
-                    # Include more file types commonly used in Django templates and frontend
-                    relevant_extensions = ['.html', '.css', '.js', '.py', '.json', '.md', '.txt']
-                    
-                    # Skip only if the file has an extension and it's not in our list
-                    if file_extension and file_extension not in relevant_extensions:
-                        continue
-                    
+        except Exception as e:
+            logger.error(f"Error listing files: {str(e)}")
+            raise
+
+    def _list_vuejs_files(self, frontend_path, project_root):
+        """List only VueJS frontend files for the sidebar."""
+        files = []
+        
+        # Define VueJS-specific directories and files we want to show
+        vuejs_directories = [
+            'src/components',
+            'src/views', 
+            'src/stores',
+            'src/services',
+            'src/router',
+            'src/types'
+        ]
+        
+        # VueJS-relevant file extensions
+        vuejs_extensions = ['.vue', '.ts', '.js', '.css', '.json']
+        
+        # Always include main entry files
+        main_files = ['src/main.ts', 'src/App.vue', 'package.json', 'vite.config.ts']
+        
+        for root, dirs, filenames in os.walk(frontend_path):
+            rel_root = os.path.relpath(root, frontend_path)
+            
+            # Skip hidden directories and node_modules
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'node_modules']
+            
+            # Check if we're in a directory we care about
+            in_relevant_dir = any(rel_root.startswith(vuejs_dir) or rel_root == vuejs_dir 
+                                for vuejs_dir in vuejs_directories)
+            
+            for filename in filenames:
+                full_path = os.path.join(root, filename)
+                rel_path = os.path.relpath(full_path, frontend_path)
+                
+                # Skip hidden files
+                if filename.startswith('.'):
+                    continue
+                
+                # Get file extension
+                file_extension = os.path.splitext(filename)[1].lower()
+                
+                # Include if it's a main file or in a relevant directory with relevant extension
+                include_file = (
+                    rel_path in main_files or
+                    (in_relevant_dir and file_extension in vuejs_extensions) or
+                    (rel_path.startswith('src/') and file_extension in vuejs_extensions)
+                )
+                
+                if include_file:
                     # Get file stats
                     stats = os.stat(full_path)
                     
                     # Generate a unique ID for the file
                     file_id = str(uuid.uuid4())
                     
+                    # Create relative path from project root for consistency
+                    project_rel_path = os.path.join('frontend', 'vuejs', rel_path)
+                    
                     files.append({
                         'id': file_id,
                         'name': filename,
-                        'path': rel_path,
+                        'path': project_rel_path,
                         'type': self._get_file_type(rel_path),
                         'size': os.path.getsize(full_path),
                         'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
                     })
+        
+        # Sort files by path for better organization
+        return sorted(files, key=lambda x: x['path'])
+
+    def _list_legacy_files(self, project_path):
+        """List files for legacy single Django projects."""
+        files = []
+        
+        for root, dirs, filenames in os.walk(project_path):
+            # Skip hidden directories
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
             
-            # Sort files by path
-            return sorted(files, key=lambda x: x['path'])
-        except Exception as e:
-            logger.error(f"Error listing files: {str(e)}")
-            raise
+            for filename in filenames:
+                full_path = os.path.join(root, filename)
+                rel_path = os.path.relpath(full_path, project_path)
+                
+                # Skip hidden files and directories
+                if any(part.startswith('.') for part in rel_path.split(os.sep)):
+                    continue
+                
+                # Get file extension
+                file_extension = os.path.splitext(filename)[1].lower()
+                
+                # Focus on relevant project files for Django projects
+                relevant_extensions = ['.html', '.css', '.js', '.py', '.json', '.md', '.txt']
+                
+                # Skip only if the file has an extension and it's not in our list
+                if file_extension and file_extension not in relevant_extensions:
+                    continue
+                
+                # Get file stats
+                stats = os.stat(full_path)
+                
+                # Generate a unique ID for the file
+                file_id = str(uuid.uuid4())
+                
+                files.append({
+                    'id': file_id,
+                    'name': filename,
+                    'path': rel_path,
+                    'type': self._get_file_type(rel_path),
+                    'size': os.path.getsize(full_path),
+                    'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat()
+                })
+        
+        # Sort files by path
+        return sorted(files, key=lambda x: x['path'])
     
     def get_file_details(self, file_path, project_id=None):
         """Get details about a specific file."""
@@ -148,7 +231,7 @@ class FileService:
             if not os.path.exists(full_path) or not os.path.isfile(full_path):
                 raise NotFound(f"File not found: {file_path}")
             
-            with open(full_path, 'r') as f:
+            with open(full_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Error reading file content: {str(e)}")
@@ -163,8 +246,8 @@ class FileService:
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(os.path.abspath(full_path)), exist_ok=True)
             
-            # Write content to file
-            with open(full_path, 'w') as f:
+            # Write content to file with UTF-8 encoding
+            with open(full_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             
             # Get file stats
@@ -192,6 +275,9 @@ class FileService:
             # Get the project path
             project_path = self.get_project_path(project_id)
             
+            # Check if this is a dual-stack project
+            is_dual_stack = self._is_dual_stack_project(project_path)
+            
             # Extract file data
             if isinstance(file_data, dict):
                 # Handle new format with detailed file info
@@ -207,23 +293,36 @@ class FileService:
                     # This is a relative path - use as is
                     file_path = name
                 else:
-                    # Determine directory based on file type if not already specified
-                    if not any(name.startswith(prefix) for prefix in ['templates/', 'static/']):
+                    # Determine directory based on file type and project structure
+                    if not any(name.startswith(prefix) for prefix in ['templates/', 'static/', 'backend/', 'frontend/']):
                         if file_type == 'html':
-                            file_path = f"templates/{name}"
+                            if is_dual_stack:
+                                file_path = f"backend/django/templates/{name}"
+                            else:
+                                file_path = f"templates/{name}"
                         elif file_type == 'css':
-                            file_path = f"static/css/{name}"
+                            if is_dual_stack:
+                                file_path = f"backend/django/static/css/{name}"
+                            else:
+                                file_path = f"static/css/{name}"
                         elif file_type == 'javascript':
-                            file_path = f"static/{name}"
+                            if is_dual_stack:
+                                file_path = f"backend/django/static/js/{name}"
+                            else:
+                                file_path = f"static/{name}"
                         else:
                             file_path = name
                     else:
                         file_path = name
                     
-                    # Ensure CSS files are always in static/css/
-                    if file_type == 'css' and not file_path.startswith('static/css/'):
-                        file_name = os.path.basename(file_path)
-                        file_path = f"static/css/{file_name}"
+                    # Ensure CSS files are in the correct location
+                    if file_type == 'css':
+                        if is_dual_stack and not file_path.startswith('backend/django/static/css/'):
+                            file_name = os.path.basename(file_path)
+                            file_path = f"backend/django/static/css/{file_name}"
+                        elif not is_dual_stack and not file_path.startswith('static/css/'):
+                            file_name = os.path.basename(file_path)
+                            file_path = f"static/css/{file_name}"
             
             # Create full file path
             full_file_path = os.path.join(project_path, file_path)
@@ -242,7 +341,7 @@ class FileService:
             file_id = str(uuid.uuid4())
             
             # Determine if this is an HTML template file
-            is_template = file_type == 'html' or (file_path.startswith('templates/') and file_path.endswith('.html'))
+            is_template = file_type == 'html' or (file_path.endswith('.html') and ('templates/' in file_path))
             
             return {
                 'id': file_id,
@@ -256,6 +355,12 @@ class FileService:
         except Exception as e:
             logger.error(f"Error creating file: {str(e)}")
             raise
+
+    def _is_dual_stack_project(self, project_path):
+        """Check if this is a dual-stack project (has frontend/vuejs and backend/django directories)."""
+        frontend_vuejs_path = os.path.join(project_path, 'frontend', 'vuejs')
+        backend_django_path = os.path.join(project_path, 'backend', 'django')
+        return os.path.exists(frontend_vuejs_path) and os.path.exists(backend_django_path)
     
     def delete_file(self, file_path, project_id=None):
         """Delete a file."""
