@@ -253,24 +253,44 @@ const currentDirectory = ref<string>('')
 const vueFiles = computed(() => {
   return props.files.filter(file => {
     const path = file.path.toLowerCase()
+    const normalizedPath = path.replace(/\\/g, '/') // Handle Windows paths
     
-    // Include Vue files
-    if (path.endsWith('.vue')) return true
+    // Include ALL Vue files (.vue extension)
+    if (normalizedPath.endsWith('.vue')) return true
     
-    // Include TypeScript/JavaScript files in Vue.js src directories
-    if ((path.endsWith('.ts') || path.endsWith('.js')) && 
-        (path.includes('src/views/') || 
-         path.includes('src/components/') || 
-         path.includes('src/router/') ||
-         path.includes('src/stores/') ||
-         path.includes('src/services/') ||
-         path.includes('src/types/'))) {
+    // Include TypeScript/JavaScript files in ANY Vue.js src directories
+    if ((normalizedPath.endsWith('.ts') || normalizedPath.endsWith('.js') || normalizedPath.endsWith('.jsx') || normalizedPath.endsWith('.tsx')) && 
+        (normalizedPath.includes('/src/views/') || 
+         normalizedPath.includes('/src/components/') || 
+         normalizedPath.includes('/src/router/') ||
+         normalizedPath.includes('/src/stores/') ||
+         normalizedPath.includes('/src/services/') ||
+         normalizedPath.includes('/src/types/') ||
+         normalizedPath.includes('/src/composables/') ||
+         normalizedPath.includes('/src/utils/') ||
+         normalizedPath.includes('/src/plugins/') ||
+         normalizedPath.includes('/src/directives/') ||
+         normalizedPath.includes('/src/layouts/'))) {
       return true
     }
     
-    // Include main Vue.js files
-    if (path.includes('frontend/vuejs/src/') && 
-        (path.endsWith('main.ts') || path.endsWith('app.vue'))) {
+    // Include main Vue.js files and configuration files
+    if (normalizedPath.includes('/frontend/vuejs/') || normalizedPath.includes('/vuejs/')) {
+      if (normalizedPath.endsWith('main.ts') || 
+          normalizedPath.endsWith('main.js') ||
+          normalizedPath.endsWith('app.vue') ||
+          normalizedPath.endsWith('index.html') ||
+          normalizedPath.includes('vite.config') ||
+          normalizedPath.includes('vue.config') ||
+          normalizedPath.includes('tsconfig') ||
+          normalizedPath.includes('tailwind.config')) {
+        return true
+      }
+    }
+    
+    // Include any file that appears to be a Vue component based on naming convention
+    if (normalizedPath.endsWith('.vue') || 
+        (normalizedPath.includes('component') && (normalizedPath.endsWith('.ts') || normalizedPath.endsWith('.js')))) {
       return true
     }
     
@@ -283,29 +303,54 @@ const vueFilesByDirectory = computed(() => {
   const result: Record<string, ProjectFile[]> = {}
   
   vueFiles.value.forEach(file => {
+    const normalizedPath = file.path.toLowerCase().replace(/\\/g, '/')
     let dir = ''
     
-    if (file.path.includes('src/views/')) {
+    // Prioritize Views directory
+    if (normalizedPath.includes('/src/views/') || normalizedPath.includes('/views/')) {
       dir = 'Views'
-    } else if (file.path.includes('src/components/atoms/')) {
+    }
+    // Organize components by atomic design structure
+    else if (normalizedPath.includes('/src/components/atoms/') || normalizedPath.includes('/components/atoms/')) {
       dir = 'Components/Atoms'
-    } else if (file.path.includes('src/components/molecules/')) {
+    } else if (normalizedPath.includes('/src/components/molecules/') || normalizedPath.includes('/components/molecules/')) {
       dir = 'Components/Molecules'
-    } else if (file.path.includes('src/components/organisms/')) {
+    } else if (normalizedPath.includes('/src/components/organisms/') || normalizedPath.includes('/components/organisms/')) {
       dir = 'Components/Organisms'
-    } else if (file.path.includes('src/components/')) {
+    } else if (normalizedPath.includes('/src/components/') || normalizedPath.includes('/components/')) {
       dir = 'Components'
-    } else if (file.path.includes('src/router/')) {
+    }
+    // Other Vue.js directories
+    else if (normalizedPath.includes('/src/layouts/') || normalizedPath.includes('/layouts/')) {
+      dir = 'Layouts'
+    } else if (normalizedPath.includes('/src/router/') || normalizedPath.includes('/router/')) {
       dir = 'Router'
-    } else if (file.path.includes('src/stores/')) {
+    } else if (normalizedPath.includes('/src/stores/') || normalizedPath.includes('/stores/')) {
       dir = 'Stores'
-    } else if (file.path.includes('src/services/')) {
+    } else if (normalizedPath.includes('/src/services/') || normalizedPath.includes('/services/')) {
       dir = 'Services'
-    } else if (file.path.includes('src/types/')) {
+    } else if (normalizedPath.includes('/src/composables/') || normalizedPath.includes('/composables/')) {
+      dir = 'Composables'
+    } else if (normalizedPath.includes('/src/utils/') || normalizedPath.includes('/utils/')) {
+      dir = 'Utils'
+    } else if (normalizedPath.includes('/src/plugins/') || normalizedPath.includes('/plugins/')) {
+      dir = 'Plugins'
+    } else if (normalizedPath.includes('/src/directives/') || normalizedPath.includes('/directives/')) {
+      dir = 'Directives'
+    } else if (normalizedPath.includes('/src/types/') || normalizedPath.includes('/types/')) {
       dir = 'Types'
-    } else if (file.path.includes('src/')) {
+    }
+    // Configuration files
+    else if (normalizedPath.includes('vite.config') || normalizedPath.includes('vue.config') || 
+             normalizedPath.includes('tsconfig') || normalizedPath.includes('tailwind.config')) {
+      dir = 'Config'
+    }
+    // Core files (main.ts, App.vue, index.html)
+    else if (normalizedPath.includes('/src/') || normalizedPath.endsWith('index.html')) {
       dir = 'Core'
-    } else {
+    }
+    // Fallback for any other files
+    else {
       dir = 'Other'
     }
     
@@ -316,13 +361,22 @@ const vueFilesByDirectory = computed(() => {
     result[dir].push(file)
   })
   
+  // Sort files within each directory alphabetically
+  Object.keys(result).forEach(dir => {
+    result[dir].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  })
+  
   // Set current directory to Views first, then Components, then first available
   if (!currentDirectory.value && Object.keys(result).length > 0) {
-    if (result['Views']) {
-      currentDirectory.value = 'Views'
-    } else if (result['Components']) {
-      currentDirectory.value = 'Components'
-    } else {
+    const priorityOrder = ['Views', 'Components', 'Components/Atoms', 'Components/Molecules', 'Components/Organisms', 'Layouts', 'Core']
+    for (const priority of priorityOrder) {
+      if (result[priority]) {
+        currentDirectory.value = priority
+        break
+      }
+    }
+    // If no priority directory found, use first available
+    if (!currentDirectory.value) {
       currentDirectory.value = Object.keys(result)[0]
     }
   }
@@ -338,10 +392,16 @@ const formatVueDirectoryName = (dirName: string) => {
 const getVueDirectoryIconClass = (dirName: string) => {
   if (dirName === 'Views') return 'text-green-400'
   if (dirName.startsWith('Components')) return 'text-blue-400'
+  if (dirName === 'Layouts') return 'text-cyan-400'
   if (dirName === 'Router') return 'text-purple-400'
   if (dirName === 'Stores') return 'text-orange-400'
   if (dirName === 'Services') return 'text-yellow-400'
+  if (dirName === 'Composables') return 'text-emerald-400'
+  if (dirName === 'Utils') return 'text-teal-400'
+  if (dirName === 'Plugins') return 'text-pink-400'
+  if (dirName === 'Directives') return 'text-lime-400'
   if (dirName === 'Types') return 'text-red-400'
+  if (dirName === 'Config') return 'text-slate-400'
   if (dirName === 'Core') return 'text-indigo-400'
   return 'text-gray-400'
 }

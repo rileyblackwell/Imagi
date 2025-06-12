@@ -671,8 +671,9 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
       ...data
     })
     
-    // Refresh file list after creating a new file
-    await loadProjectFiles()
+    // Force refresh file list after creating a new file to ensure it appears in the explorer
+    console.debug('File created, refreshing file list from backend...')
+    await loadProjectFiles(true)
     
     // Automatically commit the file creation
     VersionControlService.commitAfterFileOperation(
@@ -689,8 +690,9 @@ async function handleFileDelete(file: ProjectFile) {
   try {
     await FileService.deleteFile(projectId.value, file.path)
     
-    // Remove file from store
-    store.removeFile(file)
+    // Force refresh file list after deleting a file to ensure it's removed from the explorer
+    console.debug('File deleted, refreshing file list from backend...')
+    await loadProjectFiles(true)
     
     // If the deleted file was selected, clear selection
     if (store.selectedFile && store.selectedFile.path === file.path) {
@@ -738,7 +740,8 @@ async function retryProjectLoad() {
     
     // If successful, reload the workspace data
     await loadModels()
-    await loadProjectFiles()
+    // Force refresh files when retrying to ensure we get the latest state
+    await loadProjectFiles(true)
     
     // Set default model if needed
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
@@ -760,20 +763,22 @@ async function retryProjectLoad() {
 }
 
 // Helper function to load project files
-async function loadProjectFiles() {
+async function loadProjectFiles(force = false) {
   try {
-    // Avoid duplicate calls by checking if project files are already loaded
-    if (store.files && store.files.length > 0) {
+    // Always reload files when force is true, or when files haven't been loaded yet
+    if (!force && store.files && store.files.length > 0) {
       console.debug('Using existing files from store, skipping API call')
       return store.files
     }
     
+    console.debug('Loading project files from backend API...')
     const files = await FileService.getProjectFiles(projectId.value)
     if (Array.isArray(files)) {
       // Use the setFiles method to avoid type issues with $patch
       if (typeof store.setFiles === 'function') {
         // Cast the files to the expected type if needed
         store.setFiles(files as any)
+        console.debug(`Loaded ${files.length} files from backend`)
       } else {
         console.error('setFiles method not available on store')
       }
@@ -871,7 +876,8 @@ onMounted(async () => {
         // IMPORTANT: We DON'T use Promise.all here to prevent race conditions
         // between file fetching and the project data
         await executeOnce('loadModels', loadModels);
-        await executeOnce('loadProjectFiles', loadProjectFiles);
+        // Force fresh file load on initial page load to always get latest files including initial home view
+        await executeOnce('loadProjectFiles', () => loadProjectFiles(true));
         
         // Only fetch balance once at startup, with no auto-refresh
         // Make sure it doesn't block the UI

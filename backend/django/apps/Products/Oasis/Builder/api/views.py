@@ -462,21 +462,26 @@ class DirectoryView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
             
-            # Use ProjectService to get all files
+            # Use ProjectService to get Django template and static files
             project_service = ProjectService(user=request.user, project=project)
             
             # Initialize project files if needed
             project_service.initialize_project_files()
             
-            # Get template and static files
+            # Get Django template and static files
             template_files = project_service.list_template_files()
             static_files = project_service.list_static_files()
             
-            # Combine the results
-            all_files = template_files + static_files
+            # Also use FileService to get Vue.js frontend files
+            from ..services.file_service import FileService
+            file_service = FileService(project=project)
+            vue_files = file_service.list_files(project_id)
+            
+            # Combine all files: Django templates/static + Vue.js files
+            all_files = template_files + static_files + vue_files
             
             # Log result for debugging
-            logger.info(f"Found {len(all_files)} files for project {project.id}")
+            logger.info(f"Found {len(all_files)} total files for project {project.id} (templates: {len(template_files)}, static: {len(static_files)}, vue: {len(vue_files)})")
             
             return Response(all_files, status=status.HTTP_200_OK)
         except Exception as e:
