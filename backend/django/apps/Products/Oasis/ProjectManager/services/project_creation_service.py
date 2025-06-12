@@ -111,10 +111,10 @@ class ProjectCreationService:
     # Legacy methods removed - now using _create_django_backend for proper dual-stack structure
 
     def _create_vuejs_frontend(self, frontend_path, project_name, project_description):
-        """Create VueJS frontend with Vite, Pinia, TailwindCSS, and Axios"""
+        """Create VueJS frontend with Vite, Pinia, TailwindCSS, and Axios (vanilla JS)"""
         logger.info(f"Creating VueJS frontend at: {frontend_path}")
         
-        # Create package.json
+        # Create package.json (vanilla JS, no TypeScript)
         package_json = {
             "name": f"{self._sanitize_project_name(project_name).lower()}-frontend",
             "private": True,
@@ -122,7 +122,7 @@ class ProjectCreationService:
             "type": "module",
             "scripts": {
                 "dev": "vite",
-                "build": "vue-tsc && vite build",
+                "build": "vite build",
                 "preview": "vite preview"
             },
             "dependencies": {
@@ -134,14 +134,11 @@ class ProjectCreationService:
                 "@heroicons/vue": "^2.0.18"
             },
             "devDependencies": {
-                "@types/node": "^20.9.0",
                 "@vitejs/plugin-vue": "^4.5.0",
                 "autoprefixer": "^10.4.16",
                 "postcss": "^8.4.32",
                 "tailwindcss": "^3.3.6",
-                "typescript": "^5.2.2",
-                "vite": "^5.0.0",
-                "vue-tsc": "^1.8.22"
+                "vite": "^5.0.0"
             }
         }
         
@@ -149,16 +146,17 @@ class ProjectCreationService:
             import json
             f.write(json.dumps(package_json, indent=2))
         
-        # Create vite.config.ts
+        # Create vite.config.js
         vite_config = '''import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
   server: {
@@ -175,8 +173,30 @@ export default defineConfig({
   }
 })
 '''
-        with open(os.path.join(frontend_path, 'vite.config.ts'), 'w') as f:
+        with open(os.path.join(frontend_path, 'vite.config.js'), 'w') as f:
             f.write(vite_config)
+        
+        # Create jsconfig.json for better VS Code support
+        jsconfig = {
+            "compilerOptions": {
+                "target": "ESNext",
+                "lib": ["ESNext", "DOM", "DOM.Iterable"],
+                "module": "ESNext",
+                "moduleResolution": "bundler",
+                "resolveJsonModule": True,
+                "jsx": "preserve",
+                "baseUrl": ".",
+                "paths": {
+                    "@/*": ["./src/*"]
+                }
+            },
+            "include": ["src/**/*.js", "src/**/*.vue"],
+            "exclude": ["node_modules", "dist"]
+        }
+        
+        with open(os.path.join(frontend_path, 'jsconfig.json'), 'w') as f:
+            import json
+            f.write(json.dumps(jsconfig, indent=2))
         
         # Create tailwind.config.js
         tailwind_config = '''/** @type {import('tailwindcss').Config} */
@@ -205,36 +225,7 @@ export default {
         with open(os.path.join(frontend_path, 'postcss.config.js'), 'w') as f:
             f.write(postcss_config)
         
-        # Create tsconfig.json
-        tsconfig = {
-            "compilerOptions": {
-                "target": "ES2020",
-                "useDefineForClassFields": True,
-                "lib": ["ES2020", "DOM", "DOM.Iterable"],
-                "module": "ESNext",
-                "skipLibCheck": True,
-                "moduleResolution": "bundler",
-                "allowImportingTsExtensions": True,
-                "resolveJsonModule": True,
-                "isolatedModules": True,
-                "noEmit": True,
-                "jsx": "preserve",
-                "strict": True,
-                "noUnusedLocals": True,
-                "noUnusedParameters": True,
-                "noFallthroughCasesInSwitch": True,
-                "baseUrl": ".",
-                "paths": {
-                    "@/*": ["./src/*"]
-                }
-            },
-            "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-            "references": [{"path": "./tsconfig.node.json"}]
-        }
-        
-        with open(os.path.join(frontend_path, 'tsconfig.json'), 'w') as f:
-            import json
-            f.write(json.dumps(tsconfig, indent=2))
+
         
         # Create index.html
         index_html = f'''<!doctype html>
@@ -247,7 +238,7 @@ export default {
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
 '''
@@ -282,8 +273,8 @@ export default {
         for directory in directories:
             os.makedirs(os.path.join(src_path, directory), exist_ok=True)
         
-        # Create main.ts
-        main_ts = '''import { createApp } from 'vue'
+        # Create main.js
+        main_js = '''import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
 import App from './App.vue'
@@ -296,8 +287,8 @@ app.use(router)
 
 app.mount('#app')
 '''
-        with open(os.path.join(src_path, 'main.ts'), 'w') as f:
-            f.write(main_ts)
+        with open(os.path.join(src_path, 'main.js'), 'w') as f:
+            f.write(main_js)
         
         # Create App.vue
         app_vue = f'''<template>
@@ -313,7 +304,7 @@ import {{ RouterView }} from 'vue-router'
         with open(os.path.join(src_path, 'App.vue'), 'w') as f:
             f.write(app_vue)
         
-        # Create router/index.ts
+        # Create router/index.js
         router_index = '''import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 
@@ -330,27 +321,27 @@ const router = createRouter({
 
 export default router
 '''
-        with open(os.path.join(src_path, 'router', 'index.ts'), 'w') as f:
+        with open(os.path.join(src_path, 'router', 'index.js'), 'w') as f:
             f.write(router_index)
         
-        # Create stores/main.ts
+        # Create stores/main.js
         store_main = '''import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useMainStore = defineStore('main', () => {
   const message = ref('Hello from Pinia store!')
   
-  function updateMessage(newMessage: string) {
+  function updateMessage(newMessage) {
     message.value = newMessage
   }
   
   return { message, updateMessage }
 })
 '''
-        with open(os.path.join(src_path, 'stores', 'main.ts'), 'w') as f:
+        with open(os.path.join(src_path, 'stores', 'main.js'), 'w') as f:
             f.write(store_main)
         
-        # Create services/api.ts
+        # Create services/api.js
         api_service = '''import axios from 'axios'
 
 const api = axios.create({
@@ -389,23 +380,24 @@ api.interceptors.response.use(
 
 export default api
 '''
-        with open(os.path.join(src_path, 'services', 'api.ts'), 'w') as f:
+        with open(os.path.join(src_path, 'services', 'api.js'), 'w') as f:
             f.write(api_service)
         
         # Create views/HomeView.vue
         safe_project_name = project_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
         safe_description = (project_description or '').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
         
-        home_view = f'''<template>
+        # Use string concatenation instead of f-strings to avoid Vue template conflicts
+        home_view = '''<template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
     <div class="container mx-auto px-4 py-16">
       <div class="max-w-4xl mx-auto text-center">
         <h1 class="text-5xl font-bold text-gray-900 mb-6">
-          Welcome to {safe_project_name}
+          Welcome to ''' + safe_project_name + '''
         </h1>
         
         <p v-if="description" class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          {safe_description}
+          ''' + safe_description + '''
         </p>
         
         <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
@@ -459,7 +451,7 @@ export default api
           </button>
         </div>
         
-        <div v-if="apiStatus" class="mt-6 p-4 rounded-lg" :class="apiStatus.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800">
+        <div v-if="apiStatus" class="mt-6 p-4 rounded-lg" :class="apiStatus.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
           {{ apiStatus.message }}
         </div>
         
@@ -471,37 +463,37 @@ export default api
   </div>
 </template>
 
-<script setup lang="ts">
-import {{ ref }} from 'vue'
-import {{ useMainStore }} from '@/stores/main'
+<script setup>
+import { ref } from 'vue'
+import { useMainStore } from '@/stores/main'
 import api from '@/services/api'
 
 const mainStore = useMainStore()
 const loading = ref(false)
-const apiStatus = ref<{{ success: boolean; message: string }} | null>(null)
-const description = '{safe_description}'
+const apiStatus = ref(null)
+const description = ''' + "'" + safe_description + "'" + '''
 
-async function testApiConnection() {{
+async function testApiConnection() {
   loading.value = true
   apiStatus.value = null
   
-  try {{
+  try {
     const response = await api.get('/health/')
-    apiStatus.value = {{
+    apiStatus.value = {
       success: true,
       message: 'API connection successful! Backend is running.'
-    }}
-  }} catch (error) {{
-    apiStatus.value = {{
+    }
+  } catch (error) {
+    apiStatus.value = {
       success: false,
       message: 'API connection failed. Make sure the Django backend is running on port 8000.'
-    }}
-  }} finally {{
+    }
+  } finally {
     loading.value = false
-  }}
-}}
+  }
+}
 
-function updateStoreMessage() {{
+function updateStoreMessage() {
   const messages = [
     'Pinia store is working!',
     'State management is active!',
@@ -510,7 +502,7 @@ function updateStoreMessage() {{
   ]
   const randomMessage = messages[Math.floor(Math.random() * messages.length)]
   mainStore.updateMessage(randomMessage)
-}}
+}
 </script>
 '''
         with open(os.path.join(src_path, 'views', 'HomeView.vue'), 'w') as f:
