@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-Imagi.settings}
+        SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+        DEBUG: ${DEBUG:-0}
+        OPENAI_KEY: ${OPENAI_KEY:-}
+        ANTHROPIC_KEY: ${ANTHROPIC_KEY:-}
+        STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+        STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-}
+        FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+        FRONTEND_REDIRECT_ENABLED: ${FRONTEND_REDIRECT_ENABLED:-true}
+        PROJECTS_ROOT: /code/projects
+        DATABASE_URL: ${DATABASE_URL:-sqlite:///db.sqlite3}
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-Imagi.settings}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DEBUG=${DEBUG:-0}
+      - OPENAI_KEY=${OPENAI_KEY:-}
+      - ANTHROPIC_KEY=${ANTHROPIC_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - FRONTEND_REDIRECT_ENABLED=${FRONTEND_REDIRECT_ENABLED:-true}
+      - PROJECTS_ROOT=/code/projects
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///db.sqlite3}
+    volumes:
+      # Persist database in development
+      - db_data:/code/db.sqlite3
+      # Persist static files
+      - static_files:/code/staticfiles
+      # Persist media uploads
+      - media_files:/code/media
+      # Persist generated projects
+      - projects_data:/code/projects
+    restart: unless-stopped
+    healthcheck:
+      test: ["/usr/local/bin/health-check.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - app-network
+
+  # PostgreSQL for production-like development
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: imagi
+      POSTGRES_USER: imagi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-imagi_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    profiles:
+      - postgres
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U imagi -d imagi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    profiles:
+      - redis
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  db_data:
+  static_files:
+  media_files:
+  projects_data:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge 

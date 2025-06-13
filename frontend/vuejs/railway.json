@@ -6,7 +6,11 @@
   },
   "build": {
     "builder": "DOCKERFILE",
+    "dockerfile": "Dockerfile",
     "buildCommand": null,
     "watchPatterns": []
+  },
+  "start": {
+    "cmd": "/usr/local/bin/start-nginx.sh"
   }
 } 

@@ -44,37 +44,6 @@ axios.defaults.withCredentials = true
 // axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
-// Add axios debug interceptors
-// if (import.meta.env.DEV) {
-//   // Debug request interceptor
-//   axios.interceptors.request.use(request => {
-//     console.log('🚀 Request:', {
-//       url: request.url,
-//       method: request.method,
-//       headers: request.headers,
-//       data: request.data
-//     });
-//     return request;
-//   }, error => {
-//     console.error('❌ Request Error:', error);
-//     return Promise.reject(error);
-//   });
-//   
-//   // Debug response interceptor
-//   axios.interceptors.response.use(response => {
-//     console.log('✅ Response:', {
-//       url: response.config.url,
-//       status: response.status,
-//       headers: response.headers,
-//       data: response.data
-//     });
-//     return response;
-//   }, error => {
-//     console.error('❌ Response Error:', error.config?.url, error);
-//     return Promise.reject(error);
-//   });
-// }
-
 // Type augmentation for Vue
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {

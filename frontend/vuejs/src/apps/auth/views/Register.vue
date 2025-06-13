@@ -149,12 +149,11 @@ import {
   FormCheckbox,
   GradientButton,
   AuthLinks 
-} from '@/apps/auth/components' // Barrel already updated, so this is fine
+} from '@/apps/auth/components' 
 
 const router = useRouter()
 const authStore = useAuthStore()
 const serverError = ref('')
-const hasAttemptedSubmit = ref(false)
 const isSubmitting = ref(false)
 const passwordRequirements = ref<PasswordRequirementsRef | null>(null)
 

@@ -1,9 +1,16 @@
 {
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "sleepApplication": false,
+    "cronSchedule": null
+  },
   "build": {
+    "builder": "DOCKERFILE",
     "dockerfile": "Dockerfile",
-    "context": "."
+    "buildCommand": null,
+    "watchPatterns": []
   },
   "start": {
-    "cmd": "./paracord_runner.sh"
+    "cmd": "/usr/local/bin/run-server.sh"
   }
 }
