@@ -38,9 +38,9 @@ RUN mkdir -p /etc/nginx/conf.d /var/log/nginx
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy scripts and make them executable
-COPY scripts/health-check.sh /usr/local/bin/health-check.sh
-COPY scripts/start-nginx.sh /usr/local/bin/start-nginx.sh
+# Copy scripts from build stage and make them executable
+COPY --from=build-stage /usr/local/bin/health-check.sh /usr/local/bin/health-check.sh
+COPY --from=build-stage /usr/local/bin/start-nginx.sh /usr/local/bin/start-nginx.sh
 RUN chmod +x /usr/local/bin/health-check.sh /usr/local/bin/start-nginx.sh
 
 # Copy Vue.js build artifacts from build stage
