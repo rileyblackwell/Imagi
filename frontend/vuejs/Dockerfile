@@ -32,11 +32,11 @@ FROM nginx:alpine as production-stage
 # Install additional tools for health checks
 RUN apk add --no-cache curl procps
 
-# Create nginx user and directories
-RUN mkdir -p /etc/nginx/templates /var/log/nginx
+# Create nginx directories
+RUN mkdir -p /etc/nginx/conf.d /var/log/nginx
 
 # Copy nginx configuration
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy scripts and make them executable
 COPY scripts/health-check.sh /usr/local/bin/health-check.sh

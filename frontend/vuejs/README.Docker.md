@@ -17,7 +17,7 @@ This directory contains a modular Docker setup for the Vue.js frontend applicati
 - `start-nginx.sh` - Nginx startup with configuration validation
 
 #### Configuration Files
-- `nginx.conf.template` - Nginx configuration with Railway proxy setup
+- `nginx.conf` - Nginx configuration with Railway proxy setup
 - `.dockerignore` - Excludes unnecessary files from build context
 - `docker-compose.yml` - Multi-environment orchestration
 
@@ -70,7 +70,7 @@ docker-compose --profile dev up frontend-dev
 
 The setup is optimized for Railway.com deployment:
 - Internal networking via `backend.railway.internal:8000`
-- Environment variable substitution in nginx config
+- Static nginx configuration optimized for Railway proxy
 - Health checks compatible with Railway's monitoring
 - Port 80 exposure for Railway's load balancer
 
