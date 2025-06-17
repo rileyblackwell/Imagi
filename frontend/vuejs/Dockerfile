@@ -26,8 +26,18 @@ ARG VITE_STRIPE_PUBLISHABLE_KEY
 
 # Set environment variables for build process
 ENV NODE_ENV=$NODE_ENV
-ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+# NOTE: For Railway production, we intentionally DON'T set VITE_BACKEND_URL
+# This forces the frontend to use relative URLs with nginx proxy instead of direct backend connection
+# which avoids mixed content issues (HTTPS frontend -> HTTP backend)
+# ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
+
+# Debug: Display environment variables during build
+RUN echo "🔍 Build Environment Variables:" && \
+    echo "  NODE_ENV: $NODE_ENV" && \
+    echo "  VITE_BACKEND_URL: NOT SET (using nginx proxy)" && \
+    echo "  VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-undefined}" && \
+    echo "🚂 Railway Configuration: Frontend will use relative URLs through nginx proxy"
 
 # Copy source code
 COPY . .
