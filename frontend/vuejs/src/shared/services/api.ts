@@ -14,16 +14,19 @@ export const API_CONFIG = {
     
     console.log('🔧 API Configuration:')
     console.log('  Environment:', isProduction ? 'production' : 'development')
-    console.log('  VITE_BACKEND_URL:', backendUrl)
+    console.log('  VITE_BACKEND_URL:', backendUrl || 'NOT SET')
     
-    if (isProduction && backendUrl) {
-      // Production: Use the backend URL directly for Railway internal networking
-      console.log('🚂 Using Railway backend URL:', backendUrl)
-      return backendUrl
-    } else if (isProduction) {
-      // Production fallback: Use relative URLs with nginx proxy
-      console.log('🚂 Using relative URLs for Railway nginx proxy')
-      return ''
+    if (isProduction) {
+      if (backendUrl) {
+        // Production with explicit backend URL: Use it directly
+        console.log('🚂 Using explicit Railway backend URL:', backendUrl)
+        return backendUrl
+      } else {
+        // Production without VITE_BACKEND_URL: Use relative URLs with nginx proxy
+        console.log('⚠️ VITE_BACKEND_URL not set in Railway - using nginx proxy')
+        console.log('🚂 Using relative URLs for Railway nginx proxy')
+        return ''
+      }
     } else {
       // Development: Use relative URLs with Vite proxy
       console.log('🛠️ Using relative URLs for Vite dev server proxy')
@@ -182,7 +185,7 @@ export function buildApiUrl(path: string): string {
   console.log('🔗 Building API URL:')
   console.log('  Input path:', path)
   console.log('  Environment:', isProduction ? 'production' : 'development')
-  console.log('  Backend URL:', backendUrl)
+  console.log('  Backend URL:', backendUrl || 'NOT SET')
   
   if (isProduction && backendUrl) {
     // Production with backend URL: Use absolute URL for Railway internal networking
@@ -190,8 +193,8 @@ export function buildApiUrl(path: string): string {
     console.log('  🚂 Railway absolute URL:', fullUrl)
     return fullUrl
   } else {
-    // Development or production with nginx proxy: Use relative URLs
-    console.log('  📍 Relative URL:', path)
+    // Development or production without VITE_BACKEND_URL: Use relative URLs
+    console.log('  📍 Relative URL (nginx/vite proxy):', path)
     return path
   }
 } 

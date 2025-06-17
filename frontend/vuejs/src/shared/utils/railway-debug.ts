@@ -121,7 +121,9 @@ export class RailwayDebugger {
     
     const backendUrl = import.meta.env.VITE_BACKEND_URL
     if (!backendUrl) {
-      console.log('❌ VITE_BACKEND_URL not set')
+      console.log('⚠️ VITE_BACKEND_URL not set - this is expected if using nginx proxy')
+      console.log('ℹ️ In Railway, frontend connects to backend via nginx proxy at relative URLs')
+      console.log('ℹ️ If you want direct backend connection, set VITE_BACKEND_URL=http://backend.railway.internal:8000')
       return
     }
     

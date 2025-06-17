@@ -41,15 +41,16 @@ export default defineConfig({
       name: 'resolve-svg-patterns',
       resolveId(id) {
         // Resolve grid-pattern.svg and dot-pattern.svg as empty modules
-        if (id === '/grid-pattern.svg' || id === '/dot-pattern.svg') {
-          return '\0empty-module'
+        if (id === '/grid-pattern.svg' || id === '/dot-pattern.svg' || 
+            id.endsWith('grid-pattern.svg') || id.endsWith('dot-pattern.svg')) {
+          return '\0empty-svg-module'
         }
         return null
       },
       load(id) {
-        if (id === '\0empty-module') {
-          // Return an empty SVG that works with url() references
-          return `export default "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E"`
+        if (id === '\0empty-svg-module') {
+          // Return a valid transparent SVG pattern that works with url() references
+          return `export default "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='%23f0f0f0' fill-opacity='0.1'%3E%3Ccircle cx='20' cy='20' r='1'/%3E%3C/g%3E%3C/svg%3E"`
         }
         return null
       }
