@@ -373,21 +373,26 @@ export const AgentService = {
   },
   
   getAuthToken(): string | null {
-    // Try to get token from localStorage first
-    const token = localStorage.getItem('auth_token');
-    
-    if (token) {
-      return token;
+    // Get token from the same localStorage structure used by the auth store
+    try {
+      const tokenData = localStorage.getItem('token')
+      if (!tokenData) return null
+      
+      const parsedToken = JSON.parse(tokenData)
+      if (!parsedToken?.value) return null
+      
+      // Check if token is expired
+      if (parsedToken.expires && Date.now() > parsedToken.expires) {
+        localStorage.removeItem('token')
+        return null
+      }
+      
+      return parsedToken.value
+    } catch (error) {
+      console.error('Error parsing auth token:', error)
+      localStorage.removeItem('token')
+      return null
     }
-    
-    // If not in localStorage, try to get from cookie
-    const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
-      const [key, value] = cookie.split('=');
-      acc[key] = value;
-      return acc;
-    }, {} as Record<string, string>);
-    
-    return cookies['auth_token'] || null;
   },
   
   formatError(error: any): string {

@@ -30,8 +30,14 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async getCSRFToken() {
     try {
+      // Build the full URL and log it
+      const fullUrl = buildApiUrl(`${API_PATH}/csrf/`)
+      console.log('🔑 CSRF Token Request - Full URL:', fullUrl)
+      console.log('🔑 CSRF Token Request - API_PATH:', API_PATH)
+      console.log('🔑 CSRF Token Request - Built URL from buildApiUrl:', fullUrl)
+      
       // Use the shared API client and build proper URL
-      const response = await api.get(buildApiUrl(`${API_PATH}/csrf/`), {
+      const response = await api.get(fullUrl, {
         timeout: 30000 // Increase timeout for production environment
       })
       return response

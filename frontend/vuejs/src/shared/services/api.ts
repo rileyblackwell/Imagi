@@ -23,41 +23,6 @@ export const API_CONFIG = {
   RETRY_DELAY: 1000
 }
 
-// Helper functions for token management
-function getAuthToken(): string | null {
-  try {
-    const tokenData = localStorage.getItem('token')
-    if (!tokenData) return null
-    
-    const parsedToken = JSON.parse(tokenData)
-    if (!parsedToken?.value) return null
-    
-    // Check if token is expired
-    if (parsedToken.expires && Date.now() > parsedToken.expires) {
-      localStorage.removeItem('token')
-      return null
-    }
-    
-    return parsedToken.value
-  } catch (error) {
-    console.error('Error parsing auth token:', error)
-    localStorage.removeItem('token')
-    return null
-  }
-}
-
-function getCSRFToken(): string | null {
-  try {
-    return document.cookie
-      .split('; ')
-      .find(row => row.startsWith('csrftoken='))
-      ?.split('=')[1] || null
-  } catch (error) {
-    console.error('Error getting CSRF token:', error)
-    return null
-  }
-}
-
 // Create the centralized API client
 const api: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -72,21 +37,9 @@ const api: AxiosInstance = axios.create({
 // Request interceptor for authentication and CSRF
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // Add authentication token
-    const token = getAuthToken()
-    if (token && !config.headers['Authorization']) {
-      config.headers['Authorization'] = `Token ${token}`
-    }
-    
-    // Add CSRF token for mutation requests
-    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
-      const csrfToken = getCSRFToken()
-      if (csrfToken) {
-        config.headers['X-CSRFToken'] = csrfToken
-      }
-      // Note: CSRF token will be handled by the specific auth service methods
-      // No longer fetching CSRF token here to prevent recursive requests and timeouts
-    }
+    // Authentication and CSRF tokens are now handled by individual services
+    // The auth service will manage tokens and set headers as needed
+    // Other services should use their own token management if required
     
     return config
   },
@@ -149,9 +102,6 @@ api.interceptors.response.use(
 
 // Export the configured API client
 export default api
-
-// Export additional utilities for services that need them
-export { getAuthToken, getCSRFToken }
 
 // Helper function to build API URLs consistently
 export function buildApiUrl(path: string): string {
