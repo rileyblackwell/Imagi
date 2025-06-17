@@ -38,15 +38,19 @@ RUN mkdir -p /etc/nginx/conf.d /var/log/nginx
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy nginx scripts directly and make them executable
-COPY scripts/ /usr/local/bin/
-RUN chmod +x /usr/local/bin/*.sh
+# Copy health check script only
+COPY scripts/health-check.sh /usr/local/bin/health-check.sh
+RUN chmod +x /usr/local/bin/health-check.sh
 
 # Copy Vue.js build artifacts from build stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # Set proper ownership for nginx files
 RUN chown -R nginx:nginx /usr/share/nginx/html
+
+# Create log directories and set permissions
+RUN mkdir -p /var/log/nginx && \
+    chown -R nginx:nginx /var/log/nginx
 
 # Expose HTTP port
 EXPOSE 80
@@ -55,5 +59,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD /usr/local/bin/health-check.sh
 
-# Use our startup script with fallback
-CMD ["/bin/sh", "-c", "if [ -f /usr/local/bin/start-nginx.sh ]; then /usr/local/bin/start-nginx.sh; else nginx -g 'daemon off;'; fi"]
+# Start nginx directly
+CMD ["nginx", "-g", "daemon off;"]
