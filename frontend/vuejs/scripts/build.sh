@@ -19,9 +19,13 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-npm ci --prefer-offline --no-audit
+# Check if node_modules exists (dependencies should be pre-installed in Docker)
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm ci --prefer-offline --no-audit
+else
+    echo "📦 Dependencies already installed, skipping..."
+fi
 
 # Build the application
 echo "🔨 Building Vue.js application..."

@@ -16,6 +16,9 @@ RUN chmod +x /usr/local/bin/*.sh
 # Copy package files for better layer caching
 COPY package*.json ./
 
+# Install dependencies first (for better Docker layer caching)
+RUN npm ci --prefer-offline --no-audit
+
 # Railway build arguments and environment variables
 ARG NODE_ENV=production
 ARG VITE_BACKEND_URL
