@@ -17,7 +17,13 @@ RUN chmod +x /usr/local/bin/*.sh
 COPY package*.json ./
 
 # Railway build arguments and environment variables
+ARG NODE_ENV=production
+ARG VITE_BACKEND_URL
 ARG VITE_STRIPE_PUBLISHABLE_KEY
+
+# Set environment variables for build process
+ENV NODE_ENV=$NODE_ENV
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
 
 # Copy source code

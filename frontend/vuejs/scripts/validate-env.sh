@@ -32,8 +32,20 @@ if [ ! -f "index.html" ]; then
     VALIDATION_PASSED=false
 fi
 
-# Check environment variables (optional for build time)
-echo "🔍 Checking environment variables..."
+# Check Railway environment variables
+echo "🚂 Checking Railway environment variables..."
+if [ -n "$NODE_ENV" ]; then
+    echo "✅ NODE_ENV is set: $NODE_ENV"
+else
+    echo "⚠️  NODE_ENV is not set (will default to 'production' in Dockerfile)"
+fi
+
+if [ -n "$VITE_BACKEND_URL" ]; then
+    echo "✅ VITE_BACKEND_URL is set: $VITE_BACKEND_URL"
+else
+    echo "⚠️  VITE_BACKEND_URL is not set (app will use relative URLs for nginx proxy)"
+fi
+
 if [ -n "$VITE_STRIPE_PUBLISHABLE_KEY" ]; then
     echo "✅ VITE_STRIPE_PUBLISHABLE_KEY is set"
 else

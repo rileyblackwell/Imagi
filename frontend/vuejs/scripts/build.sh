@@ -7,6 +7,12 @@ set -e  # Exit on any error
 
 echo "🏗️  Starting Vue.js build process..."
 
+# Display environment variables for debugging
+echo "🔍 Environment variables during build:"
+echo "  NODE_ENV: ${NODE_ENV:-undefined}"
+echo "  VITE_BACKEND_URL: ${VITE_BACKEND_URL:-undefined}"
+echo "  VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-undefined}"
+
 # Check if package.json exists
 if [ ! -f "package.json" ]; then
     echo "❌ Error: package.json not found!"
