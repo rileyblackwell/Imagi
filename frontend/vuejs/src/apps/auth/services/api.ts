@@ -32,17 +32,55 @@ export const AuthAPI = {
     try {
       // Build the full URL and log it
       const fullUrl = buildApiUrl(`${API_PATH}/csrf/`)
-      console.log('🔑 CSRF Token Request - Full URL:', fullUrl)
-      console.log('🔑 CSRF Token Request - API_PATH:', API_PATH)
-      console.log('🔑 CSRF Token Request - Built URL from buildApiUrl:', fullUrl)
+      
+      console.log('🔑 CSRF Token Request Details:')
+      console.log('  Full URL:', fullUrl)
+      console.log('  API_PATH:', API_PATH)
+      console.log('  Environment:', import.meta.env.PROD ? 'production' : 'development')
+      console.log('  VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL)
+      console.log('  Base URL (api client):', api.defaults.baseURL)
       
       // Use the shared API client and build proper URL
       const response = await api.get(fullUrl, {
-        timeout: 30000 // Increase timeout for production environment
+        timeout: 30000, // 30 seconds timeout for Railway environment
+        headers: {
+          'X-Request-Type': 'csrf-token',
+          'X-Frontend-Service': 'vue-frontend'
+        }
       })
+      
+      console.log('✅ CSRF token request successful')
+      console.log('  Response status:', response.status)
+      console.log('  Response headers:', response.headers)
+      console.log('  Response data:', response.data)
+      
       return response
-    } catch (error) {
-      console.error('🔑 Failed to get CSRF token:', error)
+    } catch (error: any) {
+      console.error('❌ CSRF Token Request Failed:')
+      console.error('  Error message:', error.message)
+      console.error('  Error code:', error.code)
+      console.error('  Request URL:', error.config?.url)
+      console.error('  Request method:', error.config?.method)
+      console.error('  Request headers:', error.config?.headers)
+      console.error('  Request timeout:', error.config?.timeout)
+      
+      if (error.response) {
+        console.error('  Response status:', error.response.status)
+        console.error('  Response headers:', error.response.headers)
+        console.error('  Response data:', error.response.data)
+      } else {
+        console.error('  No response received - network issue')
+        
+        // Railway-specific debugging
+        if (import.meta.env.PROD) {
+          console.error('🚂 Railway Environment Debug:')
+          console.error('  Expected backend:', 'http://backend.railway.internal:8000')
+          console.error('  Actual backend URL:', import.meta.env.VITE_BACKEND_URL)
+          console.error('  API base URL:', api.defaults.baseURL)
+          console.error('  Full request URL:', `${api.defaults.baseURL || ''}${buildApiUrl(`${API_PATH}/csrf/`)}`)
+        }
+      }
+      
       throw error
     }
   },
@@ -53,18 +91,34 @@ export const AuthAPI = {
     
     if (!csrfToken) {
       try {
-        console.log('🔑 Fetching CSRF token from /api/v1/auth/csrf/...')
+        console.log('🔑 No CSRF token found in cookies, fetching from server...')
+        console.log('  Request URL will be:', buildApiUrl(`${API_PATH}/csrf/`))
+        
         await this.getCSRFToken()
         csrfToken = getCookie('csrftoken')
         
         if (!csrfToken) {
-          console.warn('Failed to obtain CSRF token after fetch')
+          console.warn('⚠️ Failed to obtain CSRF token after fetch')
+          console.warn('  Cookies after request:', document.cookie)
           throw new Error('Failed to obtain CSRF token')
+        } else {
+          console.log('✅ CSRF token obtained successfully:', csrfToken.substring(0, 10) + '...')
         }
-      } catch (error) {
-        console.error('Error fetching CSRF token:', error)
+      } catch (error: any) {
+        console.error('❌ Error fetching CSRF token:', error)
+        
+        // Railway-specific error handling
+        if (import.meta.env.PROD && error.message.includes('Network error')) {
+          console.error('🚂 Railway Network Error Detected:')
+          console.error('  This may indicate a problem with Railway internal networking')
+          console.error('  Frontend service cannot reach backend.railway.internal:8000')
+          console.error('  Check Railway service configuration and network policies')
+        }
+        
         throw error
       }
+    } else {
+      console.log('✅ CSRF token found in cookies:', csrfToken.substring(0, 10) + '...')
     }
     
     return csrfToken

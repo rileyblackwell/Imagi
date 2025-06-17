@@ -9,6 +9,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
 
+// Import Railway debugging utilities
+import { RailwayDebugger } from '@/shared/utils/railway-debug'
+
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
 
@@ -177,6 +180,18 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', disableBFCache)
 } else {
   disableBFCache()
+}
+
+// Initialize Railway debugging in production
+if (import.meta.env.PROD) {
+  console.log('🚂 Initializing Railway debugging...')
+  const railwayDebugger = RailwayDebugger.getInstance()
+  railwayDebugger.debugEnvironment()
+  
+  // Run diagnostics after a short delay to let the app initialize
+  setTimeout(() => {
+    railwayDebugger.runFullDiagnostics().catch(console.error)
+  }, 2000)
 }
 
 // Mount app

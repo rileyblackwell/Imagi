@@ -42,45 +42,74 @@ class RegistrationRateThrottle(AnonRateThrottle):
     rate = '20/hour'  # Increased from 3/hour to 20/hour
 
 class CSRFTokenView(APIView):
-    """Get CSRF token for the frontend."""
+    """Get CSRF token for the frontend - Railway optimized."""
     permission_classes = [AllowAny]
-    
+    authentication_classes = []
+
     def options(self, request, *args, **kwargs):
         """Handle CORS preflight requests for CSRF token endpoint."""
-        response = Response()
-        response['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        response['Access-Control-Allow-Headers'] = 'Content-Type, X-Requested-With'
-        response['Access-Control-Allow-Credentials'] = 'true'
-        return response
-    
+        logger.info("🔧 CSRF OPTIONS preflight request received")
+        logger.info(f"📍 Origin: {request.headers.get('Origin', 'No Origin')}")
+        logger.info(f"🏠 Host: {request.headers.get('Host', 'No Host')}")
+        return Response(status=200)
+
     @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         """
         Provide CSRF token for frontend authentication.
-        This endpoint is especially important for Railway production environment
-        where frontend and backend are on different domains.
+        Enhanced for Railway debugging.
         """
         try:
-            csrf_token = get_token(request)
-            logger.info(f"CSRF token requested from {request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))}")
+            # Enhanced logging for Railway debugging
+            origin = request.headers.get('Origin', 'No Origin')
+            host = request.headers.get('Host', 'No Host')
+            x_forwarded_for = request.headers.get('X-Forwarded-For', 'No X-Forwarded-For')
+            user_agent = request.headers.get('User-Agent', 'No User-Agent')[:100]
             
-            response = Response({
+            logger.info("🔑 CSRF Token Request Details:")
+            logger.info(f"  📍 Origin: {origin}")
+            logger.info(f"  🏠 Host: {host}")
+            logger.info(f"  🔄 X-Forwarded-For: {x_forwarded_for}")
+            logger.info(f"  🖥️ User-Agent: {user_agent}")
+            logger.info(f"  🌐 Method: {request.method}")
+            logger.info(f"  📄 Path: {request.path}")
+            
+            csrf_token = get_token(request)
+            remote_addr = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+            
+            logger.info(f"✅ CSRF token generated successfully from {remote_addr}")
+            logger.info(f"🔑 Token length: {len(csrf_token) if csrf_token else 0}")
+            
+            # Check if we're in Railway environment
+            from django.conf import settings
+            if getattr(settings, 'IS_RAILWAY_PRODUCTION', False):
+                logger.info("🚂 Running in Railway production environment")
+            
+            response_data = {
                 'csrfToken': csrf_token,
                 'details': 'CSRF cookie set',
-                'success': True
-            })
+                'environment': 'railway' if getattr(settings, 'IS_RAILWAY_PRODUCTION', False) else 'development',
+                'debug_info': {
+                    'origin': origin,
+                    'host': host,
+                    'remote_addr': remote_addr,
+                    'token_length': len(csrf_token) if csrf_token else 0,
+                }
+            }
             
-            # Ensure CORS headers are set for cross-domain requests
-            response['Access-Control-Allow-Credentials'] = 'true'
-            
-            return response
+            logger.info(f"📤 Sending CSRF response: {response_data}")
+            return Response(response_data, status=200)
             
         except Exception as e:
-            logger.error(f"Error generating CSRF token: {str(e)}")
+            logger.error(f"❌ Error generating CSRF token: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            
             return Response({
                 'error': 'Unable to generate CSRF token',
-                'details': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'detail': str(e),
+                'environment': 'railway' if getattr(settings, 'IS_RAILWAY_PRODUCTION', False) else 'development',
+            }, status=500)
 
 class InitView(APIView):
     """Initialize session and CSRF token."""
@@ -219,7 +248,7 @@ class LogoutView(APIView):
                 'error': 'Logout failed'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class UserDetailView(generics.RetrieveUpdateAPIView):
+class UserView(generics.RetrieveUpdateAPIView):
     """Get or update user details."""
     authentication_classes = [TokenAuthentication]
     serializer_class = UserSerializer
@@ -228,8 +257,44 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def health_check(request):
-    """Simple health check endpoint."""
-    return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+class HealthCheckView(APIView):
+    """Health check endpoint for Railway debugging."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        """Health check endpoint with Railway environment details."""
+        from django.conf import settings
+        import os
+        
+        # Enhanced health check for Railway debugging
+        origin = request.headers.get('Origin', 'No Origin')
+        host = request.headers.get('Host', 'No Host')
+        x_forwarded_for = request.headers.get('X-Forwarded-For', 'No X-Forwarded-For')
+        
+        logger.info("🏥 Health check requested:")
+        logger.info(f"  📍 Origin: {origin}")
+        logger.info(f"  🏠 Host: {host}")
+        logger.info(f"  🔄 X-Forwarded-For: {x_forwarded_for}")
+        
+        health_data = {
+            'status': 'healthy',
+            'message': 'Auth API is running',
+            'timestamp': str(__import__('datetime').datetime.now()),
+            'environment': 'railway' if getattr(settings, 'IS_RAILWAY_PRODUCTION', False) else 'development',
+            'debug_info': {
+                'origin': origin,
+                'host': host,
+                'remote_addr': x_forwarded_for,
+                'django_version': __import__('django').get_version(),
+                'python_version': __import__('sys').version.split()[0],
+                'cors_allowed_origins': getattr(settings, 'CORS_ALLOWED_ORIGINS', []),
+                'csrf_trusted_origins': getattr(settings, 'CSRF_TRUSTED_ORIGINS', []),
+                'database_engine': settings.DATABASES['default']['ENGINE'],
+                'railway_environment': os.environ.get('RAILWAY_ENVIRONMENT', 'not-set'),
+                'allowed_hosts': settings.ALLOWED_HOSTS,
+            }
+        }
+        
+        logger.info(f"📤 Health check response: {health_data}")
+        return Response(health_data, status=200)

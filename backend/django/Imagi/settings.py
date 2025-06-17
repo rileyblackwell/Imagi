@@ -219,7 +219,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# CORS settings - Updated for proxy architecture
+# CORS settings - Updated for Railway internal networking
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",  # Development: Vite dev server
     "http://127.0.0.1:5174",  # Development: Vite dev server (alternate)
@@ -227,16 +227,25 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # In production, Railway services communicate via internal network
-# Allow internal Railway communication
+# Allow internal Railway communication and add debugging
 if not DEBUG or IS_RAILWAY_PRODUCTION:
-    # Allow Railway internal communication (frontend service to backend service)
-    CORS_ALLOWED_ORIGINS.extend([
+    # Railway internal communication patterns
+    railway_origins = [
         "https://frontend.railway.internal",
         "http://frontend.railway.internal",
-    ])
+        "https://frontend.railway.internal:80",
+        "http://frontend.railway.internal:80",
+    ]
+    CORS_ALLOWED_ORIGINS.extend(railway_origins)
+    print(f"🚂 Railway CORS origins added: {railway_origins}")
 
-# Set to False when using specific origins with credentials
-CORS_ORIGIN_ALLOW_ALL = False
+# For production debugging, temporarily allow all origins and then restrict
+if IS_RAILWAY_PRODUCTION:
+    CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all for debugging
+    print("🔓 CORS: Allowing all origins temporarily for debugging")
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
@@ -251,6 +260,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
     'cache-control',
     'pragma',
+    'x-api-client',
 ]
 
 # Add CORS_EXPOSE_HEADERS to allow clients to access these headers
@@ -260,9 +270,6 @@ CORS_EXPOSE_HEADERS = [
     'cache-control',
     'connection',
 ]
-
-# Enable credentials (cookies, authorization headers)
-CORS_ALLOW_CREDENTIALS = True
 
 # Allow all standard HTTP methods
 CORS_ALLOW_METHODS = [
@@ -277,7 +284,7 @@ CORS_ALLOW_METHODS = [
 # Add additional CORS configuration
 CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
-# CSRF settings - Updated for proxy architecture
+# CSRF settings - Simplified for Railway architecture
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5174',  # Development: Vite dev server
     'http://127.0.0.1:5174',  # Development: Vite dev server (alternate)
@@ -286,41 +293,39 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Add Railway internal origins for production
 if not DEBUG or IS_RAILWAY_PRODUCTION:
-    CSRF_TRUSTED_ORIGINS.extend([
+    railway_csrf_origins = [
         'https://frontend.railway.internal',
         'http://frontend.railway.internal',
-    ])
+        'https://*.railway.app',
+        'http://*.railway.internal',
+        'https://*.railway.internal'
+    ]
+    CSRF_TRUSTED_ORIGINS.extend(railway_csrf_origins)
+    print(f"🚂 Railway CSRF origins added: {railway_csrf_origins}")
 
-# Cookie settings - configured for cross-domain requests via Railway architecture
+# Cookie settings - simplified for Railway architecture
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 
-# Use 'None' for cross-domain cookies when using HTTPS
-# This allows cookies to be sent in cross-origin requests when the frontend and backend are on different domains
-CSRF_COOKIE_SAMESITE = 'None'
-CSRF_COOKIE_SECURE = True  # Required when SameSite=None
+# For Railway production, simplify CSRF cookie settings
+if IS_RAILWAY_PRODUCTION:
+    # Disable secure cookies and SameSite restrictions for Railway internal networking
+    CSRF_COOKIE_SECURE = False  # Railway internal network doesn't use HTTPS
+    CSRF_COOKIE_SAMESITE = 'Lax'  # More permissive for internal network
+    CSRF_COOKIE_DOMAIN = None  # Don't set domain for Railway internal network
+    print("🍪 CSRF: Using relaxed cookie settings for Railway internal network")
+else:
+    # Development settings
+    CSRF_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = 'Lax'
 
-# Set CSRF cookie domain to allow cross-subdomain requests in production
-if not DEBUG:
-    CSRF_COOKIE_DOMAIN = '.railway.app'  # Allow cookies across Railway subdomains
-    # Additional CSRF settings for Railway production environment
-    CSRF_COOKIE_PATH = '/'
-    CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-    
-    # For Railway proxy architecture, we might need to trust certain origins
-    # for CSRF token validation
-    CSRF_FAILURE_VIEW = 'apps.Auth.views.csrf_failure'
-    
-    # Add Railway-specific trusted origins for better CSRF handling
-    CSRF_TRUSTED_ORIGINS.extend([
-        'https://*.railway.app',
-        'http://*.railway.internal',
-        'https://*.railway.internal'
-    ])
+CSRF_COOKIE_PATH = '/'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = 'None'  # Allow cross-domain session cookies
+# Session cookie settings - simplified for Railway
+SESSION_COOKIE_SECURE = False if IS_RAILWAY_PRODUCTION else False
+SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for internal network
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

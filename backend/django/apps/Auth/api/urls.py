@@ -4,18 +4,18 @@ from . import views
 app_name = 'auth_api'
 
 urlpatterns = [
-    # CSRF and Health Check
-    path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
-    path('health/', views.health_check, name='health-check'),
+    # Health Check and Debugging
+    path('health/', views.HealthCheckView.as_view(), name='health-check'),
     
-    # Session initialization
+    # CSRF and Authentication
+    path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
     path('init/', views.InitView.as_view(), name='init'),
     
-    # Core Authentication
-    path('register/', views.RegisterView.as_view(), name='register'),
+    # Authentication endpoints
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('register/', views.RegisterView.as_view(), name='register'),
     
-    # User Management
-    path('user/', views.UserDetailView.as_view(), name='user-detail'),
+    # User management
+    path('user/', views.UserView.as_view(), name='user'),
 ]
