@@ -469,7 +469,7 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',  # Allow all levels through the handler
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -482,7 +482,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Only show warnings and errors
+            'level': 'INFO',  # Show INFO level and above
             'propagate': True,
         },
         'django.request': {
@@ -493,6 +493,12 @@ LOGGING = {
         'apps.Auth.middleware': {
             'handlers': [],  # No handlers = no output
             'level': 'ERROR',  # Only show errors
+            'propagate': False,
+        },
+        # Root logger to catch all other loggers
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
