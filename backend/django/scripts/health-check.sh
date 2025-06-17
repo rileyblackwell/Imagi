@@ -5,8 +5,8 @@
 
 set -e
 
-# Configuration
-HEALTH_URL="http://localhost:${PORT:-8000}/api/v1/health/"
+# Configuration - Use port 8000 consistently
+HEALTH_URL="http://localhost:8000/api/v1/health/"
 TIMEOUT=10
 MAX_RETRIES=3
 

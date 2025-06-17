@@ -18,30 +18,16 @@ import traceback
 # Import services when needed, not at module level
 from ..services import ChatAgentService, TemplateAgentService
 
-# Add more detailed logging for StylesheetAgentService import
+# Import StylesheetAgentService quietly
 logger = logging.getLogger(__name__)
-logger.info("Attempting to import StylesheetAgentService...")
 
 # Try to import StylesheetAgentService, which might not be available
 try:
-    # First check if the file exists
-    import os
-    
-    # Get the directory of the current file
-    current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    stylesheet_path = os.path.join(current_dir, 'services', 'stylesheet_agent_service.py')
-    
-    logger.info(f"Looking for stylesheet_agent_service.py at: {stylesheet_path}")
-    if os.path.exists(stylesheet_path):
-        logger.info(f"File exists! Attempting import...")
-        
     # Try the actual import
     from ..services import StylesheetAgentService
     has_stylesheet_service = True
-    logger.info("Successfully imported StylesheetAgentService")
 except ImportError as e:
-    logger.error(f"Failed to import StylesheetAgentService: {str(e)}")
-    logger.error(traceback.format_exc())
+    logger.debug(f"StylesheetAgentService not available: {str(e)}")
     has_stylesheet_service = False
     # Create a fallback error function
     def stylesheet_service_not_available(error_message="Stylesheet service not available"):
@@ -52,11 +38,8 @@ except ImportError as e:
             }
         return service_error
 except Exception as e:
-    logger.error(f"Unexpected error importing StylesheetAgentService: {str(e)}")
-    logger.error(traceback.format_exc())
+    logger.debug(f"Unexpected error importing StylesheetAgentService: {str(e)}")
     has_stylesheet_service = False
-    
-logger.info(f"Stylesheet service availability: {has_stylesheet_service}")
 
 # Helper function to create error responses that are properly rendered
 def create_error_response(error, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):

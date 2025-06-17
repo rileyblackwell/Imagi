@@ -82,8 +82,8 @@ RUN apt-get purge -y gcc && \
 # Set proper ownership
 RUN chown -R www-data:www-data /code
 
-# Expose port
-EXPOSE $PORT
+# Expose port 8000
+EXPOSE 8000
 
 # Health check using our script
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

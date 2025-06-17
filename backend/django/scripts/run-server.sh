@@ -5,23 +5,16 @@
 
 set -e  # Exit on any error
 
-# Configuration
-RUN_PORT="${PORT:-8000}"
+# Configuration - Force port 8000 for consistency
+RUN_PORT="8000"
 WORKERS="${WORKERS:-3}"
 THREADS="${THREADS:-2}"
 TIMEOUT="${TIMEOUT:-120}"
 MAX_REQUESTS="${MAX_REQUESTS:-1000}"
 
 echo "🚀 Starting Django backend server..."
-echo "📋 Configuration:"
-echo "  - Port: $RUN_PORT"
-echo "  - Workers: $WORKERS"
-echo "  - Threads: $THREADS"
-echo "  - Timeout: ${TIMEOUT}s"
-echo "  - Max requests: $MAX_REQUESTS"
 
 # Check Django setup
-echo "🔍 Checking Django configuration..."
 if ! python manage.py check --deploy; then
     echo "❌ Django configuration check failed!"
     exit 1
