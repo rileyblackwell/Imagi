@@ -237,7 +237,8 @@ if not DEBUG or IS_RAILWAY_PRODUCTION:
         "http://frontend.railway.internal:80",
     ]
     CORS_ALLOWED_ORIGINS.extend(railway_origins)
-    print(f"🚂 Railway CORS origins added: {railway_origins}")
+    # Reduced logging for cleaner console output
+    # print(f"🚂 Railway CORS origins added: {railway_origins}")
 
 # CORS settings - production ready
 CORS_ALLOW_ALL_ORIGINS = False  # Always use explicit origin allowlist for security
@@ -297,7 +298,8 @@ if not DEBUG or IS_RAILWAY_PRODUCTION:
         'https://*.railway.internal'
     ]
     CSRF_TRUSTED_ORIGINS.extend(railway_csrf_origins)
-    print(f"🚂 Railway CSRF origins added: {railway_csrf_origins}")
+    # Reduced logging for cleaner console output
+    # print(f"🚂 Railway CSRF origins added: {railway_csrf_origins}")
 
 # Cookie settings - simplified for Railway architecture
 CSRF_COOKIE_NAME = 'csrftoken'
@@ -310,7 +312,8 @@ if IS_RAILWAY_PRODUCTION:
     CSRF_COOKIE_SECURE = True  # External connections are HTTPS
     CSRF_COOKIE_SAMESITE = 'Lax'  # More permissive for cross-origin requests
     CSRF_COOKIE_DOMAIN = None  # Don't set domain for Railway internal network
-    print("🍪 CSRF: Using secure cookie settings for Railway production")
+    # Reduced logging - combined with security settings below
+    # print("🍪 CSRF: Using secure cookie settings for Railway production")
 else:
     # Development settings
     CSRF_COOKIE_SECURE = False
@@ -348,7 +351,7 @@ if IS_RAILWAY_PRODUCTION:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    print("🔒 Railway production security settings applied (SSL redirect enabled, secure cookies enabled)")
+    print("🔒 Railway production configured: SSL redirects enabled, secure cookies enabled, internal networking allowed")
 else:
     # Development environment
     SECURE_SSL_REDIRECT = False  # HTTP is fine for local development

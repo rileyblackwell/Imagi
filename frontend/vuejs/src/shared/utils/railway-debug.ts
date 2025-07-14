@@ -20,7 +20,8 @@ export class RailwayDebugger {
     console.log('🚂 Railway Environment Debug Information')
     console.log('=====================================')
     console.log('Environment Variables:')
-    console.log('  NODE_ENV:', import.meta.env.NODE_ENV)
+    console.log('  MODE:', import.meta.env.MODE) // Vite's environment mode
+    console.log('  VITE_NODE_ENV:', import.meta.env.VITE_NODE_ENV) // Explicit NODE_ENV from build
     console.log('  PROD:', import.meta.env.PROD)
     console.log('  DEV:', import.meta.env.DEV)
     console.log('  VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL)

@@ -186,9 +186,8 @@ if (document.readyState === 'loading') {
 if (import.meta.env.PROD) {
   console.log('🚂 Initializing Railway debugging...')
   const railwayDebugger = RailwayDebugger.getInstance()
-  railwayDebugger.debugEnvironment()
   
-  // Run diagnostics after a short delay to let the app initialize
+  // Run full diagnostics after a short delay to let the app initialize
   setTimeout(() => {
     railwayDebugger.runFullDiagnostics().catch(console.error)
   }, 2000)
