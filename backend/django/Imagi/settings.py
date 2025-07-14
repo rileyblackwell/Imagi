@@ -239,12 +239,8 @@ if not DEBUG or IS_RAILWAY_PRODUCTION:
     CORS_ALLOWED_ORIGINS.extend(railway_origins)
     print(f"🚂 Railway CORS origins added: {railway_origins}")
 
-# For production debugging, temporarily allow all origins and then restrict
-if IS_RAILWAY_PRODUCTION:
-    CORS_ALLOW_ALL_ORIGINS = True  # Temporarily allow all for debugging
-    print("🔓 CORS: Allowing all origins temporarily for debugging")
-else:
-    CORS_ALLOW_ALL_ORIGINS = False
+# CORS settings - production ready
+CORS_ALLOW_ALL_ORIGINS = False  # Always use explicit origin allowlist for security
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -308,13 +304,13 @@ CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 
-# For Railway production, simplify CSRF cookie settings
+# For Railway production, use secure cookie settings
 if IS_RAILWAY_PRODUCTION:
-    # Disable secure cookies and SameSite restrictions for Railway internal networking
-    CSRF_COOKIE_SECURE = False  # Railway internal network doesn't use HTTPS
-    CSRF_COOKIE_SAMESITE = 'Lax'  # More permissive for internal network
+    # Use secure cookies since external connections are HTTPS (Railway handles SSL termination)
+    CSRF_COOKIE_SECURE = True  # External connections are HTTPS
+    CSRF_COOKIE_SAMESITE = 'Lax'  # More permissive for cross-origin requests
     CSRF_COOKIE_DOMAIN = None  # Don't set domain for Railway internal network
-    print("🍪 CSRF: Using relaxed cookie settings for Railway internal network")
+    print("🍪 CSRF: Using secure cookie settings for Railway production")
 else:
     # Development settings
     CSRF_COOKIE_SECURE = False
@@ -323,9 +319,14 @@ else:
 CSRF_COOKIE_PATH = '/'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
-# Session cookie settings - simplified for Railway
-SESSION_COOKIE_SECURE = False if IS_RAILWAY_PRODUCTION else False
-SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for internal network
+# Session cookie settings - updated for Railway
+if IS_RAILWAY_PRODUCTION:
+    SESSION_COOKIE_SECURE = True  # External connections are HTTPS
+    SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for cross-origin requests
+else:
+    SESSION_COOKIE_SECURE = False  # Development uses HTTP
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -347,7 +348,7 @@ if IS_RAILWAY_PRODUCTION:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    print("🔒 Railway production security settings applied (SSL redirect disabled)")
+    print("🔒 Railway production security settings applied (SSL redirect disabled, secure cookies enabled)")
 else:
     # Development or other production environments
     SECURE_SSL_REDIRECT = True
