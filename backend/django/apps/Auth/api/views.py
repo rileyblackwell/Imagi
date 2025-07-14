@@ -291,7 +291,7 @@ class HealthCheckView(APIView):
                 'cors_allowed_origins': getattr(settings, 'CORS_ALLOWED_ORIGINS', []),
                 'csrf_trusted_origins': getattr(settings, 'CSRF_TRUSTED_ORIGINS', []),
                 'database_engine': settings.DATABASES['default']['ENGINE'],
-                'railway_environment': os.environ.get('RAILWAY_ENVIRONMENT', 'not-set'),
+                'railway_environment': os.environ.get('RAILWAY_ENVIRONMENT_NAME', 'not-set'),
                 'allowed_hosts': settings.ALLOWED_HOSTS,
             }
         }

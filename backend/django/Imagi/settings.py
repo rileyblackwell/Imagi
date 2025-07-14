@@ -32,9 +32,9 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', cast=str)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-# Railway sets RAILWAY_ENVIRONMENT in production
-RAILWAY_ENVIRONMENT = config('RAILWAY_ENVIRONMENT', default=None)
-IS_RAILWAY_PRODUCTION = RAILWAY_ENVIRONMENT == 'production'
+# Railway automatically sets RAILWAY_ENVIRONMENT_NAME in production
+RAILWAY_ENVIRONMENT_NAME = config('RAILWAY_ENVIRONMENT_NAME', default=None)
+IS_RAILWAY_PRODUCTION = RAILWAY_ENVIRONMENT_NAME == 'production'
 
 # Application definition
 INSTALLED_APPS = [

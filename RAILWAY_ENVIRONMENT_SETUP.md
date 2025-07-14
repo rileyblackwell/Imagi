@@ -37,8 +37,8 @@ In your Railway **backend** service dashboard:
 
 **ENSURE these variables are set:**
 ```bash
-# CRITICAL: This enables Railway-specific configuration
-RAILWAY_ENVIRONMENT=production
+# CRITICAL: This is automatically provided by Railway
+# RAILWAY_ENVIRONMENT_NAME=production (automatically set)
 
 # Core Django settings
 DJANGO_SECRET_KEY=your-secret-key-here
@@ -62,9 +62,8 @@ STRIPE_PUBLIC_KEY=pk_test_or_live_your_stripe_public_key
 3. **DELETE** `VITE_BACKEND_URL` variable
 4. **ADD** `NODE_ENV` = `production`
 5. Click on **backend** service → **Variables** tab  
-6. **ADD** `RAILWAY_ENVIRONMENT` = `production` (if not set)
-7. **Verify** other required variables are set
-8. **Deploy** both services
+6. **Verify** other required variables are set (RAILWAY_ENVIRONMENT_NAME is automatically provided)
+7. **Deploy** both services
 
 ### Method 2: Railway CLI
 ```bash
@@ -75,8 +74,8 @@ railway variables delete VITE_BACKEND_URL
 
 # Backend changes  
 railway service backend
-railway variables set RAILWAY_ENVIRONMENT=production
 railway variables set DJANGO_DEBUG=False
+# Note: RAILWAY_ENVIRONMENT_NAME=production is automatically provided by Railway
 ```
 
 ## 📊 Expected Results After Fix
