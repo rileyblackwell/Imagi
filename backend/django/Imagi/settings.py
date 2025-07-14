@@ -338,19 +338,8 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # Security settings - Updated for Railway environment
 if IS_RAILWAY_PRODUCTION:
-    # Railway handles SSL termination at the load balancer level
-    # Don't force SSL redirects as this can cause redirect loops
-    SECURE_SSL_REDIRECT = False
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    print("🔒 Railway production security settings applied (SSL redirect disabled, secure cookies enabled)")
-else:
-    # Development or other production environments
+    # Railway handles SSL termination at load balancer with nginx proxy
+    # Enable SSL redirects since Railway's architecture supports it properly
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_BROWSER_XSS_FILTER = True
@@ -359,6 +348,17 @@ else:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    print("🔒 Railway production security settings applied (SSL redirect enabled, secure cookies enabled)")
+else:
+    # Development environment
+    SECURE_SSL_REDIRECT = False  # HTTP is fine for local development
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 0  # Disable HSTS for development
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 # Only allow specific hosts
 # Allow the backend.railway.internal hostname for internal Railway communication
