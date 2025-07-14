@@ -1,142 +1,144 @@
-# Railway Environment Variables Setup
+# Railway Environment Variables Setup - FIXED
 
-## Current Issues Detected
+## 🚨 IMMEDIATE FIXES NEEDED
 
-Based on the console logs, the following environment variables are missing or incorrectly configured:
+Based on your console logs, here are the exact changes to fix the network connection issues:
 
-### ❌ Missing Variables
-- `VITE_BACKEND_URL` - Not set (should be `http://backend.railway.internal:8000` for internal networking)
-- `NODE_ENV` - Not set (should be `production`)
+### ❌ Current Issues in Console Logs
+- `NODE_ENV: undefined` - Frontend missing NODE_ENV
+- `ERR_TOO_MANY_REDIRECTS` - Backend missing RAILWAY_ENVIRONMENT=production
+- `Mixed Content` errors - HTTPS frontend → HTTP backend direct connection
+- CSRF token failures - Related to missing Railway environment detection
 
-## Required Environment Variables
+## ✅ EXACT SOLUTION
 
-### Frontend Service (Vue.js)
-Set these in your Railway frontend service environment variables:
+### 1. Frontend Service Environment Variables
 
+In your Railway **frontend** service dashboard:
+
+**REMOVE these variables:**
 ```bash
-# Required for production
+VITE_BACKEND_URL  # This causes mixed content errors
+```
+
+**ADD these variables:**
+```bash
 NODE_ENV=production
+```
 
-# Optional - for direct backend connection (recommended for debugging)
-VITE_BACKEND_URL=http://backend.railway.internal:8000
-
-# Required if using Stripe
+**KEEP these (if you have them):**
+```bash
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key_here
 ```
 
-### Backend Service (Django)
-Set these in your Railway backend service environment variables:
+### 2. Backend Service Environment Variables
 
+In your Railway **backend** service dashboard:
+
+**ENSURE these variables are set:**
 ```bash
-# Required
-DJANGO_SECRET_KEY=your-secret-key-here
-DJANGO_DEBUG=False
+# CRITICAL: This enables Railway-specific configuration
 RAILWAY_ENVIRONMENT=production
 
-# Database (automatically provided by Railway if using Railway PostgreSQL)
+# Core Django settings
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_DEBUG=False
+
+# Database (automatically provided by Railway PostgreSQL)
 DATABASE_URL=postgresql://user:password@host:port/dbname
 
-# Optional - for file storage location
-PROJECTS_ROOT=/app/projects
-
-# Required if using Stripe
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key_here
+# Required API keys for production
+OPENAI_KEY=your-openai-key-here
+ANTHROPIC_KEY=your-anthropic-key-here
+STRIPE_SECRET_KEY=sk_test_or_live_your_stripe_secret_key
+STRIPE_PUBLIC_KEY=pk_test_or_live_your_stripe_public_key
 ```
 
-## How to Set Environment Variables in Railway
+## 🔧 How to Apply These Changes
 
-### Method 1: Railway Dashboard
+### Method 1: Railway Dashboard (Recommended)
 1. Go to your Railway project dashboard
-2. Click on your frontend service
-3. Go to the "Variables" tab
-4. Click "Add Variable"
-5. Add each variable name and value
-6. Click "Deploy" to apply changes
+2. Click on **frontend** service → **Variables** tab
+3. **DELETE** `VITE_BACKEND_URL` variable
+4. **ADD** `NODE_ENV` = `production`
+5. Click on **backend** service → **Variables** tab  
+6. **ADD** `RAILWAY_ENVIRONMENT` = `production` (if not set)
+7. **Verify** other required variables are set
+8. **Deploy** both services
 
 ### Method 2: Railway CLI
 ```bash
-# Set frontend variables
-railway env set NODE_ENV=production
-railway env set VITE_BACKEND_URL=http://backend.railway.internal:8000
+# Frontend changes
+railway service frontend
+railway variables set NODE_ENV=production
+railway variables delete VITE_BACKEND_URL
 
-# Switch to backend service and set backend variables
-railway env set DJANGO_DEBUG=False
-railway env set RAILWAY_ENVIRONMENT=production
+# Backend changes  
+railway service backend
+railway variables set RAILWAY_ENVIRONMENT=production
+railway variables set DJANGO_DEBUG=False
 ```
 
-### Method 3: Environment File (for Railway CLI deployment)
-Create a `.env` file in your project root (make sure it's in `.gitignore`):
+## 📊 Expected Results After Fix
 
-```bash
-# Frontend variables
-NODE_ENV=production
-VITE_BACKEND_URL=http://backend.railway.internal:8000
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key
+### Console Logs Should Show:
+```javascript
+🔧 API Configuration:
+  Environment: production  
+  VITE_BACKEND_URL: NOT SET
+⚠️ VITE_BACKEND_URL not set in Railway - using nginx proxy
+🚂 Using relative URLs for Railway nginx proxy
 
-# Backend variables  
-DJANGO_SECRET_KEY=your-secret-key-here
-DJANGO_DEBUG=False
-RAILWAY_ENVIRONMENT=production
+🚂 Railway Environment Debug Information:
+  NODE_ENV: production  // ✅ Fixed (was undefined)
+  PROD: true
+  DEV: false
+  VITE_BACKEND_URL: NOT SET  // ✅ Fixed (removed mixed content)
 ```
 
-## Networking Options
+### Diagnostic Tests Should Show:
+```javascript
+✅ /health: 200
+✅ /backend-health: 200          // ✅ Fixed (no more redirects)
+✅ /api/v1/auth/csrf/: 200       // ✅ Fixed (CSRF working)
+✅ Network connectivity: Working  // ✅ Fixed (no mixed content)
+```
 
-### Option 1: Nginx Proxy (Recommended for Production)
-- **DON'T** set `VITE_BACKEND_URL`
-- Frontend connects to backend through nginx proxy at relative URLs
-- More secure as backend is not directly accessible
+## 🔍 How This Fix Works
 
-### Option 2: Direct Internal Connection (Recommended for Debugging)
-- **DO** set `VITE_BACKEND_URL=http://backend.railway.internal:8000`
-- Frontend connects directly to backend via Railway internal network
-- Better for debugging connection issues
+### 1. **Removes Mixed Content Error**
+- Removing `VITE_BACKEND_URL` forces frontend to use relative URLs
+- Nginx proxy handles `HTTPS frontend → HTTP backend` conversion internally
+- No more `Mixed Content: The page at 'https://...' requested an insecure resource 'http://...'`
 
-## Verification
+### 2. **Fixes Redirect Loops**
+- Setting `RAILWAY_ENVIRONMENT=production` activates Railway-specific Django settings
+- Disables `SECURE_SSL_REDIRECT` which causes redirect loops in Railway
+- Enables proper CORS and CSRF configuration for Railway internal networking
 
-After setting the environment variables and redeploying:
+### 3. **Enables Nginx Proxy Architecture**
+- Frontend: `https://imagi.up.railway.app/api/...` → Nginx → `http://backend.railway.internal:8000/api/...`
+- All communication happens on Railway's private network
+- Proper security headers and CORS handling
 
-1. **Check the console logs** - You should see:
-   ```
-   🔧 API Configuration:
-     Environment: production
-     VITE_BACKEND_URL: http://backend.railway.internal:8000
-   ```
+## 🧪 Test the Fix
 
-2. **Run debug diagnostics** in browser console:
-   ```javascript
-   window.railwayDebug.debugEnvironment()
-   ```
+After redeploying both services:
 
-3. **Test connectivity**:
+1. **Open browser console** and try registering a user
+2. **Run diagnostics** in console:
    ```javascript
    window.railwayDebug.runFullDiagnostics()
    ```
+3. **Check results** - all endpoints should return ✅ status
+4. **Try user registration** - should work without errors
 
-## Troubleshooting
+## 🎯 Why This Architecture is Optimal
 
-### If you still get ERR_TOO_MANY_REDIRECTS:
-1. Make sure `RAILWAY_ENVIRONMENT=production` is set on backend
-2. The backend will automatically disable SSL redirects for Railway
-3. Check that nginx isn't causing additional redirects
+- ✅ **Security**: No direct HTTP connections from HTTPS frontend
+- ✅ **Performance**: Railway internal network communication
+- ✅ **Reliability**: Nginx handles connection pooling and retries  
+- ✅ **Debugging**: Comprehensive logging and error handling
+- ✅ **Scalability**: Standard Railway microservices pattern
 
-### If CSRF tokens still fail:
-1. Make sure backend can receive requests from frontend
-2. Check that cookies are being set properly
-3. Use the health check endpoints to verify connectivity:
-   - `/health` - Frontend health
-   - `/backend-health` - Backend health (proxied)
-   - `/api/v1/auth/health/` - Direct backend health
-
-### If environment variables don't appear:
-1. Make sure you're setting them on the correct service (frontend vs backend)
-2. Redeploy the service after setting variables
-3. Check the service logs for any startup errors
-
-## Expected Behavior After Fix
-
-After setting the correct environment variables, you should see:
-- ✅ No more "VITE_BACKEND_URL: undefined" messages
-- ✅ No more ERR_TOO_MANY_REDIRECTS errors
-- ✅ Successful CSRF token requests
-- ✅ Working authentication flow 
+This follows Railway's recommended architecture for production full-stack applications. 

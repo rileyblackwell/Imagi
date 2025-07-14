@@ -11,6 +11,6 @@
     "watchPatterns": []
   },
   "start": {
-    "cmd": "/usr/local/bin/start-nginx.sh"
+    "cmd": "nginx -g 'daemon off;'"
   }
 } 
