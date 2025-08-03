@@ -213,12 +213,12 @@
       </div>
     </template>
     
-    <!-- Files Section - Updated Design (expanded mode only) -->
+    <!-- Apps Section - Updated Design (expanded mode only) -->
     <div v-if="!isCollapsed" class="flex-1 py-4 border-b border-dark-700/50">
       <div class="mb-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
-          <span class="text-xs text-gray-500">{{ files.length }} item{{ files.length !== 1 ? 's' : '' }}</span>
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Apps</span>
+          <span class="text-xs text-gray-500">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</span>
         </div>
         
         <!-- Files container with enhanced styling -->
@@ -365,6 +365,20 @@ const modeOptions = computed(() => ([
   { id: 'chat', icon: 'fa-comments', label: 'Chat Mode' },
   { id: 'build', icon: 'fa-code', label: 'Build Mode' }
 ]))
+
+// Computed property for apps count (unique apps with files)
+const appsCount = computed(() => {
+  const apps = new Set()
+  props.files.forEach(file => {
+    const path = file.path.toLowerCase().replace(/\\/g, '/')
+    // Extract app name from path like: frontend/vuejs/src/apps/{appname}/
+    const appMatch = path.match(/\/src\/apps\/([^\/]+)\//)
+    if (appMatch) {
+      apps.add(appMatch[1])
+    }
+  })
+  return apps.size
+})
 
 // Function to toggle the new file form visibility
 const toggleNewFileForm = () => {
