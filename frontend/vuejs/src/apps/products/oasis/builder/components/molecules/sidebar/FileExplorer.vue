@@ -234,7 +234,7 @@
             </span>
           </div>
           
-          <!-- App Files List with enhanced styling -->
+          <!-- App Files Tree with enhanced styling -->
           <div v-if="currentDirectory === dirName" class="space-y-1.5 pl-2">
             <!-- Add View/Component buttons for current app -->
             <div class="mb-3 grid grid-cols-2 gap-1.5">
@@ -262,14 +262,87 @@
               </button>
             </div>
             
-            <FileTreeItem
-              v-for="file in dirFiles"
-              :key="file.path"
-              :file="file"
-              :is-selected="selectedFile?.path === file.path"
-              @select="handleFileSelect"
-              @delete="handleFileDelete"
-            />
+            <!-- File tree structure -->
+            <div class="space-y-1">
+              <!-- Render directory structure recursively -->
+              <template v-for="(dirData, dirName) in fileStructure" :key="String(dirName)">
+                <!-- Root level files -->
+                <template v-if="String(dirName) === 'root' && dirData.files">
+                  <FileTreeItem
+                    v-for="file in dirData.files"
+                    :key="file.path"
+                    :file="file"
+                    :is-selected="selectedFile?.path === file.path"
+                    @select="handleFileSelect"
+                    @delete="handleFileDelete"
+                  />
+                </template>
+                
+                <!-- Directory with potential subdirectories -->
+                <div v-else-if="dirData.name" class="mb-1">
+                  <!-- Directory header -->
+                  <div 
+                    @click="toggleDirectory(String(dirName))"
+                    class="flex items-center py-1.5 px-2 rounded-md hover:bg-dark-700/50 cursor-pointer transition-colors duration-200"
+                  >
+                    <i 
+                      :class="expandedDirs.has(String(dirName)) ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"
+                      class="text-xxs text-gray-500 mr-2 w-2"
+                    ></i>
+                    <i :class="getDirectoryIcon(String(dirName))" class="text-xs mr-2"></i>
+                    <span class="text-xs text-gray-300 font-medium">{{ dirName }}</span>
+                    <span class="ml-auto text-xxs text-gray-500">
+                      {{ dirData.files.length + Object.keys(dirData.subdirectories || {}).length }}
+                    </span>
+                  </div>
+                  
+                  <!-- Directory contents when expanded -->
+                  <div v-if="expandedDirs.has(String(dirName))" class="ml-4 space-y-1">
+                    <!-- Files in this directory -->
+                    <FileTreeItem
+                      v-for="file in dirData.files"
+                      :key="file.path"
+                      :file="file"
+                      :is-selected="selectedFile?.path === file.path"
+                      @select="handleFileSelect"
+                      @delete="handleFileDelete"
+                    />
+                    
+                    <!-- Subdirectories (like atoms, molecules, organisms) -->
+                    <template v-for="(subDirData, subDirName) in dirData.subdirectories" :key="String(subDirName)">
+                      <div class="mb-1">
+                        <!-- Subdirectory header -->
+                        <div 
+                          @click="toggleDirectory(`${String(dirName)}/${String(subDirName)}`)"
+                          class="flex items-center py-1 px-2 rounded-md hover:bg-dark-700/30 cursor-pointer transition-colors duration-200"
+                        >
+                          <i 
+                            :class="expandedDirs.has(`${String(dirName)}/${String(subDirName)}`) ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"
+                            class="text-xxs text-gray-500 mr-2 w-2"
+                          ></i>
+                          <i :class="getDirectoryIcon(String(subDirName))" class="text-xs mr-2"></i>
+                          <span class="text-xs text-gray-300 font-medium">{{ subDirName }}</span>
+                          <span class="ml-auto text-xxs text-gray-500">{{ subDirData.files.length }}</span>
+                        </div>
+                        
+                        <!-- Subdirectory files when expanded -->
+                        <div v-if="expandedDirs.has(`${String(dirName)}/${String(subDirName)}`)" class="ml-4 space-y-1">
+                          <FileTreeItem
+                            v-for="file in subDirData.files"
+                            :key="file.path"
+                            :file="file"
+                            :is-selected="selectedFile?.path === file.path"
+                            @select="handleFileSelect"
+                            @delete="handleFileDelete"
+                          />
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+            
             <div v-if="dirFiles.length === 0" class="text-center text-xxs text-gray-500 py-2">
               <div><i class="fas fa-info-circle"></i> No files in this app yet</div>
             </div>
@@ -317,6 +390,61 @@ import type { ProjectFile } from '../../../types/components'
 import FileTreeItem from '../../atoms/navigation/FileTreeItem.vue'
 import { FileService } from '../../../services/fileService'
 
+// Create hierarchical file structure for current app
+const fileStructure = computed(() => {
+  const currentFiles = vueFilesByDirectory.value[currentDirectory.value] || []
+  
+  const createDirectoryStructure = () => {
+    const structure: any = {}
+    
+    currentFiles.forEach(file => {
+      const relativePath = file.path.includes('/src/apps/') 
+        ? file.path.split('/src/apps/')[1].split('/').slice(1).join('/') // Remove app name
+        : file.path
+      
+      const pathParts = relativePath.split('/')
+      const fileName = pathParts.pop() // Remove filename
+      
+      if (pathParts.length === 0) {
+        // Root level file
+        if (!structure.root) {
+          structure.root = { files: [], subdirectories: {} }
+        }
+        structure.root.files.push(file)
+      } else {
+        // File in subdirectory - build nested structure
+        let currentLevel = structure
+        let currentPath = ''
+        
+        pathParts.forEach((part, index) => {
+          currentPath = currentPath ? `${currentPath}/${part}` : part
+          
+          if (!currentLevel[part]) {
+            currentLevel[part] = {
+              name: part,
+              path: currentPath,
+              files: [],
+              subdirectories: {}
+            }
+          }
+          
+          if (index === pathParts.length - 1) {
+            // Last directory - add the file here
+            currentLevel[part].files.push(file)
+          } else {
+            // Navigate deeper into subdirectories
+            currentLevel = currentLevel[part].subdirectories
+          }
+        })
+      }
+    })
+    
+    return structure
+  }
+  
+  return createDirectoryStructure()
+})
+
 const props = defineProps<{
   files: ProjectFile[]
   selectedFile: ProjectFile | null
@@ -346,25 +474,25 @@ const newComponentType = ref<'atoms' | 'molecules' | 'organisms'>('atoms')
 const currentApp = ref<string>('')
 const currentDirectory = ref<string>('')
 
-// Filter files to show app-based structure (views, components, stores, etc.)
+// Filter files to show all app-based structure
 const vueFiles = computed(() => {
   return props.files.filter(file => {
     const path = file.path.toLowerCase()
     const normalizedPath = path.replace(/\\/g, '/') // Handle Windows paths
     
-    // Include files from any app directory
+    // Include all files from any app directory
     if (normalizedPath.includes('/src/apps/')) {
-      // Include Vue files (.vue extension)
-      if (normalizedPath.endsWith('.vue')) return true
+      // Include all relevant file types for Vue.js apps
+      const relevantExtensions = ['.vue', '.ts', '.js', '.jsx', '.tsx', '.json', '.css', '.scss', '.sass', '.less', '.md', '.html']
+      const hasRelevantExtension = relevantExtensions.some(ext => normalizedPath.endsWith(ext))
       
-      // Include TypeScript/JavaScript files in app directories
-      if ((normalizedPath.endsWith('.ts') || normalizedPath.endsWith('.js')) && 
-          (normalizedPath.includes('/views/') || 
-           normalizedPath.includes('/components/') || 
-           normalizedPath.includes('/stores/') ||
-           normalizedPath.includes('/router/') ||
-           normalizedPath.includes('/services/') ||
-           normalizedPath.includes('/types/'))) {
+      // Also include files without extensions (like index files, config files)
+      const fileName = normalizedPath.split('/').pop() || ''
+      const hasNoExtension = !fileName.includes('.')
+      const isConfigFile = ['index', 'main', 'app'].some(name => fileName.startsWith(name))
+      
+      // Include if it has a relevant extension or is a config file
+      if (hasRelevantExtension || (hasNoExtension && isConfigFile)) {
         return true
       }
     }
@@ -373,75 +501,107 @@ const vueFiles = computed(() => {
   })
 })
 
-// Group files by app and then by type within each app
+// Group files by app with hierarchical directory structure
 const vueFilesByDirectory = computed(() => {
-  const result: Record<string, ProjectFile[]> = {}
+  const result: Record<string, any> = {}
   
   vueFiles.value.forEach(file => {
     const normalizedPath = file.path.toLowerCase().replace(/\\/g, '/')
     
     // Extract app name from path like: frontend/vuejs/src/apps/{appname}/
-    const appMatch = normalizedPath.match(/\/src\/apps\/([^\/]+)\//)
+    const appMatch = normalizedPath.match(/\/src\/apps\/([^\/]+)\/(.*)/)
     if (appMatch) {
       const appName = appMatch[1]
       const appDisplayName = appName.charAt(0).toUpperCase() + appName.slice(1)
-      
-      // Determine the file type within the app
-      let fileType = ''
-      if (normalizedPath.includes('/views/')) {
-        fileType = 'Views'
-      } else if (normalizedPath.includes('/components/atoms/')) {
-        fileType = 'Components'
-      } else if (normalizedPath.includes('/components/molecules/')) {
-        fileType = 'Components'
-      } else if (normalizedPath.includes('/components/organisms/')) {
-        fileType = 'Components'
-      } else if (normalizedPath.includes('/components/')) {
-        fileType = 'Components'
-      } else if (normalizedPath.includes('/stores/')) {
-        fileType = 'Stores'
-      } else if (normalizedPath.includes('/router/')) {
-        fileType = 'Router'
-      } else if (normalizedPath.includes('/services/')) {
-        fileType = 'Services'
-      } else if (normalizedPath.includes('/types/')) {
-        fileType = 'Types'
-      } else {
-        fileType = 'Other'
-      }
+      const relativePath = appMatch[2] // Path within the app
       
       const dirKey = `${appDisplayName} App`
       
       if (!result[dirKey]) {
-        result[dirKey] = []
+        result[dirKey] = {
+          files: [],
+          subdirectories: {}
+        }
       }
       
-      result[dirKey].push(file)
+      // Parse the relative path to create directory structure
+      const pathParts = relativePath.split('/')
+      const fileName = pathParts.pop() // Remove the filename
+      
+      if (pathParts.length === 0) {
+        // File is in app root
+        result[dirKey].files.push(file)
+      } else {
+        // File is in a subdirectory - create nested structure
+        let currentLevel = result[dirKey].subdirectories
+        let currentPath = ''
+        
+        pathParts.forEach((part, index) => {
+          currentPath = currentPath ? `${currentPath}/${part}` : part
+          
+          if (!currentLevel[part]) {
+            currentLevel[part] = {
+              name: part,
+              path: currentPath,
+              files: [],
+              subdirectories: {}
+            }
+          }
+          
+          if (index === pathParts.length - 1) {
+            // Last directory - add the file here
+            currentLevel[part].files.push(file)
+          } else {
+            // Navigate deeper
+            currentLevel = currentLevel[part].subdirectories
+          }
+        })
+      }
     }
   })
   
-  // Sort files within each app alphabetically
-  Object.keys(result).forEach(dir => {
-    result[dir].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  // Convert to flat structure for the current UI (we'll enhance this later for tree view)
+  const flatResult: Record<string, ProjectFile[]> = {}
+  
+  Object.keys(result).forEach(appKey => {
+    const appData = result[appKey]
+    let allFiles: ProjectFile[] = [...appData.files]
+    
+    // Flatten subdirectories for now
+    const flattenDirectory = (dir: any) => {
+      allFiles = allFiles.concat(dir.files)
+      Object.values(dir.subdirectories).forEach((subDir: any) => {
+        flattenDirectory(subDir)
+      })
+    }
+    
+    Object.values(appData.subdirectories).forEach((dir: any) => {
+      flattenDirectory(dir)
+    })
+    
+    // Sort files by path for better organization
+    allFiles.sort((a, b) => (a.path || '').localeCompare(b.path || ''))
+    
+    flatResult[appKey] = allFiles
   })
   
   // Set current directory to first available app
-  if (!currentDirectory.value && Object.keys(result).length > 0) {
+  if (!currentDirectory.value && Object.keys(flatResult).length > 0) {
     // Try to find auth app first, then home, then first available
     const priorityOrder = ['Auth App', 'Home App', 'Products App']
     for (const priority of priorityOrder) {
-      if (result[priority]) {
+      if (flatResult[priority]) {
         currentDirectory.value = priority
         break
       }
     }
     // If no priority directory found, use first available
     if (!currentDirectory.value) {
-      currentDirectory.value = Object.keys(result)[0]
+      currentDirectory.value = Object.keys(flatResult)[0]
     }
   }
   
-  return result
+  return flatResult
 })
 
 // Get available apps for dropdowns
@@ -487,6 +647,61 @@ const getComponentTypeDescription = (type: string) => {
     }
   }
   return descriptions[type as keyof typeof descriptions] || descriptions.atoms
+}
+
+// Directory expansion state - auto-expand common directories including atomic design structure
+const expandedDirs = ref<Set<string>>(new Set([
+  'views', 
+  'components', 
+  'components/atoms', 
+  'components/molecules', 
+  'components/organisms'
+]))
+
+const toggleDirectory = (dirName: string) => {
+  if (expandedDirs.value.has(dirName)) {
+    expandedDirs.value.delete(dirName)
+  } else {
+    expandedDirs.value.add(dirName)
+  }
+}
+
+const getDirectoryIcon = (dirName: string) => {
+  const iconMap: Record<string, string> = {
+    // Main directories
+    views: 'fas fa-eye text-green-400',
+    components: 'fas fa-puzzle-piece text-blue-400',
+    stores: 'fas fa-database text-orange-400',
+    router: 'fas fa-route text-purple-400',
+    services: 'fas fa-cogs text-yellow-400',
+    types: 'fas fa-code text-red-400',
+    layouts: 'fas fa-columns text-cyan-400',
+    composables: 'fas fa-magic text-emerald-400',
+    
+    // Atomic Design Structure
+    atoms: 'fas fa-atom text-blue-300',
+    molecules: 'fas fa-share-alt text-blue-400', 
+    organisms: 'fas fa-sitemap text-blue-500',
+    
+    // Component subdirectories
+    buttons: 'fas fa-hand-pointer text-indigo-400',
+    forms: 'fas fa-edit text-green-400',
+    inputs: 'fas fa-keyboard text-gray-400',
+    cards: 'fas fa-id-card text-yellow-400',
+    modals: 'fas fa-window-restore text-purple-400',
+    navigation: 'fas fa-compass text-cyan-400',
+    headers: 'fas fa-heading text-orange-400',
+    footers: 'fas fa-grip-lines text-gray-400',
+    sidebar: 'fas fa-columns text-blue-300',
+    
+    // Other common directories
+    utils: 'fas fa-tools text-gray-400',
+    helpers: 'fas fa-hand-holding-heart text-pink-400',
+    constants: 'fas fa-lock text-red-300',
+    assets: 'fas fa-file-image text-green-300',
+    styles: 'fas fa-palette text-purple-300'
+  }
+  return iconMap[dirName.toLowerCase()] || 'fas fa-folder text-gray-400'
 }
 
 // Validation computed properties
@@ -858,5 +1073,19 @@ const addRouteToRouter = (routerContent: string, viewName: string, routePath: st
 .text-xxs {
   font-size: 0.65rem;
   line-height: 1rem;
+}
+
+/* Directory tree styles */
+.directory-item {
+  transition: all 0.2s ease;
+}
+
+.directory-item:hover {
+  background-color: rgba(55, 65, 81, 0.5);
+}
+
+.file-tree-indent {
+  border-left: 1px solid rgba(75, 85, 99, 0.3);
+  margin-left: 0.5rem;
 }
 </style> 
