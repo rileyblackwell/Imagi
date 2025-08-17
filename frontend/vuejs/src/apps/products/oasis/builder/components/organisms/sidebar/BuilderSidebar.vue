@@ -76,113 +76,7 @@
         </div>
       </div>
       
-      <!-- Model Selector -->
-      <div :class="{'mb-4': !isCollapsed}">
-        <div v-if="!isCollapsed" class="mb-2">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Model</span>
-        </div>
-        <ModelSelector 
-          v-if="!isCollapsed"
-          :models="models"
-          :model-id="modelId"
-          :mode="mode"
-          @update:model-id="(id) => $emit('update:modelId', id)"
-        />
-      </div>
-    </div>
-    
-    <!-- Mode Selector - Action Buttons Section -->
-    <div 
-      class="shrink-0 py-4" 
-      :class="{'border-b border-dark-700/50': !isCollapsed}"
-    >
-      <div v-if="!isCollapsed" class="mb-2">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode</span>
-      </div>
-      
-      <div class="flex items-center" :class="{'justify-center': isCollapsed, 'space-x-2': !isCollapsed}">
-        <template v-if="!isCollapsed">
-          <!-- Enhanced Mode Selector with modern design -->
-          <div class="w-full">
-            <div class="bg-dark-800/70 backdrop-blur-sm rounded-xl p-2 border border-dark-700/50">
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  v-for="m in modes"
-                  :key="m"
-                  class="relative group flex items-center justify-center py-3 px-4 rounded-lg transition-all duration-300"
-                  :class="[
-                    mode === m 
-                      ? 'bg-gradient-to-r from-primary-500/20 to-violet-500/20 border border-primary-500/40' 
-                      : 'bg-dark-850/50 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30'
-                  ]"
-                  @click="$emit('update:mode', m)"
-                >
-                  <!-- Subtle glow effect on hover -->
-                  <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-                  
-                  <div class="relative flex items-center space-x-3">
-                    <i :class="['fas', getModeIcon(m), mode === m ? 'text-primary-400' : 'text-gray-400 group-hover:text-white']"></i>
-                    <span :class="[mode === m ? 'text-white' : 'text-gray-400 group-hover:text-white']">{{ formatMode(m) }}</span>
-                  </div>
-                </button>
-              </div>
-              
-              <!-- Mode description -->
-              <div class="mt-3 px-2 text-sm text-gray-400">
-                <p v-if="mode === 'chat'">
-                  Have a conversation about your project and get assistance
-                </p>
-                <p v-else-if="mode === 'build'">
-                  Generate and modify code directly in your project
-                </p>
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-    
-    <!-- Collapsed sidebar icons - Reorganized to match expanded sidebar order -->
-    <template v-if="isCollapsed">
-      <div class="space-y-4 py-4">
-        <!-- Model Icon -->
-        <div class="sidebar-icon-container">
-          <div 
-            class="sidebar-icon"
-            :title="selectedModel?.name || 'AI Model'"
-          >
-            <i
-              class="fas"
-              :class="[selectedModel ? getModelTypeIcon(selectedModel) : 'fa-robot', selectedModel ? getModelTypeClass(selectedModel) : 'bg-gradient-to-br from-gray-600/20 to-gray-700/20 text-gray-400 border border-gray-500/20']"
-            ></i>
-          </div>
-          <div class="sidebar-label">Model</div>
-        </div>
-        
-        <!-- Chat Mode Button -->
-        <button 
-          class="sidebar-icon-container"
-          :class="{ 'active': mode === 'chat' }"
-          @click="$emit('update:mode', 'chat')"
-        >
-          <div class="sidebar-icon" :class="{ 'active-icon': mode === 'chat' }">
-            <i class="fas fa-comments"></i>
-          </div>
-          <div class="sidebar-label">Chat</div>
-        </button>
-        
-        <!-- Build Mode Button -->
-        <button 
-          class="sidebar-icon-container"
-          :class="{ 'active': mode === 'build' }"
-          @click="$emit('update:mode', 'build')"
-        >
-          <div class="sidebar-icon" :class="{ 'active-icon': mode === 'build' }">
-            <i class="fas fa-code"></i>
-          </div>
-          <div class="sidebar-label">Build</div>
-        </button>
-        
+      <template v-if="isCollapsed">
         <!-- Files Icon -->
         <div class="sidebar-icon-container">
           <div class="sidebar-icon">
@@ -210,8 +104,8 @@
           </div>
           <div class="sidebar-label">Preview</div>
         </button>
-      </div>
-    </template>
+      </template>
+    </div>
     
     <!-- Apps Section - Updated Design (expanded mode only) -->
     <div v-if="!isCollapsed" class="flex-1 py-4 border-b border-dark-700/50">
@@ -273,32 +167,23 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
-import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
 import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
 import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
-import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/oasis/builder/utils/modelIconUtils'
 import type { 
-  AIModel, 
-  BuilderMode,
   ProjectFile,
   EditorMode,
   ProjectType
 } from '@/apps/products/oasis/builder/types'
-import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
 
 // Local state
 const showNewFileFormValue = ref(false)
-const modes: BuilderMode[] = ['chat', 'build']
 
 const props = defineProps<{
   currentProject: ProjectType | null
-  models: AIModel[]
-  modelId: string | null
   files: ProjectFile[]
   selectedFile: ProjectFile | null
   fileTypes: Record<string, string>
   isLoading: boolean
-  mode: BuilderMode
   currentEditorMode?: EditorMode
   isCollapsed?: boolean
   projectId: string
@@ -338,33 +223,7 @@ function cancelEditingDescription() {
   editableDescription.value = props.currentProject?.description || ''
 }
 
-const getModeIcon = (mode: BuilderMode): string => {
-  const icons: Record<BuilderMode, string> = {
-    chat: 'fa-comments',
-    build: 'fa-code'
-  }
-  return icons[mode] || 'fa-code'
-}
-
-const formatMode = (mode: BuilderMode): string => {
-  return mode.charAt(0).toUpperCase() + mode.slice(1)
-}
-
-// Compute selected model for collapsed state tooltip
-const selectedModel = computed(() => {
-  // First try to find the model in the provided models
-  const model = props.models.find(m => m.id === props.modelId)
-  if (model) return model
-  // If not found, check in the default models
-  const defaultModel = AI_MODELS.find(m => m.id === props.modelId)
-  return defaultModel || null
-})
-
-// Computed property for mode options with icons
-const modeOptions = computed(() => ([
-  { id: 'chat', icon: 'fa-comments', label: 'Chat Mode' },
-  { id: 'build', icon: 'fa-code', label: 'Build Mode' }
-]))
+// (Model/mode selectors moved to WorkspaceChat header)
 
 // Computed property for apps count (unique apps with files)
 const appsCount = computed(() => {

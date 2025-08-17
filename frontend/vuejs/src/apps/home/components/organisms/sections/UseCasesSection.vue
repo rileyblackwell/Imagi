@@ -117,57 +117,57 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'What Can You Build Today?'
+      default: 'Real Applications for Real Businesses'
     },
     subtitle: {
       type: String,
-      default: 'Currently, Imagi supports basic web apps with HTML, CSS, and JavaScript. Here are some types of apps you can build right now for just a few dollars.'
+      default: 'Build professional full-stack applications perfect for entrepreneurs, small businesses, and anyone with a great idea. Each app includes a Vue.js frontend and Django backend.'
     },
     useCases: {
       type: Array,
       default: () => [
         {
-          title: 'Personal Resume',
-          description: 'Create a professional online resume web app to showcase your skills, experience, and achievements to potential employers.',
-          icon: 'fas fa-id-card',
+          title: 'Small Business Platform',
+          description: 'Complete business management app with customer portal, service booking system, and admin dashboard for managing your operations.',
+          icon: 'fas fa-store',
           color: 'primary',
           features: [
-            'Professional layout',
-            'Skills and experience sections',
-            'Contact information'
+            'Customer management system',
+            'Service booking interface',
+            'Admin dashboard with analytics'
           ]
         },
         {
-          title: 'Business Info Web App',
-          description: 'Build a simple web app for your business with information about your services, team members, and how to contact you.',
-          icon: 'fas fa-building',
+          title: 'Portfolio & CRM',
+          description: 'Professional portfolio with integrated client management system, project tracking, and automated client communication tools.',
+          icon: 'fas fa-briefcase',
           color: 'violet',
           features: [
-            'Service descriptions',
-            'Company information',
-            'Contact details'
+            'Interactive project gallery',
+            'Client relationship management',
+            'Automated follow-up system'
           ]
         },
         {
-          title: 'Personal Bio',
-          description: 'Create a personal web app to share your story, interests, and accomplishments with friends, family, or the world.',
-          icon: 'fas fa-user',
+          title: 'E-Learning Platform',
+          description: 'Create educational apps with course management, student progress tracking, and interactive learning modules for your expertise.',
+          icon: 'fas fa-graduation-cap',
           color: 'blue',
           features: [
-            'About me section',
-            'Photo gallery',
-            'Personal achievements'
+            'Course content management',
+            'Student progress tracking',
+            'Interactive quizzes and modules'
           ]
         },
         {
-          title: 'Content Display',
-          description: 'Build a web app to display any type of content - like a digital portfolio, hobby showcase, or informational resource.',
-          icon: 'fas fa-newspaper',
+          title: 'Event Management App',
+          description: 'Full-featured event platform with registration system, attendee management, and real-time event updates for organizers.',
+          icon: 'fas fa-calendar-alt',
           color: 'purple',
           features: [
-            'Custom content sections',
-            'Image galleries',
-            'Information displays'
+            'Event registration system',
+            'Attendee check-in management',
+            'Real-time event updates'
           ]
         }
       ]

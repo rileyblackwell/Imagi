@@ -37,7 +37,7 @@
                 
                 <!-- Enhanced Description -->
                 <p class="text-xl text-gray-300 max-w-2xl">
-                  We're pioneering the future of web development through AI-powered innovation and human-centric design.
+                  Imagi empowers anyone—no coding skills required—to turn ideas into real, professional web applications. Our mission is to make building full-stack web apps as easy as having a conversation.
                 </p>
               </div>
               
@@ -78,9 +78,9 @@
                     <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">Our Mission</span>
                   </div>
                   <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-                    <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Transforming Web Development</span>
+                    <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Web Creation for Everyone</span>
                   </h2>
-                  <p class="text-gray-300 max-w-3xl mx-auto">We're transforming the world of web development through innovative AI solutions.</p>
+                  <p class="text-gray-300 max-w-3xl mx-auto">Imagi is on a mission to make web development accessible to everyone, not just programmers. We believe anyone should be able to build a powerful web app—no technical background needed.</p>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -100,12 +100,12 @@
                             <i class="fas fa-bullseye text-cyan-300 text-lg"></i>
                           </div>
                           <div class="flex-1">
-                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">Democratizing Web Development</h3>
+                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">No Coding? No Problem!</h3>
                           </div>
                         </div>
                         
                         <p class="text-gray-300 leading-relaxed">
-                          We're on a mission to make web development accessible to everyone. By bridging the gap between human ideas and technical implementation, we're empowering creators, entrepreneurs, and businesses to bring their digital visions to life without the traditional barriers of coding.
+                          Imagi is designed for non-technical creators, entrepreneurs, and business owners. Just describe your idea in plain English, and our AI turns it into a real web application—no code, no jargon, no barriers.
                         </p>
                       </div>
                     </div>
@@ -127,12 +127,12 @@
                             <i class="fas fa-lightbulb text-emerald-300 text-lg"></i>
                           </div>
                           <div class="flex-1">
-                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">Innovation Through AI</h3>
+                            <h3 class="text-xl font-semibold text-white mb-3 leading-tight">AI That Works for You</h3>
                           </div>
                         </div>
                         
                         <p class="text-gray-300 leading-relaxed">
-                          We believe in harnessing the power of artificial intelligence to transform how web applications are built. Our platform combines cutting-edge AI with intuitive design to create a revolutionary development experience.
+                          Our platform uses advanced AI to handle all the technical details. You focus on your vision—we handle the rest, building both the user interface and the backend logic for you.
                         </p>
                       </div>
                     </div>
@@ -160,9 +160,9 @@
                       
                       <!-- Main Description -->
                       <div class="mb-8">
-                        <h2 class="text-2xl font-semibold text-white mb-4 leading-tight">Our Innovative Platform</h2>
+                        <h2 class="text-2xl font-semibold text-white mb-4 leading-tight">What Makes Imagi Unique?</h2>
                         <p class="text-gray-300 leading-relaxed mb-6">
-                          Imagi is pioneering the future of web development with our flagship product, <span class="text-amber-400 font-semibold">Imagi Oasis</span>. Our platform transforms natural language descriptions into fully functional Django web applications, making the development process more intuitive and efficient than ever before.
+                          Imagi Oasis is the only platform that lets you create full-stack web applications (with a Vue.js frontend and Django backend) just by describing what you want. No coding, no hiring developers, no waiting months—just your idea, brought to life in minutes.
                         </p>
                       </div>
                       
@@ -184,8 +184,8 @@
                               <i class="fas fa-wand-magic-sparkles text-xs text-amber-400"></i>
                             </div>
                             <div class="flex-1">
-                              <span class="text-white font-semibold block mb-1">Natural Language Generation</span>
-                              <span class="text-gray-300 text-sm">Simply describe your vision in plain English, and watch as our AI transforms it into clean, professional code.</span>
+                              <span class="text-white font-semibold block mb-1">Plain English to Web App</span>
+                              <span class="text-gray-300 text-sm">Describe your vision in your own words. Imagi’s AI builds your app for you—no technical terms needed.</span>
                             </div>
                           </div>
                           
@@ -194,8 +194,8 @@
                               <i class="fas fa-code text-xs text-amber-400"></i>
                             </div>
                             <div class="flex-1">
-                              <span class="text-white font-semibold block mb-1">Full-Stack Development</span>
-                              <span class="text-gray-300 text-sm">Generate both frontend and backend code, complete with database structures, API endpoints, and user interfaces.</span>
+                              <span class="text-white font-semibold block mb-1">Full-Stack, Instantly</span>
+                              <span class="text-gray-300 text-sm">Get a complete web app with a beautiful Vue.js interface and a powerful Django backend, ready to use and grow.</span>
                             </div>
                           </div>
                           
@@ -204,8 +204,8 @@
                               <i class="fas fa-arrows-rotate text-xs text-amber-400"></i>
                             </div>
                             <div class="flex-1">
-                              <span class="text-white font-semibold block mb-1">Iterative Refinement</span>
-                              <span class="text-gray-300 text-sm">Continuously refine and enhance your application through natural conversation with our AI.</span>
+                              <span class="text-white font-semibold block mb-1">Easy Changes, Anytime</span>
+                              <span class="text-gray-300 text-sm">Want to update your app? Just ask! Imagi’s AI makes changes for you, instantly—no need to touch code.</span>
                             </div>
                           </div>
                           
@@ -214,8 +214,8 @@
                               <i class="fas fa-shield-halved text-xs text-amber-400"></i>
                             </div>
                             <div class="flex-1">
-                              <span class="text-white font-semibold block mb-1">Best Practices Built-in</span>
-                              <span class="text-gray-300 text-sm">Every generated application follows industry standards for security, performance, and maintainability.</span>
+                              <span class="text-white font-semibold block mb-1">Best Practices, Built In</span>
+                              <span class="text-gray-300 text-sm">Every app follows modern standards for security, speed, and reliability—so you can focus on your idea, not the tech.</span>
                             </div>
                           </div>
                           
@@ -224,8 +224,8 @@
                               <i class="fas fa-coins text-xs text-amber-400"></i>
                             </div>
                             <div class="flex-1">
-                              <span class="text-white font-semibold block mb-1">Affordable Pricing</span>
-                              <span class="text-gray-300 text-sm">Pay only for what you use with our credit-based system. Build complete web apps for just a few dollars instead of thousands.</span>
+                              <span class="text-white font-semibold block mb-1">Affordable for All</span>
+                              <span class="text-gray-300 text-sm">Build your app for just a few dollars. No expensive developer fees, no hidden costs—just pay for what you use.</span>
                             </div>
                           </div>
                         </div>
@@ -243,9 +243,9 @@
                     <span class="text-violet-300 font-medium text-xs tracking-wide uppercase">Our Vision</span>
                   </div>
                   <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-                    <span class="inline-block bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Creating a Future Without Barriers</span>
+                    <span class="inline-block bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">A Future Where Anyone Can Build</span>
                   </h2>
-                  <p class="text-gray-300 max-w-3xl mx-auto">We're creating a future where technology enables creativity without barriers.</p>
+                  <p class="text-gray-300 max-w-3xl mx-auto">Imagi is building a world where anyone can create technology, no matter their background. We’re removing barriers so your creativity can shine.</p>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -296,9 +296,9 @@
                       </div>
                       
                       <div class="text-center mb-8">
-                        <h2 class="text-2xl font-semibold text-white mb-4 leading-tight">AI-Powered Development Platform</h2>
+                        <h2 class="text-2xl font-semibold text-white mb-4 leading-tight">Modern Technology, Simple for You</h2>
                         <p class="text-gray-300 leading-relaxed max-w-3xl mx-auto">
-                          Our technology stack combines the latest advancements in AI with robust, industry-standard web development frameworks and tools.
+                          Imagi uses the same powerful technologies trusted by top companies—like Python, Django, and Vue.js—but you never have to see a line of code. Everything is handled for you, behind the scenes.
                         </p>
                       </div>
                       
@@ -340,11 +340,11 @@
                       
                       <div class="text-center">
                         <h2 class="text-3xl font-semibold text-white mb-4 leading-tight">
-                          Ready to Transform Your 
-                          <span class="inline-block bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">Development Process?</span>
+                          Ready to Build Your App?
+                          <span class="inline-block bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">No Coding Required!</span>
                         </h2>
                         <p class="text-gray-300 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-                          Create beautiful web apps in minutes for just a few dollars - not thousands. No coding required.
+                          Start building your own web application today. Just describe your idea, and let Imagi do the rest.
                         </p>
                         
                         <!-- CTA Buttons -->

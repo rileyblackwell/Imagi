@@ -163,57 +163,57 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'How Imagi Works'
+      default: 'From Idea to Full-Stack App'
     },
     subtitle: {
       type: String,
-      default: 'From idea to web app, our platform makes web development accessible to everyone - no coding skills required.'
+      default: 'Build professional web applications with Vue.js frontends and Django backends in just minutes - perfect for non-technical users with great ideas.'
     },
     steps: {
       type: Array,
       default: () => [
         {
-          title: 'Describe Your Idea',
-          description: 'Tell us what kind of web app you want to create. We currently support basic HTML, CSS, and JavaScript apps for displaying content like personal bios or company information.',
+          title: 'Describe Your Vision',
+          description: 'Simply tell us what you want your web application to do. No technical knowledge needed - describe it like you\'re talking to a friend about your business idea.',
           icon: 'fas fa-lightbulb',
           color: 'primary',
           features: [
-            'No technical terms needed',
-            'Use regular, everyday language',
-            'Explain your web app goals'
+            'Use everyday language',
+            'Describe business goals, not code',
+            'Perfect for non-technical users'
           ]
         },
         {
-          title: 'Select Your AI Model',
-          description: 'Choose which AI model you want to power your project. Different models have different strengths depending on your specific needs.',
+          title: 'AI Builds Full-Stack App',
+          description: 'Our AI creates a complete application with a Vue.js frontend for users to interact with and a Django backend to handle data and logic.',
           icon: 'fas fa-robot',
           color: 'violet',
           features: [
-            'Multiple AI options',
-            'Select the file to edit',
-            'Switch between chat and build modes'
+            'Vue.js frontend automatically generated',
+            'Django backend with APIs created',
+            'Both parts work together seamlessly'
           ]
         },
         {
-          title: 'Chat and Build',
-          description: 'Use our intuitive interface to either chat about your project or directly build and edit your files using simple natural language commands.',
+          title: 'Refine Through Conversation',
+          description: 'Make changes by chatting with the AI. Ask for design tweaks, new features, or functionality changes - no coding required.',
           icon: 'fas fa-comments',
           color: 'purple',
           features: [
-            'Pay per AI request',
-            'Instant file updates',
-            'Switch between modes anytime'
+            'Natural language edits',
+            'Frontend and backend updates together',
+            'See changes instantly'
           ]
         },
         {
-          title: 'Get Your Web App',
-          description: 'Within minutes, you\'ll have a complete web app that would have cost thousands of dollars and taken months if built by a professional developer.',
+          title: 'Get Your Professional App',
+          description: 'Receive a complete, professional web application with modern Vue.js interface and robust Django API - ready for users and scalable for growth.',
           icon: 'fas fa-globe',
           color: 'blue',
           features: [
-            'Complete in minutes, not months',
-            'Costs dollars, not thousands',
-            'Ready for future advanced features'
+            'Production-ready full-stack app',
+            'Modern, responsive frontend',
+            'Professional backend architecture'
           ]
         }
       ]

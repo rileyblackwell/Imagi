@@ -76,48 +76,48 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Web Apps for Everyone'
+      default: 'Full-Stack Apps Made Simple'
     },
     subtitle: {
       type: String,
-      default: 'Build web apps in minutes that would take professional developers months to create - all through simple conversation with AI.'
+      default: 'Build complete web applications with Vue.js frontends and Django backends in minutes - no technical knowledge required, just describe your vision.'
     },
     features: {
       type: Array,
       default: () => [
         {
-          title: 'No Coding Required',
-          description: 'Build web applications by describing what you want in plain English - no programming experience needed.',
-          icon: 'fas fa-robot',
+          title: 'No Technical Skills Needed',
+          description: 'Perfect for entrepreneurs, small business owners, and anyone with an idea. Just describe your app in plain English - no coding knowledge required.',
+          icon: 'fas fa-user-friends',
           color: 'primary'
         },
         {
-          title: 'AI-Powered Development',
-          description: 'Choose from various AI models to chat about or build your project. The AI does all the technical work for you.',
-          icon: 'fas fa-microchip',
+          title: 'Full-Stack Applications',
+          description: 'Get complete web applications with professional Vue.js frontends and robust Django backends. Both parts work together seamlessly.',
+          icon: 'fas fa-layer-group',
           color: 'purple'
         },
         {
-          title: 'Build in Minutes, Not Months',
-          description: 'Create web apps in just minutes that would take professional developers months and cost thousands of dollars.',
+          title: 'Minutes, Not Months',
+          description: 'Build professional web applications in minutes that would normally take developers months and cost thousands of dollars to create.',
           icon: 'fas fa-bolt',
           color: 'blue'
         },
         {
-          title: 'Pay Only for What You Use',
-          description: 'Buy AI credits and pay per request. Build a complete web app for just a few dollars instead of thousands.',
+          title: 'Affordable for Everyone',
+          description: 'Pay only for what you build with our credit system. Create a complete full-stack web app for just a few dollars instead of hiring developers.',
           icon: 'fas fa-coins',
           color: 'teal'
         },
         {
-          title: 'Simple Chat Interface',
-          description: 'Edit files through natural conversation - just tell the AI what you want, and it makes the changes instantly.',
+          title: 'Natural Conversation',
+          description: 'Edit and improve your app through simple conversation. Just describe changes you want, and the AI updates both frontend and backend instantly.',
           icon: 'fas fa-comments',
           color: 'indigo'
         },
         {
-          title: 'Advanced Features Coming Soon',
-          description: 'Database support, user authentication, payments, and web deployment are all on our upcoming roadmap.',
+          title: 'Professional Results',
+          description: 'Get production-ready applications with modern Vue.js interfaces and powerful Django APIs. Database integration and deployment coming soon.',
           icon: 'fas fa-rocket',
           color: 'violet'
         }
