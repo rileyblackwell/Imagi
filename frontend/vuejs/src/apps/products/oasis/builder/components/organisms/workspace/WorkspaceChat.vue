@@ -41,7 +41,7 @@
         <!-- Content container matching dashboard layout -->
         <div class="max-w-4xl mx-auto px-6 py-6">
           <!-- Modern glassmorphism container matching project library style -->
-          <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden">
+          <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-visible">
             <!-- Sleek gradient header matching dashboard -->
             <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
             

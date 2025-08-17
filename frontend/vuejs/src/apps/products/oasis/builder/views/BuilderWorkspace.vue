@@ -564,14 +564,22 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           }
         )
         
-        // Add the real response message directly, but without showing code in the UI
-        store.addMessage({
-          role: 'assistant',
-          content: response.response,
-          timestamp: new Date().toISOString(),
-          id: `assistant-response-${Date.now()}`
-          // No code field to prevent displaying code in the UI
-        })
+        // Add the real response message directly (dedupe against last assistant message)
+        const normalize = (txt: string | undefined) => (txt || '').trim().replace(/\s+/g, ' ')
+        const newContent = normalize(response.response)
+        const lastAssistant = [...store.conversation].slice().reverse().find(m => m.role === 'assistant')
+        const lastContent = normalize(lastAssistant?.content)
+        if (!lastAssistant || newContent !== lastContent) {
+          store.addMessage({
+            role: 'assistant',
+            content: response.response,
+            timestamp: new Date().toISOString(),
+            id: `assistant-response-${Date.now()}`
+            // No code field to prevent displaying code in the UI
+          })
+        } else {
+          console.info('Skipped duplicate assistant message (frontend dedupe)')
+        }
       } catch (chatError) {
         throw chatError
       }
@@ -742,7 +750,7 @@ async function retryProjectLoad() {
     
     // Set default model if needed
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+      const defaultModel = store.availableModels.find(m => m.id === 'claude-sonnet-4-20250514') 
         || store.availableModels[0];
       if (defaultModel) {
         store.setSelectedModelId(defaultModel.id);
@@ -883,7 +891,7 @@ onMounted(async () => {
         
         // Set default model if not already set
         if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+          const defaultModel = store.availableModels.find(m => m.id === 'claude-sonnet-4-20250514') 
             || store.availableModels[0];
           if (defaultModel) {
             store.setSelectedModelId(defaultModel.id);

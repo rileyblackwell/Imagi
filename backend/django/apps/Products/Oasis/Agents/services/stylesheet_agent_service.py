@@ -458,24 +458,26 @@ class StylesheetAgentService(BaseAgentService):
                     logger.info(f"Received {completion_tokens} tokens from Anthropic API")
                     
                 elif provider == 'openai':
-                    # Prepare OpenAI API payload
+                    # Prepare OpenAI Responses API payload
                     openai_payload = {
                         'model': model,
-                        'messages': messages,
+                        'input': messages,
                         'temperature': temperature,
-                        'max_tokens': max_tokens
                     }
-                    
-                    logger.info(f"Making OpenAI API call for stylesheet generation")
-                    
-                    # Make API call to OpenAI
-                    completion = self.openai_client.chat.completions.create(**openai_payload)
-                    
+
+                    if max_tokens:
+                        openai_payload['max_output_tokens'] = max_tokens
+
+                    logger.info(f"Making OpenAI Responses API call for stylesheet generation")
+
+                    # Make API call to OpenAI Responses API
+                    completion = self.openai_client.responses.create(**openai_payload)
+
                     # Extract response content
-                    response_content = completion.choices[0].message.content
-                    completion_tokens = completion.usage.completion_tokens
-                    
-                    logger.info(f"Received {completion_tokens} tokens from OpenAI API")
+                    response_content = getattr(completion, 'output_text', None) or ""
+                    completion_tokens = getattr(getattr(completion, 'usage', None), 'output_tokens', None)
+
+                    logger.info(f"Received {completion_tokens} output tokens from OpenAI API")
                     
                 else:
                     raise ValueError(f"Unsupported AI model provider: {provider}")

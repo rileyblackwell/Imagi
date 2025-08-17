@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env
 load_dotenv()
-openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
-anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
+openai_key = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
+anthropic_key = os.getenv('ANTHROPIC_KEY') or getattr(settings, 'ANTHROPIC_KEY', None)
 
 # Define MODEL_COSTS dictionary with costs per model - imported from model_definitions.py for backward compatibility
 # New code should use get_model_cost() function instead of accessing this dictionary directly
@@ -346,11 +346,11 @@ class BaseAgentService(ABC):
             
             # Check if model is from OpenAI or Anthropic
             if 'gpt' in model_id:
-                openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
+                openai_key = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
                 if not openai_key:
                     return "OpenAI API key is not configured. Please set the OPENAI_KEY environment variable."
             elif 'claude' in model_id:
-                anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
+                anthropic_key = os.getenv('ANTHROPIC_KEY') or getattr(settings, 'ANTHROPIC_KEY', None)
                 if not anthropic_key:
                     return "Anthropic API key is not configured. Please set the ANTHROPIC_KEY environment variable."
             return None

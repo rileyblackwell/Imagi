@@ -55,7 +55,7 @@ export interface UndoResponse {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'claude-3-7-sonnet-20250219': {
+  'claude-sonnet-4-20250514': {
     maxTokens: 200000,
     rateLimits: {
       tokensPerMinute: 100000,
@@ -64,7 +64,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 200000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-4.1': {
+  'gpt-5': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -73,13 +73,13 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     contextWindow: 128000,
     capabilities: ['code_generation', 'chat', 'analysis']
   },
-  'gpt-4.1-nano': {
-    maxTokens: 128000,
+  'gpt-5-nano': {
+    maxTokens: 64000,
     rateLimits: {
-      tokensPerMinute: 80000,
-      requestsPerMinute: 350
+      tokensPerMinute: 120000,
+      requestsPerMinute: 600
     },
-    contextWindow: 128000,
+    contextWindow: 64000,
     capabilities: ['code_generation', 'chat', 'analysis']
   }
 };
@@ -87,8 +87,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
 // List of standard models
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'claude-3-7-sonnet-20250219',
-    name: 'Claude 3.7 Sonnet',
+    id: 'claude-sonnet-4-20250514',
+    name: 'Claude Sonnet 4',
     provider: 'anthropic',
     type: 'anthropic',
     context_window: 200000,
@@ -101,28 +101,28 @@ export const AI_MODELS: AIModel[] = [
     api_version: 'messages'
   },
   {
-    id: 'gpt-4.1',
-    name: 'GPT-4.1',
+    id: 'gpt-5',
+    name: 'GPT-5',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | Powerful reasoning and creative capability',
+    description: 'OpenAI | Next-generation reasoning and creative capability',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     costPerRequest: 0.04,
     api_version: 'responses'
   },
   {
-    id: 'gpt-4.1-nano',
-    name: 'GPT-4.1 Nano',
+    id: 'gpt-5-nano',
+    name: 'GPT-5 Nano',
     provider: 'openai',
     type: 'openai',
-    context_window: 128000,
+    context_window: 64000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | Fast and cost-effective performance',
+    description: 'OpenAI | Lightweight, fast model for everyday tasks',
     capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 128000,
+    maxTokens: 64000,
     costPerRequest: 0.01,
     api_version: 'responses'
   }

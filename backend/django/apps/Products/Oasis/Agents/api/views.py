@@ -143,7 +143,7 @@ def build_template(request):
     try:
         # Extract request data
         message = request.data.get('message')
-        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
+        model = request.data.get('model', 'claude-sonnet-4-20250514')
         project_id = request.data.get('project_id')
         file_path = request.data.get('file_path', 'index.html')
         conversation_id = request.data.get('conversation_id')
@@ -225,7 +225,7 @@ def build_stylesheet(request):
             
         data = request.data
         message = data.get('message')
-        model = data.get('model', 'claude-3-7-sonnet-20250219')
+        model = data.get('model', 'claude-sonnet-4-20250514')
         project_id = data.get('project_id')
         file_path = data.get('file_path')
         conversation_id = data.get('conversation_id')
@@ -331,7 +331,7 @@ def chat(request):
     try:
         # Extract request data
         message = request.data.get('message')
-        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
+        model = request.data.get('model', 'claude-sonnet-4-20250514')
         conversation_id = request.data.get('conversation_id')
         mode = request.data.get('mode', 'chat')
         project_id = request.data.get('project_id')
@@ -351,7 +351,7 @@ def chat(request):
         
         # Validate model
         if not model:
-            model = 'claude-3-7-sonnet-20250219'  # Default model
+            model = 'claude-sonnet-4-20250514'  # Default model
             
         # Ensure project_id is a string if provided
         if project_id:

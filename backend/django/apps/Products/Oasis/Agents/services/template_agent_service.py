@@ -8,6 +8,7 @@ allowing users to create and modify templates through natural language instructi
 from dotenv import load_dotenv
 import logging
 from .agent_service import BaseAgentService
+from apps.Products.Oasis.Builder.services.models_service import model_supports_temperature
 import os
 import threading
 import hashlib
@@ -506,20 +507,28 @@ class TemplateAgentService(BaseAgentService):
                     completion_tokens = completion.usage.output_tokens
                     
                 elif provider == 'openai':
-                    # Prepare OpenAI API payload
+                    # Prepare OpenAI Responses API payload
                     openai_payload = {
                         'model': model,
-                        'messages': messages,
-                        'temperature': temperature,
-                        'max_tokens': max_tokens
+                        'input': messages,
                     }
-                    
-                    # Make API call to OpenAI
-                    completion = self.openai_client.chat.completions.create(**openai_payload)
-                    
+
+                    # Only include temperature if supported by model
+                    try:
+                        if model_supports_temperature(model):
+                            openai_payload['temperature'] = temperature
+                    except Exception:
+                        pass
+
+                    if max_tokens:
+                        openai_payload['max_output_tokens'] = max_tokens
+
+                    # Make API call to OpenAI Responses API
+                    completion = self.openai_client.responses.create(**openai_payload)
+
                     # Extract response content
-                    response_content = completion.choices[0].message.content
-                    completion_tokens = completion.usage.completion_tokens
+                    response_content = getattr(completion, 'output_text', None) or ""
+                    completion_tokens = getattr(getattr(completion, 'usage', None), 'output_tokens', None)
                     
                 else:
                     raise ValueError(f"Unsupported AI model provider: {provider}")

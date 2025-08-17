@@ -6,7 +6,7 @@
     </div>
     
     <!-- Modern Model Selection Dropdown -->
-    <div class="relative">
+    <div class="relative" ref="containerEl">
       <!-- Dropdown Trigger Button with Enhanced Design -->
       <button
         @click="toggleDropdown"
@@ -29,7 +29,7 @@
           <div class="flex flex-col text-left">
             <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ selectedModel.name }}</span>
             <div class="flex items-center gap-1 text-xs truncate max-w-[150px]">
-              <span class="text-gray-400">{{ selectedModel.description }}</span>
+              <span class="text-gray-400">{{ shorten(selectedModel.description || '') }}</span>
               <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20">${{ formatPrice(selectedModel.costPerRequest) }}</span>
             </div>
           </div>
@@ -46,23 +46,28 @@
            :class="{ 'transform rotate-180 text-primary-400': isDropdownOpen }"></i>
       </button>
       
-      <!-- Enhanced Dropdown Menu -->
+      <!-- Dropdown Menu positioned like the mode selector (default, always below). Disabled because we use portal for fixed positioning. -->
       <div 
-        v-show="isDropdownOpen" 
-        class="absolute z-50 w-full mt-2 bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+        v-show="false && isDropdownOpen && !usePortal" 
+        class="absolute z-[11000] w-full mt-2 bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+        role="listbox"
+        aria-label="Select model"
+        :style="dropdownInlineStyle"
       >
         <!-- Subtle header -->
-        <div class="px-3 py-2 border-b border-dark-700/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <div class="px-3 py-2 border-b border-dark-700/50 text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
           Available Models
         </div>
         
-        <div class="max-h-60 overflow-y-auto py-1">
+        <div class="overflow-y-auto py-1 pb-4 pr-2" :style="{ maxHeight: scrollMaxHeight }">
           <button
             v-for="model in displayModels"
             :key="model.id"
             class="w-full flex items-start gap-1 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
             :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': modelId === model.id }"
             @click="handleModelSelect(model.id)"
+            role="option"
+            :aria-selected="modelId === model.id"
           >
             <!-- Subtle hover effect -->
             <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -78,22 +83,81 @@
             <!-- Model Info with improved layout -->
             <div class="flex flex-col text-left flex-1 min-w-0">
               <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ model.name }}</span>
-              <span class="text-gray-400 group-hover:text-gray-200 transition-colors whitespace-normal break-words pt-1 block text-xs" :title="model.description">{{ model.description }}</span>
+              <span class="text-gray-400 group-hover:text-gray-200 transition-colors whitespace-normal break-words pt-1 block text-xs" :title="model.description">{{ shorten(model.description || '') }}</span>
             </div>
             <div class="flex flex-col items-center justify-between h-full flex-shrink-0">
               <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
               <span v-if="modelId === model.id" class="text-primary-400"><i class="fas fa-check"></i></span>
             </div>
           </button>
+          <!-- Spacer to prevent last item from being visually clipped -->
+          <div class="h-3"></div>
         </div>
       </div>
-      
+
       <!-- Overlay to close dropdown when clicking outside -->
       <div
-        v-if="isDropdownOpen"
-        class="fixed inset-0 z-40"
+        v-if="false && isDropdownOpen && !usePortal"
+        class="fixed inset-0 z-[10999]"
         @click="closeDropdown"
       ></div>
+
+      <!-- Portal fallback to avoid clipping by parent or footer (always below) -->
+      <Teleport to="body">
+        <div 
+          v-show="isDropdownOpen && usePortal"
+          class="fixed z-[12000] bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+          :style="portalStyle"
+          role="listbox"
+          aria-label="Select model"
+        >
+          <!-- Subtle header -->
+          <div class="px-3 py-2 border-b border-dark-700/50 text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
+            Available Models
+          </div>
+          
+          <div class="overflow-y-auto py-1 pb-4 pr-2" :style="{ maxHeight: scrollMaxHeight }">
+            <button
+              v-for="model in displayModels"
+              :key="model.id"
+              class="w-full flex items-start gap-1 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
+              :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': modelId === model.id }"
+              @click="handleModelSelect(model.id)"
+              role="option"
+              :aria-selected="modelId === model.id"
+            >
+              <!-- Subtle hover effect -->
+              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              
+              <!-- Model Icon with enhanced styling -->
+              <div 
+                class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
+                :class="[getModelTypeClass(model)]"
+              >
+                <i class="fas" :class="getModelTypeIcon(model)"></i>
+              </div>
+              
+              <!-- Model Info with improved layout -->
+              <div class="flex flex-col text-left flex-1 min-w-0">
+                <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ model.name }}</span>
+                <span class="text-gray-400 group-hover:text-gray-200 transition-colors whitespace-normal break-words pt-1 block text-xs" :title="model.description">{{ shorten(model.description || '') }}</span>
+              </div>
+              <div class="flex flex-col items-center justify-between h-full flex-shrink-0">
+                <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
+                <span v-if="modelId === model.id" class="text-primary-400"><i class="fas fa-check"></i></span>
+              </div>
+            </button>
+            <div class="h-3"></div>
+          </div>
+        </div>
+      </Teleport>
+      <Teleport to="body">
+        <div
+          v-if="isDropdownOpen && usePortal"
+          class="fixed inset-0 z-[11999]"
+          @click="closeDropdown"
+        ></div>
+      </Teleport>
     </div>
     
     <!-- No Models Available Message with improved styling -->
@@ -124,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { ModelsService } from '../../../services/modelsService'
 import { AI_MODELS } from '../../../types/services'
 import type { AIModel } from '../../../types/services'
@@ -144,6 +208,38 @@ const rateLimitWarning = ref<string | null>(null)
 const isDropdownOpen = ref(false)
 const defaultModels = ref<AIModel[]>(AI_MODELS)
 const isLoadingModels = ref(false)
+
+// Dropdown dynamic placement within container (always below)
+const containerEl = ref<HTMLElement | null>(null)
+const dropdownInlineStyle = ref<Record<string, string>>({})
+const usePortal = ref(false)
+const portalStyle = ref<Record<string, string>>({})
+
+const computeDropdownPlacement = () => {
+  const el = containerEl.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  // Always use portal so dropdown is fixed while page scrolls
+  usePortal.value = true
+  const left = Math.round(rect.left)
+  const width = Math.round(rect.width)
+  const triggerTop = rect.bottom + 8
+  // Available space below the trigger within viewport
+  const availBelow = Math.max(140, window.innerHeight - triggerTop - 8)
+  const maxH = Math.min(480, availBelow)
+  dropdownInlineStyle.value = { top: 'calc(100% + 8px)', bottom: 'auto', maxHeight: `${maxH}px` }
+  portalStyle.value = {
+    top: `${Math.min(window.innerHeight - 8, triggerTop)}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+    maxHeight: `${maxH}px`
+  }
+}
+
+// Max height for inner scroll container, derived from computed placement styles
+const scrollMaxHeight = computed(() => {
+  return portalStyle.value.maxHeight || dropdownInlineStyle.value.maxHeight || '240px'
+})
 
 // Methods - defined before they're used in watchers
 const toggleDropdown = () => {
@@ -215,7 +311,6 @@ const fetchModels = async () => {
   }
 }
 
-// Debug on mount
 onMounted(() => {
   // Fetch available models from API
   fetchModels()
@@ -225,6 +320,25 @@ onMounted(() => {
 watch(() => props.models, (newModels) => {
   // Models changed
 }, { immediate: true })
+
+// Recompute placement when dropdown opens/closes and on viewport changes
+watch(isDropdownOpen, (open) => {
+  if (open) {
+    // Compute immediately
+    computeDropdownPlacement()
+    // Listen to scroll/resize while open
+    window.addEventListener('scroll', computeDropdownPlacement, true)
+    window.addEventListener('resize', computeDropdownPlacement)
+  } else {
+    window.removeEventListener('scroll', computeDropdownPlacement, true)
+    window.removeEventListener('resize', computeDropdownPlacement)
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', computeDropdownPlacement, true)
+  window.removeEventListener('resize', computeDropdownPlacement)
+})
 
 const availableModels = computed(() => {
   // Ensure we're filtering and displaying all available models
@@ -240,6 +354,13 @@ const availableModels = computed(() => {
   // If no models from props, use default models
   return filtered.length > 0 ? filtered : defaultModels.value
 })
+
+// Helper to make descriptions concise
+function shorten(text: string, max = 90): string {
+  if (!text) return ''
+  if (text.length <= max) return text
+  return text.slice(0, max - 1).trimEnd() + '…'
+}
 
 // Filter models based on mode
 const displayModels = computed(() => {

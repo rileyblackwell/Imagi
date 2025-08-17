@@ -36,7 +36,7 @@ class PaymentService:
         # Credits are stored in the database as the actual dollar amount
         # No need to convert dollar amount to credits
 
-        # Force amount to have 4 decimal precision for tiny amounts (like gpt-4.1-nano at $0.01)
+        # Force amount to have 4 decimal precision for tiny amounts (micro charges)
         amount = float(f"{float(amount):.4f}")
         
         # Use a default description if none provided

@@ -12,7 +12,7 @@ import json
 from dotenv import load_dotenv
 from .agent_service import BaseAgentService
 from apps.Products.Oasis.Builder.services.models_service import (
-   get_provider_from_model_id
+   get_provider_from_model_id, model_supports_temperature
 )
 
 
@@ -299,24 +299,6 @@ class ChatAgentService(BaseAgentService):
         temperature = kwargs.get('temperature', 0.7)
         max_tokens = kwargs.get('max_tokens', None)
         current_file = kwargs.get('file')
-
-        # Get or create conversation
-        if conversation_id:
-            conversation = self.get_conversation(conversation_id, user)
-            if not conversation:
-                conversation = self.create_conversation(user, model, project_id)
-        else:
-            conversation = self.create_conversation(user, model, project_id)
-
-        # ... (rest of method logic)
-        project_id = kwargs.get('project_id')
-        project_path = kwargs.get('project_path')
-        conversation_id = kwargs.get('conversation_id')
-        system_prompt_content = kwargs.get('system_prompt')
-        kwargs.get('stream', False)
-        temperature = kwargs.get('temperature', 0.7)
-        max_tokens = kwargs.get('max_tokens', None)
-        current_file = kwargs.get('file')
         
         # Get or create conversation
         if conversation_id:
@@ -402,45 +384,124 @@ class ChatAgentService(BaseAgentService):
                 logger.info(f"🔄 ANTHROPIC PROMPT TOKENS: {completion.usage.input_tokens}")
                 
             elif provider == 'openai':
-                # Prepare OpenAI API payload
+                # Prepare OpenAI Responses API payload
+                api_model = self.get_api_model(model)
+
+                # Normalize messages to Responses API content parts
+                def to_openai_msg(msg):
+                    content = msg.get('content')
+                    if isinstance(content, list):
+                        # Assume already content parts
+                        parts = content
+                    else:
+                        # Responses API expects 'text' content parts
+                        parts = [{"type": "text", "text": str(content) if content is not None else ""}]
+                    return {
+                        'role': msg.get('role', 'user'),
+                        'content': parts
+                    }
+
+                openai_messages = [to_openai_msg(m) for m in messages]
+
                 openai_payload = {
-                    'model': model,
-                    'messages': messages,
-                    'temperature': temperature,
+                    'model': api_model,
+                    'input': openai_messages,
                 }
-                
+
+                # Only include temperature if model supports it
+                try:
+                    if model_supports_temperature(model):
+                        openai_payload['temperature'] = temperature
+                except Exception:
+                    # Default to not sending temperature on error
+                    pass
+
                 if max_tokens:
-                    openai_payload['max_tokens'] = max_tokens
-                
-                # Log the complete payload sent to OpenAI
-                masked_payload = openai_payload.copy()
-                logger.info(f"🤖 API REQUEST TO OPENAI - Model: {model}")
-                logger.info(f"Complete API payload: {json.dumps(masked_payload, indent=2)}")
-                
-                # Make API call to OpenAI
-                completion = self.openai_client.chat.completions.create(**openai_payload)
-                
-                # Extract response content
-                response_content = completion.choices[0].message.content
-                completion_tokens = completion.usage.completion_tokens
-                
+                    # Responses API uses max_output_tokens
+                    openai_payload['max_output_tokens'] = max_tokens
+                else:
+                    # Provide a safe default to avoid provider-specific requirements
+                    openai_payload['max_output_tokens'] = 1024
+
+                # Log the complete payload sent to OpenAI (without large message contents)
+                try:
+                    masked = {
+                        'model': openai_payload['model'],
+                        'temperature': openai_payload.get('temperature'),
+                        'max_output_tokens': openai_payload.get('max_output_tokens'),
+                        'input_count': len(messages)
+                    }
+                    logger.info(f"🤖 API REQUEST TO OPENAI - Model: {model}")
+                    logger.info(f"Complete API payload (masked): {json.dumps(masked, indent=2)}")
+                except Exception:
+                    logger.info("Prepared OpenAI Responses API payload")
+
+                # Make API call to OpenAI Responses API
+                completion = self.openai_client.responses.create(**openai_payload)
+
+                # Extract response content with robust fallbacks
+                response_content = getattr(completion, 'output_text', None)
+                if not response_content:
+                    try:
+                        # Fallback to structured output path if available
+                        if hasattr(completion, 'output') and completion.output:
+                            first = completion.output[0]
+                            if hasattr(first, 'content') and first.content:
+                                part = first.content[0]
+                                # Handle text parts
+                                text = getattr(part, 'text', None) or part.get('text') if isinstance(part, dict) else None
+                                if text:
+                                    response_content = text
+                    except Exception:
+                        pass
+                response_content = response_content or ""
+                completion_tokens = getattr(getattr(completion, 'usage', None), 'output_tokens', None)
+
                 # Log usage information
                 logger.info(f"🔄 OPENAI COMPLETION TOKENS: {completion_tokens}")
-                logger.info(f"🔄 OPENAI PROMPT TOKENS: {completion.usage.prompt_tokens}")
                 
             else:
                 raise ValueError(f"Unsupported AI model provider: {provider}")
             
-            # Validate the response
+            # Validate the response but do not fail hard on short content
             is_valid, error_message = self.validate_response(response_content)
             if not is_valid:
-                raise ValueError(f"Invalid response: {error_message}")
+                logger.warning(f"Validation warning: {error_message}")
             
-            # Add the assistant's message to the conversation
-            self.add_assistant_message(conversation, response_content, user)
+            # Add the assistant's message to the conversation (robust dedupe by normalized content within recent window)
+            try:
+                from apps.Products.Oasis.Agents.models import AgentMessage
+                from django.utils import timezone
+                from datetime import timedelta
+
+                def norm(txt: str) -> str:
+                    try:
+                        # Collapse all whitespace and trim for robust comparison
+                        return re.sub(r"\s+", " ", (txt or "").strip())
+                    except Exception:
+                        return (txt or "").strip()
+
+                now = timezone.now()
+                window_start = now - timedelta(minutes=2)
+                normalized_new = norm(response_content)
+
+                recent_assistant = (
+                    AgentMessage.objects
+                    .filter(conversation=conversation, role="assistant", created_at__gte=window_start)
+                    .order_by('-id')[:3]
+                )
+                is_duplicate = any(norm(m.content) == normalized_new for m in recent_assistant)
+
+                if is_duplicate:
+                    logger.info("Skipped saving duplicate assistant message (matched recent normalized content)")
+                else:
+                    self.add_assistant_message(conversation, response_content, user)
+            except Exception as _dedupe_err:
+                logger.warning(f"Deduplication check failed (saving message anyway): {_dedupe_err}")
+                self.add_assistant_message(conversation, response_content, user)
             
             # Deduct credits for this API call
-            credits_used = self.deduct_credits(user.id, model, completion_tokens)
+            credits_used = self.deduct_credits(user.id, model, request_type='chat', completion_tokens=completion_tokens)
             
             return {
                 'success': True,
@@ -448,14 +509,16 @@ class ChatAgentService(BaseAgentService):
                 'conversation_id': conversation.id,
                 'credits_used': credits_used
             }
-            
         except Exception as e:
-            # Log the error
-            logger.error(f"Error processing conversation: {str(e)}")
-            
+            # Log the error with traceback
+            try:
+                import traceback
+                logger.error("Error processing conversation:\n" + traceback.format_exc())
+            except Exception:
+                logger.error(f"Error processing conversation: {str(e)}")
             # Return error message
             return {
                 'success': False,
                 'error': str(e),
-                'conversation_id': conversation.id if conversation else None
-            } 
+                'conversation_id': conversation.id if 'conversation' in locals() and conversation else None
+            }
