@@ -219,6 +219,7 @@ export interface ChatResponse {
   response: string;
   messages: any[];
   conversation_id?: string;
+  single_message?: boolean;
 }
 
 /**

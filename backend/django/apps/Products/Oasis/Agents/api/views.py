@@ -390,12 +390,16 @@ def chat(request):
             
             return create_error_response(error_message, error_code)
         
-        # Format the response
+        # Format the response and include single_message hint to avoid duplicate rendering on the client
         response_data = {
             'conversation_id': result.get('conversation_id'),
             'response': result.get('response', ''),
-            'timestamp': result.get('timestamp', None)
+            'timestamp': result.get('timestamp', None),
+            'single_message': result.get('single_message', False),
         }
+        # Pass through optional credits_used if present
+        if 'credits_used' in result:
+            response_data['credits_used'] = result['credits_used']
         
         return Response(response_data, status=status.HTTP_200_OK)
         

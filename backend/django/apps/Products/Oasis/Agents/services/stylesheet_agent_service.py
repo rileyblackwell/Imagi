@@ -13,6 +13,7 @@ import re
 import os
 from functools import lru_cache
 import hashlib
+from apps.Products.Oasis.Builder.services.models_service import model_supports_temperature
 
 
 # Set up logger
@@ -458,15 +459,43 @@ class StylesheetAgentService(BaseAgentService):
                     logger.info(f"Received {completion_tokens} tokens from Anthropic API")
                     
                 elif provider == 'openai':
+                    # Normalize messages to Responses API content parts with role-aware types
+                    def to_openai_msg(msg):
+                        role = msg.get('role', 'user')
+                        desired_type = 'output_text' if role == 'assistant' else 'input_text'
+                        content = msg.get('content')
+                        parts = []
+                        if isinstance(content, list):
+                            for p in content:
+                                if isinstance(p, dict):
+                                    text_val = p.get('text') if 'text' in p else str(p.get('content', ''))
+                                    parts.append({"type": desired_type, "text": text_val or ""})
+                                else:
+                                    parts.append({"type": desired_type, "text": str(p)})
+                        else:
+                            parts = [{"type": desired_type, "text": str(content) if content is not None else ""}]
+                        return {
+                            'role': role,
+                            'content': parts
+                        }
+
+                    openai_messages = [to_openai_msg(m) for m in messages]
+
                     # Prepare OpenAI Responses API payload
                     openai_payload = {
-                        'model': model,
-                        'input': messages,
-                        'temperature': temperature,
+                        'model': self.get_api_model(model),
+                        'input': openai_messages,
                     }
 
-                    if max_tokens:
-                        openai_payload['max_output_tokens'] = max_tokens
+                    # Only include temperature if the model supports it
+                    try:
+                        if model_supports_temperature(model):
+                            openai_payload['temperature'] = temperature
+                    except Exception:
+                        pass
+
+                    # Ensure max_output_tokens is set
+                    openai_payload['max_output_tokens'] = max_tokens or 1024
 
                     logger.info(f"Making OpenAI Responses API call for stylesheet generation")
 

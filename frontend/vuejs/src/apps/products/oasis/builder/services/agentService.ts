@@ -260,7 +260,8 @@ export const AgentService = {
       return {
         response: response.data.response,
         messages: response.data.messages || [],
-        conversation_id: response.data.conversation_id
+        conversation_id: response.data.conversation_id,
+        single_message: response.data.single_message || false
       } as ChatResponse; // Cast to ensure TS is happy
     } catch (error: any) {
       // Enhanced error logging

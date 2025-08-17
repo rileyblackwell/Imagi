@@ -507,10 +507,32 @@ class TemplateAgentService(BaseAgentService):
                     completion_tokens = completion.usage.output_tokens
                     
                 elif provider == 'openai':
+                    # Normalize messages to Responses API content parts with role-aware types
+                    def to_openai_msg(msg):
+                        role = msg.get('role', 'user')
+                        desired_type = 'output_text' if role == 'assistant' else 'input_text'
+                        content = msg.get('content')
+                        parts = []
+                        if isinstance(content, list):
+                            for p in content:
+                                if isinstance(p, dict):
+                                    text_val = p.get('text') if 'text' in p else str(p.get('content', ''))
+                                    parts.append({"type": desired_type, "text": text_val or ""})
+                                else:
+                                    parts.append({"type": desired_type, "text": str(p)})
+                        else:
+                            parts = [{"type": desired_type, "text": str(content) if content is not None else ""}]
+                        return {
+                            'role': role,
+                            'content': parts
+                        }
+
+                    openai_messages = [to_openai_msg(m) for m in messages]
+
                     # Prepare OpenAI Responses API payload
                     openai_payload = {
-                        'model': model,
-                        'input': messages,
+                        'model': self.get_api_model(model),
+                        'input': openai_messages,
                     }
 
                     # Only include temperature if supported by model
@@ -520,8 +542,8 @@ class TemplateAgentService(BaseAgentService):
                     except Exception:
                         pass
 
-                    if max_tokens:
-                        openai_payload['max_output_tokens'] = max_tokens
+                    # Ensure max_output_tokens is set
+                    openai_payload['max_output_tokens'] = max_tokens or 1024
 
                     # Make API call to OpenAI Responses API
                     completion = self.openai_client.responses.create(**openai_payload)

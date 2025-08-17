@@ -7,10 +7,11 @@ It handles both general chat functionality and conversational AI interactions.
 """
 
 import logging
+import os
 import re
 import json
 from dotenv import load_dotenv
-from .agent_service import BaseAgentService
+from .agent_service import BaseAgentService, format_system_prompt
 from apps.Products.Oasis.Builder.services.models_service import (
    get_provider_from_model_id, model_supports_temperature
 )
@@ -89,102 +90,63 @@ class ChatAgentService(BaseAgentService):
                 "- When responding, prioritize being helpful, accurate, and concise.\n"
             )
         }
-    
-    def validate_response(self, content):
+
+    def get_project_name(self, project_id):
         """
-        Validate that the response is appropriate and meets quality standards.
-        
-        Args:
-            content (str): The content to validate
-            
-        Returns:
-            tuple: (is_valid, error_message)
+        Return the project's name given a project_id, or None if unavailable.
         """
-        # Basic validation
-        if not content or not isinstance(content, str):
-            return False, "Empty or invalid response received from AI model"
-            
-        # Check for response length
-        if len(content) < 10:
-            return False, f"Response too short ({len(content)} chars)"
-        
-        # Check for common error responses
-        error_phrases = [
-            "I'm sorry, I cannot",
-            "I apologize, but I cannot",
-            "As an AI language model",
-            "I don't have the ability to"
-        ]
-        
-        # If the response starts with a refusal, it's likely not a good response
-        for phrase in error_phrases:
-            if content.lower().startswith(phrase.lower()):
-                return False, f"Response starts with refusal: '{phrase}...'"
-        
-        # Check for excessive code blocks - general chat shouldn't have too many code samples
-        code_blocks = re.findall(r'```[^`]*```', content)
-        if len(code_blocks) > 5:
-            return False, f"Too many code blocks in response ({len(code_blocks)})"
-            
-        return True, None
-    
-    def get_additional_context(self, **kwargs):
-        """
-        Get additional context for the chat based on current project and file.
-        
-        Args:
-            **kwargs: Additional arguments including file and project information
-            
-        Returns:
-            str: Additional context for the system prompt
-        """
-        context_parts = []
-        
-        # Add current file context if available
-        current_file = kwargs.get('file')
-        if current_file and isinstance(current_file, dict):
-            file_path = current_file.get('path')
-            file_type = current_file.get('type', 'unknown')
-            
-            if file_path:
-                context_parts.append(f"The user is currently working with file: {file_path}")
-                
-                # Add file type context
-                if file_type == 'html':
-                    context_parts.append("This is a Django HTML template file.")
-                elif file_type == 'vue':
-                    context_parts.append("This is a Vue.js component file.")
-                elif file_type == 'css':
-                    context_parts.append("This is a CSS stylesheet file.")
-                elif file_type == 'js':
-                    context_parts.append("This is a JavaScript file.")
-                elif file_type == 'ts':
-                    context_parts.append("This is a TypeScript file.")
-                elif file_type == 'python':
-                    context_parts.append("This is a Python file.")
-        
-        # Add project information if available - this is separate from the project info
-        # added by build_conversation_history, and provides additional context to the system prompt
-        project_id = kwargs.get('project_id')
-        if project_id:
-            try:
-                from apps.Products.Oasis.ProjectManager.models import Project
-                project = Project.objects.get(id=project_id)
-                context_parts.append(f"Detailed context for project: {project.name}")
-                
-                if hasattr(project, 'description') and project.description:
-                    # Format the description to be included in the additional context
-                    # This won't replace the main project info, but adds extra context to the system prompt
-                    description = project.description.strip()
-                    if description:
-                        context_parts.append(f"Additional project details: {description}")
-            except Exception as e:
-                logger.warning(f"Could not get project details for context: {str(e)}")
-        
-        if not context_parts:
+        if not project_id:
             return None
-        
-        return "\n".join(context_parts)
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.get(id=project_id)
+            return getattr(project, 'name', None)
+        except Exception as e:
+            logger.warning(f"Could not get project name for project_id={project_id}: {e}")
+            return None
+
+    def get_project_description(self, project_id):
+        """
+        Return the project's description given a project_id, stripped, or None.
+        """
+        if not project_id:
+            return None
+        try:
+            from apps.Products.Oasis.ProjectManager.models import Project
+            project = Project.objects.get(id=project_id)
+            desc = getattr(project, 'description', None)
+            if isinstance(desc, str):
+                desc = desc.strip()
+            return desc or None
+        except Exception as e:
+            logger.warning(f"Could not get project description for project_id={project_id}: {e}")
+            return None
+
+    def get_current_file_name(self, file):
+        """
+        Return the current file path/name from a file dict, or None.
+        """
+        if file and isinstance(file, dict):
+            return file.get('path') or None
+        return None
+
+    def get_current_file_type(self, file):
+        """
+        Return a human-friendly description of the current file type from a file dict, or None.
+        """
+        if not (file and isinstance(file, dict)):
+            return None
+        ftype = (file.get('type') or '').lower()
+        mapping = {
+            'html': "This is a Django HTML template file.",
+            'vue': "This is a Vue.js component file.",
+            'css': "This is a CSS stylesheet file.",
+            'js': "This is a JavaScript file.",
+            'ts': "This is a TypeScript file.",
+            'python': "This is a Python file.",
+            'py': "This is a Python file.",
+        }
+        return mapping.get(ftype)
 
     def process_chat(self, prompt, model, user, project_id=None, file=None, conversation_id=None):
         """
@@ -209,11 +171,54 @@ class ChatAgentService(BaseAgentService):
             if not model:
                 return self.error_response("Model is required")
             
-            # Get additional context for this request
-            additional_context = self.get_additional_context(
-                file=file,
-                project_id=project_id
+            # Build additional context using helper methods
+            context_parts = []
+            file_name = self.get_current_file_name(file)
+            file_type_desc = self.get_current_file_type(file)
+            if file_name:
+                context_parts.append(f"The user is currently working with file: {file_name}")
+            if file_type_desc:
+                context_parts.append(file_type_desc)
+
+            proj_name = self.get_project_name(project_id)
+            if proj_name:
+                context_parts.append(f"Detailed context for project: {proj_name}")
+            proj_desc = self.get_project_description(project_id)
+            if proj_desc:
+                context_parts.append(f"Additional project details: {proj_desc}")
+
+            additional_context = "\n".join(context_parts) if context_parts else None
+
+            # Build a combined system prompt: base chat system prompt + additional context
+            base_system = self.get_system_prompt(project_name=proj_name)
+            combined_system = format_system_prompt(
+                base_system.get('content', ''),
+                context=additional_context
             )
+
+            # Resolve project path from project_id, and enrich current_file with content if missing
+            project_path = None
+            if project_id:
+                try:
+                    from apps.Products.Oasis.ProjectManager.models import Project
+                    project = Project.objects.get(id=project_id, user=user)
+                    project_path = getattr(project, 'project_path', None)
+                except Exception as e:
+                    logger.warning(f"Could not resolve project path for project_id={project_id}: {e}")
+
+            # If we have a file dict but no content, try to read it from disk using project_path
+            current_file = file
+            if current_file and isinstance(current_file, dict):
+                fpath = current_file.get('path')
+                fcontent = current_file.get('content')
+                if not fcontent and project_path and fpath:
+                    try:
+                        abs_path = os.path.join(project_path, fpath)
+                        if os.path.exists(abs_path):
+                            with open(abs_path, 'r') as fh:
+                                current_file['content'] = fh.read()
+                    except Exception as e:
+                        logger.warning(f"Failed reading current_file content from {fpath}: {e}")
             
             # Process the conversation using the base implementation
             return self.process_conversation(
@@ -221,10 +226,10 @@ class ChatAgentService(BaseAgentService):
                 model=model,
                 user=user,
                 project_id=project_id,
-                file=file,
+                file=current_file,
+                project_path=project_path,
                 conversation_id=conversation_id,
-                system_prompt=additional_context,
-                current_user_prompt=prompt
+                system_prompt=combined_system.get('content', '')
             )
             
         except Exception as e:
@@ -314,7 +319,11 @@ class ChatAgentService(BaseAgentService):
         self.add_user_message(conversation, user_input, user)
         
         # Build conversation history including system prompts
-        messages = self.build_conversation_history(conversation, project_path, current_file)
+        messages = self.build_conversation_history(
+            conversation,
+            project_path,
+            current_file
+        )
         
         # Convert model ID into a provider name
         provider = get_provider_from_model_id(model)
@@ -387,19 +396,35 @@ class ChatAgentService(BaseAgentService):
                 # Prepare OpenAI Responses API payload
                 api_model = self.get_api_model(model)
 
-                # Normalize messages to Responses API content parts
+                # Normalize messages to Responses API content parts with role-aware types
                 def to_openai_msg(msg):
+                    role = msg.get('role', 'user')
+                    desired_type = 'output_text' if role == 'assistant' else 'input_text'
                     content = msg.get('content')
+                    parts = []
                     if isinstance(content, list):
-                        # Assume already content parts
-                        parts = content
+                        for p in content:
+                            if isinstance(p, dict):
+                                text_val = p.get('text') if 'text' in p else str(p.get('content', ''))
+                                parts.append({"type": desired_type, "text": text_val or ""})
+                            else:
+                                parts.append({"type": desired_type, "text": str(p)})
                     else:
-                        # Responses API expects 'text' content parts
-                        parts = [{"type": "text", "text": str(content) if content is not None else ""}]
+                        parts = [{"type": desired_type, "text": str(content) if content is not None else ""}]
                     return {
-                        'role': msg.get('role', 'user'),
+                        'role': role,
                         'content': parts
                     }
+
+                # Extract a top-level system prompt for the Responses API 'instructions' field
+                instructions = None
+                if messages and messages[0].get('role') == 'system':
+                    try:
+                        instructions = str(messages[0].get('content') or '')
+                        messages = messages[1:]
+                    except Exception:
+                        # Fallback: leave messages intact if anything goes wrong
+                        instructions = None
 
                 openai_messages = [to_openai_msg(m) for m in messages]
 
@@ -407,6 +432,9 @@ class ChatAgentService(BaseAgentService):
                     'model': api_model,
                     'input': openai_messages,
                 }
+                # Only attach instructions if present
+                if instructions:
+                    openai_payload['instructions'] = instructions
 
                 # Only include temperature if model supports it
                 try:
@@ -462,12 +490,42 @@ class ChatAgentService(BaseAgentService):
                 
             else:
                 raise ValueError(f"Unsupported AI model provider: {provider}")
-            
-            # Validate the response but do not fail hard on short content
-            is_valid, error_message = self.validate_response(response_content)
-            if not is_valid:
-                logger.warning(f"Validation warning: {error_message}")
-            
+
+            # Normalize and deduplicate repeated content to avoid duplicate rendering artifacts
+            try:
+                def _collapse_exact_repeats(raw: str) -> str:
+                    if not raw:
+                        return raw
+                    s = raw.strip()
+                    n = len(s)
+                    # Check triple then double repeats of the entire content
+                    for k in (3, 2):
+                        if n % k == 0:
+                            part = s[: n // k]
+                            if part * k == s:
+                                # Return corresponding slice of original to preserve formatting as much as possible
+                                return raw[: len(raw) // k]
+                    return raw
+
+                def _collapse_consecutive_paragraph_dupes(raw: str) -> str:
+                    parts = raw.split("\n\n")
+                    deduped = []
+                    prev_norm = None
+                    for p in parts:
+                        normp = re.sub(r"\s+", " ", p.strip())
+                        if prev_norm is not None and normp and normp == prev_norm:
+                            # skip consecutive identical paragraph
+                            continue
+                        deduped.append(p)
+                        prev_norm = normp
+                    return "\n\n".join(deduped)
+
+                # Apply deduplication steps
+                response_content = _collapse_exact_repeats(response_content)
+                response_content = _collapse_consecutive_paragraph_dupes(response_content)
+            except Exception as _norm_err:
+                logger.warning(f"Response deduplication failed: {_norm_err}")
+
             # Add the assistant's message to the conversation (robust dedupe by normalized content within recent window)
             try:
                 from apps.Products.Oasis.Agents.models import AgentMessage
@@ -507,7 +565,8 @@ class ChatAgentService(BaseAgentService):
                 'success': True,
                 'response': response_content,
                 'conversation_id': conversation.id,
-                'credits_used': credits_used
+                'credits_used': credits_used,
+                'single_message': True
             }
         except Exception as e:
             # Log the error with traceback
