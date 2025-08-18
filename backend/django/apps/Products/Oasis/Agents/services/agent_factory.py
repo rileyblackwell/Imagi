@@ -7,7 +7,8 @@ modes, file types, or service requirements.
 
 import logging
 from .chat_agent_service import ChatAgentService
-from .template_agent_service import TemplateAgentService
+from .component_agent_service import TemplateAgentService
+from .view_agent_service import ViewAgentService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,8 +32,10 @@ class AgentFactory:
         Returns:
             BaseAgentService: An instance of the appropriate agent service
         """
-        if mode == 'build' or mode == 'template':
+        if mode in ('build', 'template', 'component'):
             return TemplateAgentService()
+        if mode == 'view':
+            return ViewAgentService()
         else:  # Default to chat mode
             return ChatAgentService()
     
@@ -55,14 +58,12 @@ class AgentFactory:
         # HTML files should use TemplateAgentService
         if file_path.endswith('.html'):
             return TemplateAgentService()
-        # CSS files should use StylesheetAgentService (if available)
+        # Vue Single File Components use ViewAgentService
+        if file_path.endswith('.vue'):
+            return ViewAgentService()
+        # CSS files use ChatAgentService now that the stylesheet feature is removed
         elif file_path.endswith('.css'):
-            try:
-                from .stylesheet_agent_service import StylesheetAgentService
-                return StylesheetAgentService()
-            except ImportError:
-                logger.warning("StylesheetAgentService not available, using ChatAgentService")
-                return ChatAgentService()
+            return ChatAgentService()
         # All other file types use ChatAgentService
         else:
             return ChatAgentService()

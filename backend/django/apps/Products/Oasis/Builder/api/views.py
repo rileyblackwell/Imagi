@@ -26,7 +26,7 @@ from apps.Products.Oasis.ProjectManager.services.project_management_service impo
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound
 from ..services.project_service import ProjectService
-from apps.Products.Oasis.Agents.services.template_agent_service import TemplateAgentService
+from apps.Products.Oasis.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
 
 logger = logging.getLogger(__name__)
