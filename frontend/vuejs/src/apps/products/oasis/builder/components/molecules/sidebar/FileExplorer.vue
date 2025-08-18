@@ -8,16 +8,15 @@
           <span>Apps</span>
         </h3>
         <!-- Enhanced Add app button -->
-        <div>
+        <div v-if="Object.keys(vueFilesByDirectory).length > 0">
           <button 
             @click="toggleNewAppForm" 
-            class="group relative w-full text-xs rounded-lg px-3 py-2 bg-purple-600/80 hover:bg-purple-600 text-white transition-all duration-200 transform hover:scale-[1.02]"
+            class="group relative w-full text-xs rounded-md px-2.5 py-1.5 border bg-gradient-to-br from-primary-600/80 to-violet-600/80 border-primary-400/40 text-white shadow-sm transition-all duration-200"
             title="Create new app"
           >
-            <!-- Subtle glow effect on hover -->
-            <div class="absolute -inset-0.5 bg-purple-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+            <!-- hover glow removed -->
             <div class="relative flex items-center justify-center">
-              <i class="fas fa-plus mr-2"></i> 
+              <i class="fas fa-plus mr-1.5"></i> 
               <span>Create New App</span>
             </div>
           </button>
@@ -59,17 +58,17 @@
           <div class="flex justify-end space-x-2">
             <button
               @click="toggleNewAppForm"
-              class="text-xs rounded-md px-2 py-1 text-gray-400 hover:text-white transition-colors focus:outline-none"
+              class="text-xs rounded-md px-2 py-1 text-gray-400 transition-colors focus:outline-none"
             >
               Cancel
             </button>
             <button
               @click="createNewApp"
               :disabled="!isValidAppName"
-              class="group relative text-xs rounded-md px-2 py-1 bg-purple-600/80 disabled:bg-gray-700 disabled:text-gray-500 hover:bg-purple-600 text-white transition-all duration-200 focus:outline-none"
+              class="group relative text-xs rounded-md px-2 py-1 border bg-gradient-to-r from-primary-600/85 to-violet-600/85 border-primary-400/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:border-transparent text-white transition-all duration-200 focus:outline-none"
             >
               <!-- Subtle glow effect on hover (only when enabled) -->
-              <div v-if="isValidAppName" class="absolute -inset-0.5 bg-purple-500/30 rounded-md blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+              <!-- hover glow removed -->
               <span class="relative">Create App</span>
             </button>
           </div>
@@ -85,12 +84,12 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="showNewViewForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-green-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-green-300">Create New View</h3>
+        <div v-if="showNewViewForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
+          <h3 class="text-xs font-medium text-primary-300">Create New View</h3>
           
           <select
             v-model="newViewSelectedApp"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-green-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(34,197,94,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
           >
             <option value="">Select an app...</option>
             <option v-for="app in availableApps" :key="app" :value="app">
@@ -102,7 +101,7 @@
             v-model="newViewName"
             type="text"
             placeholder="e.g., AboutPage, ContactPage, ServicesPage"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-green-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(34,197,94,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
             @keydown.enter="createVueView"
           />
           
@@ -110,7 +109,7 @@
             v-model="newViewRoute"
             type="text"
             placeholder="Route path: e.g., /about, /contact, /services"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-green-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(34,197,94,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
             @keydown.enter="createVueView"
           />
           
@@ -121,17 +120,17 @@
           <div class="flex justify-end space-x-2">
             <button
               @click="toggleNewViewForm"
-              class="text-xs rounded-md px-2 py-1 text-gray-400 hover:text-white transition-colors focus:outline-none"
+              class="text-xs rounded-md px-2 py-1 text-gray-400 transition-colors focus:outline-none"
             >
               Cancel
             </button>
             <button
               @click="createVueView"
               :disabled="!isValidViewName"
-              class="group relative text-xs rounded-md px-2 py-1 bg-green-600/80 disabled:bg-gray-700 disabled:text-gray-500 hover:bg-green-600 text-white transition-all duration-200 focus:outline-none"
+              class="group relative text-xs rounded-md px-2 py-1 border bg-gradient-to-r from-primary-600/85 to-violet-600/85 border-primary-400/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:border-transparent text-white transition-all duration-200 focus:outline-none"
             >
               <!-- Subtle glow effect on hover (only when enabled) -->
-              <div v-if="isValidViewName" class="absolute -inset-0.5 bg-green-500/30 rounded-md blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+              <!-- hover glow removed -->
               <span class="relative">Create View</span>
             </button>
           </div>
@@ -147,12 +146,12 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div v-if="showNewComponentForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-blue-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-blue-300">Create New Component</h3>
+        <div v-if="showNewComponentForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
+          <h3 class="text-xs font-medium text-primary-300">Create New Component</h3>
           
           <select
             v-model="newComponentSelectedApp"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-blue-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(59,130,246,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
           >
             <option value="">Select an app...</option>
             <option v-for="app in availableApps" :key="app" :value="app">
@@ -162,15 +161,15 @@
           
           <select
             v-model="newComponentType"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-blue-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(59,130,246,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
           >
             <option value="atoms">Atom (Basic UI element)</option>
             <option value="molecules">Molecule (Simple combination)</option>
             <option value="organisms">Organism (Complex component)</option>
           </select>
           
-          <div class="p-2 bg-blue-950/30 rounded-md border border-blue-700/30">
-            <p class="text-xxs text-blue-300 mb-1">{{ getComponentTypeDescription(newComponentType).title }}</p>
+          <div class="p-2 bg-violet-950/20 rounded-md border border-primary-700/30">
+            <p class="text-xxs text-primary-300 mb-1">{{ getComponentTypeDescription(newComponentType).title }}</p>
             <p class="text-xxs text-gray-400">{{ getComponentTypeDescription(newComponentType).description }}</p>
           </div>
           
@@ -178,7 +177,7 @@
             v-model="newComponentName"
             type="text"
             placeholder="e.g., PrimaryButton, SearchInput, UserAvatar"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-blue-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(59,130,246,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
             @keydown.enter="createVueComponent"
           />
           
@@ -189,17 +188,17 @@
           <div class="flex justify-end space-x-2">
             <button
               @click="toggleNewComponentForm"
-              class="text-xs rounded-md px-2 py-1 text-gray-400 hover:text-white transition-colors focus:outline-none"
+              class="text-xs rounded-md px-2 py-1 text-gray-400 transition-colors focus:outline-none"
             >
               Cancel
             </button>
             <button
               @click="createVueComponent"
               :disabled="!isValidComponentName"
-              class="group relative text-xs rounded-md px-2 py-1 bg-blue-600/80 disabled:bg-gray-700 disabled:text-gray-500 hover:bg-blue-600 text-white transition-all duration-200 focus:outline-none"
+              class="group relative text-xs rounded-md px-2 py-1 border bg-gradient-to-r from-primary-600/85 to-violet-600/85 border-primary-400/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:border-transparent text-white transition-all duration-200 focus:outline-none"
             >
               <!-- Subtle glow effect on hover (only when enabled) -->
-              <div v-if="isValidComponentName" class="absolute -inset-0.5 bg-blue-500/30 rounded-md blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
+              <!-- hover glow removed -->
               <span class="relative">Create UI Component</span>
             </button>
           </div>
@@ -213,14 +212,14 @@
           v-for="(dirFiles, dirName) in vueFilesByDirectory"
           :key="dirName"
           class="p-2 bg-dark-850/60 backdrop-blur-sm rounded-lg border border-dark-700/40 transition-all duration-200"
-          :class="{'border-green-500/30 bg-green-900/10 shadow-[0_0_10px_rgba(34,197,94,0.1)]': currentDirectory === dirName}"
+          :class="{'border-primary-500/30 bg-violet-900/10 shadow-[0_0_10px_rgba(139,92,246,0.12)]': currentDirectory === dirName}"
         >
           <div 
             class="group flex items-center text-xs py-1.5 px-2.5 rounded-md transition-all duration-200 cursor-pointer mb-2"
             :class="[
               currentDirectory === dirName 
-                ? 'bg-gradient-to-r from-green-500/20 to-blue-500/10 text-white border border-green-500/30' 
-                : 'text-green-300 hover:bg-dark-800/80 border border-transparent hover:border-green-500/20'
+                ? 'bg-gradient-to-r from-primary-500/20 to-violet-500/10 text-white border border-primary-500/30' 
+                : 'text-primary-300 border border-transparent'
             ]"
             @click="selectDirectory(dirName)"
           >
@@ -229,7 +228,7 @@
               :class="getVueDirectoryIconClass(dirName)"
             ></i>
             <span class="font-medium">{{ formatVueDirectoryName(dirName) }}</span>
-            <span class="ml-auto text-xxs bg-dark-700/80 text-green-300 py-0.5 px-1.5 rounded-full">
+            <span class="ml-auto text-xxs bg-dark-700/80 text-primary-300 py-0.5 px-1.5 rounded-full">
               {{ dirFiles.length }}
             </span>
           </div>
@@ -240,10 +239,9 @@
             <div class="mb-3 grid grid-cols-2 gap-1.5">
               <button 
                 @click="openCreateViewForApp(dirName)" 
-                class="group relative text-xxs rounded-md px-2 py-1.5 bg-green-600/70 hover:bg-green-600 text-white transition-all duration-200 transform hover:scale-[1.02]"
+                class="group relative text-xxs rounded-md px-2 py-1.5 border bg-gradient-to-r from-primary-600/75 to-violet-600/75 border-primary-400/40 text-white transition-all duration-200"
                 :title="`Create view in ${dirName}`"
               >
-                <div class="absolute -inset-0.5 bg-green-500/20 rounded-md blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-file-alt mr-1 text-xxs"></i> 
                   <span>Add View</span>
@@ -251,10 +249,9 @@
               </button>
               <button 
                 @click="openCreateComponentForApp(dirName)" 
-                class="group relative text-xxs rounded-md px-2 py-1.5 bg-blue-600/70 hover:bg-blue-600 text-white transition-all duration-200 transform hover:scale-[1.02]"
+                class="group relative text-xxs rounded-md px-2 py-1.5 border bg-gradient-to-r from-primary-600/75 to-violet-600/75 border-primary-400/40 text-white transition-all duration-200"
                 :title="`Create component in ${dirName}`"
               >
-                <div class="absolute -inset-0.5 bg-blue-500/20 rounded-md blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-puzzle-piece mr-1 text-xxs"></i> 
                   <span>Add Component</span>
@@ -283,7 +280,7 @@
                   <!-- Directory header -->
                   <div 
                     @click="toggleDirectory(String(dirName))"
-                    class="flex items-center py-1.5 px-2 rounded-md hover:bg-dark-700/50 cursor-pointer transition-colors duration-200"
+                    class="flex items-center py-1.5 px-2 rounded-md cursor-pointer transition-colors duration-200"
                   >
                     <i 
                       :class="expandedDirs.has(String(dirName)) ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"
@@ -314,7 +311,7 @@
                         <!-- Subdirectory header -->
                         <div 
                           @click="toggleDirectory(`${String(dirName)}/${String(subDirName)}`)"
-                          class="flex items-center py-1 px-2 rounded-md hover:bg-dark-700/30 cursor-pointer transition-colors duration-200"
+                          class="flex items-center py-1 px-2 rounded-md cursor-pointer transition-colors duration-200"
                         >
                           <i 
                             :class="expandedDirs.has(`${String(dirName)}/${String(subDirName)}`) ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"
@@ -357,24 +354,11 @@
           <div class="space-y-2">
             <button
               @click="toggleNewAppForm"
-              class="group relative w-full text-xs rounded-lg px-3 py-2 bg-purple-600/80 hover:bg-purple-600 text-white transition-all duration-200 transform hover:scale-[1.02]"
+              class="group relative w-full text-xs rounded-md px-2.5 py-1.5 border bg-gradient-to-br from-primary-600/80 to-violet-600/80 border-primary-400/40 text-white transition-all duration-200"
             >
-              <!-- Subtle glow effect on hover -->
-              <div class="absolute -inset-0.5 bg-purple-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
               <div class="relative flex items-center justify-center">
-                <i class="fas fa-plus mr-1.5"></i> 
+                <i class="fas fa-plus mr-1"></i> 
                 <span>Create New App</span>
-              </div>
-            </button>
-            <button
-              @click="toggleNewViewForm"
-              class="group relative w-full text-xs rounded-lg px-3 py-2 bg-green-600/80 hover:bg-green-600 text-white transition-all duration-200 transform hover:scale-[1.02]"
-            >
-              <!-- Subtle glow effect on hover -->
-              <div class="absolute -inset-0.5 bg-green-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-              <div class="relative flex items-center justify-center">
-                <i class="fas fa-file-alt mr-1.5"></i> 
-                <span>Create View in Existing App</span>
               </div>
             </button>
           </div>
@@ -1078,10 +1062,6 @@ const addRouteToRouter = (routerContent: string, viewName: string, routePath: st
 /* Directory tree styles */
 .directory-item {
   transition: all 0.2s ease;
-}
-
-.directory-item:hover {
-  background-color: rgba(55, 65, 81, 0.5);
 }
 
 .file-tree-indent {

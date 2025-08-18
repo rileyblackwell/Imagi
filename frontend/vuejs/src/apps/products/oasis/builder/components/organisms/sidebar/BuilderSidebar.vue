@@ -17,34 +17,32 @@
       <div v-if="!isCollapsed" class="mb-4">
         <!-- Project section with enhanced design -->
         <div class="oasis-project-card bg-gradient-to-br from-dark-800/80 via-dark-900/80 to-dark-950/90 shadow-xl backdrop-blur-lg rounded-2xl p-4 border border-dark-700/60 relative overflow-visible">
-          <!-- Project label with badge -->
-          <div class="flex items-center mb-3">
-            <div class="inline-flex px-2 py-1 rounded-full bg-primary-600/10 border border-primary-500/20">
-              <span class="text-xxs font-bold text-primary-400 uppercase tracking-wider">Project</span>
-            </div>
+          <div class="pointer-events-none absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70 rounded-t-2xl"></div>
+          <!-- Project header (match Apps header style) -->
+          <div class="flex items-center mt-2 mb-3">
+            <span class="inline-flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+                <i class="fas fa-cube"></i>
+              </span>
+              <span class="text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Project</span>
+            </span>
           </div>
           <!-- Project name with accent and enhanced styling -->
-          <div class="group relative flex items-center">
-
-            <!-- Icon with glow -->
-            <span class="relative mr-2">
-              <i class="fas fa-cube text-primary-400 opacity-90 oasis-project-icon-glow"></i>
-            </span>
-            <!-- Project name -->
-            <h2 class="relative px-2 py-1 text-2xl font-extrabold oasis-project-gradient-text truncate group-hover:text-primary-300 transition-colors duration-300 drop-shadow-md">
+          <div class="relative flex items-center">
+            <h2 class="relative px-2 py-1 text-xl font-extrabold oasis-project-gradient-text truncate drop-shadow-md">
               {{ currentProject?.name || 'Untitled Project' }}
             </h2>
           </div>
           <!-- Editable Project Description -->
           <div v-if="!isCollapsed" class="relative px-2 mt-2">
             <div v-if="!editingDescription" class="group flex items-start">
-              <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate flex-1 cursor-pointer hover:text-gray-300 transition-colors" @click="startEditingDescription">
+              <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate flex-1 cursor-pointer" @click="startEditingDescription">
                 {{ currentProject.description }}
               </p>
-              <p v-else class="text-sm text-gray-500 italic cursor-pointer hover:text-gray-300 transition-colors" @click="startEditingDescription">
+              <p v-else class="text-sm text-gray-500 italic cursor-pointer" @click="startEditingDescription">
                 Add a company description...
               </p>
-              <button class="ml-2 text-xs text-gray-500 hover:text-primary-400 transition-colors" @click="startEditingDescription" title="Edit description">
+              <button class="ml-2 text-xs text-gray-500" @click="startEditingDescription" title="Edit description">
                 <i class="fas fa-edit"></i>
               </button>
             </div>
@@ -102,21 +100,27 @@
           <div class="sidebar-icon">
             <i class="fas fa-eye text-primary-400"></i>
           </div>
-          <div class="sidebar-label">Preview</div>
+          <div class="sidebar-label"><span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview</span></div>
         </button>
       </template>
     </div>
     
-    <!-- Apps Section - Updated Design (expanded mode only) -->
+    <!-- Apps Section - Enhanced Styling (expanded mode only) -->
     <div v-if="!isCollapsed" class="flex-1 py-4 border-b border-dark-700/50">
       <div class="mb-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Apps</span>
-          <span class="text-xs text-gray-500">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</span>
+          <span class="inline-flex items-center gap-2">
+            <span class="w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+              <i class="fas fa-th-large"></i>
+            </span>
+            <span class="text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Apps</span>
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</span>
         </div>
         
-        <!-- Files container with enhanced styling -->
-        <div class="mt-2 bg-dark-800/70 backdrop-blur-sm rounded-xl border border-dark-700/50 overflow-hidden">
+        <!-- Files container with premium styling (no hover highlight) -->
+        <div class="relative mt-2 rounded-xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
+          <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
           <FileExplorer
             :files="files"
             :selected-file="selectedFile"
@@ -133,10 +137,6 @@
     
     <!-- Version Control Section - New Design (expanded mode only) -->
     <div v-if="!isCollapsed" class="shrink-0 py-4">
-      <div class="mb-2">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Version History</span>
-      </div>
-      
       <div class="w-full">
         <VersionControlDropdown 
           :project-id="projectId"
@@ -149,16 +149,15 @@
     <div v-if="!isCollapsed" class="p-4 flex justify-center border-t border-dark-700/50">
       <!-- Preview button -->
       <button
-        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02] w-full"
+        class="relative flex items-center justify-center py-2 px-3 rounded-lg bg-dark-800/70 border border-dark-700/60 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
         title="Preview Project"
         :disabled="isLoading"
         @click="$emit('preview')"
       >
-        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-        <div class="relative flex items-center justify-center">
-          <i class="fas fa-eye mr-2 text-primary-400 group-hover:text-primary-300 transition-colors"></i>
-          <span class="text-white text-sm font-medium">Preview Project</span>
-        </div>
+        <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+          <i class="fas fa-eye"></i>
+        </span>
+        <span class="font-medium bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview Project</span>
       </button>
     </div>
   </div>
