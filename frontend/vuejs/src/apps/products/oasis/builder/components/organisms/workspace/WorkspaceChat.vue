@@ -94,8 +94,8 @@
                       >
                         <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
                         <div class="relative flex items-center space-x-2">
-                          <div class="w-8 h-8 rounded-lg bg-dark-700/50 flex items-center justify-center text-gray-300 border border-dark-600/30">
-                            <i class="fas" :class="mode === 'chat' ? 'fa-comments' : 'fa-code'"></i>
+                          <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 shadow-[0_0_12px_rgba(139,92,246,0.15)]">
+                            <i class="fas bg-gradient-to-br from-primary-300 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(139,92,246,0.35)]" :class="mode === 'chat' ? 'fa-comments' : 'fa-code'"></i>
                           </div>
                           <span class="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{{ mode === 'chat' ? 'Chat' : 'Build' }}</span>
                         </div>
@@ -119,8 +119,8 @@
                             @click="handleSelectMode('chat')"
                           >
                             <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                            <div class="w-8 h-8 rounded-lg bg-dark-700/50 flex items-center justify-center text-gray-300 border border-dark-600/30">
-                              <i class="fas fa-comments"></i>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-indigo-500/15 to-sky-500/15 border-indigo-400/30 shadow-[0_0_10px_rgba(99,102,241,0.18)]">
+                              <i class="fas fa-comments bg-gradient-to-br from-indigo-300 to-sky-300 bg-clip-text text-transparent"></i>
                             </div>
                             <span class="flex-1 text-left text-sm text-gray-200 group-hover:text-white">Chat</span>
                             <span v-if="mode === 'chat'" class="text-primary-400"><i class="fas fa-check"></i></span>
@@ -133,8 +133,8 @@
                             @click="handleSelectMode('build')"
                           >
                             <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                            <div class="w-8 h-8 rounded-lg bg-dark-700/50 flex items-center justify-center text-gray-300 border border-dark-600/30">
-                              <i class="fas fa-code"></i>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 border-violet-400/30 shadow-[0_0_10px_rgba(139,92,246,0.18)]">
+                              <i class="fas fa-code bg-gradient-to-br from-violet-300 to-fuchsia-300 bg-clip-text text-transparent"></i>
                             </div>
                             <span class="flex-1 text-left text-sm text-gray-200 group-hover:text-white">Build</span>
                             <span v-if="mode === 'build'" class="text-primary-400"><i class="fas fa-check"></i></span>
