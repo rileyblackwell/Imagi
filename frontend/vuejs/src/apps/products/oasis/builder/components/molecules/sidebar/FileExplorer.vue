@@ -233,7 +233,7 @@
             <div class="mb-3 grid grid-cols-2 gap-1.5">
               <button 
                 @click="openCreateViewForApp(dirName)" 
-                class="group relative text-xxs rounded-md px-2 py-1.5 border bg-gradient-to-r from-primary-600/75 to-violet-600/75 border-primary-400/40 text-white transition-all duration-200"
+                class="group relative text-xxs rounded-md px-2 py-1.5 border border-white/10 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
                 :title="`Create view in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
@@ -243,7 +243,7 @@
               </button>
               <button 
                 @click="openCreateComponentForApp(dirName)" 
-                class="group relative text-xxs rounded-md px-2 py-1.5 border bg-gradient-to-r from-primary-600/75 to-violet-600/75 border-primary-400/40 text-white transition-all duration-200"
+                class="group relative text-xxs rounded-md px-2 py-1.5 border border-white/10 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
                 :title="`Create component in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
