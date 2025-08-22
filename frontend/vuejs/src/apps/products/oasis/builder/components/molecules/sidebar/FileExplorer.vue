@@ -9,17 +9,13 @@
         </h3>
         <!-- Enhanced Add app button -->
         <div v-if="Object.keys(vueFilesByDirectory).length > 0">
-          <button 
-            @click="toggleNewAppForm" 
-            class="group relative w-full text-xs rounded-md px-2.5 py-1.5 border bg-gradient-to-br from-primary-600/80 to-violet-600/80 border-primary-400/40 text-white shadow-sm transition-all duration-200"
-            title="Create new app"
-          >
-            <!-- hover glow removed -->
-            <div class="relative flex items-center justify-center">
-              <i class="fas fa-plus mr-1.5"></i> 
-              <span>Create New App</span>
-            </div>
-          </button>
+          <ActionButton
+            :text="'Create New App'"
+            icon="plus"
+            :fullWidth="true"
+            size="sm"
+            @click="toggleNewAppForm"
+          />
         </div>
       </div>
 
@@ -39,7 +35,7 @@
             v-model="newAppName"
             type="text"
             placeholder="e.g., blog, ecommerce, portfolio"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-purple-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(147,51,234,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/60 rounded-md p-2 text-white placeholder-gray-500 outline-none focus:outline-none focus:ring-0 focus:border-transparent shadow-none focus:shadow-none transition-all duration-200"
             @keydown.enter="createNewApp"
           />
           
@@ -47,7 +43,7 @@
             v-model="newAppDescription"
             type="text"
             placeholder="App description (optional)"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-purple-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(147,51,234,0.25)] transition-all duration-200"
+            class="w-full text-xs bg-dark-950/90 border border-dark-700/60 rounded-md p-2 text-white placeholder-gray-500 outline-none focus:outline-none focus:ring-0 focus:border-transparent shadow-none focus:shadow-none transition-all duration-200"
             @keydown.enter="createNewApp"
           />
           
@@ -62,15 +58,13 @@
             >
               Cancel
             </button>
-            <button
-              @click="createNewApp"
+            <ActionButton
+              :text="'Create App'"
+              icon="plus"
               :disabled="!isValidAppName"
-              class="group relative text-xs rounded-md px-2 py-1 border bg-gradient-to-r from-primary-600/85 to-violet-600/85 border-primary-400/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:border-transparent text-white transition-all duration-200 focus:outline-none"
-            >
-              <!-- Subtle glow effect on hover (only when enabled) -->
-              <!-- hover glow removed -->
-              <span class="relative">Create App</span>
-            </button>
+              size="sm"
+              @click="createNewApp"
+            />
           </div>
         </div>
       </Transition>
@@ -352,15 +346,13 @@
           <div>No apps found</div>
           <div class="text-xs mt-1 mb-4">Create your first modular Vue.js app</div>
           <div class="space-y-2">
-            <button
+            <ActionButton
+              :text="'Create New App'"
+              icon="plus"
+              :fullWidth="true"
+              size="sm"
               @click="toggleNewAppForm"
-              class="group relative w-full text-xs rounded-md px-2.5 py-1.5 border bg-gradient-to-br from-primary-600/80 to-violet-600/80 border-primary-400/40 text-white transition-all duration-200"
-            >
-              <div class="relative flex items-center justify-center">
-                <i class="fas fa-plus mr-1"></i> 
-                <span>Create New App</span>
-              </div>
-            </button>
+            />
           </div>
         </div>
       </div>
@@ -373,6 +365,7 @@ import { ref, computed } from 'vue'
 import type { ProjectFile } from '../../../types/components'
 import FileTreeItem from '../../atoms/navigation/FileTreeItem.vue'
 import { FileService } from '../../../services/fileService'
+import ActionButton from '../../atoms/buttons/ActionButton.vue'
 
 // Create hierarchical file structure for current app
 const fileStructure = computed(() => {

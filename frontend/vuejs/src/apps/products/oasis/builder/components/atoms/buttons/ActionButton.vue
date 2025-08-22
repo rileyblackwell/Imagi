@@ -7,14 +7,26 @@
       fullWidth ? 'w-full' : 'w-auto',
       disabled ? 'opacity-50 cursor-not-allowed' : ''
     ]"
+    @click="$emit('click')"
   >
-    <!-- Gradient background -->
-    <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-violet-500 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+    <!-- Gradient background (scaled for size) -->
+    <div :class="[
+          'absolute bg-gradient-to-r from-primary-500 to-violet-500 transition duration-300',
+          size === 'sm' ? '-inset-px rounded-lg blur-sm opacity-70' : '-inset-0.5 rounded-xl blur opacity-75',
+          'group-hover:opacity-100'
+        ]"></div>
     
     <!-- Button content -->
-    <div class="relative flex items-center justify-center px-6 py-3 bg-dark-900 rounded-xl transition-all duration-300">
-      <i v-if="icon" :class="['fas fa-' + icon, 'mr-2 text-primary-400 group-hover:text-primary-300']"></i>
-      <span class="font-medium text-white">
+    <div :class="[
+          'relative flex items-center justify-center bg-dark-900 transition-all duration-300',
+          size === 'sm' ? 'px-3 py-1.5 rounded-lg' : 'px-6 py-3 rounded-xl'
+        ]">
+      <i v-if="icon" :class="[
+          'fas fa-' + icon,
+          'text-primary-400 group-hover:text-primary-300',
+          size === 'sm' ? 'mr-1.5 text-xs' : 'mr-2 text-sm'
+        ]"></i>
+      <span :class="['font-medium text-white', size === 'sm' ? 'text-xs' : 'text-sm']">
         <slot>{{ loading ? loadingText : text }}</slot>
       </span>
     </div>
@@ -50,6 +62,10 @@ defineProps({
   fullWidth: {
     type: Boolean,
     default: false
+  },
+  size: {
+    type: String,
+    default: 'md' // 'sm' | 'md'
   }
 });
 
