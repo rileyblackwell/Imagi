@@ -1,33 +1,37 @@
 <template>
-  <div class="account-balance-display">
+  <div class="account-balance-display" role="status" aria-live="polite">
     <div class="relative group">
-      <!-- Premium glow effect -->
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-fuchsia-500/30 rounded-2xl opacity-0 group-hover:opacity-60 blur transition-all duration-500"></div>
-      
-      <!-- Main balance container with enhanced glassmorphism -->
-      <div class="balance-container relative bg-gradient-to-br from-dark-900/95 via-dark-850/90 to-dark-900/95 backdrop-blur-2xl px-4 py-2.5 flex items-center rounded-xl border border-white/15 hover:border-indigo-400/40 transition-all duration-300 shadow-2xl shadow-black/40 hover:shadow-indigo-500/20 transform hover:scale-[1.02] overflow-hidden">
-        <!-- Sleek gradient top accent -->
-        <div class="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-400/60 via-violet-400/60 to-fuchsia-400/60 opacity-80"></div>
-        
-        <!-- Enhanced glassmorphism overlay -->
-        <div class="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-white/[0.01] pointer-events-none"></div>
-        
-        <!-- Premium gradient icon with enhanced styling -->
-        <div class="mr-3 flex-shrink-0 relative">
-          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/90 via-violet-500/80 to-fuchsia-500/70 flex items-center justify-center shadow-lg ring-1 ring-white/20 transition-all duration-300 group-hover:shadow-indigo-500/30 group-hover:scale-105">
-            <i class="fas fa-wallet text-white text-xs"></i>
+      <!-- Aurora background accents -->
+      <div class="absolute -inset-1 rounded-2xl opacity-60 blur-2xl pointer-events-none">
+        <div class="absolute -top-6 -right-10 w-40 h-40 rounded-full bg-indigo-500/15 mix-blend-screen"></div>
+        <div class="absolute -bottom-10 -left-12 w-48 h-48 rounded-full bg-violet-500/15 mix-blend-screen"></div>
+      </div>
+
+      <!-- Modern glass card (no rolling flash) -->
+      <div class="balance-card relative overflow-hidden">
+        <!-- gradient border via mask -->
+        <div class="gradient-border"></div>
+
+        <div class="content-row">
+          <!-- Icon block -->
+          <div class="icon-wrap">
+            <div class="icon-core" :class="schemeClasses.iconBg">
+              <i class="fas fa-wallet text-white text-sm"></i>
+            </div>
+            <div class="icon-pulse" :class="schemeClasses.iconPulse"></div>
           </div>
-          <!-- Enhanced pulse animation around the icon -->
-          <div class="absolute -inset-1 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 animate-pulse-slow opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"></div>
-        </div>
-        
-        <div class="relative flex-1">
-          <div class="text-[9px] font-semibold text-gray-400 tracking-wider uppercase mb-0.5">
-            Balance
-          </div>
-          <div class="text-sm font-bold text-white leading-tight flex items-baseline">
-            <span class="highlight-text">{{ formattedBalance }}</span>
-            <span class="ml-1 text-[10px] font-medium text-gray-400/80">credits</span>
+
+          <!-- Text block -->
+          <div class="text-wrap">
+            <div class="label-row">
+              <span class="label">Balance</span>
+            </div>
+            <div class="value-row">
+              <span class="value tabular-nums">{{ formattedBalance }}</span>
+            </div>
+            <div class="meter" aria-hidden="true">
+              <div class="meter-fill bg-gradient-to-r" :class="schemeClasses.meterFill" :style="{ width: meterWidth }"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -47,9 +51,47 @@ const agentStore = useAgentStore();
 const isLoading = ref(false);
 const refreshIntervalId = ref<number | null>(null);
 
-// Format the balance
+// Format the balance as USD with 3 decimals for small changes
 const formattedBalance = computed(() => {
   return formatBalance(paymentsStore.balance || 0);
+});
+
+// Balance thresholds for color scheme states
+const balanceValue = computed(() => (paymentsStore.balance ?? 0));
+const scheme = computed(() => {
+  if (balanceValue.value < 5) return 'low'; // danger
+  if (balanceValue.value < 20) return 'warn'; // warning
+  return 'ok'; // default
+});
+
+// Dynamic classes per state (keeps indigo/violet brand accents around container)
+const schemeClasses = computed(() => {
+  switch (scheme.value) {
+    case 'low':
+      return {
+        iconBg: 'bg-gradient-to-br from-rose-500/90 via-rose-400/85 to-rose-600/80 group-hover:shadow-rose-500/30',
+        iconPulse: 'bg-gradient-to-br from-rose-500/25 to-rose-400/25',
+        meterFill: 'from-rose-500/70 to-rose-400/70'
+      } as const;
+    case 'warn':
+      return {
+        iconBg: 'bg-gradient-to-br from-amber-500/90 via-amber-400/85 to-amber-600/80 group-hover:shadow-amber-500/30',
+        iconPulse: 'bg-gradient-to-br from-amber-500/25 to-amber-400/25',
+        meterFill: 'from-amber-500/70 to-amber-400/70'
+      } as const;
+    default:
+      return {
+        iconBg: 'bg-gradient-to-br from-emerald-500/90 via-emerald-400/85 to-emerald-600/80 group-hover:shadow-emerald-500/30',
+        iconPulse: 'bg-gradient-to-br from-emerald-500/25 to-emerald-400/25',
+        meterFill: 'from-emerald-500/70 to-emerald-400/70'
+      } as const;
+  }
+});
+
+// Progress meter width based on thresholds (>=20 => 100%)
+const meterWidth = computed(() => {
+  const v = Math.max(0, Math.min(1, balanceValue.value / 20));
+  return `${Math.round(v * 100)}%`;
 });
 
 // Watch for changes in the agent's processing state to trigger balance refresh
@@ -63,13 +105,20 @@ watch(() => agentStore.isProcessing, (newValue, oldValue) => {
   }
 });
 
-// Format number with more precision to show small changes
+// Format number as USD with standard 2 decimal places
 function formatBalance(balance: number): string {
-  // Show 3 decimal places to make $0.005 changes visible
-  return balance.toLocaleString(undefined, { 
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3 
-  });
+  // Use currency style with 2 decimal places
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(balance);
+  } catch (_) {
+    // Fallback
+    return `$${balance.toFixed(2)}`;
+  }
 }
 
 // Function to fetch balance with improved force refresh parameter
@@ -129,49 +178,84 @@ onBeforeUnmount(() => {
   transition: all 0.3s ease;
 }
 
-.balance-container {
+/* Card base */
+.balance-card {
   position: relative;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.875rem; /* rounded-xl */
+  background: linear-gradient(180deg, rgba(8, 8, 12, 0.82), rgba(8, 8, 12, 0.68));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+.balance-card:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(67, 56, 202, 0.25); }
 
-/* Enhanced highlight text with premium gradient */
-.highlight-text {
-  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 50%, #c084fc 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-}
-
-/* Add subtle glass effect */
-.balance-container::after {
-  content: '';
+/* Gradient border using mask */
+.gradient-border {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0) 40%
-  );
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(130deg, rgba(99,102,241,0.6), rgba(139,92,246,0.6));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
   pointer-events: none;
 }
 
-/* Animation for slow pulsing effect */
-@keyframes pulse-slow {
-  0%, 100% { 
-    opacity: 0;
-    transform: scale(1);
-  }
-  50% { 
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
+/* (rolling sheen removed) */
+
+/* Layout rows */
+.content-row { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
+.icon-wrap { position: relative; width: 1.75rem; height: 1.75rem; }
+.icon-core {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.18);
+}
+.icon-core::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0));
+  opacity: 0.35;
+}
+.icon-pulse { position: absolute; inset: -4px; border-radius: 0.9rem; filter: blur(8px); opacity: 0; transition: opacity 0.4s ease; }
+.balance-card:hover .icon-pulse { opacity: 1; }
+
+.text-wrap { display: flex; flex-direction: column; gap: 0.12rem; min-width: 8.5rem; }
+.label-row { display: flex; align-items: center; gap: 0.4rem; }
+.label { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #cbd5e1; /* slate-300 */ }
+.value-row { display: flex; align-items: baseline; gap: 0.25rem; }
+.value {
+  color: #f8fafc; /* slate-50 */
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-shadow: 0 0 14px rgba(99, 102, 241, 0.28), 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 3s infinite ease-in-out;
+/* Progress meter */
+.meter {
+  position: relative; margin-top: 3px; height: 2px; width: 100%; border-radius: 9999px;
+  background: rgba(148,163,184,0.15); /* slate-400/15 */
+  overflow: hidden;
 }
-</style> 
+.meter-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit;
+}
+
+/* Utilities */
+.tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* Animation for slow pulsing effect */
+@keyframes pulse-slow { 0%,100%{opacity:0; transform:scale(1);} 50%{opacity:0.7; transform:scale(1.05);} }
+.animate-pulse-slow { animation: pulse-slow 3s infinite ease-in-out; }
+</style>

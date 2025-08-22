@@ -18,56 +18,36 @@
         <!-- Project section with enhanced design -->
         <div class="oasis-project-card bg-gradient-to-br from-dark-800/80 via-dark-900/80 to-dark-950/90 shadow-xl backdrop-blur-lg rounded-2xl p-4 border border-dark-700/60 relative overflow-visible">
           <div class="pointer-events-none absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70 rounded-t-2xl"></div>
-          <!-- Project header (match Apps header style) -->
-          <div class="flex items-center mt-2 mb-3">
-            <span class="inline-flex items-center gap-2">
-              <span class="w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-                <i class="fas fa-cube"></i>
-              </span>
-              <span class="text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Project</span>
-            </span>
+          <!-- Project header -->
+          <div class="flex items-center justify-between gap-3 mt-1 mb-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <!-- Gradient ring avatar -->
+              <div class="gradient-ring p-[2px] rounded-xl">
+                <div class="w-8 h-8 rounded-[10px] flex items-center justify-center bg-dark-900/80 border border-dark-700/60 text-primary-300">
+                  <i class="fas fa-cube"></i>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <h2 class="relative text-[1.15rem] font-extrabold oasis-project-gradient-text truncate drop-shadow-md">
+                    {{ currentProject?.name || 'Untitled Project' }}
+                  </h2>
+                </div>
+                <!-- subtle shimmer underline under name -->
+                <div class="shimmer-underline mt-1"></div>
+              </div>
+            </div>
           </div>
-          <!-- Project name with accent and enhanced styling -->
-          <div class="relative flex items-center">
-            <h2 class="relative px-2 py-1 text-xl font-extrabold oasis-project-gradient-text truncate drop-shadow-md">
-              {{ currentProject?.name || 'Untitled Project' }}
-            </h2>
-          </div>
-          <!-- Editable Project Description -->
+          <!-- Read-only Project Description -->
           <div v-if="!isCollapsed" class="relative px-2 mt-2">
-            <div v-if="!editingDescription" class="group flex items-start">
-              <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate flex-1 cursor-pointer" @click="startEditingDescription">
-                {{ currentProject.description }}
-              </p>
-              <p v-else class="text-sm text-gray-500 italic cursor-pointer" @click="startEditingDescription">
-                Add a company description...
-              </p>
-              <button class="ml-2 text-xs text-gray-500" @click="startEditingDescription" title="Edit description">
-                <i class="fas fa-edit"></i>
-              </button>
-            </div>
-            <div v-else class="flex items-start w-full">
-              <textarea
-                v-model="editableDescription"
-                class="w-full min-h-[2.2rem] rounded-md bg-dark-900/70 border border-dark-700/50 text-sm text-gray-200 px-2 py-1 outline-none focus:ring-2 focus:ring-primary-500 resize-none transition"
-                @blur="saveDescription"
-                @keydown.enter.prevent="saveDescription"
-                @keydown.esc="cancelEditingDescription"
-                maxlength="180"
-                placeholder="Add a company description..."
-                ref="descInputRef"
-                rows="2"
-                aria-label="Edit company description"
-              ></textarea>
-              <button class="ml-2 text-xs text-gray-500 hover:text-primary-400 transition-colors mt-1" @mousedown.prevent="saveDescription" title="Save">
-                <i class="fas fa-check"></i>
-              </button>
-              <button class="ml-1 text-xs text-gray-500 hover:text-red-400 transition-colors mt-1" @mousedown.prevent="cancelEditingDescription" title="Cancel">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
+            <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate">
+              {{ currentProject.description }}
+            </p>
+            <p v-else class="text-sm text-gray-500 italic">
+              Add a company description...
+            </p>
           </div>
-        </div>
+          </div>
         <!-- Divider below project card -->
         <div class="w-full flex justify-center mt-4 mb-2" aria-hidden="true">
           <div class="h-[1.5px] w-4/5 bg-gradient-to-r from-transparent via-dark-700/70 to-transparent rounded-full shadow-sm"></div>
@@ -164,8 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
-import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
+import { ref, computed } from 'vue'
 import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
 import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
 import type { 
@@ -189,38 +168,7 @@ const props = defineProps<{
 }>()
 
 
-// Editable description state
-const editingDescription = ref(false)
-const editableDescription = ref(props.currentProject?.description || '')
-const descInputRef = ref<HTMLInputElement | null>(null)
-
-function startEditingDescription() {
-  editableDescription.value = props.currentProject?.description || ''
-  editingDescription.value = true
-  nextTick(() => {
-    descInputRef.value?.focus()
-  })
-}
-const projectStore = useProjectStore()
-
-async function saveDescription() {
-  editingDescription.value = false
-  const newDesc = editableDescription.value.trim()
-  if (props.currentProject && newDesc !== (props.currentProject.description || '')) {
-    try {
-      await projectStore.updateProject(String(props.currentProject.id), { description: newDesc })
-      // Optionally, update the local project description optimistically
-      if (props.currentProject) props.currentProject.description = newDesc
-    } catch (err) {
-      // Optionally, show an error toast or revert the UI
-      console.error('Failed to update project description:', err)
-    }
-  }
-}
-function cancelEditingDescription() {
-  editingDescription.value = false
-  editableDescription.value = props.currentProject?.description || ''
-}
+// Description is read-only now; no edit state or methods.
 
 // (Model/mode selectors moved to WorkspaceChat header)
 
@@ -371,6 +319,26 @@ const handleVersionReset = (version: Record<string, any>) => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Gradient ring avatar */
+.gradient-ring {
+  background: linear-gradient(135deg, rgba(99,102,241,0.6), rgba(139,92,246,0.6));
+}
+
+/* Name underline shimmer */
+.shimmer-underline {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), rgba(139,92,246,0.5), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 
