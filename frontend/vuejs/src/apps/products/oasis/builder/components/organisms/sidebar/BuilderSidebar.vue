@@ -85,35 +85,7 @@
       </template>
     </div>
     
-    <!-- Apps Section - Enhanced Styling (expanded mode only) -->
-    <div v-if="!isCollapsed" class="flex-1 py-4 border-b border-dark-700/50">
-      <div class="mb-3">
-        <div class="flex items-center justify-between">
-          <span class="inline-flex items-center gap-2">
-            <span class="w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-              <i class="fas fa-th-large"></i>
-            </span>
-            <span class="text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Apps</span>
-          </span>
-          <span class="text-[10px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</span>
-        </div>
-        
-        <!-- Files container with premium styling (no hover highlight) -->
-        <div class="relative mt-2 rounded-xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
-          <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-          <FileExplorer
-            :files="files"
-            :selected-file="selectedFile"
-            :file-types="fileTypes"
-            :show-new-form="showNewFileFormValue"
-            :project-id="projectId"
-            @select-file="$emit('selectFile', $event)"
-            @create-file="$emit('createFile', $event)"
-            @delete-file="$emit('deleteFile', $event)"
-          />
-        </div>
-      </div>
-    </div>
+    <!-- Apps Section removed: now shown in main content area -->
     
     <!-- Version Control Section - New Design (expanded mode only) -->
     <div v-if="!isCollapsed" class="shrink-0 py-4">
@@ -144,17 +116,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
+// No local reactive state required post Apps-section removal
 import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
 import type { 
   ProjectFile,
   EditorMode,
   ProjectType
 } from '@/apps/products/oasis/builder/types'
-
-// Local state
-const showNewFileFormValue = ref(false)
 
 const props = defineProps<{
   currentProject: ProjectType | null
@@ -167,29 +135,8 @@ const props = defineProps<{
   projectId: string
 }>()
 
-
 // Description is read-only now; no edit state or methods.
-
 // (Model/mode selectors moved to WorkspaceChat header)
-
-// Computed property for apps count (unique apps with files)
-const appsCount = computed(() => {
-  const apps = new Set()
-  props.files.forEach(file => {
-    const path = file.path.toLowerCase().replace(/\\/g, '/')
-    // Extract app name from path like: frontend/vuejs/src/apps/{appname}/
-    const appMatch = path.match(/\/src\/apps\/([^\/]+)\//)
-    if (appMatch) {
-      apps.add(appMatch[1])
-    }
-  })
-  return apps.size
-})
-
-// Function to toggle the new file form visibility
-const toggleNewFileForm = () => {
-  showNewFileFormValue.value = !showNewFileFormValue.value
-}
 
 // Handle version reset event
 const handleVersionReset = (version: Record<string, any>) => {

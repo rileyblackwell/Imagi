@@ -1,6 +1,9 @@
 <template>
   <!-- Main dark-themed layout with sophisticated background -->
-  <div class="flex-1 flex flex-col overflow-hidden h-full w-full bg-dark-950 relative">
+  <div
+    class="bg-dark-950 relative overflow-hidden w-full"
+    :class="compact ? '' : 'flex-1 flex flex-col h-full'"
+  >
     <!-- Enhanced sophisticated background effects matching About page -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <!-- Enhanced Pattern Overlay -->
@@ -14,7 +17,7 @@
     </div>
     
     <!-- Chat Conversation Area -->
-    <div class="flex-1 overflow-auto relative min-h-0 z-10">
+    <div v-if="showConversation" class="flex-1 overflow-auto relative min-h-0 z-10">
       <!-- Enhanced multi-layered premium background overlay -->
       <div class="absolute inset-0 bg-gradient-to-b from-white/[0.01] via-transparent to-white/[0.005] pointer-events-none"></div>
       <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/[0.004] via-transparent to-violet-500/[0.003] pointer-events-none"></div>
@@ -226,6 +229,10 @@ const props = defineProps<{
   showExamples: boolean
   promptExamples: Array<{title: string, text: string}> | null
   modelValue: string
+  // When true, render a compact layout suitable for placing under other content
+  compact?: boolean
+  // Controls whether the conversation feed is shown
+  showConversation?: boolean
 }>()
 
 // Ensure all messages have required properties
@@ -291,6 +298,10 @@ const emit = defineEmits([
   'use-example',
   'apply-code'
 ])
+
+// Derived props with defaults
+const compact = computed(() => props.compact === true)
+const showConversation = computed(() => props.showConversation !== false)
 
 // Local state
 const localPrompt = ref(props.modelValue)

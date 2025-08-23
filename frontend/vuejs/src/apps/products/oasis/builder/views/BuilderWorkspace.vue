@@ -109,10 +109,60 @@
         
         <!-- Enhanced ChatGPT-like Interface -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
-          <!-- Main Chat Container -->
+          <!-- Main Content: Show Apps section first; switch to chat after submit -->
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
-            <!-- Chat Component with Enhanced Styling -->
-            <div class="flex-1 relative min-h-0">
+            <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
+            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-4 flex flex-col">
+              <div class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
+                <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
+                <div class="px-4 py-3 flex items-center justify-between">
+                  <span class="inline-flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+                      <i class="fas fa-th-large"></i>
+                    </span>
+                    <span class="text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Apps</span>
+                  </span>
+                  <span class="text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</span>
+                </div>
+                <div class="p-2 h-[calc(100%-44px)]">
+                  <FileExplorer
+                    :files="store.files || []"
+                    :selected-file="store.selectedFile || null"
+                    :file-types="fileTypes"
+                    :show-new-form="false"
+                    :project-id="projectId || ''"
+                    @select-file="handleFileSelect"
+                    @create-file="handleFileCreate"
+                    @delete-file="handleFileDelete"
+                  />
+                </div>
+              </div>
+
+              <!-- Compact chat input section fixed below Apps area -->
+              <div class="mt-4">
+                <WorkspaceChat
+                  :messages="ensureValidMessages(store.conversation || [])"
+                  :is-processing="store.isProcessing"
+                  :mode="store.mode || 'chat'"
+                  :selected-file="store.selectedFile"
+                  :selected-model-id="store.selectedModelId"
+                  :available-models="store.availableModels || []"
+                  :prompt-placeholder="promptPlaceholder"
+                  :show-examples="false"
+                  :prompt-examples="promptExamplesComputed"
+                  v-model="prompt"
+                  :compact="true"
+                  :show-conversation="false"
+                  @update:model-id="handleModelSelect"
+                  @update:mode="handleModeSwitch"
+                  @submit="handlePrompt"
+                  @use-example="handleExamplePrompt"
+                />
+              </div>
+            </div>
+
+            <!-- Chat Component -->
+            <div v-else class="flex-1 relative min-h-0">
               <WorkspaceChat
                 :messages="ensureValidMessages(store.conversation || [])"
                 :is-processing="store.isProcessing"
@@ -162,6 +212,9 @@ import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
 import { WorkspaceChat } from '../components/organisms/workspace'
+import FileExplorer from '../components/molecules/sidebar/FileExplorer.vue'
+// Set component name
+defineOptions({ name: 'BuilderWorkspace' })
 
 // Types
 import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
@@ -196,6 +249,7 @@ const fileTypes = {
 // Local state
 const currentEditorMode = ref<EditorMode>('split')
 const prompt = ref('')
+const showAppsInMain = ref(true)
 
 // Navigation items for sidebar
 const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
@@ -203,6 +257,17 @@ const navigationItems: any[] = [] // Empty array to remove sidebar navigation bu
 // Computed properties
 const currentProject = computed(() => {
   return projectStore.currentProject || null
+})
+
+// Apps count (unique apps derived from files) used in the Apps header
+const appsCount = computed(() => {
+  const apps = new Set<string>()
+  ;(store.files || []).forEach((file: any) => {
+    const path = String(file.path || '').toLowerCase().replace(/\\/g, '/')
+    const match = path.match(/\/src\/apps\/([^\/]+)\//)
+    if (match) apps.add(match[1])
+  })
+  return apps.size
 })
 
 const promptExamplesComputed = computed(() => {
@@ -287,6 +352,10 @@ async function handlePrompt(eventData?: { timestamp: string }) {
   if (!prompt.value.trim()) return
   
   try {
+    // Switch main area from Apps to Chat upon first submission
+    if (showAppsInMain.value) {
+      showAppsInMain.value = false
+    }
     if (!store.selectedModelId) {
       return
     }
@@ -1167,9 +1236,3 @@ onBeforeUnmount(() => {
   animation: float-slow-reverse 25s ease-in-out infinite;
 }
 </style>
-
-<script lang="ts">
-export default {
-  name: 'BuilderWorkspace'
-}
-</script>
