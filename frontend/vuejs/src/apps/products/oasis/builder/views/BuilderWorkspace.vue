@@ -113,18 +113,27 @@
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
             <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
             <div v-if="showAppsInMain" class="flex-1 min-h-0 p-4 flex flex-col">
-              <div class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
+              <!-- Apps header: show count only (simple is default; no toggle) -->
+              <div class="mb-3 flex items-center">
+                <div class="ml-auto text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</div>
+              </div>
+
+              <!-- Simple: App Gallery for non-technical users -->
+              <div v-if="appsViewMode === 'simple'" class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
+                <AppGallery
+                  :files="store.files || []"
+                  @selectFile="handleFileSelect"
+                  @createApp="handleCreateAppFromGallery"
+                  @addView="handleCreateViewFromGallery"
+                  @addComponent="handleCreateComponentFromGallery"
+                  @preview="handlePreview"
+                />
+              </div>
+
+              <!-- Advanced: full file explorer -->
+              <div v-else class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
                 <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-                <div class="px-4 py-3 flex items-center justify-between">
-                  <span class="inline-flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-                      <i class="fas fa-th-large"></i>
-                    </span>
-                    <span class="text-sm font-semibold uppercase tracking-wider bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Apps</span>
-                  </span>
-                  <span class="text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</span>
-                </div>
-                <div class="p-2 h-[calc(100%-44px)]">
+                <div class="p-2 h-[calc(100%-2px)]">
                   <FileExplorer
                     :files="store.files || []"
                     :selected-file="store.selectedFile || null"
@@ -213,6 +222,7 @@ import { AccountBalanceDisplay } from '../components/molecules'
 // Atomic Components
 import { WorkspaceChat } from '../components/organisms/workspace'
 import FileExplorer from '../components/molecules/sidebar/FileExplorer.vue'
+import AppGallery from '../components/organisms/workspace/AppGallery.vue'
 // Set component name
 defineOptions({ name: 'BuilderWorkspace' })
 
@@ -246,10 +256,139 @@ const fileTypes = {
   'md': 'Markdown'
 }
 
+// Simple creation flows for non-technical users via AppGallery
+async function handleCreateAppFromGallery() {
+  try {
+    const appNameRaw = window.prompt('App name (letters and numbers, start with a letter):', 'blog') || ''
+    const appName = appNameRaw.trim()
+    if (!appName || !/^[a-z][a-z0-9]*$/.test(appName)) return
+    const appDescription = window.prompt('Short description (optional):', '') || ''
+
+    const cap = appName.charAt(0).toUpperCase() + appName.slice(1)
+    const appWelcome = (appDescription && appDescription.trim()) ? appDescription : ('Welcome to the ' + appName + ' app.')
+    const filesToCreate = [
+      {
+        name: 'frontend/vuejs/src/apps/' + appName + '/index.ts',
+        type: 'typescript',
+        content: '// ' + appName + ' app entry point\nexport * from \'./router\'\nexport * from \'./stores\'\nexport * from \'./components\'\nexport * from \'./views\'\n'
+      },
+      {
+        name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
+        type: 'typescript',
+        content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}Home from '../views/${cap}Home.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-home',\n    component: ${cap}Home,\n    meta: { requiresAuth: false, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
+      },
+      {
+        name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`,
+        type: 'typescript',
+        content: `export * from './${appName}'\n`
+      },
+      {
+        name: `frontend/vuejs/src/apps/${appName}/stores/${appName}.ts`,
+        type: 'typescript',
+        content: `import { defineStore } from 'pinia'\nimport { ref } from 'vue'\n\nexport const use${cap}Store = defineStore('${appName}', () => {\n  const loading = ref(false)\n  const setLoading = (v: boolean) => (loading.value = v)\n  return { loading, setLoading }\n})\n`
+      },
+      { name: `frontend/vuejs/src/apps/${appName}/components/index.ts`, type: 'typescript', content: `export * from './atoms'\nexport * from './molecules'\nexport * from './organisms'\n` },
+      { name: `frontend/vuejs/src/apps/${appName}/components/atoms/index.ts`, type: 'typescript', content: `// atoms\n` },
+      { name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`, type: 'typescript', content: `// molecules\n` },
+      { name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`, type: 'typescript', content: `// organisms\n` },
+      {
+        name: `frontend/vuejs/src/apps/${appName}/views/${cap}Home.vue`,
+        type: 'vue',
+        content:
+          '<template>\n' +
+          '  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12">\n' +
+          '    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">\n' +
+          '      <div class="text-center mb-16">\n' +
+          '        <h1 class="text-5xl font-bold text-gray-900 mb-6">' + cap + ' App</h1>\n' +
+          '        <p class="text-xl text-gray-600 max-w-3xl mx-auto">' + appWelcome + '</p>\n' +
+          '      </div>\n' +
+          '    </div>\n' +
+          '  </div>\n' +
+          '</template>\n\n' +
+          '<' + 'script setup lang="ts">\n' +
+          '</' + 'script>\n'
+      }
+    ]
+
+    for (const f of filesToCreate) {
+      await createFile({ projectId: projectId.value, ...f })
+    }
+
+    await loadProjectFiles(true)
+  } catch (e) {
+    console.error('Error creating app from gallery:', e)
+  }
+}
+
+async function handleCreateViewFromGallery(appName: string) {
+  try {
+    const viewNameRaw = window.prompt('Page name (PascalCase, e.g., AboutPage):', 'AboutPage') || ''
+    const viewName = viewNameRaw.trim()
+    if (!viewName || !/^[A-Za-z][A-Za-z0-9]*$/.test(viewName)) return
+    const content =
+      '<template>\n' +
+      '  <div class="min-h-screen bg-white">\n' +
+      '    <div class="max-w-4xl mx-auto p-8">\n' +
+      '      <h1 class="text-3xl font-semibold">' + viewName + '</h1>\n' +
+      '      <p class="text-gray-600 mt-2">Starter page for ' + viewName + '.</p>\n' +
+      '    </div>\n' +
+      '  </div>\n' +
+      '</template>\n\n' +
+      '<' + 'script setup lang="ts">\n' +
+      '</' + 'script>\n'
+
+    await createFile({
+      projectId: projectId.value,
+      name: `frontend/vuejs/src/apps/${appName}/views/${viewName}.vue`,
+      type: 'vue',
+      content,
+    })
+
+    await loadProjectFiles(true)
+  } catch (e) {
+    console.error('Error creating view from gallery:', e)
+  }
+}
+
+async function handleCreateComponentFromGallery(appName: string) {
+  try {
+    const componentNameRaw = window.prompt('Component name (PascalCase):', 'PrimaryButton') || ''
+    const componentName = componentNameRaw.trim()
+    if (!componentName || !/^[A-Za-z][A-Za-z0-9]*$/.test(componentName)) return
+    const type = (window.prompt('Type (atoms, molecules, organisms):', 'atoms') || 'atoms').toLowerCase()
+    const valid = ['atoms', 'molecules', 'organisms']
+    const dir = valid.includes(type) ? type : 'atoms'
+
+    const content =
+      '<template>\n' +
+      '  <div class="' + componentName.toLowerCase() + '-component">\n' +
+      '    <slot />\n' +
+      '  </div>\n' +
+      '</template>\n\n' +
+      '<' + 'script setup lang="ts">\n' +
+      '</' + 'script>\n\n' +
+      '<style scoped>\n' +
+      '.' + componentName.toLowerCase() + '-component { }\n' +
+      '</' + 'style>\n'
+
+    await createFile({
+      projectId: projectId.value,
+      name: `frontend/vuejs/src/apps/${appName}/components/${dir}/${componentName}.vue`,
+      type: 'vue',
+      content,
+    })
+
+    await loadProjectFiles(true)
+  } catch (e) {
+    console.error('Error creating component from gallery:', e)
+  }
+}
+
 // Local state
 const currentEditorMode = ref<EditorMode>('split')
 const prompt = ref('')
 const showAppsInMain = ref(true)
+const appsViewMode = ref<'simple' | 'advanced'>('simple')
 
 // Navigation items for sidebar
 const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
@@ -730,6 +869,9 @@ async function handleFileSelect(file: ProjectFile) {
     
     // Use the improved selectFile method to maintain chat context
     store.selectFile(file)
+
+    // When a user opens an app/file from the AppGallery, switch to Advanced view
+    appsViewMode.value = 'advanced'
     
     // Update the mode indicator UI by forcing a re-render
     // This is needed because the selectedFile reference might not change
