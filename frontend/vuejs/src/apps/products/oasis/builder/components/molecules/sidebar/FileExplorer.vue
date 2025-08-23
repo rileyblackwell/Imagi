@@ -79,7 +79,7 @@
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div v-if="showNewViewForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-primary-300">Create New View</h3>
+          <h3 class="text-xs font-medium text-primary-300">Create New Page</h3>
           
           <select
             v-model="newViewSelectedApp"
@@ -125,7 +125,7 @@
             >
               <!-- Subtle glow effect on hover (only when enabled) -->
               <!-- hover glow removed -->
-              <span class="relative">Create View</span>
+              <span class="relative">Create Page</span>
             </button>
           </div>
         </div>
@@ -141,7 +141,7 @@
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div v-if="showNewComponentForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-primary-300">Create New Component</h3>
+          <h3 class="text-xs font-medium text-primary-300">Create New UI Element</h3>
           
           <select
             v-model="newComponentSelectedApp"
@@ -157,9 +157,9 @@
             v-model="newComponentType"
             class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
           >
-            <option value="atoms">Atom (Basic UI element)</option>
-            <option value="molecules">Molecule (Simple combination)</option>
-            <option value="organisms">Organism (Complex component)</option>
+            <option value="atoms">Basics</option>
+            <option value="molecules">Patterns</option>
+            <option value="organisms">Sections</option>
           </select>
           
           <div class="p-2 bg-violet-950/20 rounded-md border border-primary-700/30">
@@ -193,7 +193,7 @@
             >
               <!-- Subtle glow effect on hover (only when enabled) -->
               <!-- hover glow removed -->
-              <span class="relative">Create UI Component</span>
+              <span class="relative">Create UI Element</span>
             </button>
           </div>
         </div>
@@ -234,21 +234,21 @@
               <button 
                 @click="openCreateViewForApp(dirName)" 
                 class="group relative text-xxs rounded-md px-2 py-1.5 border border-white/10 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
-                :title="`Create view in ${dirName}`"
+                :title="`Create page in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-file-alt mr-1 text-xxs"></i> 
-                  <span>Add View</span>
+                  <span>Add Page</span>
                 </div>
               </button>
               <button 
                 @click="openCreateComponentForApp(dirName)" 
                 class="group relative text-xxs rounded-md px-2 py-1.5 border border-white/10 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
-                :title="`Create component in ${dirName}`"
+                :title="`Create UI element in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-puzzle-piece mr-1 text-xxs"></i> 
-                  <span>Add Component</span>
+                  <span>Add UI Element</span>
                 </div>
               </button>
             </div>
@@ -281,7 +281,7 @@
                       class="text-xxs text-gray-500 mr-2 w-2"
                     ></i>
                     <i :class="getDirectoryIcon(String(dirName))" class="text-xs mr-2"></i>
-                    <span class="text-xs text-gray-300 font-medium">{{ dirName }}</span>
+                    <span class="text-xs text-gray-300 font-medium">{{ formatFriendlyName(String(dirName)) }}</span>
                     <span class="ml-auto text-xxs text-gray-500">
                       {{ dirData.files.length + Object.keys(dirData.subdirectories || {}).length }}
                     </span>
@@ -312,7 +312,7 @@
                             class="text-xxs text-gray-500 mr-2 w-2"
                           ></i>
                           <i :class="getDirectoryIcon(String(subDirName))" class="text-xs mr-2"></i>
-                          <span class="text-xs text-gray-300 font-medium">{{ subDirName }}</span>
+                          <span class="text-xs text-gray-300 font-medium">{{ formatSubdirectoryName(String(subDirName)) }}</span>
                           <span class="ml-auto text-xxs text-gray-500">{{ subDirData.files.length }}</span>
                         </div>
                         
@@ -451,30 +451,18 @@ const newComponentType = ref<'atoms' | 'molecules' | 'organisms'>('atoms')
 const currentApp = ref<string>('')
 const currentDirectory = ref<string>('')
 
-// Filter files to show all app-based structure
+// Filter files: only show .vue files within views/components, hide barrels/exports
 const vueFiles = computed(() => {
   return props.files.filter(file => {
-    const path = file.path.toLowerCase()
-    const normalizedPath = path.replace(/\\/g, '/') // Handle Windows paths
-    
-    // Include all files from any app directory
-    if (normalizedPath.includes('/src/apps/')) {
-      // Include all relevant file types for Vue.js apps
-      const relevantExtensions = ['.vue', '.ts', '.js', '.jsx', '.tsx', '.json', '.css', '.scss', '.sass', '.less', '.md', '.html']
-      const hasRelevantExtension = relevantExtensions.some(ext => normalizedPath.endsWith(ext))
-      
-      // Also include files without extensions (like index files, config files)
-      const fileName = normalizedPath.split('/').pop() || ''
-      const hasNoExtension = !fileName.includes('.')
-      const isConfigFile = ['index', 'main', 'app'].some(name => fileName.startsWith(name))
-      
-      // Include if it has a relevant extension or is a config file
-      if (hasRelevantExtension || (hasNoExtension && isConfigFile)) {
-        return true
-      }
-    }
-    
-    return false
+    const path = (file.path || '').toLowerCase().replace(/\\/g, '/')
+    if (!path.includes('/src/apps/')) return false
+    const isVue = path.endsWith('.vue')
+    const inViewsOrComponents = path.includes('/views/') || path.includes('/components/')
+    if (!isVue || !inViewsOrComponents) return false
+    // Hide potential barrel-like .vue (rare) and any story/test files if present
+    const base = path.split('/').pop() || ''
+    const isHidden = base.startsWith('_') || base.endsWith('.stories.vue') || base.endsWith('.spec.vue')
+    return !isHidden
   })
 })
 
@@ -606,6 +594,22 @@ const getVueDirectoryIconClass = (dirName: string) => {
   if (dirName.includes('Payments')) return 'text-yellow-400'
   if (dirName.includes('Docs')) return 'text-cyan-400'
   return 'text-indigo-400' // Default for new apps
+}
+
+// Friendly display names for directories
+const formatFriendlyName = (dirName: string) => {
+  const name = dirName.toLowerCase()
+  if (name === 'views') return 'Pages'
+  if (name === 'components') return 'UI Elements'
+  return dirName
+}
+
+const formatSubdirectoryName = (subDirName: string) => {
+  const name = subDirName.toLowerCase()
+  if (name === 'atoms') return 'Basics'
+  if (name === 'molecules') return 'Patterns'
+  if (name === 'organisms') return 'Sections'
+  return subDirName
 }
 
 const getComponentTypeDescription = (type: string) => {

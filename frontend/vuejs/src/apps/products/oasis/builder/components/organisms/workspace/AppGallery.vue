@@ -58,36 +58,17 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <div class="text-sm font-semibold text-white truncate">{{ app.displayName }}</div>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ app.files.length }} files</span>
             </div>
-            <div class="text-xxs text-gray-400 mt-0.5 truncate">{{ app.hint }}</div>
+            <div class="text-xs text-gray-400 mt-1 whitespace-normal break-words">{{ app.hint }}</div>
           </div>
         </div>
         <div class="px-3 pb-3">
-          <div class="grid grid-cols-2 gap-1.5">
+          <div class="grid grid-cols-1 gap-1.5">
             <button
               class="text-xxs px-2 py-1.5 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition text-left"
               @click="openApp(app)"
             >
               <i class="fas fa-folder-open mr-1"></i> Open
-            </button>
-            <button
-              class="text-xxs px-2 py-1.5 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition text-left"
-              @click="$emit('addView', app.name)"
-            >
-              <i class="fas fa-file-alt mr-1"></i> Add Page
-            </button>
-            <button
-              class="text-xxs px-2 py-1.5 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition text-left"
-              @click="$emit('addComponent', app.name)"
-            >
-              <i class="fas fa-puzzle-piece mr-1"></i> Add Component
-            </button>
-            <button
-              class="text-xxs px-2 py-1.5 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition text-left"
-              @click="$emit('preview')"
-            >
-              <i class="fas fa-play mr-1"></i> Preview
             </button>
           </div>
         </div>
@@ -107,9 +88,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'selectFile', file: ProjectFile): void
   (e: 'createApp'): void
-  (e: 'addView', appName: string): void
-  (e: 'addComponent', appName: string): void
-  (e: 'preview'): void
 }>()
 
 const query = ref('')

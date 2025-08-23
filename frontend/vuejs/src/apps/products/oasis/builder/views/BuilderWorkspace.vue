@@ -124,18 +124,25 @@
                   :files="store.files || []"
                   @selectFile="handleFileSelect"
                   @createApp="handleCreateAppFromGallery"
-                  @addView="handleCreateViewFromGallery"
-                  @addComponent="handleCreateComponentFromGallery"
-                  @preview="handlePreview"
                 />
               </div>
 
               <!-- Advanced: full file explorer -->
               <div v-else class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
+                <!-- Advanced header with Back button -->
+                <div class="flex items-center justify-between p-2 border-b border-white/10 bg-dark-900/50">
+                  <button
+                    class="text-xs px-2 py-1 rounded-md border border-white/10 text-gray-200 hover:text-white hover:bg-white/10 transition"
+                    @click="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
+                  >
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Apps
+                  </button>
+                  <div class="text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">Advanced</div>
+                </div>
                 <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-                <div class="p-2 h-[calc(100%-2px)]">
+                <div class="p-2 h-[calc(100%-2px)] min-h-0 overflow-y-auto">
                   <FileExplorer
-                    :files="store.files || []"
+                    :files="advancedFiles || []"
                     :selected-file="store.selectedFile || null"
                     :file-types="fileTypes"
                     :show-new-form="false"
@@ -389,6 +396,15 @@ const currentEditorMode = ref<EditorMode>('split')
 const prompt = ref('')
 const showAppsInMain = ref(true)
 const appsViewMode = ref<'simple' | 'advanced'>('simple')
+// When in advanced mode, restrict files to a specific app
+const advancedAppFilter = ref<string | null>(null)
+
+const advancedFiles = computed(() => {
+  const files = store.files || []
+  if (!advancedAppFilter.value) return files
+  const app = advancedAppFilter.value.toLowerCase()
+  return files.filter((f: any) => (f.path || '').toLowerCase().includes(`/src/apps/${app}/`))
+})
 
 // Navigation items for sidebar
 const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
@@ -872,6 +888,11 @@ async function handleFileSelect(file: ProjectFile) {
 
     // When a user opens an app/file from the AppGallery, switch to Advanced view
     appsViewMode.value = 'advanced'
+    // Restrict Advanced view to the selected app
+    const appMatch = (file.path || '').toLowerCase().match(/\/src\/apps\/([^/]+)\//)
+    if (appMatch && appMatch[1]) {
+      advancedAppFilter.value = appMatch[1]
+    }
     
     // Update the mode indicator UI by forcing a re-render
     // This is needed because the selectedFile reference might not change
