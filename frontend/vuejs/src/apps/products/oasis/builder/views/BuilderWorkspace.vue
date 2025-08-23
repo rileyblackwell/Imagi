@@ -15,22 +15,22 @@
       storage-key="builderWorkspaceSidebarCollapsed"
       :navigation-items="navigationItems"
     >
-      <!-- Sidebar Content -->
-      <template #sidebar-content="{ collapsed }">
-        <BuilderSidebar
-          :current-project="currentProject"
-          :selected-file="store.selectedFile || null"
-          :files="store.files || []"
-          :file-types="fileTypes"
-          :is-loading="store.isProcessing || false"
-          :current-editor-mode="currentEditorMode"
-          :is-collapsed="collapsed"
-          :project-id="projectId || ''"
-          @select-file="handleFileSelect"
-          @create-file="handleFileCreate"
-          @delete-file="handleFileDelete"
-          @preview="handlePreview"
-        />
+      <!-- Centered navbar content: project name and description -->
+      <template #navbar-center>
+        <div class="flex flex-col items-center text-center select-none">
+          <div class="relative flex items-center gap-2">
+            <span class="text-sm font-semibold bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent truncate max-w-[50vw]">
+              {{ currentProject && currentProject.name ? currentProject.name : 'Project' }}
+            </span>
+          </div>
+          <div v-if="currentProject && currentProject.description" class="mt-0.5 text-[11px] text-gray-400/90 truncate max-w-[60vw]">
+            {{ currentProject.description }}
+          </div>
+        </div>
+      </template>
+      <!-- Sidebar Content (removed as per request) -->
+      <template #sidebar-content>
+        <!-- Intentionally left empty to remove all sidebar UI -->
       </template>
 
       <!-- Modern Dark-themed Main Content Area -->
@@ -122,8 +122,11 @@
               <div v-if="appsViewMode === 'simple'" class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
                 <AppGallery
                   :files="store.files || []"
+                  :project-id="projectId || ''"
                   @selectFile="handleFileSelect"
                   @createApp="handleCreateAppFromGallery"
+                  @preview="handlePreview"
+                  @version-reset="handleVersionReset"
                 />
               </div>
 
@@ -174,6 +177,7 @@
                   @submit="handlePrompt"
                   @use-example="handleExamplePrompt"
                 />
+                <!-- Controls adjacent to chat input: (moved to Your Apps header) intentionally empty -->
               </div>
             </div>
 
@@ -223,7 +227,6 @@ import { useNotification } from '@/shared/composables/useNotification'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
-import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
 import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
@@ -428,6 +431,20 @@ const appsCount = computed(() => {
 const promptExamplesComputed = computed(() => {
   return [] // Return empty array for examples
 })
+
+// Refresh files and clear any selection on version reset
+async function handleVersionReset(version: Record<string, any>) {
+  try {
+    console.debug('Version reset to:', version)
+    await loadProjectFiles(true)
+    // Optionally clear selected file to avoid stale content
+    if (typeof store.setSelectedFile === 'function') {
+      store.setSelectedFile(null)
+    }
+  } catch (e) {
+    console.error('Error handling version reset:', e)
+  }
+}
 
 const promptPlaceholder = computed(() => {
   if (store.mode === 'chat') {

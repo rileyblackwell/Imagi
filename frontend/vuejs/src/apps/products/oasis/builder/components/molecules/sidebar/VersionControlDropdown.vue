@@ -4,27 +4,28 @@
   and allows the user to reset to a previous version.
 -->
 <template>
-  <div class="version-control-dropdown">
-    <!-- Dropdown button with enhanced styling to match other sidebar elements -->
-    <button 
+  <div class="version-control-dropdown relative inline-block">
+    <!-- Trigger button: supports 'default' (sidebar) and 'compact' (header) variants -->
+    <button
       @click="toggleDropdown"
-      class="relative flex items-center justify-between w-full py-3 px-4 text-left text-sm font-medium rounded-lg bg-dark-800/70 border border-dark-700/60 transition-all duration-300"
+      :class="triggerClass"
+      :title="'Version History'"
+      type="button"
     >
-      
-      <div class="relative flex items-center">
-        <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-          <i class="fas fa-history"></i>
-        </span>
-        <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Version History</span>
-      </div>
-      
-      <i class="fas fa-chevron-down text-gray-400 transition-colors"></i>
+      <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+        <i class="fas fa-history"></i>
+      </span>
+      <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Version History</span>
+      <i 
+        class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+        :class="chevronClass"
+      ></i>
     </button>
 
     <!-- Dropdown menu with enhanced styling -->
     <div 
       v-if="dropdownOpen" 
-      class="absolute z-10 mt-2 w-full bg-dark-800/90 backdrop-blur-sm shadow-xl rounded-xl py-1 text-sm text-gray-200 max-h-64 overflow-y-auto border border-dark-700/60"
+      class="absolute z-10 mt-2 min-w-[260px] bg-dark-800/90 backdrop-blur-sm shadow-xl rounded-xl py-1 text-sm text-gray-200 max-h-64 overflow-y-auto border border-dark-700/60 right-0"
     >
       <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
       <div v-if="isLoading" class="px-4 py-3 text-center text-gray-400">
@@ -103,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api, { buildApiUrl } from '@/shared/services/api';
 
@@ -111,6 +112,10 @@ const props = defineProps({
   projectId: {
     type: String,
     required: true
+  },
+  variant: {
+    type: String,
+    default: 'default' // 'default' | 'compact'
   }
 });
 
@@ -122,6 +127,21 @@ const isLoading = ref(false);
 const versions = ref([]);
 const showConfirmation = ref(false);
 const selectedVersion = ref(null);
+
+// Compute trigger button classes by variant
+const triggerClass = computed(() => {
+  if (props.variant === 'compact') {
+    return 'inline-flex items-center text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition';
+  }
+  return 'relative flex items-center justify-between w-full py-3 px-4 text-left text-sm font-medium rounded-lg bg-dark-800/70 border border-dark-700/60 transition-all duration-300';
+});
+
+// Chevron spacing and rotation
+const chevronClass = computed(() => {
+  const rotation = dropdownOpen.value ? 'rotate-180' : 'rotate-0';
+  const spacing = props.variant === 'compact' ? 'ml-1' : 'ml-auto';
+  return `${spacing} ${rotation}`;
+});
 
 // Toggle dropdown
 const toggleDropdown = () => {
@@ -223,7 +243,6 @@ watch(() => props.projectId, (newProjectId) => {
 <style scoped>
 .version-control-dropdown {
   position: relative;
-  width: 100%;
 }
 
 /* Add consistent scrollbar styling to match other sidebar components */

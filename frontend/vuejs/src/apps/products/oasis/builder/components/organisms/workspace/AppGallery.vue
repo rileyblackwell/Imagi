@@ -21,11 +21,30 @@
             class="pl-7 pr-3 py-2 text-xs bg-dark-900/80 border border-dark-700/60 rounded-md text-white placeholder-gray-500 outline-none focus:ring-0 focus:border-primary-500/40"
           />
         </div>
+        <!-- Version history dropdown moved into Your Apps header -->
+        <VersionControlDropdown
+          v-if="projectId"
+          :project-id="projectId || ''"
+          variant="compact"
+          @version-reset="(v: any) => $emit('version-reset', v)"
+        />
         <button
-          class="text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition"
+          class="inline-flex items-center text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition"
+          @click="$emit('preview')"
+        >
+          <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+            <i class="fas fa-eye"></i>
+          </span>
+          <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview App</span>
+        </button>
+        <button
+          class="inline-flex items-center text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition"
           @click="$emit('createApp')"
         >
-          <i class="fas fa-plus mr-1"></i> New App
+          <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+            <i class="fas fa-plus"></i>
+          </span>
+          <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">New App</span>
         </button>
       </div>
     </div>
@@ -80,14 +99,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { ProjectFile } from '../../../types/components'
+import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
 
 const props = defineProps<{
   files: ProjectFile[]
+  projectId?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'selectFile', file: ProjectFile): void
   (e: 'createApp'): void
+  (e: 'preview'): void
+  (e: 'version-reset', version: any): void
 }>()
 
 const query = ref('')
