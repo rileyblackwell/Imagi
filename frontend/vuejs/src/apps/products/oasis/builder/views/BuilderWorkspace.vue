@@ -20,11 +20,11 @@
         <div class="flex flex-col items-center text-center select-none">
           <div class="relative flex items-center gap-2">
             <span class="text-sm font-semibold bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent truncate max-w-[50vw]">
-              {{ currentProject && currentProject.name ? currentProject.name : 'Project' }}
+              {{ navbarNameSanitized }}
             </span>
           </div>
           <div v-if="currentProject && currentProject.description" class="mt-0.5 text-[11px] text-gray-400/90 truncate max-w-[60vw]">
-            {{ currentProject.description }}
+            {{ navbarDescSanitized }}
           </div>
         </div>
       </template>
@@ -113,21 +113,45 @@
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
             <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
             <div v-if="showAppsInMain" class="flex-1 min-h-0 p-4 flex flex-col">
-              <!-- Apps header: show count only (simple is default; no toggle) -->
-              <div class="mb-3 flex items-center">
-                <div class="ml-auto text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">{{ appsCount }} app{{ appsCount !== 1 ? 's' : '' }}</div>
+              <!-- Section Title: Project Web App Name -->
+              <div class="mb-4 mt-2">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
+                      {{ sanitizedProjectTitle }}
+                    </span>
+                  </h2>
+                  
+                </div>
+                <div class="mt-1 h-px w-full bg-gradient-to-r from-indigo-500/40 via-violet-500/40 to-transparent"></div>
               </div>
 
               <!-- Simple: App Gallery for non-technical users -->
-              <div v-if="appsViewMode === 'simple'" class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
-                <AppGallery
-                  :files="store.files || []"
-                  :project-id="projectId || ''"
-                  @selectFile="handleFileSelect"
-                  @createApp="handleCreateAppFromGallery"
-                  @preview="handlePreview"
-                  @version-reset="handleVersionReset"
-                />
+              <div v-if="appsViewMode === 'simple'" class="flex-1 min-h-0 relative grid grid-cols-1 gap-4 overflow-hidden auto-rows-[minmax(0,1fr)]">
+                <!-- App Section -->
+                <div class="rounded-2xl border bg-dark-800/60 backdrop-blur-md border-dark-700/60 flex flex-col h-full min-h-0">
+                  <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-dark-900/50">
+                  <div class="text-[11px] font-medium tracking-wide uppercase text-white/70"></div>
+                  <div class="flex items-center gap-2"></div>
+                </div>
+                  <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
+                  <div class="p-2 flex-1 min-h-0 overflow-hidden">
+                    <AppGallery
+                    class="h-full"
+                    :files="store.files || []"
+                    :project-id="projectId || ''"
+                    :version-history="versionHistory"
+                    :is-loading-versions="isLoadingVersions"
+                    :selected-version-hash="selectedVersionHash"
+                    @selectFile="handleFileSelect"
+                    @createApp="handleCreateAppFromGallery"
+                    @preview="handlePreview"
+                    @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
+                    @version-select="onVersionSelect"
+                    @version-reset="handleVersionReset"
+                    />
+                  </div>
+                </div>
               </div>
 
               <!-- Advanced: full file explorer -->
@@ -138,7 +162,7 @@
                     class="text-xs px-2 py-1 rounded-md border border-white/10 text-gray-200 hover:text-white hover:bg-white/10 transition"
                     @click="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
                   >
-                    <i class="fas fa-arrow-left mr-1"></i> Back to Apps
+                    <i class="fas fa-arrow-left mr-1"></i> Back
                   </button>
                   <div class="text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">Advanced</div>
                 </div>
@@ -330,6 +354,42 @@ async function handleCreateAppFromGallery() {
   }
 }
 
+// Version history state and actions
+const versionHistory = ref<Array<Record<string, any>>>([])
+const selectedVersionHash = ref<string>('')
+const isLoadingVersions = ref<boolean>(false)
+
+async function loadVersionHistory() {
+  if (!projectId.value) return
+  try {
+    isLoadingVersions.value = true
+    const res = await AgentService.getVersionHistory(projectId.value)
+    // Support either versions or commits shapes
+    const list = (res && (res as any).versions) || (res as any).commits || []
+    versionHistory.value = Array.isArray(list) ? list : []
+  } catch (e) {
+    console.error('Failed to load version history:', e)
+  } finally {
+    isLoadingVersions.value = false
+  }
+}
+
+async function onVersionSelect() {
+  try {
+    const hash = selectedVersionHash.value
+    if (!hash || !projectId.value) return
+    const res = await AgentService.resetToVersion(projectId.value, hash)
+    if ((res as any)?.success !== false) {
+      await handleVersionReset({ hash })
+      await loadVersionHistory()
+      // Clear selection after reset
+      selectedVersionHash.value = ''
+    }
+  } catch (e) {
+    console.error('Failed to reset to selected version:', e)
+  }
+}
+
 async function handleCreateViewFromGallery(appName: string) {
   try {
     const viewNameRaw = window.prompt('Page name (PascalCase, e.g., AboutPage):', 'AboutPage') || ''
@@ -430,6 +490,55 @@ const appsCount = computed(() => {
 
 const promptExamplesComputed = computed(() => {
   return [] // Return empty array for examples
+})
+
+// Display name for the Project Web App title
+const projectTitle = computed(() => {
+  const name = currentProject.value && (currentProject.value as any).name
+  return name && String(name).trim() ? String(name) : ''
+})
+
+// Sanitized project title for display (remove 'spacex')
+const sanitizedProjectTitle = computed(() => {
+  const title = projectTitle.value || ''
+  const cleaned = title.replace(/spacex/ig, '').trim()
+  return cleaned || ''
+})
+
+// Sanitized navbar project name and description (remove 'spacex')
+const navbarNameSanitized = computed(() => {
+  const raw = currentProject.value && (currentProject.value as any).name
+    ? String((currentProject.value as any).name)
+    : ''
+  return raw.trim()
+})
+
+const navbarDescSanitized = computed(() => {
+  const raw = currentProject.value && (currentProject.value as any).description
+    ? String((currentProject.value as any).description)
+    : ''
+  return raw.trim()
+})
+
+// Shared files: anything under src/shared/
+const sharedFiles = computed(() => {
+  const files = (store.files || []) as any[]
+  return files.filter((f: any) => {
+    const p = String(f.path || '').replace(/\\/g, '/').toLowerCase()
+    return p.includes('/src/shared/')
+  }) as unknown as ProjectFile[]
+})
+
+// Global files: top-level src files and directories that are not apps/ or shared/
+const globalFiles = computed(() => {
+  const files = (store.files || []) as any[]
+  return files.filter((f: any) => {
+    const p = String(f.path || '').replace(/\\/g, '/').toLowerCase()
+    if (!p.includes('/src/')) return false
+    if (p.includes('/src/apps/')) return false
+    if (p.includes('/src/shared/')) return false
+    return true
+  }) as unknown as ProjectFile[]
 })
 
 // Refresh files and clear any selection on version reset
@@ -983,6 +1092,77 @@ async function handlePreview() {
   }
 }
 
+// Ensure default apps exist for every new project
+async function ensureDefaultApps() {
+  try {
+    const requiredApps = ['home', 'auth', 'payments']
+    const existingApps = new Set<string>()
+    ;(store.files || []).forEach((file: any) => {
+      const path = String(file.path || '').toLowerCase().replace(/\\/g, '/')
+      const match = path.match(/\/src\/apps\/([^\/]+)\//)
+      if (match) existingApps.add(match[1])
+    })
+
+    const missing = requiredApps.filter(a => !existingApps.has(a))
+    if (missing.length === 0) return
+
+    for (const appName of missing) {
+      const cap = appName.charAt(0).toUpperCase() + appName.slice(1)
+      const filesToCreate = [
+        {
+          name: `frontend/vuejs/src/apps/${appName}/index.ts`,
+          type: 'typescript',
+          content: `// ${cap} app exports\nexport * from './router'\nexport * from './stores'\nexport * from './components'\nexport * from './views'\n`
+        },
+        {
+          name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
+          type: 'typescript',
+          content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}Home from '../views/${cap}Home.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-home',\n    component: ${cap}Home,\n    meta: { requiresAuth: ${appName === 'auth' ? 'false' : 'false'}, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
+        },
+        { name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`, type: 'typescript', content: `export * from './${appName}'\n` },
+        {
+          name: `frontend/vuejs/src/apps/${appName}/stores/${appName}.ts`,
+          type: 'typescript',
+          content: `import { defineStore } from 'pinia'\nimport { ref } from 'vue'\n\nexport const use${cap}Store = defineStore('${appName}', () => {\n  const loading = ref(false)\n  function setLoading(v: boolean) { loading.value = v }\n  return { loading, setLoading }\n})\n`
+        },
+        { name: `frontend/vuejs/src/apps/${appName}/components/index.ts`, type: 'typescript', content: `export * from './atoms'\nexport * from './molecules'\nexport * from './organisms'\n` },
+        { name: `frontend/vuejs/src/apps/${appName}/components/atoms/index.ts`, type: 'typescript', content: `// atoms\n` },
+        { name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`, type: 'typescript', content: `// molecules\n` },
+        { name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`, type: 'typescript', content: `// organisms\n` },
+        {
+          name: `frontend/vuejs/src/apps/${appName}/views/${cap}Home.vue`,
+          type: 'vue',
+          content:
+            '<template>\n' +
+            '  <div class="min-h-screen bg-white">\n' +
+            '    <div class="max-w-4xl mx-auto p-8">\n' +
+            `      <h1 class="text-3xl font-semibold">${cap} App</h1>\n` +
+            `      <p class="text-gray-600 mt-2">Welcome to the ${appName} app.</p>\n` +
+            '    </div>\n' +
+            '  </div>\n' +
+            '</template>\n\n' +
+            '<' + 'script setup lang="ts">\n' +
+            '</' + 'script>\n'
+        }
+      ]
+
+      for (const f of filesToCreate) {
+        try {
+          await createFile({ projectId: projectId.value, ...f })
+        } catch (e) {
+          // Ignore if file already exists or creation fails non-critically
+          console.warn('ensureDefaultApps createFile warning:', e)
+        }
+      }
+    }
+
+    // Reload files after seeding defaults
+    await loadProjectFiles(true)
+  } catch (e) {
+    console.error('Error ensuring default apps:', e)
+  }
+}
+
 // Retry loading the project when user clicks retry button
 async function retryProjectLoad() {
   // Clear any existing error state
@@ -996,6 +1176,10 @@ async function retryProjectLoad() {
     await loadModels()
     // Force refresh files when retrying to ensure we get the latest state
     await loadProjectFiles(true)
+    // Ensure default apps exist after retry load
+    await ensureDefaultApps()
+    // Refresh version history after retry
+    await loadVersionHistory()
     
     // Set default model if needed
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
@@ -1132,6 +1316,10 @@ onMounted(async () => {
         await executeOnce('loadModels', loadModels);
         // Force fresh file load on initial page load to always get latest files including initial home view
         await executeOnce('loadProjectFiles', () => loadProjectFiles(true));
+        // Ensure default apps are present for new/empty projects
+        await ensureDefaultApps()
+        // Load version history for header dropdown
+        await loadVersionHistory()
         
         // Only fetch balance once at startup, with no auto-refresh
         // Make sure it doesn't block the UI
