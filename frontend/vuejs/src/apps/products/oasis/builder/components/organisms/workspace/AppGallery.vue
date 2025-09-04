@@ -24,27 +24,27 @@
         </div>
 
         <!-- New App -->
-        <button
-          class="inline-flex items-center text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition"
+        <GlassButton
+          size="sm"
           @click="$emit('createApp')"
         >
           <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
             <i class="fas fa-plus"></i>
           </span>
           <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">New App</span>
-        </button>
+        </GlassButton>
 
         <!-- Preview App -->
-        <button
+        <GlassButton
+          size="sm"
           type="button"
-          class="inline-flex items-center text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition"
           @click="$emit('preview')"
         >
           <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
             <i class="fas fa-eye"></i>
           </span>
           <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview App</span>
-        </button>
+        </GlassButton>
 
         <!-- Version history dropdown -->
         <div
@@ -143,9 +143,9 @@
         </div>
         <div class="text-white font-medium mb-1">No apps yet</div>
         <div class="text-xs text-gray-400 mb-4">Create your first app to start adding pages and components.</div>
-        <button class="px-4 py-2 rounded-md bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs" @click="$emit('createApp')">
+        <GradientButton size="sm" @click="$emit('createApp')">
           <i class="fas fa-plus mr-1"></i> Create App
-        </button>
+        </GradientButton>
       </div>
     </div>
 
@@ -161,15 +161,16 @@
             <!-- Decorative top overlay -->
             <div class="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
             <!-- Top-right Open icon button -->
-            <button
-              class="absolute top-2 right-2 inline-flex items-center gap-1.5 h-8 px-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition"
+            <GlassButton
+              class="absolute top-2 right-2 px-2 py-1"
+              size="sm"
               @click="openApp(app)"
               aria-label="Open app"
               :title="`Open ${app.displayName}`"
             >
-              <i class="fas fa-folder-open text-sm"></i>
-              <span class="text-[11px] font-medium">Open</span>
-            </button>
+              <i class="fas fa-folder-open text-xs"></i>
+              <span class="text-[10px] font-medium">Open</span>
+            </GlassButton>
 
             <div class="pl-3 pr-16 pt-4 pb-3 flex items-start gap-3">
               <div :class="['w-10 h-10 rounded-xl flex items-center justify-center border text-lg shadow-inner', app.color.bg, app.color.border, app.color.text]">
@@ -193,6 +194,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import type { ProjectFile } from '../../../types/components'
+import { GradientButton, GlassButton } from '@/shared/components/atoms'
 
 const props = defineProps<{
   files: ProjectFile[]
@@ -360,7 +362,12 @@ const apps = computed(() => {
 const filteredApps = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return apps.value
-  return apps.value.filter((a) => a.displayName.toLowerCase().includes(q) || a.name.toLowerCase().includes(q))
+  return apps.value.filter((a) => {
+    const name = (a.name || '').toLowerCase()
+    // Normalize display name by stripping a trailing ' App'
+    const display = (a.displayName || '').toLowerCase().replace(/\s+app$/, '')
+    return name.startsWith(q) || display.startsWith(q)
+  })
 })
 
 function openApp(app: { name: string; files: ProjectFile[] }) {

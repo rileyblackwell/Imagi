@@ -7,67 +7,9 @@
           <i class="fas fa-cubes text-purple-400 mr-1.5"></i>
           <span>Apps</span>
         </h3>
-        <!-- Enhanced Add app button -->
-        <div v-if="Object.keys(vueFilesByDirectory).length > 0">
-          <ActionButton
-            :text="'Create New App'"
-            icon="plus"
-            :fullWidth="true"
-            size="sm"
-            @click="toggleNewAppForm"
-          />
-        </div>
       </div>
 
-      <!-- New App Form - Enhanced with modern styling -->
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 -translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-300 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-2"
-      >
-        <div v-if="showNewAppForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-purple-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-purple-300">Create New App</h3>
-          
-          <input
-            v-model="newAppName"
-            type="text"
-            placeholder="e.g., blog, ecommerce, portfolio"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/60 rounded-md p-2 text-white placeholder-gray-500 outline-none focus:outline-none focus:ring-0 focus:border-transparent shadow-none focus:shadow-none transition-all duration-200"
-            @keydown.enter="createNewApp"
-          />
-          
-          <input
-            v-model="newAppDescription"
-            type="text"
-            placeholder="App description (optional)"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/60 rounded-md p-2 text-white placeholder-gray-500 outline-none focus:outline-none focus:ring-0 focus:border-transparent shadow-none focus:shadow-none transition-all duration-200"
-            @keydown.enter="createNewApp"
-          />
-          
-          <p class="text-xxs text-gray-500">
-            App will be created with Vue.js best practices structure (views, components, stores, router)
-          </p>
-          
-          <div class="flex justify-end space-x-2">
-            <button
-              @click="toggleNewAppForm"
-              class="text-xs rounded-md px-2 py-1 text-gray-400 transition-colors focus:outline-none"
-            >
-              Cancel
-            </button>
-            <ActionButton
-              :text="'Create App'"
-              icon="plus"
-              :disabled="!isValidAppName"
-              size="sm"
-              @click="createNewApp"
-            />
-          </div>
-        </div>
-      </Transition>
+      
 
       <!-- New View Form for App - Enhanced with modern styling -->
       <Transition
@@ -81,52 +23,39 @@
         <div v-if="showNewViewForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
           <h3 class="text-xs font-medium text-primary-300">Create New Page</h3>
           
-          <select
-            v-model="newViewSelectedApp"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
-          >
-            <option value="">Select an app...</option>
-            <option v-for="app in availableApps" :key="app" :value="app">
-              {{ app.charAt(0).toUpperCase() + app.slice(1) }} App
-            </option>
-          </select>
+          <!-- App context is derived from the app section you're viewing; no dropdown needed -->
+          <div class="text-xxs text-gray-400">
+            <i class="fas fa-info-circle mr-1 text-primary-300"></i>
+            Page will be added to <span class="text-gray-200 font-medium">{{ currentAppFromDirectory || '[select an app section above]' }}</span>
+          </div>
           
           <input
             v-model="newViewName"
             type="text"
-            placeholder="e.g., AboutPage, ContactPage, ServicesPage"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
-            @keydown.enter="createVueView"
-          />
-          
-          <input
-            v-model="newViewRoute"
-            type="text"
-            placeholder="Route path: e.g., /about, /contact, /services"
+            placeholder="Page name (e.g., AboutPage)"
             class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
             @keydown.enter="createVueView"
           />
           
           <p class="text-xxs text-gray-500">
-            View will be created in {{ newViewSelectedApp || '[selected app]' }}/views/ directory
+            A route like <span class="text-gray-300">/{{ (newViewName || '').toLowerCase() }}</span> will be added automatically.
           </p>
           
           <div class="flex justify-end space-x-2">
-            <button
+            <GlassButton
+              size="sm"
+              type="button"
               @click="toggleNewViewForm"
-              class="text-xs rounded-md px-2 py-1 text-gray-400 transition-colors focus:outline-none"
             >
               Cancel
-            </button>
-            <button
-              @click="createVueView"
+            </GlassButton>
+            <GradientButton
+              size="sm"
               :disabled="!isValidViewName"
-              class="group relative text-xs rounded-md px-2 py-1 border bg-gradient-to-r from-primary-600/85 to-violet-600/85 border-primary-400/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:border-transparent text-white transition-all duration-200 focus:outline-none"
+              @click="createVueView"
             >
-              <!-- Subtle glow effect on hover (only when enabled) -->
-              <!-- hover glow removed -->
-              <span class="relative">Create Page</span>
-            </button>
+              Create Page
+            </GradientButton>
           </div>
         </div>
       </Transition>
@@ -141,25 +70,21 @@
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div v-if="showNewComponentForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-primary-300">Create New UI Element</h3>
+          <h3 class="text-xs font-medium text-primary-300">Create New Component</h3>
           
-          <select
-            v-model="newComponentSelectedApp"
-            class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
-          >
-            <option value="">Select an app...</option>
-            <option v-for="app in availableApps" :key="app" :value="app">
-              {{ app.charAt(0).toUpperCase() + app.slice(1) }} App
-            </option>
-          </select>
+          <!-- App context from current app section -->
+          <div class="text-xxs text-gray-400">
+            <i class="fas fa-info-circle mr-1 text-primary-300"></i>
+            Component will be added to <span class="text-gray-200 font-medium">{{ currentAppFromDirectory || '[select an app section above]' }}</span>
+          </div>
           
           <select
             v-model="newComponentType"
             class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
           >
-            <option value="atoms">Basics</option>
-            <option value="molecules">Patterns</option>
-            <option value="organisms">Sections</option>
+            <option value="atoms">Atoms</option>
+            <option value="molecules">Molecules</option>
+            <option value="organisms">Organisms</option>
           </select>
           
           <div class="p-2 bg-violet-950/20 rounded-md border border-primary-700/30">
@@ -170,31 +95,30 @@
           <input
             v-model="newComponentName"
             type="text"
-            placeholder="e.g., PrimaryButton, SearchInput, UserAvatar"
+            placeholder="Component name (e.g., PrimaryButton)"
             class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
             @keydown.enter="createVueComponent"
           />
           
           <p class="text-xxs text-gray-500">
-            Component will be created in {{ newComponentSelectedApp || '[selected app]' }}/components/{{ newComponentType }}/
+            Will be created in <span class="text-gray-300">{{ (currentAppFromDirectory || '[app]') + '/components/' + newComponentType }}</span>
           </p>
           
           <div class="flex justify-end space-x-2">
-            <button
+            <GlassButton
+              size="sm"
+              type="button"
               @click="toggleNewComponentForm"
-              class="text-xs rounded-md px-2 py-1 text-gray-400 transition-colors focus:outline-none"
             >
               Cancel
-            </button>
-            <button
-              @click="createVueComponent"
+            </GlassButton>
+            <GradientButton
+              size="sm"
               :disabled="!isValidComponentName"
-              class="group relative text-xs rounded-md px-2 py-1 border bg-gradient-to-r from-primary-600/85 to-violet-600/85 border-primary-400/40 disabled:bg-gray-700 disabled:text-gray-500 disabled:border-transparent text-white transition-all duration-200 focus:outline-none"
+              @click="createVueComponent"
             >
-              <!-- Subtle glow effect on hover (only when enabled) -->
-              <!-- hover glow removed -->
-              <span class="relative">Create UI Element</span>
-            </button>
+              Create Component
+            </GradientButton>
           </div>
         </div>
       </Transition>
@@ -231,26 +155,26 @@
           <div v-if="currentDirectory === dirName" class="space-y-1.5 pl-2">
             <!-- Add View/Component buttons for current app -->
             <div class="mb-3 grid grid-cols-2 gap-1.5">
-              <button 
+              <GradientButton 
+                size="sm"
                 @click="openCreateViewForApp(dirName)" 
-                class="group relative text-xxs rounded-md px-2 py-1.5 border border-white/10 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
                 :title="`Create page in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-file-alt mr-1 text-xxs"></i> 
                   <span>Add Page</span>
                 </div>
-              </button>
-              <button 
+              </GradientButton>
+              <GradientButton 
+                size="sm"
                 @click="openCreateComponentForApp(dirName)" 
-                class="group relative text-xxs rounded-md px-2 py-1.5 border border-white/10 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
                 :title="`Create UI element in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-puzzle-piece mr-1 text-xxs"></i> 
-                  <span>Add UI Element</span>
+                  <span>Add Component</span>
                 </div>
-              </button>
+              </GradientButton>
             </div>
             
             <!-- File tree structure -->
@@ -345,15 +269,6 @@
           <div><i class="fas fa-cubes text-purple-400 mb-2 text-xl opacity-80"></i></div>
           <div>No apps found</div>
           <div class="text-xs mt-1 mb-4">Create your first modular Vue.js app</div>
-          <div class="space-y-2">
-            <ActionButton
-              :text="'Create New App'"
-              icon="plus"
-              :fullWidth="true"
-              size="sm"
-              @click="toggleNewAppForm"
-            />
-          </div>
         </div>
       </div>
     </div>
@@ -365,7 +280,7 @@ import { ref, computed } from 'vue'
 import type { ProjectFile } from '../../../types/components'
 import FileTreeItem from '../../atoms/navigation/FileTreeItem.vue'
 import { FileService } from '../../../services/fileService'
-import ActionButton from '../../atoms/buttons/ActionButton.vue'
+import { GradientButton, GlassButton } from '@/shared/components/atoms'
 
 // Create hierarchical file structure for current app
 const fileStructure = computed(() => {
@@ -437,11 +352,8 @@ const emit = defineEmits<{
 }>()
 
 // Local state
-const showNewAppForm = ref(false)
 const showNewViewForm = ref(false)
 const showNewComponentForm = ref(false)
-const newAppName = ref('')
-const newAppDescription = ref('')
 const newViewName = ref('')
 const newViewRoute = ref('')
 const newViewSelectedApp = ref('')
@@ -600,15 +512,15 @@ const getVueDirectoryIconClass = (dirName: string) => {
 const formatFriendlyName = (dirName: string) => {
   const name = dirName.toLowerCase()
   if (name === 'views') return 'Pages'
-  if (name === 'components') return 'UI Elements'
+  if (name === 'components') return 'Components'
   return dirName
 }
 
 const formatSubdirectoryName = (subDirName: string) => {
   const name = subDirName.toLowerCase()
-  if (name === 'atoms') return 'Basics'
-  if (name === 'molecules') return 'Patterns'
-  if (name === 'organisms') return 'Sections'
+  if (name === 'atoms') return 'Atoms'
+  if (name === 'molecules') return 'Molecules'
+  if (name === 'organisms') return 'Organisms'
   return subDirName
 }
 
@@ -685,35 +597,19 @@ const getDirectoryIcon = (dirName: string) => {
   return iconMap[dirName.toLowerCase()] || 'fas fa-folder text-gray-400'
 }
 
-// Validation computed properties
-const isValidAppName = computed(() => {
-  return newAppName.value.trim().length > 0 && /^[a-z][a-z0-9]*$/.test(newAppName.value.trim())
-})
-
 const isValidViewName = computed(() => {
   return newViewName.value.trim().length > 0 && 
          /^[A-Za-z][A-Za-z0-9]*$/.test(newViewName.value.trim()) &&
-         newViewSelectedApp.value.trim().length > 0
+         (currentAppFromDirectory.value.length > 0)
 })
 
 const isValidComponentName = computed(() => {
   return newComponentName.value.trim().length > 0 && 
          /^[A-Za-z][A-Za-z0-9]*$/.test(newComponentName.value.trim()) &&
-         newComponentSelectedApp.value.trim().length > 0
+         (currentAppFromDirectory.value.length > 0)
 })
 
 // Methods
-const toggleNewAppForm = () => {
-  showNewAppForm.value = !showNewAppForm.value
-  if (!showNewAppForm.value) {
-    newAppName.value = ''
-    newAppDescription.value = ''
-  }
-  if (showNewAppForm.value) {
-    showNewViewForm.value = false
-    showNewComponentForm.value = false
-  }
-}
 
 const toggleNewViewForm = () => {
   showNewViewForm.value = !showNewViewForm.value
@@ -723,7 +619,6 @@ const toggleNewViewForm = () => {
     newViewSelectedApp.value = ''
   }
   if (showNewViewForm.value) {
-    showNewAppForm.value = false
     showNewComponentForm.value = false
   }
 }
@@ -737,7 +632,6 @@ const toggleNewComponentForm = () => {
   }
   if (showNewComponentForm.value) {
     showNewViewForm.value = false
-    showNewAppForm.value = false
   }
 }
 
@@ -750,7 +644,6 @@ const openCreateViewForApp = (appDirName: string) => {
   const appName = appDirName.replace(' App', '').toLowerCase()
   newViewSelectedApp.value = appName
   showNewViewForm.value = true
-  showNewAppForm.value = false
   showNewComponentForm.value = false
 }
 
@@ -759,7 +652,6 @@ const openCreateComponentForApp = (appDirName: string) => {
   const appName = appDirName.replace(' App', '').toLowerCase()
   newComponentSelectedApp.value = appName
   showNewComponentForm.value = true
-  showNewAppForm.value = false
   showNewViewForm.value = false
 }
 
@@ -771,81 +663,18 @@ const handleFileDelete = (file: ProjectFile) => {
   emit('deleteFile', file)
 }
 
-const createNewApp = async () => {
-  if (!isValidAppName.value) return
-  
-  const appName = newAppName.value.trim()
-  const appDescription = newAppDescription.value.trim()
-  
-  // Create the basic app structure files
-  const appStructure = [
-    // Index file
-    {
-      name: `frontend/vuejs/src/apps/${appName}/index.ts`,
-      type: 'typescript',
-      content: `// ${appName} app entry point\nexport * from './router'\nexport * from './stores'\nexport * from './components'\nexport * from './views'\n`
-    },
-    // Router
-    {
-      name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
-      type: 'typescript',
-      content: `import type { RouteRecordRaw } from 'vue-router'\n\n// Views\nimport ${appName.charAt(0).toUpperCase() + appName.slice(1)}Home from '../views/${appName.charAt(0).toUpperCase() + appName.slice(1)}Home.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-home',\n    component: ${appName.charAt(0).toUpperCase() + appName.slice(1)}Home,\n    meta: {\n      requiresAuth: false,\n      title: '${appName.charAt(0).toUpperCase() + appName.slice(1)}'\n    }\n  }\n]\n\nexport { routes }\n`
-    },
-    // Store
-    {
-      name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`,
-      type: 'typescript',
-      content: `// ${appName} stores\nexport * from './${appName}'\n`
-    },
-    {
-      name: `frontend/vuejs/src/apps/${appName}/stores/${appName}.ts`,
-      type: 'typescript',
-      content: `import { defineStore } from 'pinia'\nimport { ref } from 'vue'\n\nexport const use${appName.charAt(0).toUpperCase() + appName.slice(1)}Store = defineStore('${appName}', () => {\n  // State\n  const loading = ref(false)\n  \n  // Actions\n  const setLoading = (value: boolean) => {\n    loading.value = value\n  }\n  \n  return {\n    loading,\n    setLoading\n  }\n})\n`
-    },
-    // Components index
-    {
-      name: `frontend/vuejs/src/apps/${appName}/components/index.ts`,
-      type: 'typescript',
-      content: `// ${appName} components\nexport * from './atoms'\nexport * from './molecules'\nexport * from './organisms'\n`
-    },
-    {
-      name: `frontend/vuejs/src/apps/${appName}/components/atoms/index.ts`,
-      type: 'typescript',
-      content: `// ${appName} atomic components\n`
-    },
-    {
-      name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`,
-      type: 'typescript',
-      content: `// ${appName} molecule components\n`
-    },
-    {
-      name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`,
-      type: 'typescript',
-      content: `// ${appName} organism components\n`
-    },
-    // Views
-    {
-      name: `frontend/vuejs/src/apps/${appName}/views/${appName.charAt(0).toUpperCase() + appName.slice(1)}Home.vue`,
-      type: 'vue',
-      content: `<template>\n  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12">\n    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">\n      <!-- Hero Section -->\n      <div class="text-center mb-16">\n        <h1 class="text-5xl font-bold text-gray-900 mb-6">\n          ${appName.charAt(0).toUpperCase() + appName.slice(1)} App\n        </h1>\n        <p class="text-xl text-gray-600 max-w-3xl mx-auto">\n          ${appDescription || `Welcome to the ${appName} app. This is your new modular Vue.js application.`}\n        </p>\n      </div>\n      \n      <!-- Content Section -->\n      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">\n        <div class="bg-white rounded-lg shadow-lg p-6">\n          <h3 class="text-xl font-semibold text-gray-900 mb-4">Welcome</h3>\n          <p class="text-gray-600">Start building your ${appName} app with modular Vue.js components.</p>\n        </div>\n        <div class="bg-white rounded-lg shadow-lg p-6">\n          <h3 class="text-xl font-semibold text-gray-900 mb-4">Features</h3>\n          <p class="text-gray-600">Add your app-specific features and functionality here.</p>\n        </div>\n        <div class="bg-white rounded-lg shadow-lg p-6">\n          <h3 class="text-xl font-semibold text-gray-900 mb-4">Components</h3>\n          <p class="text-gray-600">Build reusable atomic components for your ${appName} app.</p>\n        </div>\n      </div>\n    </div>\n  </div>\n</template>\n\n<script setup lang="ts">\nimport { ref, onMounted } from 'vue'\nimport { use${appName.charAt(0).toUpperCase() + appName.slice(1)}Store } from '../stores/${appName}'\n\n// Store\nconst ${appName}Store = use${appName.charAt(0).toUpperCase() + appName.slice(1)}Store()\n\n// App state\nconst appTitle = ref('${appName.charAt(0).toUpperCase() + appName.slice(1)} App')\n\n// App lifecycle\nonMounted(() => {\n  console.log('${appName} app mounted')\n  // Add any initialization logic here\n})\n\n// App methods\n// Add your app-specific methods here\n<\/script>\n\n<style scoped>\n/* ${appName} app styles */\n.fade-in {\n  animation: fadeIn 0.5s ease-in;\n}\n\n@keyframes fadeIn {\n  from { opacity: 0; transform: translateY(20px); }\n  to { opacity: 1; transform: translateY(0); }\n}\n</style>\n`
-    }
-  ]
 
-  // Create all files for the new app
-  for (const file of appStructure) {
-    emit('createFile', file)
-  }
-
-  newAppName.value = ''
-  newAppDescription.value = ''
-  showNewAppForm.value = false
-}
+// Derive current app slug from the selected directory title (e.g., "Home App" -> "home")
+const currentAppFromDirectory = computed(() => {
+  if (!currentDirectory.value) return ''
+  return currentDirectory.value.replace(' App', '').toLowerCase()
+})
 
 const createVueView = async () => {
   if (!isValidViewName.value) return
   
   const viewName = newViewName.value.trim()
-  const routePath = newViewRoute.value.trim() || `/${viewName.toLowerCase()}`
+  const routePath = `/${viewName.toLowerCase()}`
   
   const viewContent = `<template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12">
@@ -908,7 +737,8 @@ onMounted(() => {
 </style>
 `
 
-  const appPath = newViewSelectedApp.value ? `apps/${newViewSelectedApp.value}` : 'views'
+  const appSlug = currentAppFromDirectory.value || newViewSelectedApp.value
+  const appPath = appSlug ? `apps/${appSlug}` : 'views'
   
   emit('createFile', {
     name: `frontend/vuejs/src/${appPath}/views/${viewName}.vue`,
@@ -964,7 +794,8 @@ const message = ref('Hello from ${componentName}!')
 </style>
 `
 
-  const appPath = newComponentSelectedApp.value ? `apps/${newComponentSelectedApp.value}` : 'components'
+  const appSlug = currentAppFromDirectory.value || newComponentSelectedApp.value
+  const appPath = appSlug ? `apps/${appSlug}` : 'components'
   
   emit('createFile', {
     name: `frontend/vuejs/src/${appPath}/components/${newComponentType.value}/${componentName}.vue`,

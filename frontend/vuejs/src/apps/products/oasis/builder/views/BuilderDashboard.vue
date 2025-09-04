@@ -263,9 +263,10 @@
                       <!-- Modern Search Input -->
                       <div class="mb-4 flex justify-center">
                         <div class="w-full max-w-md">
-                          <ProjectSearchInput 
+                          <SearchInput 
                             v-model="searchQuery"
                             placeholder="Search projects"
+                            variant="project"
                           />
                         </div>
                       </div>
@@ -403,7 +404,7 @@ import { ProjectCard } from '@/apps/products/oasis/builder/components/molecules'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useConfirm } from '../composables/useConfirm'
 import { useNotificationStore } from '@/shared/stores/notificationStore'
-import ProjectSearchInput from '../components/atoms/ProjectSearchInput.vue'
+import { SearchInput } from '../components/atoms'
 import { useProjectSearch } from '../composables/useProjectSearch'
 import type { Project } from '../types/components' 
 import { normalizeProject } from '../types/components' // Use the normalizeProject from components.ts

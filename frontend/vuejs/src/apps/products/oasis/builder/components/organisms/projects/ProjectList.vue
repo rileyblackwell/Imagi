@@ -101,16 +101,12 @@
           <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
         </div>
         <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
-        <ActionButton 
-          title="Try Again"
-          icon="fa-redo"
-          variant="secondary" 
+        <GradientButton
           @click="$emit('retry')"
-          class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 text-white rounded-xl shadow-lg hover:shadow-indigo-500/20 transform hover:-translate-y-1 transition-all duration-300"
         >
           <i class="fas fa-sync-alt mr-2"></i>
           Try Again
-        </ActionButton>
+        </GradientButton>
       </div>
 
       <div v-else class="flex flex-col items-center justify-center py-16">
@@ -133,7 +129,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ProjectCard from '../../molecules/cards/ProjectCard.vue'
-import { ActionButton } from '@/shared/components/atoms'
+import { GradientButton } from '@/shared/components/atoms'
 import type { Project } from '../../../types/components'
 import type { ProjectListProps } from '../../../types/components'
 

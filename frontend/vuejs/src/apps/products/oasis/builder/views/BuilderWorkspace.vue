@@ -35,77 +35,13 @@
 
       <!-- Modern Dark-themed Main Content Area -->
       <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
-        <!-- Enhanced sophisticated dark background with enhanced effects matching About page -->
-        <div class="absolute inset-0 pointer-events-none overflow-hidden">
-          <!-- Enhanced Pattern Overlay -->
-          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-          <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-          <div class="absolute inset-0 bg-gradient-to-br from-dark-950/10 via-dark-900 to-violet-950/10"></div>
-          
-          <!-- Enhanced Glowing Orbs Animation -->
-          <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
-          <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[120px] animate-float-delay"></div>
-          
-          <!-- Animated Lines and Particles -->
-          <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
-          <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
-        </div>
+        <WorkspaceBackground />
         
         <!-- Subtle top border for definition -->
         <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
 
         <!-- Enhanced Error State Display -->
-        <div v-if="store.error" class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
-          <div class="flex flex-col items-center justify-center h-full p-12 text-center">
-            <!-- Modern Error Container -->
-            <div class="relative group max-w-xl w-full transform transition-all duration-300 hover:-translate-y-1">
-              <!-- Enhanced glassmorphism Error Card -->
-              <div class="absolute -inset-0.5 rounded-2xl opacity-70 bg-gradient-to-r from-red-500/50 to-rose-500/50 blur-md"></div>
-              <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/95 via-dark-900/90 to-dark-800/95 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                <!-- Sleek gradient header -->
-                <div class="h-1 w-full bg-gradient-to-r from-red-400 via-rose-400 to-red-400 opacity-80"></div>
-                
-                <!-- Subtle background effects -->
-                <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-red-400/4 to-rose-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
-                
-                <div class="relative z-10 p-8">
-                  <!-- Modern pill badge -->
-                  <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500/15 to-rose-500/15 border border-red-400/20 rounded-full mb-6 backdrop-blur-sm mx-auto">
-                    <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2 animate-pulse"></div>
-                    <span class="text-red-300 font-medium text-xs tracking-wide uppercase">Workspace Error</span>
-                  </div>
-                  
-                  <!-- Error Icon -->
-                  <div class="w-16 h-16 bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
-                  </div>
-                  
-                  <!-- Error Content -->
-                  <h2 class="text-2xl font-semibold text-white mb-4">Something went wrong</h2>
-                  <p class="text-gray-300 mb-8 leading-relaxed">{{ store.error }}</p>
-                  
-                  <!-- Action Buttons -->
-                  <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <router-link
-                      to="/products/oasis/builder/dashboard"
-                      class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 transform hover:-translate-y-1"
-                    >
-                      <i class="fas fa-arrow-left mr-2"></i>
-                      Go to Dashboard
-                    </router-link>
-                    <button
-                      @click="retryProjectLoad"
-                      class="inline-flex items-center justify-center px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-400/30 text-gray-300 hover:text-white font-medium rounded-xl transition-all duration-200"
-                    >
-                      <i class="fas fa-sync-alt mr-2"></i>
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
         
         <!-- Enhanced ChatGPT-like Interface -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
@@ -127,59 +63,33 @@
               </div>
 
               <!-- Simple: App Gallery for non-technical users -->
-              <div v-if="appsViewMode === 'simple'" class="flex-1 min-h-0 relative grid grid-cols-1 gap-4 overflow-hidden auto-rows-[minmax(0,1fr)]">
-                <!-- App Section -->
-                <div class="rounded-2xl border bg-dark-800/60 backdrop-blur-md border-dark-700/60 flex flex-col h-full min-h-0">
-                  <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-dark-900/50">
-                  <div class="text-[11px] font-medium tracking-wide uppercase text-white/70"></div>
-                  <div class="flex items-center gap-2"></div>
-                </div>
-                  <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-                  <div class="p-2 flex-1 min-h-0 overflow-hidden">
-                    <AppGallery
-                    class="h-full"
-                    :files="store.files || []"
-                    :project-id="projectId || ''"
-                    :version-history="versionHistory"
-                    :is-loading-versions="isLoadingVersions"
-                    :selected-version-hash="selectedVersionHash"
-                    @selectFile="handleFileSelect"
-                    @createApp="handleCreateAppFromGallery"
-                    @preview="handlePreview"
-                    @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
-                    @version-select="onVersionSelect"
-                    @version-reset="handleVersionReset"
-                    />
-                  </div>
-                </div>
-              </div>
+              <WorkspaceAppsSimple
+                v-if="appsViewMode === 'simple'"
+                :files="store.files || []"
+                :project-id="projectId || ''"
+                :version-history="versionHistory"
+                :is-loading-versions="isLoadingVersions"
+                :selected-version-hash="selectedVersionHash"
+                @selectFile="handleFileSelect"
+                @createApp="handleCreateAppFromGallery"
+                @preview="handlePreview"
+                @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
+                @version-select="onVersionSelect"
+                @version-reset="handleVersionReset"
+              />
 
               <!-- Advanced: full file explorer -->
-              <div v-else class="flex-1 min-h-0 relative rounded-2xl border overflow-hidden bg-dark-800/60 backdrop-blur-md border-dark-700/60">
-                <!-- Advanced header with Back button -->
-                <div class="flex items-center justify-between p-2 border-b border-white/10 bg-dark-900/50">
-                  <button
-                    class="text-xs px-2 py-1 rounded-md border border-white/10 text-gray-200 hover:text-white hover:bg-white/10 transition"
-                    @click="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
-                  >
-                    <i class="fas fa-arrow-left mr-1"></i> Back
-                  </button>
-                  <div class="text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">Advanced</div>
-                </div>
-                <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-                <div class="p-2 h-[calc(100%-2px)] min-h-0 overflow-y-auto">
-                  <FileExplorer
-                    :files="advancedFiles || []"
-                    :selected-file="store.selectedFile || null"
-                    :file-types="fileTypes"
-                    :show-new-form="false"
-                    :project-id="projectId || ''"
-                    @select-file="handleFileSelect"
-                    @create-file="handleFileCreate"
-                    @delete-file="handleFileDelete"
-                  />
-                </div>
-              </div>
+              <WorkspaceAppsAdvanced
+                v-else
+                :files="advancedFiles || []"
+                :selected-file="store.selectedFile || null"
+                :file-types="fileTypes"
+                :project-id="projectId || ''"
+                @back="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
+                @select-file="handleFileSelect"
+                @create-file="handleFileCreate"
+                @delete-file="handleFileDelete"
+              />
 
               <!-- Compact chat input section fixed below Apps area -->
               <div class="mt-4">
@@ -254,14 +164,18 @@ import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
 import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
-import { WorkspaceChat } from '../components/organisms/workspace'
-import FileExplorer from '../components/molecules/sidebar/FileExplorer.vue'
-import AppGallery from '../components/organisms/workspace/AppGallery.vue'
+import { 
+  WorkspaceChat,
+  WorkspaceBackground,
+  WorkspaceError,
+  WorkspaceAppsSimple,
+  WorkspaceAppsAdvanced
+} from '../components/organisms/workspace'
 // Set component name
 defineOptions({ name: 'BuilderWorkspace' })
 
 // Types
-import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
+import type { ProjectFile, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
 
 // Ensure all services use the shared API client with proper timeout configurations
@@ -390,72 +304,7 @@ async function onVersionSelect() {
   }
 }
 
-async function handleCreateViewFromGallery(appName: string) {
-  try {
-    const viewNameRaw = window.prompt('Page name (PascalCase, e.g., AboutPage):', 'AboutPage') || ''
-    const viewName = viewNameRaw.trim()
-    if (!viewName || !/^[A-Za-z][A-Za-z0-9]*$/.test(viewName)) return
-    const content =
-      '<template>\n' +
-      '  <div class="min-h-screen bg-white">\n' +
-      '    <div class="max-w-4xl mx-auto p-8">\n' +
-      '      <h1 class="text-3xl font-semibold">' + viewName + '</h1>\n' +
-      '      <p class="text-gray-600 mt-2">Starter page for ' + viewName + '.</p>\n' +
-      '    </div>\n' +
-      '  </div>\n' +
-      '</template>\n\n' +
-      '<' + 'script setup lang="ts">\n' +
-      '</' + 'script>\n'
-
-    await createFile({
-      projectId: projectId.value,
-      name: `frontend/vuejs/src/apps/${appName}/views/${viewName}.vue`,
-      type: 'vue',
-      content,
-    })
-
-    await loadProjectFiles(true)
-  } catch (e) {
-    console.error('Error creating view from gallery:', e)
-  }
-}
-
-async function handleCreateComponentFromGallery(appName: string) {
-  try {
-    const componentNameRaw = window.prompt('Component name (PascalCase):', 'PrimaryButton') || ''
-    const componentName = componentNameRaw.trim()
-    if (!componentName || !/^[A-Za-z][A-Za-z0-9]*$/.test(componentName)) return
-    const type = (window.prompt('Type (atoms, molecules, organisms):', 'atoms') || 'atoms').toLowerCase()
-    const valid = ['atoms', 'molecules', 'organisms']
-    const dir = valid.includes(type) ? type : 'atoms'
-
-    const content =
-      '<template>\n' +
-      '  <div class="' + componentName.toLowerCase() + '-component">\n' +
-      '    <slot />\n' +
-      '  </div>\n' +
-      '</template>\n\n' +
-      '<' + 'script setup lang="ts">\n' +
-      '</' + 'script>\n\n' +
-      '<style scoped>\n' +
-      '.' + componentName.toLowerCase() + '-component { }\n' +
-      '</' + 'style>\n'
-
-    await createFile({
-      projectId: projectId.value,
-      name: `frontend/vuejs/src/apps/${appName}/components/${dir}/${componentName}.vue`,
-      type: 'vue',
-      content,
-    })
-
-    await loadProjectFiles(true)
-  } catch (e) {
-    console.error('Error creating component from gallery:', e)
-  }
-}
-
 // Local state
-const currentEditorMode = ref<EditorMode>('split')
 const prompt = ref('')
 const showAppsInMain = ref(true)
 const appsViewMode = ref<'simple' | 'advanced'>('simple')
@@ -475,17 +324,6 @@ const navigationItems: any[] = [] // Empty array to remove sidebar navigation bu
 // Computed properties
 const currentProject = computed(() => {
   return projectStore.currentProject || null
-})
-
-// Apps count (unique apps derived from files) used in the Apps header
-const appsCount = computed(() => {
-  const apps = new Set<string>()
-  ;(store.files || []).forEach((file: any) => {
-    const path = String(file.path || '').toLowerCase().replace(/\\/g, '/')
-    const match = path.match(/\/src\/apps\/([^\/]+)\//)
-    if (match) apps.add(match[1])
-  })
-  return apps.size
 })
 
 const promptExamplesComputed = computed(() => {
@@ -518,27 +356,6 @@ const navbarDescSanitized = computed(() => {
     ? String((currentProject.value as any).description)
     : ''
   return raw.trim()
-})
-
-// Shared files: anything under src/shared/
-const sharedFiles = computed(() => {
-  const files = (store.files || []) as any[]
-  return files.filter((f: any) => {
-    const p = String(f.path || '').replace(/\\/g, '/').toLowerCase()
-    return p.includes('/src/shared/')
-  }) as unknown as ProjectFile[]
-})
-
-// Global files: top-level src files and directories that are not apps/ or shared/
-const globalFiles = computed(() => {
-  const files = (store.files || []) as any[]
-  return files.filter((f: any) => {
-    const p = String(f.path || '').replace(/\\/g, '/').toLowerCase()
-    if (!p.includes('/src/')) return false
-    if (p.includes('/src/apps/')) return false
-    if (p.includes('/src/shared/')) return false
-    return true
-  }) as unknown as ProjectFile[]
 })
 
 // Refresh files and clear any selection on version reset
@@ -644,7 +461,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     const timestamp = eventData?.timestamp || new Date().toISOString()
     
     // Get payments store for updating balance
-    const paymentsStore = usePaymentStore()
     const balanceStore = useBalanceStore()
     
     // Mark that a transaction is about to happen to ensure fresh balance data
