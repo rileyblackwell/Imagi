@@ -128,8 +128,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
-
 const props = defineProps({
   project: {
     type: Object,
@@ -145,14 +143,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits([
-  'start-edit',
-  'save-description', 
-  'cancel-edit',
-  'delete',
-  'open',
-  'update:editedDescription'
-]);
+const emit = defineEmits(['start-edit', 'save-description', 'cancel-edit', 'delete', 'open', 'update:editedDescription']);
 
 function formatDate(date) {
   if (!date) return 'Never updated';
@@ -175,4 +166,4 @@ function formatDate(date) {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-</style> 
+</style>
