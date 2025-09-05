@@ -27,6 +27,12 @@ from apps.Products.Oasis.ProjectManager.services.project_creation_service import
 from rest_framework.exceptions import NotFound
 from apps.Products.Oasis.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
+from ..services.create_app_service import CreateAppService
+from ..services.create_page_service import CreatePageService
+from ..services.create_component_service import CreateComponentService
+from ..services.create_app_service import CreateAppService
+from ..services.create_page_service import CreatePageService
+from ..services.create_component_service import CreateComponentService
 
 logger = logging.getLogger(__name__)
 
@@ -666,3 +672,179 @@ class VersionControlResetView(APIView):
                 'success': False,
                 'error': f"Error resetting project: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(never_cache, name='dispatch')
+class CreateAppView(APIView):
+    """Create a new Vue.js app with complete structure."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Create a new app from gallery or ensure default apps."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            action = request.data.get('action', 'create_app')  # 'create_app' or 'ensure_defaults'
+            app_name = request.data.get('app_name', '')
+            app_description = request.data.get('app_description', '')
+            
+            # Initialize service
+            app_service = CreateAppService(user=self.request.user, project=project)
+            
+            if action == 'ensure_defaults':
+                # Ensure default apps exist
+                result = app_service.ensure_default_apps()
+            else:
+                # Create new app from gallery
+                if not app_name:
+                    return Response(
+                        {'error': 'App name is required for app creation'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                result = app_service.create_app_from_gallery(
+                    app_name=app_name,
+                    app_description=app_description
+                )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error creating app: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class CreatePageView(APIView):
+    """Create a new Vue.js page/view within an app."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Create a new page in an app."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            app_name = request.data.get('app_name', '')
+            page_name = request.data.get('page_name', '')
+            page_type = request.data.get('page_type', 'view')  # 'view', 'component', 'layout'
+            route_path = request.data.get('route_path', None)  # Optional custom route
+            
+            if not app_name or not page_name:
+                return Response(
+                    {'error': 'App name and page name are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Initialize service
+            page_service = CreatePageService(user=self.request.user, project=project)
+            
+            # Create page with or without custom route
+            if route_path:
+                result = page_service.create_page_with_route(
+                    app_name=app_name,
+                    page_name=page_name,
+                    route_path=route_path
+                )
+            else:
+                result = page_service.create_page(
+                    app_name=app_name,
+                    page_name=page_name,
+                    page_type=page_type
+                )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error creating page: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class CreateComponentView(APIView):
+    """Create a new Vue.js atomic component."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Create a new atomic component."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            app_name = request.data.get('app_name', '')
+            component_name = request.data.get('component_name', '')
+            component_type = request.data.get('component_type', 'atom')  # 'atom', 'molecule', 'organism'
+            component_variant = request.data.get('component_variant', 'generic')  # 'generic', 'button', 'input'
+            
+            if not app_name or not component_name:
+                return Response(
+                    {'error': 'App name and component name are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Initialize service
+            component_service = CreateComponentService(user=self.request.user, project=project)
+            
+            # Create component based on variant
+            if component_variant == 'button':
+                result = component_service.create_button_component(
+                    app_name=app_name,
+                    button_name=component_name
+                )
+            elif component_variant == 'input':
+                result = component_service.create_input_component(
+                    app_name=app_name,
+                    input_name=component_name
+                )
+            else:
+                result = component_service.create_atomic_component(
+                    app_name=app_name,
+                    component_name=component_name,
+                    component_type=component_type
+                )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error creating component: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

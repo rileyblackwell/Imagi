@@ -153,6 +153,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { PreviewService } from '../services/previewService'
+import { BuilderCreationService } from '../services/builderCreationService'
 import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
@@ -212,57 +213,27 @@ async function handleCreateAppFromGallery() {
     if (!appName || !/^[a-z][a-z0-9]*$/.test(appName)) return
     const appDescription = window.prompt('Short description (optional):', '') || ''
 
-    const cap = appName.charAt(0).toUpperCase() + appName.slice(1)
-    const appWelcome = (appDescription && appDescription.trim()) ? appDescription : ('Welcome to the ' + appName + ' app.')
-    const filesToCreate = [
-      {
-        name: 'frontend/vuejs/src/apps/' + appName + '/index.ts',
-        type: 'typescript',
-        content: '// ' + appName + ' app entry point\nexport * from \'./router\'\nexport * from \'./stores\'\nexport * from \'./components\'\nexport * from \'./views\'\n'
-      },
-      {
-        name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
-        type: 'typescript',
-        content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}View from '../views/${cap}View.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-view',\n    component: ${cap}View,\n    meta: { requiresAuth: false, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
-      },
-      {
-        name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`,
-        type: 'typescript',
-        content: `export * from './${appName}'\n`
-      },
-      {
-        name: `frontend/vuejs/src/apps/${appName}/stores/${appName}.ts`,
-        type: 'typescript',
-        content: `import { defineStore } from 'pinia'\nimport { ref } from 'vue'\n\nexport const use${cap}Store = defineStore('${appName}', () => {\n  const loading = ref(false)\n  const setLoading = (v: boolean) => (loading.value = v)\n  return { loading, setLoading }\n})\n`
-      },
-      { name: `frontend/vuejs/src/apps/${appName}/components/index.ts`, type: 'typescript', content: `export * from './atoms'\nexport * from './molecules'\nexport * from './organisms'\n` },
-      { name: `frontend/vuejs/src/apps/${appName}/components/atoms/index.ts`, type: 'typescript', content: `// atoms\n` },
-      { name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`, type: 'typescript', content: `// molecules\n` },
-      { name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`, type: 'typescript', content: `// organisms\n` },
-      {
-        name: `frontend/vuejs/src/apps/${appName}/views/${cap}View.vue`,
-        type: 'vue',
-        content:
-          '<template>\n' +
-          '  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12">\n' +
-          '    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">\n' +
-          '      <div class="text-center mb-16">\n' +
-          '        <h1 class="text-5xl font-bold text-gray-900 mb-6">' + cap + ' App</h1>\n' +
-          '        <p class="text-xl text-gray-600 max-w-3xl mx-auto">' + appWelcome + '</p>\n' +
-          '      </div>\n' +
-          '    </div>\n' +
-          '  </div>\n' +
-          '</template>\n\n' +
-          '<' + 'script setup lang="ts">\n' +
-          '</' + 'script>\n'
-      }
-    ]
+    // Call the backend API to create the app
+    const result = await BuilderCreationService.createAppFromGallery(
+      projectId.value,
+      appName,
+      appDescription
+    )
 
-    for (const f of filesToCreate) {
-      await createFile({ projectId: projectId.value, ...f })
+    if (result.success) {
+      console.log('App created successfully:', result.message)
+      // Reload project files to show the new app
+      await loadProjectFiles(true)
+    } else {
+      console.error('Failed to create app:', result.error)
+      // Show error notification to user
+      const { showNotification } = useNotification()
+      showNotification({
+        type: 'error',
+        message: result.error || 'Failed to create app',
+        duration: 5000
+      })
     }
-
-    await loadProjectFiles(true)
   } catch (e) {
     console.error('Error creating app from gallery:', e)
   }
@@ -911,69 +882,17 @@ async function handlePreview() {
 // Ensure default apps exist for every new project
 async function ensureDefaultApps() {
   try {
-    const requiredApps = ['home', 'auth', 'payments']
-    const existingApps = new Set<string>()
-    ;(store.files || []).forEach((file: any) => {
-      const path = String(file.path || '').toLowerCase().replace(/\\/g, '/')
-      const match = path.match(/\/src\/apps\/([^\/]+)\//)
-      if (match) existingApps.add(match[1])
-    })
+    // Call the backend API to ensure default apps exist
+    const result = await BuilderCreationService.ensureDefaultApps(projectId.value)
 
-    const missing = requiredApps.filter(a => !existingApps.has(a))
-    if (missing.length === 0) return
-
-    for (const appName of missing) {
-      const cap = appName.charAt(0).toUpperCase() + appName.slice(1)
-      const filesToCreate = [
-        {
-          name: `frontend/vuejs/src/apps/${appName}/index.ts`,
-          type: 'typescript',
-          content: `// ${cap} app exports\nexport * from './router'\nexport * from './stores'\nexport * from './components'\nexport * from './views'\n`
-        },
-        {
-          name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
-          type: 'typescript',
-          content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}View from '../views/${cap}View.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-view',\n    component: ${cap}View,\n    meta: { requiresAuth: ${appName === 'auth' ? 'false' : 'false'}, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
-        },
-        { name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`, type: 'typescript', content: `export * from './${appName}'\n` },
-        {
-          name: `frontend/vuejs/src/apps/${appName}/stores/${appName}.ts`,
-          type: 'typescript',
-          content: `import { defineStore } from 'pinia'\nimport { ref } from 'vue'\n\nexport const use${cap}Store = defineStore('${appName}', () => {\n  const loading = ref(false)\n  function setLoading(v: boolean) { loading.value = v }\n  return { loading, setLoading }\n})\n`
-        },
-        { name: `frontend/vuejs/src/apps/${appName}/components/index.ts`, type: 'typescript', content: `export * from './atoms'\nexport * from './molecules'\nexport * from './organisms'\n` },
-        { name: `frontend/vuejs/src/apps/${appName}/components/atoms/index.ts`, type: 'typescript', content: `// atoms\n` },
-        { name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`, type: 'typescript', content: `// molecules\n` },
-        { name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`, type: 'typescript', content: `// organisms\n` },
-        {
-          name: `frontend/vuejs/src/apps/${appName}/views/${cap}View.vue`,
-          type: 'vue',
-          content:
-            '<template>\n' +
-            '  <div class="min-h-screen bg-white">\n' +
-            '    <div class="max-w-4xl mx-auto p-8">\n' +
-            `      <h1 class="text-3xl font-semibold">${cap} App</h1>\n` +
-            `      <p class="text-gray-600 mt-2">Welcome to the ${appName} app.</p>\n` +
-            '    </div>\n' +
-            '  </div>\n' +
-            '</template>\n\n' +
-            '<' + 'script setup lang="ts">\n' +
-            '</' + 'script>\n'
-        }
-      ]
-
-      for (const f of filesToCreate) {
-        try {
-          await createFile({ projectId: projectId.value, ...f })
-        } catch (e) {
-          // Ignore if file already exists or creation fails non-critically
-          console.warn('ensureDefaultApps createFile warning:', e)
-        }
-      }
+    if (result.success) {
+      console.log('Default apps ensured:', result.message)
+      // Reload project files to show any newly created default apps
+      await loadProjectFiles(true)
+    } else {
+      console.warn('Failed to ensure default apps:', result.error)
+      // Don't show error notification for this as it's not critical
     }
-
-    // Reload files after seeding defaults
-    await loadProjectFiles(true)
   } catch (e) {
     console.error('Error ensuring default apps:', e)
   }
