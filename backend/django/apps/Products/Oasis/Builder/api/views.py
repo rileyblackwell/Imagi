@@ -25,7 +25,6 @@ from apps.Products.Oasis.ProjectManager.models import Project as PMProject
 from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound
-from ..services.project_service import ProjectService
 from apps.Products.Oasis.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
 
@@ -436,182 +435,6 @@ class DeleteFileView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@method_decorator(never_cache, name='dispatch')
-class DirectoryView(APIView):
-    """Get all files in a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get all files in a project directory structure."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Use ProjectService to get Django template and static files
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed
-            project_service.initialize_project_files()
-            
-            # Get Django template and static files
-            template_files = project_service.list_template_files()
-            static_files = project_service.list_static_files()
-            
-            # Also use FileService to get Vue.js frontend files
-            from ..services.file_service import FileService
-            file_service = FileService(project=project)
-            vue_files = file_service.list_files(project_id)
-            
-            # Combine all files: Django templates/static + Vue.js files
-            all_files = template_files + static_files + vue_files
-            
-            # Log result for debugging
-            logger.info(f"Found {len(all_files)} total files for project {project.id} (templates: {len(template_files)}, static: {len(static_files)}, vue: {len(vue_files)})")
-            
-            return Response(all_files, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting project files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class TemplateFilesView(APIView):
-    """Get template files for a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get all template files for a project."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Use ProjectService to get template files
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed
-            project_service.initialize_project_files()
-            
-            # Get template files
-            template_files = project_service.list_template_files()
-            
-            # Log result
-            logger.info(f"Found {len(template_files)} template files for project {project.id}")
-            
-            return Response(template_files, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting template files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class StaticFilesView(APIView):
-    """Get static files for a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get all static files for a project."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Use ProjectService to get static files
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed
-            project_service.initialize_project_files()
-            
-            # Get static files
-            static_files = project_service.list_static_files()
-            
-            # Log result
-            logger.info(f"Found {len(static_files)} static files for project {project.id}")
-            
-            return Response(static_files, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting static files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class ProjectDetailsView(APIView):
-    """Get project details including file counts."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get detailed information about a project."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Use ProjectService to get project details
-            project_service = ProjectService(user=request.user, project=project)
-            project_details = project_service.get_project_details()
-            
-            return Response(project_details, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting project details: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 @method_decorator(never_cache, name='dispatch')
 class FileUndoView(APIView):
@@ -648,12 +471,6 @@ class FileUndoView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # First check if the file exists using ProjectService
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed (in case directories don't exist)
-            project_service.initialize_project_files()
-                
             # Call the appropriate service to handle the undo
             project_management_service = ProjectManagementService(request.user)
             

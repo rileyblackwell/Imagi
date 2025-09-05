@@ -5,10 +5,9 @@ URL patterns for the Builder app API.
 from django.urls import path
 
 from .views import (
-   AIModelsView, CreateFileView, DeleteFileView,
-    DirectoryView, FileContentView, 
-    PreviewView, ProjectDetailsView, 
-    StaticFilesView, TemplateFilesView,
+    AIModelsView, CreateFileView, DeleteFileView,
+    FileContentView, 
+    PreviewView, 
     VersionControlHistoryView, VersionControlResetView
 )
 
@@ -21,13 +20,7 @@ urlpatterns = [
     path('<int:project_id>/files/<path:file_path>/content/', FileContentView.as_view(), name='api-file-content'),
     path('<int:project_id>/files/<path:file_path>/delete/', DeleteFileView.as_view(), name='api-delete-file'),
     
-    # Directory management endpoints
-    path('<int:project_id>/directories/', DirectoryView.as_view(), name='api-directories'),
-    
-    # New endpoints for separate file type management
-    path('<int:project_id>/templates/', TemplateFilesView.as_view(), name='api-templates'),
-    path('<int:project_id>/static/', StaticFilesView.as_view(), name='api-static'),
-    path('<int:project_id>/details/', ProjectDetailsView.as_view(), name='api-project-details'),
+    # Directory and file-type endpoints removed (ProjectService deprecated)
     
     # Model selection endpoint
     path('models/', AIModelsView.as_view(), name='api-ai-models'),
