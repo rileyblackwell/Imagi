@@ -223,7 +223,7 @@ async function handleCreateAppFromGallery() {
       {
         name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
         type: 'typescript',
-        content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}Home from '../views/${cap}Home.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-home',\n    component: ${cap}Home,\n    meta: { requiresAuth: false, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
+        content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}View from '../views/${cap}View.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-view',\n    component: ${cap}View,\n    meta: { requiresAuth: false, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
       },
       {
         name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`,
@@ -240,7 +240,7 @@ async function handleCreateAppFromGallery() {
       { name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`, type: 'typescript', content: `// molecules\n` },
       { name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`, type: 'typescript', content: `// organisms\n` },
       {
-        name: `frontend/vuejs/src/apps/${appName}/views/${cap}Home.vue`,
+        name: `frontend/vuejs/src/apps/${appName}/views/${cap}View.vue`,
         type: 'vue',
         content:
           '<template>\n' +
@@ -933,7 +933,7 @@ async function ensureDefaultApps() {
         {
           name: `frontend/vuejs/src/apps/${appName}/router/index.ts`,
           type: 'typescript',
-          content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}Home from '../views/${cap}Home.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-home',\n    component: ${cap}Home,\n    meta: { requiresAuth: ${appName === 'auth' ? 'false' : 'false'}, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
+          content: `import type { RouteRecordRaw } from 'vue-router'\n\nimport ${cap}View from '../views/${cap}View.vue'\n\nconst routes: RouteRecordRaw[] = [\n  {\n    path: '/${appName}',\n    name: '${appName}-view',\n    component: ${cap}View,\n    meta: { requiresAuth: ${appName === 'auth' ? 'false' : 'false'}, title: '${cap}' }\n  }\n]\n\nexport { routes }\n`
         },
         { name: `frontend/vuejs/src/apps/${appName}/stores/index.ts`, type: 'typescript', content: `export * from './${appName}'\n` },
         {
@@ -946,7 +946,7 @@ async function ensureDefaultApps() {
         { name: `frontend/vuejs/src/apps/${appName}/components/molecules/index.ts`, type: 'typescript', content: `// molecules\n` },
         { name: `frontend/vuejs/src/apps/${appName}/components/organisms/index.ts`, type: 'typescript', content: `// organisms\n` },
         {
-          name: `frontend/vuejs/src/apps/${appName}/views/${cap}Home.vue`,
+          name: `frontend/vuejs/src/apps/${appName}/views/${cap}View.vue`,
           type: 'vue',
           content:
             '<template>\n' +
