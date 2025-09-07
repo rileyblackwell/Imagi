@@ -260,7 +260,8 @@ export const AgentService = {
       return {
         response: response.data.response,
         messages: response.data.messages || [],
-        conversation_id: response.data.conversation_id
+        conversation_id: response.data.conversation_id,
+        single_message: response.data.single_message || false
       } as ChatResponse; // Cast to ensure TS is happy
     } catch (error: any) {
       // Enhanced error logging
@@ -488,8 +489,8 @@ export const AgentService = {
       throw new Error('Prompt, project ID, and file path are required');
     }
     
-    // Use the provided model or default to claude-3-7-sonnet-20250219
-    const modelId = model || 'claude-3-7-sonnet-20250219';
+    // Use the provided model or default to claude-sonnet-4-20250514
+    const modelId = model || 'claude-sonnet-4-20250514';
     
     try {
       // Get conversation ID if available

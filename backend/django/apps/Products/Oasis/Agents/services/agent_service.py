@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env
 load_dotenv()
-openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
-anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
+openai_key = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
+anthropic_key = os.getenv('ANTHROPIC_KEY') or getattr(settings, 'ANTHROPIC_KEY', None)
 
 # Define MODEL_COSTS dictionary with costs per model - imported from model_definitions.py for backward compatibility
 # New code should use get_model_cost() function instead of accessing this dictionary directly
@@ -111,17 +111,24 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
         "content": project_info
     })
     
-    # Add current file info (name and content)
-    if current_file and current_file.get('path') and current_file.get('content'):
-        messages.append({
-            "role": "system",
-            "content": f"CURRENTLY WORKING WITH FILE: {current_file.get('path')}\n\nCONTENT:\n{current_file.get('content')}"
-        })
+    # Add current file info (name and content if available)
+    if current_file and current_file.get('path'):
+        if current_file.get('content'):
+            messages.append({
+                "role": "system",
+                "content": f"CURRENTLY WORKING WITH FILE: {current_file.get('path')}\n\nCONTENT:\n{current_file.get('content')}"
+            })
+        else:
+            messages.append({
+                "role": "system",
+                "content": f"CURRENTLY WORKING WITH FILE: {current_file.get('path')}"
+            })
     
-    # Add all project files (HTML, CSS)
+    # Add all project files (HTML, CSS, Vue components/views)
     if project_path:
         templates_dir = os.path.join(project_path, 'templates')
         css_dir = os.path.join(project_path, 'static', 'css')
+        vue_src_dir = os.path.join(project_path, 'frontend', 'vuejs', 'src')
         if os.path.exists(templates_dir):
             html_files = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
             html_files.sort()
@@ -161,6 +168,39 @@ def build_conversation_history(conversation, project_path=None, current_file=Non
                 except FileNotFoundError:
                     logger.warning(f"File not found: {filename}")
                     continue
+        # Include Vue.js views and components (most recent from disk)
+        if os.path.exists(vue_src_dir):
+            vue_files = []
+            try:
+                # Recursively walk src, but only include .vue files under views/ and components/
+                for root, dirs, files in os.walk(vue_src_dir):
+                    rel_root = os.path.relpath(root, vue_src_dir)
+                    # Only include within views or components directories
+                    parts = rel_root.split(os.sep)
+                    if parts and parts[0] not in ('views', 'components'):
+                        continue
+                    for fname in files:
+                        if fname.endswith('.vue'):
+                            full_path = os.path.join(root, fname)
+                            rel_path = os.path.relpath(full_path, vue_src_dir)
+                            vue_files.append((rel_path, full_path))
+                # Sort with views first, then components, then alphabetical
+                vue_files.sort(key=lambda t: (0 if t[0].startswith('views'+os.sep) else 1, t[0]))
+                for rel_path, full_path in vue_files:
+                    # Skip if this is the same as the current_file shown already
+                    if current_file and current_file.get('path') and current_file.get('path').endswith(rel_path):
+                        continue
+                    try:
+                        with open(full_path, 'r') as f:
+                            content = f.read()
+                            messages.append({
+                                "role": "system",
+                                "content": f"[Vue File: {rel_path}]\n{content}"
+                            })
+                    except Exception as e:
+                        logger.warning(f"Error reading Vue file {rel_path}: {e}")
+            except Exception as e:
+                logger.warning(f"Error walking Vue src directory: {e}")
     
     # Add conversation history (all user and assistant messages)
     history_messages = AgentMessage.objects.filter(
@@ -266,11 +306,12 @@ class BaseAgentService(ABC):
             dict: A dictionary with 'role' and 'content' keys for the system prompt
         """
     
-    @abstractmethod
     def validate_response(self, content):
         """
         Validate that the response from the AI model is acceptable.
-        Must be implemented by subclasses to provide specialized validation.
+        
+        Default behavior: no-op that treats all responses as valid.
+        Subclasses may override to provide specialized validation.
         
         Args:
             content (str): The content to validate
@@ -278,6 +319,7 @@ class BaseAgentService(ABC):
         Returns:
             tuple: (is_valid, error_message)
         """
+        return True, None
     
     @abstractmethod
     def process_conversation(self, user_input, model, user, **kwargs):
@@ -346,11 +388,11 @@ class BaseAgentService(ABC):
             
             # Check if model is from OpenAI or Anthropic
             if 'gpt' in model_id:
-                openai_key = os.getenv('OPENAI_KEY') or settings.OPENAI_API_KEY
+                openai_key = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
                 if not openai_key:
                     return "OpenAI API key is not configured. Please set the OPENAI_KEY environment variable."
             elif 'claude' in model_id:
-                anthropic_key = os.getenv('ANTHROPIC_KEY') or settings.ANTHROPIC_API_KEY
+                anthropic_key = os.getenv('ANTHROPIC_KEY') or getattr(settings, 'ANTHROPIC_KEY', None)
                 if not anthropic_key:
                     return "Anthropic API key is not configured. Please set the ANTHROPIC_KEY environment variable."
             return None

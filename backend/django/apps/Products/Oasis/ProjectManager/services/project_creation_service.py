@@ -3,11 +3,13 @@ import shutil
 import subprocess
 import re
 import logging
+import threading
 from datetime import datetime
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from ..models import Project
 from django.utils import timezone
+from .codegen import templates as tpl
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +59,7 @@ class ProjectCreationService:
         return sanitized
 
     def _create_project_files(self, project):
-        """Create a new Django project using django-admin startproject"""
+        """Create a new full-stack project with VueJS frontend and Django backend"""
         # First, deactivate any existing active projects with the same name
         existing_projects = Project.objects.filter(
             user=self.user,
@@ -73,48 +75,31 @@ class ProjectCreationService:
         project_path = os.path.join(self.base_directory, unique_name)
         
         try:
-            logger.info(f"Creating project at: {project_path}")
+            logger.info(f"Creating full-stack project at: {project_path}")
             
-            # Create the project directory
+            # Create the main project directory
             os.makedirs(project_path, exist_ok=True)
             
-            # Use Django's startproject command to create the basic project structure
-            subprocess.run([
-                'django-admin', 'startproject', 
-                unique_name,  # Project name
-                project_path  # Destination directory
-            ], check=True)
+            # Create frontend and backend directories
+            frontend_path = os.path.join(project_path, 'frontend', 'vuejs')
+            backend_path = os.path.join(project_path, 'backend', 'django')
+            os.makedirs(frontend_path, exist_ok=True)
+            os.makedirs(backend_path, exist_ok=True)
             
-            # Create views.py in the project directory alongside settings.py
-            project_dir = os.path.join(project_path, unique_name)
-            views_path = os.path.join(project_dir, 'views.py')
-            with open(views_path, 'w') as f:
-                f.write(self._generate_basic_project_views_content())
+            # Create VueJS frontend
+            self._create_vuejs_frontend(frontend_path, project.name, project.description)
             
-            # Create necessary directories
-            os.makedirs(os.path.join(project_path, 'static', 'css'), exist_ok=True)
-            os.makedirs(os.path.join(project_path, 'templates'), exist_ok=True)
+            # Create Django backend
+            self._create_django_backend(backend_path, unique_name, project.name, project.description)
             
-            # Create Pipfile instead of requirements.txt
-            with open(os.path.join(project_path, 'Pipfile'), 'w') as f:
-                f.write(self._generate_pipfile_content())
+            # Clean up immediately after Django backend creation
+            self._cleanup_root_django_dirs(project_path)
             
-            # Create .gitignore
-            with open(os.path.join(project_path, '.gitignore'), 'w') as f:
-                f.write(self._generate_gitignore_content())
+            # Create root project files
+            self._create_root_project_files(project_path, project.name, project.description)
             
-            # Create README.md
-            with open(os.path.join(project_path, 'README.md'), 'w') as f:
-                f.write(self._generate_readme_content(project.name))
-            
-            # Create template and static files
-            self._create_default_files(project_path, project.name, project.description)
-            
-            # Update settings.py to include templates and static files directories
-            self._update_settings(project_path, unique_name)
-            
-            # Update urls.py to serve the index template
-            self._update_urls(project_path, unique_name)
+            # Final cleanup - remove any Django directories that may have been created in root
+            self._cleanup_root_django_dirs(project_path)
                 
             return project_path
         except Exception as e:
@@ -124,22 +109,245 @@ class ProjectCreationService:
                 shutil.rmtree(project_path, ignore_errors=True)
             raise
 
-    def _update_settings(self, project_path, project_name):
-        """Update the Django settings.py file to include templates and static files directories"""
-        settings_path = os.path.join(project_path, project_name, 'settings.py')
+    # Legacy methods removed - now using _create_django_backend for proper dual-stack structure
+
+    def _create_vuejs_frontend(self, frontend_path, project_name, project_description):
+        """Create VueJS frontend by delegating to templates module and install deps."""
+        logger.info(f"Creating VueJS frontend at: {frontend_path}")
+        tpl.create_vuejs_frontend_files(frontend_path, project_name, project_description)
+        # Install npm dependencies in background
+        npm_thread = self._install_vuejs_dependencies(frontend_path)
+    
+    
+    
+    def _install_vuejs_dependencies(self, frontend_path):
+        """Install npm dependencies for VueJS frontend in background"""
+        # Start npm install in background thread to not block project creation
+        def install_dependencies_background():
+            try:
+                logger.info(f"Background: Installing npm dependencies in: {frontend_path}")
+                
+                # Run npm install in the frontend directory
+                result = subprocess.run([
+                    'npm', 'install'
+                ], cwd=frontend_path, check=True, capture_output=True, text=True)
+                
+                logger.info(f"Background: npm install completed successfully in {frontend_path}")
+                logger.debug(f"Background: npm install output: {result.stdout}")
+                
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Background: Failed to install npm dependencies in {frontend_path}")
+                logger.error(f"Background: Error output: {e.stderr}")
+            except FileNotFoundError:
+                logger.warning(f"Background: npm command not found - dependencies not installed")
+                logger.warning(f"Background: Please run 'npm install' manually in {frontend_path}")
+            except Exception as e:
+                logger.error(f"Background: Unexpected error during npm install: {str(e)}")
+        
+        # Start background thread for dependency installation
+        logger.info(f"Starting background npm install for: {frontend_path}")
+        install_thread = threading.Thread(
+            target=install_dependencies_background,
+            name=f"npm-install-{os.path.basename(frontend_path)}",
+            daemon=True  # Thread will not prevent program exit
+        )
+        install_thread.start()
+        logger.info(f"npm install started in background - project creation can continue")
+        
+        # Optional: Store thread reference for status checking (not currently used)
+        # You could potentially use this to check if dependencies are still installing
+        return install_thread
+
+    def _create_django_backend(self, backend_path, unique_name, project_name, project_description):
+        """Create Django backend with DRF"""
+        logger.info(f"Creating Django backend at: {backend_path}")
+        
+        # Use Django's startproject command to create the basic project structure
+        # This creates the Django project inside the backend_path directory
+        subprocess.run([
+            'django-admin', 'startproject', 
+            unique_name,  # Project name
+            backend_path  # Destination directory - Django project files will be created here
+        ], check=True)
+        
+        # Create Django-specific directories ONLY within the backend directory
+        django_dirs = [
+            os.path.join(backend_path, 'static'),
+            os.path.join(backend_path, 'static', 'css'),
+            os.path.join(backend_path, 'static', 'js'),
+            os.path.join(backend_path, 'static', 'images'),
+            os.path.join(backend_path, 'templates'),
+            os.path.join(backend_path, 'media')
+        ]
+        
+        for dir_path in django_dirs:
+            os.makedirs(dir_path, exist_ok=True)
+            
+        # Create a .gitkeep file in empty directories to ensure they're tracked by git
+        for empty_dir in [os.path.join(backend_path, 'static', 'js'), 
+                         os.path.join(backend_path, 'static', 'images'),
+                         os.path.join(backend_path, 'media')]:
+            with open(os.path.join(empty_dir, '.gitkeep'), 'w') as f:
+                f.write('')
+        
+        # Create views.py in the project directory alongside settings.py
+        project_dir = os.path.join(backend_path, unique_name)
+        views_path = os.path.join(project_dir, 'views.py')
+        with open(views_path, 'w') as f:
+            f.write(tpl.django_project_views())
+        
+        # Create API app
+        api_app_path = os.path.join(backend_path, 'api')
+        os.makedirs(api_app_path, exist_ok=True)
+        
+        # Create API app files
+        self._create_django_api_app(api_app_path)
+        
+        # Create Pipfile for Django dependencies
+        with open(os.path.join(backend_path, 'Pipfile'), 'w') as f:
+            f.write(tpl.django_pipfile())
+        
+        # Create basic Django templates within the backend
+        self._create_django_templates(backend_path, project_name, project_description)
+        
+        # Create basic Django static files within the backend
+        self._create_django_static_files(backend_path)
+        
+        # Update Django settings.py
+        self._update_django_settings(backend_path, unique_name)
+        
+        # Update Django urls.py
+        self._update_django_urls(backend_path, unique_name)
+    
+    def _create_django_api_app(self, api_app_path):
+        """Create Django API app with basic structure"""
+        # Create __init__.py
+        with open(os.path.join(api_app_path, '__init__.py'), 'w') as f:
+            f.write('')
+        
+        # Create apps.py
+        with open(os.path.join(api_app_path, 'apps.py'), 'w') as f:
+            f.write(tpl.api_apps_py())
+        
+        # Create models.py
+        with open(os.path.join(api_app_path, 'models.py'), 'w') as f:
+            f.write(tpl.api_models_py())
+        
+        # Create serializers.py
+        with open(os.path.join(api_app_path, 'serializers.py'), 'w') as f:
+            f.write(tpl.api_serializers_py())
+        
+        # Create views.py
+        with open(os.path.join(api_app_path, 'views.py'), 'w') as f:
+            f.write(tpl.api_views_py())
+        
+        # Create urls.py
+        with open(os.path.join(api_app_path, 'urls.py'), 'w') as f:
+            f.write(tpl.api_urls_py())
+        
+        # Create admin.py
+        with open(os.path.join(api_app_path, 'admin.py'), 'w') as f:
+            f.write(tpl.api_admin_py())
+    
+    def _create_django_templates(self, backend_path, project_name, project_description):
+        """Create Django templates within the backend directory"""
+        templates_path = os.path.join(backend_path, 'templates')
+        
+        # Create base template
+        with open(os.path.join(templates_path, 'base.html'), 'w') as f:
+            f.write(tpl.django_base_template(project_name))
+        
+        # Create index template
+        with open(os.path.join(templates_path, 'index.html'), 'w') as f:
+            f.write(tpl.django_index_template(project_name, project_description))
+    
+    def _create_django_static_files(self, backend_path):
+        """Create Django static files within the backend directory"""
+        static_css_path = os.path.join(backend_path, 'static', 'css')
+        
+        # Create basic CSS file
+        with open(os.path.join(static_css_path, 'styles.css'), 'w') as f:
+            f.write(tpl.django_static_css())
+    
+    def _create_root_project_files(self, project_path, project_name, project_description):
+        """Create root-level project files"""
+        # Create .gitignore
+        with open(os.path.join(project_path, '.gitignore'), 'w') as f:
+            f.write(tpl.fullstack_gitignore())
+        
+        # Create README.md
+        with open(os.path.join(project_path, 'README.md'), 'w') as f:
+            f.write(tpl.fullstack_readme(project_name, project_description))
+        
+        # Create development scripts
+        self._create_development_scripts(project_path)
+    
+    def _cleanup_root_django_dirs(self, project_path):
+        """Remove any Django directories that may have been accidentally created in the root"""
+        directories_to_remove = ['static', 'templates', 'media', 'staticfiles']
+        
+        for dir_name in directories_to_remove:
+            root_dir_path = os.path.join(project_path, dir_name)
+            if os.path.exists(root_dir_path):
+                try:
+                    # Ensure we're not removing directories from backend
+                    backend_path = os.path.join(project_path, 'backend', 'django', dir_name)
+                    if root_dir_path != backend_path:
+                        shutil.rmtree(root_dir_path)
+                        logger.info(f"Cleaned up accidentally created directory: {root_dir_path}")
+                    else:
+                        logger.info(f"Skipping removal of backend directory: {root_dir_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to remove directory {root_dir_path}: {e}")
+        
+        # Also clean up any files that might have been created in root
+        files_to_remove = ['db.sqlite3', 'manage.py']
+        for file_name in files_to_remove:
+            root_file_path = os.path.join(project_path, file_name)
+            if os.path.exists(root_file_path):
+                try:
+                    # Make sure it's not in the backend directory
+                    backend_file_path = os.path.join(project_path, 'backend', 'django', file_name)
+                    if root_file_path != backend_file_path:
+                        os.remove(root_file_path)
+                        logger.info(f"Cleaned up accidentally created file: {root_file_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to remove file {root_file_path}: {e}")
+
+    def _create_development_scripts(self, project_path):
+        """Create development helper scripts"""
+        # Create simple shell scripts for development (no package.json at root)
+        
+        # Create start-dev.sh script for Unix-like systems
+        with open(os.path.join(project_path, 'start-dev.sh'), 'w') as f:
+            f.write(tpl.start_dev_sh())
+        
+        # Make script executable
+        try:
+            import stat
+            os.chmod(os.path.join(project_path, 'start-dev.sh'), stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        except:
+            pass
+
+
+    
+
+    def _update_django_settings(self, backend_path, project_name):
+        """Update Django settings.py for API and CORS"""
+        settings_path = os.path.join(backend_path, project_name, 'settings.py')
         
         with open(settings_path, 'r') as f:
             settings_content = f.read()
         
-        # Add rest_framework and corsheaders to INSTALLED_APPS
+        # Add DRF and CORS to INSTALLED_APPS
         installed_apps_pattern = r"INSTALLED_APPS = \[\n(.*?)\]"
         installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
         if installed_apps_match:
             current_apps = installed_apps_match.group(1)
-            updated_apps = current_apps + "    'rest_framework',\n    'corsheaders',\n"
+            updated_apps = current_apps + "    'rest_framework',\n    'corsheaders',\n    'api',\n"
             settings_content = settings_content.replace(current_apps, updated_apps)
         
-        # Add corsheaders middleware
+        # Add CORS middleware
         middleware_pattern = r"MIDDLEWARE = \[\n(.*?)\]"
         middleware_match = re.search(middleware_pattern, settings_content, re.DOTALL)
         if middleware_match:
@@ -150,33 +358,19 @@ class ProjectCreationService:
             )
             settings_content = settings_content.replace(current_middleware, updated_middleware)
         
-        # Add templates dir to TEMPLATES setting
+        # Update TEMPLATES to point to backend templates directory
         templates_pattern = r"'DIRS': \[\],"
         templates_replacement = "'DIRS': [BASE_DIR / 'templates'],"
         settings_content = re.sub(templates_pattern, templates_replacement, settings_content)
         
-        # Add STATICFILES_DIRS setting
-        static_files_pattern = r"STATIC_URL = 'static/'"
-        static_files_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
-        settings_content = re.sub(static_files_pattern, static_files_replacement, settings_content)
+        # Update STATIC_URL and add STATICFILES_DIRS to point to backend static directory
+        static_url_pattern = r"STATIC_URL = 'static/'"
+        static_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
+        settings_content = re.sub(static_url_pattern, static_replacement, settings_content)
         
         # Add CORS and REST Framework settings
         if "# Default primary key field type" in settings_content:
-            additional_settings = """
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
-
-# REST Framework settings
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
-"""
+            additional_settings = tpl.django_additional_settings()
             settings_content = settings_content.replace(
                 "# Default primary key field type",
                 additional_settings + "\n# Default primary key field type"
@@ -185,250 +379,37 @@ REST_FRAMEWORK = {
         with open(settings_path, 'w') as f:
             f.write(settings_content)
 
-    def _update_urls(self, project_path, project_name):
-        """Update the Django urls.py file to serve the index template"""
-        urls_path = os.path.join(project_path, project_name, 'urls.py')
+    def _update_django_urls(self, backend_path, project_name):
+        """Update Django urls.py to include API endpoints and home page"""
+        urls_path = os.path.join(backend_path, project_name, 'urls.py')
         
         with open(urls_path, 'r') as f:
             urls_content = f.read()
         
-        # Add import for TemplateView
-        if 'TemplateView' not in urls_content:
+        # Add include import and TemplateView
+        if 'include' not in urls_content:
             urls_content = urls_content.replace(
                 'from django.urls import path',
-                'from django.urls import path\nfrom django.views.generic import TemplateView'
+                'from django.urls import path, include'
             )
         
-        # Add path for home page
-        if 'path(\'\', TemplateView' not in urls_content:
+        if 'TemplateView' not in urls_content:
+            urls_content = urls_content.replace(
+                'from django.urls import path, include',
+                'from django.urls import path, include\nfrom django.views.generic import TemplateView'
+            )
+        
+        # Add home page and API URLs
+        if 'api/' not in urls_content:
             urls_content = urls_content.replace(
                 'urlpatterns = [',
-                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),'
+                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),\n    path(\'api/\', include(\'api.urls\')),'
             )
         
         with open(urls_path, 'w') as f:
             f.write(urls_content)
 
-    def _create_default_files(self, project_path, project_name, project_description):
-        """Create default files for a new project."""
-        # Generate personalized content
-        safe_project_name = project_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-        safe_description = (project_description or '').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-        
-        # Create description content for templates
-        description_content = ''
-        if project_description and project_description.strip():
-            description_content = f'    <p class="project-description">{safe_description}</p>'
-        
-        default_files = {
-            'templates/base.html': f'''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{% block title %}}{safe_project_name}{{% endblock %}}</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    {{% block extra_css %}}{{% endblock %}}
-</head>
-<body>
-    {{% block content %}}{{% endblock %}}
     
-    {{% block extra_js %}}{{% endblock %}}
-</body>
-</html>
-''',
-            'templates/index.html': f'''
-{{% extends 'base.html' %}}
-{{% load static %}}
-
-{{% block title %}}Welcome | {safe_project_name}{{% endblock %}}
-
-{{% block content %}}
-<div class="welcome-container">
-    <h1>Welcome to {safe_project_name}</h1>
-{description_content}
-    <p>This is your starting point for building amazing Django applications.</p>
-    <div class="cta-button">
-        <a href="/admin/">Go to Admin</a>
-    </div>
-</div>
-{{% endblock %}}
-''',
-            'static/css/styles.css': '''
-/* Base styles */
-:root {
-    --primary-color: #4f46e5;
-    --secondary-color: #818cf8;
-    --text-color: #1f2937;
-    --bg-color: #ffffff;
-}
-
-body {
-    font-family: system-ui, -apple-system, sans-serif;
-    color: var(--text-color);
-    background-color: var(--bg-color);
-    line-height: 1.5;
-    margin: 0;
-    padding: 0;
-}
-
-.welcome-container {
-    max-width: 800px;
-    margin: 5rem auto;
-    padding: 2rem;
-    background-color: #f9fafb;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    text-align: center;
-}
-
-h1 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-}
-
-.project-description {
-    font-size: 1.125rem;
-    color: #6b7280;
-    margin: 1.5rem 0;
-    font-style: italic;
-    line-height: 1.6;
-}
-
-.cta-button {
-    margin-top: 2rem;
-}
-
-.cta-button a {
-    display: inline-block;
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.cta-button a:hover {
-    background-color: var(--secondary-color);
-}
-'''
-        }
-        
-        for file_path, content in default_files.items():
-            full_path = os.path.join(project_path, file_path)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            with open(full_path, 'w') as f:
-                f.write(content.strip())
-
-    def _generate_pipfile_content(self):
-        return '''[[source]]
-url = "https://pypi.org/simple"
-verify_ssl = true
-name = "pypi"
-
-[packages]
-django = "~=4.2.3"
-djangorestframework = "~=3.14.0"
-django-cors-headers = "~=4.1.0"
-
-[dev-packages]
-
-[requires]
-python_version = "3.10"
-'''
-
-    def _generate_gitignore_content(self):
-        return '''# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-media
-
-# Virtual Environment
-venv/
-ENV/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-'''
-
-    def _generate_readme_content(self, project_name):
-        return f'''# {project_name}
-
-A Django REST API project.
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.8+
-- pipenv
-
-### Installation
-
-1. Clone the repository
-2. Install dependencies:
-   ```
-   pipenv install
-   ```
-3. Activate the virtual environment:
-   ```
-   pipenv shell
-   ```
-4. Run migrations:
-   ```
-   python manage.py migrate
-   ```
-5. Create a superuser:
-   ```
-   python manage.py createsuperuser
-   ```
-6. Run the development server:
-   ```
-   python manage.py runserver
-   ```
-
-## Features
-
-- Django REST framework API
-- CORS enabled
-- SQLite database (for development)
-'''
 
     def initialize_project(self, project):
         """
@@ -519,291 +500,107 @@ A Django REST API project.
                 
             raise ValueError(f"Failed to initialize project: {str(e)}")
     
-    def _generate_basic_model_content(self):
-        """Generate content for a basic Django model"""
-        return """from django.db import models
-
-class Item(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    def __str__(self):
-        return self.name
-"""
-    
-    def _generate_basic_views_content(self):
-        """Generate content for basic Django views"""
-        return """from django.shortcuts import render
-from django.http import JsonResponse
-from .models import Item
-
-def index(request):
-    \"\"\"Render the index page\"\"\"
-    items = Item.objects.all()
-    return render(request, 'core/index.html', {'items': items})
-
-def item_list(request):
-    \"\"\"Return a JSON list of items\"\"\"
-    items = Item.objects.all().values('id', 'name', 'description')
-    return JsonResponse({'items': list(items)})
-"""
-    
-    def _generate_basic_urls_content(self):
-        """Generate content for basic Django URLs"""
-        return """from django.urls import path
-from . import views
-
-app_name = 'core'
-
-urlpatterns = [
-    path('', views.index, name='index'),
-    path('api/items/', views.item_list, name='item-list'),
-]
-"""
-    
-    def _generate_basic_project_urls(self):
-        """Generate content for a basic project urls.py file"""
-        return """from django.contrib import admin
-from django.urls import path, include
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-]
-"""
-
-    def _generate_basic_project_views_content(self):
-        """Generate content for a basic project views.py file"""
-        return """from django.shortcuts import render
-from django.http import HttpResponse
-from django.views.generic import TemplateView
-
-def home(request):
-    \"\"\"Home page view.\"\"\"
-    return render(request, 'index.html')
-
-class HomeView(TemplateView):
-    \"\"\"Class-based home page view.\"\"\"
-    template_name = 'index.html'
-"""
-
-    def _generate_basic_manage_py(self, project_name):
-        """Generate a minimal Django manage.py file"""
-        return f"""#!/usr/bin/env python
-import os
-import sys
-
-if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "{project_name}.settings")
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError as exc:
-        raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
-        ) from exc
-    execute_from_command_line(sys.argv)
-"""
-
-    def _generate_basic_settings_py(self, project_name):
-        """Generate a minimal Django settings.py file"""
-        secret_key = ''.join(['x' for _ in range(50)])  # Placeholder secret key
-        return f"""
-import os
-from pathlib import Path
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '{secret_key}'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
-# Application definition
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'corsheaders',
-    'core',
-]
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-ROOT_URLCONF = '{project_name}.urls'
-
-TEMPLATES = [
-    {{
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {{
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        }},
-    }},
-]
-
-WSGI_APPLICATION = '{project_name}.wsgi.application'
-
-# Database
-DATABASES = {{
-    'default': {{
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }}
-}}
-
-# Password validation
-AUTH_PASSWORD_VALIDATORS = [
-    {{
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    }},
-    {{
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    }},
-    {{
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    }},
-    {{
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    }},
-]
-
-# Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
-
-# Default primary key field type
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
-
-# REST Framework settings
-REST_FRAMEWORK = {{
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}}
-"""
-
     def _ensure_project_structure(self, project_path, project_name):
         """
-        Ensure the basic project structure exists
-        This is a fallback if the initialization commands failed
+        Ensure the basic dual-stack project structure exists
+        For the new dual-stack architecture, we only verify structure, not create legacy Django dirs
         """
         try:
-            logger.info(f"Ensuring basic project structure for {project_name} at {project_path}")
+            logger.info(f"Ensuring dual-stack project structure for {project_name} at {project_path}")
             
             # Make sure the project path exists
             if not os.path.exists(project_path):
                 logger.warning(f"Creating project directory: {project_path}")
                 os.makedirs(project_path, exist_ok=True)
             
-            # Ensure the project package directory exists
-            project_package_dir = os.path.join(project_path, project_name)
-            if not os.path.exists(project_package_dir):
-                logger.info(f"Creating project package directory: {project_package_dir}")
-                os.makedirs(project_package_dir, exist_ok=True)
+            # Check for dual-stack structure (frontend/vuejs and backend/django)
+            frontend_vuejs_path = os.path.join(project_path, 'frontend', 'vuejs')
+            backend_django_path = os.path.join(project_path, 'backend', 'django')
             
-            # Create __init__.py if it doesn't exist
-            init_path = os.path.join(project_package_dir, '__init__.py')
-            if not os.path.exists(init_path):
-                with open(init_path, 'w') as f:
-                    f.write("# Generated by Imagi Oasis\n")
-                logger.info(f"Created __init__.py at {init_path}")
+            # Check if this is a dual-stack project
+            is_dual_stack = os.path.exists(frontend_vuejs_path) and os.path.exists(backend_django_path)
+            
+            if is_dual_stack:
+                logger.info(f"Dual-stack project structure detected for {project_name}")
                 
-            # Create a minimal manage.py if it doesn't exist anywhere
-            manage_path = os.path.join(project_path, 'manage.py')
-            manage_py_found = os.path.exists(manage_path)
-            
-            if not manage_py_found:
-                for root, dirs, files in os.walk(project_path):
-                    if 'manage.py' in files:
-                        manage_py_found = True
-                        break
-            
-            if not manage_py_found:
-                logger.warning(f"manage.py not found, creating minimal version at {manage_path}")
-                with open(manage_path, 'w') as f:
-                    f.write(self._generate_basic_manage_py(project_name))
-                # Make it executable
-                try:
-                    os.chmod(manage_path, 0o755)
-                except:
-                    logger.warning(f"Could not make manage.py executable: {manage_path}")
-                    
-            # Create minimal required dirs
-            dirs_to_create = [
-                os.path.join(project_path, 'static'),
-                os.path.join(project_path, 'static', 'css'),
-                os.path.join(project_path, 'templates'),
-                os.path.join(project_path, 'media'),
-            ]
-            
-            for dir_path in dirs_to_create:
-                if not os.path.exists(dir_path):
-                    os.makedirs(dir_path, exist_ok=True)
-                    logger.info(f"Created directory: {dir_path}")
-            
-            # Create a minimal settings.py if it doesn't exist
-            settings_path = os.path.join(project_package_dir, 'settings.py')
-            if not os.path.exists(settings_path):
-                with open(settings_path, 'w') as f:
-                    f.write(self._generate_basic_settings_py(project_name))
-                logger.info(f"Created settings.py at {settings_path}")
+                # For dual-stack projects, only verify that Django backend has proper structure
+                django_project_dir = None
+                for item in os.listdir(backend_django_path):
+                    item_path = os.path.join(backend_django_path, item)
+                    if os.path.isdir(item_path) and not item.startswith('.') and item != '__pycache__':
+                        # Check if this looks like a Django project directory (has settings.py)
+                        settings_path = os.path.join(item_path, 'settings.py')
+                        if os.path.exists(settings_path):
+                            django_project_dir = item_path
+                            logger.info(f"Found Django project directory: {django_project_dir}")
+                            break
                 
-            # Create a minimal urls.py if it doesn't exist
-            urls_path = os.path.join(project_package_dir, 'urls.py')
-            if not os.path.exists(urls_path):
-                with open(urls_path, 'w') as f:
-                    f.write(self._generate_basic_project_urls())
-                logger.info(f"Created urls.py at {urls_path}")
+                if not django_project_dir:
+                    logger.warning(f"No Django project directory found in backend structure")
+                    return False
                 
-            # Create a minimal views.py if it doesn't exist
-            views_path = os.path.join(project_package_dir, 'views.py')
-            if not os.path.exists(views_path):
-                with open(views_path, 'w') as f:
-                    f.write(self._generate_basic_project_views_content())
-                logger.info(f"Created views.py at {views_path}")
+                # Verify essential Django backend directories exist ONLY in backend path
+                required_backend_dirs = [
+                    os.path.join(backend_django_path, 'static'),
+                    os.path.join(backend_django_path, 'templates')
+                ]
                 
-            logger.info(f"Basic project structure ensured for {project_name}")
+                for dir_path in required_backend_dirs:
+                    if not os.path.exists(dir_path):
+                        logger.info(f"Creating missing Django backend directory: {dir_path}")
+                        os.makedirs(dir_path, exist_ok=True)
+                
+                # Clean up any Django directories that may exist in root
+                self._cleanup_root_django_dirs(project_path)
+                
+            else:
+                # Legacy single Django project - this is for backward compatibility only
+                logger.info(f"Legacy Django project structure detected for {project_name}")
+                
+                # Only create minimal structure for legacy projects as fallback
+                project_package_dir = os.path.join(project_path, project_name)
+                if not os.path.exists(project_package_dir):
+                    logger.info(f"Creating legacy project package directory: {project_package_dir}")
+                    os.makedirs(project_package_dir, exist_ok=True)
+                
+                # Create __init__.py if it doesn't exist
+                init_path = os.path.join(project_package_dir, '__init__.py')
+                if not os.path.exists(init_path):
+                    with open(init_path, 'w') as f:
+                        f.write("# Generated by Imagi Oasis\n")
+                    logger.info(f"Created __init__.py at {init_path}")
+                
+                # Create minimal Django files only if they don't exist
+                manage_path = os.path.join(project_path, 'manage.py')
+                if not os.path.exists(manage_path):
+                    logger.warning(f"Creating minimal manage.py for legacy project: {manage_path}")
+                    with open(manage_path, 'w') as f:
+                        f.write(tpl.basic_manage_py(project_name))
+                    try:
+                        os.chmod(manage_path, 0o755)
+                    except:
+                        pass
+                
+                # For legacy projects, create basic Django structure if missing
+                settings_path = os.path.join(project_package_dir, 'settings.py')
+                if not os.path.exists(settings_path):
+                    with open(settings_path, 'w') as f:
+                        f.write(tpl.basic_settings_py(project_name))
+                    logger.info(f"Created settings.py at {settings_path}")
+                
+                urls_path = os.path.join(project_package_dir, 'urls.py')
+                if not os.path.exists(urls_path):
+                    with open(urls_path, 'w') as f:
+                        f.write(tpl.basic_project_urls_py())
+                    logger.info(f"Created urls.py at {urls_path}")
+                
+                views_path = os.path.join(project_package_dir, 'views.py')
+                if not os.path.exists(views_path):
+                    with open(views_path, 'w') as f:
+                        f.write(tpl.basic_project_views_py())
+                    logger.info(f"Created views.py at {views_path}")
+            
+            logger.info(f"Project structure verification completed for {project_name}")
             return True
             
         except Exception as e:

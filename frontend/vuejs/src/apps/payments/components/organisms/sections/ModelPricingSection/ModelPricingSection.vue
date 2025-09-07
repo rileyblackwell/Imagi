@@ -35,7 +35,7 @@
               <p v-if="model.description" class="text-xs text-gray-400 ml-11 mt-1">{{ model.description }}</p>
             </div>
             <div class="flex items-baseline gap-1">
-              <span class="font-semibold text-white">${{ model.price.toFixed(4) }}</span>
+              <span class="font-semibold text-white">${{ model.price.toFixed(2) }}</span>
               <span class="text-xs text-gray-400">per use</span>
             </div>
           </div>
@@ -70,22 +70,22 @@ const props = defineProps({
     type: Array as () => PricingModel[],
     default: () => [
       { 
-        id: 'gpt-4.1', 
-        name: 'GPT-4.1', 
+        id: 'gpt-5', 
+        name: 'GPT-5', 
         price: 0.04,
-        description: 'OpenAI\'s most powerful model for complex tasks'
+        description: 'OpenAI\'s next-generation model for complex tasks'
       },
       { 
-        id: 'gpt-4.1-nano', 
-        name: 'GPT-4.1 Nano', 
-        price: 0.01,
-        description: 'Faster, more cost-effective model with high capability'
-      },
-      { 
-        id: 'claude-3-7-sonnet-20250219', 
-        name: 'Claude 3.7 Sonnet', 
+        id: 'claude-sonnet-4-20250514', 
+        name: 'Claude Sonnet 4', 
         price: 0.04,
         description: 'Anthropic\'s advanced model for nuanced tasks'
+      },
+      {
+        id: 'gpt-5-nano',
+        name: 'GPT-5 Nano',
+        price: 0.01,
+        description: 'Lightweight GPT-5 for fast, low-cost tasks'
       }
     ]
   },

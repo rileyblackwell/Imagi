@@ -48,11 +48,11 @@
         <!-- Enhanced CTA Section -->
         <CTASection 
           icon="fas fa-rocket" 
-          title="Build for Dollars, Not" 
-          highlightedText="Thousands" 
-          description="Create your web app in minutes instead of waiting months. With Imagi, you'll build your app for"
-          highlightedStat="a fraction of the cost"
-          descriptionSuffix=" of hiring a professional developer."
+          title="Build Professional Apps" 
+          highlightedText="Without Code" 
+          description="Perfect for non-technical entrepreneurs and business owners. Create full-stack web applications with Vue.js frontends and Django backends for"
+          highlightedStat="just a few dollars"
+          descriptionSuffix=" instead of hiring expensive developers."
           primaryButtonText="Start Building"
           primaryButtonTo="/products/oasis/builder/dashboard"
           :showSecondaryButton="true"

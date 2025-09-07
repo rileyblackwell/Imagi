@@ -99,117 +99,98 @@ class ProjectManagementService:
                     shutil.rmtree(project_path, ignore_errors=True)
 
     def _stop_project_server_and_cleanup_pid(self, project_name):
-        """Stop any running development server and delete the PID file for the project.
+        """Stop any running dev servers and delete PID files for the project.
         
-        This matches the PID file naming convention used by PreviewService:
-        {settings.PROJECTS_ROOT}/{user.id}/{project.name}_server.pid
+        Handles both dual-stack PreviewService naming and legacy naming:
+        - Dual-stack: {project.name}_frontend.pid, {project.name}_backend.pid
+        - Legacy:     {project.name}_server.pid (plus sanitized fallbacks)
         """
         try:
-            # Primary PID file location (matches PreviewService exactly)
-            pid_file_path = os.path.join(self.base_directory, f"{project_name}_server.pid")
-            
-            # First, try to gracefully stop any running server process
-            if os.path.exists(pid_file_path):
-                try:
-                    with open(pid_file_path, 'r') as f:
-                        pid = int(f.read().strip())
-                    
-                    # Try to stop the process and its children
-                    try:
-                        import psutil
-                        process = psutil.Process(pid)
-                        # Kill all child processes first
-                        children = process.children(recursive=True)
-                        for child in children:
-                            try:
-                                child.terminate()
-                                child.wait(timeout=3)  # Wait up to 3 seconds
-                            except (psutil.TimeoutExpired, psutil.NoSuchProcess):
-                                try:
-                                    child.kill()  # Force kill if terminate doesn't work
-                                except psutil.NoSuchProcess:
-                                    pass
-                        
-                        # Now terminate the main process
-                        process.terminate()
-                        process.wait(timeout=3)  # Wait up to 3 seconds
-                        logger.info(f"Gracefully stopped server process {pid} for project '{project_name}'")
-                    except (psutil.TimeoutExpired, psutil.NoSuchProcess):
-                        try:
-                            process.kill()  # Force kill if terminate doesn't work
-                            logger.info(f"Force killed server process {pid} for project '{project_name}'")
-                        except psutil.NoSuchProcess:
-                            logger.debug(f"Server process {pid} was already stopped")
-                    except psutil.AccessDenied:
-                        logger.warning(f"Access denied when trying to stop server process {pid}")
-                    except ImportError:
-                        logger.warning("psutil not available, cannot gracefully stop server process")
-                    
-                except (ValueError, FileNotFoundError) as e:
-                    logger.warning(f"Invalid PID file content in {pid_file_path}: {str(e)}")
-            
-            # Now delete the PID file
-            if os.path.exists(pid_file_path):
-                try:
-                    os.remove(pid_file_path)
-                    logger.info(f"Deleted PID file: {pid_file_path}")
-                    return
-                except Exception as e:
-                    logger.warning(f"Failed to delete PID file {pid_file_path}: {str(e)}")
-            else:
-                # If the primary naming doesn't exist, try some fallback patterns
-                # This handles cases where project names might have been sanitized differently
+            pid_files_to_check = []
+            # Primary dual-stack PID files used by PreviewService
+            pid_files_to_check.append(os.path.join(self.base_directory, f"{project_name}_frontend.pid"))
+            pid_files_to_check.append(os.path.join(self.base_directory, f"{project_name}_backend.pid"))
+            # Legacy single PID file
+            pid_files_to_check.append(os.path.join(self.base_directory, f"{project_name}_server.pid"))
+
+            # Add sanitized fallback names
+            try:
                 from .project_creation_service import ProjectCreationService
                 creation_service = ProjectCreationService(self.user)
                 sanitized_name = creation_service._sanitize_project_name(project_name)
-                
-                fallback_pid_names = [
-                    f"{sanitized_name}_server.pid",
-                    f"{project_name.lower().replace(' ', '_')}_server.pid",
-                    f"{project_name.replace(' ', '-')}_server.pid"
-                ]
-                
-                for pid_name in fallback_pid_names:
-                    fallback_pid_path = os.path.join(self.base_directory, pid_name)
-                    if os.path.exists(fallback_pid_path):
+                pid_files_to_check.extend([
+                    os.path.join(self.base_directory, f"{sanitized_name}_frontend.pid"),
+                    os.path.join(self.base_directory, f"{sanitized_name}_backend.pid"),
+                    os.path.join(self.base_directory, f"{sanitized_name}_server.pid"),
+                    os.path.join(self.base_directory, f"{project_name.lower().replace(' ', '_')}_server.pid"),
+                    os.path.join(self.base_directory, f"{project_name.replace(' ', '-')}_server.pid"),
+                ])
+            except Exception:
+                # If sanitization fails, continue with available names
+                pass
+
+            # Deduplicate while preserving order
+            seen = set()
+            pid_files_to_check = [p for p in pid_files_to_check if not (p in seen or seen.add(p))]
+
+            # Iterate through all candidate PID files
+            for pid_path in pid_files_to_check:
+                if not os.path.exists(pid_path):
+                    continue
+                try:
+                    pid = None
+                    try:
+                        with open(pid_path, 'r') as f:
+                            pid = int(f.read().strip())
+                    except Exception as e:
+                        logger.debug(f"Could not read PID from {pid_path}: {e}")
+
+                    if pid is not None:
                         try:
-                            os.remove(fallback_pid_path)
-                            logger.info(f"Deleted fallback PID file: {fallback_pid_path}")
-                            return
-                        except Exception as e:
-                            logger.warning(f"Failed to delete fallback PID file {fallback_pid_path}: {str(e)}")
-                
-                logger.debug(f"No PID file found for project '{project_name}' (this is normal if the server wasn't running)")
-                
+                            import psutil
+                            process = psutil.Process(pid)
+                            # Terminate children first
+                            for child in process.children(recursive=True):
+                                try:
+                                    child.terminate()
+                                    child.wait(timeout=3)
+                                except (psutil.TimeoutExpired, psutil.NoSuchProcess):
+                                    try:
+                                        child.kill()
+                                    except psutil.NoSuchProcess:
+                                        pass
+                            # Terminate main process
+                            try:
+                                process.terminate()
+                                process.wait(timeout=3)
+                            except (psutil.TimeoutExpired, psutil.NoSuchProcess):
+                                try:
+                                    process.kill()
+                                except psutil.NoSuchProcess:
+                                    pass
+                            logger.info(f"Stopped process {pid} from PID file {pid_path}")
+                        except ImportError:
+                            logger.warning("psutil not available; cannot gracefully stop process. Removing PID file only.")
+                        except psutil.AccessDenied:
+                            logger.warning(f"Access denied stopping process {pid} from {pid_path}")
+                        except psutil.NoSuchProcess:
+                            logger.debug(f"Process {pid} from {pid_path} was already stopped")
+                    # Remove PID file regardless
+                    try:
+                        os.remove(pid_path)
+                        logger.info(f"Deleted PID file: {pid_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete PID file {pid_path}: {e}")
+                except Exception as e:
+                    logger.warning(f"Error handling PID file {pid_path}: {e}")
+
+            # If we reach here, we've attempted all candidates
+            return
         except Exception as e:
-            logger.warning(f"Error during server stop and PID file cleanup for project '{project_name}': {str(e)}")
+            logger.warning(f"Error during server stop and PID cleanup for project '{project_name}': {str(e)}")
             # Don't raise the exception as PID file cleanup is not critical for project deletion
 
-    def undo_last_action(self, project_or_id):
-        """Undo the last action in a project."""
-        try:
-            # Get project if ID is provided
-            if isinstance(project_or_id, int):
-                project = self.get_project(project_or_id)
-                if not project:
-                    raise ValidationError("Project not found")
-            else:
-                project = project_or_id
-                
-            # Get the project's git repository
-            repo_path = project.project_path
-            if not os.path.exists(repo_path):
-                raise ValidationError("Project repository not found")
-            
-            # TODO: Implement git-based undo functionality
-            # For now, return a placeholder response
-            return {
-                'success': True,
-                'message': 'Last action undone successfully'
-            }
-        except Exception as e:
-            logger.error(f"Error undoing action: {str(e)}")
-            raise ValidationError(f"Failed to undo last action: {str(e)}")
+    
     
     # Template generation methods
     def generate_view_code(self, view_name):

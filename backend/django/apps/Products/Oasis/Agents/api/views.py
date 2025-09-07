@@ -16,30 +16,8 @@ import traceback
 
 
 # Import services when needed, not at module level
-from ..services import ChatAgentService, TemplateAgentService
+from ..services import ChatAgentService, TemplateAgentService, ViewAgentService
 
-# Import StylesheetAgentService quietly
-logger = logging.getLogger(__name__)
-
-# Try to import StylesheetAgentService, which might not be available
-try:
-    # Try the actual import
-    from ..services import StylesheetAgentService
-    has_stylesheet_service = True
-except ImportError as e:
-    logger.debug(f"StylesheetAgentService not available: {str(e)}")
-    has_stylesheet_service = False
-    # Create a fallback error function
-    def stylesheet_service_not_available(error_message="Stylesheet service not available"):
-        def service_error(*args, **kwargs):
-            return {
-                'success': False,
-                'error': error_message
-            }
-        return service_error
-except Exception as e:
-    logger.debug(f"Unexpected error importing StylesheetAgentService: {str(e)}")
-    has_stylesheet_service = False
 
 # Helper function to create error responses that are properly rendered
 def create_error_response(error, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):
@@ -116,17 +94,17 @@ def cors_preflight(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def build_template(request):
+def build_component(request):
     """
-    Build a Django template based on a prompt.
+    Build a Vue component based on a prompt.
     
-    This endpoint accepts a prompt describing the desired HTML/template
-    and delegates to the template agent service to generate the code.
+    This endpoint accepts a prompt describing the desired component and
+    delegates to the template/component agent service to generate the code.
     """
     try:
         # Extract request data
         message = request.data.get('message')
-        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
+        model = request.data.get('model', 'claude-sonnet-4-20250514')
         project_id = request.data.get('project_id')
         file_path = request.data.get('file_path', 'index.html')
         conversation_id = request.data.get('conversation_id')
@@ -161,7 +139,7 @@ def build_template(request):
         # Set project files on the agent
         if project_files:
             template_agent.project_files = project_files
-            logger.info(f"Added {len(project_files)} project files to template context")
+            logger.info(f"Added {len(project_files)} project files to component context")
             
         # Process the template request
         result = template_agent.process_template(
@@ -181,7 +159,78 @@ def build_template(request):
             return create_error_response(result.get('error', 'Unknown error'), status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
-        logger.error(f"Error in build_template view: {str(e)}")
+        logger.error(f"Error in build_component view: {str(e)}")
+        logger.error(traceback.format_exc())
+        return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def build_view(request):
+    """
+    Build a Vue route-level view based on a prompt.
+    
+    This endpoint accepts a prompt describing the desired view/page and
+    delegates to the view agent service to generate the code.
+    """
+    try:
+        # Extract request data
+        message = request.data.get('message')
+        model = request.data.get('model', 'claude-sonnet-4-20250514')
+        project_id = request.data.get('project_id')
+        file_path = request.data.get('file_path', 'IndexView.vue')
+        conversation_id = request.data.get('conversation_id')
+        project_files = request.data.get('project_files', [])
+        
+        # Initialize the agent service
+        view_agent = ViewAgentService()
+        
+        # Validate required fields
+        if not message:
+            return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
+            
+        if not project_id:
+            return create_error_response('Project ID is required', status.HTTP_400_BAD_REQUEST)
+        
+        # Ensure project_id is a string
+        project_id = str(project_id)
+            
+        # Validate project access
+        project, error = view_agent.validate_project_access(project_id, request.user)
+        if error:
+            return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
+        
+        # Load project files if not provided in the request
+        if not project_files and project and project.project_path:
+            try:
+                project_files = view_agent.load_project_files(project.project_path)
+                logger.info(f"Loaded {len(project_files)} project files from server for context")
+            except Exception as e:
+                logger.warning(f"Could not load project files: {str(e)}")
+        
+        # Set project files on the agent
+        if project_files:
+            view_agent.project_files = project_files
+            logger.info(f"Added {len(project_files)} project files to view context")
+            
+        # Process the view request
+        result = view_agent.process_view(
+            prompt=message,
+            model=model,
+            user=request.user,
+            project_id=project_id,
+            file_name=file_path,
+            conversation_id=conversation_id
+        )
+        
+        # Return success or error response
+        if result.get('success'):
+            response = Response(result)
+            return add_cors_headers(response)
+        else:
+            return create_error_response(result.get('error', 'Unknown error'), status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        logger.error(f"Error in build_view view: {str(e)}")
         logger.error(traceback.format_exc())
         return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -197,110 +246,11 @@ def build_stylesheet(request):
     Returns:
         Response: A Django REST Framework response containing the generated CSS
     """
-    try:
-        # Check if StylesheetAgentService is available
-        if not has_stylesheet_service:
-            logger.error("StylesheetAgentService is not available - import failed")
-            return create_error_response(
-                'Stylesheet generation service is not available in this installation',
-                status.HTTP_501_NOT_IMPLEMENTED
-            )
-            
-        data = request.data
-        message = data.get('message')
-        model = data.get('model', 'claude-3-7-sonnet-20250219')
-        project_id = data.get('project_id')
-        file_path = data.get('file_path')
-        conversation_id = data.get('conversation_id')
-        project_files = data.get('project_files', [])
-
-        # Log the request details
-        logger.info(f"Stylesheet build request: file={file_path}, model={model}, project_id={project_id}")
-
-        # Validate required fields
-        if not message:
-            return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
-
-        if not project_id:
-            return create_error_response('Project ID is required', status.HTTP_400_BAD_REQUEST)
-            
-        # Ensure project_id is a string
-        project_id = str(project_id)
-
-        if not file_path:
-            return create_error_response('File path is required', status.HTTP_400_BAD_REQUEST)
-
-        # Initialize stylesheet agent
-        try:
-            stylesheet_agent = StylesheetAgentService()
-            logger.info("StylesheetAgentService initialized successfully")
-        except Exception as e:
-            logger.error(f"Error initializing StylesheetAgentService: {str(e)}")
-            logger.error(traceback.format_exc())
-            return create_error_response(f"Error initializing stylesheet service: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Validate project access
-        try:
-            project, error = stylesheet_agent.validate_project_access(project_id, request.user)
-            if error:
-                logger.error(f"Project access validation failed: {error['error']}")
-                return create_error_response(error['error'], status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Error validating project access: {str(e)}")
-            return create_error_response(f"Error validating project: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Load project files if not provided in the request
-        if not project_files and project and project.project_path:
-            try:
-                project_files = stylesheet_agent.load_project_files(project.project_path)
-                logger.info(f"Loaded {len(project_files)} project files from server for context")
-            except Exception as e:
-                logger.warning(f"Could not load project files: {str(e)}")
-                
-        # Add project files to the agent context if provided
-        if project_files:
-            stylesheet_agent.project_files = project_files
-            logger.info(f"Added {len(project_files)} project files to stylesheet context")
-
-        # Process the stylesheet
-        try:
-            logger.info(f"Processing stylesheet with prompt length: {len(message)}")
-            result = stylesheet_agent.process_stylesheet(
-                prompt=message,
-                model=model,
-                user=request.user,
-                project_id=project_id,
-                file_path=file_path,
-                conversation_id=conversation_id
-            )
-            logger.info(f"Stylesheet processing result: success={result.get('success', False)}")
-            
-            # Log response structure for debugging
-            logger.debug(f"Stylesheet result keys: {list(result.keys() if result else [])}")
-            
-            # Check for empty response
-            if result.get('success') and not result.get('response', '').strip():
-                logger.warning("Stylesheet result is empty despite success=True")
-                result['response'] = "/* Default stylesheet - no specific styles generated */"
-                result['code'] = result['response']
-            
-        except Exception as e:
-            logger.error(f"Error processing stylesheet: {str(e)}")
-            logger.error(traceback.format_exc())
-            return create_error_response(f"Error generating stylesheet: {str(e)}", status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        # Return the result
-        if result.get('success'):
-            response = Response(result)
-            return add_cors_headers(response)
-        else:
-            logger.warning(f"Stylesheet generation failed: {result.get('error', 'Unknown error')}")
-            return create_error_response(result.get('error', 'Unknown error'), status.HTTP_400_BAD_REQUEST)
-            
-    except Exception as e:
-        logger.error(f"Error in build_stylesheet view: {str(e)}")
-        logger.error(traceback.format_exc())
-        return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # Stylesheet feature has been removed; respond with 404 to indicate endpoint no longer available
+    return create_error_response(
+        'Stylesheet generation endpoint has been removed',
+        status.HTTP_404_NOT_FOUND
+    )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -314,7 +264,7 @@ def chat(request):
     try:
         # Extract request data
         message = request.data.get('message')
-        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
+        model = request.data.get('model', 'claude-sonnet-4-20250514')
         conversation_id = request.data.get('conversation_id')
         mode = request.data.get('mode', 'chat')
         project_id = request.data.get('project_id')
@@ -334,7 +284,7 @@ def chat(request):
         
         # Validate model
         if not model:
-            model = 'claude-3-7-sonnet-20250219'  # Default model
+            model = 'claude-sonnet-4-20250514'  # Default model
             
         # Ensure project_id is a string if provided
         if project_id:
@@ -373,12 +323,16 @@ def chat(request):
             
             return create_error_response(error_message, error_code)
         
-        # Format the response
+        # Format the response and include single_message hint to avoid duplicate rendering on the client
         response_data = {
             'conversation_id': result.get('conversation_id'),
             'response': result.get('response', ''),
-            'timestamp': result.get('timestamp', None)
+            'timestamp': result.get('timestamp', None),
+            'single_message': result.get('single_message', False),
         }
+        # Pass through optional credits_used if present
+        if 'credits_used' in result:
+            response_data['credits_used'] = result['credits_used']
         
         return Response(response_data, status=status.HTTP_200_OK)
         

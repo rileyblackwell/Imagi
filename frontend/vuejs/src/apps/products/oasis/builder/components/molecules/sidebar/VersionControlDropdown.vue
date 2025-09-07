@@ -4,28 +4,30 @@
   and allows the user to reset to a previous version.
 -->
 <template>
-  <div class="version-control-dropdown">
-    <!-- Dropdown button with enhanced styling to match other sidebar elements -->
-    <button 
+  <div class="version-control-dropdown relative inline-block">
+    <!-- Trigger button: supports 'default' (sidebar) and 'compact' (header) variants -->
+    <button
       @click="toggleDropdown"
-      class="group relative flex items-center justify-between w-full py-3 px-4 text-left text-sm font-medium rounded-lg bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transition-all duration-300"
+      :class="triggerClass"
+      :title="'Version History'"
+      type="button"
     >
-      <!-- Subtle glow effect on hover -->
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-      
-      <div class="relative flex items-center">
-        <i class="fas fa-history mr-2 text-primary-400"></i>
-        <span class="text-white">Version History</span>
-      </div>
-      
-      <i class="fas fa-chevron-down text-gray-400 group-hover:text-white transition-colors"></i>
+      <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+        <i class="fas fa-history"></i>
+      </span>
+      <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Version History</span>
+      <i 
+        class="fas fa-chevron-down text-gray-400 transition-transform duration-200"
+        :class="chevronClass"
+      ></i>
     </button>
 
     <!-- Dropdown menu with enhanced styling -->
     <div 
       v-if="dropdownOpen" 
-      class="absolute z-10 mt-2 w-full bg-dark-800/90 backdrop-blur-sm shadow-xl rounded-xl py-1 text-sm text-gray-200 max-h-64 overflow-y-auto border border-dark-700/60"
+      class="absolute z-10 mt-2 min-w-[260px] bg-dark-800/90 backdrop-blur-sm shadow-xl rounded-xl py-1 text-sm text-gray-200 max-h-64 overflow-y-auto border border-dark-700/60 right-0"
     >
+      <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
       <div v-if="isLoading" class="px-4 py-3 text-center text-gray-400">
         <div class="flex items-center justify-center space-x-2">
           <i class="fas fa-spinner fa-spin"></i>
@@ -37,13 +39,13 @@
           v-for="version in versions"
           :key="version.hash"
           @click="selectVersion(version)"
-          class="w-full text-left px-4 py-3 hover:bg-dark-700/70 hover:bg-gradient-to-r hover:from-primary-500/10 hover:to-violet-500/5 transition-all duration-200"
+          class="w-full text-left px-4 py-3 transition-all duration-200"
         >
-          <div class="flex flex-col">
+          <div class="flex flex-col border-b border-dark-700/40 last:border-b-0">
             <span class="font-medium truncate text-gray-200" :title="version.message">{{ truncateMessage(version.message) }}</span>
             <div class="flex justify-between text-xs text-gray-400 mt-1">
               <span>{{ version.relative_date }}</span>
-              <span class="font-mono text-primary-400/80">{{ version.hash.substring(0, 7) }}</span>
+              <span class="font-mono text-primary-300 bg-dark-750/70 border border-primary-500/20 rounded px-1 py-0.5">{{ version.hash.substring(0, 7) }}</span>
             </div>
           </div>
         </button>
@@ -83,14 +85,14 @@
             <button 
               @click="confirmReset"
               type="button" 
-              class="group relative w-full inline-flex justify-center rounded-lg border border-transparent px-4 py-2 bg-gradient-to-r from-red-600/90 to-red-700/90 text-base font-medium text-white hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm transition-all duration-200"
+              class="relative w-full inline-flex justify-center rounded-lg border border-transparent px-4 py-2 bg-gradient-to-r from-red-600/90 to-red-700/90 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm transition-all duration-200"
             >
               Reset Project
             </button>
             <button 
               @click="cancelReset"
               type="button" 
-              class="mt-3 w-full inline-flex justify-center rounded-lg border border-dark-700/60 px-4 py-2 bg-dark-800/70 text-base font-medium text-gray-300 hover:bg-dark-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500/50 sm:mt-0 sm:col-start-1 sm:text-sm transition-colors duration-200"
+              class="mt-3 w-full inline-flex justify-center rounded-lg border border-dark-700/60 px-4 py-2 bg-dark-800/70 text-base font-medium text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500/50 sm:mt-0 sm:col-start-1 sm:text-sm transition-colors duration-200"
             >
               Cancel
             </button>
@@ -102,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api, { buildApiUrl } from '@/shared/services/api';
 
@@ -110,6 +112,10 @@ const props = defineProps({
   projectId: {
     type: String,
     required: true
+  },
+  variant: {
+    type: String,
+    default: 'default' // 'default' | 'compact'
   }
 });
 
@@ -121,6 +127,21 @@ const isLoading = ref(false);
 const versions = ref([]);
 const showConfirmation = ref(false);
 const selectedVersion = ref(null);
+
+// Compute trigger button classes by variant
+const triggerClass = computed(() => {
+  if (props.variant === 'compact') {
+    return 'inline-flex items-center text-xs px-3 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition';
+  }
+  return 'relative flex items-center justify-between w-full py-3 px-4 text-left text-sm font-medium rounded-lg bg-dark-800/70 border border-dark-700/60 transition-all duration-300';
+});
+
+// Chevron spacing and rotation
+const chevronClass = computed(() => {
+  const rotation = dropdownOpen.value ? 'rotate-180' : 'rotate-0';
+  const spacing = props.variant === 'compact' ? 'ml-1' : 'ml-auto';
+  return `${spacing} ${rotation}`;
+});
 
 // Toggle dropdown
 const toggleDropdown = () => {
@@ -222,7 +243,6 @@ watch(() => props.projectId, (newProjectId) => {
 <style scoped>
 .version-control-dropdown {
   position: relative;
-  width: 100%;
 }
 
 /* Add consistent scrollbar styling to match other sidebar components */

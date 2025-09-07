@@ -8,6 +8,7 @@ allowing users to create and modify templates through natural language instructi
 from dotenv import load_dotenv
 import logging
 from .agent_service import BaseAgentService
+from apps.Products.Oasis.Builder.services.models_service import model_supports_temperature
 import os
 import threading
 import hashlib
@@ -127,45 +128,95 @@ class TemplateAgentService(BaseAgentService):
         return {
             "role": "system",
             "content": (
-                f"You are an expert web developer generating only clean, valid Django HTML templates. You are working on a project called {project_name}."
-                "\n\nInstructions:"
-                "\n- Provide only valid Django HTML templates; do not include explanations, comments, or additional text."
-                "\n- No CSS should be generated within templates; link only to external stylesheet at 'static/css/styles.css'."
-                "\n- Templates must always extend 'base.html' and load static files properly."
-                "\n- Use Django blocks: 'title', 'content', 'extra_css', and 'extra_js'."
-                "\n- Follow minimalist, responsive design inspired by companies like Stripe, AirBnB, Apple, using semantic HTML5."
-                "\n- Always use {% static %} tags for asset references."
-                "\n- Employ responsive, mobile-first layouts (flexbox/grid); include viewport meta tag."
+                f"You are an expert frontend engineer generating only clean, valid Vue 3 Single File Components (SFCs) for {project_name} using Tailwind CSS."
+
+                "\n\nOutput rules:"
+                "\n- Output a single, self-contained .vue file per response (no explanations, comments, or extra text)."
+                "\n- Use the Vue 3 Composition API with <script setup>."
+                "\n- Prefer TypeScript in <script setup lang='ts'> when types are obvious; otherwise plain JS is acceptable."
+                "\n- Do NOT import external CSS; style exclusively with Tailwind utility classes."
+                "\n- Use a <style> block ONLY when strictly needed (e.g., @apply for reusable patterns, keyframes, or container queries)."
+                "\n- No hyperlinks to other web pages and no images or image references."
                 "\n- Maintain consistent 2-space indentation."
-                "\n- Embed Django template tags within JavaScript inside {% block extra_js %}."
-                
-                "\n\n!important!"
-                "\n- Do not include any hyperlinks or references to other web pages."
-                "\n- Do not include images or any references to image files."
+
+                "\n\nDesign & UX:"
+                "\n- Follow minimalist, responsive design inspired by Stripe, Airbnb, Apple, Google, and Twilio."
+                "\n- Mobile-first; leverage Tailwind responsive prefixes (sm:, md:, lg:, xl:), flex, grid, gap, space, and container utilities."
+                "\n- Ensure excellent accessibility: semantic HTML, proper labels, ARIA attributes, focus states, and keyboard navigation."
+                "\n- Provide sensible empty/error/loading states when applicable."
+
+                "\n\nAtomic components (required structure):"
+                "\n- Build atomic components (atoms/molecules/organisms) that are small, focused, and reusable."
+                "\n- Expose a minimal, well-typed props API (types, defaults, validators where useful)."
+                "\n- Define emits for all outbound events with types."
+                "\n- Support a default slot and named slots when it increases reusability."
+                "\n- Include common variants via class maps (e.g., size: sm|md|lg; tone: primary|neutral|danger) without introducing CSS frameworks beyond Tailwind."
+                "\n- Include data-testid attributes on key elements for testing."
+
+                "\n\nState & behavior:"
+                "\n- Keep components stateless unless local UI state is essential; prefer v-model when appropriate."
+                "\n- Never make network requests inside atoms; surface events instead (e.g., 'click', 'change')."
+                "\n- Avoid third-party UI libraries unless explicitly requested."
 
                 "\n\nNaming conventions:"
-                "\n- Use 'index.html' for the homepage (accessible at '/')."
-                "\n- Name other templates logically (e.g., 'about.html' for '/about/')."
-                "\n- Views and URL patterns are auto-generated based on template names."
+                "\n- Component filenames use PascalCase and reflect atomic level, e.g., AtomButton.vue, MoleculeInputGroup.vue, OrganismNavbar.vue."
+                "\n- Props and emits use concise, consistent names; prefer 'modelValue' for v-model."
 
-                f"\n\nExample template for {project_name}:"
-                "\n{% extends 'base.html' %}"
-                "\n{% load static %}"
-                "\n\n{% block title %}Home{% endblock %}"
-                "\n\n{% block content %}"
-                f"\n  <div class=\"hero\">"
-                f"\n    <h1>Welcome to {project_name}</h1>"
-                "\n    <p>Transform your ideas into reality.</p>"
-                "\n  </div>"
-                "\n{% endblock %}"
-                "\n\n{% block extra_css %}"
-                "\n  <link rel=\"stylesheet\" href=\"{% static 'css/styles.css' %}\">"
-                "\n{% endblock %}"
-                "\n\n{% block extra_js %}"
-                "\n  <script>"
-                f"\n    console.log('{project_name} Loaded');"
-                "\n  </script>"
-                "\n{% endblock %}"
+                "\n\nExample component for {project_name} (illustrative format only; adapt per prompt):"
+                "\n<template>"
+                "\n  <button"
+                "\n    :class=\"["
+                "\n      'inline-flex items-center justify-center rounded-md font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2',"
+                "\n      sizeClasses[size],"
+                "\n      toneClasses[tone],"
+                "\n      { 'opacity-50 cursor-not-allowed': disabled }"
+                "\n    ]\""
+                "\n    :disabled=\"disabled\""
+                "\n    type=\"button\""
+                "\n    data-testid=\"atom-button\""
+                "\n    @click=\"onClick\""
+                "\n  >"
+                "\n    <slot />"
+                "\n  </button>"
+                "\n</template>"
+
+                "\n<script setup lang=\"ts\">"
+                "\nconst sizeClasses = {"
+                "\n  sm: 'h-8 px-3 text-sm',"
+                "\n  md: 'h-10 px-4 text-sm',"
+                "\n  lg: 'h-12 px-5 text-base'"
+                "\n} as const;"
+                "\n"
+                "\nconst toneClasses = {"
+                "\n  primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-600',"
+                "\n  neutral: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400',"
+                "\n  danger: 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-600'"
+                "\n} as const;"
+                "\n"
+                "\ninterface Props {"
+                "\n  size?: keyof typeof sizeClasses"
+                "\n  tone?: keyof typeof toneClasses"
+                "\n  disabled?: boolean"
+                "\n}"
+                "\n"
+                "\nconst props = withDefaults(defineProps<Props>(), {"
+                "\n  size: 'md',"
+                "\n  tone: 'primary',"
+                "\n  disabled: false"
+                "\n});"
+                "\n"
+                "\nconst emit = defineEmits<{"
+                "\n  (e: 'click', ev: MouseEvent): void"
+                "\n}>();"
+                "\n"
+                "\nfunction onClick(ev: MouseEvent) {"
+                "\n  if (!props.disabled) emit('click', ev);"
+                "\n}"
+                "\n</script>"
+
+                "\n<style>"
+                "\n/* Only add styles when Tailwind utilities cannot express the need; otherwise prefer utilities. */"
+                "\n</style>"
             )
         }
 
@@ -506,20 +557,50 @@ class TemplateAgentService(BaseAgentService):
                     completion_tokens = completion.usage.output_tokens
                     
                 elif provider == 'openai':
-                    # Prepare OpenAI API payload
+                    # Normalize messages to Responses API content parts with role-aware types
+                    def to_openai_msg(msg):
+                        role = msg.get('role', 'user')
+                        desired_type = 'output_text' if role == 'assistant' else 'input_text'
+                        content = msg.get('content')
+                        parts = []
+                        if isinstance(content, list):
+                            for p in content:
+                                if isinstance(p, dict):
+                                    text_val = p.get('text') if 'text' in p else str(p.get('content', ''))
+                                    parts.append({"type": desired_type, "text": text_val or ""})
+                                else:
+                                    parts.append({"type": desired_type, "text": str(p)})
+                        else:
+                            parts = [{"type": desired_type, "text": str(content) if content is not None else ""}]
+                        return {
+                            'role': role,
+                            'content': parts
+                        }
+
+                    openai_messages = [to_openai_msg(m) for m in messages]
+
+                    # Prepare OpenAI Responses API payload
                     openai_payload = {
-                        'model': model,
-                        'messages': messages,
-                        'temperature': temperature,
-                        'max_tokens': max_tokens
+                        'model': self.get_api_model(model),
+                        'input': openai_messages,
                     }
-                    
-                    # Make API call to OpenAI
-                    completion = self.openai_client.chat.completions.create(**openai_payload)
-                    
+
+                    # Only include temperature if supported by model
+                    try:
+                        if model_supports_temperature(model):
+                            openai_payload['temperature'] = temperature
+                    except Exception:
+                        pass
+
+                    # Ensure max_output_tokens is set
+                    openai_payload['max_output_tokens'] = max_tokens or 1024
+
+                    # Make API call to OpenAI Responses API
+                    completion = self.openai_client.responses.create(**openai_payload)
+
                     # Extract response content
-                    response_content = completion.choices[0].message.content
-                    completion_tokens = completion.usage.completion_tokens
+                    response_content = getattr(completion, 'output_text', None) or ""
+                    completion_tokens = getattr(getattr(completion, 'usage', None), 'output_tokens', None)
                     
                 else:
                     raise ValueError(f"Unsupported AI model provider: {provider}")

@@ -17,172 +17,44 @@
       <div v-if="!isCollapsed" class="mb-4">
         <!-- Project section with enhanced design -->
         <div class="oasis-project-card bg-gradient-to-br from-dark-800/80 via-dark-900/80 to-dark-950/90 shadow-xl backdrop-blur-lg rounded-2xl p-4 border border-dark-700/60 relative overflow-visible">
-          <!-- Project label with badge -->
-          <div class="flex items-center mb-3">
-            <div class="inline-flex px-2 py-1 rounded-full bg-primary-600/10 border border-primary-500/20">
-              <span class="text-xxs font-bold text-primary-400 uppercase tracking-wider">Project</span>
+          <div class="pointer-events-none absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70 rounded-t-2xl"></div>
+          <!-- Project header -->
+          <div class="flex items-center justify-between gap-3 mt-1 mb-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <!-- Gradient ring avatar -->
+              <div class="gradient-ring p-[2px] rounded-xl">
+                <div class="w-8 h-8 rounded-[10px] flex items-center justify-center bg-dark-900/80 border border-dark-700/60 text-primary-300">
+                  <i class="fas fa-cube"></i>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <h2 class="relative text-[1.15rem] font-extrabold oasis-project-gradient-text truncate drop-shadow-md">
+                    {{ currentProject?.name || 'Untitled Project' }}
+                  </h2>
+                </div>
+                <!-- subtle shimmer underline under name -->
+                <div class="shimmer-underline mt-1"></div>
+              </div>
             </div>
           </div>
-          <!-- Project name with accent and enhanced styling -->
-          <div class="group relative flex items-center">
-
-            <!-- Icon with glow -->
-            <span class="relative mr-2">
-              <i class="fas fa-cube text-primary-400 opacity-90 oasis-project-icon-glow"></i>
-            </span>
-            <!-- Project name -->
-            <h2 class="relative px-2 py-1 text-2xl font-extrabold oasis-project-gradient-text truncate group-hover:text-primary-300 transition-colors duration-300 drop-shadow-md">
-              {{ currentProject?.name || 'Untitled Project' }}
-            </h2>
-          </div>
-          <!-- Editable Project Description -->
+          <!-- Read-only Project Description -->
           <div v-if="!isCollapsed" class="relative px-2 mt-2">
-            <div v-if="!editingDescription" class="group flex items-start">
-              <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate flex-1 cursor-pointer hover:text-gray-300 transition-colors" @click="startEditingDescription">
-                {{ currentProject.description }}
-              </p>
-              <p v-else class="text-sm text-gray-500 italic cursor-pointer hover:text-gray-300 transition-colors" @click="startEditingDescription">
-                Add a company description...
-              </p>
-              <button class="ml-2 text-xs text-gray-500 hover:text-primary-400 transition-colors" @click="startEditingDescription" title="Edit description">
-                <i class="fas fa-edit"></i>
-              </button>
-            </div>
-            <div v-else class="flex items-start w-full">
-              <textarea
-                v-model="editableDescription"
-                class="w-full min-h-[2.2rem] rounded-md bg-dark-900/70 border border-dark-700/50 text-sm text-gray-200 px-2 py-1 outline-none focus:ring-2 focus:ring-primary-500 resize-none transition"
-                @blur="saveDescription"
-                @keydown.enter.prevent="saveDescription"
-                @keydown.esc="cancelEditingDescription"
-                maxlength="180"
-                placeholder="Add a company description..."
-                ref="descInputRef"
-                rows="2"
-                aria-label="Edit company description"
-              ></textarea>
-              <button class="ml-2 text-xs text-gray-500 hover:text-primary-400 transition-colors mt-1" @mousedown.prevent="saveDescription" title="Save">
-                <i class="fas fa-check"></i>
-              </button>
-              <button class="ml-1 text-xs text-gray-500 hover:text-red-400 transition-colors mt-1" @mousedown.prevent="cancelEditingDescription" title="Cancel">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
+            <p v-if="currentProject?.description" class="text-sm text-gray-400 italic truncate">
+              {{ currentProject.description }}
+            </p>
+            <p v-else class="text-sm text-gray-500 italic">
+              Add a company description...
+            </p>
           </div>
-        </div>
+          </div>
         <!-- Divider below project card -->
         <div class="w-full flex justify-center mt-4 mb-2" aria-hidden="true">
           <div class="h-[1.5px] w-4/5 bg-gradient-to-r from-transparent via-dark-700/70 to-transparent rounded-full shadow-sm"></div>
         </div>
       </div>
       
-      <!-- Model Selector -->
-      <div :class="{'mb-4': !isCollapsed}">
-        <div v-if="!isCollapsed" class="mb-2">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Model</span>
-        </div>
-        <ModelSelector 
-          v-if="!isCollapsed"
-          :models="models"
-          :model-id="modelId"
-          :mode="mode"
-          @update:model-id="(id) => $emit('update:modelId', id)"
-        />
-      </div>
-    </div>
-    
-    <!-- Mode Selector - Action Buttons Section -->
-    <div 
-      class="shrink-0 py-4" 
-      :class="{'border-b border-dark-700/50': !isCollapsed}"
-    >
-      <div v-if="!isCollapsed" class="mb-2">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mode</span>
-      </div>
-      
-      <div class="flex items-center" :class="{'justify-center': isCollapsed, 'space-x-2': !isCollapsed}">
-        <template v-if="!isCollapsed">
-          <!-- Enhanced Mode Selector with modern design -->
-          <div class="w-full">
-            <div class="bg-dark-800/70 backdrop-blur-sm rounded-xl p-2 border border-dark-700/50">
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  v-for="m in modes"
-                  :key="m"
-                  class="relative group flex items-center justify-center py-3 px-4 rounded-lg transition-all duration-300"
-                  :class="[
-                    mode === m 
-                      ? 'bg-gradient-to-r from-primary-500/20 to-violet-500/20 border border-primary-500/40' 
-                      : 'bg-dark-850/50 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30'
-                  ]"
-                  @click="$emit('update:mode', m)"
-                >
-                  <!-- Subtle glow effect on hover -->
-                  <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-                  
-                  <div class="relative flex items-center space-x-3">
-                    <i :class="['fas', getModeIcon(m), mode === m ? 'text-primary-400' : 'text-gray-400 group-hover:text-white']"></i>
-                    <span :class="[mode === m ? 'text-white' : 'text-gray-400 group-hover:text-white']">{{ formatMode(m) }}</span>
-                  </div>
-                </button>
-              </div>
-              
-              <!-- Mode description -->
-              <div class="mt-3 px-2 text-sm text-gray-400">
-                <p v-if="mode === 'chat'">
-                  Have a conversation about your project and get assistance
-                </p>
-                <p v-else-if="mode === 'build'">
-                  Generate and modify code directly in your project
-                </p>
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-    
-    <!-- Collapsed sidebar icons - Reorganized to match expanded sidebar order -->
-    <template v-if="isCollapsed">
-      <div class="space-y-4 py-4">
-        <!-- Model Icon -->
-        <div class="sidebar-icon-container">
-          <div 
-            class="sidebar-icon"
-            :title="selectedModel?.name || 'AI Model'"
-          >
-            <i
-              class="fas"
-              :class="[selectedModel ? getModelTypeIcon(selectedModel) : 'fa-robot', selectedModel ? getModelTypeClass(selectedModel) : 'bg-gradient-to-br from-gray-600/20 to-gray-700/20 text-gray-400 border border-gray-500/20']"
-            ></i>
-          </div>
-          <div class="sidebar-label">Model</div>
-        </div>
-        
-        <!-- Chat Mode Button -->
-        <button 
-          class="sidebar-icon-container"
-          :class="{ 'active': mode === 'chat' }"
-          @click="$emit('update:mode', 'chat')"
-        >
-          <div class="sidebar-icon" :class="{ 'active-icon': mode === 'chat' }">
-            <i class="fas fa-comments"></i>
-          </div>
-          <div class="sidebar-label">Chat</div>
-        </button>
-        
-        <!-- Build Mode Button -->
-        <button 
-          class="sidebar-icon-container"
-          :class="{ 'active': mode === 'build' }"
-          @click="$emit('update:mode', 'build')"
-        >
-          <div class="sidebar-icon" :class="{ 'active-icon': mode === 'build' }">
-            <i class="fas fa-code"></i>
-          </div>
-          <div class="sidebar-label">Build</div>
-        </button>
-        
+      <template v-if="isCollapsed">
         <!-- Files Icon -->
         <div class="sidebar-icon-container">
           <div class="sidebar-icon">
@@ -208,41 +80,15 @@
           <div class="sidebar-icon">
             <i class="fas fa-eye text-primary-400"></i>
           </div>
-          <div class="sidebar-label">Preview</div>
+          <div class="sidebar-label"><span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview</span></div>
         </button>
-      </div>
-    </template>
-    
-    <!-- Files Section - Updated Design (expanded mode only) -->
-    <div v-if="!isCollapsed" class="flex-1 py-4 border-b border-dark-700/50">
-      <div class="mb-3">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Files</span>
-          <span class="text-xs text-gray-500">{{ files.length }} item{{ files.length !== 1 ? 's' : '' }}</span>
-        </div>
-        
-        <!-- Files container with enhanced styling -->
-        <div class="mt-2 bg-dark-800/70 backdrop-blur-sm rounded-xl border border-dark-700/50 overflow-hidden">
-          <FileExplorer
-            :files="files"
-            :selected-file="selectedFile"
-            :file-types="fileTypes"
-            :show-new-form="showNewFileFormValue"
-            :project-id="projectId"
-            @select-file="$emit('selectFile', $event)"
-            @create-file="$emit('createFile', $event)"
-            @delete-file="$emit('deleteFile', $event)"
-          />
-        </div>
-      </div>
+      </template>
     </div>
+    
+    <!-- Apps Section removed: now shown in main content area -->
     
     <!-- Version Control Section - New Design (expanded mode only) -->
     <div v-if="!isCollapsed" class="shrink-0 py-4">
-      <div class="mb-2">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Version History</span>
-      </div>
-      
       <div class="w-full">
         <VersionControlDropdown 
           :project-id="projectId"
@@ -255,121 +101,42 @@
     <div v-if="!isCollapsed" class="p-4 flex justify-center border-t border-dark-700/50">
       <!-- Preview button -->
       <button
-        class="group relative flex items-center justify-center py-2 px-4 rounded-lg transition-all duration-300 bg-dark-800/70 hover:bg-dark-800 border border-dark-700/50 hover:border-primary-500/30 transform hover:scale-[1.02] w-full"
+        class="relative flex items-center justify-center py-2 px-3 rounded-lg bg-dark-800/70 border border-dark-700/60 w-full text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
         title="Preview Project"
         :disabled="isLoading"
         @click="$emit('preview')"
       >
-        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-75 transition duration-300"></div>
-        <div class="relative flex items-center justify-center">
-          <i class="fas fa-eye mr-2 text-primary-400 group-hover:text-primary-300 transition-colors"></i>
-          <span class="text-white text-sm font-medium">Preview Project</span>
-        </div>
+        <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+          <i class="fas fa-eye"></i>
+        </span>
+        <span class="font-medium bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview Project</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
-import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
-import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
-import FileExplorer from '../../molecules/sidebar/FileExplorer.vue'
+// No local reactive state required post Apps-section removal
 import VersionControlDropdown from '../../molecules/sidebar/VersionControlDropdown.vue'
-import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/oasis/builder/utils/modelIconUtils'
 import type { 
-  AIModel, 
-  BuilderMode,
   ProjectFile,
   EditorMode,
   ProjectType
 } from '@/apps/products/oasis/builder/types'
-import { AI_MODELS } from '@/apps/products/oasis/builder/types/services'
-
-// Local state
-const showNewFileFormValue = ref(false)
-const modes: BuilderMode[] = ['chat', 'build']
 
 const props = defineProps<{
   currentProject: ProjectType | null
-  models: AIModel[]
-  modelId: string | null
   files: ProjectFile[]
   selectedFile: ProjectFile | null
   fileTypes: Record<string, string>
   isLoading: boolean
-  mode: BuilderMode
   currentEditorMode?: EditorMode
   isCollapsed?: boolean
   projectId: string
 }>()
 
-
-// Editable description state
-const editingDescription = ref(false)
-const editableDescription = ref(props.currentProject?.description || '')
-const descInputRef = ref<HTMLInputElement | null>(null)
-
-function startEditingDescription() {
-  editableDescription.value = props.currentProject?.description || ''
-  editingDescription.value = true
-  nextTick(() => {
-    descInputRef.value?.focus()
-  })
-}
-const projectStore = useProjectStore()
-
-async function saveDescription() {
-  editingDescription.value = false
-  const newDesc = editableDescription.value.trim()
-  if (props.currentProject && newDesc !== (props.currentProject.description || '')) {
-    try {
-      await projectStore.updateProject(String(props.currentProject.id), { description: newDesc })
-      // Optionally, update the local project description optimistically
-      if (props.currentProject) props.currentProject.description = newDesc
-    } catch (err) {
-      // Optionally, show an error toast or revert the UI
-      console.error('Failed to update project description:', err)
-    }
-  }
-}
-function cancelEditingDescription() {
-  editingDescription.value = false
-  editableDescription.value = props.currentProject?.description || ''
-}
-
-const getModeIcon = (mode: BuilderMode): string => {
-  const icons: Record<BuilderMode, string> = {
-    chat: 'fa-comments',
-    build: 'fa-code'
-  }
-  return icons[mode] || 'fa-code'
-}
-
-const formatMode = (mode: BuilderMode): string => {
-  return mode.charAt(0).toUpperCase() + mode.slice(1)
-}
-
-// Compute selected model for collapsed state tooltip
-const selectedModel = computed(() => {
-  // First try to find the model in the provided models
-  const model = props.models.find(m => m.id === props.modelId)
-  if (model) return model
-  // If not found, check in the default models
-  const defaultModel = AI_MODELS.find(m => m.id === props.modelId)
-  return defaultModel || null
-})
-
-// Computed property for mode options with icons
-const modeOptions = computed(() => ([
-  { id: 'chat', icon: 'fa-comments', label: 'Chat Mode' },
-  { id: 'build', icon: 'fa-code', label: 'Build Mode' }
-]))
-
-// Function to toggle the new file form visibility
-const toggleNewFileForm = () => {
-  showNewFileFormValue.value = !showNewFileFormValue.value
-}
+// Description is read-only now; no edit state or methods.
+// (Model/mode selectors moved to WorkspaceChat header)
 
 // Handle version reset event
 const handleVersionReset = (version: Record<string, any>) => {
@@ -499,6 +266,26 @@ const handleVersionReset = (version: Record<string, any>) => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Gradient ring avatar */
+.gradient-ring {
+  background: linear-gradient(135deg, rgba(99,102,241,0.6), rgba(139,92,246,0.6));
+}
+
+/* Name underline shimmer */
+.shimmer-underline {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), rgba(139,92,246,0.5), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 

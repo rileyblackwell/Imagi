@@ -15,109 +15,108 @@
       storage-key="builderWorkspaceSidebarCollapsed"
       :navigation-items="navigationItems"
     >
-      <!-- Sidebar Content -->
-      <template #sidebar-content="{ collapsed }">
-        <BuilderSidebar
-          :current-project="currentProject"
-          :models="store.availableModels || []"
-          :model-id="store.selectedModelId || null"
-          :selected-file="store.selectedFile || null"
-          :files="store.files || []"
-          :file-types="fileTypes"
-          :is-loading="store.isProcessing || false"
-          :mode="store.mode || 'chat'"
-          :current-editor-mode="currentEditorMode"
-          :is-collapsed="collapsed"
-          :project-id="projectId || ''"
-          @update:model-id="handleModelSelect"
-          @update:mode="handleModeSwitch"
-          @select-file="handleFileSelect"
-          @create-file="handleFileCreate"
-          @delete-file="handleFileDelete"
-          @preview="handlePreview"
-        />
+      <!-- Centered navbar content: project name and description -->
+      <template #navbar-center>
+        <div class="flex flex-col items-center text-center select-none">
+          <div class="relative flex items-center gap-2">
+            <span class="text-sm font-semibold bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent truncate max-w-[50vw]">
+              {{ navbarNameSanitized }}
+            </span>
+          </div>
+          <div v-if="currentProject && currentProject.description" class="mt-0.5 text-[11px] text-gray-400/90 truncate max-w-[60vw]">
+            {{ navbarDescSanitized }}
+          </div>
+        </div>
+      </template>
+      <!-- Sidebar Content (removed as per request) -->
+      <template #sidebar-content>
+        <!-- Intentionally left empty to remove all sidebar UI -->
       </template>
 
       <!-- Modern Dark-themed Main Content Area -->
       <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
-        <!-- Enhanced sophisticated dark background with enhanced effects matching About page -->
-        <div class="absolute inset-0 pointer-events-none overflow-hidden">
-          <!-- Enhanced Pattern Overlay -->
-          <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-          <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-          <div class="absolute inset-0 bg-gradient-to-br from-dark-950/10 via-dark-900 to-violet-950/10"></div>
-          
-          <!-- Enhanced Glowing Orbs Animation -->
-          <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
-          <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[120px] animate-float-delay"></div>
-          
-          <!-- Animated Lines and Particles -->
-          <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
-          <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
-        </div>
+        <WorkspaceBackground />
         
         <!-- Subtle top border for definition -->
         <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
 
         <!-- Enhanced Error State Display -->
-        <div v-if="store.error" class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
-          <div class="flex flex-col items-center justify-center h-full p-12 text-center">
-            <!-- Modern Error Container -->
-            <div class="relative group max-w-xl w-full transform transition-all duration-300 hover:-translate-y-1">
-              <!-- Enhanced glassmorphism Error Card -->
-              <div class="absolute -inset-0.5 rounded-2xl opacity-70 bg-gradient-to-r from-red-500/50 to-rose-500/50 blur-md"></div>
-              <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/95 via-dark-900/90 to-dark-800/95 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                <!-- Sleek gradient header -->
-                <div class="h-1 w-full bg-gradient-to-r from-red-400 via-rose-400 to-red-400 opacity-80"></div>
-                
-                <!-- Subtle background effects -->
-                <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-red-400/4 to-rose-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
-                
-                <div class="relative z-10 p-8">
-                  <!-- Modern pill badge -->
-                  <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500/15 to-rose-500/15 border border-red-400/20 rounded-full mb-6 backdrop-blur-sm mx-auto">
-                    <div class="w-1.5 h-1.5 bg-red-400 rounded-full mr-2 animate-pulse"></div>
-                    <span class="text-red-300 font-medium text-xs tracking-wide uppercase">Workspace Error</span>
-                  </div>
-                  
-                  <!-- Error Icon -->
-                  <div class="w-16 h-16 bg-gradient-to-br from-red-500/20 to-rose-500/20 border border-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-exclamation-triangle text-2xl text-red-400"></i>
-                  </div>
-                  
-                  <!-- Error Content -->
-                  <h2 class="text-2xl font-semibold text-white mb-4">Something went wrong</h2>
-                  <p class="text-gray-300 mb-8 leading-relaxed">{{ store.error }}</p>
-                  
-                  <!-- Action Buttons -->
-                  <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <router-link
-                      to="/products/oasis/builder/dashboard"
-                      class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 transform hover:-translate-y-1"
-                    >
-                      <i class="fas fa-arrow-left mr-2"></i>
-                      Go to Dashboard
-                    </router-link>
-                    <button
-                      @click="retryProjectLoad"
-                      class="inline-flex items-center justify-center px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-red-400/30 text-gray-300 hover:text-white font-medium rounded-xl transition-all duration-200"
-                    >
-                      <i class="fas fa-sync-alt mr-2"></i>
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
         
         <!-- Enhanced ChatGPT-like Interface -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
-          <!-- Main Chat Container -->
+          <!-- Main Content: Show Apps section first; switch to chat after submit -->
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
-            <!-- Chat Component with Enhanced Styling -->
-            <div class="flex-1 relative min-h-0">
+            <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
+            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-4 flex flex-col">
+              <!-- Section Title: Project Web App Name -->
+              <div class="mb-4 mt-2">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
+                      {{ sanitizedProjectTitle }}
+                    </span>
+                  </h2>
+                  
+                </div>
+                <div class="mt-1 h-px w-full bg-gradient-to-r from-indigo-500/40 via-violet-500/40 to-transparent"></div>
+              </div>
+
+              <!-- Simple: App Gallery for non-technical users -->
+              <WorkspaceAppsSimple
+                v-if="appsViewMode === 'simple'"
+                :files="store.files || []"
+                :project-id="projectId || ''"
+                :version-history="versionHistory"
+                :is-loading-versions="isLoadingVersions"
+                :selected-version-hash="selectedVersionHash"
+                @selectFile="handleFileSelect"
+                @createApp="handleCreateAppFromGallery"
+                @preview="handlePreview"
+                @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
+                @version-select="onVersionSelect"
+                @version-reset="handleVersionReset"
+              />
+
+              <!-- Advanced: full file explorer -->
+              <WorkspaceAppsAdvanced
+                v-else
+                :files="advancedFiles || []"
+                :selected-file="store.selectedFile || null"
+                :file-types="fileTypes"
+                :project-id="projectId || ''"
+                @back="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
+                @select-file="handleFileSelect"
+                @create-file="handleFileCreate"
+                @delete-file="handleFileDelete"
+              />
+
+              <!-- Compact chat input section fixed below Apps area -->
+              <div class="mt-4">
+                <WorkspaceChat
+                  :messages="ensureValidMessages(store.conversation || [])"
+                  :is-processing="store.isProcessing"
+                  :mode="store.mode || 'chat'"
+                  :selected-file="store.selectedFile"
+                  :selected-model-id="store.selectedModelId"
+                  :available-models="store.availableModels || []"
+                  :prompt-placeholder="promptPlaceholder"
+                  :show-examples="false"
+                  :prompt-examples="promptExamplesComputed"
+                  v-model="prompt"
+                  :compact="true"
+                  :show-conversation="false"
+                  @update:model-id="handleModelSelect"
+                  @update:mode="handleModeSwitch"
+                  @submit="handlePrompt"
+                  @use-example="handleExamplePrompt"
+                />
+                <!-- Controls adjacent to chat input: (moved to Your Apps header) intentionally empty -->
+              </div>
+            </div>
+
+            <!-- Chat Component -->
+            <div v-else class="flex-1 relative min-h-0">
               <WorkspaceChat
                 :messages="ensureValidMessages(store.conversation || [])"
                 :is-processing="store.isProcessing"
@@ -129,6 +128,8 @@
                 :show-examples="false"
                 :prompt-examples="promptExamplesComputed"
                 v-model="prompt"
+                @update:model-id="handleModelSelect"
+                @update:mode="handleModeSwitch"
                 @submit="handlePrompt"
                 @use-example="handleExamplePrompt"
                 class="h-full w-full"
@@ -152,6 +153,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { PreviewService } from '../services/previewService'
+import { BuilderCreationService } from '../services/builderCreationService'
 import { VersionControlService } from '../services/versionControlService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
@@ -160,14 +162,21 @@ import { useNotification } from '@/shared/composables/useNotification'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/oasis/builder/layouts'
-import BuilderSidebar from '../components/organisms/sidebar/BuilderSidebar.vue'
 import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
-import { WorkspaceChat } from '../components/organisms/workspace'
+import { 
+  WorkspaceChat,
+  WorkspaceBackground,
+  WorkspaceError,
+  WorkspaceAppsSimple,
+  WorkspaceAppsAdvanced
+} from '../components/organisms/workspace'
+// Set component name
+defineOptions({ name: 'BuilderWorkspace' })
 
 // Types
-import type { ProjectFile, EditorMode, BuilderMode } from '../types/components'
+import type { ProjectFile, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
 
 // Ensure all services use the shared API client with proper timeout configurations
@@ -196,9 +205,89 @@ const fileTypes = {
   'md': 'Markdown'
 }
 
+// Simple creation flows for non-technical users via AppGallery
+async function handleCreateAppFromGallery() {
+  try {
+    const appNameRaw = window.prompt('App name (letters and numbers, start with a letter):', 'blog') || ''
+    const appName = appNameRaw.trim()
+    if (!appName || !/^[a-z][a-z0-9]*$/.test(appName)) return
+    const appDescription = window.prompt('Short description (optional):', '') || ''
+
+    // Call the backend API to create the app
+    const result = await BuilderCreationService.createAppFromGallery(
+      projectId.value,
+      appName,
+      appDescription
+    )
+
+    if (result.success) {
+      console.log('App created successfully:', result.message)
+      // Reload project files to show the new app
+      await loadProjectFiles(true)
+    } else {
+      console.error('Failed to create app:', result.error)
+      // Show error notification to user
+      const { showNotification } = useNotification()
+      showNotification({
+        type: 'error',
+        message: result.error || 'Failed to create app',
+        duration: 5000
+      })
+    }
+  } catch (e) {
+    console.error('Error creating app from gallery:', e)
+  }
+}
+
+// Version history state and actions
+const versionHistory = ref<Array<Record<string, any>>>([])
+const selectedVersionHash = ref<string>('')
+const isLoadingVersions = ref<boolean>(false)
+
+async function loadVersionHistory() {
+  if (!projectId.value) return
+  try {
+    isLoadingVersions.value = true
+    const res = await AgentService.getVersionHistory(projectId.value)
+    // Support either versions or commits shapes
+    const list = (res && (res as any).versions) || (res as any).commits || []
+    versionHistory.value = Array.isArray(list) ? list : []
+  } catch (e) {
+    console.error('Failed to load version history:', e)
+  } finally {
+    isLoadingVersions.value = false
+  }
+}
+
+async function onVersionSelect() {
+  try {
+    const hash = selectedVersionHash.value
+    if (!hash || !projectId.value) return
+    const res = await AgentService.resetToVersion(projectId.value, hash)
+    if ((res as any)?.success !== false) {
+      await handleVersionReset({ hash })
+      await loadVersionHistory()
+      // Clear selection after reset
+      selectedVersionHash.value = ''
+    }
+  } catch (e) {
+    console.error('Failed to reset to selected version:', e)
+  }
+}
+
 // Local state
-const currentEditorMode = ref<EditorMode>('split')
 const prompt = ref('')
+const showAppsInMain = ref(true)
+const appsViewMode = ref<'simple' | 'advanced'>('simple')
+// When in advanced mode, restrict files to a specific app
+const advancedAppFilter = ref<string | null>(null)
+
+const advancedFiles = computed(() => {
+  const files = store.files || []
+  if (!advancedAppFilter.value) return files
+  const app = advancedAppFilter.value.toLowerCase()
+  return files.filter((f: any) => (f.path || '').toLowerCase().includes(`/src/apps/${app}/`))
+})
 
 // Navigation items for sidebar
 const navigationItems: any[] = [] // Empty array to remove sidebar navigation buttons
@@ -211,6 +300,48 @@ const currentProject = computed(() => {
 const promptExamplesComputed = computed(() => {
   return [] // Return empty array for examples
 })
+
+// Display name for the Project Web App title
+const projectTitle = computed(() => {
+  const name = currentProject.value && (currentProject.value as any).name
+  return name && String(name).trim() ? String(name) : ''
+})
+
+// Sanitized project title for display (remove 'spacex')
+const sanitizedProjectTitle = computed(() => {
+  const title = projectTitle.value || ''
+  const cleaned = title.replace(/spacex/ig, '').trim()
+  return cleaned || ''
+})
+
+// Sanitized navbar project name and description (remove 'spacex')
+const navbarNameSanitized = computed(() => {
+  const raw = currentProject.value && (currentProject.value as any).name
+    ? String((currentProject.value as any).name)
+    : ''
+  return raw.trim()
+})
+
+const navbarDescSanitized = computed(() => {
+  const raw = currentProject.value && (currentProject.value as any).description
+    ? String((currentProject.value as any).description)
+    : ''
+  return raw.trim()
+})
+
+// Refresh files and clear any selection on version reset
+async function handleVersionReset(version: Record<string, any>) {
+  try {
+    console.debug('Version reset to:', version)
+    await loadProjectFiles(true)
+    // Optionally clear selected file to avoid stale content
+    if (typeof store.setSelectedFile === 'function') {
+      store.setSelectedFile(null)
+    }
+  } catch (e) {
+    console.error('Error handling version reset:', e)
+  }
+}
 
 const promptPlaceholder = computed(() => {
   if (store.mode === 'chat') {
@@ -290,6 +421,10 @@ async function handlePrompt(eventData?: { timestamp: string }) {
   if (!prompt.value.trim()) return
   
   try {
+    // Switch main area from Apps to Chat upon first submission
+    if (showAppsInMain.value) {
+      showAppsInMain.value = false
+    }
     if (!store.selectedModelId) {
       return
     }
@@ -297,7 +432,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
     const timestamp = eventData?.timestamp || new Date().toISOString()
     
     // Get payments store for updating balance
-    const paymentsStore = usePaymentStore()
     const balanceStore = useBalanceStore()
     
     // Mark that a transaction is about to happen to ensure fresh balance data
@@ -567,14 +701,22 @@ async function handlePrompt(eventData?: { timestamp: string }) {
           }
         )
         
-        // Add the real response message directly, but without showing code in the UI
-        store.addMessage({
-          role: 'assistant',
-          content: response.response,
-          timestamp: new Date().toISOString(),
-          id: `assistant-response-${Date.now()}`
-          // No code field to prevent displaying code in the UI
-        })
+        // Add the real response message directly (dedupe against last assistant message)
+        const normalize = (txt: string | undefined) => (txt || '').trim().replace(/\s+/g, ' ')
+        const newContent = normalize(response.response)
+        const lastAssistant = [...store.conversation].slice().reverse().find(m => m.role === 'assistant')
+        const lastContent = normalize(lastAssistant?.content)
+        if (!lastAssistant || newContent !== lastContent) {
+          store.addMessage({
+            role: 'assistant',
+            content: response.response,
+            timestamp: new Date().toISOString(),
+            id: `assistant-response-${Date.now()}`
+            // No code field to prevent displaying code in the UI
+          })
+        } else {
+          console.info('Skipped duplicate assistant message (frontend dedupe)')
+        }
       } catch (chatError) {
         throw chatError
       }
@@ -656,6 +798,14 @@ async function handleFileSelect(file: ProjectFile) {
     
     // Use the improved selectFile method to maintain chat context
     store.selectFile(file)
+
+    // When a user opens an app/file from the AppGallery, switch to Advanced view
+    appsViewMode.value = 'advanced'
+    // Restrict Advanced view to the selected app
+    const appMatch = (file.path || '').toLowerCase().match(/\/src\/apps\/([^/]+)\//)
+    if (appMatch && appMatch[1]) {
+      advancedAppFilter.value = appMatch[1]
+    }
     
     // Update the mode indicator UI by forcing a re-render
     // This is needed because the selectedFile reference might not change
@@ -671,8 +821,9 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
       ...data
     })
     
-    // Refresh file list after creating a new file
-    await loadProjectFiles()
+    // Force refresh file list after creating a new file to ensure it appears in the explorer
+    console.debug('File created, refreshing file list from backend...')
+    await loadProjectFiles(true)
     
     // Automatically commit the file creation
     VersionControlService.commitAfterFileOperation(
@@ -689,8 +840,9 @@ async function handleFileDelete(file: ProjectFile) {
   try {
     await FileService.deleteFile(projectId.value, file.path)
     
-    // Remove file from store
-    store.removeFile(file)
+    // Force refresh file list after deleting a file to ensure it's removed from the explorer
+    console.debug('File deleted, refreshing file list from backend...')
+    await loadProjectFiles(true)
     
     // If the deleted file was selected, clear selection
     if (store.selectedFile && store.selectedFile.path === file.path) {
@@ -727,6 +879,25 @@ async function handlePreview() {
   }
 }
 
+// Ensure default apps exist for every new project
+async function ensureDefaultApps() {
+  try {
+    // Call the backend API to ensure default apps exist
+    const result = await BuilderCreationService.ensureDefaultApps(projectId.value)
+
+    if (result.success) {
+      console.log('Default apps ensured:', result.message)
+      // Reload project files to show any newly created default apps
+      await loadProjectFiles(true)
+    } else {
+      console.warn('Failed to ensure default apps:', result.error)
+      // Don't show error notification for this as it's not critical
+    }
+  } catch (e) {
+    console.error('Error ensuring default apps:', e)
+  }
+}
+
 // Retry loading the project when user clicks retry button
 async function retryProjectLoad() {
   // Clear any existing error state
@@ -738,11 +909,16 @@ async function retryProjectLoad() {
     
     // If successful, reload the workspace data
     await loadModels()
-    await loadProjectFiles()
+    // Force refresh files when retrying to ensure we get the latest state
+    await loadProjectFiles(true)
+    // Ensure default apps exist after retry load
+    await ensureDefaultApps()
+    // Refresh version history after retry
+    await loadVersionHistory()
     
     // Set default model if needed
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+      const defaultModel = store.availableModels.find(m => m.id === 'claude-sonnet-4-20250514') 
         || store.availableModels[0];
       if (defaultModel) {
         store.setSelectedModelId(defaultModel.id);
@@ -760,20 +936,22 @@ async function retryProjectLoad() {
 }
 
 // Helper function to load project files
-async function loadProjectFiles() {
+async function loadProjectFiles(force = false) {
   try {
-    // Avoid duplicate calls by checking if project files are already loaded
-    if (store.files && store.files.length > 0) {
+    // Always reload files when force is true, or when files haven't been loaded yet
+    if (!force && store.files && store.files.length > 0) {
       console.debug('Using existing files from store, skipping API call')
       return store.files
     }
     
+    console.debug('Loading project files from backend API...')
     const files = await FileService.getProjectFiles(projectId.value)
     if (Array.isArray(files)) {
       // Use the setFiles method to avoid type issues with $patch
       if (typeof store.setFiles === 'function') {
         // Cast the files to the expected type if needed
         store.setFiles(files as any)
+        console.debug(`Loaded ${files.length} files from backend`)
       } else {
         console.error('setFiles method not available on store')
       }
@@ -871,7 +1049,12 @@ onMounted(async () => {
         // IMPORTANT: We DON'T use Promise.all here to prevent race conditions
         // between file fetching and the project data
         await executeOnce('loadModels', loadModels);
-        await executeOnce('loadProjectFiles', loadProjectFiles);
+        // Force fresh file load on initial page load to always get latest files including initial home view
+        await executeOnce('loadProjectFiles', () => loadProjectFiles(true));
+        // Ensure default apps are present for new/empty projects
+        await ensureDefaultApps()
+        // Load version history for header dropdown
+        await loadVersionHistory()
         
         // Only fetch balance once at startup, with no auto-refresh
         // Make sure it doesn't block the UI
@@ -880,7 +1063,7 @@ onMounted(async () => {
         
         // Set default model if not already set
         if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'claude-3-7-sonnet-20250219') 
+          const defaultModel = store.availableModels.find(m => m.id === 'claude-sonnet-4-20250514') 
             || store.availableModels[0];
           if (defaultModel) {
             store.setSelectedModelId(defaultModel.id);
@@ -1156,9 +1339,3 @@ onBeforeUnmount(() => {
   animation: float-slow-reverse 25s ease-in-out infinite;
 }
 </style>
-
-<script lang="ts">
-export default {
-  name: 'BuilderWorkspace'
-}
-</script>

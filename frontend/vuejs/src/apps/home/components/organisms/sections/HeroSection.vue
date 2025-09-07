@@ -110,19 +110,19 @@ export default defineComponent({
   props: {
     titleLine1: {
       type: String,
-      default: 'Transform Your'
+      default: 'Build Full-Stack'
     },
     titleLine2: {
       type: String,
-      default: 'Ideas Into'
+      default: 'Web Apps Without'
     },
     highlightedTitle: {
       type: String,
-      default: 'Django Web Apps'
+      default: 'Writing Code'
     },
     description: {
       type: String,
-      default: 'Create beautiful web apps in minutes for just a few dollars - not thousands. Describe what you want in plain English, and our AI builds your web app with no coding required.'
+      default: 'Perfect for non-technical users! Create professional web applications with Vue.js frontends and Django backends in minutes. Just describe what you want in plain English - no programming experience needed.'
     },
     primaryButtonText: {
       type: String,

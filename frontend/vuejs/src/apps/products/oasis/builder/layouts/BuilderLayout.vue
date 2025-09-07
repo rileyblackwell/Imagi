@@ -5,6 +5,9 @@
     </template>
     
     <!-- Pass through any navbar-right content from parent -->
+    <template #navbar-center>
+      <slot name="navbar-center"></slot>
+    </template>
     <template #navbar-right>
       <slot name="navbar-right"></slot>
     </template>

@@ -147,9 +147,10 @@
                   <!-- Search Input - Centered below title -->
                   <div v-if="projects.length > 0" class="mb-6 flex justify-center">
                     <div class="w-full max-w-md">
-                      <ProjectSearchInput 
+                      <SearchInput 
                         v-model="searchQuery"
                         placeholder="Search projects"
+                        variant="project"
                       />
                     </div>
                   </div>
@@ -249,7 +250,7 @@ import { BuilderLayout } from '@/apps/products/oasis/builder/layouts';
 import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore';
 import { useNotification } from '@/shared/composables/useNotification';
 import { useConfirm } from '../composables/useConfirm';
-import ProjectSearchInput from '../components/atoms/ProjectSearchInput.vue';
+import { SearchInput } from '../components/atoms';
 import ProjectCardWithDescription from '../components/molecules/cards/ProjectCardWithDescription.vue';
 
 const router = useRouter();

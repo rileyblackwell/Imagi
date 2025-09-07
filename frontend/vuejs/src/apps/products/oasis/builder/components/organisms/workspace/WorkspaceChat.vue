@@ -1,6 +1,9 @@
 <template>
   <!-- Main dark-themed layout with sophisticated background -->
-  <div class="flex-1 flex flex-col overflow-hidden h-full w-full bg-dark-950 relative">
+  <div
+    class="bg-dark-950 relative overflow-hidden w-full"
+    :class="compact ? '' : 'flex-1 flex flex-col h-full'"
+  >
     <!-- Enhanced sophisticated background effects matching About page -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <!-- Enhanced Pattern Overlay -->
@@ -14,7 +17,7 @@
     </div>
     
     <!-- Chat Conversation Area -->
-    <div class="flex-1 overflow-auto relative min-h-0 z-10">
+    <div v-if="showConversation" class="flex-1 overflow-auto relative min-h-0 z-10">
       <!-- Enhanced multi-layered premium background overlay -->
       <div class="absolute inset-0 bg-gradient-to-b from-white/[0.01] via-transparent to-white/[0.005] pointer-events-none"></div>
       <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/[0.004] via-transparent to-violet-500/[0.003] pointer-events-none"></div>
@@ -41,7 +44,7 @@
         <!-- Content container matching dashboard layout -->
         <div class="max-w-4xl mx-auto px-6 py-6">
           <!-- Modern glassmorphism container matching project library style -->
-          <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden">
+          <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-visible">
             <!-- Sleek gradient header matching dashboard -->
             <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
             
@@ -73,14 +76,82 @@
                     </p>
                   </div>
                   
-                  <!-- Mode indicator in top right corner matching dashboard stats -->
-                  <div class="ml-4">
-                    <ModeIndicator 
-                      :mode="mode" 
-                      :selected-file="selectedFile" 
-                      :selected-model-id="selectedModelId"
-                      :available-models="availableModels"
-                    />
+                  <!-- Controls in top right: Model selector + Mode toggle -->
+                  <div class="ml-4 flex items-start gap-3">
+                    <div class="min-w-[220px]">
+                      <ModelSelector 
+                        :models="availableModels"
+                        :model-id="selectedModelId"
+                        :mode="mode"
+                        @update:model-id="(id: string) => $emit('update:model-id', id)"
+                      />
+                    </div>
+                    <div class="relative min-w-[160px]">
+                      <!-- Dropdown Trigger Button (matches ModelSelector style) -->
+                      <button
+                        @click="toggleModeDropdown"
+                        class="w-full flex items-center justify-between p-2.5 rounded-lg border transition-all duration-300 bg-dark-800/70 backdrop-blur-sm border-dark-700/50 hover:border-primary-500/30 group"
+                        :class="{ 'border-primary-500/40 bg-gradient-to-r from-primary-500/10 to-violet-500/10': isModeDropdownOpen }"
+                        aria-haspopup="listbox"
+                        :aria-expanded="isModeDropdownOpen ? 'true' : 'false'"
+                      >
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
+                        <div class="relative flex items-center space-x-2">
+                          <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 shadow-[0_0_12px_rgba(139,92,246,0.15)]">
+                            <i class="fas bg-gradient-to-br from-primary-300 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(139,92,246,0.35)]" :class="mode === 'chat' ? 'fa-comments' : 'fa-code'"></i>
+                          </div>
+                          <span class="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{{ mode === 'chat' ? 'Chat' : 'Build' }}</span>
+                        </div>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300 relative"
+                           :class="{ 'transform rotate-180 text-primary-400': isModeDropdownOpen }"></i>
+                      </button>
+
+                      <!-- Dropdown Menu -->
+                      <div
+                        v-show="isModeDropdownOpen"
+                        class="absolute z-50 w-full mt-2 bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+                        role="listbox"
+                        aria-label="Select mode"
+                      >
+                        <div class="max-h-48 py-1">
+                          <button
+                            class="w-full flex items-center gap-2 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
+                            :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': mode === 'chat' }"
+                            role="option"
+                            :aria-selected="mode === 'chat'"
+                            @click="handleSelectMode('chat')"
+                          >
+                            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-indigo-500/15 to-sky-500/15 border-indigo-400/30 shadow-[0_0_10px_rgba(99,102,241,0.18)]">
+                              <i class="fas fa-comments bg-gradient-to-br from-indigo-300 to-sky-300 bg-clip-text text-transparent"></i>
+                            </div>
+                            <span class="flex-1 text-left text-sm text-gray-200 group-hover:text-white">Chat</span>
+                            <span v-if="mode === 'chat'" class="text-primary-400"><i class="fas fa-check"></i></span>
+                          </button>
+                          <button
+                            class="w-full flex items-center gap-2 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
+                            :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': mode === 'build' }"
+                            role="option"
+                            :aria-selected="mode === 'build'"
+                            @click="handleSelectMode('build')"
+                          >
+                            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 border-violet-400/30 shadow-[0_0_10px_rgba(139,92,246,0.18)]">
+                              <i class="fas fa-code bg-gradient-to-br from-violet-300 to-fuchsia-300 bg-clip-text text-transparent"></i>
+                            </div>
+                            <span class="flex-1 text-left text-sm text-gray-200 group-hover:text-white">Build</span>
+                            <span v-if="mode === 'build'" class="text-primary-400"><i class="fas fa-check"></i></span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Overlay to close dropdown when clicking outside -->
+                      <div
+                        v-if="isModeDropdownOpen"
+                        class="fixed inset-0 z-40"
+                        @click="closeModeDropdown"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -141,7 +212,7 @@
 import { ref, watch, computed } from 'vue'
 import { ChatConversation } from '../../organisms/chat'
 import { ChatInputArea } from '../../molecules'
-import { ModeIndicator } from '../../molecules/display'
+import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
 import type { BuilderMode } from '../../../types/components'
 import type { AIModel, AIMessage } from '../../../types/services'
 import type { SelectedFile } from '../../../types/components'
@@ -158,6 +229,10 @@ const props = defineProps<{
   showExamples: boolean
   promptExamples: Array<{title: string, text: string}> | null
   modelValue: string
+  // When true, render a compact layout suitable for placing under other content
+  compact?: boolean
+  // Controls whether the conversation feed is shown
+  showConversation?: boolean
 }>()
 
 // Ensure all messages have required properties
@@ -210,19 +285,27 @@ const validatedMessages = computed(() => {
   });
   
   return processed;
-});
+})
+
 
 // Emits
 const emit = defineEmits([
   'update:modelValue',
+  'update:model-id',
+  'update:mode',
   'submit',
   'examples',
   'use-example',
   'apply-code'
 ])
 
+// Derived props with defaults
+const compact = computed(() => props.compact === true)
+const showConversation = computed(() => props.showConversation !== false)
+
 // Local state
 const localPrompt = ref(props.modelValue)
+const isModeDropdownOpen = ref(false)
 
 // Watch for external changes
 watch(() => props.modelValue, (newValue) => {
@@ -242,6 +325,20 @@ function handleSubmit() {
 
 function handleApplyCode(code: string) {
   emit('apply-code', code)
+}
+
+// Mode dropdown handlers
+function toggleModeDropdown() {
+  isModeDropdownOpen.value = !isModeDropdownOpen.value
+}
+function closeModeDropdown() {
+  isModeDropdownOpen.value = false
+}
+function handleSelectMode(value: BuilderMode) {
+  if (value === 'chat' || value === 'build') {
+    emit('update:mode', value)
+    closeModeDropdown()
+  }
 }
 </script>
 

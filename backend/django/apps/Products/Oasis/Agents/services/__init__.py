@@ -9,18 +9,12 @@ and conversation capabilities in the Imagi Oasis platform.
 from .agent_service import BaseAgentService
 
 # Import specialized agent services
-from .template_agent_service import TemplateAgentService
+from .component_agent_service import TemplateAgentService
+from .view_agent_service import ViewAgentService
 from .chat_agent_service import ChatAgentService
 
 # Import the agent factory
 from .agent_factory import AgentFactory
-
-# Try to import StylesheetAgentService if it exists
-try:
-    from .stylesheet_agent_service import StylesheetAgentService
-    has_stylesheet_service = True
-except ImportError:
-    has_stylesheet_service = False
 
 # Utility functions from agent_service.py
 from .agent_service import build_conversation_history, format_system_prompt, get_conversation_summary
@@ -118,6 +112,7 @@ def undo_last_action_service(*args, **kwargs):
 exports = [
     'BaseAgentService',
     'TemplateAgentService',
+    'ViewAgentService',
     'ChatAgentService',
     'AgentFactory',
     'build_conversation_history',
@@ -132,10 +127,6 @@ exports = [
     'undo_last_action_service',
     'MODEL_COSTS'
 ]
-
-# Add StylesheetAgentService to exports if available
-if has_stylesheet_service:
-    exports.append('StylesheetAgentService')
 
 # Export all agent services and functions
 __all__ = exports 

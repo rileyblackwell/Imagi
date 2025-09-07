@@ -67,12 +67,12 @@ class TransactionService:
             # Use a specific description for small transactions to make them visible
             if not description:
                 if positive_amount < 0.01:
-                    # Special formatting for very small amounts (like gpt-4.1-nano)
+                    # Special formatting for very small amounts (micro charges)
                     description = f"AI model usage: {positive_amount:.4f} credits"
                 else:
                     description = f"AI model usage: {positive_amount:.2f} credits"
             
-            # Ensure explicit logging for tiny transactions (like gpt-4.1-nano)
+            # Ensure explicit logging for tiny transactions (micro charges)
             if positive_amount < 0.01:
                 logger.info(f"Creating MICRO transaction for user {user.username}: ${positive_amount:.4f}")
             

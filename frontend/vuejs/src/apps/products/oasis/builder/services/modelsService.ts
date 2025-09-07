@@ -98,14 +98,37 @@ export const ModelsService = {
       const response = await api.get(buildApiUrl('/api/v1/builder/models/'))
       
       if (response.data && Array.isArray(response.data.models)) {
-        return response.data.models.map((model: any) => ({
-          id: model.id,
-          name: model.name,
-          description: model.description || '',
-          capabilities: model.capabilities || ['chat'],
-          contextWindow: model.context_window || 4096,
-          provider: model.provider || 'Unknown'
-        }))
+        const apiModels: AIModel[] = response.data.models.map((model: any) => {
+          // Infer a valid provider if not supplied by API
+          let inferredProvider: 'openai' | 'anthropic' | 'google' | 'local' = 'local'
+          const idStr = String(model.id || '')
+          if (model.provider === 'openai' || model.provider === 'anthropic' || model.provider === 'google' || model.provider === 'local') {
+            inferredProvider = model.provider
+          } else if (idStr.startsWith('gpt')) {
+            inferredProvider = 'openai'
+          } else if (idStr.startsWith('claude')) {
+            inferredProvider = 'anthropic'
+          }
+
+          return {
+            id: model.id,
+            name: model.name,
+            description: model.description || '',
+            capabilities: model.capabilities || ['chat'],
+            // Use snake_case to match AIModel interface
+            context_window: model.context_window || 4096,
+            provider: inferredProvider
+          } as AIModel
+        })
+
+        // Merge with static defaults to ensure completeness (e.g., gpt-5-nano)
+        const defaults = AI_MODELS
+        const apiIds = new Set(apiModels.map(m => m.id))
+        const merged = [...apiModels]
+        for (const d of defaults) {
+          if (!apiIds.has(d.id)) merged.push(d)
+        }
+        return merged
       }
     } catch (error) {
       // If API request fails, fall back to default models

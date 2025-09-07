@@ -1,3 +1,12 @@
+
+⸻
+
+description:
+globs:
+alwaysApply: true
+
+Your rule content
+
 Purpose
 
 Defines coding, design, and generation standards for Imagi Oasis to ensure consistency, efficiency, and best practices.
@@ -6,11 +15,14 @@ Company Overview
 	•	Product: Imagi Oasis – AI-powered full-stack web application generator
 	•	Mission: Enable users to rapidly build full-stack web apps using natural language
 	•	Target Users: Entrepreneurs, creators, and developers requiring rapid application development
+	•	Core Capability: Imagi allows users to build full-stack web apps with a Vue.js frontend and a Django backend
+
+⸻
 
 Environment Setup
 
 OS & Shell
-	•	macOS
+	•	OS: macOS
 	•	Shell: zsh
 
 Package Managers
@@ -23,66 +35,69 @@ Required Tools
 	•	PostgreSQL: >= 14
 
 Editor Configuration
-	•	IDE: VSCode/Cursor (with project settings)
-	•	Extensions:
-	•	Tailwind CSS IntelliSense
-	•	Python extensions
-	•	Vue.js extensions
-	•	Local Servers (Running by Default):
-	•	Frontend: npm run dev on localhost:5174
-	•	Backend: python manage.py runserver on localhost:8000
+	•	IDE: Windsurf (project/workspace settings checked into repo)
+	•	Extensions/Capabilities:
+	•	Tailwind CSS IntelliSense (or Windsurf equivalent)
+	•	Python support
+	•	Vue tooling
+	•	Editor ESLint/Prettier integration
+	•	Local Servers (default):
+	•	Frontend: npm run dev → http://localhost:5174
+	•	Backend: python manage.py runserver → http://localhost:8000
+
+⸻
 
 Local Development
-	•	Backend:
-	•	Django with SQLite3
-	•	Managed by Pipenv
-	•	Run using Django’s development server
-	•	Frontend:
-	•	Vue.js with Vite development server
+	•	Backend: Django with SQLite3, managed by Pipenv, run using Django’s development server
+	•	Frontend: Vue.js with Vite development server
 
 Staging & Production
 	•	Backend:
-	•	Django with PostgreSQL
-	•	Served via Gunicorn
+	•	Framework: Django with PostgreSQL
+	•	Served via Gunicorn (possible Uvicorn in async future)
 	•	Frontend:
-	•	Vue.js built via vite build
+	•	Built with vite build
 	•	Served as static files via Nginx
 	•	Hosting:
 	•	Provider: Railway.com
-	•	Separate Docker images/services for frontend and backend
+	•	Separate Docker images/services for frontend & backend
 	•	Communication via Railway’s private network
 	•	Future Enhancements:
-	•	Container orchestration via Kubernetes
+	•	Container orchestration with Kubernetes
+
+⸻
 
 Backend Specifications
 	•	Framework: Django 4.x
 	•	API Framework: Django REST Framework (DRF)
-	•	Database:
-	•	Development: SQLite
-	•	Production: PostgreSQL
+	•	Database: SQLite (Dev), PostgreSQL (Prod)
 	•	Testing: pytest
-	•	Authentication: Django-AllAuth
+	•	Authentication: Django-AllAuth (future OAuth2)
 	•	AI Integration: OpenAI, Anthropic
 	•	Payments: Stripe
-	•	Server: Gunicorn, Whitenoise
+	•	Server: Gunicorn
 	•	Containerization: Docker
 	•	API Versioning: /api/v1/
 
 Backend Apps (Django)
-	•	auth: Authentication and authorization
-	•	builder: Core AI generation logic and prompts
+	•	auth: Authentication & authorization
+	•	builder: Core AI generation logic & prompts
 	•	home: Landing pages and static content
 	•	payments: Stripe integration for credits
 	•	agents: AI workflow management
 	•	project_manager: Project lifecycle management
 
 Django API Design
-	•	RESTful API principles
-	•	Clear separation of views, serializers, and models
+	•	Follow RESTful API principles
+	•	Use DRF for endpoints
+	•	Separation of views, serializers, and models
+	•	Version all endpoints under /api/v1/
 
-Testing Strategy (Backend)
-	•	Unit Tests: pytest for models, views, and APIs
-	•	Integration Tests: API endpoint verification
+Backend Testing Strategy
+	•	Unit Tests: pytest for models, views, APIs
+	•	Integration Tests: endpoint verification
+
+⸻
 
 Frontend Specifications
 	•	Framework: Vue.js 3.4+ with Composition API
@@ -99,7 +114,7 @@ Frontend Specifications
 
 Frontend Structure
 
-Each app module must be self-contained, including:
+Each app module must be self-contained:
 	•	Components
 	•	Routes
 	•	Stores
@@ -107,48 +122,65 @@ Each app module must be self-contained, including:
 	•	Types
 	•	Tests
 
-Code Architecture (Vue.js)
+Code Architecture
 
-Atomic Design Principles
-	1.	Atoms: Basic UI elements (buttons, inputs, icons, text)
-	2.	Molecules: Combinations of atoms (form fields, cards)
-	3.	Organisms: Combinations of molecules (forms, headers)
-	4.	Templates: Layout and page-level components
+Atomic Design (Vue.js)
+	1.	Atoms: basic UI elements (buttons, inputs, icons, text)
+	2.	Molecules: groups of atoms (form fields, cards)
+	3.	Organisms: groups of molecules (forms, headers)
+	4.	Templates: page-level components and layouts
 
-Guidelines
-	•	Use Composition API for reusability and logic encapsulation
-	•	TypeScript for type safety
-	•	Import alias (@) referencing src directory
+Guidelines:
+	•	Use Composition API for logic encapsulation
+	•	Use TypeScript for type safety
+	•	Alias @ → src for all imports
 
-UI/UX Design Principles
-	•	Minimalist and modern UI inspired by Stripe, Airbnb, Apple, Twilio
-	•	Fully responsive layouts with Tailwind CSS
+UI/UX Principles
+	•	Minimalist, modern UI (Stripe, Airbnb, Apple, Twilio inspired)
+	•	Fully responsive with Tailwind
 	•	Accessibility compliance (WCAG 2.1)
-	•	Dark and light mode support
+	•	Dark/Light mode support
 
-Testing Strategy (Frontend)
-	•	Unit Tests: Jest for Vue component testing
-	•	E2E Tests: Cypress for complete application workflows
+Frontend Testing Strategy
+	•	Unit Tests: Jest for Vue components
+	•	E2E Tests: Cypress for workflows
+
+⸻
 
 Deployment & API Architecture
 
-Development Environment
-	•	Frontend: Vite dev server on localhost:5174
-	•	Backend: Django dev server on localhost:8000
-	•	Proxying: Vite dev server proxies /api/* to Django backend
+Development
+	•	Frontend: Vite dev server → http://localhost:5174
+	•	Backend: Django dev server → http://localhost:8000
+	•	Proxy: Vite proxies /api/* → Django backend
 
-Production Environment
+Production
 	•	Frontend: Nginx serving static files
-	•	Backend: Django + Gunicorn on Railway internal network
-	•	Proxying: Nginx proxies /api/* to backend
+	•	Backend: Django + Gunicorn on Railway private network
+	•	Proxy: Nginx proxies /api/* → backend
 
 Centralized API Client
-	•	Use relative URLs for API requests in both development and production
+	•	Use relative URLs in dev & prod
 
-General AI Assistant Instructions
+⸻
+
+Conventions & Naming
+	•	Files/Folders: kebab-case for files, snake_case for Python, PascalCase for Vue components
+	•	Tests: test_*.py (pytest), *.spec.ts (Jest), Cypress specs in e2e/
+	•	Commits: Conventional Commits (feat:, fix:, chore:, etc.)
+	•	Env Vars: Use .env files; never commit secrets
+
+⸻
+
+AI Assistant Instructions
 	•	Prefix tasks clearly:
-	•	Generation tasks: task:
-	•	Documentation/study tasks: study:
-	•	Generate self-contained files with imports and dependencies
+	•	task: for generation tasks
+	•	study: for documentation/learning tasks
+	•	Always generate self-contained files with imports & dependencies
 	•	Include tests for all new features
-	•	Adhere strictly to established naming conventions
+	•	Adhere to established naming conventions
+
+⸻
+
+	•	You can @ files here
+	•	You can use markdown but don’t have to

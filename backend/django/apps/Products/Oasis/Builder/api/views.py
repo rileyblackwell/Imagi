@@ -25,9 +25,14 @@ from apps.Products.Oasis.ProjectManager.models import Project as PMProject
 from apps.Products.Oasis.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Oasis.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound
-from ..services.project_service import ProjectService
-from apps.Products.Oasis.Agents.services.template_agent_service import TemplateAgentService
+from apps.Products.Oasis.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
+from ..services.create_app_service import CreateAppService
+from ..services.create_view_service import CreateViewService
+from ..services.create_component_service import CreateComponentService
+from ..services.create_app_service import CreateAppService
+from ..services.create_view_service import CreateViewService
+from ..services.create_component_service import CreateComponentService
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +178,9 @@ class FileContentView(APIView):
             dir_path = os.path.dirname(file_path)
             if dir_path:
                 try:
-                    full_dir_path = os.path.join(project.project_path, dir_path)
-                    os.makedirs(full_dir_path, exist_ok=True)
+                    # Create all necessary parent directories
+                    logger.info(f"Creating directory structure for {file_path}: {dir_path}")
+                    os.makedirs(os.path.join(project.project_path, dir_path), exist_ok=True)
                 except Exception as dir_error:
                     logger.error(f"Error creating directory structure: {str(dir_error)}")
                     # Continue anyway as the file creation might still succeed
@@ -197,7 +203,7 @@ def process_input(request):
     """Handle file generation requests."""
     try:
         user_input = request.data.get('user_input')
-        model = request.data.get('model', 'claude-3-7-sonnet-20250219')
+        model = request.data.get('model', 'claude-sonnet-4-20250514')
         file_name = request.data.get('file')
         mode = request.data.get('mode', 'build')
         
@@ -436,177 +442,6 @@ class DeleteFileView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@method_decorator(never_cache, name='dispatch')
-class DirectoryView(APIView):
-    """Get all files in a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get all files in a project directory structure."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Use ProjectService to get all files
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed
-            project_service.initialize_project_files()
-            
-            # Get template and static files
-            template_files = project_service.list_template_files()
-            static_files = project_service.list_static_files()
-            
-            # Combine the results
-            all_files = template_files + static_files
-            
-            # Log result for debugging
-            logger.info(f"Found {len(all_files)} files for project {project.id}")
-            
-            return Response(all_files, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting project files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class TemplateFilesView(APIView):
-    """Get template files for a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get all template files for a project."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Use ProjectService to get template files
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed
-            project_service.initialize_project_files()
-            
-            # Get template files
-            template_files = project_service.list_template_files()
-            
-            # Log result
-            logger.info(f"Found {len(template_files)} template files for project {project.id}")
-            
-            return Response(template_files, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting template files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class StaticFilesView(APIView):
-    """Get static files for a project."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get all static files for a project."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Use ProjectService to get static files
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed
-            project_service.initialize_project_files()
-            
-            # Get static files
-            static_files = project_service.list_static_files()
-            
-            # Log result
-            logger.info(f"Found {len(static_files)} static files for project {project.id}")
-            
-            return Response(static_files, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting static files: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class ProjectDetailsView(APIView):
-    """Get project details including file counts."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def get(self, request, project_id):
-        """Get detailed information about a project."""
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Use ProjectService to get project details
-            project_service = ProjectService(user=request.user, project=project)
-            project_details = project_service.get_project_details()
-            
-            return Response(project_details, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error getting project details: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 @method_decorator(never_cache, name='dispatch')
 class FileUndoView(APIView):
@@ -643,12 +478,6 @@ class FileUndoView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # First check if the file exists using ProjectService
-            project_service = ProjectService(user=request.user, project=project)
-            
-            # Initialize project files if needed (in case directories don't exist)
-            project_service.initialize_project_files()
-                
             # Call the appropriate service to handle the undo
             project_management_service = ProjectManagementService(request.user)
             
@@ -844,3 +673,179 @@ class VersionControlResetView(APIView):
                 'success': False,
                 'error': f"Error resetting project: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(never_cache, name='dispatch')
+class CreateAppView(APIView):
+    """Create a new Vue.js app with complete structure."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Create a new app from gallery or ensure default apps."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            action = request.data.get('action', 'create_app')  # 'create_app' or 'ensure_defaults'
+            app_name = request.data.get('app_name', '')
+            app_description = request.data.get('app_description', '')
+            
+            # Initialize service
+            app_service = CreateAppService(user=self.request.user, project=project)
+            
+            if action == 'ensure_defaults':
+                # Ensure default apps exist
+                result = app_service.ensure_default_apps()
+            else:
+                # Create new app from gallery
+                if not app_name:
+                    return Response(
+                        {'error': 'App name is required for app creation'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                result = app_service.create_app_from_gallery(
+                    app_name=app_name,
+                    app_description=app_description
+                )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error creating app: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class CreateView(APIView):
+    """Create a new Vue.js view within an app."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Create a new view in an app."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            app_name = request.data.get('app_name', '')
+            page_name = request.data.get('page_name', '')
+            page_type = request.data.get('page_type', 'view')  # 'view', 'component', 'layout'
+            route_path = request.data.get('route_path', None)  # Optional custom route
+            
+            if not app_name or not page_name:
+                return Response(
+                    {'error': 'App name and page name are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Initialize service
+            page_service = CreateViewService(user=self.request.user, project=project)
+            
+            # Create page with or without custom route
+            if route_path:
+                result = page_service.create_page_with_route(
+                    app_name=app_name,
+                    page_name=page_name,
+                    route_path=route_path
+                )
+            else:
+                result = page_service.create_page(
+                    app_name=app_name,
+                    page_name=page_name,
+                    page_type=page_type
+                )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error creating page: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@method_decorator(never_cache, name='dispatch')
+class CreateComponentView(APIView):
+    """Create a new Vue.js atomic component."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        """Create a new atomic component."""
+        try:
+            # Get project
+            project = self.get_project(project_id)
+            
+            # Get request data
+            app_name = request.data.get('app_name', '')
+            component_name = request.data.get('component_name', '')
+            component_type = request.data.get('component_type', 'atom')  # 'atom', 'molecule', 'organism'
+            component_variant = request.data.get('component_variant', 'generic')  # 'generic', 'button', 'input'
+            
+            if not app_name or not component_name:
+                return Response(
+                    {'error': 'App name and component name are required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Initialize service
+            component_service = CreateComponentService(user=self.request.user, project=project)
+            
+            # Create component based on variant
+            if component_variant == 'button':
+                result = component_service.create_button_component(
+                    app_name=app_name,
+                    button_name=component_name
+                )
+            elif component_variant == 'input':
+                result = component_service.create_input_component(
+                    app_name=app_name,
+                    input_name=component_name
+                )
+            else:
+                result = component_service.create_atomic_component(
+                    app_name=app_name,
+                    component_name=component_name,
+                    component_type=component_type
+                )
+            
+            if result.get('success'):
+                return Response(result, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error creating component: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

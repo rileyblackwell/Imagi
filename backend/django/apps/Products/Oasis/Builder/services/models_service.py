@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 # Centralized Model Definitions
 MODELS = {
-    'claude-3-7-sonnet-20250219': {
-        'id': 'claude-3-7-sonnet-20250219',
-        'name': 'Claude 3.7 Sonnet',
+    'claude-sonnet-4-20250514': {
+        'id': 'claude-sonnet-4-20250514',
+        'name': 'Claude Sonnet 4',
         'provider': 'anthropic',
         'type': 'anthropic',
         'description': 'Anthropic | High-performance model for complex tasks',
@@ -23,27 +23,29 @@ MODELS = {
         'costPerRequest': 0.04,
         'api_version': 'messages'  # Uses Anthropic messages API
     },
-    'gpt-4.1': {
-        'id': 'gpt-4.1',
-        'name': 'GPT-4.1',
+    'gpt-5': {
+        'id': 'gpt-5',
+        'name': 'GPT-5',
         'provider': 'openai',
         'type': 'openai',
-        'description': 'OpenAI | Powerful reasoning and creative capability',
+        'description': 'OpenAI | Next-generation reasoning and creative capability',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
         'costPerRequest': 0.04,
-        'api_version': 'chat'  # Uses OpenAI chat completions API
+        'api_version': 'responses',  # Uses OpenAI Responses API
+        'supports_temperature': False
     },
-    'gpt-4.1-nano': {
-        'id': 'gpt-4.1-nano',
-        'name': 'GPT-4.1 Nano',
+    'gpt-5-nano': {
+        'id': 'gpt-5-nano',
+        'name': 'GPT-5 Nano',
         'provider': 'openai',
         'type': 'openai',
-        'description': 'OpenAI | Fast and cost-effective performance',
+        'description': 'OpenAI | Lightweight, fast model for everyday tasks',
         'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 128000,
+        'maxTokens': 64000,
         'costPerRequest': 0.01,
-        'api_version': 'chat'  # Uses OpenAI chat completions API
+        'api_version': 'responses',  # Uses OpenAI Responses API
+        'supports_temperature': False
     }
 }
 
@@ -58,9 +60,8 @@ MODEL_COSTS = {model_id: model_data['costPerRequest'] for model_id, model_data i
 
 # Default model costs for unknown models based on common prefixes
 DEFAULT_MODEL_COSTS = {
-    'gpt-4.1': 0.04,
-    'gpt-4.1-nano': 0.01,
-    'claude-3-7-sonnet': 0.04
+    'gpt-5': 0.04,
+    'claude-sonnet-4': 0.04
 }
 
 def get_model_choices() -> List[Tuple[str, str]]:
@@ -102,6 +103,16 @@ def get_model_by_id(model_id: str) -> dict:
     """
     return MODELS.get(model_id)
 
+def model_supports_temperature(model_id: str) -> bool:
+    """
+    Whether the model supports the 'temperature' parameter.
+    Defaults to True when unknown; explicitly False for models that disallow it.
+    """
+    model = get_model_by_id(model_id)
+    if not model:
+        return True
+    return model.get('supports_temperature', True)
+
 def get_model_cost(model_id: str) -> float:
     """
     Get the cost for a specific model.
@@ -119,14 +130,10 @@ def get_model_cost(model_id: str) -> float:
     if amount is None:
         model_lower = model_id.lower()
         
-        if 'claude-3-7-sonnet' in model_lower or 'claude-3-sonnet' in model_lower:
+        if 'claude-sonnet-4' in model_lower:
             amount = 0.04
-        elif model_lower == 'gpt-4.1' or model_lower.startswith('gpt-4.1-'):
-            # Ensure gpt-4.1-nano is handled separately
-            if 'nano' in model_lower:
-                amount = 0.01
-            else:
-                amount = 0.04
+        elif model_lower == 'gpt-5' or model_lower.startswith('gpt-5'):
+            amount = 0.04
         else:
             # Default fallback
             amount = 0.04
