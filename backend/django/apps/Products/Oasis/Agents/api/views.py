@@ -18,7 +18,6 @@ import traceback
 # Import services when needed, not at module level
 from ..services import ChatAgentService, TemplateAgentService, ViewAgentService
 
-logger = logging.getLogger(__name__)
 
 # Helper function to create error responses that are properly rendered
 def create_error_response(error, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR):
