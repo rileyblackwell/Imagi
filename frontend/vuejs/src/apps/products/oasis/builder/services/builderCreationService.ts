@@ -1,7 +1,7 @@
 import api, { buildApiUrl } from '@/shared/services/api'
 
 /**
- * Service for handling app, page, and component creation via backend APIs
+ * Service for handling app, view, and component creation via backend APIs
  */
 export class BuilderCreationService {
   /**
@@ -51,7 +51,40 @@ export class BuilderCreationService {
   }
 
   /**
-   * Create a new Vue.js page/view within an app
+   * Create a new Vue.js view within an app
+   */
+  static async createView(
+    projectId: string,
+    appName: string,
+    viewName: string,
+    pageType: string = 'view',
+    routePath?: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const requestData: any = {
+        app_name: appName,
+        page_name: viewName,
+        page_type: pageType
+      }
+      
+      if (routePath) {
+        requestData.route_path = routePath
+      }
+      
+      const response = await api.post(buildApiUrl(`/builder/${projectId}/views/create/`), requestData)
+      
+      return response.data
+    } catch (error: any) {
+      console.error('Error creating view:', error)
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Failed to create view'
+      }
+    }
+  }
+
+  /**
+   * Backward-compatible alias for createView
    */
   static async createPage(
     projectId: string,
@@ -60,27 +93,7 @@ export class BuilderCreationService {
     pageType: string = 'view',
     routePath?: string
   ): Promise<{ success: boolean; message?: string; error?: string }> {
-    try {
-      const requestData: any = {
-        app_name: appName,
-        page_name: pageName,
-        page_type: pageType
-      }
-      
-      if (routePath) {
-        requestData.route_path = routePath
-      }
-      
-      const response = await api.post(buildApiUrl(`/builder/${projectId}/pages/create/`), requestData)
-      
-      return response.data
-    } catch (error: any) {
-      console.error('Error creating page:', error)
-      return {
-        success: false,
-        error: error.response?.data?.error || error.message || 'Failed to create page'
-      }
-    }
+    return this.createView(projectId, appName, pageName, pageType, routePath)
   }
 
   /**

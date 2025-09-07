@@ -9,7 +9,7 @@ from .views import (
     FileContentView, 
     PreviewView, 
     VersionControlHistoryView, VersionControlResetView,
-    CreateAppView, CreatePageView, CreateComponentView
+    CreateAppView, CreateView, CreateComponentView
 )
 
 urlpatterns = [
@@ -30,8 +30,8 @@ urlpatterns = [
     path('<int:project_id>/versions/', VersionControlHistoryView.as_view(), name='api-version-history'),
     path('<int:project_id>/versions/reset/', VersionControlResetView.as_view(), name='api-version-reset'),
     
-    # App, Page, and Component creation endpoints
+    # App, View, and Component creation endpoints
     path('<int:project_id>/apps/create/', CreateAppView.as_view(), name='api-create-app'),
-    path('<int:project_id>/pages/create/', CreatePageView.as_view(), name='api-create-page'),
+    path('<int:project_id>/views/create/', CreateView.as_view(), name='api-create-view'),
     path('<int:project_id>/components/create/', CreateComponentView.as_view(), name='api-create-component'),
 ]

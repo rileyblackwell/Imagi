@@ -2,16 +2,15 @@
 Service for creating Vue.js pages/views with proper structure.
 """
 
-import os
 import logging
-from typing import Dict, List, Any
+from typing import Dict, Any
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Products.Oasis.ProjectManager.models import Project
 from .file_service import FileService
 
 logger = logging.getLogger(__name__)
 
-class CreatePageService:
+class CreateViewService:
     def __init__(self, user=None, project=None):
         """
         Initialize the page creation service.
@@ -23,7 +22,7 @@ class CreatePageService:
     def get_project(self, project_id):
         """Get a project by ID when initialized with user."""
         if not self.user:
-            raise ValidationError("CreatePageService initialized without user")
+            raise ValidationError("CreateViewService initialized without user")
             
         try:
             return Project.objects.get(id=project_id, user=self.user, is_active=True)

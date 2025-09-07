@@ -28,10 +28,10 @@ from rest_framework.exceptions import NotFound
 from apps.Products.Oasis.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
 from ..services.create_app_service import CreateAppService
-from ..services.create_page_service import CreatePageService
+from ..services.create_view_service import CreateViewService
 from ..services.create_component_service import CreateComponentService
 from ..services.create_app_service import CreateAppService
-from ..services.create_page_service import CreatePageService
+from ..services.create_view_service import CreateViewService
 from ..services.create_component_service import CreateComponentService
 
 logger = logging.getLogger(__name__)
@@ -178,8 +178,9 @@ class FileContentView(APIView):
             dir_path = os.path.dirname(file_path)
             if dir_path:
                 try:
-                    full_dir_path = os.path.join(project.project_path, dir_path)
-                    os.makedirs(full_dir_path, exist_ok=True)
+                    # Create all necessary parent directories
+                    logger.info(f"Creating directory structure for {file_path}: {dir_path}")
+                    os.makedirs(os.path.join(project.project_path, dir_path), exist_ok=True)
                 except Exception as dir_error:
                     logger.error(f"Error creating directory structure: {str(dir_error)}")
                     # Continue anyway as the file creation might still succeed
@@ -728,8 +729,8 @@ class CreateAppView(APIView):
             )
 
 @method_decorator(never_cache, name='dispatch')
-class CreatePageView(APIView):
-    """Create a new Vue.js page/view within an app."""
+class CreateView(APIView):
+    """Create a new Vue.js view within an app."""
     permission_classes = [IsAuthenticated]
 
     def get_project(self, project_id):
@@ -740,7 +741,7 @@ class CreatePageView(APIView):
             raise NotFound('Project not found')
 
     def post(self, request, project_id):
-        """Create a new page in an app."""
+        """Create a new view in an app."""
         try:
             # Get project
             project = self.get_project(project_id)
@@ -758,7 +759,7 @@ class CreatePageView(APIView):
                 )
             
             # Initialize service
-            page_service = CreatePageService(user=self.request.user, project=project)
+            page_service = CreateViewService(user=self.request.user, project=project)
             
             # Create page with or without custom route
             if route_path:

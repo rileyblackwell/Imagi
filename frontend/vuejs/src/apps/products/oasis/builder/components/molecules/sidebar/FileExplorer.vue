@@ -21,18 +21,18 @@
         leave-to-class="opacity-0 -translate-y-2"
       >
         <div v-if="showNewViewForm" class="mb-4 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg border border-primary-700/50 space-y-2">
-          <h3 class="text-xs font-medium text-primary-300">Create New Page</h3>
+          <h3 class="text-xs font-medium text-primary-300">Create New View</h3>
           
           <!-- App context is derived from the app section you're viewing; no dropdown needed -->
           <div class="text-xxs text-gray-400">
             <i class="fas fa-info-circle mr-1 text-primary-300"></i>
-            Page will be added to <span class="text-gray-200 font-medium">{{ currentAppFromDirectory || '[select an app section above]' }}</span>
+            View will be added to <span class="text-gray-200 font-medium">{{ currentAppFromDirectory || '[select an app section above]' }}</span>
           </div>
           
           <input
             v-model="newViewName"
             type="text"
-            placeholder="Page name (e.g., AboutPage)"
+            placeholder="View name (e.g., AboutView)"
             class="w-full text-xs bg-dark-950/90 border border-dark-700/80 rounded-md p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-[1.5px] focus:ring-offset-0 focus:ring-primary-500/60 focus:border-transparent shadow-sm focus:shadow-[0_0_8px_rgba(139,92,246,0.25)] transition-all duration-200"
             @keydown.enter="createVueView"
           />
@@ -54,7 +54,7 @@
               :disabled="!isValidViewName"
               @click="createVueView"
             >
-              Create Page
+              Create View
             </GradientButton>
           </div>
         </div>
@@ -158,11 +158,11 @@
               <GradientButton 
                 size="sm"
                 @click="openCreateViewForApp(dirName)" 
-                :title="`Create page in ${dirName}`"
+                :title="`Create view in ${dirName}`"
               >
                 <div class="relative flex items-center justify-center">
                   <i class="fas fa-file-alt mr-1 text-xxs"></i> 
-                  <span>Add Page</span>
+                  <span>Add View</span>
                 </div>
               </GradientButton>
               <GradientButton 
@@ -511,7 +511,7 @@ const getVueDirectoryIconClass = (dirName: string) => {
 // Friendly display names for directories
 const formatFriendlyName = (dirName: string) => {
   const name = dirName.toLowerCase()
-  if (name === 'views') return 'Pages'
+  if (name === 'views') return 'Views'
   if (name === 'components') return 'Components'
   return dirName
 }
