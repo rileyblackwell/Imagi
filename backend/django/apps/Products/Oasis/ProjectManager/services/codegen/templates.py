@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import json
-from typing import Dict
 
 # =============================
 # VueJS Frontend Templates
@@ -306,7 +305,7 @@ def vue_home_view(project_name: str, project_description: str | None) -> str:
         "  loading.value = true\n"
         "  apiStatus.value = null\n\n"
         "  try {\n"
-        "    const response = await api.get('/health/')\n"
+        "    const response = await api.get('/v1/health/')\n"
         "    apiStatus.value = {\n"
         "      success: true,\n"
         "      message: 'API connection successful! Backend is running.'\n"
@@ -456,6 +455,7 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
         'components/atoms',
         'components/molecules',
         'components/organisms',
+        'apps',
         'views',
         'router',
         'stores',
@@ -755,11 +755,24 @@ def api_views_py() -> str:
 
 def api_urls_py() -> str:
     return (
-        "from django.urls import path\n"
-        "from . import views\n\n"
+        "from django.urls import path, include\n\n"
         "urlpatterns = [\n"
-        "    path('health/', views.health_check, name='health_check'),\n"
-        "    path('example/', views.example_endpoint, name='example_endpoint'),\n"
+        "    path('v1/', include('api.v1.url')),\n"
+        "]\n"
+    )
+
+
+def api_v1_url_py() -> str:
+    return (
+        "from django.http import JsonResponse\n"
+        "from django.urls import path\n\n"
+        "def health(_request):\n"
+        "    return JsonResponse({\n"
+        "        'status': 'healthy',\n"
+        "        'message': 'Django backend is running successfully!'\n"
+        "    })\n\n"
+        "urlpatterns = [\n"
+        "    path('health/', health, name='health'),\n"
         "]\n"
     )
 
@@ -902,8 +915,7 @@ def fullstack_readme(project_name: str, project_description: str | None) -> str:
         f"```\n"
         f"Backend API will be available at: http://localhost:8000\n\n"
         f"### API Endpoints\n\n"
-        f"- `GET /api/health/` - Health check endpoint\n"
-        f"- `GET/POST /api/example/` - Example API endpoint\n\n"
+        f"- `GET /api/v1/health/` - Health check endpoint\n\n"
         f"### Project Structure\n\n"
         f"```\n"
         f"{project_name}/\n"

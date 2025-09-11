@@ -86,6 +86,10 @@ class ProjectCreationService:
             os.makedirs(frontend_path, exist_ok=True)
             os.makedirs(backend_path, exist_ok=True)
             
+            # Create apps directory inside backend/django
+            # Frontend apps directory will be created under src/ by the templates scaffolder
+            os.makedirs(os.path.join(backend_path, 'apps'), exist_ok=True)
+            
             # Create VueJS frontend
             self._create_vuejs_frontend(frontend_path, project.name, project.description)
             
@@ -220,34 +224,32 @@ class ProjectCreationService:
         self._update_django_urls(backend_path, unique_name)
     
     def _create_django_api_app(self, api_app_path):
-        """Create Django API app with basic structure"""
-        # Create __init__.py
+        """Create minimal Django API routing structure.
+
+        Only create:
+        - backend/django/api/urls.py
+        - backend/django/api/v1/url.py
+        """
+        # Ensure api directory exists
+        os.makedirs(api_app_path, exist_ok=True)
+
+        # Ensure v1 subdirectory exists
+        v1_path = os.path.join(api_app_path, 'v1')
+        os.makedirs(v1_path, exist_ok=True)
+
+        # Make both api/ and api/v1/ Python packages
         with open(os.path.join(api_app_path, '__init__.py'), 'w') as f:
             f.write('')
-        
-        # Create apps.py
-        with open(os.path.join(api_app_path, 'apps.py'), 'w') as f:
-            f.write(tpl.api_apps_py())
-        
-        # Create models.py
-        with open(os.path.join(api_app_path, 'models.py'), 'w') as f:
-            f.write(tpl.api_models_py())
-        
-        # Create serializers.py
-        with open(os.path.join(api_app_path, 'serializers.py'), 'w') as f:
-            f.write(tpl.api_serializers_py())
-        
-        # Create views.py
-        with open(os.path.join(api_app_path, 'views.py'), 'w') as f:
-            f.write(tpl.api_views_py())
-        
-        # Create urls.py
+        with open(os.path.join(v1_path, '__init__.py'), 'w') as f:
+            f.write('')
+
+        # Create api root urls.py
         with open(os.path.join(api_app_path, 'urls.py'), 'w') as f:
             f.write(tpl.api_urls_py())
-        
-        # Create admin.py
-        with open(os.path.join(api_app_path, 'admin.py'), 'w') as f:
-            f.write(tpl.api_admin_py())
+
+        # Create api/v1/url.py
+        with open(os.path.join(v1_path, 'url.py'), 'w') as f:
+            f.write(tpl.api_v1_url_py())
     
     def _create_django_templates(self, backend_path, project_name, project_description):
         """Create Django templates within the backend directory"""
@@ -344,7 +346,7 @@ class ProjectCreationService:
         installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
         if installed_apps_match:
             current_apps = installed_apps_match.group(1)
-            updated_apps = current_apps + "    'rest_framework',\n    'corsheaders',\n    'api',\n"
+            updated_apps = current_apps + "    'rest_framework',\n    'corsheaders',\n"
             settings_content = settings_content.replace(current_apps, updated_apps)
         
         # Add CORS middleware
