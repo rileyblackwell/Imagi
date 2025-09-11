@@ -22,6 +22,22 @@ class ProjectCreateView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            project = serializer.save()  # Don't pass user here, handle it in serializer
+            service = ProjectCreationService(request.user)
+            service.create_project(project)
+            
+            response_serializer = ProjectSerializer(project)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            if project:
+                project.delete()
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
 class ProjectDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
