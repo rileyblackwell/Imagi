@@ -1,0 +1,47 @@
+---
+trigger: always_on
+---
+
+# Your rule content
+### Frontend
+- **Framework**: Vue.js 3 with Composition API
+- **State Management**: Pinia
+- **HTTP Client**: Axios
+- **UI/Styling**: TailwindCSS
+- **Testing**: Jest, Cypress
+- **Build Tools**: Vite
+
+Each app module should be self-contained with:
+- Components
+- Routes
+- Store
+- Services
+- Types
+- Tests
+
+## Code Architecture
+### Atomic Design Principles (Vue.js)
+1. **Atoms**: Basic building blocks (buttons, inputs, icons, text)
+2. **Molecules**: Simple combinations of atoms (form fields, cards, menu items)
+3. **Organisms**: Complex combinations of molecules (forms, headers, feature grids)
+4. **Layouts**: Reusable templates
+5. **Views**: Page-level components and layouts
+
+**Guidelines:**
+- Prefer the **Composition API** over the Options API for reusable logic.
+- Use **TypeScript** where applicable for better type safety.
+- **All Vue.js imports should use the `@` symbol to alias the `src` directory**.
+
+## UI/UX Principles
+- **Minimalist, Modern UI** inspired by Stripe, Airbnb, Apple, Twilio.
+- **Responsive Layouts** using Tailwind utility classes.
+- **Accessibility Compliance** (WCAG 2.1).
+- **Dark/Light Mode Support**.
+
+## Testing Strategy
+### Frontend (Vue.js)
+- **Unit Tests**: Use **Jest** for testing Vue components.
+- **E2E Tests**: Use **Cypress** for end-to-end testing.
+
+- You can @ files here
+- You can use markdown but dont have to

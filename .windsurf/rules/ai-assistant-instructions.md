@@ -1,0 +1,17 @@
+---
+trigger: always_on
+description: 
+globs: 
+---
+
+# Your rule content
+
+## AI Assistant Instructions
+- Use `task:` prefix for specific generation tasks.
+- Use `study:` prefix for documentation/learning tasks.
+- Generate **self-contained files** with necessary imports and dependencies.
+- Include relevant **tests** with new features.
+- Follow established naming conventions.
+
+- You can @ files here
+- You can use markdown but dont have to
