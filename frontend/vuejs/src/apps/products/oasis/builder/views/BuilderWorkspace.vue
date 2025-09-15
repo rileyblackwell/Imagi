@@ -48,70 +48,66 @@
           <!-- Main Content: Show Apps section first; switch to chat after submit -->
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
             <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
-            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-4 flex flex-col">
-              <!-- Section Title: Project Web App Name -->
-              <div class="mb-4 mt-2">
-                <div class="flex items-center justify-between">
-                  <h2 class="text-lg font-semibold tracking-tight flex items-center gap-2">
-                    <span class="bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
-                      {{ sanitizedProjectTitle }}
-                    </span>
-                  </h2>
-                  
-                </div>
-                <div class="mt-1 h-px w-full bg-gradient-to-r from-indigo-500/40 via-violet-500/40 to-transparent"></div>
-              </div>
+            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-6 flex flex-col relative">
+              <!-- Subtle background effects behind the apps panel -->
+              <div class="pointer-events-none absolute inset-0 opacity-[0.03] bg-[url('/grid-pattern.svg')]"></div>
+              <div class="pointer-events-none absolute inset-0 bg-noise opacity-[0.02]"></div>
+              <div class="pointer-events-none absolute -top-[10%] right-[15%] w-[600px] h-[600px] rounded-full bg-indigo-600/5 blur-[140px] animate-float"></div>
+              <div class="pointer-events-none absolute bottom-[0%] left-[10%] w-[500px] h-[500px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
 
-              <!-- Simple: App Gallery for non-technical users -->
-              <WorkspaceAppsSimple
-                v-if="appsViewMode === 'simple'"
-                :files="store.files || []"
-                :project-id="projectId || ''"
-                :version-history="versionHistory"
-                :is-loading-versions="isLoadingVersions"
-                :selected-version-hash="selectedVersionHash"
-                @selectFile="handleFileSelect"
-                @createApp="handleCreateAppFromGallery"
-                @preview="handlePreview"
-                @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
-                @version-select="onVersionSelect"
-                @version-reset="handleVersionReset"
-              />
-
-              <!-- Advanced: full file explorer -->
-              <WorkspaceAppsAdvanced
-                v-else
-                :files="advancedFiles || []"
-                :selected-file="store.selectedFile || null"
-                :file-types="fileTypes"
-                :project-id="projectId || ''"
-                @back="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
-                @select-file="handleFileSelect"
-                @create-file="handleFileCreate"
-                @delete-file="handleFileDelete"
-              />
-
-              <!-- Compact chat input section fixed below Apps area -->
-              <div class="mt-4">
-                <WorkspaceChat
-                  :messages="ensureValidMessages(store.conversation || [])"
-                  :is-processing="store.isProcessing"
-                  :mode="store.mode || 'chat'"
-                  :selected-file="store.selectedFile"
-                  :selected-model-id="store.selectedModelId"
-                  :available-models="store.availableModels || []"
-                  :prompt-placeholder="promptPlaceholder"
-                  :show-examples="false"
-                  :prompt-examples="promptExamplesComputed"
-                  v-model="prompt"
-                  :compact="true"
-                  :show-conversation="false"
-                  @update:model-id="handleModelSelect"
-                  @update:mode="handleModeSwitch"
-                  @submit="handlePrompt"
-                  @use-example="handleExamplePrompt"
+              <!-- Glass apps container -->
+              <div class="relative rounded-2xl border border-white/5 bg-gradient-to-b from-dark-900/70 via-dark-900/50 to-dark-900/70 backdrop-blur-xl shadow-xl shadow-black/20 ring-1 ring-white/5 p-5">
+                
+                <!-- Simple: App Gallery for non-technical users -->
+                <WorkspaceAppsSimple
+                  v-if="appsViewMode === 'simple'"
+                  :files="store.files || []"
+                  :project-id="projectId || ''"
+                  :version-history="versionHistory"
+                  :is-loading-versions="isLoadingVersions"
+                  :selected-version-hash="selectedVersionHash"
+                  @selectFile="handleFileSelect"
+                  @createApp="handleCreateAppFromGallery"
+                  @preview="handlePreview"
+                  @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
+                  @version-select="onVersionSelect"
+                  @version-reset="handleVersionReset"
                 />
-                <!-- Controls adjacent to chat input: (moved to Your Apps header) intentionally empty -->
+
+                <!-- Advanced: full file explorer -->
+                <WorkspaceAppsAdvanced
+                  v-else
+                  :files="advancedFiles || []"
+                  :selected-file="store.selectedFile || null"
+                  :file-types="fileTypes"
+                  :project-id="projectId || ''"
+                  @back="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
+                  @select-file="handleFileSelect"
+                  @create-file="handleFileCreate"
+                  @delete-file="handleFileDelete"
+                />
+
+                <!-- Compact chat input section fixed below Apps area -->
+                <div class="mt-4">
+                  <WorkspaceChat
+                    :messages="ensureValidMessages(store.conversation || [])"
+                    :is-processing="store.isProcessing"
+                    :mode="store.mode || 'chat'"
+                    :selected-file="store.selectedFile"
+                    :selected-model-id="store.selectedModelId"
+                    :available-models="store.availableModels || []"
+                    :prompt-placeholder="promptPlaceholder"
+                    :show-examples="false"
+                    :prompt-examples="promptExamplesComputed"
+                    v-model="prompt"
+                    :compact="true"
+                    :show-conversation="false"
+                    @update:model-id="handleModelSelect"
+                    @update:mode="handleModeSwitch"
+                    @submit="handlePrompt"
+                    @use-example="handleExamplePrompt"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1200,6 +1196,11 @@ onBeforeUnmount(() => {
   background-image: linear-gradient(to right, theme('colors.dark.800') 1px, transparent 1px),
                     linear-gradient(to bottom, theme('colors.dark.800') 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+/* Local noise texture utility for subtle grain */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
 }
 
 /* Sophisticated orchestrated floating animations */

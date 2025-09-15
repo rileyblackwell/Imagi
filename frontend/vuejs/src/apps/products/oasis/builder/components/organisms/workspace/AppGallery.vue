@@ -26,7 +26,8 @@
         <!-- New App -->
         <GlassButton
           size="sm"
-          @click="$emit('createApp')"
+          class="transition-none hover:!bg-white/5 hover:!border-white/10 active:!bg-white/5 active:!border-white/10 focus:!ring-0 focus:!ring-transparent focus:!outline-none focus:!border-white/10 focus-visible:!ring-0 focus-visible:!border-white/10"
+          @click="onCreateAppClick"
         >
           <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
             <i class="fas fa-plus"></i>
@@ -38,7 +39,8 @@
         <GlassButton
           size="sm"
           type="button"
-          @click="$emit('preview')"
+          class="transition-none hover:!bg-white/5 hover:!border-white/10 active:!bg-white/5 active:!border-white/10 focus:!ring-0 focus:!ring-transparent focus:!outline-none focus:!border-white/10 focus-visible:!ring-0 focus-visible:!border-white/10"
+          @click="onPreviewClick"
         >
           <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
             <i class="fas fa-eye"></i>
@@ -377,5 +379,16 @@ function openApp(app: { name: string; files: ProjectFile[] }) {
   if (target) {
     emit('selectFile', target)
   }
+}
+
+// Suppress any lingering focus styles by blurring the clicked button
+function onCreateAppClick(ev: MouseEvent) {
+  (ev.currentTarget as HTMLElement | null)?.blur()
+  emit('createApp')
+}
+
+function onPreviewClick(ev: MouseEvent) {
+  (ev.currentTarget as HTMLElement | null)?.blur()
+  emit('preview')
 }
 </script>
