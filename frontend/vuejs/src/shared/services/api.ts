@@ -72,13 +72,19 @@ const api: AxiosInstance = axios.create({
 
 // Initialize Authorization header from localStorage if present
 try {
-  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-  if (storedToken) {
-    api.defaults.headers.common['Authorization'] = `Token ${storedToken}`
-    console.log('🔐 Authorization header initialized from localStorage token')
+  const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  if (raw) {
+    // The auth store saves token as JSON: { value, expires }
+    const parsed = JSON.parse(raw)
+    const token = typeof parsed === 'string' ? parsed : parsed?.value
+    const expires = parsed?.expires
+    if (token && (!expires || Date.now() < Number(expires))) {
+      api.defaults.headers.common['Authorization'] = `Token ${token}`
+      console.log('🔐 Authorization header initialized from localStorage token')
+    }
   }
 } catch (e) {
-  // ignore access errors in non-browser contexts
+  // ignore access errors or JSON parse errors in non-browser contexts
 }
 
 // Enhanced request interceptor for Railway debugging
@@ -95,9 +101,23 @@ api.interceptors.request.use(
     // Attach Authorization header from localStorage if not already present
     try {
       if (!config.headers['Authorization']) {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-        if (token) {
-          config.headers['Authorization'] = `Token ${token}`
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        if (raw) {
+          // Parse token from JSON format used by the auth store
+          let token: string | null = null
+          try {
+            const parsed = JSON.parse(raw)
+            token = typeof parsed === 'string' ? parsed : parsed?.value
+            const expires = parsed?.expires
+            if (expires && Date.now() > Number(expires)) {
+              token = null
+            }
+          } catch {
+            token = raw
+          }
+          if (token) {
+            config.headers['Authorization'] = `Token ${token}`
+          }
         }
       }
     } catch (_) {}
@@ -174,17 +194,14 @@ api.interceptors.response.use(
       })
     }
     
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized more gracefully: do NOT auto-clear auth state.
+    // Let route guards and the auth store decide next steps to avoid random logouts.
     if (error.response?.status === 401) {
-      console.warn('⚠️ Unauthorized request - clearing auth data')
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      delete api.defaults.headers.common['Authorization']
-      
-      // Only redirect if not already on auth page
-      if (!window.location.pathname.startsWith('/auth/')) {
-        window.location.href = '/auth/login'
-      }
+      console.warn('⚠️ Unauthorized response received. Preserving local auth state to avoid unintended logout.')
+      // Optionally, dispatch a custom event so the app can react (e.g., show toast or trigger re-init)
+      try {
+        window.dispatchEvent(new CustomEvent('imagi:auth-unauthorized', { detail: { url: error.config?.url } }))
+      } catch {}
     }
     
     // Handle 404 Not Found specifically for project resources

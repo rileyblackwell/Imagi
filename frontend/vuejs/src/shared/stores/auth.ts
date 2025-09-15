@@ -175,15 +175,14 @@ export const useAuthStore = defineStore('global-auth', () => {
             lastInitTime.value = now
             return true
           } else {
-            // Session invalid on server
-            await clearAuth()
+            // Preserve existing auth state on transient errors to avoid unintended logout on refresh.
+            // Do NOT flip isAuthenticated to false here. We'll rely on explicit 401s per-request.
             return false
           }
         } catch (error) {
           console.error('Failed to validate auth with server:', error)
-          // Keep the token for now, but mark as not authenticated
-          // This allows components to handle auth errors gracefully
-          isAuthenticated.value = false
+          // Preserve existing auth state on transient errors to avoid unintended logout on refresh.
+          // Do NOT flip isAuthenticated to false here. We'll rely on explicit 401s per-request.
           return false
         }
       } catch (error) {
@@ -279,12 +278,12 @@ export const useAuthStore = defineStore('global-auth', () => {
           lastInitTime.value = now
           return true
         } else {
-          await clearAuth()
+          // Do not clear auth on validation errors; preserve state and let callers decide.
           return false
         }
       } catch (error) {
         console.error('Auth validation error:', error)
-        await clearAuth()
+        // Do not clear auth on validation errors; preserve state and let callers decide.
         return false
       } finally {
         loading.value = false
