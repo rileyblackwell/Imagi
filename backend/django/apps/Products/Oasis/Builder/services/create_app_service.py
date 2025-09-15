@@ -1,5 +1,7 @@
 """
 Service for creating Vue.js applications with proper structure.
+Also supports generating prebuilt default apps (home, auth, payments)
+for both frontend and backend via codegen templates.
 """
 
 import logging
@@ -7,6 +9,7 @@ from typing import Dict, List, Any
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Products.Oasis.ProjectManager.models import Project
 from .file_service import FileService
+from .codegen.prebuilt_apps import generate_prebuilt_app_files
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +63,16 @@ class CreateAppService:
             # Generate app structure
             cap = app_name.replace('_', '').replace('-', '').capitalize()
             app_welcome = app_description.strip() if app_description and app_description.strip() else f'Welcome to the {app_name} app.'
-            
-            files_to_create = self._generate_app_files(app_name, cap, app_welcome)
+
+            # If this is a default app, use prebuilt codegen (includes backend + frontend)
+            default_apps = {"home", "auth", "payments"}
+            if app_name in default_apps:
+                files_to_create = generate_prebuilt_app_files(app_name, app_description)
+                # Fallback to generic if codegen returns nothing for some reason
+                if not files_to_create:
+                    files_to_create = self._generate_app_files(app_name, cap, app_welcome)
+            else:
+                files_to_create = self._generate_app_files(app_name, cap, app_welcome)
             
             created_files = []
             for file_data in files_to_create:

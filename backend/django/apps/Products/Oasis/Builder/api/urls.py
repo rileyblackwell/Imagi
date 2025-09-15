@@ -9,11 +9,13 @@ from .views import (
     FileContentView, 
     PreviewView, 
     VersionControlHistoryView, VersionControlResetView,
-    CreateAppView, CreateView, CreateComponentView
+    CreateAppView, CreateView, CreateComponentView,
+    ProjectDirectoriesView,
 )
 
 urlpatterns = [
     # Builder workspace endpoints
+    path('<int:project_id>/directories/', ProjectDirectoriesView.as_view(), name='api-project-directories'),
     path('<int:project_id>/preview/', PreviewView.as_view(), name='api-preview'),
     
     # File management endpoints

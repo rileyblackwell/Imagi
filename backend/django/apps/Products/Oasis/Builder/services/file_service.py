@@ -91,7 +91,8 @@ class FileService:
             'src/stores',
             'src/services',
             'src/router',
-            'src/types'
+            'src/types',
+            'src/apps'  # include app modules so they appear in the workspace
         ]
         
         # VueJS-relevant file extensions

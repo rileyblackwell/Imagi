@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 from ..models import Project
 from django.utils import timezone
 from .codegen import templates as tpl
+from apps.Products.Oasis.Builder.services.create_app_service import CreateAppService
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,14 @@ class ProjectCreationService:
             project.save()
             
             logger.info(f"Project successfully created at: {project_path}")
+            
+            # Ensure default apps (home, auth, payments) are created
+            try:
+                create_app_service = CreateAppService(user=self.user)
+                default_result = create_app_service.ensure_default_apps(project_id=str(project.id))
+                logger.info(f"Default apps ensure result: {default_result}")
+            except Exception as app_err:
+                logger.warning(f"Failed to ensure default apps: {app_err}")
             
             return project
         except Exception as e:

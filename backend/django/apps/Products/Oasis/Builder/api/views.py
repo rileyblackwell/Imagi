@@ -37,6 +37,33 @@ from ..services.create_component_service import CreateComponentService
 logger = logging.getLogger(__name__)
 
 @method_decorator(never_cache, name='dispatch')
+class ProjectDirectoriesView(APIView):
+    """Return a flat list of project files for the builder workspace.
+
+    This endpoint restores backward compatibility for the frontend, which first
+    queries `/api/v1/builder/<project_id>/directories/` to render the workspace tree.
+    It uses the Builder FileService to list files. For dual-stack projects, only
+    VueJS frontend files are returned (frontend/vuejs), including `src/apps`.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def get(self, request, project_id):
+        try:
+            project = self.get_project(project_id)
+            file_service = FileService(project=project)
+            files = file_service.list_files()
+            return Response(files)
+        except Exception as e:
+            logger.error(f"Error listing project files: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@method_decorator(never_cache, name='dispatch')
 class ProjectListCreateView(generics.ListCreateAPIView):
     """List all projects or create a new project."""
     serializer_class = ProjectSerializer
