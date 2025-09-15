@@ -62,12 +62,16 @@ function injectRouteRecord(content: string, routeRecord: string, routeName: stri
 export const RouterUpdateService = {
   async addViewRoute(projectId: string, viewFilePath: string): Promise<void> {
     // Expecting path to contain /src/apps/<app>/views/<ViewName>.vue
-    const match = viewFilePath.match(/\/?src\/apps\/([^\/]+)\/views\/([^\/]+\.vue)$/i)
+    // Support both root-level and frontend-prefixed paths:
+    // - src/apps/<app>/views/<ViewName>.vue
+    // - frontend/vuejs/src/apps/<app>/views/<ViewName>.vue
+    const match = viewFilePath.match(/(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/([^\/]+)\/views\/([^\/]+\.vue)$/i)
     if (!match) return
     const appName = match[1]
     const viewFileName = match[2]
 
-    const routerPath = `src/apps/${appName}/router/index.ts`
+    // Always target the frontend Vue app router path
+    const routerPath = `frontend/vuejs/src/apps/${appName}/router/index.ts`
     const { path, name, importName } = deriveRouteInfo(appName, viewFileName)
 
     const importLine = `import ${importName} from '../views/${viewFileName}'`

@@ -282,6 +282,7 @@ import { ref, computed } from 'vue'
 import type { ProjectFile } from '../../../types/components'
 import FileTreeItem from '../../atoms/navigation/FileTreeItem.vue'
 import { FileService } from '../../../services/fileService'
+import { RouterUpdateService } from '../../../services/routerUpdateService'
 import { GradientButton, GlassButton } from '@/shared/components/atoms'
 
 // Create hierarchical file structure for current app
@@ -748,8 +749,14 @@ onMounted(() => {
     content: viewContent
   })
 
-  if (routePath && props.projectId && appSlug) {
-    await updateRouterWithNewView(appSlug, viewName, routePath)
+  // Ensure router is updated immediately with the explicit path we just created
+  if (props.projectId && appSlug) {
+    const explicitPath = `frontend/vuejs/src/apps/${appSlug}/views/${viewName}.vue`
+    try {
+      await RouterUpdateService.addViewRoute(props.projectId, explicitPath)
+    } catch (e) {
+      console.warn('Sidebar FileExplorer: failed to update router with new view', { explicitPath, e })
+    }
   }
 
   newViewName.value = ''
