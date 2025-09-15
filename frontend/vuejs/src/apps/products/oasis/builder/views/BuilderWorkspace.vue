@@ -136,6 +136,12 @@
         </div>
       </div>
     </BuilderLayout>
+    <!-- New App Modal -->
+    <NewAppModal
+      v-model="showNewAppModal"
+      :submitting="isCreatingApp"
+      @submit="handleCreateAppSubmit"
+    />
   </div>
 </template>
 
@@ -168,6 +174,7 @@ import {
   WorkspaceAppsSimple,
   WorkspaceAppsAdvanced
 } from '../components/organisms/workspace'
+import NewAppModal from '../components/organisms/workspace/NewAppModal.vue'
 // Set component name
 defineOptions({ name: 'BuilderWorkspace' })
 
@@ -202,27 +209,39 @@ const fileTypes = {
 }
 
 // Simple creation flows for non-technical users via AppGallery
-async function handleCreateAppFromGallery() {
-  try {
-    const appNameRaw = window.prompt('App name (letters and numbers, start with a letter):', 'blog') || ''
-    const appName = appNameRaw.trim()
-    if (!appName || !/^[a-z][a-z0-9]*$/.test(appName)) return
-    const appDescription = window.prompt('Short description (optional):', '') || ''
+// New App modal state
+const showNewAppModal = ref(false)
+const isCreatingApp = ref(false)
 
-    // Call the backend API to create the app
+// Open the styled New App modal
+async function handleCreateAppFromGallery() {
+  showNewAppModal.value = true
+}
+
+// Submit handler for New App modal
+async function handleCreateAppSubmit(payload: { name: string; description: string }) {
+  try {
+    if (!projectId.value) return
+    isCreatingApp.value = true
+
     const result = await BuilderCreationService.createAppFromGallery(
       projectId.value,
-      appName,
-      appDescription
+      payload.name,
+      payload.description || ''
     )
 
     if (result.success) {
-      console.log('App created successfully:', result.message)
-      // Reload project files to show the new app
+      // Close modal and refresh files to show the new app
+      showNewAppModal.value = false
       await loadProjectFiles(true)
+      const { showNotification } = useNotification()
+      showNotification({
+        type: 'success',
+        message: result.message || 'App created successfully',
+        duration: 3000
+      })
     } else {
       console.error('Failed to create app:', result.error)
-      // Show error notification to user
       const { showNotification } = useNotification()
       showNotification({
         type: 'error',
@@ -232,6 +251,14 @@ async function handleCreateAppFromGallery() {
     }
   } catch (e) {
     console.error('Error creating app from gallery:', e)
+    const { showNotification } = useNotification()
+    showNotification({
+      type: 'error',
+      message: 'Unexpected error creating app',
+      duration: 5000
+    })
+  } finally {
+    isCreatingApp.value = false
   }
 }
 
