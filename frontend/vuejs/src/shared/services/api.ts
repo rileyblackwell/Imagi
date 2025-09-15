@@ -43,6 +43,22 @@ export const API_CONFIG = {
   RETRY_DELAY: 1000
 }
 
+// Helper: read a cookie by name (used for CSRF)
+function getCookie(name: string): string | null {
+  let cookieValue: string | null = null
+  if (typeof document !== 'undefined' && document.cookie) {
+    const cookies = document.cookie.split(';')
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim()
+      if (cookie.substring(0, name.length + 1) === name + '=') {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+        break
+      }
+    }
+  }
+  return cookieValue
+}
+
 // Create the centralized API client
 const api: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -53,6 +69,17 @@ const api: AxiosInstance = axios.create({
     'X-API-Client': 'Imagi-Frontend-Vue'
   }
 })
+
+// Initialize Authorization header from localStorage if present
+try {
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  if (storedToken) {
+    api.defaults.headers.common['Authorization'] = `Token ${storedToken}`
+    console.log('🔐 Authorization header initialized from localStorage token')
+  }
+} catch (e) {
+  // ignore access errors in non-browser contexts
+}
 
 // Enhanced request interceptor for Railway debugging
 api.interceptors.request.use(
@@ -65,6 +92,29 @@ api.interceptors.request.use(
     console.log('  Full URL:', `${config.baseURL || ''}${config.url || ''}`)
     console.log('  Headers:', config.headers)
     
+    // Attach Authorization header from localStorage if not already present
+    try {
+      if (!config.headers['Authorization']) {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        if (token) {
+          config.headers['Authorization'] = `Token ${token}`
+        }
+      }
+    } catch (_) {}
+
+    // Attach CSRF token for unsafe methods when using session authentication
+    const method = (config.method || 'get').toLowerCase()
+    const unsafe = ['post', 'put', 'patch', 'delete'].includes(method)
+    if (unsafe) {
+      const csrfToken = getCookie('csrftoken')
+      if (csrfToken && !config.headers['X-CSRFToken']) {
+        config.headers['X-CSRFToken'] = csrfToken
+        console.log('🔒 Attached CSRF token to request headers')
+      } else if (!csrfToken) {
+        console.warn('⚠️ No CSRF cookie found; server may reject unsafe request')
+      }
+    }
+
     // Add environment info to headers for backend debugging
     config.headers['X-Frontend-Environment'] = import.meta.env.PROD ? 'production' : 'development'
     config.headers['X-Frontend-Version'] = '1.0.0'

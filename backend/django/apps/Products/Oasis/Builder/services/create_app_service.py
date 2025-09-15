@@ -6,6 +6,7 @@ for both frontend and backend via codegen templates.
 
 import logging
 from typing import Dict, List, Any
+import os
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Products.Oasis.ProjectManager.models import Project
 from .file_service import FileService
@@ -83,6 +84,14 @@ class CreateAppService:
                     logger.warning(f"Failed to create file {file_data['name']}: {str(e)}")
                     # Continue creating other files even if one fails
             
+            # After files are created, register backend app (for non-conflicting cases)
+            try:
+                project_path = self.file_service.get_project_path(project_id)
+                if project_path:
+                    self._register_backend_app(project_path, app_name)
+            except Exception as reg_err:
+                logger.warning(f"App created but registration step failed: {str(reg_err)}")
+
             return {
                 'success': True,
                 'app_name': app_name,
@@ -155,6 +164,13 @@ class CreateAppService:
                     if result.get('success'):
                         created_apps.append(app_name)
                         total_files_created += result.get('files_created', 0)
+                        # Ensure registration as well (idempotent)
+                        try:
+                            project_path = self.file_service.get_project_path(project_id)
+                            if project_path:
+                                self._register_backend_app(project_path, app_name)
+                        except Exception as reg_err:
+                            logger.warning(f"Registration failed for default app {app_name}: {str(reg_err)}")
                 except Exception as e:
                     logger.warning(f"Failed to create default app {app_name}: {str(e)}")
             
@@ -176,7 +192,10 @@ class CreateAppService:
     
     def _generate_app_files(self, app_name: str, cap_name: str, app_welcome: str) -> List[Dict[str, str]]:
         """
-        Generate the file structure for a new Vue.js app.
+        Generate the file structure for a new app.
+        Creates both frontend (Vue) and minimal backend (Django) scaffolding so that
+        every app consistently exists in `frontend/vuejs/src/apps/<app>/` and
+        `backend/django/apps/<app>/`.
         
         Args:
             app_name: Lowercase app name
@@ -186,7 +205,7 @@ class CreateAppService:
         Returns:
             List of file data dictionaries
         """
-        return [
+        files: List[Dict[str, str]] = [
             {
                 'name': f'frontend/vuejs/src/apps/{app_name}/index.ts',
                 'type': 'typescript',
@@ -266,5 +285,154 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
 <script setup lang="ts">
 </script>
 '''
-            }
+            },
         ]
+
+        # Minimal backend scaffold for any app (not only defaults)
+        app_module = f"apps.{app_name}"
+        files += [
+            {
+                'name': f'backend/django/apps/{app_name}/__init__.py',
+                'type': 'python',
+                'content': '',
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/apps.py',
+                'type': 'python',
+                'content': (
+                    "from django.apps import AppConfig\n\n"
+                    f"class {cap_name.capitalize()}Config(AppConfig):\n"
+                    "    default_auto_field = 'django.db.models.BigAutoField'\n"
+                    f"    name = '{app_module}'\n"
+                ),
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/models.py',
+                'type': 'python',
+                'content': "from django.db import models\n\n# Add your models here.\n",
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/serializers.py',
+                'type': 'python',
+                'content': "from rest_framework import serializers\n\n# Add your serializers here.\n",
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/views.py',
+                'type': 'python',
+                'content': (
+                    "from rest_framework.decorators import api_view\n"
+                    "from rest_framework.response import Response\n"
+                    "from rest_framework import status\n\n"
+                    "@api_view(['GET'])\n"
+                    "def health(_request):\n"
+                    f"    return Response({{'app': '{app_name}', 'status': 'ok'}}, status=status.HTTP_200_OK)\n"
+                ),
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/urls.py',
+                'type': 'python',
+                'content': (
+                    "from django.urls import path\n"
+                    "from . import views\n\n"
+                    "urlpatterns = [\n"
+                    "    path('health/', views.health, name='health'),\n"
+                    "]\n"
+                ),
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/admin.py',
+                'type': 'python',
+                'content': "from django.contrib import admin\n\n# Register your models here.\n",
+            },
+            {
+                'name': f'backend/django/apps/{app_name}/tests.py',
+                'type': 'python',
+                'content': (
+                    "from django.test import TestCase\n\n"
+                    "class BasicTest(TestCase):\n"
+                    "    def test_health(self):\n"
+                    "        self.assertTrue(True)\n"
+                ),
+            },
+        ]
+
+        return files
+
+    # ... (rest of the code remains the same)
+    def _register_backend_app(self, project_path: str, app_name: str) -> None:
+        """Ensure the backend Django app is added to INSTALLED_APPS and URLs.
+        Skips if a capitalized variant already exists (e.g., 'apps.Home').
+        """
+        try:
+            settings_path = os.path.join(project_path, 'backend', 'django', 'Imagi', 'settings.py')
+            urls_path = os.path.join(project_path, 'backend', 'django', 'Imagi', 'urls.py')
+
+            # Read settings.py
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings_src = f.read()
+
+            lower_module = f"apps.{app_name}"
+            cap_module = f"apps.{app_name.capitalize()}"
+
+            # Only add if neither lower nor capitalized variant is present
+            if (lower_module not in settings_src) and (cap_module not in settings_src):
+                settings_src = self._inject_into_installed_apps(settings_src, lower_module)
+                with open(settings_path, 'w', encoding='utf-8') as f:
+                    f.write(settings_src)
+
+            # Update urls.py
+            with open(urls_path, 'r', encoding='utf-8') as f:
+                urls_src = f.read()
+
+            include_line = f"        path('{app_name}/', include('apps.{app_name}.urls')),"
+            if include_line not in urls_src:
+                urls_src = self._inject_into_urls(urls_src, app_name)
+                with open(urls_path, 'w', encoding='utf-8') as f:
+                    f.write(urls_src)
+        except Exception as e:
+            # Don't raise - app creation succeeded; registration can be manual if needed
+            logger.warning(f"Failed to register backend app '{app_name}': {str(e)}")
+
+    def _inject_into_installed_apps(self, settings_src: str, module_name: str) -> str:
+        """Insert the module into INSTALLED_APPS list in settings.py.
+        Tries to place it after existing custom apps.
+        """
+        lines = settings_src.splitlines()
+        out = []
+        in_list = False
+        inserted = False
+        for line in lines:
+            out.append(line)
+            if not in_list and line.strip().startswith('INSTALLED_APPS = ['):
+                in_list = True
+                continue
+            if in_list:
+                # Detect end of list
+                if line.strip().startswith(']'):
+                    if not inserted:
+                        out.insert(len(out) - 1, f"    '{module_name}',")
+                        inserted = True
+                    in_list = False
+        return "\n".join(out)
+
+    def _inject_into_urls(self, urls_src: str, app_name: str) -> str:
+        """Insert include('apps.<app>.urls') into Imagi/urls.py urlpatterns under app URLs section."""
+        lines = urls_src.splitlines()
+        out = []
+        inserted = False
+        for i, line in enumerate(lines):
+            out.append(line)
+            # Heuristic: append after the existing app URL includes block
+            if line.strip().startswith("# App URLs") and not inserted:
+                include_line = f"    path('{app_name}/', include('apps.{app_name}.urls')),"
+                if include_line not in urls_src:
+                    out.append(include_line)
+                    inserted = True
+        if not inserted:
+            # Fallback: append near the end, before closing bracket of urlpatterns list
+            for idx in range(len(out) - 1, -1, -1):
+                if out[idx].strip().startswith(']') and 'urlpatterns' in ''.join(out[max(0, idx-20):idx]):
+                    out.insert(idx, f"    path('{app_name}/', include('apps.{app_name}.urls')),")
+                    inserted = True
+                    break
+        return "\n".join(out)

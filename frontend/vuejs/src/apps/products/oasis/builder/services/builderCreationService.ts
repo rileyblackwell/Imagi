@@ -13,7 +13,7 @@ export class BuilderCreationService {
     appDescription?: string
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const response = await api.post(buildApiUrl(`/builder/${projectId}/apps/create/`), {
+      const response = await api.post(buildApiUrl(`/v1/builder/${projectId}/apps/create/`), {
         action: 'create_app',
         app_name: appName,
         app_description: appDescription || ''
@@ -36,7 +36,7 @@ export class BuilderCreationService {
     projectId: string
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const response = await api.post(buildApiUrl(`/builder/${projectId}/apps/create/`), {
+      const response = await api.post(buildApiUrl(`/v1/builder/${projectId}/apps/create/`), {
         action: 'ensure_defaults'
       })
       
@@ -71,7 +71,7 @@ export class BuilderCreationService {
         requestData.route_path = routePath
       }
       
-      const response = await api.post(buildApiUrl(`/builder/${projectId}/views/create/`), requestData)
+      const response = await api.post(buildApiUrl(`/v1/builder/${projectId}/views/create/`), requestData)
       
       return response.data
     } catch (error: any) {
@@ -107,7 +107,7 @@ export class BuilderCreationService {
     componentVariant: string = 'generic'
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const response = await api.post(buildApiUrl(`/builder/${projectId}/components/create/`), {
+      const response = await api.post(buildApiUrl(`/v1/builder/${projectId}/components/create/`), {
         app_name: appName,
         component_name: componentName,
         component_type: componentType,
