@@ -157,6 +157,7 @@ import { FileService } from '../services/fileService'
 import { PreviewService } from '../services/previewService'
 import { BuilderCreationService } from '../services/builderCreationService'
 import { VersionControlService } from '../services/versionControlService'
+import { RouterUpdateService } from '../services/routerUpdateService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { useBalanceStore } from '@/shared/stores/balance'
@@ -839,10 +840,19 @@ async function handleFileSelect(file: ProjectFile) {
 
 async function handleFileCreate(data: { name: string; type: string; content?: string }) {
   try {
-    await createFile({
+    const created = await createFile({
       projectId: projectId.value,
       ...data
     })
+
+    // If a view was created under an app, auto-register it in that app's router
+    if (created && created.path && /\/?src\/apps\/[^\/]+\/views\/[^\/]+\.vue$/i.test(created.path)) {
+      try {
+        await RouterUpdateService.addViewRoute(projectId.value, created.path)
+      } catch (e) {
+        console.warn('Failed to auto-add route for created view:', created.path, e)
+      }
+    }
     
     // Force refresh file list after creating a new file to ensure it appears in the explorer
     console.debug('File created, refreshing file list from backend...')
@@ -851,8 +861,8 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     // Automatically commit the file creation
     VersionControlService.commitAfterFileOperation(
       projectId.value,
-      data.name,
-      `Created ${data.name}`
+      created?.path || data.name,
+      `Created ${created?.path || data.name}`
     )
   } catch (error) {
     console.error('Error creating file:', error)

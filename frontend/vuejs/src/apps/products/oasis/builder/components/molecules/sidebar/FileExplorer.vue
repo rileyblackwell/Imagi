@@ -156,7 +156,8 @@
             <!-- Add View/Component buttons for current app -->
             <div class="mb-3 grid grid-cols-2 gap-1.5">
               <GradientButton 
-                size="sm"
+                size="xs"
+                variant="oasis"
                 @click="openCreateViewForApp(dirName)" 
                 :title="`Create view in ${dirName}`"
               >
@@ -166,7 +167,8 @@
                 </div>
               </GradientButton>
               <GradientButton 
-                size="sm"
+                size="xs"
+                variant="oasis"
                 @click="openCreateComponentForApp(dirName)" 
                 :title="`Create UI element in ${dirName}`"
               >
@@ -746,8 +748,8 @@ onMounted(() => {
     content: viewContent
   })
 
-  if (routePath && props.projectId) {
-    await updateRouterWithNewView(viewName, routePath)
+  if (routePath && props.projectId && appSlug) {
+    await updateRouterWithNewView(appSlug, viewName, routePath)
   }
 
   newViewName.value = ''
@@ -809,56 +811,126 @@ const message = ref('Hello from ${componentName}!')
   showNewComponentForm.value = false
 }
 
-const updateRouterWithNewView = async (viewName: string, routePath: string) => {
+const updateRouterWithNewView = async (appSlug: string, viewName: string, routePath: string) => {
   if (!props.projectId) return
 
   try {
-    const routerFiles = props.files.filter(f => f.path.includes('src/router/index.'))
-    if (routerFiles.length === 0) return
+    // Locate the specific app router file, e.g., src/apps/home/router/index.ts
+    const expectedRouterPathTs = `frontend/vuejs/src/apps/${appSlug}/router/index.ts`
+    const expectedRouterPathJs = `frontend/vuejs/src/apps/${appSlug}/router/index.js`
 
-    const routerFile = routerFiles[0]
-    const currentContent = await FileService.getFileContent(props.projectId, routerFile.path)
-    const updatedContent = addRouteToRouter(currentContent, viewName, routePath)
+    // Prefer TS router, fallback to JS
+    let routerPath = ''
+    const matchingTs = props.files.find(f => (f.path || '').endsWith(`/src/apps/${appSlug}/router/index.ts`))
+    const matchingJs = props.files.find(f => (f.path || '').endsWith(`/src/apps/${appSlug}/router/index.js`))
+    if (matchingTs) routerPath = matchingTs.path
+    else if (matchingJs) routerPath = matchingJs.path
+    else {
+      // If not present in props.files, attempt default TS path
+      routerPath = expectedRouterPathTs
+    }
+
+    const currentContent = await FileService.getFileContent(props.projectId, routerPath)
+    const updatedContent = addRouteToRouter(currentContent, appSlug, viewName, routePath)
     
-    await FileService.updateFileContent(props.projectId, routerFile.path, updatedContent)
+    if (updatedContent && updatedContent !== currentContent) {
+      await FileService.updateFileContent(props.projectId, routerPath, updatedContent)
+    }
   } catch (error) {
-    console.error('Error updating router:', error)
+    console.error('Error updating app router:', error)
   }
 }
 
-const addRouteToRouter = (routerContent: string, viewName: string, routePath: string): string => {
-  const importStatement = `import ${viewName} from '@/views/${viewName}.vue'`
-  
+const addRouteToRouter = (routerContent: string, appSlug: string, viewName: string, routePath: string): string => {
+  // Import path should reference the app-specific views directory
+  const importStatement = `import ${viewName} from '@/apps/${appSlug}/views/${viewName}.vue'`
+
   let updatedContent = routerContent
   if (!updatedContent.includes(importStatement)) {
-    const importMatch = updatedContent.match(/(import .+ from .+\.vue['"])/g)
-    if (importMatch && importMatch.length > 0) {
-      const lastImport = importMatch[importMatch.length - 1]
+    // Insert after the last existing .vue import if present, else after the first import line
+    const vueImports = updatedContent.match(/(import\s+.+\s+from\s+['"][^'"]+\.vue['"];?)/g)
+    if (vueImports && vueImports.length > 0) {
+      const lastImport = vueImports[vueImports.length - 1]
       updatedContent = updatedContent.replace(lastImport, `${lastImport}\n${importStatement}`)
     } else {
-      const firstImportMatch = updatedContent.match(/(import .+)/)
+      const firstImportMatch = updatedContent.match(/(^import\s+.+$)/m)
       if (firstImportMatch) {
         updatedContent = updatedContent.replace(firstImportMatch[0], `${firstImportMatch[0]}\n${importStatement}`)
+      } else {
+        // Prepend if no imports found
+        updatedContent = `${importStatement}\n${updatedContent}`
       }
     }
   }
-  
-  const routeEntry = `  {
-    path: '${routePath}',
-    name: '${viewName.toLowerCase()}',
+
+  // Utilities for slug and names
+  const toKebab = (str: string) => str
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/\s+/g, '-')
+    .toLowerCase()
+
+  const slug = toKebab(viewName.replace(/View$/, ''))
+  const routeName = viewName.toLowerCase()
+
+  // Detect if router uses a parent with children (e.g., auth)
+  // Match first occurrence of an object with path: '...'
+  const parentRouteMatch = updatedContent.match(/\{\s*\n\s*path:\s*['\"]([^'\"]+)['\"][\s\S]*?children:\s*\[/m)
+
+  if (parentRouteMatch) {
+    // Insert as a child with relative path (e.g., 'login')
+    const childEntry = `      {
+        path: '${slug}',
+        name: '${routeName}',
+        component: ${viewName},
+        meta: {
+          requiresAuth: false,
+          title: '${viewName.replace(/View$/, '')}'
+        }
+      }`
+
+    // Append before the closing of the first children array
+    updatedContent = updatedContent.replace(
+      /(children:\s*\[)([\s\S]*?)(\n\s*\])/m,
+      (match, start, inner, end) => {
+        const innerTrim = inner.trim()
+        const newInner = innerTrim ? `${innerTrim},\n${childEntry}` : childEntry
+        return `${start}\n${newInner}${end}`
+      }
+    )
+
+    return updatedContent
+  }
+
+  // No children structure found; append a top-level route with absolute path
+  const topLevelEntry = `  {
+    path: '/${slug}',
+    name: '${routeName}',
     component: ${viewName},
     meta: {
-      title: '${viewName}'
+      requiresAuth: false,
+      title: '${viewName.replace(/View$/, '')}'
     }
   }`
-  
-  const routesMatch = updatedContent.match(/const routes[^=]*=\s*\[([\s\S]*?)\]/m)
-  if (routesMatch) {
-    const routesContent = routesMatch[1]
-    const updatedRoutes = routesContent.trim() + (routesContent.trim() ? ',\n' : '') + routeEntry
-    updatedContent = updatedContent.replace(routesMatch[0], `const routes = [\n${updatedRoutes}\n]`)
+
+  // Support typed and untyped routes arrays
+  const routesRegexes = [
+    /const\s+routes\s*:\s*RouteRecordRaw\[\]\s*=\s*\[([\s\S]*?)\]/m,
+    /const\s+routes\s*=\s*\[([\s\S]*?)\]/m
+  ]
+
+  for (const rx of routesRegexes) {
+    const match = updatedContent.match(rx)
+    if (match) {
+      const inner = match[1]
+      const innerTrim = inner.trim()
+      const newInner = innerTrim ? `${innerTrim},\n${topLevelEntry}` : topLevelEntry
+      const full = match[0]
+      const replaced = full.replace(match[1], `\n${newInner}\n`)
+      updatedContent = updatedContent.replace(full, replaced)
+      return updatedContent
+    }
   }
-  
+
   return updatedContent
 }
 </script>
