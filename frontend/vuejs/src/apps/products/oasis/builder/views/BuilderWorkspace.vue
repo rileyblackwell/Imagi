@@ -811,31 +811,24 @@ async function handleModeSwitch(mode: BuilderMode) {
 }
 
 async function handleFileSelect(file: ProjectFile) {
-  if (store.selectedFile?.path !== file.path) {
-    // Remove system messages about file changes completely
-    // No longer add file switch notifications to the conversation
-    
-    // Determine file type before selecting the file
-    const fileExtension = file.path.split('.').pop()?.toLowerCase() || '';
-    const isCSS = fileExtension === 'css' || file.type === 'css';
-    const isHTML = fileExtension === 'html' || file.type === 'html';
-    
-    // Use the improved selectFile method to maintain chat context
-    store.selectFile(file)
+  // Always proceed even if the same file is selected to allow re-opening the same app
+  // Determine file type before selecting the file (reserved for future specialized handling)
+  const fileExtension = file.path.split('.').pop()?.toLowerCase() || ''
+  const isCSS = fileExtension === 'css' || file.type === 'css'
+  const isHTML = fileExtension === 'html' || file.type === 'html'
 
-    // When a user opens an app/file from the AppGallery, switch to Advanced view
-    appsViewMode.value = 'advanced'
-    // Restrict Advanced view to the selected app
-    const appMatch = (file.path || '').toLowerCase().match(/\/src\/apps\/([^/]+)\//)
-    if (appMatch && appMatch[1]) {
-      advancedAppFilter.value = appMatch[1]
-    }
-    
-    // Update the mode indicator UI by forcing a re-render
-    // This is needed because the selectedFile reference might not change
-    // if the file content is the same, but we still want the UI to update
-    await nextTick()
+  // Ensure selected file is set (call even if same path to keep state consistent)
+  store.selectFile(file)
+
+  // Switch to Advanced view and filter to the selected app
+  appsViewMode.value = 'advanced'
+  const appMatch = (file.path || '').toLowerCase().match(/\/src\/apps\/([^/]+)\//)
+  if (appMatch && appMatch[1]) {
+    advancedAppFilter.value = appMatch[1]
   }
+
+  // Force UI update to reflect mode/selection changes
+  await nextTick()
 }
 
 async function handleFileCreate(data: { name: string; type: string; content?: string }) {

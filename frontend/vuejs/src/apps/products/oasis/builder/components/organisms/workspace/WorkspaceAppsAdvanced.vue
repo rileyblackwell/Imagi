@@ -14,11 +14,10 @@
       </div>
       <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
       <div class="p-2 flex-1 min-h-0 overflow-hidden">
-        <FileExplorer
+        <VisualFileBrowser
           :files="files"
           :selected-file="selectedFile"
           :file-types="fileTypes"
-          :show-new-form="false"
           :project-id="projectId"
           @select-file="$emit('select-file', $event)"
           @create-file="$emit('create-file', $event)"
@@ -30,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import FileExplorer from '@/apps/products/oasis/builder/components/molecules/sidebar/FileExplorer.vue'
+import VisualFileBrowser from './VisualFileBrowser.vue'
 
 withDefaults(defineProps<{
   files: any[]

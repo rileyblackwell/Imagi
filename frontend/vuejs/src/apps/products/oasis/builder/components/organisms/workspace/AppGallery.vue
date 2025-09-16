@@ -154,7 +154,7 @@
     <!-- Apps grid -->
     <div v-else class="flex-1 min-h-0">
       <div class="h-full p-4 overflow-auto">
-        <div class="grid grid-cols-1 gap-3">
+        <div class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
           <div
             v-for="app in filteredApps"
             :key="app.key"
@@ -162,16 +162,15 @@
           >
             <!-- Decorative top overlay -->
             <div class="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-            <!-- Top-right Open icon button -->
+            <!-- Top-right Open arrow-only button -->
             <GlassButton
-              class="absolute top-2 right-2 px-2 py-1"
+              class="absolute top-2 right-2 p-1 w-8 h-8 rounded-md flex items-center justify-center"
               size="sm"
               @click="openApp(app)"
               aria-label="Open app"
               :title="`Open ${app.displayName}`"
             >
-              <i class="fas fa-folder-open text-xs"></i>
-              <span class="text-[10px] font-medium">Open</span>
+              <i class="fas fa-arrow-right text-sm"></i>
             </GlassButton>
 
             <div class="pl-3 pr-16 pt-4 pb-3 flex items-start gap-3">
