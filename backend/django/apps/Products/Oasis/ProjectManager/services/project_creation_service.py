@@ -4,6 +4,7 @@ import subprocess
 import re
 import logging
 import threading
+import sys
 from datetime import datetime
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
@@ -175,10 +176,10 @@ class ProjectCreationService:
         """Create Django backend with DRF"""
         logger.info(f"Creating Django backend at: {backend_path}")
         
-        # Use Django's startproject command to create the basic project structure
+        # Use Python module runner to invoke Django's startproject and create the basic project structure
         # This creates the Django project inside the backend_path directory
         subprocess.run([
-            'django-admin', 'startproject', 
+            sys.executable, '-m', 'django', 'startproject',
             unique_name,  # Project name
             backend_path  # Destination directory - Django project files will be created here
         ], check=True)
@@ -209,12 +210,16 @@ class ProjectCreationService:
         with open(views_path, 'w') as f:
             f.write(tpl.django_project_views())
         
-        # Create API app
+        # Create API app directory
         api_app_path = os.path.join(backend_path, 'api')
         os.makedirs(api_app_path, exist_ok=True)
         
         # Create API app files
         self._create_django_api_app(api_app_path)
+        
+        # Ensure apps directory exists for backend Django apps
+        apps_dir = os.path.join(backend_path, 'apps')
+        os.makedirs(apps_dir, exist_ok=True)
         
         # Create Pipfile for Django dependencies
         with open(os.path.join(backend_path, 'Pipfile'), 'w') as f:

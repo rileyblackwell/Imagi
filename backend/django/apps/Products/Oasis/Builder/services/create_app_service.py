@@ -126,41 +126,42 @@ class CreateAppService:
             elif not self.project and not project_id:
                 raise ValidationError("No project specified")
             
-            # Get existing files to check for existing apps
-            existing_files = self.file_service.list_files(project_id)
-            existing_apps = set()
-            
-            for file_info in existing_files:
-                path = str(file_info.get('path', '')).lower().replace('\\', '/')
-                # Match pattern: /src/apps/{app_name}/
-                if '/src/apps/' in path:
-                    parts = path.split('/src/apps/')
-                    if len(parts) > 1:
-                        app_part = parts[1].split('/')[0]
-                        if app_part:
-                            existing_apps.add(app_part)
-            
+            # Determine existing frontend and backend apps separately
+            project_path = self.file_service.get_project_path(project_id)
+            frontend_apps_dir = os.path.join(project_path or '', 'frontend', 'vuejs', 'src', 'apps')
+            backend_apps_dir = os.path.join(project_path or '', 'backend', 'django', 'apps')
+
+            def has_frontend(app: str) -> bool:
+                return os.path.isdir(os.path.join(frontend_apps_dir, app))
+
+            def has_backend(app: str) -> bool:
+                return os.path.isdir(os.path.join(backend_apps_dir, app))
+
             required_apps = ['home', 'auth', 'payments']
-            missing_apps = [app for app in required_apps if app not in existing_apps]
-            
-            if not missing_apps:
+            # Track existing status
+            existing_frontend = [app for app in required_apps if has_frontend(app)]
+            existing_backend = [app for app in required_apps if has_backend(app)]
+            # Apps that have neither side present
+            missing_entirely = [app for app in required_apps if app not in existing_frontend and app not in existing_backend]
+            # Apps missing backend only (frontend may have been stubbed by initial scaffold)
+            missing_backend_only = [app for app in required_apps if app in existing_frontend and app not in existing_backend]
+
+            if not missing_entirely and not missing_backend_only:
                 return {
                     'success': True,
-                    'message': 'All default apps already exist',
-                    'existing_apps': list(existing_apps),
+                    'message': 'All default apps already exist (frontend and backend)',
+                    'existing_frontend': existing_frontend,
+                    'existing_backend': existing_backend,
                     'created_apps': []
                 }
             
             created_apps = []
             total_files_created = 0
             
-            for app_name in missing_apps:
+            # First, create full apps where neither side exists
+            for app_name in missing_entirely:
                 try:
-                    result = self.create_app_from_gallery(
-                        app_name=app_name,
-                        app_description=f"Default {app_name} application",
-                        project_id=project_id
-                    )
+                    result = self.create_app_from_gallery(app_name=app_name, app_description=f"Default {app_name} application", project_id=project_id)
                     if result.get('success'):
                         created_apps.append(app_name)
                         total_files_created += result.get('files_created', 0)
@@ -173,11 +174,38 @@ class CreateAppService:
                             logger.warning(f"Registration failed for default app {app_name}: {str(reg_err)}")
                 except Exception as e:
                     logger.warning(f"Failed to create default app {app_name}: {str(e)}")
+
+            # Next, for apps where frontend exists but backend is missing, create backend-only files
+            for app_name in missing_backend_only:
+                try:
+                    # Generate all files and filter to backend paths only
+                    all_files = generate_prebuilt_app_files(app_name, f"Default {app_name} application")
+                    backend_files = [f for f in all_files if str(f.get('name', '')).startswith('backend/')]
+                    created = 0
+                    for file_data in backend_files:
+                        try:
+                            self.file_service.create_file(file_data, project_id)
+                            created += 1
+                        except Exception as fe:
+                            logger.warning(f"Failed to create backend file {file_data.get('name')}: {fe}")
+                    if created:
+                        created_apps.append(app_name)
+                        total_files_created += created
+                        # Register backend app
+                        try:
+                            project_path = self.file_service.get_project_path(project_id)
+                            if project_path:
+                                self._register_backend_app(project_path, app_name)
+                        except Exception as reg_err:
+                            logger.warning(f"Registration failed for default app {app_name}: {str(reg_err)}")
+                except Exception as e:
+                    logger.warning(f"Failed to create backend for default app {app_name}: {str(e)}")
             
             return {
                 'success': True,
                 'message': f'Successfully ensured default apps. Created {len(created_apps)} apps with {total_files_created} files.',
-                'existing_apps': list(existing_apps),
+                'existing_frontend': existing_frontend,
+                'existing_backend': existing_backend,
                 'created_apps': created_apps,
                 'total_files_created': total_files_created
             }
@@ -364,8 +392,26 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
         Skips if a capitalized variant already exists (e.g., 'apps.Home').
         """
         try:
-            settings_path = os.path.join(project_path, 'backend', 'django', 'Imagi', 'settings.py')
-            urls_path = os.path.join(project_path, 'backend', 'django', 'Imagi', 'urls.py')
+            # Discover the actual Django project directory (contains settings.py and urls.py)
+            backend_root = os.path.join(project_path, 'backend', 'django')
+            project_dir = None
+            if os.path.isdir(backend_root):
+                for entry in os.listdir(backend_root):
+                    candidate = os.path.join(backend_root, entry)
+                    if (
+                        os.path.isdir(candidate)
+                        and not entry.startswith('.')
+                        and os.path.exists(os.path.join(candidate, 'settings.py'))
+                        and os.path.exists(os.path.join(candidate, 'urls.py'))
+                    ):
+                        project_dir = candidate
+                        break
+
+            if not project_dir:
+                raise FileNotFoundError('Could not locate Django project directory under backend/django')
+
+            settings_path = os.path.join(project_dir, 'settings.py')
+            urls_path = os.path.join(project_dir, 'urls.py')
 
             # Read settings.py
             with open(settings_path, 'r', encoding='utf-8') as f:

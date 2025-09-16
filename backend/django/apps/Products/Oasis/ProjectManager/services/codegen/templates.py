@@ -14,31 +14,145 @@ import json
 # =============================
 
 def vite_config() -> str:
-    return """import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import { fileURLToPath, URL } from 'node:url'
-
-export default defineConfig({
-  plugins: [vue()],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    },
-  },
-  server: {
-    port: 5173,
-    host: true,
-    cors: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      }
-    }
-  }
-})
-"""
+    return (
+        "import { defineConfig } from 'vite'\n"
+        "import vue from '@vitejs/plugin-vue'\n"
+        "import path from 'path'\n"
+        "import type { ViteDevServer } from 'vite'\n\n"
+        "\n"
+        "// Custom middleware to safely handle URI encoding issues\n"
+        "function safeDecodeMiddleware(req: any, res: any, next: any) {\n"
+        "  const originalUrl = req.url;\n\n"
+        "  if (!originalUrl) {\n"
+        "    next();\n"
+        "    return;\n"
+        "  }\n\n"
+        "  try {\n"
+        "    // Test if URL causes decodeURI to fail\n"
+        "    decodeURI(originalUrl);\n"
+        "  } catch (e) {\n"
+        "    // If it fails, replace problematic characters\n"
+        "    req.url = originalUrl\n"
+        "      .replace(/%(?![0-9A-Fa-f]{2})/g, '%25') // Fix unescaped % signs\n"
+        "      .replace(/\\\\/g, '/');  // Replace backslashes with forward slashes\n\n"
+        "    console.warn('Fixed malformed URI:', originalUrl, '→', req.url);\n"
+        "  }\n\n"
+        "  next();\n"
+        "}\n\n\n"
+        "// Set base path depending on environment\n"
+        "// Use '/' for both development and production unless specifically deploying to a subdirectory\n"
+        "// If you need to deploy to a subdirectory, set VITE_BASE_PATH environment variable\n"
+        "const BASE_PATH = process.env.VITE_BASE_PATH || '/';\n\n\n"
+        "export default defineConfig({\n"
+        "  base: BASE_PATH,\n"
+        "  plugins: [\n"
+        "    vue(),\n"
+        "    // Handle missing pattern SVG references\n"
+        "    {\n"
+        "      name: 'resolve-svg-patterns',\n"
+        "      resolveId(id) {\n"
+        "        // Resolve grid-pattern.svg and dot-pattern.svg as empty modules\n"
+        "        if (id === '/grid-pattern.svg' || id === '/dot-pattern.svg' || \n"
+        "            id.endsWith('grid-pattern.svg') || id.endsWith('dot-pattern.svg')) {\n"
+        "          return '\\0empty-svg-module'\n"
+        "        }\n"
+        "        return null\n"
+        "      },\n"
+        "      load(id) {\n"
+        "        if (id === '\\0empty-svg-module') {\n"
+        "          // Return a valid transparent SVG pattern that works with url() references\n"
+        "          return `export default \"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='%23f0f0f0' fill-opacity='0.1'%3E%3Ccircle cx='20' cy='20' r='1'/%3E%3C/g%3E%3C/svg%3E\"`\n"
+        "        }\n"
+        "        return null\n"
+        "      }\n"
+        "    },\n"
+        "    // Add custom plugin to handle malformed URIs\n"
+        "    {\n"
+        "      name: 'fix-malformed-uris',\n"
+        "      configureServer(server: ViteDevServer) {\n"
+        "        server.middlewares.use(safeDecodeMiddleware);\n"
+        "      }\n"
+        "    }\n"
+        "  ],\n"
+        "  server: {\n"
+        "    // No need to set base here; handled globally above\n"
+        "    port: 5173,\n"
+        "    strictPort: true, // This will fail if port 5173 is not available\n"
+        "    hmr: {\n"
+        "      overlay: false, // Disable the HMR error overlay to prevent URI errors from breaking the UI\n"
+        "    },\n"
+        "    proxy: {\n"
+        "      // Proxy all API requests to the Django backend\n"
+        "      // This allows consistent API calls using relative URLs in both development and production\n"
+        "      '/api': {\n"
+        "        target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',\n"
+        "        changeOrigin: true,\n"
+        "        secure: false,\n"
+        "        configure: (proxy, _options) => {\n"
+        "          const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8000';\n\n"
+        "          proxy.on('proxyReq', (proxyReq, req, _res) => {\n"
+        "            // Log request info when debugging\n"
+        "            if (process.env.NODE_ENV !== 'production') {\n"
+        "              console.log(`🔄 Proxy: ${req.method} ${req.url} → ${backendUrl}${req.url}`);\n"
+        "            }\n"
+        "          });\n\n"
+        "          proxy.on('proxyRes', (proxyRes, req, _res) => {\n"
+        "            // Ensure proper headers for streaming responses\n"
+        "            if (req.headers.accept?.includes('text/event-stream')) {\n"
+        "              proxyRes.headers['content-type'] = 'text/event-stream';\n"
+        "              proxyRes.headers['cache-control'] = 'no-cache';\n"
+        "              proxyRes.headers['connection'] = 'keep-alive';\n"
+        "            }\n"
+        "          });\n\n"
+        "          proxy.on('error', (err, req, _res) => {\n"
+        "            console.error(`❌ Proxy Error: ${req.method} ${req.url} → ${backendUrl}${req.url}`, err.message);\n"
+        "          });\n"
+        "        }\n"
+        "      }\n"
+        "    }\n"
+        "  },\n"
+        "  resolve: {\n"
+        "    alias: {\n"
+        "      '@': path.resolve(__dirname, './src'),\n"
+        "    },\n"
+        "    extensions: ['.ts', '.js', '.vue', '.json'] // Prioritize TypeScript files\n"
+        "  },\n"
+        "  build: {\n"
+        "    target: 'esnext',\n"
+        "    sourcemap: true,\n"
+        "    chunkSizeWarningLimit: 800, // Increase chunk size warning limit\n"
+        "    rollupOptions: {\n"
+        "      output: {\n"
+        "        manualChunks(id) {\n"
+        "          // Handle file service circular dependencies\n"
+        "          if (id.includes('fileService.ts')) {\n"
+        "            return 'builder-services';\n"
+        "          }\n\n"
+        "          // Handle UI library chunks only if they're actually imported\n"
+        "          if (id.includes('node_modules/@headlessui/vue') || \n"
+        "              id.includes('node_modules/@heroicons/vue')) {\n"
+        "            return 'vendor-ui';\n"
+        "          }\n\n"
+        "          // Vue ecosystem libraries\n"
+        "          if (id.includes('node_modules/vue') || \n"
+        "              id.includes('node_modules/vue-router') || \n"
+        "              id.includes('node_modules/pinia')) {\n"
+        "            return 'vendor-vue';\n"
+        "          }\n\n"
+        "          // Shared utilities\n"
+        "          if (id.includes('/shared/utils/')) {\n"
+        "            return 'shared-utils';\n"
+        "          }\n\n"
+        "          // Handle layouts\n"
+        "          if (id.includes('/shared/layouts/') || id.includes('/apps/auth/layouts/')) {\n"
+        "            return 'layouts';\n"
+        "          }\n"
+        "        }\n"
+        "      }\n"
+        "    }\n"
+        "  }\n"
+        "})\n"
+    )
 
 
 def tailwind_config() -> str:
@@ -101,17 +215,22 @@ def postcss_config() -> str:
 
 def index_html(project_name: str) -> str:
     return (
-        f"""<!doctype html>
-<html lang="en">
+        f"""<!DOCTYPE html>
+<html lang=\"en\">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{project_name}</title>
+    <meta charset=\"utf-8\">
+    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">
+    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">
+    <link rel=\"icon\" href=\"/favicon.ico\">
+    <title>{project_name} - Transform Text to Web Apps</title>
+    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css\" />
   </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+  <body class=\"bg-gray-900 text-white\">
+    <noscript>
+      <strong>We're sorry but {project_name} doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id=\"app\"></div>
+    <script type=\"module\" src=\"/src/main.ts\"></script>
   </body>
 </html>
 """
@@ -121,28 +240,107 @@ def index_html(project_name: str) -> str:
 def vue_main_js() -> str:
     return """import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import router from './router'
 import App from './App.vue'
+import router from './router'
+import axios from 'axios'
+import type { AxiosInstance } from 'axios'
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { 
+  faUser, 
+  faLock, 
+  faCircleNotch,
+  faExclamationCircle,
+  faCheckCircle,
+  faSpinner,
+  faEye,
+  faEyeSlash 
+} from '@fortawesome/free-solid-svg-icons'
+import { validationPlugin } from '@/apps/auth/plugins/validation'
+import config from '@/shared/config'
 import './assets/css/main.css'
 
+// Add icons to library
+library.add(
+  faUser,
+  faLock,
+  faCircleNotch,
+  faExclamationCircle,
+  faCheckCircle,
+  faSpinner,
+  faEye,
+  faEyeSlash
+)
+
+// Configure axios
+axios.defaults.baseURL = config.apiUrl
+axios.defaults.withCredentials = true
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
+
+// Create Vue app instance
 const app = createApp(App)
 
+// Type augmentation (available at runtime even without .d.ts)
+declare module '@vue/runtime-core' {
+  interface ComponentCustomProperties {
+    $axios: AxiosInstance;
+  }
+}
+
+// Add global properties
+app.config.globalProperties.$axios = axios
+
+// Use plugins
 app.use(createPinia())
 app.use(router)
+app.use(validationPlugin)
 
+// Register global components
+app.component('font-awesome-icon', FontAwesomeIcon)
+
+// Mount app
 app.mount('#app')
+"""
+
+
+def vue_shared_config_ts() -> str:
+    return """// Centralized frontend configuration
+// Respects Vite environment variable VITE_BACKEND_URL; falls back to localhost
+const apiBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+
+const config = {
+  apiUrl: `${apiBase}/api`,
+}
+
+export default config
+"""
+
+
+def vue_validation_plugin_ts() -> str:
+    return """import type { App } from 'vue'
+
+export const validationPlugin = {
+  install(app: App) {
+    // Minimal no-op validator stub
+    app.config.globalProperties.$validate = (/* _rules: any, _data: any */) => ({ valid: true, errors: {} })
+  }
+}
 """
 
 
 def vue_app_vue(project_name: str, project_description: str | None) -> str:
     return """<template>
-  <div id=\"app\" class=\"min-h-screen bg-gray-50\">
-    <RouterView />
+  <div id=\"app\" class=\"min-h-screen bg-gray-50 text-gray-900 flex flex-col\">
+    <router-view v-slot=\"{ Component }\" class=\"flex-grow\">
+      <transition name=\"fade\" mode=\"out-in\">
+        <component :is=\"Component\" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
-<script setup lang=\"ts\">
-import { RouterView } from 'vue-router'
+<script setup>
+// Minimal App shell; no shared components or global stores used.
 </script>
 """
 
@@ -184,9 +382,10 @@ export const useMainStore = defineStore('main', () => {
 
 def vue_api_service() -> str:
     return """import axios from 'axios'
+import config from '@/shared/config'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL: config.apiUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -195,24 +394,21 @@ const api = axios.create({
 
 // Request interceptor
 api.interceptors.request.use(
-  (config) => {
+  (cfg) => {
     // Add auth token if available
     const token = localStorage.getItem('authToken')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      cfg.headers = cfg.headers || {}
+      cfg.headers.Authorization = `Bearer ${token}`
     }
-    return config
+    return cfg
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   (error) => {
     console.error('API Error:', error)
     return Promise.reject(error)
@@ -383,7 +579,8 @@ def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_d
         "scripts": {
             "dev": "vite",
             "build": "vite build",
-            "preview": "vite preview"
+            "preview": "vite preview",
+            "type-check": "vue-tsc --noEmit"
         },
         "dependencies": {
             "vue": "^3.4.0",
@@ -391,14 +588,19 @@ def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_d
             "pinia": "^2.1.7",
             "axios": "^1.6.0",
             "@headlessui/vue": "^1.7.16",
-            "@heroicons/vue": "^2.0.18"
+            "@heroicons/vue": "^2.0.18",
+            "@fortawesome/fontawesome-svg-core": "^6.5.1",
+            "@fortawesome/vue-fontawesome": "^3.0.5",
+            "@fortawesome/free-solid-svg-icons": "^6.5.1"
         },
         "devDependencies": {
             "@vitejs/plugin-vue": "^4.5.0",
             "autoprefixer": "^10.4.16",
             "postcss": "^8.4.32",
             "tailwindcss": "^3.3.6",
-            "vite": "^5.0.0"
+            "vite": "^5.0.0",
+            "typescript": "^5.4.0",
+            "vue-tsc": "^1.8.27"
         }
     }
 
@@ -406,29 +608,33 @@ def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_d
         f.write(json.dumps(package_json, indent=2))
 
     # vite.config.js
-    with open(os.path.join(frontend_path, 'vite.config.js'), 'w') as f:
+    with open(os.path.join(frontend_path, 'vite.config.ts'), 'w') as f:
         f.write(vite_config())
 
-    # jsconfig.json for better VS Code support
-    jsconfig = {
+    # tsconfig.json for TypeScript support
+    tsconfig = {
         "compilerOptions": {
             "target": "ESNext",
+            "useDefineForClassFields": True,
             "lib": ["ESNext", "DOM", "DOM.Iterable"],
             "module": "ESNext",
+            "skipLibCheck": True,
             "moduleResolution": "bundler",
             "resolveJsonModule": True,
+            "isolatedModules": True,
+            "noEmit": True,
             "jsx": "preserve",
             "baseUrl": ".",
             "paths": {
                 "@/*": ["./src/*"]
             }
         },
-        "include": ["src/**/*.js", "src/**/*.vue"],
+        "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", "src/**/*.js"],
         "exclude": ["node_modules", "dist"]
     }
 
-    with open(os.path.join(frontend_path, 'jsconfig.json'), 'w') as f:
-        f.write(json.dumps(jsconfig, indent=2))
+    with open(os.path.join(frontend_path, 'tsconfig.json'), 'w') as f:
+        f.write(json.dumps(tsconfig, indent=2))
 
     # Tailwind and PostCSS
     with open(os.path.join(frontend_path, 'tailwind.config.js'), 'w') as f:
@@ -456,36 +662,47 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
         'components/molecules',
         'components/organisms',
         'apps',
+        'apps/auth',
+        'apps/auth/plugins',
         'views',
         'router',
         'stores',
         'services',
         'types',
         'assets',
-        'assets/css'
+        'assets/css',
+        'shared'
     ]
 
     for directory in directories:
         os.makedirs(os.path.join(src_path, directory), exist_ok=True)
 
-    # main.js
-    with open(os.path.join(src_path, 'main.js'), 'w') as f:
+    # main.ts
+    with open(os.path.join(src_path, 'main.ts'), 'w') as f:
         f.write(vue_main_js())
 
     # App.vue
     with open(os.path.join(src_path, 'App.vue'), 'w') as f:
         f.write(vue_app_vue(project_name, project_description))
 
-    # router/index.js
-    with open(os.path.join(src_path, 'router', 'index.js'), 'w') as f:
+    # router/index.ts
+    with open(os.path.join(src_path, 'router', 'index.ts'), 'w') as f:
         f.write(vue_router_index())
+
+    # shared/config.ts
+    with open(os.path.join(src_path, 'shared', 'config.ts'), 'w') as f:
+        f.write(vue_shared_config_ts())
+
+    # apps/auth/plugins/validation.ts
+    with open(os.path.join(src_path, 'apps', 'auth', 'plugins', 'validation.ts'), 'w') as f:
+        f.write(vue_validation_plugin_ts())
 
     # stores/main.js
     with open(os.path.join(src_path, 'stores', 'main.js'), 'w') as f:
         f.write(vue_store_main())
 
-    # services/api.js
-    with open(os.path.join(src_path, 'services', 'api.js'), 'w') as f:
+    # services/api.ts
+    with open(os.path.join(src_path, 'services', 'api.ts'), 'w') as f:
         f.write(vue_api_service())
 
     # views/HomeView.vue
