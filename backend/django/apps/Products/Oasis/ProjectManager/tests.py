@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 import os
 import shutil
+import json
 from .models import Project
 from .services.project_creation_service import ProjectCreationService
 from .services.project_management_service import ProjectManagementService
@@ -75,3 +76,37 @@ class ProjectManagerTests(TestCase):
         
         # Verify project files are deleted
         self.assertFalse(os.path.exists(project.project_path))
+
+    def test_generated_frontend_has_required_packages(self):
+        """Generated project should include required node packages in frontend/vuejs/package.json"""
+        project = Project.objects.create(
+            user=self.user,
+            name='DepsProject'
+        )
+
+        self.creation_service.create_project(project)
+
+        # Locate generated frontend package.json
+        package_json_path = os.path.join(project.project_path, 'frontend', 'vuejs', 'package.json')
+        self.assertTrue(os.path.exists(package_json_path), f"package.json not found at {package_json_path}")
+
+        with open(package_json_path, 'r') as f:
+            pkg = json.load(f)
+
+        # Check a representative set of dependencies
+        deps = pkg.get('dependencies', {})
+        dev_deps = pkg.get('devDependencies', {})
+
+        required_deps = [
+            'vue', 'vue-router', 'pinia', 'axios', 'tailwindcss',
+            '@headlessui/vue', '@heroicons/vue', '@fortawesome/fontawesome-svg-core',
+            '@fortawesome/free-solid-svg-icons', '@fortawesome/vue-fontawesome'
+        ]
+        for dep in required_deps:
+            self.assertIn(dep, deps, f"Missing dependency: {dep}")
+
+        required_dev_deps = [
+            '@vitejs/plugin-vue', 'vite', 'typescript', 'vue-tsc', 'eslint', 'prettier'
+        ]
+        for dep in required_dev_deps:
+            self.assertIn(dep, dev_deps, f"Missing devDependency: {dep}")

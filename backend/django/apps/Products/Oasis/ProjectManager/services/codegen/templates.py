@@ -570,37 +570,86 @@ def _sanitize_project_name(name: str) -> str:
 
 def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_description: str | None) -> None:
     """Create VueJS frontend with Vite, Pinia, TailwindCSS, and Axios (vanilla JS)."""
-    # package.json (vanilla JS, no TypeScript)
+    # package.json aligned with main Imagi frontend so all required packages are installed
     package_json = {
         "name": f"{_sanitize_project_name(project_name).lower()}-frontend",
+        "version": "1.0.0",
         "private": True,
-        "version": "0.0.0",
         "type": "module",
         "scripts": {
-            "dev": "vite",
-            "build": "vite build",
+            "dev": "vite --host",
+            "dev:debug": "vite --host --debug",
+            "build": "vue-tsc --noEmit && vite build",
             "preview": "vite preview",
-            "type-check": "vue-tsc --noEmit"
+            "start": "vite preview --host --port $PORT",
+            "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore",
+            "clean": "rm -rf node_modules dist .vite",
+            "type-check": "vue-tsc --noEmit",
+            "audit:fix": "npm audit fix",
+            "audit:fix-force": "npm audit fix --force"
         },
         "dependencies": {
-            "vue": "^3.4.0",
-            "vue-router": "^4.2.5",
-            "pinia": "^2.1.7",
-            "axios": "^1.6.0",
-            "@headlessui/vue": "^1.7.16",
-            "@heroicons/vue": "^2.0.18",
             "@fortawesome/fontawesome-svg-core": "^6.5.1",
+            "@fortawesome/free-brands-svg-icons": "^6.5.1",
+            "@fortawesome/free-solid-svg-icons": "^6.5.1",
             "@fortawesome/vue-fontawesome": "^3.0.5",
-            "@fortawesome/free-solid-svg-icons": "^6.5.1"
+            "@headlessui/vue": "^1.7.23",
+            "@heroicons/vue": "^2.2.0",
+            "@stripe/stripe-js": "^3.0.3",
+            "@vee-validate/i18n": "^4.15.0",
+            "@vee-validate/rules": "^4.15.0",
+            "axios": "^1.6.7",
+            "chart.js": "^4.4.0",
+            "gsap": "^3.12.5",
+            "isomorphic-dompurify": "^2.22.0",
+            "lodash-es": "^4.17.21",
+            "marked": "^15.0.7",
+            "pinia": "^2.1.7",
+            "tailwindcss": "^3.4.1",
+            "uuid": "^11.1.0",
+            "vee-validate": "^4.15.0",
+            "vue": "^3.4.15",
+            "vue-chartjs": "^5.3.0",
+            "vue-router": "^4.2.5"
         },
         "devDependencies": {
-            "@vitejs/plugin-vue": "^4.5.0",
-            "autoprefixer": "^10.4.16",
-            "postcss": "^8.4.32",
-            "tailwindcss": "^3.3.6",
-            "vite": "^5.0.0",
-            "typescript": "^5.4.0",
-            "vue-tsc": "^1.8.27"
+            "@eslint/config-array": "^0.19.2",
+            "@eslint/object-schema": "^2.1.6",
+            "@tailwindcss/typography": "^0.5.10",
+            "@types/dompurify": "^3.0.5",
+            "@types/lodash-es": "^4.17.12",
+            "@types/marked": "^5.0.2",
+            "@types/node": "^20.11.0",
+            "@types/uuid": "^10.0.0",
+            "@typescript-eslint/eslint-plugin": "^6.21.0",
+            "@typescript-eslint/parser": "^6.21.0",
+            "@vitejs/plugin-vue": "^5.0.4",
+            "@vue/eslint-config-prettier": "^9.0.0",
+            "@vue/eslint-config-typescript": "^12.0.0",
+            "@vue/tsconfig": "^0.5.1",
+            "autoprefixer": "^10.4.17",
+            "eslint": "^8.57.1",
+            "eslint-config-standard": "^17.1.0",
+            "eslint-import-resolver-typescript": "^3.8.5",
+            "eslint-plugin-import": "^2.31.0",
+            "eslint-plugin-prettier": "^5.1.3",
+            "eslint-plugin-unused-imports": "^4.1.4",
+            "eslint-plugin-vue": "^9.21.1",
+            "glob": "^10.3.10",
+            "lru-cache": "^10.2.0",
+            "postcss": "^8.4.33",
+            "prettier": "^3.2.4",
+            "rimraf": "^5.0.5",
+            "typescript": "~5.3.3",
+            "vite": "^6.2.1",
+            "vue-tsc": "^2.2.0"
+        },
+        "overrides": {
+            "inflight": "^2.0.0",
+            "glob": "^10.3.10",
+            "rimraf": "^5.0.5",
+            "@humanwhocodes/config-array": "@eslint/config-array@^0.19.2",
+            "@humanwhocodes/object-schema": "@eslint/object-schema@^2.1.6"
         }
     }
 
@@ -685,8 +734,8 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
     with open(os.path.join(src_path, 'App.vue'), 'w') as f:
         f.write(vue_app_vue(project_name, project_description))
 
-    # router/index.ts
-    with open(os.path.join(src_path, 'router', 'index.ts'), 'w') as f:
+    # router/index.js (use JS file instead of TS)
+    with open(os.path.join(src_path, 'router', 'index.js'), 'w') as f:
         f.write(vue_router_index())
 
     # shared/config.ts

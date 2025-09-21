@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import type { RouteModule } from './types'
-import { useProjectStore } from '@/apps/products/oasis/builder/stores/projectStore'
 
 // Import route modules
 const modules = import.meta.glob<RouteModule>('@/apps/**/router/index.ts', { eager: true })
