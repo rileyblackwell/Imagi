@@ -164,9 +164,11 @@ export const usePaymentStore = defineStore('payments', () => {
       const result = await paymentService.processPayment(paymentData.amount, paymentData.paymentMethodId)
       
       // If payment was successful, update the balance
-      if (result.success || result.newBalance) {
-        balance.value = result.newBalance
-        userCredits.value = result.newBalance
+      const updatedBalance =
+        result?.newBalance ?? result?.new_balance ?? undefined
+      if (result?.success || updatedBalance !== undefined) {
+        balance.value = updatedBalance as number
+        userCredits.value = updatedBalance as number
         lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       
@@ -188,9 +190,11 @@ export const usePaymentStore = defineStore('payments', () => {
       const result = await paymentService.confirmPayment(paymentIntentId)
       
       // If payment was confirmed, update the balance
-      if (result.newBalance) {
-        balance.value = result.newBalance
-        userCredits.value = result.newBalance
+      const updatedBalance =
+        result?.newBalance ?? result?.new_balance ?? undefined
+      if (updatedBalance !== undefined) {
+        balance.value = updatedBalance as number
+        userCredits.value = updatedBalance as number
         lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       
@@ -211,9 +215,11 @@ export const usePaymentStore = defineStore('payments', () => {
       const result = await paymentService.verifyPayment(paymentIntentId)
       
       // If payment verification returned a new balance, update it
-      if (result.newBalance) {
-        balance.value = result.newBalance
-        userCredits.value = result.newBalance
+      const updatedBalance =
+        result?.newBalance ?? result?.new_balance ?? undefined
+      if (updatedBalance !== undefined) {
+        balance.value = updatedBalance as number
+        userCredits.value = updatedBalance as number
         lastUpdated.value = new Date().toISOString() // Track when balance was updated
       }
       

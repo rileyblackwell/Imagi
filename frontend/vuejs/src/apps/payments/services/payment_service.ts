@@ -121,7 +121,8 @@ class PaymentService implements IPaymentService {
     try {
       const response = await api.post(buildApiUrl('/api/v1/payments/process/'), {
         amount,
-        payment_method_id: paymentMethodId
+        // Backend expects camelCase: paymentMethodId
+        paymentMethodId: paymentMethodId
       })
       return response.data
     } catch (error) {
