@@ -97,6 +97,11 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
 </script>
 """,
         },
+        {
+            'name': f"frontend/vuejs/src/apps/{app_name}/views/index.ts",
+            'type': 'typescript',
+            'content': f"export {{ default as {cap_name}View }} from './{cap_name}View.vue'\n",
+        },
     ]
 
 

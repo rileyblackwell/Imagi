@@ -91,6 +91,11 @@ class CreateViewService:
             # Update router if it's a view
             if page_type == "view":
                 self._update_router(app_name, component_name, page_name, project_id)
+                # Ensure views barrel file exports this view
+                try:
+                    self._ensure_views_barrel(app_name, component_name, project_id)
+                except Exception as barrel_err:
+                    logger.warning(f"Failed to update views barrel for {component_name}: {str(barrel_err)}")
             
             return {
                 'success': True,
@@ -403,3 +408,23 @@ export {{ routes }}
             lines.insert(route_insert_idx, route_entry + ',')
         
         return '\n'.join(lines)
+
+    def _ensure_views_barrel(self, app_name: str, component_name: str, project_id: str | None = None) -> None:
+        """Create or update frontend/vuejs/src/apps/<app>/views/index.ts to export the given component.
+        This keeps `export * from './views'` working for app-level index.ts.
+        """
+        barrel_path = f"frontend/vuejs/src/apps/{app_name}/views/index.ts"
+        export_line = f"export {{ default as {component_name} }} from './{component_name}.vue'\n"
+        try:
+            current = self.file_service.get_file_content(barrel_path, project_id)
+            if export_line not in current:
+                # Append the new export
+                updated = (current if current.endswith('\n') else current + '\n') + export_line
+                self.file_service.update_file(barrel_path, updated, project_id)
+        except Exception:
+            # If it doesn't exist, create it
+            self.file_service.create_file({
+                'name': barrel_path,
+                'type': 'typescript',
+                'content': export_line,
+            }, project_id)

@@ -349,13 +349,32 @@ def vue_router_index() -> str:
     return """import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 
+// Auto-import all route modules from apps
+// Supports both TS and JS router modules if present
+const modules = import.meta.glob('@/apps/**/router/index.{ts,js}', { eager: true })
+
+// Extract routes from each module (default export or named `routes`)
+const routeModules = Object.values(modules)
+  .map((mod) => (mod && 'default' in mod ? mod.default : (mod && mod.routes) || []))
+  .flat()
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Basic home route for initial project load
     {
       path: '/',
       name: 'home',
-      component: HomeView
+      component: HomeView,
+      meta: { title: 'Home' }
+    },
+    // Inject all app routes discovered above
+    ...routeModules,
+    // 404 fallback
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/shared/components/pages/NotFound.vue')
     }
   ]
 })
@@ -720,7 +739,9 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
         'types',
         'assets',
         'assets/css',
-        'shared'
+        'shared',
+        'shared/components',
+        'shared/components/pages'
     ]
 
     for directory in directories:
@@ -761,6 +782,21 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
     # assets/css/main.css
     with open(os.path.join(src_path, 'assets', 'css', 'main.css'), 'w') as f:
         f.write(vue_main_css())
+
+    # shared/components/pages/NotFound.vue used by router fallback
+    not_found_vue = (
+        "<template>\n"
+        "  <div class=\"min-h-screen flex items-center justify-center bg-gray-50\">\n"
+        "    <div class=\"text-center\">\n"
+        "      <h1 class=\"text-6xl font-bold text-gray-900\">404</h1>\n"
+        "      <p class=\"mt-4 text-gray-600\">Page not found</p>\n"
+        "      <router-link to=\"/\" class=\"mt-6 inline-block text-indigo-600 hover:underline\">Go Home</router-link>\n"
+        "    </div>\n"
+        "  </div>\n"
+        "</template>\n"
+    )
+    with open(os.path.join(src_path, 'shared', 'components', 'pages', 'NotFound.vue'), 'w') as f:
+        f.write(not_found_vue)
 
 
 # =============================

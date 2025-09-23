@@ -110,3 +110,21 @@ class ProjectManagerTests(TestCase):
         ]
         for dep in required_dev_deps:
             self.assertIn(dep, dev_deps, f"Missing devDependency: {dep}")
+
+    def test_generated_frontend_router_auto_imports_app_routes(self):
+        """Generated project router should auto-import app route modules via import.meta.glob and define a 404 fallback."""
+        project = Project.objects.create(
+            user=self.user,
+            name='RouterProject'
+        )
+
+        self.creation_service.create_project(project)
+
+        router_path = os.path.join(project.project_path, 'frontend', 'vuejs', 'src', 'router', 'index.js')
+        self.assertTrue(os.path.exists(router_path), f"Router file not found at {router_path}")
+
+        with open(router_path, 'r') as f:
+            router_src = f.read()
+
+        self.assertIn("import.meta.glob", router_src, "Router should use import.meta.glob to load app routes")
+        self.assertIn("'/:pathMatch(.*)*'", router_src, "Router should include a 404 fallback route")
