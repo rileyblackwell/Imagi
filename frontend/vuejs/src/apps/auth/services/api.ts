@@ -30,17 +30,44 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async healthCheck() {
     try {
-      const response = await api.get(buildApiUrl(`${API_PATH}/health/`), {
+      const fullUrl = buildApiUrl(`${API_PATH}/health/`)
+      
+      console.log('🏥 Auth Health Check - Starting:', {
+        url: fullUrl,
+        environment: import.meta.env.PROD ? 'production' : 'development',
+        baseURL: (import.meta.env.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || 'relative'),
+        timestamp: new Date().toISOString()
+      })
+      
+      const response = await api.get(fullUrl, {
         timeout: 10000,
         headers: {
           'X-Request-Type': 'health-check',
           'X-Frontend-Service': 'vue-frontend'
         }
       })
-      console.log('✅ Auth API health check passed:', response.data)
+      
+      console.log('✅ Auth API health check passed:', {
+        status: response.status,
+        data: response.data,
+        headers: response.headers
+      })
+      
       return response
     } catch (error: any) {
-      console.error('❌ Auth API health check failed:', error.message)
+      console.error('❌ Auth API health check failed:', {
+        message: error.message,
+        url: buildApiUrl(`${API_PATH}/health/`),
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        code: error.code,
+        config: {
+          baseURL: error.config?.baseURL,
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      })
       throw error
     }
   },

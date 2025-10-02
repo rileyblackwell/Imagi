@@ -77,6 +77,18 @@ try {
 // Enhanced request interceptor for Railway debugging
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    // Debug logging for health check requests
+    if (config.headers?.['X-Request-Type'] === 'health-check') {
+      console.log('🔍 API Request Interceptor - Health Check:', {
+        url: config.url,
+        baseURL: config.baseURL,
+        fullURL: `${config.baseURL || ''}${config.url || ''}`,
+        method: config.method,
+        headers: config.headers,
+        environment: import.meta.env.PROD ? 'production' : 'development'
+      })
+    }
+    
     // Attach Authorization header from localStorage if not already present
     try {
       if (!config.headers['Authorization']) {

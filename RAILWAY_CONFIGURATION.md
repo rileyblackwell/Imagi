@@ -20,7 +20,7 @@ The browser makes requests to relative URLs (e.g., `/api/v1/auth/login/`), which
 Set the following environment variable in Railway for the **frontend service**:
 
 ```bash
-BACKEND_SERVICE_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
+BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
 ```
 
 **Important Notes:**
@@ -29,7 +29,7 @@ BACKEND_SERVICE_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
 - `RAILWAY_PRIVATE_DOMAIN` is automatically provided by Railway for private networking
 - `PORT` must be set manually as a service variable on the backend service (typically `8000`)
 - Use `http://` protocol (not `https://`) for internal Railway communication
-- **DO NOT** set `BACKEND_URL` or `VITE_BACKEND_URL` in the frontend service (browser uses relative URLs)
+- **DO NOT** set `VITE_BACKEND_URL` in the frontend service (browser uses relative URLs)
 
 ### Backend Service (Django)
 
@@ -39,7 +39,7 @@ Ensure the backend service has the following variable set:
 PORT=8000
 ```
 
-This allows the frontend Nginx to reference `${{backend.PORT}}` in the BACKEND_SERVICE_URL.
+This allows the frontend Nginx to reference `${{backend.PORT}}` in the BACKEND_URL.
 
 ## How It Works
 
@@ -128,8 +128,8 @@ const response = await api.post(buildApiUrl(`${API_PATH}/login/`), credentials)
 1. Go to your Railway project
 2. Select the **frontend service**
 3. Navigate to **Variables** tab
-4. Confirm `BACKEND_SERVICE_URL` is set to: `http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}`
-5. **Ensure `BACKEND_URL` and `VITE_BACKEND_URL` are NOT set** (remove them if present)
+4. Confirm `BACKEND_URL` is set to: `http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}`
+5. **Ensure `VITE_BACKEND_URL` is NOT set** (remove it if present)
 
 **Backend Service:**
 1. Select the **backend service**
@@ -139,7 +139,7 @@ const response = await api.post(buildApiUrl(`${API_PATH}/login/`), credentials)
 ### Check Backend Service Name
 
 1. Ensure your Django backend service is named **backend** in Railway
-2. If it has a different name, update the `BACKEND_SERVICE_URL` variable accordingly
+2. If it has a different name, update the `BACKEND_URL` variable accordingly
 
 ### Test API Calls
 
@@ -151,22 +151,25 @@ After deployment, check the browser console (DevTools → Network tab):
 
 ## Troubleshooting
 
-### Issue: API calls show `ERR_TOO_MANY_REDIRECTS`
+### Issue: API calls show `ERR_TOO_MANY_REDIRECTS` or `Network error: Unable to connect to server`
 
-**Cause:** Frontend is trying to make requests to the public backend URL instead of using relative URLs.
+**Cause:** Frontend is trying to make requests to the public backend URL instead of using relative URLs, OR Nginx cannot reach the backend.
 
 **Solution:**
-1. **Remove `BACKEND_URL` and `VITE_BACKEND_URL`** from the frontend service environment variables in Railway
-2. Ensure only `BACKEND_SERVICE_URL` is set (used by Nginx, not browser JavaScript)
-3. Redeploy the frontend service
-4. Browser should now use relative URLs like `/api/v1/auth/login/`
+1. **Remove `VITE_BACKEND_URL`** from the frontend service environment variables in Railway (if present)
+2. Ensure `BACKEND_URL` is set correctly (used by Nginx, not browser JavaScript)
+3. Verify `BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}`
+4. Check that backend service name is exactly `backend` (case-sensitive)
+5. Redeploy the frontend service
+6. Browser should now use relative URLs like `/api/v1/auth/login/`
+7. Check browser console for detailed debug logs starting with 🏥, 🔍, ✅, or ❌
 
 ### Issue: API calls fail with `502 Bad Gateway`
 
 **Cause:** Nginx can't connect to the backend via Railway's private network.
 
 **Solution:** Verify that:
-1. `BACKEND_SERVICE_URL` is correctly set with the reference variable syntax
+1. `BACKEND_URL` is correctly set with the reference variable syntax
 2. Backend service name matches the one used in `${{backend.RAILWAY_PRIVATE_DOMAIN}}`
 3. Backend `PORT` variable is set to `8000`
 4. Both services are in the same Railway project and environment

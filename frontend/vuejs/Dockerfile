@@ -77,7 +77,7 @@ RUN mkdir -p /var/log/nginx && \
 
 # Environment variable for backend service URL
 # Default to backend.railway.internal:8000, but can be overridden in Railway
-ENV BACKEND_SERVICE_URL=http://backend.railway.internal:8000
+ENV BACKEND_URL=http://backend.railway.internal:8000
 
 # Expose HTTP port
 EXPOSE 80

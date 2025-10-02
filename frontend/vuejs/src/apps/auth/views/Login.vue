@@ -97,8 +97,13 @@ const formData = reactive({
 onMounted(async () => {
   try {
     await AuthAPI.healthCheck()
-  } catch (error) {
-    console.warn('Auth API health check failed on login page load')
+  } catch (error: any) {
+    console.warn('🚨 Auth API health check failed on login page load:', {
+      error: error.message,
+      stack: error.stack,
+      response: error.response,
+      timestamp: new Date().toISOString()
+    })
   }
 })
 
