@@ -8,6 +8,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
+import { diagnoseSystem } from '@/shared/utils/diagnostics'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
@@ -194,3 +195,10 @@ document.addEventListener('visibilitychange', () => {
 
 // Router navigation hooks are already defined in router/index.ts
 // No need for duplicate hooks here
+
+// Expose diagnostic utilities to window for manual debugging
+// Usage in browser console: window.imagiDiagnose()
+if (typeof window !== 'undefined') {
+  (window as any).imagiDiagnose = diagnoseSystem
+  console.log('💡 Tip: Run window.imagiDiagnose() in console for system diagnostics')
+}
