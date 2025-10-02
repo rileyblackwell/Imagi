@@ -51,18 +51,19 @@ RUN /usr/local/bin/validate-env.sh && /usr/local/bin/build.sh
 # Production stage - Nginx server
 FROM nginx:alpine as production-stage
 
-# Install additional tools for health checks
-RUN apk add --no-cache curl procps
+# Install additional tools for health checks and envsubst
+RUN apk add --no-cache curl procps gettext
 
 # Create nginx directories
 RUN mkdir -p /etc/nginx/conf.d /var/log/nginx
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration as template (will be processed at runtime)
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
-# Copy health check script only
+# Copy scripts
 COPY scripts/health-check.sh /usr/local/bin/health-check.sh
-RUN chmod +x /usr/local/bin/health-check.sh
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/health-check.sh /usr/local/bin/entrypoint.sh
 
 # Copy Vue.js build artifacts from build stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
@@ -74,6 +75,10 @@ RUN chown -R nginx:nginx /usr/share/nginx/html
 RUN mkdir -p /var/log/nginx && \
     chown -R nginx:nginx /var/log/nginx
 
+# Environment variable for backend service URL
+# Default to backend.railway.internal:8000, but can be overridden in Railway
+ENV BACKEND_SERVICE_URL=http://backend.railway.internal:8000
+
 # Expose HTTP port
 EXPOSE 80
 
@@ -81,5 +86,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD /usr/local/bin/health-check.sh
 
-# Start nginx directly
-CMD ["nginx", "-g", "daemon off;"]
+# Use entrypoint script to substitute environment variables and start nginx
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
