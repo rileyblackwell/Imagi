@@ -6,12 +6,20 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 // IMPORTANT: This is the SINGLE shared API client used by ALL frontend services
 // including builder workspace, dashboard, payments, auth, etc.
 export const API_CONFIG = {
-  // Base URL configuration for Railway
-  // In production, BACKEND_URL is set via Railway reference variables:
-  // BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
+  // Base URL configuration
+  // In production (Railway): Use empty string for relative URLs (Nginx proxies to backend)
+  // In development: Use VITE_BACKEND_URL or empty string (Vite dev proxy handles it)
+  // Note: BACKEND_URL is used by Nginx, not by browser JavaScript
   BASE_URL: (() => {
-    const backendUrl = import.meta.env.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || ''
-    // Remove trailing slashes for consistency
+    const isProduction = import.meta.env.PROD
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
+    
+    // In production, always use relative URLs (Nginx proxy handles routing)
+    if (isProduction) {
+      return ''
+    }
+    
+    // In development, use VITE_BACKEND_URL if set, otherwise use relative URLs (Vite proxy)
     return backendUrl ? String(backendUrl).replace(/\/+$/, '') : ''
   })(),
   DEFAULT_HEADERS: {
@@ -148,19 +156,28 @@ api.interceptors.response.use(
 // Export the configured API client
 export default api
 
-// Helper function to build API URLs consistently for Railway
-// In production, this uses the BACKEND_URL environment variable set via Railway reference variables
-// In development, it returns relative paths that are proxied by Vite dev server
+// Helper function to build API URLs consistently
+// Architecture:
+//   - Browser → Relative URL → Nginx → Railway Private Network → Backend
+// Production (Railway): Uses relative paths (e.g., /api/v1/auth/login/)
+//   - Nginx proxies these to backend.railway.internal:8000 via Railway private network
+// Development: Uses relative paths or VITE_BACKEND_URL
+//   - Vite dev server proxies to localhost:8000
 export function buildApiUrl(path: string): string {
   // Ensure path starts with /api/
   if (!path.startsWith('/api/')) {
     path = path.startsWith('/') ? `/api${path}` : `/api/${path}`
   }
   
-  const backendUrl = import.meta.env.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || ''
+  const isProduction = import.meta.env.PROD
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || ''
   
-  // In production with BACKEND_URL set, use full URL (e.g., http://backend.railway.internal:8000)
-  // In development, use relative path (proxied by Vite)
+  // In production, always use relative paths (Nginx handles proxying)
+  if (isProduction) {
+    return path
+  }
+  
+  // In development, use full URL if VITE_BACKEND_URL is set, otherwise relative path
   if (backendUrl) {
     return `${backendUrl}${path}`
   }
