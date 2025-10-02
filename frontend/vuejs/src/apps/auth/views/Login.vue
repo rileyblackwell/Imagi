@@ -66,12 +66,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form, Field, ErrorMessage } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { LoginFormValues } from '@/apps/auth/types/form'
+import { AuthAPI } from '@/apps/auth/services/api'
 
 import { 
   PasswordInput,
@@ -90,6 +91,15 @@ const isSubmitting = ref(false)
 const formData = reactive({
   username: '',
   password: ''
+})
+
+// Check backend health when component mounts
+onMounted(async () => {
+  try {
+    await AuthAPI.healthCheck()
+  } catch (error) {
+    console.warn('Auth API health check failed on login page load')
+  }
 })
 
 // Clear error when username or password changes

@@ -129,24 +129,24 @@
 
     <!-- AuthLinks with animations removed -->
     <div class="pt-4">
-      <AuthLinks />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
+import { AuthAPI } from '@/apps/auth/services/api'
 
 import { 
-  PasswordInput, 
-  PasswordRequirements,
+  PasswordInput,
   FormInput,
   FormCheckbox,
+  PasswordRequirements,
   GradientButton,
   AuthLinks 
 } from '@/apps/auth/components' 
@@ -161,11 +161,21 @@ const formData = reactive({
   email: '',
   password: '',
   passwordConfirmation: '',
-  username: ''
+  username: '',
+  agreeToTerms: false
 })
 
 defineOptions({
   name: 'Register'
+})
+
+// Check backend health when component mounts
+onMounted(async () => {
+  try {
+    await AuthAPI.healthCheck()
+  } catch (error) {
+    console.warn('Auth API health check failed on register page load')
+  }
 })
 
 // Clear error when form fields change

@@ -28,6 +28,23 @@ function getCookie(name: string): string | null {
 let logoutPromise: Promise<any> | null = null
 
 export const AuthAPI = {
+  async healthCheck() {
+    try {
+      const response = await api.get(buildApiUrl(`${API_PATH}/health/`), {
+        timeout: 10000,
+        headers: {
+          'X-Request-Type': 'health-check',
+          'X-Frontend-Service': 'vue-frontend'
+        }
+      })
+      console.log('✅ Auth API health check passed:', response.data)
+      return response
+    } catch (error: any) {
+      console.error('❌ Auth API health check failed:', error.message)
+      throw error
+    }
+  },
+
   async getCSRFToken() {
     try {
       const fullUrl = buildApiUrl(`${API_PATH}/csrf/`)
