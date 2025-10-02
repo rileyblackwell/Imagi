@@ -259,6 +259,8 @@ CORS_ALLOW_HEADERS = [
     'cache-control',
     'pragma',
     'x-api-client',
+    'x-frontend-environment',
+    'x-frontend-version',
 ]
 
 # Add CORS_EXPOSE_HEADERS to allow clients to access these headers
