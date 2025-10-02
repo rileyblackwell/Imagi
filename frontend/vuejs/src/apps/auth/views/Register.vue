@@ -224,27 +224,12 @@ const handleSubmit = async (values: RegisterFormValues) => {
       terms_accepted: values.agreeToTerms
     }
 
-    console.log('🔄 Registration attempt for user:', registerData.username)
-
-    // Show loading state in UI
     document.body.style.cursor = 'wait'
 
     await authStore.register(registerData)
-    console.log('✅ Registration successful')
     
-    // After successful registration, redirect to home
     await router.push('/')
   } catch (error: unknown) {
-    console.error('❌ Registration failed:', error instanceof Error ? error.message : 'Unknown error')
-    
-    // Log additional details for network/API errors
-    const axiosError = error as any
-    if (axiosError.response?.status) {
-      console.error(`❌ API Error ${axiosError.response.status}:`, axiosError.response.data)
-    } else if (!axiosError.response) {
-      console.error('❌ Network error - unable to reach server')
-    }
-    
     serverError.value = formatAuthError(error, 'register')
   } finally {
     isSubmitting.value = false

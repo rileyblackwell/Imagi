@@ -148,7 +148,6 @@ const onSubmit = async (values: LoginFormValues) => {
       await router.push({ path: '/' })
     }
   } catch (error: unknown) {
-    console.error('Login error:', error)
     serverError.value = formatAuthError(error, 'login')
   } finally {
     isSubmitting.value = false

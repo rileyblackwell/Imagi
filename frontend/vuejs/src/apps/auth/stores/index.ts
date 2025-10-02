@@ -77,14 +77,6 @@ export const useAuthStore = defineStore('auth-module', () => {
     } catch (err: any) {
       const errorMessage = err.message || 'Registration failed'
       error.value = errorMessage
-      
-      // Log error details for debugging
-      if (err.response?.status) {
-        console.error(`❌ Registration API error ${err.response.status}:`, err.response.data)
-      } else if (!err.response) {
-        console.error('❌ Registration network error:', err.message)
-      }
-      
       throw err
     } finally {
       loading.value = false
