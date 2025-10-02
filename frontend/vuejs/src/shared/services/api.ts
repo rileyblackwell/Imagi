@@ -7,15 +7,12 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 // including builder workspace, dashboard, payments, auth, etc.
 export const API_CONFIG = {
   // Base URL configuration for Railway
+  // In production, BACKEND_URL is set via Railway reference variables:
+  // BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
   BASE_URL: (() => {
-    const isProduction = import.meta.env.PROD
-    const rawBackendUrl = (import.meta as any).env?.BACKEND_URL || import.meta.env.VITE_BACKEND_URL
-    const backendUrl = rawBackendUrl ? String(rawBackendUrl).replace(/\/+$/, '') : ''
-    
-    if (isProduction && backendUrl) {
-      return backendUrl
-    }
-    return ''
+    const backendUrl = import.meta.env.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || ''
+    // Remove trailing slashes for consistency
+    return backendUrl ? String(backendUrl).replace(/\/+$/, '') : ''
   })(),
   DEFAULT_HEADERS: {
     'Accept': 'application/json',
@@ -152,16 +149,19 @@ api.interceptors.response.use(
 export default api
 
 // Helper function to build API URLs consistently for Railway
+// In production, this uses the BACKEND_URL environment variable set via Railway reference variables
+// In development, it returns relative paths that are proxied by Vite dev server
 export function buildApiUrl(path: string): string {
+  // Ensure path starts with /api/
   if (!path.startsWith('/api/')) {
     path = path.startsWith('/') ? `/api${path}` : `/api/${path}`
   }
   
-  const isProduction = import.meta.env.PROD
-  const rawBackendUrl = (import.meta as any).env?.BACKEND_URL || import.meta.env.VITE_BACKEND_URL
-  const backendUrl = rawBackendUrl ? String(rawBackendUrl).replace(/\/+$/, '') : ''
+  const backendUrl = import.meta.env.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || ''
   
-  if (isProduction && backendUrl) {
+  // In production with BACKEND_URL set, use full URL (e.g., http://backend.railway.internal:8000)
+  // In development, use relative path (proxied by Vite)
+  if (backendUrl) {
     return `${backendUrl}${path}`
   }
   return path
