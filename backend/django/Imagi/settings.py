@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first to handle CORS properly
+    'apps.Auth.middleware.RailwayDebugMiddleware',  # Railway debugging (early in chain)
     'apps.Auth.middleware.CORSErrorMiddleware',  # Add our custom CORS error middleware
     'apps.Auth.middleware.APIRequestLoggingMiddleware',  # Add our API request logging middleware
     'django.middleware.security.SecurityMiddleware',
@@ -342,20 +343,23 @@ SESSION_SAVE_EVERY_REQUEST = True
 # Security settings - Updated for Railway environment
 if IS_RAILWAY_PRODUCTION:
     # Railway handles SSL termination at load balancer with nginx proxy
-    # Enable SSL redirects since Railway's architecture supports it properly
-    SECURE_SSL_REDIRECT = True
+    # IMPORTANT: SECURE_SSL_REDIRECT must be False to allow internal Railway network (HTTP) communication
+    # External connections are still HTTPS (Railway handles SSL at the edge)
+    SECURE_SSL_REDIRECT = False  # Allow HTTP for Railway internal network
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True  # Trust X-Forwarded-Host header from nginx proxy
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    print("🔒 Railway production configured: SSL redirects enabled, secure cookies enabled, internal networking allowed")
+    print("🔒 Railway production configured: SSL redirects DISABLED for internal network, secure cookies enabled, proxy headers trusted")
 else:
     # Development environment
     SECURE_SSL_REDIRECT = False  # HTTP is fine for local development
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = False  # Not needed in development
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
@@ -368,10 +372,13 @@ else:
 ALLOWED_HOSTS = [
     'localhost', 
     '127.0.0.1', 
-    '.railway.app', 
-    'backend.railway.internal',
-    # Also allow the internal Railway service name pattern
-    '*.railway.internal'
+    '.railway.app',  # Matches *.railway.app domains
+    'backend.railway.internal',  # Specific Railway internal service name
+    '.railway.internal',  # Matches *.railway.internal domains
+    # Add IPv6 localhost for Railway internal network
+    '[::1]',
+    # Allow any host when accessed via Railway internal network (nginx sets proper Host header)
+    '*' if IS_RAILWAY_PRODUCTION else 'localhost'
 ]
 
 # Development-specific settings

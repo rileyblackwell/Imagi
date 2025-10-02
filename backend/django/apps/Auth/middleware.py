@@ -245,3 +245,28 @@ class APIRequestLoggingMiddleware:
         )
         
         return response
+
+
+class RailwayDebugMiddleware:
+    """Middleware to debug Railway internal network connections"""
+    def __init__(self, get_response):
+        self.get_response = get_response
+        from django.conf import settings
+        self.is_railway = getattr(settings, 'IS_RAILWAY_PRODUCTION', False)
+
+    def __call__(self, request):
+        if self.is_railway and request.path.startswith('/api/'):
+            # Log all relevant headers for Railway debugging
+            logger.info("🚂 Railway Request Debug:")
+            logger.info(f"  Path: {request.path}")
+            logger.info(f"  Method: {request.method}")
+            logger.info(f"  Host: {request.headers.get('Host', 'N/A')}")
+            logger.info(f"  X-Forwarded-Proto: {request.headers.get('X-Forwarded-Proto', 'N/A')}")
+            logger.info(f"  X-Forwarded-Host: {request.headers.get('X-Forwarded-Host', 'N/A')}")
+            logger.info(f"  X-Forwarded-For: {request.headers.get('X-Forwarded-For', 'N/A')}")
+            logger.info(f"  X-Real-IP: {request.headers.get('X-Real-IP', 'N/A')}")
+            logger.info(f"  X-Frontend-Service: {request.headers.get('X-Frontend-Service', 'N/A')}")
+            logger.info(f"  Origin: {request.headers.get('Origin', 'N/A')}")
+            logger.info(f"  Remote Addr: {request.META.get('REMOTE_ADDR', 'N/A')}")
+        
+        return self.get_response(request)
