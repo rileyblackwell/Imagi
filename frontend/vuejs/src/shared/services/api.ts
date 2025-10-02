@@ -77,18 +77,6 @@ try {
 // Enhanced request interceptor for Railway debugging
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    // Debug logging for health check requests
-    if (config.headers?.['X-Request-Type'] === 'health-check') {
-      console.log('🔍 API Request Interceptor - Health Check:', {
-        url: config.url,
-        baseURL: config.baseURL,
-        fullURL: `${config.baseURL || ''}${config.url || ''}`,
-        method: config.method,
-        headers: config.headers,
-        environment: import.meta.env.PROD ? 'production' : 'development'
-      })
-    }
-    
     // Attach Authorization header from localStorage if not already present
     try {
       if (!config.headers['Authorization']) {
@@ -139,38 +127,12 @@ api.interceptors.response.use(
     const contentType = response.headers['content-type'] || ''
     if (contentType.includes('text/html') && !contentType.includes('application/json')) {
       if (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE')) {
-        const htmlError = new Error('Server returned HTML instead of JSON - possible Nginx/proxy misconfiguration')
-        console.error('🚨 HTML Response Detected:', {
-          url: response.config?.url,
-          status: response.status,
-          contentType,
-          dataPreview: response.data.substring(0, 200)
-        })
-        throw htmlError
+        throw new Error('Server returned HTML instead of JSON')
       }
     }
     return response
   },
   async (error) => {
-    // Enhanced error logging for debugging
-    const isHealthCheck = error.config?.headers?.['X-Request-Type'] === 'health-check'
-    
-    if (isHealthCheck) {
-      console.error('🔍 API Response Interceptor - Health Check Error:', {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        fullURL: `${error.config?.baseURL || ''}${error.config?.url || ''}`,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        errorCode: error.code,
-        errorMessage: error.message,
-        hasResponse: !!error.response,
-        responseData: error.response?.data,
-        responseHeaders: error.response?.headers,
-        requestHeaders: error.config?.headers
-      })
-    }
-    
     // Handle 401 Unauthorized more gracefully: do NOT auto-clear auth state.
     // Let route guards and the auth store decide next steps to avoid random logouts.
     if (error.response?.status === 401) {
@@ -179,39 +141,11 @@ api.interceptors.response.use(
       } catch {}
     }
     
-    // Enhanced network error handling with diagnostics
     if (!error.response) {
-      const networkError = new Error('Network error: Unable to connect to server')
-      
-      // Add diagnostic information
-      console.error('🌐 Network Error Details:', {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL || API_CONFIG.BASE_URL,
-        fullURL: `${error.config?.baseURL || API_CONFIG.BASE_URL}${error.config?.url || ''}`,
-        method: error.config?.method,
-        errorCode: error.code,
-        errorMessage: error.message,
-        browserOnline: navigator.onLine,
-        timestamp: new Date().toISOString(),
-        possibleCauses: [
-          'Backend server is not running',
-          'Nginx proxy misconfiguration',
-          'Railway private network connectivity issue',
-          'CORS policy blocking the request',
-          'DNS resolution failure',
-          'Firewall blocking the connection'
-        ]
-      })
-      
-      return Promise.reject(networkError)
+      return Promise.reject(new Error('Network error: Unable to connect to server'))
     }
     
     if (error.code === 'ECONNABORTED') {
-      console.error('⏱️ Request Timeout:', {
-        url: error.config?.url,
-        timeout: error.config?.timeout,
-        method: error.config?.method
-      })
       return Promise.reject(new Error('Request timeout'))
     }
     

@@ -169,32 +169,9 @@ defineOptions({
   name: 'Register'
 })
 
-// Check backend health when component mounts
+// Component lifecycle
 onMounted(async () => {
-  try {
-    await AuthAPI.healthCheck()
-  } catch (error: any) {
-    console.warn('🚨 Auth API health check failed on register page load:', {
-      userMessage: error.userMessage || error.message,
-      diagnostics: error.diagnostics,
-      originalError: {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      },
-      timestamp: new Date().toISOString()
-    })
-    
-    // Log additional diagnostic information if available
-    if (error.diagnostics) {
-      console.group('📊 Detailed Diagnostics')
-      console.log('Request:', error.diagnostics.request)
-      console.log('Response:', error.diagnostics.response)
-      console.log('Network:', error.diagnostics.network)
-      console.log('Environment:', error.diagnostics.environment)
-      console.groupEnd()
-    }
-  }
+  // Component is ready
 })
 
 // Clear error when form fields change

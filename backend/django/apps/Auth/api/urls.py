@@ -4,9 +4,6 @@ from . import views
 app_name = 'auth_api'
 
 urlpatterns = [
-    # Health Check and Debugging
-    path('health/', views.HealthCheckView.as_view(), name='health-check'),
-    
     # CSRF and Authentication
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
     path('init/', views.InitView.as_view(), name='init'),
