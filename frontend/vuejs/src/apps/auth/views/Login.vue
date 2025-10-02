@@ -93,18 +93,9 @@ const formData = reactive({
   password: ''
 })
 
-// Check backend health when component mounts
-onMounted(async () => {
-  try {
-    await AuthAPI.healthCheck()
-  } catch (error: any) {
-    console.warn('🚨 Auth API health check failed on login page load:', {
-      error: error.message,
-      stack: error.stack,
-      response: error.response,
-      timestamp: new Date().toISOString()
-    })
-  }
+// Component mounted
+onMounted(() => {
+  // Component initialization complete
 })
 
 // Clear error when username or password changes
