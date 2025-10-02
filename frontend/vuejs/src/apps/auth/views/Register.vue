@@ -140,7 +140,6 @@ import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
-import { AuthAPI } from '@/apps/auth/services/api'
 
 import { 
   PasswordInput,
@@ -148,7 +147,6 @@ import {
   FormCheckbox,
   PasswordRequirements,
   GradientButton,
-  AuthLinks 
 } from '@/apps/auth/components' 
 
 const router = useRouter()
