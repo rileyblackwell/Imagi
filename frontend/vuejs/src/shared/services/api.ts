@@ -10,11 +10,16 @@ export const API_CONFIG = {
   BASE_URL: (() => {
     // Check if we're in production (Railway environment)
     const isProduction = import.meta.env.PROD
-    const backendUrl = import.meta.env.VITE_BACKEND_URL
+    // Prefer Railway reference var BACKEND_URL if set, else VITE_BACKEND_URL.
+    // Note: Vite only exposes vars prefixed with VITE_ by default, but some environments inject BACKEND_URL.
+    // We attempt both for compatibility with Railway reference variables.
+    const rawBackendUrl = (import.meta as any).env?.BACKEND_URL || import.meta.env.VITE_BACKEND_URL
+    const backendUrl = rawBackendUrl ? String(rawBackendUrl).replace(/\/+$/, '') : ''
     
     console.log('🔧 API Configuration:')
     console.log('  Environment:', isProduction ? 'production' : 'development')
-    console.log('  VITE_BACKEND_URL:', backendUrl || 'NOT SET')
+    console.log('  BACKEND_URL (Railway ref):', (import.meta as any).env?.BACKEND_URL || 'NOT SET')
+    console.log('  VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL || 'NOT SET')
     
     if (isProduction) {
       if (backendUrl) {
@@ -247,13 +252,13 @@ export function buildApiUrl(path: string): string {
   }
   
   const isProduction = import.meta.env.PROD
-  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const rawBackendUrl = (import.meta as any).env?.BACKEND_URL || import.meta.env.VITE_BACKEND_URL
+  const backendUrl = rawBackendUrl ? String(rawBackendUrl).replace(/\/+$/, '') : ''
   
   console.log('🔗 Building API URL:')
   console.log('  Input path:', path)
   console.log('  Environment:', isProduction ? 'production' : 'development')
   console.log('  Backend URL:', backendUrl || 'NOT SET')
-  
   if (isProduction && backendUrl) {
     // Production with backend URL: Use absolute URL for Railway internal networking
     const fullUrl = `${backendUrl}${path}`
@@ -264,4 +269,4 @@ export function buildApiUrl(path: string): string {
     console.log('  📍 Relative URL (nginx/vite proxy):', path)
     return path
   }
-} 
+}

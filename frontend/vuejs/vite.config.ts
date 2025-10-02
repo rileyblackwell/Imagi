@@ -34,6 +34,10 @@ const BASE_PATH = process.env.VITE_BASE_PATH || '/';
 
 export default defineConfig({
   base: BASE_PATH,
+  define: {
+    // Expose Railway BACKEND_URL (reference variable) to client as import.meta.env.BACKEND_URL
+    'import.meta.env.BACKEND_URL': JSON.stringify(process.env.BACKEND_URL || process.env.VITE_BACKEND_URL || ''),
+  },
   plugins: [
     vue(),
     // Handle missing pattern SVG references
