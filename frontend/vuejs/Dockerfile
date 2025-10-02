@@ -57,8 +57,8 @@ RUN apk add --no-cache curl procps gettext
 # Create nginx directories
 RUN mkdir -p /etc/nginx/conf.d /var/log/nginx
 
-# Copy nginx configuration as template (will be processed at runtime)
-COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+# Copy nginx configuration (will be processed at runtime by entrypoint.sh)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy scripts
 COPY scripts/health-check.sh /usr/local/bin/health-check.sh
