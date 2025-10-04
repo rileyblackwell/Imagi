@@ -22,7 +22,6 @@ import os
 # Update BASE_DIR to point to the django directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -31,10 +30,6 @@ SECRET_KEY = config('DJANGO_SECRET_KEY', cast=str)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
-
-# Railway automatically sets RAILWAY_ENVIRONMENT_NAME in production
-RAILWAY_ENVIRONMENT_NAME = config('RAILWAY_ENVIRONMENT_NAME', default=None)
-IS_RAILWAY_PRODUCTION = RAILWAY_ENVIRONMENT_NAME == 'production'
 
 # Application definition
 INSTALLED_APPS = [
@@ -75,7 +70,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.Auth.middleware.CacheControlMiddleware',
     'apps.Auth.middleware.LoginRequiredMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # Add this line
+    'allauth.account.middleware.AccountMiddleware',  
 ]
 
 ROOT_URLCONF = 'Imagi.urls'
@@ -224,22 +219,8 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",  # Development: Vite dev server
     "http://127.0.0.1:5174",  # Development: Vite dev server (alternate)
-    "https://imagi.up.railway.app",  # Production: Public frontend domain
+    "https://*.railway.app",  # Production: Public frontend domain
 ]
-
-# In production, Railway services communicate via internal network
-# Allow internal Railway communication and add debugging
-if not DEBUG or IS_RAILWAY_PRODUCTION:
-    # Railway internal communication patterns
-    railway_origins = [
-        "https://frontend.railway.internal",
-        "http://frontend.railway.internal",
-        "https://frontend.railway.internal:80",
-        "http://frontend.railway.internal:80",
-    ]
-    CORS_ALLOWED_ORIGINS.extend(railway_origins)
-    # Reduced logging for cleaner console output
-    # print(f"🚂 Railway CORS origins added: {railway_origins}")
 
 # CORS settings - production ready
 CORS_ALLOW_ALL_ORIGINS = False  # Always use explicit origin allowlist for security
@@ -288,103 +269,34 @@ CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5174',  # Development: Vite dev server
     'http://127.0.0.1:5174',  # Development: Vite dev server (alternate)
-    'https://imagi.up.railway.app',  # Production: Public frontend domain
+    'https://*.railway.app',  # Production: Public frontend domain
 ]
-
-# Add Railway internal origins for production
-if not DEBUG or IS_RAILWAY_PRODUCTION:
-    railway_csrf_origins = [
-        'https://frontend.railway.internal',
-        'http://frontend.railway.internal',
-        'https://*.railway.app',
-        'http://*.railway.internal',
-        'https://*.railway.internal'
-    ]
-    CSRF_TRUSTED_ORIGINS.extend(railway_csrf_origins)
-    # Reduced logging for cleaner console output
-    # print(f"🚂 Railway CSRF origins added: {railway_csrf_origins}")
 
 # Cookie settings - simplified for Railway architecture
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-
-# For Railway production, use secure cookie settings
-if IS_RAILWAY_PRODUCTION:
-    # Use secure cookies since external connections are HTTPS (Railway handles SSL termination)
-    CSRF_COOKIE_SECURE = True  # External connections are HTTPS
-    CSRF_COOKIE_SAMESITE = 'Lax'  # More permissive for cross-origin requests
-    CSRF_COOKIE_DOMAIN = None  # Don't set domain for Railway internal network
-    # Reduced logging - combined with security settings below
-    # print("🍪 CSRF: Using secure cookie settings for Railway production")
-else:
-    # Development settings
-    CSRF_COOKIE_SECURE = False
-    CSRF_COOKIE_SAMESITE = 'Lax'
-
 CSRF_COOKIE_PATH = '/'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-
-# Session cookie settings - updated for Railway
-if IS_RAILWAY_PRODUCTION:
-    SESSION_COOKIE_SECURE = True  # External connections are HTTPS
-    SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for cross-origin requests
-else:
-    SESSION_COOKIE_SECURE = False  # Development uses HTTP
-    SESSION_COOKIE_SAMESITE = 'Lax'
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
 
-# Railway private networking - IPv6 configuration
-# Note: Ensure Gunicorn is configured to bind to '::' instead of '0.0.0.0'
-# Example: gunicorn --bind=:: --workers=4 Imagi.wsgi
-
-# Security settings - Updated for Railway environment
-if IS_RAILWAY_PRODUCTION:
-    # Railway handles SSL termination at load balancer with nginx proxy
-    # IMPORTANT: SECURE_SSL_REDIRECT must be False to allow internal Railway network (HTTP) communication
-    # External connections are still HTTPS (Railway handles SSL at the edge)
-    SECURE_SSL_REDIRECT = False  # Allow HTTP for Railway internal network
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    USE_X_FORWARDED_HOST = True  # Trust X-Forwarded-Host header from nginx proxy
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    print("🔒 Railway production configured: SSL redirects DISABLED for internal network, secure cookies enabled, proxy headers trusted")
-else:
-    # Development environment
-    SECURE_SSL_REDIRECT = False  # HTTP is fine for local development
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    USE_X_FORWARDED_HOST = False  # Not needed in development
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 0  # Disable HSTS for development
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-    SECURE_HSTS_PRELOAD = False
-
 # Only allow specific hosts
-# Allow the backend.railway.internal hostname for internal Railway communication
 ALLOWED_HOSTS = [
-    'localhost', 
-    '127.0.0.1', 
     '.railway.app',  # Matches *.railway.app domains
-    'backend.railway.internal',  # Specific Railway internal service name
-    '.railway.internal',  # Matches *.railway.internal domains
-    # Add IPv6 localhost for Railway internal network
-    '[::1]',
-    # Allow any host when accessed via Railway internal network (nginx sets proper Host header)
-    '*' if IS_RAILWAY_PRODUCTION else 'localhost'
 ]
 
 # Development-specific settings
 if DEBUG:
+    # Only allow specific hosts
+    ALLOWED_HOSTS = [
+        'localhost', 
+        '127.0.0.1', 
+    ]
+
     # Add debug toolbar for development
     INSTALLED_APPS.append('debug_toolbar')
     MIDDLEWARE.insert(2, 'debug_toolbar.middleware.DebugToolbarMiddleware')  # Insert after CORS middleware
