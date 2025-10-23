@@ -30,7 +30,7 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async getCSRFToken() {
     try {
-      const response = await api.get(`${API_PATH}/csrf/`, {
+      const response = await api.get(`http://backend.railway.internal:8000/${API_PATH}/csrf/`, {
         timeout: 30000,
         headers: {
           'X-Request-Type': 'csrf-token',
