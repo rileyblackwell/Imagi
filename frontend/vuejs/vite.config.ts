@@ -68,44 +68,18 @@ export default defineConfig({
     }
   ],
   server: {
-    // No need to set base here; handled globally above
     port: 5174,
-    strictPort: true, // This will fail if port 5174 is not available
+    strictPort: true,
     hmr: {
-      overlay: false, // Disable the HMR error overlay to prevent URI errors from breaking the UI
+      overlay: false,
     },
     proxy: {
-      // Proxy all API requests to the Django backend
-      // This allows consistent API calls using relative URLs in both development and production
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false,
-        configure: (proxy, _options) => {
-          const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8000';
-          
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            // Log request info when debugging
-            if (process.env.NODE_ENV !== 'production') {
-              console.log(`🔄 Proxy: ${req.method} ${req.url} → ${backendUrl}${req.url}`);
-            }
-          });
-          
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            // Ensure proper headers for streaming responses
-            if (req.headers.accept?.includes('text/event-stream')) {
-              proxyRes.headers['content-type'] = 'text/event-stream';
-              proxyRes.headers['cache-control'] = 'no-cache';
-              proxyRes.headers['connection'] = 'keep-alive';
-            }
-          });
-          
-          proxy.on('error', (err, req, _res) => {
-            console.error(`❌ Proxy Error: ${req.method} ${req.url} → ${backendUrl}${req.url}`, err.message);
-          });
-        }
-      }
-    }
+        ws: true,
+      },
+    },
   },
   resolve: {
     alias: {

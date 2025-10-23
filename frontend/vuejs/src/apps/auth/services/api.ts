@@ -1,4 +1,4 @@
-import api, { buildApiUrl } from '@/shared/services/api'
+import api from '@/shared/services/api'
 import type { 
   User, 
   LoginCredentials, 
@@ -7,7 +7,7 @@ import type {
 } from '@/apps/auth/types/auth'
 
 // API Configuration
-const API_PATH = '/api/v1/auth'
+const API_PATH = '/v1/auth'
 
 // Helper function to get CSRF token from cookies
 function getCookie(name: string): string | null {
@@ -30,8 +30,7 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async getCSRFToken() {
     try {
-      const fullUrl = buildApiUrl(`${API_PATH}/csrf/`)
-      const response = await api.get(fullUrl, {
+      const response = await api.get(`${API_PATH}/csrf/`, {
         timeout: 30000,
         headers: {
           'X-Request-Type': 'csrf-token',
@@ -66,7 +65,7 @@ export const AuthAPI = {
   },
 
   async init(): Promise<{ data: { isAuthenticated: boolean; user: User } }> {
-    return await api.get(buildApiUrl(`${API_PATH}/init/`))
+    return await api.get(`${API_PATH}/init/`)
   },
 
   async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
@@ -80,7 +79,7 @@ export const AuthAPI = {
         throw new Error('Authentication error: Could not obtain security token');
       }
       
-      const response = await api.post(buildApiUrl(`${API_PATH}/login/`), credentials, {
+      const response = await api.post(`${API_PATH}/login/`, credentials, {
         headers: csrfToken !== 'bypass' ? { 'X-CSRFToken': csrfToken } : {},
         timeout: 15000
       });
@@ -145,7 +144,7 @@ export const AuthAPI = {
         throw new Error('Please enter a valid email address')
       }
       
-      const fullRequestUrl = buildApiUrl(`${API_PATH}/register/`);
+      const fullRequestUrl = `${API_PATH}/register/`;
       
       const headers: Record<string, string> = {
         'Accept': 'application/json',
@@ -215,7 +214,7 @@ export const AuthAPI = {
     }
 
     try {
-      logoutPromise = api.post(buildApiUrl(`${API_PATH}/logout/`), {})
+      logoutPromise = api.post(`${API_PATH}/logout/`, {})
       await logoutPromise
       
       localStorage.removeItem('token')
@@ -229,13 +228,13 @@ export const AuthAPI = {
   },
 
   async updateUser(userData: Partial<User>): Promise<{ data: User }> {
-    const response = await api.patch(buildApiUrl(`${API_PATH}/user/`), userData)
+    const response = await api.patch(`${API_PATH}/user/`, userData)
     return response
   },
 
   async healthCheck(): Promise<{ data: { status: string; service: string; database: string } }> {
     try {
-      const response = await api.get(buildApiUrl(`${API_PATH}/health/`), {
+      const response = await api.get(`${API_PATH}/health/`, {
         timeout: 5000
       })
       return response

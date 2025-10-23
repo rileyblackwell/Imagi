@@ -106,7 +106,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import api, { buildApiUrl } from '@/shared/services/api';
+import api from '@/shared/services/api';
 
 const props = defineProps({
   projectId: {
@@ -157,7 +157,7 @@ const loadVersions = async () => {
   
   isLoading.value = true;
   try {
-    const response = await api.get(buildApiUrl(`/api/v1/builder/${props.projectId}/versions/`));
+    const response = await api.get(`/v1/builder/${props.projectId}/versions/`));
     if (response.data.success && response.data.versions) {
       versions.value = response.data.versions;
     } else {
@@ -186,7 +186,7 @@ const confirmReset = async () => {
   }
   
   try {
-    const response = await api.post(buildApiUrl(`/api/v1/builder/${props.projectId}/versions/reset/`), {
+    const response = await api.post(`/v1/builder/${props.projectId}/versions/reset/`), {
       commit_hash: selectedVersion.value.hash
     });
     

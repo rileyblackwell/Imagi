@@ -1,12 +1,14 @@
-import api, { buildApiUrl } from '@/shared/services/api'
+import api from '@/shared/services/api'
 import type { Project, ProjectFile } from '../types/components'
+import { useAuthStore } from '@/shared/stores/auth'
+import { FileService } from './fileService'
 
 
 // Define API path constants
 const API_PATHS = {
-  PROJECT_MANAGER: '/api/v1/project-manager',
-  BUILDER: '/api/v1/builder',
-  AGENTS: '/api/v1/agents'
+  PROJECT_MANAGER: '/v1/project-manager',
+  BUILDER: '/v1/builder',
+  AGENTS: '/v1/agents'
 }
 
 // Define cache keys
@@ -110,19 +112,18 @@ export const ProjectService = {
     }
     
     // Use the correct Django API endpoint based on URL patterns
-    const endpoint = '/api/v1/project-manager/projects/'
+    const endpoint = '/v1/project-manager/projects/'
     
     try {
-      const cleanPath = buildApiUrl(endpoint);
-      console.debug(`Making API request to get projects from path: ${cleanPath}`)
+      console.debug(`Making API request to get projects from path: ${endpoint}`)
       console.debug('Full request config:', {
-        url: cleanPath,
+        url: endpoint,
         baseURL: api.defaults.baseURL,
         authHeader: !!api.defaults.headers.common['Authorization'],
         timeout: api.defaults.timeout
       })
       
-      const response = await api.get(cleanPath)
+      const response = await api.get(endpoint)
       
       console.debug(`Project API - getProjects response:`, {
         status: response.status,
@@ -183,7 +184,7 @@ export const ProjectService = {
    */
   async _refreshProjectsInBackground(authHeader: unknown) {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/project-manager/projects/'), {
+      const response = await api.get('/v1/project-manager/projects/', {
         headers: {
           'Authorization': String(authHeader)
         }
@@ -218,7 +219,7 @@ export const ProjectService = {
     
     try {
       // Update to match the exact URL structure in backend/django/apps/Products/Oasis/ProjectManager/api/urls.py
-      const response = await api.post(buildApiUrl(`/api/v1/project-manager/projects/create/`), {
+      const response = await api.post('/v1/project-manager/projects/create/', {
         name,
         description
       })
@@ -275,7 +276,7 @@ export const ProjectService = {
    */
   async initializeProject(projectId: string): Promise<{ success: boolean }> {
     try {
-      await api.post(buildApiUrl(`/api/v1/project-manager/projects/${projectId}/initialize/`));
+      await api.post(`/v1/project-manager/projects/${projectId}/initialize/`);
       return { success: true };
     } catch (error) {
       throw new Error(`Failed to initialize project: ${this.formatError(error)}`);
@@ -330,8 +331,8 @@ export const ProjectService = {
     console.debug('Project API - updating project:', { projectId, data })
     
     try {
-      // Use ProjectManager API directly with buildApiUrl for consistency
-      const updateUrl = buildApiUrl(`/api/v1/project-manager/projects/${projectId}/`)
+      // Use ProjectManager API directly
+      const updateUrl = `/v1/project-manager/projects/${projectId}/`
       console.debug('Project API - updateProject URL:', updateUrl)
       
       const response = await api.patch(updateUrl, data)
@@ -371,8 +372,8 @@ export const ProjectService = {
     console.debug('Project API - deleting project:', { projectId })
     
     try {
-      // Use buildApiUrl to ensure proper URL construction for proxying
-      const deleteUrl = buildApiUrl(`/api/v1/project-manager/projects/${projectId}/delete/`)
+      // Ensure proper URL construction for proxying
+      const deleteUrl = `/v1/project-manager/projects/${projectId}/delete/`
       console.debug('Project API - deleteProject URL:', deleteUrl)
       
       const response = await api.delete(deleteUrl)
@@ -436,19 +437,18 @@ export const ProjectService = {
     const projectIdStr = String(projectId);
     
     // Use the primary Django API endpoint for project details
-    const endpoint = `/api/v1/project-manager/projects/${projectIdStr}/`
+    const endpoint = `/v1/project-manager/projects/${projectIdStr}/`
     
     try {
-      const cleanPath = buildApiUrl(endpoint);
-      console.debug(`Making API request to get project from path: ${cleanPath}`)
+      console.debug(`Making API request to get project from path: ${endpoint}`)
       console.debug('Full request config:', {
-        url: cleanPath,
+        url: endpoint,
         baseURL: api.defaults.baseURL,
         authHeader: !!api.defaults.headers.common['Authorization'],
         params: fullData ? { full_data: true } : {}
       })
       
-      const response = await api.get(cleanPath, {
+      const response = await api.get(endpoint, {
         params: fullData ? { full_data: true } : {}
       })
 
@@ -457,7 +457,7 @@ export const ProjectService = {
       if (contentType.includes('text/html') || 
           (typeof response.data === 'string' && response.data.trim().startsWith('<!DOCTYPE'))) {
         console.error('Received HTML response instead of JSON:', {
-          url: cleanPath,
+          url: endpoint,
           contentType,
           dataStart: typeof response.data === 'string' ? response.data.substring(0, 50) : 'not a string'
         });
@@ -501,7 +501,7 @@ export const ProjectService = {
    */
   async getActivities(): Promise<Activity[]> {
     try {
-      const response = await api.get(buildApiUrl(`${API_PATHS.BUILDER}/activities/`))
+      const response = await api.get(`${API_PATHS.BUILDER}/activities/`)
       return response.data?.results || []
     } catch (error) {
       console.error('Failed to fetch activities:', error)
@@ -515,7 +515,7 @@ export const ProjectService = {
    */
   async getStats(): Promise<DashboardStats> {
     try {
-      const response = await api.get(buildApiUrl(`${API_PATHS.BUILDER}/stats/`))
+      const response = await api.get(`${API_PATHS.BUILDER}/stats/`)
       return response.data || { 
         activeBuildCount: 0, 
         apiCallCount: 0, 
@@ -611,7 +611,7 @@ export const ProjectService = {
     
     try {
       // Check authentication state
-      const authStore = (await import('@/shared/stores/auth')).useAuthStore()
+      const authStore = useAuthStore() as any
       
       diagnostics.authToken = authStore.token ? 'exists' : 'missing'
       diagnostics.apiHeadersSet = !!api.defaults.headers.common['Authorization']
@@ -714,8 +714,7 @@ export const ProjectService = {
     console.warn('ProjectService.createDirectory is deprecated. Please use FileService.createDirectory instead.')
     
     // Redirect to FileService
-    const { FileService } = await import('./fileService')
-    return FileService.createDirectory(projectId, directoryPath)
+    await (FileService as any).createDirectory(projectId, directoryPath)
   },
 
   /**
@@ -749,10 +748,9 @@ export const ProjectService = {
     // This is kept for backward compatibility but will log a warning.
     console.warn('ProjectService.deleteFile is deprecated. Please use FileService.deleteFile instead.')
     
-    // Redirect to FileService
-    const { FileService } = await import('./fileService')
-    await FileService.deleteFile(projectId, filePath)
-    // No return value needed since this method returns void
+    // Redirect to FileService (returns boolean, but we return void for backward compatibility)
+    await (FileService as any).deleteFile(projectId, filePath)
+    return
   }
 }
 

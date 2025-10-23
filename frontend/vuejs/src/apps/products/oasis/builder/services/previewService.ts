@@ -1,4 +1,4 @@
-import api, { buildApiUrl } from '@/shared/services/api'
+import api from '@/shared/services/api'
 
 /**
  * Service for handling preview functionality
@@ -12,7 +12,7 @@ export const PreviewService = {
    */
   async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
     try {
-      const response = await api.get(buildApiUrl(`/api/v1/builder/${projectId}/preview/`));
+      const response = await api.get(`/v1/builder/${projectId}/preview/`));
       return {
         previewUrl: response.data.preview_url
       };

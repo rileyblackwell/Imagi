@@ -1,4 +1,4 @@
-import api, { buildApiUrl } from '@/shared/services/api'
+import api from '@/shared/services/api'
 import type { AxiosError } from 'axios'
 import type { 
   PaymentIntentRequest, 
@@ -27,10 +27,10 @@ class PaymentService implements IPaymentService {
   apiUrl: string
 
   constructor() {
-    // ALWAYS use relative URLs with buildApiUrl - proxy handles routing in both dev and production
-    // Development: Vite dev server proxies /api/* to VITE_BACKEND_URL
-    // Production: Nginx proxies /api/* to backend.railway.internal:8000
-    this.apiUrl = '/api/v1/payments'; // Kept for interface compatibility
+    // API client uses relative /api baseURL - proxy handles routing in both dev and production
+    // Development: Vite dev server proxies /api/* to localhost:8000
+    // Production: Nginx proxies /api/* to backend service
+    this.apiUrl = '/v1/payments'; // Kept for interface compatibility
   }
 
   /**
@@ -38,7 +38,7 @@ class PaymentService implements IPaymentService {
    */
   async createPaymentIntent(data: PaymentIntentRequest): Promise<PaymentIntent> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/create-intent/'), {
+      const response = await api.post('/v1/payments/create-intent/', {
         amount: data.amount,
         currency: data.currency || 'usd'
       })
@@ -53,7 +53,7 @@ class PaymentService implements IPaymentService {
    */
   async getBalance(): Promise<BalanceResponse> {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/payments/balance/'))
+      const response = await api.get('/v1/payments/balance/')
       return response.data
     } catch (error: any) {
       console.error('Error fetching balance:', error)
@@ -74,7 +74,7 @@ class PaymentService implements IPaymentService {
    */
   async getPaymentHistory(): Promise<TransactionHistoryItem[]> {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/payments/history/'))
+      const response = await api.get('/v1/payments/history/')
       return response.data.payments || []
     } catch (error: any) {
       console.error('Error fetching payment history:', error)
@@ -94,7 +94,7 @@ class PaymentService implements IPaymentService {
       if (filters?.sortOrder) params.append('sort_order', filters.sortOrder)
       
       const queryString = params.toString() ? `?${params.toString()}` : ''
-      const response = await api.get(buildApiUrl(`/api/v1/payments/transactions/${queryString}`))
+      const response = await api.get(`/v1/payments/transactions/${queryString}`)
       return response.data
     } catch (error: any) {
       console.error('Error fetching transactions:', error)
@@ -107,7 +107,7 @@ class PaymentService implements IPaymentService {
    */
   async getTransaction(id: string): Promise<any> {
     try {
-      const response = await api.get(buildApiUrl(`/api/v1/payments/transactions/${id}/`))
+      const response = await api.get(`/v1/payments/transactions/${id}/`)
       return response.data
     } catch (error) {
       throw this.handleError(error as Error)
@@ -119,7 +119,7 @@ class PaymentService implements IPaymentService {
    */
   async processPayment(amount: number, paymentMethodId: string): Promise<any> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/process/'), {
+      const response = await api.post('/v1/payments/process/', {
         amount,
         // Backend expects camelCase: paymentMethodId
         paymentMethodId: paymentMethodId
@@ -135,7 +135,7 @@ class PaymentService implements IPaymentService {
    */
   async confirmPayment(paymentIntentId: string, paymentMethodId?: string): Promise<any> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/confirm-payment/'), {
+      const response = await api.post('/v1/payments/confirm-payment/', {
         payment_intent_id: paymentIntentId,
         payment_method_id: paymentMethodId
       })
@@ -150,7 +150,7 @@ class PaymentService implements IPaymentService {
    */
   async verifyPayment(paymentIntentId: string): Promise<any> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/verify/'), {
+      const response = await api.post('/v1/payments/verify/', {
         payment_intent_id: paymentIntentId
       })
       return response.data
@@ -164,7 +164,7 @@ class PaymentService implements IPaymentService {
    */
   async setupCustomer(): Promise<any> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/setup-customer/'))
+      const response = await api.post('/v1/payments/setup-customer/')
       return response.data
     } catch (error) {
       throw this.handleError(error as Error)
@@ -176,7 +176,7 @@ class PaymentService implements IPaymentService {
    */
   async getPaymentMethods(): Promise<PaymentMethod[]> {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/payments/payment-methods/'))
+      const response = await api.get('/v1/payments/payment-methods/')
       return response.data.payment_methods || []
     } catch (error) {
       throw this.handleError(error as Error)
@@ -188,7 +188,7 @@ class PaymentService implements IPaymentService {
    */
   async attachPaymentMethod(paymentMethodId: string): Promise<any> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/attach-payment-method/'), {
+      const response = await api.post('/v1/payments/attach-payment-method/', {
         payment_method_id: paymentMethodId
       })
       return response.data
@@ -202,7 +202,7 @@ class PaymentService implements IPaymentService {
    */
   async createCheckoutSession(data: PaymentData): Promise<SessionResponse> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/create-checkout-session/'), {
+      const response = await api.post('/v1/payments/create-checkout-session/', {
         amount: data.amount,
         plan_id: data.plan_id,
         success_url: data.success_url || window.location.origin + '/payments/success',
@@ -219,7 +219,7 @@ class PaymentService implements IPaymentService {
    */
   async getSessionStatus(sessionId: string): Promise<SessionStatus> {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/payments/session-status/'), {
+      const response = await api.get('/v1/payments/session-status/', {
         params: { session_id: sessionId }
       })
       return response.data
@@ -233,7 +233,7 @@ class PaymentService implements IPaymentService {
    */
   async getPlans(): Promise<Plan[]> {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/payments/plans/'))
+      const response = await api.get('/v1/payments/plans/')
       return response.data.plans || []
     } catch (error) {
       throw this.handleError(error as Error)
@@ -245,7 +245,7 @@ class PaymentService implements IPaymentService {
    */
   async getPackages(): Promise<any[]> {
     try {
-      const response = await api.get(buildApiUrl('/api/v1/payments/packages/'))
+      const response = await api.get('/v1/payments/packages/')
       return response.data.packages || []
     } catch (error) {
       throw this.handleError(error as Error)
@@ -257,7 +257,7 @@ class PaymentService implements IPaymentService {
    */
   async verifyWebhook(signature: string, payload: string): Promise<any> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/verify-webhook/'), {
+      const response = await api.post('/v1/payments/verify-webhook/', {
         signature,
         payload
       })
@@ -272,7 +272,7 @@ class PaymentService implements IPaymentService {
    */
   async checkCredits(amount: number): Promise<{ hasCredits: boolean; currentBalance: number }> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/check-credits/'), {
+      const response = await api.post('/v1/payments/check-credits/', {
         amount
       })
       return response.data
@@ -286,7 +286,7 @@ class PaymentService implements IPaymentService {
    */
   async deductCredits(amount: number, description?: string): Promise<{ success: boolean; newBalance: number }> {
     try {
-      const response = await api.post(buildApiUrl('/api/v1/payments/deduct-credits/'), {
+      const response = await api.post('/v1/payments/deduct-credits/', {
         amount,
         description
       })

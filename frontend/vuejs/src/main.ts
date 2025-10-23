@@ -1,13 +1,14 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-import router from '@/router/index'  // Update import path
+import router from '@/router/index'
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
+import { getCsrfToken } from '@/shared/services/api'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
@@ -179,11 +180,25 @@ if (document.readyState === 'loading') {
   disableBFCache()
 }
 
-// Mount app
-performance.mark('app-init')
-app.mount('#app')
-performance.mark('app-mounted')
-performance.measure('app-total-init', 'app-init', 'app-mounted')
+// Bootstrap function to initialize CSRF token before mounting
+async function bootstrap() {
+  // Warm up CSRF token in both dev and prod (safe no-op if not used)
+  try {
+    await getCsrfToken()
+  } catch (error) {
+    // Continue even if CSRF fetch fails
+    console.warn('CSRF token initialization failed:', error)
+  }
+
+  // Mount app
+  performance.mark('app-init')
+  app.mount('#app')
+  performance.mark('app-mounted')
+  performance.measure('app-total-init', 'app-init', 'app-mounted')
+}
+
+// Start the app
+bootstrap()
 
 // Add project data refresh when tab visibility changes (user returns to the tab)
 document.addEventListener('visibilitychange', () => {

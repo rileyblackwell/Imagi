@@ -1,4 +1,4 @@
-import api, { buildApiUrl } from '@/shared/services/api'
+import api from '@/shared/services/api'
 import type { AIModel, ModelConfig } from '../types/services'
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 
@@ -95,7 +95,7 @@ export const ModelsService = {
   async getAvailableModels(): Promise<AIModel[]> {
     try {
       // Try to get from API first
-      const response = await api.get(buildApiUrl('/api/v1/builder/models/'))
+      const response = await api.get('/v1/builder/models/'))
       
       if (response.data && Array.isArray(response.data.models)) {
         const apiModels: AIModel[] = response.data.models.map((model: any) => {

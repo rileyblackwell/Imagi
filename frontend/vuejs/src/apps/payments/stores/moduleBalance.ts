@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api, { buildApiUrl } from '@/shared/services/api'
+import api from '@/shared/services/api'
 import { useBalanceStore as useGlobalBalanceStore } from '@/shared/stores/balance'
 import type { 
   PaymentHistoryItem, 
@@ -41,7 +41,7 @@ export const useModuleBalanceStore = defineStore('payments-module-balance', () =
       isPackagesLoading.value = true
       error.value = null
       
-      const response = await api.get<CreditPackage[]>(buildApiUrl('/api/v1/payments/packages/'))
+      const response = await api.get<CreditPackage[]>('/v1/payments/packages/'))
       packages.value = response.data
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch packages'
@@ -59,7 +59,7 @@ export const useModuleBalanceStore = defineStore('payments-module-balance', () =
       isHistoryLoading.value = true
       error.value = null
       
-      const response = await api.get<Transaction[]>(buildApiUrl('/api/v1/payments/transactions/'))
+      const response = await api.get<Transaction[]>('/v1/payments/transactions/'))
       transactions.value = response.data
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch transactions'
@@ -77,7 +77,7 @@ export const useModuleBalanceStore = defineStore('payments-module-balance', () =
       loading.value = true
       error.value = null
       
-      const response = await api.post<PaymentProcessResponse>(buildApiUrl('/api/v1/payments/process/'), {
+      const response = await api.post<PaymentProcessResponse>('/v1/payments/process/'), {
         amount,
         payment_method_id: paymentMethodId
       })
