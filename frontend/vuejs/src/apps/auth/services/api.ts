@@ -5,6 +5,7 @@ import type {
   AuthResponse, 
   UserRegistrationData 
 } from '@/apps/auth/types/auth'
+import axios from 'axios'
 
 // API Configuration
 const API_PATH = '/v1/auth'
@@ -30,7 +31,7 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async getCSRFToken() {
     try {
-      const response = await api.get(`http://backend.railway.internal:8000/${API_PATH}/csrf/`, {
+      const response = await axios.get(`http://backend.railway.internal:8000/${API_PATH}/csrf/`, {
         timeout: 30000,
         headers: {
           'X-Request-Type': 'csrf-token',
