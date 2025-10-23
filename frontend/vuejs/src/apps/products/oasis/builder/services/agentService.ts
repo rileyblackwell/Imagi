@@ -119,12 +119,12 @@ export const AgentService = {
       
       // Use the appropriate endpoint based on file type
       if (fileExtension === 'html') {
-        endpoint = '/v1/agents/build/template/');
+        endpoint = '/v1/agents/build/template/';
       } else if (fileExtension === 'css') {
-        endpoint = '/v1/agents/build/stylesheet/');
+        endpoint = '/v1/agents/build/stylesheet/';
       } else {
         // For other file types, use the chat API in build mode
-        endpoint = '/v1/agents/chat/');
+        endpoint = '/v1/agents/chat/';
         payload.mode = 'build';
         payload.is_build_mode = true;
       }
@@ -241,7 +241,7 @@ export const AgentService = {
       }
       
       // API call
-      const response = await api.post('/v1/agents/chat/'), payload, { timeout: AI_TIMEOUT })
+      const response = await api.post('/v1/agents/chat/', payload, { timeout: AI_TIMEOUT })
       
       // Store the conversation ID for future requests
       if (response.data.conversation_id) {
@@ -406,7 +406,7 @@ export const AgentService = {
     }
 
     try {
-      const response = await api.get(`/v1/builder/${projectId}/versions/`))
+      const response = await api.get(`/v1/builder/${projectId}/versions/`)
       
       return {
         success: response.data.success !== false,
@@ -429,7 +429,7 @@ export const AgentService = {
     }
 
     try {
-          const response = await api.post(`/v1/builder/${projectId}/versions/reset/`), {
+          const response = await api.post(`/v1/builder/${projectId}/versions/reset/`, {
       commit_hash: commitHash
     })
       
@@ -466,7 +466,7 @@ export const AgentService = {
         description: data.description || 'Project update'
       }
       
-      const response = await api.post(`/v1/builder/${projectId}/versions/`), payload)
+      const response = await api.post(`/v1/builder/${projectId}/versions/`, payload)
       
       return {
         success: response.data.success !== false,
@@ -531,7 +531,7 @@ export const AgentService = {
       }
       
       // Make API call to the stylesheet-specific endpoint
-      const response = await api.post('/v1/agents/build/stylesheet/'), payload, { timeout: AI_TIMEOUT });
+      const response = await api.post('/v1/agents/build/stylesheet/', payload, { timeout: AI_TIMEOUT });
       
       // Store conversation ID for future requests
       if (response.data.conversation_id) {

@@ -163,7 +163,7 @@ export const useAuthStore = defineStore('global-auth', () => {
         
         try {
           // Check auth status with backend
-          const response = await api.get('/v1/auth/init/'))
+          const response = await api.get('/v1/auth/init/')
           
           if (response.data.isAuthenticated) {
             // Update user data from server
@@ -223,7 +223,7 @@ export const useAuthStore = defineStore('global-auth', () => {
     const authCheckPromise = (async () => {
       try {
         axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-        const response = await api.get('/v1/auth/init/'))
+        const response = await api.get('/v1/auth/init/')
         const authStatus = !!response.data.isAuthenticated
         
         // Update the last check time
@@ -266,7 +266,7 @@ export const useAuthStore = defineStore('global-auth', () => {
         }
         
         axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
-        const response = await api.get('/v1/auth/init/'))
+        const response = await api.get('/v1/auth/init/')
         
         if (response.data.isAuthenticated) {
           // Update user data from server
@@ -319,7 +319,7 @@ export const useAuthStore = defineStore('global-auth', () => {
 
   const refreshToken = async () => {
     try {
-      const response = await api.post('/v1/auth/refresh-token/'))
+      const response = await api.post('/v1/auth/refresh-token/')
       if (response.data.token) {
         setAuthState(response.data.user, response.data.token)
         return true

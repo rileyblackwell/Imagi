@@ -42,7 +42,7 @@ export const useBalanceStore = defineStore('global-balance', {
       try {
         // Ignore forceRefresh parameter but still use it as a valid parameter
         // to maintain compatibility with existing calls
-        const response = await api.get<{ balance: number }>('/v1/payments/balance/'))
+        const response = await api.get<{ balance: number }>('/v1/payments/balance/')
         this.balance = response.data.balance
         this.lastUpdated = new Date().toISOString()
         

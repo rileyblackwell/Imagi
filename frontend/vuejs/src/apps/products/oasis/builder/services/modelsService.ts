@@ -95,7 +95,7 @@ export const ModelsService = {
   async getAvailableModels(): Promise<AIModel[]> {
     try {
       // Try to get from API first
-      const response = await api.get('/v1/builder/models/'))
+      const response = await api.get('/v1/builder/models/')
       
       if (response.data && Array.isArray(response.data.models)) {
         const apiModels: AIModel[] = response.data.models.map((model: any) => {
