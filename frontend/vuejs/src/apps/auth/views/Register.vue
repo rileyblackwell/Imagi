@@ -140,6 +140,7 @@ import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
+import { AuthAPI } from '@/apps/auth/services/api'
 
 import { 
   PasswordInput,
@@ -169,7 +170,13 @@ defineOptions({
 
 // Component lifecycle
 onMounted(async () => {
-  // Component is ready
+  // Perform health check when component mounts
+  try {
+    const healthResponse = await AuthAPI.healthCheck()
+    console.log('Auth service health check:', healthResponse.data)
+  } catch (error) {
+    console.error('Auth service health check failed:', error)
+  }
 })
 
 // Clear error when form fields change

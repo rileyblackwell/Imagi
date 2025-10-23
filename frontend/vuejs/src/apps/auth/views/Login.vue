@@ -94,8 +94,14 @@ const formData = reactive({
 })
 
 // Component mounted
-onMounted(() => {
-  // Component initialization complete
+onMounted(async () => {
+  // Perform health check when component mounts
+  try {
+    const healthResponse = await AuthAPI.healthCheck()
+    console.log('Auth service health check:', healthResponse.data)
+  } catch (error) {
+    console.error('Auth service health check failed:', error)
+  }
 })
 
 // Clear error when username or password changes

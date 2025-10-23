@@ -231,5 +231,17 @@ export const AuthAPI = {
   async updateUser(userData: Partial<User>): Promise<{ data: User }> {
     const response = await api.patch(buildApiUrl(`${API_PATH}/user/`), userData)
     return response
+  },
+
+  async healthCheck(): Promise<{ data: { status: string; service: string; database: string } }> {
+    try {
+      const response = await api.get(buildApiUrl(`${API_PATH}/health/`), {
+        timeout: 5000
+      })
+      return response
+    } catch (error: any) {
+      console.error('Health check failed:', error.message)
+      throw error
+    }
   }
 }

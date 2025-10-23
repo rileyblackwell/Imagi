@@ -256,3 +256,29 @@ class UserView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+class HealthCheckView(APIView):
+    """Health check endpoint for auth service."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        """Return health status of auth service."""
+        try:
+            # Check database connectivity
+            User.objects.exists()
+            
+            return Response({
+                'status': 'healthy',
+                'service': 'auth',
+                'timestamp': request.META.get('HTTP_DATE', 'unknown'),
+                'database': 'connected'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Health check failed: {str(e)}")
+            return Response({
+                'status': 'unhealthy',
+                'service': 'auth',
+                'error': str(e),
+                'database': 'disconnected'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
