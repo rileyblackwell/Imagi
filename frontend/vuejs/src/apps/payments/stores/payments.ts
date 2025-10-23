@@ -7,7 +7,7 @@ import type {
   Plan, 
   CreditPackage,
   Transaction
-} from '../types'
+} from '../types' 
 
 const paymentService = new PaymentService()
 
