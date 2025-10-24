@@ -31,6 +31,7 @@ let logoutPromise: Promise<any> | null = null
 export const AuthAPI = {
   async getCSRFToken() {
     try {
+      console.log('Fetching CSRF token...')
       const response = await axios.get(`http://backend.railway.internal:8000/${API_PATH}/csrf/`, {
         timeout: 30000,
         headers: {
