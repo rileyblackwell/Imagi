@@ -8,7 +8,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
-import { getCsrfToken } from '@/shared/services/api'
+ 
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
@@ -182,14 +182,6 @@ if (document.readyState === 'loading') {
 
 // Bootstrap function to initialize CSRF token before mounting
 async function bootstrap() {
-  // Warm up CSRF token in both dev and prod (safe no-op if not used)
-  try {
-    await getCsrfToken()
-  } catch (error) {
-    // Continue even if CSRF fetch fails
-    console.warn('CSRF token initialization failed:', error)
-  }
-
   // Mount app
   performance.mark('app-init')
   app.mount('#app')

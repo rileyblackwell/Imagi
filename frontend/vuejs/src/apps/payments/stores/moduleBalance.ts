@@ -41,8 +41,8 @@ export const useModuleBalanceStore = defineStore('payments-module-balance', () =
       isPackagesLoading.value = true
       error.value = null
       
-      const response = await api.get<CreditPackage[]>('/v1/payments/packages/')
-      packages.value = response.data
+      const response = await api.get('/v1/payments/packages/')
+      packages.value = response.data as CreditPackage[]
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch packages'
       console.error('Failed to fetch packages:', err)
@@ -59,8 +59,8 @@ export const useModuleBalanceStore = defineStore('payments-module-balance', () =
       isHistoryLoading.value = true
       error.value = null
       
-      const response = await api.get<Transaction[]>('/v1/payments/transactions/')
-      transactions.value = response.data
+      const response = await api.get('/v1/payments/transactions/')
+      transactions.value = response.data as Transaction[]
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch transactions'
       console.error('Failed to fetch transactions:', err)
@@ -77,17 +77,18 @@ export const useModuleBalanceStore = defineStore('payments-module-balance', () =
       loading.value = true
       error.value = null
       
-      const response = await api.post<PaymentProcessResponse>('/v1/payments/process/', {
+      const response = await api.post('/v1/payments/process/', {
         amount,
         payment_method_id: paymentMethodId
       })
+      const paymentResponse = response.data as PaymentProcessResponse
       
       // Update global balance if payment was successful
-      if (response.data.success && response.data.new_balance !== undefined) {
-        globalBalanceStore.updateBalance(response.data.new_balance)
+      if (paymentResponse.success && paymentResponse.new_balance !== undefined) {
+        globalBalanceStore.updateBalance(paymentResponse.new_balance)
       }
       
-      return response.data
+      return paymentResponse
     } catch (err: any) {
       error.value = err.message || 'Payment failed'
       throw err
