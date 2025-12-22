@@ -15,7 +15,7 @@
       <DocsCard color-variant="primary">
         <DocsCardHeader title="Starting a New Project" icon="fas fa-rocket" color="primary" />
         <p class="text-gray-300 leading-relaxed mb-6">
-          To create a new project, navigate to the Imagi Oasis dashboard and follow these steps:
+          To create a new project, navigate to the Imagi Oasis dashboard and follow these steps: 
         </p>
         
         <ol class="space-y-4">
