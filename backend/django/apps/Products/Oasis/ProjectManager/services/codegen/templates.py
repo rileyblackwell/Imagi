@@ -256,7 +256,6 @@ import {
   faEye,
   faEyeSlash 
 } from '@fortawesome/free-solid-svg-icons'
-import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
 import './assets/css/main.css'
 
@@ -293,7 +292,17 @@ app.config.globalProperties.$axios = axios
 // Use plugins
 app.use(createPinia())
 app.use(router)
-app.use(validationPlugin)
+
+// Dynamically load auth validation plugin if auth app exists
+import('@/apps/auth/plugins/validation')
+  .then((module) => {
+    if (module.validationPlugin) {
+      app.use(module.validationPlugin)
+    }
+  })
+  .catch(() => {
+    // Auth app not installed, skip validation plugin
+  })
 
 // Register global components
 app.component('font-awesome-icon', FontAwesomeIcon)
@@ -317,14 +326,137 @@ export default config
 
 
 def vue_validation_plugin_ts() -> str:
-    return """import type { App } from 'vue'
+    return """import { configure, defineRule } from 'vee-validate'
+import { required, email } from '@vee-validate/rules'
+import { localize } from '@vee-validate/i18n'
+import type { App } from 'vue'
+
+// Define base rules
+defineRule('required', () => true)
+defineRule('email', (value: string) => {
+  if (value && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value)) {
+    return 'Please enter a valid email address'
+  }
+  return true
+})
+
+// Simple username validation
+defineRule('username', () => true)
+
+// Add terms agreement validation
+defineRule('terms', () => true)
+
+// Registration specific password validation
+defineRule('registration_password', (value: string) => {
+  if (value && value.length < 8) return 'Password must be at least 8 characters'
+  if (value && !/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter'
+  if (value && !/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter'
+  if (value && !/[0-9]/.test(value)) return 'Password must contain at least one number'
+  return true
+})
+
+defineRule('password_confirmation', (value: string, [target]: string[]) => {
+  if (value && target && value !== target) {
+    return 'Passwords must match'
+  }
+  return true
+})
+
+// Add login-specific validation rules
+defineRule('login_username', () => true)
+
+defineRule('login_password', () => true)
+
+const errorMessages = {
+  'This username is already taken. Please choose another one.': 'This username is already taken. Please try another one.',
+  'A user is already registered with this e-mail address.': 'This email is already registered. Please use another one or sign in.',
+  'Password must be at least 8 characters long': 'Password must be at least 8 characters long.',
+  'Passwords don\\'t match': 'Passwords don\\'t match. Please make sure they are identical.',
+  'Unable to complete registration. Please try again.': 'Unable to complete registration. Please try again.',
+  'No account found with this username': 'No account found with this username. Please check your spelling or create an account.',
+  'Invalid password. Please try again': 'Incorrect password. Please try again.',
+  'This account has been disabled': 'This account has been disabled. Please contact support.',
+  'Unable to log in with provided credentials.': 'Invalid username or password. Please try again.',
+  'Username is required': 'Username is required.',
+  'Password is required': 'Password is required.',
+  'Not found.': 'Account not found. Please check your username.',
+  'Authentication credentials were not provided.': 'Please enter your login credentials.',
+  'Invalid credentials': 'Username or password is incorrect.',
+  'Login failed. Please try again later': 'Login failed. Please try again later.',
+  'Login failed: No token received': 'Unable to log in. Please try again.',
+  'Network Error': 'Unable to connect to server. Please check your internet connection.',
+  'Login failed: Please try again': 'Login failed. Please try again later.',
+  'Login failed: Invalid response format': 'Unable to complete login. Please try again.',
+  'Invalid server response: Missing token': 'Unable to complete login. Please try again.',
+  'default': 'An unexpected error occurred. Please try again.'
+} as const
+
+export const formatAuthError = (error: unknown, context: 'login' | 'register' = 'login'): string => {
+  if (!error) return errorMessages.default
+  
+  if (error instanceof Error) {
+    const message = error.message
+    
+    // Check if this is an axios error with a response
+    const axiosError = error as any
+    if (axiosError?.response?.data) {
+      const responseData = axiosError.response.data
+      
+      // Check for different error formats
+      if (responseData.error) {
+        return errorMessages[responseData.error as keyof typeof errorMessages] || responseData.error
+      }
+      
+      if (responseData.detail) {
+        if (typeof responseData.detail === 'object') {
+          const errorMessages = []
+          
+          for (const [field, message] of Object.entries(responseData.detail)) {
+            if (field === 'non_field_errors' || field === 'error') {
+              errorMessages.push(message)
+            } else {
+              errorMessages.push(`${field}: ${message}`)
+            }
+          }
+          
+          return errorMessages.join('\\n')
+        }
+        
+        return responseData.detail
+      }
+      
+      // Handle non_field_errors array
+      if (responseData.non_field_errors && Array.isArray(responseData.non_field_errors)) {
+        return responseData.non_field_errors[0]
+      }
+    }
+    
+    // Check message against our known error messages
+    const formattedMessage = errorMessages[message as keyof typeof errorMessages]
+    return formattedMessage || message
+  }
+  
+  // If error is just a string
+  if (typeof error === 'string') {
+    return errorMessages[error as keyof typeof errorMessages] || error
+  }
+  
+  return errorMessages.default
+}
 
 export const validationPlugin = {
-  install(app: App) {
-    // Minimal no-op validator stub
-    app.config.globalProperties.$validate = (/* _rules: any, _data: any */) => ({ valid: true, errors: {} })
+  install: (app: App) => {
+    configure({
+      validateOnInput: false,
+      validateOnBlur: false,
+      validateOnChange: false,
+      validateOnModelUpdate: false,
+      generateMessage: () => '',
+    })
   }
 }
+
+export { defineRule, errorMessages }
 """
 
 
@@ -401,26 +533,73 @@ export const useMainStore = defineStore('main', () => {
 
 def vue_api_service() -> str:
     return """import axios from 'axios'
-import config from '@/shared/config'
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
-const api = axios.create({
-  baseURL: config.apiUrl,
-  timeout: 10000,
+// Helper: read a cookie by name (used for CSRF)
+function getCookie(name: string): string | null {
+  let cookieValue: string | null = null
+  if (typeof document !== 'undefined' && document.cookie) {
+    const cookies = document.cookie.split(';')
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim()
+      if (cookie.substring(0, name.length + 1) === name + '=') {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
+        break
+      }
+    }
+  }
+  return cookieValue
+}
+
+// Create the centralized API client
+const api: AxiosInstance = axios.create({
+  baseURL: '/api',
+  timeout: 60000,
+  withCredentials: true,
   headers: {
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
-  },
+    'X-Requested-With': 'XMLHttpRequest'
+  }
 })
 
 // Request interceptor
 api.interceptors.request.use(
-  (cfg) => {
-    // Add auth token if available
-    const token = localStorage.getItem('authToken')
-    if (token) {
-      cfg.headers = cfg.headers || {}
-      cfg.headers.Authorization = `Bearer ${token}`
+  async (config: InternalAxiosRequestConfig) => {
+    // Attach Authorization header from localStorage
+    try {
+      if (!config.headers['Authorization']) {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        if (raw) {
+          let token: string | null = null
+          try {
+            const parsed = JSON.parse(raw)
+            token = typeof parsed === 'string' ? parsed : parsed?.value
+            const expires = parsed?.expires
+            if (expires && Date.now() > Number(expires)) {
+              token = null
+            }
+          } catch {
+            token = raw
+          }
+          if (token) {
+            config.headers['Authorization'] = `Token ${token}`
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Attach CSRF token for unsafe methods
+    const method = (config.method || 'get').toLowerCase()
+    const unsafe = ['post', 'put', 'patch', 'delete'].includes(method)
+    if (unsafe) {
+      const csrfToken = getCookie('csrftoken')
+      if (csrfToken && !config.headers['X-CSRFToken']) {
+        config.headers['X-CSRFToken'] = csrfToken
+      }
     }
-    return cfg
+    
+    return config
   },
   (error) => Promise.reject(error)
 )
@@ -428,13 +607,269 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    console.error('API Error:', error)
+  async (error) => {
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401) {
+      try {
+        window.dispatchEvent(new CustomEvent('app:auth-unauthorized', { detail: { url: error.config?.url } }))
+      } catch {}
+    }
+    
+    if (!error.response) {
+      return Promise.reject(new Error('Network error: Unable to connect to server'))
+    }
+    
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('Request timeout'))
+    }
+    
     return Promise.reject(error)
   }
 )
 
+// CSRF token helper
+export async function getCsrfToken(): Promise<void> {
+  try {
+    await api.get('/v1/auth/csrf/')
+  } catch (error) {
+    console.warn('Failed to fetch CSRF token:', error)
+  }
+}
+
+// Export the configured API client
 export default api
+"""
+
+
+def vue_shared_auth_store() -> str:
+    return """import { defineStore } from 'pinia'
+import { ref, computed, watch } from 'vue'
+import axios from 'axios'
+import api from '@/shared/services/api'
+
+// Define User type based on what the backend returns
+interface User {
+  id: number;
+  email?: string;
+  username: string;
+  name?: string;
+  balance?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define token data structure interface
+interface TokenData {
+  value: string;
+  expires: number;
+}
+
+// Create a function to safely parse JSON with a fallback
+const safeJSONParse = <T>(jsonString: string | null, fallback: T): T => {
+  if (!jsonString) return fallback
+  try {
+    return JSON.parse(jsonString) as T
+  } catch {
+    return fallback
+  }
+}
+
+// Set cache duration for auth init calls to prevent duplicates
+const AUTH_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Global authentication store for managing user sessions across the application
+ */
+export const useAuthStore = defineStore('global-auth', () => {
+  // State
+  const token = ref<string | null>(getStoredToken())
+  const user = ref<User | null>(getStoredUser())
+  const isAuthenticated = ref(!!token.value)
+  const sessionTimeout = ref<number | null>(null)
+  const initialized = ref(false)
+  const loading = ref(false)
+  const lastInitTime = ref<number>(0)
+  const pendingAuthCheck = ref<Promise<boolean> | null>(null)
+  
+  // Watch for changes to authentication state and sync with localStorage
+  watch(() => isAuthenticated.value, (newValue) => {
+    if (newValue && token.value && user.value) {
+      // If becoming authenticated, make sure token is set in axios
+      axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
+    }
+  })
+
+  // Helper function to get the stored token
+  function getStoredToken(): string | null {
+    try {
+      const tokenData = safeJSONParse<TokenData | null>(localStorage.getItem('token'), null)
+      if (!tokenData?.value) return null
+      if (tokenData.expires && Date.now() > tokenData.expires) {
+        localStorage.removeItem('token')
+        return null
+      }
+      return tokenData.value
+    } catch {
+      return null
+    }
+  }
+
+  // Helper function to get the stored user
+  function getStoredUser(): User | null {
+    return safeJSONParse(localStorage.getItem('user'), null)
+  }
+
+  // Getters
+  const currentUser = computed(() => user.value)
+  const userBalance = computed(() => user.value?.balance || 0)
+
+  // Actions
+  const setAuthState = (userData: User | null, authToken: string | null) => {
+    user.value = userData
+    token.value = authToken
+    isAuthenticated.value = !!authToken
+    
+    if (authToken && userData) {
+      // Store token in localStorage with expiry
+      const tokenData: TokenData = {
+        value: authToken,
+        expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      }
+      localStorage.setItem('token', JSON.stringify(tokenData))
+      localStorage.setItem('user', JSON.stringify(userData))
+      
+      // Set axios default auth header
+      axios.defaults.headers.common['Authorization'] = `Token ${authToken}`
+      sessionTimeout.value = 30 * 60 * 1000 // 30 minutes
+    } else {
+      clearStoredAuth()
+    }
+  }
+  
+  // Function to restore auth state from localStorage without API calls
+  const restoreAuthState = (userData: User, authToken: string) => {
+    user.value = userData
+    token.value = authToken
+    isAuthenticated.value = true
+    
+    // Set axios default auth header
+    axios.defaults.headers.common['Authorization'] = `Token ${authToken}`
+  }
+
+  // Helper to clear stored authentication data
+  const clearStoredAuth = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    
+    // Clear cookies
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    document.cookie = 'sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+    
+    // Remove auth header
+    delete axios.defaults.headers.common['Authorization']
+    sessionTimeout.value = null
+  }
+
+  const initAuth = async () => {
+    const now = Date.now()
+    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
+      if (token.value && !isAuthenticated.value) {
+        isAuthenticated.value = true
+        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
+      }
+      return
+    }
+    
+    if (pendingAuthCheck.value) {
+      return pendingAuthCheck.value
+    }
+    
+    const authCheckPromise = (async () => {
+      try {
+        loading.value = true
+        
+        const storedToken = getStoredToken()
+        const storedUser = getStoredUser()
+        
+        if (!storedToken) {
+          await clearAuth()
+          loading.value = false
+          initialized.value = true
+          lastInitTime.value = now
+          return false
+        }
+        
+        token.value = storedToken
+        user.value = storedUser
+        axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`
+        
+        try {
+          const response = await api.get('/v1/auth/init/')
+          
+          if (response.data.isAuthenticated) {
+            user.value = response.data.user
+            isAuthenticated.value = true
+            localStorage.setItem('user', JSON.stringify(response.data.user))
+            lastInitTime.value = now
+            return true
+          } else {
+            return false
+          }
+        } catch (error) {
+          console.error('Failed to validate auth with server:', error)
+          return false
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth:', error)
+        await clearAuth()
+        return false
+      } finally {
+        loading.value = false
+        initialized.value = true
+        setTimeout(() => {
+          pendingAuthCheck.value = null
+        }, 0)
+      }
+    })()
+    
+    pendingAuthCheck.value = authCheckPromise
+    return authCheckPromise
+  }
+
+  const clearAuth = async () => {
+    user.value = null
+    token.value = null
+    isAuthenticated.value = false
+    clearStoredAuth()
+    initialized.value = false
+  }
+
+  const logout = async () => {
+    return await clearAuth()
+  }
+
+  return {
+    // State
+    token,
+    user,
+    isAuthenticated,
+    sessionTimeout,
+    initialized,
+    loading,
+    
+    // Getters
+    currentUser,
+    userBalance,
+    
+    // Actions
+    setAuthState,
+    restoreAuthState,
+    initAuth,
+    clearAuth,
+    logout
+  }
+})
 """
 
 
@@ -723,15 +1158,13 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
     """Create VueJS source files structure under src/."""
     src_path = os.path.join(frontend_path, 'src')
 
-    # Create directories
+    # Create directories (excluding auth - will be created by prebuilt app)
     directories = [
         'components',
         'components/atoms',
         'components/molecules',
         'components/organisms',
         'apps',
-        'apps/auth',
-        'apps/auth/plugins',
         'views',
         'router',
         'stores',
@@ -741,7 +1174,9 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
         'assets/css',
         'shared',
         'shared/components',
-        'shared/components/pages'
+        'shared/components/pages',
+        'shared/stores',
+        'shared/services'
     ]
 
     for directory in directories:
@@ -763,15 +1198,21 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
     with open(os.path.join(src_path, 'shared', 'config.ts'), 'w') as f:
         f.write(vue_shared_config_ts())
 
-    # apps/auth/plugins/validation.ts
-    with open(os.path.join(src_path, 'apps', 'auth', 'plugins', 'validation.ts'), 'w') as f:
-        f.write(vue_validation_plugin_ts())
+    # shared/stores/auth.ts - Global auth store
+    with open(os.path.join(src_path, 'shared', 'stores', 'auth.ts'), 'w') as f:
+        f.write(vue_shared_auth_store())
+
+    # shared/services/api.ts - Centralized API client
+    with open(os.path.join(src_path, 'shared', 'services', 'api.ts'), 'w') as f:
+        f.write(vue_api_service())
+
+    # Note: auth app files (including validation.ts) are now created by prebuilt_apps.py
 
     # stores/main.js
     with open(os.path.join(src_path, 'stores', 'main.js'), 'w') as f:
         f.write(vue_store_main())
 
-    # services/api.ts
+    # services/api.ts (legacy location for backwards compatibility)
     with open(os.path.join(src_path, 'services', 'api.ts'), 'w') as f:
         f.write(vue_api_service())
 
