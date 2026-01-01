@@ -12,8 +12,9 @@ const routes: RouteRecordRaw[] = [
         meta: {
           requiresAuth: false,
           layout: 'auth',
-          title: 'Welcome to Imagi',
-          subtitle: 'Transform your ideas into full-stack applications',
+          title: 'Welcome Back',
+          subtitle: 'Sign in to continue building amazing applications',
+          badge: 'Secure Login',
           mainText: 'Looking to create an account?',
           mainLinkPath: '/auth/register',
           mainLinkText: 'Sign up'
@@ -26,8 +27,9 @@ const routes: RouteRecordRaw[] = [
         meta: {
           requiresAuth: false,
           layout: 'auth',
-          title: 'Join Imagi Today',
-          subtitle: 'Start building your next great idea',
+          title: 'Create Account',
+          subtitle: 'Start building your next great idea with AI',
+          badge: 'Get Started',
           mainText: 'Already have an account?',
           mainLinkPath: '/auth/login',
           mainLinkText: 'Sign in'

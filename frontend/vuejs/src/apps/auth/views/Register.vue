@@ -1,79 +1,70 @@
 <template>
   <div class="space-y-6">
-    <Form v-slot="{ errors: formErrors, submitCount, submitForm }" class="space-y-6" @submit="handleSubmit">
-      <!-- Top row - full width fields with enhanced styling -->
-      <div class="space-y-5">
-        <!-- Username input with micro-interactions -->
-        <div class="relative">
-          <Field name="username" rules="required|username" :validateOnBlur="false" v-slot="{ errorMessage, field }">
-            <FormInput
-              v-bind="field"
-              name="username"
-              label="Username"
-              icon="fas fa-user"
-              placeholder="Create a username"
-              :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && submitCount > 0"
-              v-model="formData.username"
-              class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
-            />
-          </Field>
-        </div>
-
-        <!-- Email input with micro-interactions -->
-        <div class="relative">
-          <Field name="email" rules="required|email" :validateOnBlur="false" v-slot="{ errorMessage, field }">
-            <FormInput
-              v-bind="field"
-              name="email"
-              label="Email"
-              icon="fas fa-envelope"
-              placeholder="Enter your email"
-              :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && submitCount > 0"
-              v-model="formData.email"
-              class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
-            />
-          </Field>
-        </div>
+    <Form v-slot="{ errors: formErrors, submitCount, submitForm }" class="space-y-5" @submit="handleSubmit">
+      <!-- Username input with premium styling -->
+      <div class="relative group">
+        <Field name="username" rules="required|username" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+          <FormInput
+            v-bind="field"
+            name="username"
+            label="Username"
+            icon="fas fa-user"
+            placeholder="Create a username"
+            :disabled="authStore.loading || isSubmitting"
+            :hasError="!!errorMessage && submitCount > 0"
+            v-model="formData.username"
+          />
+        </Field>
       </div>
 
-      <!-- Password section with enhanced styling -->
-      <div class="space-y-5">
-        <!-- Password inputs with micro-interactions -->
-        <div class="space-y-5">
-          <div class="relative">
-            <Field name="password" rules="required|registration_password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
-              <PasswordInput
-                v-bind="field"
-                name="password"
-                v-model="formData.password"
-                placeholder="Create password"
-                :disabled="authStore.loading || isSubmitting"
-                :hasError="!!errorMessage && submitCount > 0"
-                class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
-              />
-            </Field>
-          </div>
+      <!-- Email input with premium styling -->
+      <div class="relative group">
+        <Field name="email" rules="required|email" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+          <FormInput
+            v-bind="field"
+            name="email"
+            label="Email"
+            icon="fas fa-envelope"
+            placeholder="Enter your email"
+            :disabled="authStore.loading || isSubmitting"
+            :hasError="!!errorMessage && submitCount > 0"
+            v-model="formData.email"
+          />
+        </Field>
+      </div>
 
-          <div class="relative">
-            <Field name="password_confirmation" :rules="{ required: true, password_confirmation: formData.password }" :validateOnBlur="false" v-slot="{ errorMessage, field }">
-              <PasswordInput
-                v-bind="field"
-                name="password_confirmation"
-                v-model="formData.passwordConfirmation"
-                placeholder="Confirm password"
-                :disabled="authStore.loading || isSubmitting"
-                :hasError="!!errorMessage && submitCount > 0"
-                class="min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
-              />
-            </Field>
-          </div>
+      <!-- Password section -->
+      <div class="space-y-4">
+        <!-- Password input -->
+        <div class="relative group">
+          <Field name="password" rules="required|registration_password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+            <PasswordInput
+              v-bind="field"
+              name="password"
+              v-model="formData.password"
+              placeholder="Create password"
+              :disabled="authStore.loading || isSubmitting"
+              :hasError="!!errorMessage && submitCount > 0"
+            />
+          </Field>
         </div>
 
-        <!-- Password requirements with enhanced styling -->
-        <div class="px-5 py-4 bg-dark-800/60 backdrop-blur-sm rounded-xl border border-dark-700/50 
-                    hover:border-primary-500/20 transition-all duration-300 shadow-inner">
+        <!-- Confirm password input -->
+        <div class="relative group">
+          <Field name="password_confirmation" :rules="{ required: true, password_confirmation: formData.password }" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+            <PasswordInput
+              v-bind="field"
+              name="password_confirmation"
+              v-model="formData.passwordConfirmation"
+              placeholder="Confirm password"
+              :disabled="authStore.loading || isSubmitting"
+              :hasError="!!errorMessage && submitCount > 0"
+            />
+          </Field>
+        </div>
+
+        <!-- Password requirements with premium glass styling -->
+        <div class="p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
           <PasswordRequirements 
             :password="formData.password || ''"
             ref="passwordRequirements"
@@ -82,11 +73,10 @@
         </div>
       </div>
 
-      <!-- Bottom section with enhanced styling -->
-      <div class="space-y-5 pt-3">
-        <!-- Terms checkbox with enhanced styling -->
-        <div class="px-4 py-3 bg-dark-800/40 backdrop-blur-sm rounded-xl border border-dark-700/40 
-                    hover:border-primary-500/20 transition-all duration-300 shadow-sm">
+      <!-- Bottom section -->
+      <div class="space-y-5 pt-2">
+        <!-- Terms checkbox with premium styling -->
+        <div class="p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
           <Field name="agreeToTerms" rules="required|terms" :validateOnBlur="false">
             <FormCheckbox 
               name="agreeToTerms" 
@@ -94,41 +84,60 @@
               :showError="false"
             >
               I agree to the 
-              <router-link to="/terms" class="text-primary-400 hover:text-primary-300 transition-colors duration-300 font-medium">
+              <router-link to="/terms" class="text-violet-400 hover:text-violet-300 transition-colors duration-300 font-medium">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="text-primary-400 hover:text-primary-300 transition-colors duration-300 font-medium">
+              <router-link to="/privacy" class="text-violet-400 hover:text-violet-300 transition-colors duration-300 font-medium">
                 Privacy Policy
               </router-link>
             </FormCheckbox>
           </Field>
         </div>
 
-        <!-- Enhanced error message with animation -->
+        <!-- Error message with premium styling -->
         <transition name="fade-up">
           <div v-if="serverError" 
-               class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm
-                      shadow-inner transition-all duration-300">
-            <p class="text-sm font-medium text-red-400 text-center whitespace-pre-line">{{ serverError }}</p>
+               class="p-4 rounded-xl border border-red-500/20 bg-red-500/10 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-400 text-sm"></i>
+              </div>
+              <p class="text-sm font-medium text-red-400 whitespace-pre-line">{{ serverError }}</p>
+            </div>
           </div>
         </transition>
 
-        <!-- Elevated button with enhanced styling -->
+        <!-- Premium gradient button -->
         <GradientButton
           type="submit"
           :disabled="authStore.loading || isSubmitting"
           :loading="authStore.loading || isSubmitting"
           loading-text="Creating account..."
-          class="w-full min-h-[48px] sm:min-h-[52px] mt-4"
+          class="w-full"
         >
           Create Account
         </GradientButton>
       </div>
     </Form>
 
-    <!-- AuthLinks with animations removed -->
-    <div class="pt-4">
+    <!-- Separator -->
+    <div class="relative py-4">
+      <div class="relative flex items-center justify-center">
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="mx-4 text-xs text-white/30 uppercase tracking-wider">or</div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+      </div>
+    </div>
+
+    <!-- Auth Links -->
+    <div class="text-center">
+      <p class="text-white/50 text-sm">
+        Already have an account?
+        <router-link to="/auth/login" class="text-violet-400 hover:text-violet-300 font-medium transition-colors duration-300 ml-1">
+          Sign in
+        </router-link>
+      </p>
     </div>
   </div>
 </template>
@@ -250,7 +259,7 @@ const handleSubmit = async (values: RegisterFormValues) => {
 </script>
 
 <style scoped>
-/* Only keeping essential transitions for error messages */
+/* Fade up transition for error messages */
 .fade-up-enter-active,
 .fade-up-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);

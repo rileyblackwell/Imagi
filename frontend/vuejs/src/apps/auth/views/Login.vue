@@ -1,8 +1,8 @@
 <template>
-  <div class="space-y-5">
-    <Form v-slot="{ errors: formErrors, submitCount, submitForm, values }" class="space-y-6" @submit="onSubmit">
-      <!-- Username input with enhanced styling -->
-      <div class="relative">
+  <div class="space-y-6">
+    <Form v-slot="{ errors: formErrors, submitCount, submitForm, values }" class="space-y-5" @submit="onSubmit">
+      <!-- Username input with premium styling -->
+      <div class="relative group">
         <Field name="username" rules="login_username" :validateOnBlur="false" v-slot="{ errorMessage, field }">
           <FormInput
             v-bind="field"
@@ -13,13 +13,12 @@
             :disabled="authStore.loading || isSubmitting"
             :hasError="!!errorMessage && submitCount > 0"
             v-model="formData.username"
-            class="auth-input min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
           />
         </Field>
       </div>
 
-      <!-- Password input with enhanced styling -->
-      <div class="relative">
+      <!-- Password input with premium styling -->
+      <div class="relative group">
         <Field name="password" rules="login_password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
           <PasswordInput
             v-bind="field"
@@ -28,38 +27,50 @@
             placeholder="Enter your password"
             :disabled="authStore.loading || isSubmitting"
             :hasError="!!errorMessage && submitCount > 0"
-            class="auth-input min-h-[42px] sm:min-h-[48px] shadow-sm hover:shadow-md transition-shadow duration-300"
           />
         </Field>
       </div>
 
-      <!-- Enhanced error message display with animation -->
+      <!-- Error message display with premium styling -->
       <div class="space-y-5 pt-2">
         <transition name="fade-up">
           <div v-if="serverError" 
-               class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm
-                      shadow-inner transition-all duration-300">
-            <p class="text-sm font-medium text-red-400 text-center whitespace-pre-line">
-              {{ serverError }}
-            </p>
+               class="p-4 rounded-xl border border-red-500/20 bg-red-500/10 backdrop-blur-sm">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-400 text-sm"></i>
+              </div>
+              <p class="text-sm font-medium text-red-400 whitespace-pre-line">
+                {{ serverError }}
+              </p>
+            </div>
           </div>
         </transition>
 
-        <!-- Elevated button with enhanced styling -->
+        <!-- Premium gradient button -->
         <GradientButton
           type="submit"
           :disabled="authStore.loading || isSubmitting"
           :loading="authStore.loading || isSubmitting"
           loading-text="Signing in..."
-          class="w-full min-h-[48px] sm:min-h-[52px] mt-4"
+          class="w-full"
         >
           Sign In
         </GradientButton>
       </div>
     </Form>
 
-    <!-- AuthLinks with animations removed -->
-    <div class="pt-4">
+    <!-- Separator -->
+    <div class="relative py-4">
+      <div class="relative flex items-center justify-center">
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="mx-4 text-xs text-white/30 uppercase tracking-wider">or</div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+      </div>
+    </div>
+
+    <!-- Auth Links -->
+    <div class="text-center">
       <AuthLinks />
     </div>
   </div>
@@ -79,7 +90,7 @@ import {
   FormInput,
   GradientButton,
   AuthLinks 
-} from '@/apps/auth/components' // Barrel already updated, so this is fine
+} from '@/apps/auth/components'
 
 const router = useRouter()
 const route = useRoute()
@@ -169,7 +180,7 @@ const onSubmit = async (values: LoginFormValues) => {
 </script>
 
 <style scoped>
-/* Only keeping essential transitions for error messages */
+/* Fade up transition for error messages */
 .fade-up-enter-active,
 .fade-up-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);

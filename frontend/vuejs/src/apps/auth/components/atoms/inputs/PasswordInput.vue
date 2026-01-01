@@ -2,8 +2,8 @@
   <div>
     <label v-if="label" :for="id" class="sr-only">{{ label }}</label>
     <div class="relative group">
-      <span class="absolute inset-y-0 left-0 flex items-center pl-4">
-        <i class="fas fa-lock text-gray-400 group-hover:text-primary-400 transition-colors"></i>
+      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10">
+        <i class="fas fa-lock text-white/40 group-hover:text-violet-400 transition-colors duration-300"></i>
       </span>
       <input
         :id="id"
@@ -16,21 +16,21 @@
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
-        class="w-full py-3.5 pl-11 pr-10 bg-dark-800 border rounded-xl 
-               text-white placeholder-gray-500 outline-none focus:outline-none
+        class="w-full py-4 pl-12 pr-12 rounded-xl text-white placeholder-white/30 
+               outline-none focus:outline-none
                disabled:opacity-50 disabled:cursor-not-allowed 
-               transition-colors duration-300"
+               transition-all duration-300
+               border bg-white/[0.03] backdrop-blur-sm"
         :class="{ 
-          'border-red-500 ring-1 ring-red-500': hasError,
-          'border-dark-700 focus:border-primary-400 focus:ring-1 focus:ring-primary-400': !hasError,
-          'hover:border-dark-600': !hasError && !disabled
+          'border-red-500/50 bg-red-500/5 focus:border-red-400 focus:ring-1 focus:ring-red-400/50': hasError,
+          'border-white/[0.08] hover:border-white/[0.15] focus:border-violet-500/50 focus:bg-white/[0.05] focus:ring-1 focus:ring-violet-500/30': !hasError
         }"
       >
       <button
         type="button"
         @click="togglePassword"
-        class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 
-               hover:text-primary-400 transition-colors duration-300"
+        class="absolute inset-y-0 right-0 flex items-center pr-4 text-white/40 
+               hover:text-violet-400 transition-colors duration-300 z-10"
       >
         <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']"></i>
       </button>
@@ -106,5 +106,14 @@ input:focus {
 /* Override browser-specific focus styles */
 input:focus-visible {
   outline: none !important;
+}
+
+/* Autofill styling to match dark theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: white;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.03) inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 </style>
