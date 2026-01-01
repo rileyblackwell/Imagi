@@ -129,13 +129,16 @@
               </div>
               <!-- Grid view for components -->
               <div v-if="viewMode === 'grid' && componentSubgroups[group.key].length" class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
-                <button
+                <div
                   v-for="file in componentSubgroups[group.key]"
                   :key="file.path"
-                  type="button"
                   class="group relative rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent hover:from-white/[0.06] hover:border-white/10 text-left p-3.5 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5"
                   @click="emit('select-file', file)"
+                  @keydown.enter.prevent="emit('select-file', file)"
+                  @keydown.space.prevent="emit('select-file', file)"
                   :title="file.path"
+                  role="button"
+                  tabindex="0"
                 >
                   <!-- Delete button -->
                   <button
@@ -151,18 +154,21 @@
                     </div>
                     <div class="text-xs font-medium text-white/90 truncate w-full">{{ fileName(file.path) }}</div>
                   </div>
-                </button>
+                </div>
               </div>
               
               <!-- List view for components -->
               <div v-else-if="viewMode === 'list' && componentSubgroups[group.key].length" class="divide-y divide-white/[0.04] rounded-xl border border-white/[0.06] overflow-hidden bg-white/[0.01]">
-                <button
+                <div
                   v-for="file in componentSubgroups[group.key]"
                   :key="file.path"
-                  type="button"
                   class="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-white/[0.03] transition-all group"
                   @click="emit('select-file', file)"
+                  @keydown.enter.prevent="emit('select-file', file)"
+                  @keydown.space.prevent="emit('select-file', file)"
                   :title="file.path"
+                  role="button"
+                  tabindex="0"
                 >
                   <div :class="['w-8 h-8 rounded-lg flex items-center justify-center border text-sm transition-transform duration-200 group-hover:scale-105', fileIcon(file).bg, fileIcon(file).border, fileIcon(file).text]">
                     <i :class="fileIcon(file).icon"></i>
@@ -176,7 +182,7 @@
                     <i class="fas fa-trash text-[10px]"></i>
                   </button>
                   <i class="fas fa-chevron-right text-[10px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                </button>
+                </div>
               </div>
             </div>
           </template>
@@ -193,13 +199,16 @@
             </div>
             
             <div v-if="viewMode === 'grid'" class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
-              <button
+              <div
                 v-for="file in categorizedFiles"
                 :key="file.path"
-                type="button"
                 class="group relative rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent hover:from-white/[0.06] hover:border-white/10 text-left p-3.5 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5"
                 @click="emit('select-file', file)"
+                @keydown.enter.prevent="emit('select-file', file)"
+                @keydown.space.prevent="emit('select-file', file)"
                 :title="file.path"
+                role="button"
+                tabindex="0"
               >
                 <!-- Delete button for views -->
                 <button
@@ -216,16 +225,19 @@
                   </div>
                   <div class="text-xs font-medium text-white/90 truncate w-full">{{ fileName(file.path) }}</div>
                 </div>
-              </button>
+              </div>
             </div>
             <div v-else class="divide-y divide-white/[0.04] rounded-xl border border-white/[0.06] overflow-hidden bg-white/[0.01]">
-              <button
+              <div
                 v-for="file in categorizedFiles"
                 :key="file.path"
-                type="button"
                 class="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-white/[0.03] transition-all group"
                 @click="emit('select-file', file)"
+                @keydown.enter.prevent="emit('select-file', file)"
+                @keydown.space.prevent="emit('select-file', file)"
                 :title="file.path"
+                role="button"
+                tabindex="0"
               >
                 <div :class="['w-8 h-8 rounded-lg flex items-center justify-center border text-sm transition-transform duration-200 group-hover:scale-105', fileIcon(file).bg, fileIcon(file).border, fileIcon(file).text]">
                   <i :class="fileIcon(file).icon"></i>
@@ -240,7 +252,7 @@
                   <i class="fas fa-trash text-[10px]"></i>
                 </button>
                 <i class="fas fa-chevron-right text-[10px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"></i>
-              </button>
+              </div>
             </div>
           </template>
         </div>
