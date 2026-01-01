@@ -1,60 +1,66 @@
-<!-- CTA Section Component -->
+<!-- CTA Section - Premium Design -->
 <template>
   <section class="py-16 sm:py-24 px-6 sm:px-8 lg:px-12">
-    <div class="max-w-5xl mx-auto">
-      <div class="group relative transform transition-all duration-300 hover:-translate-y-1">
-        <!-- Modern glassmorphism container -->
-        <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden">
-          <!-- Sleek gradient header -->
-          <div class="h-1 w-full bg-gradient-to-r from-rose-400 via-pink-400 to-rose-400 opacity-80"></div>
+    <div class="max-w-4xl mx-auto">
+      <!-- CTA Card -->
+      <div class="group relative">
+        <!-- Background glow -->
+        <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+        
+        <!-- Card content -->
+        <div class="relative p-8 md:p-12 rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden">
+          <!-- Accent line -->
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
           
-          <!-- Subtle background effects -->
-          <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-rose-400/4 to-pink-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
-          
-          <div class="relative z-10 p-8 md:p-12">
-            <div class="flex flex-col md:flex-row items-start gap-8">
-              <!-- Icon with enhanced styling -->
-              <div class="w-16 h-16 flex-shrink-0 rounded-xl bg-gradient-to-br from-rose-400/20 to-pink-400/20 flex items-center justify-center border border-rose-400/20">
-                <i :class="icon || 'fas fa-rocket'" class="text-rose-300 text-2xl"></i>
+          <!-- Content layout -->
+          <div class="flex flex-col md:flex-row items-start gap-8">
+            <!-- Icon -->
+            <div class="flex-shrink-0">
+              <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20">
+                <i :class="icon" class="text-violet-400 text-xl"></i>
               </div>
+            </div>
+            
+            <!-- Text content -->
+            <div class="flex-1">
+              <h2 class="text-2xl md:text-3xl font-semibold text-white/90 mb-4 leading-tight">
+                {{ title }} 
+                <span class="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">{{ highlightedText }}</span>
+              </h2>
               
-              <!-- Content section -->
-              <div class="flex-1">
-                <h2 class="text-3xl font-bold text-white mb-4 leading-tight">
-                  {{ title }} 
-                  <span class="inline-block bg-gradient-to-r from-rose-400 to-pink-400 bg-clip-text text-transparent">{{ highlightedText }}</span>
-                </h2>
+              <p class="text-base md:text-lg text-white/50 mb-8 leading-relaxed max-w-xl">
+                {{ description }}
+                <span v-if="highlightedStat" class="font-medium text-violet-400">{{ highlightedStat }}</span>{{ descriptionSuffix }}
+              </p>
+              
+              <!-- Buttons -->
+              <div class="flex flex-col sm:flex-row gap-4">
+                <!-- Primary Button -->
+                <router-link 
+                  :to="getAuthenticatedRedirect"
+                  class="group/btn inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
+                >
+                  <i :class="primaryButtonIcon"></i>
+                  <span>{{ primaryButtonText }}</span>
+                  <i class="fas fa-arrow-right text-sm transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
+                </router-link>
                 
-                <p class="text-lg text-gray-300 mb-8 leading-relaxed">
-                  {{ description }}
-                  <span v-if="highlightedStat" class="font-semibold text-rose-300">{{ highlightedStat }}</span>
-                  {{ descriptionSuffix }}
-                </p>
-                
-                <div class="flex flex-col sm:flex-row gap-4">
-                  <!-- Primary Button -->
-                  <router-link 
-                    :to="getAuthenticatedRedirect"
-                    class="group/btn relative inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white font-medium rounded-xl shadow-lg shadow-rose-500/25 transition-all duration-200 transform hover:-translate-y-1"
-                  >
-                    <i :class="primaryButtonIcon" class="mr-2"></i>
-                    <span>{{ primaryButtonText }}</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
-                  </router-link>
-                  
-                  <!-- Secondary Button -->
-                  <router-link 
-                    v-if="showSecondaryButton"
-                    :to="secondaryButtonTo"
-                    class="group/btn relative inline-flex items-center justify-center px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-rose-400/30 text-white font-medium rounded-xl transition-all duration-200"
-                  >
-                    <i :class="secondaryButtonIcon" class="mr-2 text-rose-400"></i>
-                    <span>{{ secondaryButtonText }}</span>
-                  </router-link>
-                </div>
+                <!-- Secondary Button -->
+                <router-link 
+                  v-if="showSecondaryButton"
+                  :to="secondaryButtonTo"
+                  class="group/btn inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
+                >
+                  <i :class="secondaryButtonIcon" class="text-violet-400/80"></i>
+                  <span>{{ secondaryButtonText }}</span>
+                </router-link>
               </div>
             </div>
           </div>
+          
+          <!-- Decorative elements -->
+          <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl"></div>
+          <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl"></div>
         </div>
       </div>
     </div>
@@ -144,21 +150,4 @@ export default defineComponent({
 </script>
 
 <style scoped>
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes pulse-horizontal {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px); }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
-}
-
-.animate-pulse-horizontal {
-  animation: pulse-horizontal 1.5s ease-in-out infinite;
-}
-</style> 
+</style>

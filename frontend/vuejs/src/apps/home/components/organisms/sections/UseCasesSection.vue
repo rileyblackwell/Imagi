@@ -1,103 +1,84 @@
-<!-- Use Cases Section Component with Interactive 3D Cards -->
+<!-- Use Cases Section - Premium Design -->
 <template>
-  <section class="py-24 md:py-36 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
-    <!-- Decorative elements -->
-    <div class="absolute inset-0 pointer-events-none">
-      <!-- Pattern overlay -->
-      <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-      
-      <!-- Gradient spots -->
-      <div class="absolute top-[10%] right-[20%] w-[600px] h-[600px] rounded-full bg-violet-600/5 blur-[120px] animate-pulse-slow"></div>
-      <div class="absolute bottom-[20%] left-[10%] w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-[100px] animate-pulse-slow animation-delay-150"></div>
-    </div>
-    
-    <div class="max-w-7xl mx-auto">
-      <!-- Section header with modern badge -->
-      <div class="text-center mb-16 relative">
-        <!-- Modern pill badge -->
-        <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-full border border-violet-400/20 backdrop-blur-sm mb-6">
-          <div class="w-1.5 h-1.5 bg-violet-400 rounded-full mr-2 animate-pulse"></div>
-          <span class="text-violet-300 font-medium text-sm tracking-wide uppercase">Endless Possibilities</span>
+  <section class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto relative">
+      <!-- Section header -->
+      <div class="text-center mb-16 md:mb-20">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-6">
+          <i class="fas fa-cubes text-xs text-fuchsia-400/80"></i>
+          <span class="text-sm font-medium text-white/60">Use Cases</span>
         </div>
-        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{{ title }}</h2>
-        <p class="text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
         
-        <!-- Modern divider -->
-        <div class="w-full h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent mt-8"></div>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white/90 mb-5 tracking-tight">{{ title }}</h2>
+        <p class="text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
-      <!-- Modern cards with enhanced glass morphism -->
-      <div class="relative">
-        <!-- Showcase cards with glass morphism effects -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          <div 
-            v-for="(useCase, index) in useCases" 
-            :key="index"
-            class="group relative transform transition-all duration-300 hover:-translate-y-1"
-          >
-            <!-- Modern glassmorphism container -->
-            <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-              <!-- Sleek gradient header -->
-              <div class="h-1 w-full transition-all duration-300"
-                   :class="getHeaderGradientClass(useCase.color)"></div>
-              
-              <!-- Subtle background effects -->
-              <div class="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"
-                   :class="getCardBackgroundClass(useCase.color)"></div>
-              
-              <!-- Card content -->
-              <div class="relative z-10 p-6 h-full flex flex-col">
-                <!-- Icon with enhanced styling -->
-                <div class="w-12 h-12 rounded-xl mb-5 flex items-center justify-center border transition-all duration-300"
-                     :class="getIconContainerClass(useCase.color)">
-                  <i :class="[useCase.icon, 'text-lg', getIconClass(useCase.color)]"></i>
-                </div>
-                
-                <!-- Title with enhanced styling -->
-                <h3 class="text-xl font-semibold text-white mb-3 leading-tight">{{ useCase.title }}</h3>
-                
-                <!-- Description with better readability -->
-                <p class="text-gray-300 mb-4 text-sm leading-relaxed flex-1">{{ useCase.description }}</p>
-                
-                <!-- Modern separator -->
-                <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
-                
-                <!-- Feature list with modern styling -->
-                <ul class="space-y-2 mb-5">
-                  <li v-for="(feature, fIndex) in useCase.features" :key="fIndex" 
-                      class="flex items-start gap-2">
-                    <div class="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 border"
-                         :class="getFeatureIconBgClass(useCase.color)">
-                      <i class="fas fa-check text-xs" :class="getFeatureIconClass(useCase.color)"></i>
-                    </div>
-                    <span class="text-gray-300 text-xs leading-relaxed">{{ feature }}</span>
-                  </li>
-                </ul>
-                
-                <!-- Learn more link with enhanced styling -->
-                <div class="mt-auto">
-                  <a href="#" class="text-sm font-medium flex items-center group/btn transition-all duration-300"
-                     :class="getLinkClass(useCase.color)">
-                    <span>Learn more</span>
-                    <i class="fas fa-arrow-right ml-2 text-xs transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
-                  </a>
-                </div>
+      <!-- Use case cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+        <div 
+          v-for="(useCase, index) in useCases" 
+          :key="index"
+          class="group relative"
+        >
+          <!-- Card -->
+          <div class="relative h-full p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 cursor-default overflow-hidden flex flex-col">
+            <!-- Hover glow -->
+            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.03]" :class="getGradientClass(useCase.color)"></div>
+            </div>
+            
+            <!-- Icon -->
+            <div class="relative mb-5">
+              <div 
+                class="inline-flex items-center justify-center w-11 h-11 rounded-xl border transition-all duration-300"
+                :class="getIconContainerClass(useCase.color)"
+              >
+                <i :class="[useCase.icon, 'text-base', getIconClass(useCase.color)]"></i>
               </div>
             </div>
+            
+            <!-- Content -->
+            <h3 class="relative text-base font-semibold text-white/90 mb-2">{{ useCase.title }}</h3>
+            <p class="relative text-white/50 text-sm leading-relaxed mb-5 flex-1">{{ useCase.description }}</p>
+            
+            <!-- Features -->
+            <ul class="relative space-y-2 mb-5">
+              <li 
+                v-for="(feature, fIndex) in useCase.features" 
+                :key="fIndex" 
+                class="flex items-start gap-2"
+              >
+                <i class="fas fa-check text-[10px] mt-1.5" :class="getIconClass(useCase.color)"></i>
+                <span class="text-white/50 text-xs">{{ feature }}</span>
+              </li>
+            </ul>
+            
+            <!-- Learn more link -->
+            <div class="relative mt-auto">
+              <a href="#" class="inline-flex items-center gap-2 text-sm font-medium transition-colors duration-300" :class="getLinkClass(useCase.color)">
+                <span>Explore</span>
+                <i class="fas fa-arrow-right text-xs transform group-hover:translate-x-1 transition-transform duration-300"></i>
+              </a>
+            </div>
+
+            <!-- Bottom accent -->
+            <div 
+              class="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              :class="getAccentClass(useCase.color)"
+            ></div>
           </div>
         </div>
       </div>
       
-      <!-- Simple CTA Button -->
-      <div class="mt-16 text-center">
+      <!-- CTA button -->
+      <div class="mt-14 text-center">
         <HomeNavbarButton
           :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-          class="group relative !h-12 sm:!h-14 px-8 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-400 hover:to-purple-400 text-white font-medium transition-all duration-300 transform hover:-translate-y-1 shadow-lg shadow-violet-500/25"
+          class="group inline-flex items-center gap-3 px-8 py-4 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300 hover:-translate-y-0.5"
         >
-          <span class="flex items-center justify-center text-lg">
-            Start Your Project
-            <i class="fas fa-arrow-right ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-          </span>
+          Start Your Project
+          <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
         </HomeNavbarButton>
       </div>
     </div>
@@ -117,57 +98,57 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Real Applications for Real Businesses'
+      default: 'Built for Every Business'
     },
     subtitle: {
       type: String,
-      default: 'Build professional full-stack applications perfect for entrepreneurs, small businesses, and anyone with a great idea. Each app includes a Vue.js frontend and Django backend.'
+      default: 'From small businesses to startups, build professional applications tailored to your needs.'
     },
     useCases: {
       type: Array,
       default: () => [
         {
-          title: 'Small Business Platform',
-          description: 'Complete business management app with customer portal, service booking system, and admin dashboard for managing your operations.',
+          title: 'Business Platform',
+          description: 'Complete business management with customer portal, booking system, and admin dashboard.',
           icon: 'fas fa-store',
-          color: 'primary',
+          color: 'violet',
           features: [
-            'Customer management system',
-            'Service booking interface',
-            'Admin dashboard with analytics'
+            'Customer management',
+            'Service booking',
+            'Analytics dashboard'
           ]
         },
         {
           title: 'Portfolio & CRM',
-          description: 'Professional portfolio with integrated client management system, project tracking, and automated client communication tools.',
+          description: 'Professional portfolio with integrated client management and project tracking.',
           icon: 'fas fa-briefcase',
-          color: 'violet',
+          color: 'fuchsia',
           features: [
-            'Interactive project gallery',
-            'Client relationship management',
-            'Automated follow-up system'
+            'Project gallery',
+            'Client management',
+            'Automated follow-ups'
           ]
         },
         {
-          title: 'E-Learning Platform',
-          description: 'Create educational apps with course management, student progress tracking, and interactive learning modules for your expertise.',
+          title: 'E-Learning',
+          description: 'Educational platform with course management and student progress tracking.',
           icon: 'fas fa-graduation-cap',
           color: 'blue',
           features: [
-            'Course content management',
-            'Student progress tracking',
-            'Interactive quizzes and modules'
+            'Course content',
+            'Progress tracking',
+            'Interactive modules'
           ]
         },
         {
-          title: 'Event Management App',
-          description: 'Full-featured event platform with registration system, attendee management, and real-time event updates for organizers.',
+          title: 'Event Platform',
+          description: 'Full event management with registration, attendees, and real-time updates.',
           icon: 'fas fa-calendar-alt',
-          color: 'purple',
+          color: 'emerald',
           features: [
-            'Event registration system',
-            'Attendee check-in management',
-            'Real-time event updates'
+            'Registration system',
+            'Attendee check-in',
+            'Real-time updates'
           ]
         }
       ]
@@ -181,84 +162,54 @@ export default defineComponent({
     }
   },
   methods: {
-    getHeaderGradientClass(color) {
-      const classes = {
-        primary: 'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80',
-        violet: 'bg-gradient-to-r from-violet-400 via-purple-400 to-violet-400 opacity-80',
-        purple: 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400 opacity-80',
-        blue: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-80',
+    getGradientClass(color) {
+      const gradients = {
+        violet: 'from-violet-500 to-purple-500',
+        fuchsia: 'from-fuchsia-500 to-pink-500',
+        blue: 'from-blue-500 to-cyan-500',
+        emerald: 'from-emerald-500 to-teal-500'
       }
-      return classes[color] || classes.primary
-    },
-    getCardBackgroundClass(color) {
-      const classes = {
-        primary: 'bg-gradient-to-br from-indigo-400/4 to-violet-400/4',
-        violet: 'bg-gradient-to-br from-violet-400/4 to-purple-400/4',
-        purple: 'bg-gradient-to-br from-purple-400/4 to-fuchsia-400/4',
-        blue: 'bg-gradient-to-br from-blue-400/4 to-cyan-400/4',
-      }
-      return classes[color] || classes.primary
+      return gradients[color] || gradients.violet
     },
     getIconContainerClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
-        violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
-        purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
-        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
+        violet: 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/15 group-hover:border-violet-500/30',
+        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20 group-hover:bg-fuchsia-500/15 group-hover:border-fuchsia-500/30',
+        blue: 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15 group-hover:border-blue-500/30',
+        emerald: 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15 group-hover:border-emerald-500/30'
       }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
     },
     getIconClass(color) {
       const classes = {
-        primary: 'text-indigo-300',
-        violet: 'text-violet-300',
-        purple: 'text-purple-300',
-        blue: 'text-blue-300',
+        violet: 'text-violet-400',
+        fuchsia: 'text-fuchsia-400',
+        blue: 'text-blue-400',
+        emerald: 'text-emerald-400'
       }
-      return classes[color] || classes.primary
-    },
-    getFeatureIconBgClass(color) {
-      const classes = {
-        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
-        violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
-        purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
-        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
-      }
-      return classes[color] || classes.primary
-    },
-    getFeatureIconClass(color) {
-      const classes = {
-        primary: 'text-indigo-300',
-        violet: 'text-violet-300',
-        purple: 'text-purple-300',
-        blue: 'text-blue-300',
-      }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
     },
     getLinkClass(color) {
       const classes = {
-        primary: 'text-indigo-400 hover:text-indigo-300',
-        violet: 'text-violet-400 hover:text-violet-300',
-        purple: 'text-purple-400 hover:text-purple-300',
-        blue: 'text-blue-400 hover:text-blue-300',
+        violet: 'text-violet-400/70 group-hover:text-violet-400',
+        fuchsia: 'text-fuchsia-400/70 group-hover:text-fuchsia-400',
+        blue: 'text-blue-400/70 group-hover:text-blue-400',
+        emerald: 'text-emerald-400/70 group-hover:text-emerald-400'
       }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
+    },
+    getAccentClass(color) {
+      const classes = {
+        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
+        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
+        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
+        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent'
+      }
+      return classes[color] || classes.violet
     }
   }
 })
 </script>
 
 <style scoped>
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
-}
-
-.animation-delay-150 {
-  animation-delay: 150ms;
-}
-</style> 
+</style>

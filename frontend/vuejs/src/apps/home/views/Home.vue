@@ -1,51 +1,62 @@
 <!-- Home landing page -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Enhanced Background Effects matching dashboard pages -->
-      <div class="absolute inset-0 pointer-events-none">
-        <!-- Enhanced Pattern Overlay -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+    <div class="min-h-screen bg-[#050508] relative overflow-hidden">
+      <!-- Premium Background System -->
+      <div class="fixed inset-0 pointer-events-none">
+        <!-- Base gradient mesh -->
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.15),transparent_50%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.08),transparent_40%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.06),transparent_35%)]"></div>
         
-        <!-- Enhanced Glowing Orbs Animation -->
-        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
-        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
-        <div class="absolute top-[40%] left-[10%] w-[400px] h-[400px] rounded-full bg-cyan-600/3 blur-[100px] animate-float-slow"></div>
+        <!-- Subtle grain texture -->
+        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
         
-        <!-- Animated Lines and Particles -->
-        <div class="absolute left-0 right-0 top-1/4 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
-        <div class="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-transparent via-violet-500/15 to-transparent animate-pulse-slow delay-1000"></div>
-        <div class="absolute left-0 right-0 top-3/4 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent animate-pulse-slow delay-2000"></div>
+        <!-- Animated aurora effect -->
+        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-30">
+          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/20 via-fuchsia-500/10 to-transparent blur-[100px] animate-aurora"></div>
+        </div>
+        
+        <!-- Floating orbs -->
+        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/8 to-violet-600/4 blur-[120px] animate-float-slow"></div>
+        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/6 to-purple-600/3 blur-[100px] animate-float-delayed"></div>
+        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/4 to-orange-500/2 blur-[80px] animate-float-reverse"></div>
       </div>
 
       <!-- Main Content -->
       <main class="relative z-10">
-        <!-- Hero Section with enhanced design -->
+        <!-- Hero Section -->
         <HeroSection />
         
-        <!-- Modern Divider with animated line -->
-        <div class="relative py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
+        <!-- Elegant Divider -->
+        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="relative flex items-center justify-center">
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+            <div class="mx-6 flex items-center gap-2">
+              <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-violet-400/70"></div>
+              <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+            </div>
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+          </div>
         </div>
         
-        <!-- Features Section with improved cards -->
+        <!-- Features Section -->
         <FeaturesSection />
         
-        <!-- How It Works Section with better visualization -->
+        <!-- How It Works Section -->
         <HowItWorksSection />
         
-        <!-- Use Cases Section with improved interaction -->
+        <!-- Use Cases Section -->
         <UseCasesSection />
         
-        <!-- Testimonials Section with enhanced visuals -->
+        <!-- Testimonials Section -->
         <TestimonialsSection />
         
-        <!-- Stats Section with modern data visualization -->
+        <!-- Stats Section -->
         <StatsSection />
         
-        <!-- Enhanced CTA Section -->
+        <!-- CTA Section -->
         <CTASection 
           icon="fas fa-rocket" 
           title="Build Professional Apps" 
@@ -93,84 +104,82 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Noise texture */
-.bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+/* Aurora animation */
+@keyframes aurora {
+  0%, 100% {
+    transform: translateX(-10%) rotate(-2deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(10%) rotate(2deg);
+    opacity: 0.4;
+  }
 }
 
-/* Float animation for background orbs */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+.animate-aurora {
+  animation: aurora 20s ease-in-out infinite;
 }
 
-@keyframes float-delay {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(20px); }
-}
-
+/* Float animations */
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  50% { transform: translateY(-15px) translateX(10px); }
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.02);
+  }
+  66% {
+    transform: translate(-20px, 10px) scale(0.98);
+  }
 }
 
-.animate-float {
-  animation: float 15s ease-in-out infinite;
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-25px, -30px) scale(1.03);
+  }
 }
 
-.animate-float-delay {
-  animation: float-delay 18s ease-in-out infinite;
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, 15px);
+  }
 }
 
 .animate-float-slow {
-  animation: float-slow 22s ease-in-out infinite;
+  animation: float-slow 25s ease-in-out infinite;
 }
 
-/* Add subtle animation for pulse effects */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+.animate-float-delayed {
+  animation: float-delayed 30s ease-in-out infinite;
+  animation-delay: -5s;
 }
 
-.animate-pulse-slow {
-  animation: pulse 3s ease-in-out infinite;
+.animate-float-reverse {
+  animation: float-reverse 20s ease-in-out infinite;
+  animation-delay: -10s;
 }
 
-.delay-1000 {
-  animation-delay: 1000ms;
+/* Custom scrollbar */
+:deep(::-webkit-scrollbar) {
+  width: 6px;
 }
 
-.delay-2000 {
-  animation-delay: 2000ms;
+:deep(::-webkit-scrollbar-track) {
+  background: rgba(255, 255, 255, 0.02);
 }
 
-/* Gradient animation for connecting lines */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+:deep(::-webkit-scrollbar-thumb) {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
 }
 
-.bg-gradient-to-r {
-  background-size: 200% 100%;
-  animation: gradient-shift 8s ease infinite;
-}
-
-/* Add subtle scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(9, 11, 17, 0.5);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
+:deep(::-webkit-scrollbar-thumb:hover) {
+  background: rgba(139, 92, 246, 0.5);
 }
 </style>

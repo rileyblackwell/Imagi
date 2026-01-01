@@ -1,178 +1,138 @@
 <template>
   <div class="relative w-full max-w-2xl mx-auto">
-    <!-- Terminal Window - Glass Morphism Style -->
-    <div class="relative bg-dark-900/90 backdrop-blur-xl rounded-2xl border border-primary-500/10 shadow-2xl overflow-hidden transform-gpu transition-all duration-400 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-primary-500/10">
+    <!-- Terminal Window -->
+    <div class="relative bg-[#0a0a0f] rounded-xl overflow-hidden">
       <!-- Terminal Header -->
-      <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-dark-950/90 to-dark-900/90 border-b border-dark-800/50">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-3 h-3 rounded-full bg-red-500/90 hover:opacity-80 transition-opacity cursor-pointer"></div>
-          <div class="w-3 h-3 rounded-full bg-yellow-500/90 hover:opacity-80 transition-opacity cursor-pointer"></div>
-          <div class="w-3 h-3 rounded-full bg-green-500/90 hover:opacity-80 transition-opacity cursor-pointer"></div>
+      <div class="flex items-center justify-between px-4 py-3 bg-white/[0.03] border-b border-white/[0.06]">
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-[#ff5f57] hover:opacity-80 transition-opacity cursor-pointer"></div>
+          <div class="w-3 h-3 rounded-full bg-[#febc2e] hover:opacity-80 transition-opacity cursor-pointer"></div>
+          <div class="w-3 h-3 rounded-full bg-[#28c840] hover:opacity-80 transition-opacity cursor-pointer"></div>
         </div>
-        <div class="absolute left-0 right-0 flex justify-center pointer-events-none">
-          <div class="px-3 py-0.5 text-xs text-gray-400 bg-dark-800/50 rounded-md flex items-center font-mono font-medium border border-dark-700/30">
-            <i class="fas fa-terminal mr-1.5 text-primary-400 text-[10px]"></i>
+        <div class="absolute left-1/2 -translate-x-1/2">
+          <div class="flex items-center gap-2 px-3 py-1 text-xs text-white/40 bg-white/[0.03] rounded-md border border-white/[0.06] font-mono">
+            <i class="fas fa-terminal text-violet-400/60 text-[10px]"></i>
             imagi-cli
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-green-400/60"></div>
-          <div class="text-2xs text-gray-400 font-mono">online</div>
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+          </span>
+          <span class="text-[10px] text-white/30 font-mono">online</span>
         </div>
       </div>
 
       <!-- Terminal Content -->
-      <div class="p-4 font-mono text-sm bg-gradient-to-b from-dark-950 to-dark-900 min-h-[280px] max-h-[380px] overflow-hidden">
-        <!-- First Section: Command Input -->
-        <div class="flex items-center text-gray-300 mb-3">
-          <div class="flex-shrink-0 flex items-center">
-            <span class="text-emerald-400 mr-2">➜</span>
-            <span class="text-emerald-500/90 mr-1.5">$</span>
-          </div>
-          <div class="flex-1">
-            <span class="font-bold text-violet-400">imagi</span>
-            <span class="text-gray-400"> generate app</span>
-            <span class="ml-1 animate-blink text-gray-300">|</span>
-          </div>
+      <div class="p-5 font-mono text-sm min-h-[300px]">
+        <!-- Command Input -->
+        <div class="flex items-center text-white/70 mb-4">
+          <span class="text-emerald-400 mr-2">➜</span>
+          <span class="text-white/30 mr-2">$</span>
+          <span class="font-medium text-violet-400">imagi</span>
+          <span class="text-white/40 ml-1">generate app</span>
+          <span class="ml-1 animate-blink text-white/50">│</span>
         </div>
 
-        <!-- AI Assistant Interaction -->
-        <div class="ml-3 space-y-3">
+        <!-- AI Conversation -->
+        <div class="ml-4 space-y-4">
           <!-- AI Response -->
-          <div class="flex items-start gap-2.5 transform-gpu animate-fade-slide-up">
-            <div class="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center bg-gradient-to-br from-violet-500 to-primary-600 p-0.5 ring-1 ring-primary-500/30 shadow-lg">
+          <div class="flex items-start gap-3 animate-fade-in">
+            <div class="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-500/20">
               <i class="fas fa-robot text-[10px] text-white"></i>
             </div>
-            <div class="flex-1 break-words">
-              <div class="rounded-xl rounded-tl-sm bg-dark-800/60 border border-dark-700/40 p-2 text-2xs text-gray-200">
-                <div class="font-medium mb-1">Imagi Assistant</div>
-                <div class="text-gray-300">What would you like to build today?</div>
+            <div class="flex-1">
+              <div class="rounded-xl rounded-tl-sm bg-white/[0.03] border border-white/[0.06] p-3 text-xs">
+                <div class="font-medium text-white/50 mb-1">Imagi Assistant</div>
+                <div class="text-white/70">What would you like to build today?</div>
               </div>
             </div>
           </div>
 
           <!-- User Message -->
-          <div class="flex items-start gap-2.5 flex-row-reverse transform-gpu animate-fade-slide-up animate-delay-300">
-            <div class="mt-0.5 w-5 h-5 rounded-full bg-dark-700 ring-1 ring-primary-500/20 flex items-center justify-center">
-              <i class="fas fa-user text-[10px] text-gray-300"></i>
+          <div class="flex items-start gap-3 flex-row-reverse animate-fade-in" style="animation-delay: 300ms">
+            <div class="mt-0.5 w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+              <i class="fas fa-user text-[10px] text-white/40"></i>
             </div>
-            <div class="flex-1 break-words max-w-[90%]">
-              <div class="rounded-xl rounded-tr-sm bg-primary-500/10 border border-primary-500/20 p-2 text-2xs text-gray-200">
-                <div class="font-medium mb-1 text-primary-300">You</div>
-                <div class="text-gray-300">
+            <div class="flex-1 max-w-[90%]">
+              <div class="rounded-xl rounded-tr-sm bg-violet-500/10 border border-violet-500/20 p-3 text-xs">
+                <div class="font-medium text-violet-400/70 mb-1">You</div>
+                <div class="text-white/70">
                   <span ref="typedText" class="typing-text"></span>
-                  <span class="cursor-blink text-primary-300">|</span>
+                  <span class="cursor-blink text-violet-400">│</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Process Steps Container -->
+          <!-- Progress Section -->
           <div v-if="showProgress" 
-              class="bg-dark-800/40 rounded-xl border border-dark-700/50 p-2 mt-4 transform-gpu animate-fade-slide-up animate-delay-600">
-            <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-dark-700/30">
-              <div class="text-2xs text-gray-400 font-medium flex items-center">
-                <i class="fas fa-code-branch mr-1.5 text-primary-400"></i>
+               class="bg-white/[0.02] rounded-xl border border-white/[0.06] p-4 mt-5 animate-fade-in" 
+               style="animation-delay: 600ms">
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/[0.04]">
+              <div class="text-xs text-white/40 font-medium flex items-center gap-2">
+                <i class="fas fa-code-branch text-violet-400/60"></i>
                 Building your application
               </div>
-              <div class="text-2xs text-gray-500">
+              <div class="text-xs text-white/30 font-mono">
                 {{ Math.min(Math.round((currentStep / (progressSteps.length - 1)) * 100), 100) }}%
               </div>
             </div>
             
             <!-- Progress Steps -->
-            <div class="space-y-1 px-0.5">
+            <div class="space-y-2">
               <div v-for="(step, index) in progressSteps" :key="index"
-                   class="relative flex items-center text-2xs py-1 transition-all duration-300"
+                   class="flex items-center text-xs py-1.5 transition-all duration-300"
                    :class="{ 
-                     'text-gray-300': currentStep >= index, 
-                     'text-gray-500': currentStep < index,
-                     'font-medium': currentStep === index
+                     'text-white/70': currentStep >= index, 
+                     'text-white/30': currentStep < index
                    }">
-                
-                <!-- Status Icon -->
-                <div class="flex-shrink-0 w-4 h-4 mr-2 rounded-full flex items-center justify-center"
+                <div class="flex-shrink-0 w-5 h-5 mr-3 rounded-full flex items-center justify-center"
                      :class="{ 
-                       'bg-dark-700/80': currentStep === index,
-                       'bg-emerald-500/10': currentStep > index,
-                       'bg-dark-800/50': currentStep < index
+                       'bg-violet-500/15': currentStep === index,
+                       'bg-emerald-500/15': currentStep > index,
+                       'bg-white/[0.03]': currentStep < index
                      }">
-                  <i v-if="currentStep === index" class="fas fa-spinner text-[0.6rem] text-primary-300 animate-spin"></i>
-                  <i v-else-if="currentStep > index" class="fas fa-check text-[0.6rem] text-emerald-400"></i>
-                  <i v-else class="fas fa-circle text-[0.5rem] text-dark-600"></i>
+                  <i v-if="currentStep === index" class="fas fa-spinner text-[9px] text-violet-400 animate-spin"></i>
+                  <i v-else-if="currentStep > index" class="fas fa-check text-[9px] text-emerald-400"></i>
+                  <i v-else class="fas fa-circle text-[5px] text-white/20"></i>
                 </div>
-                
-                <div class="flex-1">{{ step }}</div>
-                
-                <!-- Time indicator -->
-                <div v-if="currentStep >= index" class="flex-shrink-0 text-[10px] text-gray-500">
-                  <span v-if="index === currentStep && currentStep < progressSteps.length">Processing...</span>
-                  <span v-else>Done</span>
-                </div>
+                <span class="flex-1">{{ step }}</span>
+                <span v-if="currentStep >= index" class="text-[10px] text-white/30">
+                  {{ index === currentStep && currentStep < progressSteps.length ? 'Processing...' : 'Done' }}
+                </span>
               </div>
             </div>
             
             <!-- Progress Bar -->
-            <div class="mt-2 h-1 bg-dark-700/50 rounded-full overflow-hidden">
-              <div class="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all duration-700 ease-out"
+            <div class="mt-4 h-1 bg-white/[0.03] rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all duration-700 ease-out"
                    :style="{width: `${Math.min(Math.round((currentStep / (progressSteps.length - 1)) * 100), 100)}%`}"></div>
             </div>
           </div>
           
-          <!-- Generated Code Output -->
-          <div v-if="showCodeOutput" class="mt-3 transform-gpu animate-fade-slide-up animate-delay-800">
-            <div class="bg-dark-900/80 rounded-xl border border-dark-700/50 overflow-hidden">
-              <div class="flex items-center justify-between text-2xs px-3 py-1.5 bg-dark-800/50 border-b border-dark-700/50">
-                <div class="flex items-center">
-                  <i class="fas fa-code text-primary-400 mr-1.5"></i>
-                  <span class="text-gray-300">imagi.js</span>
-                </div>
-                <div class="flex items-center space-x-2 text-gray-400">
-                  <i class="fas fa-copy hover:text-gray-300 cursor-pointer transition-colors"></i>
-                  <i class="fas fa-expand hover:text-gray-300 cursor-pointer transition-colors"></i>
-                </div>
-              </div>
-              <div class="bg-dark-950 p-2 relative">
-                <pre class="text-2xs text-gray-300 overflow-x-auto max-h-[120px] font-mono">
-<span class="text-violet-400">const</span> <span class="text-emerald-400">app</span> = <span class="text-violet-400">await</span> <span class="text-yellow-400">imagi</span>.<span class="text-blue-400">generate</span>({
-  <span class="text-gray-500">name:</span> <span class="text-green-300">"{{ appName }}"</span>,
-  <span class="text-gray-500">features:</span> [
-    <span class="text-green-300">"auth"</span>, 
-    <span class="text-green-300">"products"</span>, 
-    <span class="text-green-300">"cart"</span>, 
-    <span class="text-green-300">"payments"</span>
-  ],
-  <span class="text-gray-500">ui:</span> <span class="text-green-300">"modern"</span>
-});</pre>
-                <!-- Line numbers -->
-                <div class="absolute left-0.5 top-2 bottom-0 text-[10px] text-gray-700 flex flex-col items-end pr-2 opacity-50">
-                  <div v-for="n in 8" :key="`line-${n}`" class="leading-[1.4rem]">{{ n }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
           <!-- Success Message -->
-          <div v-if="showSuccess" class="mt-4 transform-gpu animate-fade-slide-up animate-delay-1000">
-            <div class="flex items-start gap-2.5">
-              <div class="flex-shrink-0 mt-0.5 w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500/20 ring-1 ring-emerald-500/30">
-                <i class="fas fa-check text-[0.65rem] text-emerald-400"></i>
+          <div v-if="showSuccess" class="mt-5 animate-fade-in" style="animation-delay: 1000ms">
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center bg-emerald-500/15">
+                <i class="fas fa-check text-[10px] text-emerald-400"></i>
               </div>
-              <div class="flex-1 bg-gradient-to-r from-emerald-500/10 to-green-500/5 rounded-xl p-2.5 border border-emerald-500/20">
-                <div class="flex items-center gap-2 mb-1">
-                  <i class="fas fa-circle-check text-emerald-400"></i>
-                  <span class="font-medium text-sm text-gray-200">App generated successfully!</span>
+              <div class="flex-1 bg-emerald-500/5 rounded-xl p-4 border border-emerald-500/10">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="fas fa-circle-check text-emerald-400 text-sm"></i>
+                  <span class="font-medium text-sm text-white/80">App generated successfully!</span>
                 </div>
-                <div class="text-2xs text-gray-400 pl-0.5">
-                  Your application is ready to be deployed. Type <span class="text-emerald-400 font-mono bg-dark-900/70 px-1.5 py-0.5 rounded">imagi deploy</span> to continue.
-                </div>
-                <div class="flex items-center gap-2 mt-2 text-2xs">
-                  <button class="bg-dark-800/70 hover:bg-dark-700/70 transition-colors px-2.5 py-1 rounded-md text-gray-300 flex items-center gap-1.5">
-                    <i class="fas fa-eye"></i>
+                <p class="text-xs text-white/40 mb-3">
+                  Your application is ready. Type <code class="text-emerald-400 bg-white/[0.03] px-1.5 py-0.5 rounded font-mono">imagi deploy</code> to continue.
+                </p>
+                <div class="flex items-center gap-2">
+                  <button class="text-xs bg-white/[0.05] hover:bg-white/[0.08] transition-colors px-3 py-1.5 rounded-lg text-white/60 flex items-center gap-1.5 border border-white/[0.06]">
+                    <i class="fas fa-eye text-[10px]"></i>
                     <span>Preview</span>
                   </button>
-                  <button class="bg-emerald-500/80 hover:bg-emerald-500/90 transition-colors px-2.5 py-1 rounded-md text-dark-900 flex items-center gap-1.5">
-                    <i class="fas fa-rocket"></i>
+                  <button class="text-xs bg-emerald-500/80 hover:bg-emerald-500 transition-colors px-3 py-1.5 rounded-lg text-white flex items-center gap-1.5 font-medium">
+                    <i class="fas fa-rocket text-[10px]"></i>
                     <span>Deploy</span>
                   </button>
                 </div>
@@ -182,13 +142,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Enhanced Ambient Effects -->
-    <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/50 to-violet-500/50 opacity-10 blur-2xl -z-10 animate-pulse-slow"></div>
-    <div class="absolute -inset-1 bg-gradient-conic from-primary-500/20 via-violet-500/20 to-primary-500/20 opacity-15 animate-spin-slow -z-20"></div>
-    
-    <!-- Terminal reflection -->
-    <div class="absolute w-[60%] h-6 -bottom-2 left-[20%] bg-primary-500/5 blur-md rounded-full"></div>
   </div>
 </template>
 
@@ -201,9 +154,7 @@ export default defineComponent({
     const typedText = ref(null)
     const showProgress = ref(false)
     const currentStep = ref(-1)
-    const showCodeOutput = ref(false)
     const showSuccess = ref(false)
-    const appName = ref('e-commerce-platform')
 
     const progressSteps = [
       'Analyzing requirements',
@@ -221,30 +172,19 @@ export default defineComponent({
     }
 
     const animateProgress = async () => {
-      // Wait a moment before starting the progress animation
       await new Promise(resolve => setTimeout(resolve, 800))
       showProgress.value = true
       
-      // Animate through each progress step
       for (let i = 0; i < progressSteps.length; i++) {
         currentStep.value = i
         
-        // Show code output after analyzing requirements
-        if (i === 1 && !showCodeOutput.value) {
-          await new Promise(resolve => setTimeout(resolve, 400))
-          showCodeOutput.value = true
-        }
-        
-        // Adjust timing for different steps
         const delay = i === progressSteps.length - 1 ? 1500 : 1000
         await new Promise(resolve => setTimeout(resolve, delay))
       }
       
-      // Mark the last step as completed with a checkmark
       await new Promise(resolve => setTimeout(resolve, 300))
       currentStep.value = progressSteps.length
       
-      // Show success message after the last step is marked as completed
       await new Promise(resolve => setTimeout(resolve, 300))
       showSuccess.value = true
     }
@@ -260,9 +200,7 @@ export default defineComponent({
       showProgress,
       currentStep,
       progressSteps,
-      showCodeOutput,
-      showSuccess,
-      appName
+      showSuccess
     }
   }
 })
@@ -282,7 +220,7 @@ export default defineComponent({
   animation: blink 1s step-end infinite;
 }
 
-@keyframes fade-slide-up {
+@keyframes fade-in {
   from { 
     opacity: 0;
     transform: translateY(8px);
@@ -293,61 +231,8 @@ export default defineComponent({
   }
 }
 
-.animate-fade-slide-up {
-  animation: fade-slide-up 0.5s ease-out forwards;
-}
-
-.animate-delay-300 {
-  animation-delay: 300ms;
-}
-
-.animate-delay-600 {
-  animation-delay: 600ms;
-}
-
-.animate-delay-800 {
-  animation-delay: 800ms;
-}
-
-.animate-delay-1000 {
-  animation-delay: 1000ms;
-}
-
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.1; }
-  50% { opacity: 0.15; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
-}
-
-.animate-spin-slow {
-  animation: spin 10s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Typography */
-.text-2xs {
-  font-size: 0.65rem;
-  line-height: 1rem;
-}
-
-/* Override any dark-950 if not available in Tailwind config */
-.bg-dark-950 {
-  background-color: rgba(9, 11, 17, 0.95);
-}
-
-.from-dark-950 {
-  --tw-gradient-from: rgba(9, 11, 17, 0.95);
-}
-
-.to-dark-950 {
-  --tw-gradient-to: rgba(9, 11, 17, 0.95);
+.animate-fade-in {
+  opacity: 0;
+  animation: fade-in 0.5s ease-out forwards;
 }
 </style>
-

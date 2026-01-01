@@ -1,149 +1,133 @@
-<!-- How It Works Section Component with 3D Timeline UI -->
+<!-- How It Works Section - Premium Timeline Design -->
 <template>
-  <section id="how-it-works" class="py-24 md:py-36 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
-    <!-- Animated background elements -->
-    <div class="absolute inset-0 pointer-events-none">
-      <!-- 3D grid effect for depth -->
-      <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-      
-      <!-- Animated glowing orbs -->
-      <div class="absolute top-[30%] right-[10%] w-[400px] h-[400px] rounded-full bg-indigo-600/5 blur-[100px] animate-pulse-slow"></div>
-      <div class="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] rounded-full bg-violet-600/5 blur-[80px] animate-pulse-slow animation-delay-150"></div>
-    </div>
-    
-    <div class="max-w-7xl mx-auto relative z-10">
-      <!-- Modern section header with badge -->
-      <div class="text-center mb-20 relative">
-        <!-- Modern pill badge -->
-        <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full border border-indigo-400/20 backdrop-blur-sm mb-6">
-          <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
-          <span class="text-indigo-300 font-medium text-sm tracking-wide uppercase">Seamless Workflow</span>
+  <section id="how-it-works" class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto relative">
+      <!-- Section header -->
+      <div class="text-center mb-16 md:mb-20">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-6">
+          <i class="fas fa-route text-xs text-violet-400/80"></i>
+          <span class="text-sm font-medium text-white/60">Simple Process</span>
         </div>
-        <h2 class="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{{ title }}</h2>
-        <p class="text-xl text-gray-300 max-w-3xl mx-auto">{{ subtitle }}</p>
         
-        <!-- Modern divider -->
-        <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent mt-8"></div>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white/90 mb-5 tracking-tight">{{ title }}</h2>
+        <p class="text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
-      <!-- 3D Timeline with Connected Steps -->
-      <div class="relative">
-        <!-- Center timeline line -->
-        <div class="absolute top-0 bottom-0 left-1/2 w-0.5 bg-gradient-to-b from-indigo-500/70 via-violet-500/70 to-violet-500/70 transform -translate-x-1/2 hidden md:block"></div>
+      <!-- Steps timeline -->
+      <div class="relative max-w-4xl mx-auto">
+        <!-- Vertical connector line -->
+        <div class="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-violet-500/30 via-fuchsia-500/20 to-transparent md:-translate-x-px hidden sm:block"></div>
         
-        <div class="space-y-24 relative">
+        <!-- Steps -->
+        <div class="space-y-8 md:space-y-0">
           <div 
             v-for="(step, index) in steps" 
             :key="index"
-            class="timeline-item relative"
-            :class="{'md:ml-auto': index % 2 !== 0}"
+            class="relative"
           >
-            <!-- Timeline connector bubble - now positioned directly on the timeline -->
+            <!-- Step container -->
             <div 
-              class="absolute top-1/2 left-1/2 w-10 h-10 rounded-full transform -translate-x-1/2 -translate-y-1/2 z-20 hidden md:flex items-center justify-center border-2 border-dark-950"
-              :class="getDotBgClasses(step.color)"
+              class="flex flex-col md:flex-row items-start gap-6 md:gap-12"
+              :class="index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'"
             >
-              <div class="absolute -inset-1 rounded-full blur-md opacity-50 animate-pulse-slow"
-                   :class="getDotGlowClasses(step.color)"></div>
-              <span class="text-white font-bold text-sm relative z-10">{{ index + 1 }}</span>
-            </div>
+              <!-- Timeline node -->
+              <div class="hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 z-10">
+                <div class="relative">
+                  <!-- Outer glow -->
+                  <div class="absolute -inset-2 rounded-full blur-md opacity-50" :class="getGlowClass(step.color)"></div>
+                  <!-- Node circle -->
+                  <div 
+                    class="relative flex items-center justify-center w-12 h-12 rounded-full border-2 border-[#0a0a0f] shadow-lg"
+                    :class="getNodeClass(step.color)"
+                  >
+                    <span class="text-white font-semibold text-sm">{{ String(index + 1).padStart(2, '0') }}</span>
+                  </div>
+                </div>
+              </div>
 
-            <!-- Enhanced connecting line from timeline bubble to card -->
-            <div 
-              class="absolute top-1/2 z-10 hidden md:block"
-              :class="[
-                'h-0.5 transform -translate-y-1/2',
-                index % 2 === 0 ? 'left-1/2 ml-5 w-8' : 'right-1/2 mr-5 w-8',
-                getConnectorLineClasses(step.color)
-              ]"
-            >
-              <!-- Animated gradient line -->
-              <div class="h-full w-full rounded-full opacity-80 animate-pulse-slow"
-                   :class="getConnectorGradientClasses(step.color)"></div>
+              <!-- Mobile node -->
+              <div class="sm:hidden flex items-center gap-4 mb-4">
+                <div 
+                  class="flex items-center justify-center w-10 h-10 rounded-full"
+                  :class="getNodeClass(step.color)"
+                >
+                  <span class="text-white font-semibold text-sm">{{ index + 1 }}</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white/90">{{ step.title }}</h3>
+              </div>
               
-              <!-- Arrow indicator -->
+              <!-- Content card -->
               <div 
-                class="absolute top-1/2 w-2 h-2 transform -translate-y-1/2 rotate-45"
-                :class="[
-                  index % 2 === 0 ? 'right-0 translate-x-1' : 'left-0 -translate-x-1',
-                  getDotBgClasses(step.color)
-                ]"
-              ></div>
-            </div>
-            
-            <!-- Step container with enhanced glass morphism -->
-            <div 
-              class="md:w-[calc(50%-4rem)] group relative transform transition-all duration-300 hover:-translate-y-2"
-              :class="{'ml-auto md:mr-0': index % 2 === 0, 'mr-auto md:ml-0': index % 2 !== 0}"
-            >
-              <!-- Modern glassmorphism container -->
-              <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                <!-- Sleek gradient header -->
-                <div class="h-1 w-full transition-all duration-300"
-                     :class="getCardHeaderClasses(step.color)"></div>
-                
-                <!-- Subtle background effects -->
-                <div class="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"
-                     :class="getCardBackgroundClasses(step.color)"></div>
-                
-                <!-- Content container -->
-                <div class="relative z-10 p-6 sm:p-8">
-                  <!-- Step number and icon in a fancy container -->
-                  <div class="flex items-center gap-4 mb-6">
-                    <!-- Step icon container -->
+                class="flex-1 md:w-[calc(50%-4rem)]"
+                :class="index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'"
+              >
+                <div class="group relative p-6 md:p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 overflow-hidden">
+                  <!-- Hover glow -->
+                  <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-br opacity-[0.02]" :class="getGradientClass(step.color)"></div>
+                  </div>
+                  
+                  <!-- Icon and title -->
+                  <div class="relative flex items-center gap-4 mb-5">
                     <div 
-                      class="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-xl transform transition-all duration-300 border"
-                      :class="getIconContainerClasses(step.color)"
+                      class="flex items-center justify-center w-11 h-11 rounded-xl border transition-all duration-300"
+                      :class="getIconContainerClass(step.color)"
                     >
-                      <i :class="[step.icon, 'text-lg sm:text-xl', getIconClasses(step.color)]"></i>
+                      <i :class="[step.icon, 'text-base', getIconClass(step.color)]"></i>
                     </div>
-                    
-                    <div class="flex-1">
-                      <!-- Step label with modern badge styling -->
-                      <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-2 border backdrop-blur-sm"
-                           :class="getTagClasses(step.color)">
-                        Step {{ index + 1 }}
-                      </div>
-                      
-                      <!-- Step title with larger font -->
-                      <h3 class="text-xl sm:text-2xl font-semibold text-white leading-tight">{{ step.title }}</h3>
+                    <div>
+                      <div class="text-xs font-medium uppercase tracking-wider mb-1" :class="getLabelClass(step.color)">Step {{ index + 1 }}</div>
+                      <h3 class="hidden sm:block text-lg font-semibold text-white/90">{{ step.title }}</h3>
                     </div>
                   </div>
                   
-                  <!-- Step description -->
-                  <p class="text-gray-300 mb-6 leading-relaxed">{{ step.description }}</p>
+                  <!-- Description -->
+                  <p class="relative text-white/50 text-sm leading-relaxed mb-6">{{ step.description }}</p>
                   
-                  <!-- Modern separator -->
-                  <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
-                  
-                  <!-- Feature highlights with improved styling -->
-                  <ul class="space-y-3">
-                    <li v-for="(feature, fIndex) in step.features" :key="fIndex" 
-                        class="flex items-start gap-3">
-                      <div class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5 border"
-                           :class="getFeatureIconBgClasses(step.color)">
-                        <i class="fas fa-check text-xs" :class="getFeatureIconClasses(step.color)"></i>
+                  <!-- Features list -->
+                  <ul class="relative space-y-3">
+                    <li 
+                      v-for="(feature, fIndex) in step.features" 
+                      :key="fIndex" 
+                      class="flex items-start gap-3"
+                    >
+                      <div 
+                        class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full mt-0.5"
+                        :class="getCheckClass(step.color)"
+                      >
+                        <i class="fas fa-check text-[10px]" :class="getCheckIconClass(step.color)"></i>
                       </div>
-                      <span class="text-gray-300 text-sm leading-relaxed">{{ feature }}</span>
+                      <span class="text-white/60 text-sm">{{ feature }}</span>
                     </li>
                   </ul>
+
+                  <!-- Bottom accent -->
+                  <div 
+                    class="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    :class="getAccentClass(step.color)"
+                  ></div>
                 </div>
               </div>
+              
+              <!-- Spacer for alternating layout -->
+              <div class="hidden md:block flex-1 md:w-[calc(50%-4rem)]"></div>
             </div>
+            
+            <!-- Spacing between steps on desktop -->
+            <div v-if="index < steps.length - 1" class="hidden md:block h-16"></div>
           </div>
         </div>
       </div>
       
-      <!-- Action button at the end of the timeline -->
+      <!-- CTA button -->
       <div class="text-center mt-16">
         <HomeNavbarButton
           :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-          class="group relative !h-12 sm:!h-14 px-8 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white font-medium transition-all duration-300 transform hover:-translate-y-1 shadow-lg shadow-rose-500/25"
+          class="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
         >
-          <span class="flex items-center justify-center text-lg">
-            Try It Yourself
-            <i class="fas fa-arrow-right ml-3 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-          </span>
+          Try It Yourself
+          <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
         </HomeNavbarButton>
       </div>
     </div>
@@ -167,16 +151,16 @@ export default defineComponent({
     },
     subtitle: {
       type: String,
-      default: 'Build professional web applications with Vue.js frontends and Django backends in just minutes - perfect for non-technical users with great ideas.'
+      default: 'Build professional web applications in just four simple steps — no coding experience required.'
     },
     steps: {
       type: Array,
       default: () => [
         {
           title: 'Describe Your Vision',
-          description: 'Simply tell us what you want your web application to do. No technical knowledge needed - describe it like you\'re talking to a friend about your business idea.',
+          description: 'Simply tell us what you want your web application to do. No technical knowledge needed — describe it like you\'re talking to a friend.',
           icon: 'fas fa-lightbulb',
-          color: 'primary',
+          color: 'violet',
           features: [
             'Use everyday language',
             'Describe business goals, not code',
@@ -184,10 +168,10 @@ export default defineComponent({
           ]
         },
         {
-          title: 'AI Builds Full-Stack App',
+          title: 'AI Builds Your App',
           description: 'Our AI creates a complete application with a Vue.js frontend for users to interact with and a Django backend to handle data and logic.',
           icon: 'fas fa-robot',
-          color: 'violet',
+          color: 'fuchsia',
           features: [
             'Vue.js frontend automatically generated',
             'Django backend with APIs created',
@@ -196,9 +180,9 @@ export default defineComponent({
         },
         {
           title: 'Refine Through Conversation',
-          description: 'Make changes by chatting with the AI. Ask for design tweaks, new features, or functionality changes - no coding required.',
+          description: 'Make changes by chatting with the AI. Ask for design tweaks, new features, or functionality changes — no coding required.',
           icon: 'fas fa-comments',
-          color: 'purple',
+          color: 'blue',
           features: [
             'Natural language edits',
             'Frontend and backend updates together',
@@ -206,10 +190,10 @@ export default defineComponent({
           ]
         },
         {
-          title: 'Get Your Professional App',
-          description: 'Receive a complete, professional web application with modern Vue.js interface and robust Django API - ready for users and scalable for growth.',
-          icon: 'fas fa-globe',
-          color: 'blue',
+          title: 'Launch Your App',
+          description: 'Receive a complete, professional web application with modern Vue.js interface and robust Django API — ready for users and scalable for growth.',
+          icon: 'fas fa-rocket',
+          color: 'emerald',
           features: [
             'Production-ready full-stack app',
             'Modern, responsive frontend',
@@ -227,120 +211,90 @@ export default defineComponent({
     }
   },
   methods: {
-    getDotBgClasses(color) {
-      const classes = {
-        primary: 'bg-gradient-to-br from-indigo-500 to-violet-500',
-        violet: 'bg-gradient-to-br from-violet-500 to-purple-500',
-        purple: 'bg-gradient-to-br from-purple-500 to-fuchsia-500',
-        blue: 'bg-gradient-to-br from-blue-500 to-cyan-500',
+    getGradientClass(color) {
+      const gradients = {
+        violet: 'from-violet-500 to-purple-500',
+        fuchsia: 'from-fuchsia-500 to-pink-500',
+        blue: 'from-blue-500 to-cyan-500',
+        emerald: 'from-emerald-500 to-teal-500'
       }
-      return classes[color] || classes.primary
+      return gradients[color] || gradients.violet
     },
-    getDotGlowClasses(color) {
+    getNodeClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-br from-indigo-500 to-violet-500',
-        violet: 'bg-gradient-to-br from-violet-500 to-purple-500',
-        purple: 'bg-gradient-to-br from-purple-500 to-fuchsia-500',
-        blue: 'bg-gradient-to-br from-blue-500 to-cyan-500',
+        violet: 'bg-gradient-to-br from-violet-500 to-violet-600',
+        fuchsia: 'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600',
+        blue: 'bg-gradient-to-br from-blue-500 to-blue-600',
+        emerald: 'bg-gradient-to-br from-emerald-500 to-emerald-600'
       }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
     },
-    getCardHeaderClasses(color) {
+    getGlowClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80',
-        violet: 'bg-gradient-to-r from-violet-400 via-purple-400 to-violet-400 opacity-80',
-        purple: 'bg-gradient-to-r from-purple-400 via-fuchsia-400 to-purple-400 opacity-80',
-        blue: 'bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-400 opacity-80',
-      }
-      return classes[color] || classes.primary
-    },
-    getIconContainerClasses(color) {
-      const classes = {
-        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
-        violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
-        purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
-        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
-      }
-      return classes[color] || classes.primary
-    },
-    getIconClasses(color) {
-      const classes = {
-        primary: 'text-indigo-300',
-        violet: 'text-violet-300',
-        purple: 'text-purple-300',
-        blue: 'text-blue-300',
-      }
-      return classes[color] || classes.primary
-    },
-    getTagClasses(color) {
-      const classes = {
-        primary: 'bg-gradient-to-r from-indigo-500/10 to-violet-500/10 text-indigo-300 border-indigo-400/20',
-        violet: 'bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-300 border-violet-400/20',
-        purple: 'bg-gradient-to-r from-purple-500/10 to-fuchsia-500/10 text-purple-300 border-purple-400/20',
-        blue: 'bg-gradient-to-r from-blue-500/10 to-cyan-500/10 text-blue-300 border-blue-400/20',
-      }
-      return classes[color] || classes.primary
-    },
-    getFeatureIconBgClasses(color) {
-      const classes = {
-        primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
-        violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
-        purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
-        blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
-      }
-      return classes[color] || classes.primary
-    },
-    getFeatureIconClasses(color) {
-      const classes = {
-        primary: 'text-indigo-300',
-        violet: 'text-violet-300',
-        purple: 'text-purple-300',
-        blue: 'text-blue-300',
-      }
-      return classes[color] || classes.primary
-    },
-    getConnectorLineClasses(color) {
-      const classes = {
-        primary: 'bg-indigo-500',
         violet: 'bg-violet-500',
-        purple: 'bg-purple-500',
+        fuchsia: 'bg-fuchsia-500',
         blue: 'bg-blue-500',
+        emerald: 'bg-emerald-500'
       }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
     },
-    getConnectorGradientClasses(color) {
+    getIconContainerClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-r from-indigo-400/60 to-violet-400/60',
-        violet: 'bg-gradient-to-r from-violet-400/60 to-purple-400/60',
-        purple: 'bg-gradient-to-r from-purple-400/60 to-fuchsia-400/60',
-        blue: 'bg-gradient-to-r from-blue-400/60 to-cyan-400/60',
+        violet: 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/15 group-hover:border-violet-500/30',
+        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20 group-hover:bg-fuchsia-500/15 group-hover:border-fuchsia-500/30',
+        blue: 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15 group-hover:border-blue-500/30',
+        emerald: 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15 group-hover:border-emerald-500/30'
       }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
     },
-    getCardBackgroundClasses(color) {
+    getIconClass(color) {
       const classes = {
-        primary: 'bg-gradient-to-br from-indigo-400/4 to-violet-400/4',
-        violet: 'bg-gradient-to-br from-violet-400/4 to-purple-400/4',
-        purple: 'bg-gradient-to-br from-purple-400/4 to-fuchsia-400/4',
-        blue: 'bg-gradient-to-br from-blue-400/4 to-cyan-400/4',
+        violet: 'text-violet-400',
+        fuchsia: 'text-fuchsia-400',
+        blue: 'text-blue-400',
+        emerald: 'text-emerald-400'
       }
-      return classes[color] || classes.primary
+      return classes[color] || classes.violet
+    },
+    getLabelClass(color) {
+      const classes = {
+        violet: 'text-violet-400/70',
+        fuchsia: 'text-fuchsia-400/70',
+        blue: 'text-blue-400/70',
+        emerald: 'text-emerald-400/70'
+      }
+      return classes[color] || classes.violet
+    },
+    getCheckClass(color) {
+      const classes = {
+        violet: 'bg-violet-500/15',
+        fuchsia: 'bg-fuchsia-500/15',
+        blue: 'bg-blue-500/15',
+        emerald: 'bg-emerald-500/15'
+      }
+      return classes[color] || classes.violet
+    },
+    getCheckIconClass(color) {
+      const classes = {
+        violet: 'text-violet-400',
+        fuchsia: 'text-fuchsia-400',
+        blue: 'text-blue-400',
+        emerald: 'text-emerald-400'
+      }
+      return classes[color] || classes.violet
+    },
+    getAccentClass(color) {
+      const classes = {
+        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
+        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
+        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
+        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent'
+      }
+      return classes[color] || classes.violet
     }
   }
 })
 </script>
 
 <style scoped>
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
-}
-
-.animation-delay-150 {
-  animation-delay: 150ms;
-}
-</style> 
+</style>
