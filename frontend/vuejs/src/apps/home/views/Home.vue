@@ -44,17 +44,42 @@
         <!-- Features Section -->
         <FeaturesSection />
         
+        <!-- Simple Divider -->
+        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        </div>
+        
         <!-- How It Works Section -->
         <HowItWorksSection />
+        
+        <!-- Simple Divider -->
+        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        </div>
         
         <!-- Use Cases Section -->
         <UseCasesSection />
         
+        <!-- Simple Divider -->
+        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        </div>
+        
         <!-- Testimonials Section -->
         <TestimonialsSection />
         
+        <!-- Simple Divider -->
+        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        </div>
+        
         <!-- Stats Section -->
         <StatsSection />
+        
+        <!-- Simple Divider -->
+        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        </div>
         
         <!-- CTA Section -->
         <CTASection 
