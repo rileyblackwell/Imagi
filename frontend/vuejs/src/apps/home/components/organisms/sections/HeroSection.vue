@@ -92,7 +92,7 @@
                 <span class="text-sm">Built in minutes</span>
               </div>
               <div class="flex items-center gap-2 text-white/40">
-                <i class="fas fa-shield-check text-emerald-400/80 text-sm"></i>
+                <i class="fas fa-check-circle text-emerald-400/80 text-sm"></i>
                 <span class="text-sm">Production ready</span>
               </div>
               <div class="flex items-center gap-2 text-white/40">
