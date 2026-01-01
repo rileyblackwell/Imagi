@@ -41,56 +41,77 @@
       </div>
     </template>
 
-    <!-- Enhanced Main Content with Dynamic Background -->
-    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Improved Decorative Background Elements -->
-      <div class="absolute inset-0 pointer-events-none">
-        <!-- Enhanced Pattern Overlay -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+    <!-- Premium Main Content - Matching Home Page -->
+    <div class="min-h-screen bg-[#050508] relative overflow-hidden">
+      <!-- Premium Background System -->
+      <div class="fixed inset-0 pointer-events-none">
+        <!-- Base gradient mesh -->
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.15),transparent_50%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.08),transparent_40%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.06),transparent_35%)]"></div>
         
-        <!-- Enhanced Glowing Orbs Animation -->
-        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
-        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        <!-- Subtle grain texture -->
+        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
         
-        <!-- Animated Lines and Particles -->
-        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
-        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
+        <!-- Animated aurora effect -->
+        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-30">
+          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/20 via-fuchsia-500/10 to-transparent blur-[100px] animate-aurora"></div>
+        </div>
+        
+        <!-- Floating orbs -->
+        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/8 to-violet-600/4 blur-[120px] animate-float-slow"></div>
+        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/6 to-purple-600/3 blur-[100px] animate-float-delayed"></div>
+        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/4 to-orange-500/2 blur-[80px] animate-float-reverse"></div>
       </div>
 
-      <!-- Enhanced Content Container -->
+      <!-- Content Container -->
       <div class="relative z-10">
-        <!-- Modern Welcome Header Section -->
-        <div class="pt-16 pb-12 px-6 sm:px-8 lg:px-12">
+        <!-- Premium Header Section - Matching Home Page -->
+        <div class="pt-20 pb-12 px-6 sm:px-8 lg:px-12">
           <div class="max-w-7xl mx-auto">
-            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
-              <div class="space-y-6 md:max-w-3xl">
-                <!-- Enhanced Badge -->
-                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
-                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">PROJECT WORKSPACE</span>
+            <div class="text-center">
+              <!-- Animated badge matching home page -->
+              <div class="mb-8 inline-block animate-fade-in">
+                <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300 cursor-default">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
+                  </span>
+                  <span class="text-sm font-medium text-white/70 tracking-wide">Project Workspace</span>
                 </div>
-                
-                <!-- Modern Title with Gradient Enhancement -->
-                <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
-                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Create & Manage</span> 
-                  <br class="hidden sm:block" />Your Projects
-                </h2>
-                
-                <!-- Enhanced Description -->
-                <p class="text-xl text-gray-300 max-w-2xl">
-                  Leverage AI-powered tools to build web applications quickly. Start a new project or continue working on existing ones.
-                </p>
               </div>
               
-              <!-- Stats Overview Cards -->
-              <div class="flex flex-wrap gap-4 justify-end">
-                <!-- Project count moved to Project Library -->
-              </div>
+              <!-- Title with gradient text -->
+              <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight mb-6 leading-[1.1]">
+                <span class="block text-white/90">Create & Manage</span>
+                <span class="block mt-2">
+                  <span class="relative inline-block">
+                    <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-x">
+                      Your Projects
+                    </span>
+                    <span class="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent"></span>
+                  </span>
+                </span>
+              </h1>
+              
+              <!-- Description -->
+              <p class="text-lg sm:text-xl text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Leverage AI-powered tools to build web applications quickly. Start a new project or continue working on existing ones.
+              </p>
             </div>
             
-            <!-- Animated Divider Line -->
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
+            <!-- Elegant Divider -->
+            <div class="relative py-8 md:py-12">
+              <div class="relative flex items-center justify-center">
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+                <div class="mx-6 flex items-center gap-2">
+                  <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-violet-400/70"></div>
+                  <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+                </div>
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -125,94 +146,88 @@
             <div class="flex flex-col lg:flex-row gap-6 items-stretch">
               <!-- Project Create Section -->
               <div class="w-full lg:w-1/2 h-full flex flex-col">
-                <!-- Modern glassmorphism container -->
-                <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full flex flex-col">
-                  <!-- Sleek gradient header -->
-                  <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+                <!-- Premium glass card - Matching Home Page Style -->
+                <div class="group relative h-full">
+                  <!-- Background glow -->
+                  <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
                   
-                  <!-- Subtle background effects -->
-                  <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50"></div>
+                  <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden h-full flex flex-col">
+                    <!-- Accent line -->
+                    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+                    
+                    <!-- Decorative elements -->
+                    <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
                   
-                  <!-- Content with reduced padding for slender look -->
-                  <div class="flex-1 p-6">
-                    <!-- Sleek Header Section -->
-                    <div class="relative z-10 mb-6">
-                      <!-- Modern pill badge -->
-                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border border-indigo-400/20 rounded-full mb-3 backdrop-blur-sm">
-                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
-                        <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">New Project</span>
+                    <!-- Content -->
+                    <div class="flex-1 p-6 md:p-8">
+                      <!-- Header Section -->
+                      <div class="relative z-10 mb-6">
+                        <!-- Badge matching home page -->
+                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-4">
+                          <i class="fas fa-plus text-xs text-violet-400/80"></i>
+                          <span class="text-sm font-medium text-white/60">New Project</span>
+                        </div>
+                        
+                        <!-- Title section -->
+                        <div class="relative mb-4">
+                          <h3 class="text-xl font-semibold text-white/90 leading-tight">Create a Project</h3>
+                          <p class="text-white/50 text-sm mt-2 leading-relaxed">Build a new web application with AI assistance</p>
+                        </div>
                       </div>
                       
-                      <!-- Elegant title section -->
-                      <div class="relative mb-4 text-center">
-                        <h3 class="text-xl font-semibold text-white leading-tight">Create a Project</h3>
-                        <p class="text-gray-400 text-sm mt-1 leading-relaxed">Build a new web application with AI assistance</p>
-                      </div>
-                    </div>
-                    
-                    <!-- Sleek Create Form -->
-                    <div class="relative z-10">
-                      <div class="flex flex-col space-y-4">
-                        <!-- Modern Project Name Input -->
-                        <div class="relative group/input w-full">
-                          <!-- Enhanced glow effect on focus -->
-                          <div class="absolute inset-0 bg-gradient-to-r from-violet-500/12 to-indigo-500/12 rounded-xl blur-sm opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+                      <!-- Create Form -->
+                      <div class="relative z-10">
+                        <div class="flex flex-col space-y-5">
+                          <!-- Project Name Input -->
+                          <div class="relative group/input w-full">
+                            <label class="block text-sm font-medium text-white/60 mb-2">Project Name</label>
+                            <input
+                              v-model="newProjectName"
+                              type="text"
+                              placeholder="Enter project name..."
+                              class="w-full px-4 py-3.5 bg-white/[0.03] border border-white/[0.08] focus:border-violet-400/50 hover:border-white/[0.12] rounded-xl text-white/90 placeholder-white/30 transition-all duration-300 backdrop-blur-sm focus:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
+                              style="outline: none !important;"
+                              :disabled="isCreating"
+                            >
+                          </div>
                           
-                          <label class="block text-xs font-medium text-gray-400 mb-1.5 ml-0.5 uppercase tracking-wider relative z-10">Project Name</label>
-                          <input
-                            v-model="newProjectName"
-                            type="text"
-                            placeholder="Enter project name..."
-                            class="relative z-10 w-full px-4 py-3 bg-white/5 border border-white/10 focus:border-violet-400/50 hover:border-white/15 rounded-xl text-white placeholder-gray-400 transition-all duration-300 backdrop-blur-sm hover:bg-white/8 focus:bg-white/8 focus:shadow-lg focus:shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                            style="outline: none !important; box-shadow: none !important;"
-                            :disabled="isCreating"
-                          >
-                        </div>
-                        
-                        <!-- Modern Project Description Input -->
-                        <div class="relative group/input w-full">
-                          <!-- Enhanced glow effect on focus -->
-                          <div class="absolute inset-0 bg-gradient-to-r from-violet-500/12 to-indigo-500/12 rounded-xl blur-sm opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
+                          <!-- Project Description Input -->
+                          <div class="relative group/input w-full">
+                            <label class="block text-sm font-medium text-white/60 mb-2">Description <span class="text-white/30">(optional)</span></label>
+                            <textarea
+                              v-model="newProjectDescription"
+                              placeholder="Brief description of your project..."
+                              class="w-full px-4 py-3.5 bg-white/[0.03] border border-white/[0.08] focus:border-violet-400/50 hover:border-white/[0.12] rounded-xl text-white/90 placeholder-white/30 transition-all duration-300 resize-none backdrop-blur-sm focus:bg-white/[0.05] disabled:opacity-50 disabled:cursor-not-allowed"
+                              style="outline: none !important;"
+                              :disabled="isCreating"
+                              rows="2"
+                            ></textarea>
+                          </div>
                           
-                          <label class="block text-xs font-medium text-gray-400 mb-1.5 ml-0.5 uppercase tracking-wider relative z-10">Description <span class="text-gray-500 normal-case">(optional)</span></label>
-                          <textarea
-                            v-model="newProjectDescription"
-                            placeholder="Brief description of your project..."
-                            class="relative z-10 w-full px-4 py-3 bg-white/5 border border-white/10 focus:border-violet-400/50 hover:border-white/15 rounded-xl text-white placeholder-gray-400 transition-all duration-300 resize-none backdrop-blur-sm hover:bg-white/8 focus:bg-white/8 focus:shadow-lg focus:shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                            style="outline: none !important; box-shadow: none !important;"
-                            :disabled="isCreating"
-                            rows="2"
-                          ></textarea>
-                        </div>
-                        
-                        <!-- Sleek Create Button -->
-                        <div class="pt-1">
-                          <button
-                            @click="createProject"
-                            :disabled="!newProjectName?.trim() || isCreating"
-                            class="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            
-                            <span class="relative flex items-center justify-center">
+                          <!-- Create Button - Matching Home Page CTA -->
+                          <div class="pt-2">
+                            <button
+                              @click="createProject"
+                              :disabled="!newProjectName?.trim() || isCreating"
+                              class="group/btn w-full inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                            >
                               <template v-if="isCreating">
-                                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                                Creating...
+                                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Creating...</span>
                               </template>
                               <template v-else>
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Create Project
+                                <i class="fas fa-plus"></i>
+                                <span>Create Project</span>
+                                <i class="fas fa-arrow-right text-sm transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
                               </template>
-                            </span>
-                          </button>
-                          
-                          <p class="text-xs text-gray-500 mt-3 text-center leading-relaxed">
-                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                            </svg>
-                            Project created with recommended starter template
-                          </p>
+                            </button>
+                            
+                            <p class="text-xs text-white/30 mt-4 text-center leading-relaxed flex items-center justify-center gap-1.5">
+                              <i class="fas fa-info-circle text-violet-400/60"></i>
+                              Project created with recommended starter template
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -222,175 +237,148 @@
 
               <!-- Project Library Section -->
               <div class="w-full lg:w-1/2 h-full flex flex-col">
-                <!-- Modern glassmorphism container -->
-                <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full flex flex-col">
-                  <!-- Sleek gradient header -->
-                  <div class="h-1 w-full bg-gradient-to-r from-violet-400 via-indigo-400 to-violet-400 opacity-80"></div>
+                <!-- Premium glass card - Matching Home Page Style -->
+                <div class="group relative h-full">
+                  <!-- Background glow -->
+                  <div class="absolute -inset-1 bg-gradient-to-r from-fuchsia-600/20 via-violet-600/20 to-fuchsia-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
                   
-                  <!-- Subtle background effects -->
-                  <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-violet-400/4 to-indigo-400/4 rounded-full blur-3xl opacity-50"></div>
+                  <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden h-full flex flex-col">
+                    <!-- Accent line -->
+                    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent"></div>
+                    
+                    <!-- Decorative elements -->
+                    <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -top-20 -right-20 w-32 h-32 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
                   
-                  <!-- Content with reduced padding for slender look -->
-                  <div class="flex-1 p-6">
-                    <!-- Sleek Header Section -->
-                    <div class="relative z-10 mb-6">
-                      <!-- Modern pill badge -->
-                      <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-violet-500/15 to-indigo-500/15 border border-violet-400/20 rounded-full mb-3 backdrop-blur-sm">
-                        <div class="w-1.5 h-1.5 bg-violet-400 rounded-full mr-2 animate-pulse"></div>
-                        <span class="text-violet-300 font-medium text-xs tracking-wide uppercase">Your Projects</span>
-                      </div>
-                      
-                      <!-- Elegant title section with stats in corner -->
-                      <div class="relative mb-4">
-                        <!-- Total Projects in top right corner -->
-                        <div class="absolute top-0 right-0">
-                          <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-2 flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-400/20 to-indigo-400/20 flex items-center justify-center border border-violet-400/20">
-                              <svg class="w-3 h-3 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                              </svg>
-                            </div>
-                            <div>
-                              <p class="text-xs text-gray-400 leading-none">{{ projects.length || 0 }}</p>
-                            </div>
-                          </div>
+                    <!-- Content -->
+                    <div class="flex-1 p-6 md:p-8 flex flex-col">
+                      <!-- Header Section -->
+                      <div class="relative z-10 mb-6">
+                        <!-- Badge matching home page -->
+                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-4">
+                          <i class="fas fa-folder text-xs text-fuchsia-400/80"></i>
+                          <span class="text-sm font-medium text-white/60">Your Projects</span>
                         </div>
                         
-                        <h3 class="text-xl font-semibold text-white leading-tight pr-20 text-center">Project Library</h3>
-                        <p class="text-gray-400 text-sm mt-1 leading-relaxed text-center">Continue working on your existing applications</p>
+                        <!-- Title section -->
+                        <div class="relative mb-4">
+                          <h3 class="text-xl font-semibold text-white/90 leading-tight">Project Library</h3>
+                          <p class="text-white/50 text-sm mt-2 leading-relaxed">Continue working on your existing applications</p>
+                        </div>
                       </div>
-                      
-                      <!-- Modern Search Input -->
-                      <div class="mb-4 flex justify-center">
-                        <div class="w-full max-w-md">
-                          <SearchInput 
-                            v-model="searchQuery"
-                            placeholder="Search projects"
-                            variant="project"
+
+                    <!-- Search Input -->
+                    <div class="relative z-10 mb-6">
+                      <SearchInput 
+                        v-model="searchQuery"
+                        placeholder="Search projects"
+                        variant="project"
+                      />
+                    </div>
+
+                    <!-- Content Section -->
+                    <div class="relative z-10 flex-1 flex flex-col overflow-hidden">
+                      <!-- Loading State -->
+                      <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 mb-4">
+                          <div class="w-6 h-6 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin"></div>
+                        </div>
+                        <p class="text-white/50 text-sm">Loading your projects...</p>
+                      </div>
+
+                      <!-- Error State -->
+                      <div v-else-if="error" class="flex flex-col items-center justify-center py-12">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/20 mb-4">
+                          <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                        </div>
+                        <p class="text-white/50 mb-4 text-center max-w-md text-sm">{{ error }}</p>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                          <button
+                            @click="retryFetch"
+                            class="group/btn inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
+                          >
+                            <i class="fas fa-redo text-sm"></i>
+                            <span>Try Again</span>
+                          </button>
+                          
+                          <button
+                            @click="retryFetchWithDiagnostics"
+                            class="group/btn inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300"
+                          >
+                            <i class="fas fa-cog text-sm"></i>
+                            <span>Diagnose</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- No Search Results -->
+                      <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex flex-col items-center justify-center py-12">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/[0.08] mb-4">
+                          <i class="fas fa-search text-white/40 text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white/90 mb-1">No matching projects</h3>
+                        <p class="text-white/50 text-center max-w-md text-sm">No projects found matching "{{ searchQuery }}"</p>
+                      </div>
+
+                      <!-- Empty State -->
+                      <div v-else-if="!projects.length" class="flex flex-col items-center justify-center py-12">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 mb-4">
+                          <i class="fas fa-folder-open text-violet-400 text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white/90 mb-1">No projects yet</h3>
+                        <p class="text-white/50 text-center max-w-md mb-4 text-sm">Create your first project to start building with Imagi</p>
+                        
+                        <!-- Directional hint -->
+                        <div class="flex items-center text-violet-400 text-sm">
+                          <i class="fas fa-arrow-left mr-2 animate-pulse"></i>
+                          <span>Get started with a new project</span>
+                        </div>
+                      </div>
+
+                      <!-- Projects Display -->
+                      <div v-else-if="displayedProjects.length > 0" class="flex-1 flex flex-col overflow-hidden">
+                        <!-- Project count badge -->
+                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-4 self-start">
+                          <i class="fas fa-clock text-xs text-fuchsia-400/80"></i>
+                          <span class="text-sm font-medium text-white/60">
+                            {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
+                          </span>
+                        </div>
+                        
+                        <!-- Scrollable Project Cards Container -->
+                        <div class="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                          <ProjectCard
+                            v-for="project in displayedProjects"
+                            :key="project.id"
+                            :project="project"
+                            @delete="confirmDelete"
                           />
                         </div>
-                      </div>
-                    </div>
-
-                    <!-- Modern Content Section -->
-                    <div class="relative z-10">
-                      <!-- Sleek Loading State -->
-                    <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gradient-to-br from-violet-400/20 to-indigo-400/20 rounded-2xl flex items-center justify-center mb-4 border border-violet-400/20">
-                        <div class="w-5 h-5 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin"></div>
-                      </div>
-                      <p class="text-gray-400 text-sm">Loading your projects...</p>
-                    </div>
-
-                    <!-- Sleek Error State -->
-                    <div v-else-if="error" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gradient-to-br from-red-400/20 to-orange-400/20 rounded-2xl flex items-center justify-center mb-4 border border-red-400/20">
-                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"></path>
-                        </svg>
-                      </div>
-                      <p class="text-gray-400 mb-4 text-center max-w-md text-sm">{{ error }}</p>
-                      <div class="flex flex-col sm:flex-row gap-2">
-                        <button
-                          @click="retryFetch"
-                          class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-indigo-400/30 text-white rounded-xl transition-all duration-300 inline-flex items-center text-sm"
-                        >
-                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                          </svg>
-                          Try Again
-                        </button>
                         
-                        <button
-                          @click="retryFetchWithDiagnostics"
-                          class="px-4 py-2 bg-gradient-to-r from-indigo-500/80 to-violet-500/80 hover:from-indigo-400 hover:to-violet-400 text-white rounded-xl transition-all duration-300 inline-flex items-center text-sm"
-                        >
-                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                          </svg>
-                          Diagnose
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- Sleek No Search Results -->
-                    <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gradient-to-br from-gray-400/20 to-gray-600/20 rounded-2xl flex items-center justify-center mb-4 border border-gray-400/20">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                      </div>
-                      <h3 class="text-lg font-medium text-white mb-1">No matching projects</h3>
-                      <p class="text-gray-400 text-center max-w-md text-sm">No projects found matching "{{ searchQuery }}"</p>
-                    </div>
-
-                    <!-- Sleek Empty State -->
-                    <div v-else-if="!projects.length" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gradient-to-br from-violet-400/20 to-indigo-400/20 rounded-2xl flex items-center justify-center mb-4 border border-violet-400/20">
-                        <svg class="w-5 h-5 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                        </svg>
-                      </div>
-                      <h3 class="text-lg font-medium text-white mb-1">No projects yet</h3>
-                      <p class="text-gray-400 text-center max-w-md mb-4 text-sm">Create your first project to start building with Imagi</p>
-                      
-                      <!-- Elegant directional hint -->
-                      <div class="flex items-center text-violet-400 text-sm">
-                        <svg class="w-4 h-4 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        <span>Get started with a new project</span>
-                      </div>
-                    </div>
-
-                    <!-- Sleek Projects Display -->
-                    <div v-else-if="displayedProjects.length > 0">
-                      <div class="flex items-center bg-gradient-to-r from-violet-400/8 to-indigo-400/8 rounded-2xl px-3 py-2 mb-4 border border-violet-400/15">
-                        <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-400/20 to-indigo-400/20 flex items-center justify-center mr-2 border border-violet-400/20">
-                          <svg class="w-3 h-3 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
+                        <!-- View All Link -->
+                        <div v-if="!searchQuery && projects.length > 3" class="mt-6 pt-4 border-t border-white/[0.08]">
+                          <router-link
+                            to="/products/oasis/builder/projects"
+                            class="group/btn inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white/70 hover:text-white font-medium transition-all duration-300 w-full justify-center"
+                          >
+                            <i class="fas fa-folder text-sm text-violet-400/80"></i>
+                            <span>View All Projects</span>
+                            <i class="fas fa-arrow-right text-sm transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
+                          </router-link>
                         </div>
-                        <h3 class="text-xs font-medium text-violet-300 uppercase tracking-wider">
-                          {{ searchQuery ? `Search Results (${displayedProjects.length})` : 'Recently Opened' }}
-                        </h3>
-                      </div>
-                      
-                      <!-- Project Cards with modern spacing -->
-                      <div class="space-y-4">
-                        <ProjectCard
-                          v-for="project in displayedProjects"
-                          :key="project.id"
-                          :project="project"
-                          @delete="confirmDelete"
-                        />
-                      </div>
-                      
-                      <!-- Sleek View All Link -->
-                      <div v-if="!searchQuery && projects.length > 3" class="mt-6 text-center">
-                        <router-link
-                          to="/products/oasis/builder/projects"
-                          class="inline-flex items-center px-4 py-2 bg-white/5 hover:bg-white/8 border border-white/10 text-gray-400 hover:text-gray-300 rounded-xl transition-all duration-200 text-sm"
-                        >
-                          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                          </svg>
-                          View All Projects ({{ projects.length }})
-                        </router-link>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            </div>
           </div>
         </div>
       </div>
     </div>
-    </BuilderLayout>
-  </template>
+  </div>
+  </BuilderLayout>
+</template>
 
 <script setup lang="ts">
 
@@ -918,7 +906,7 @@ watch(
 </script>
 
 <style scoped>
-/* Completely remove any browser default styling for form inputs */
+/* Remove browser default styling for form inputs */
 input, textarea {
   outline: none !important;
   box-shadow: none !important;
@@ -932,76 +920,117 @@ input:focus, textarea:focus {
   box-shadow: none !important;
 }
 
-/* Enhanced scrollbar styling */
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out forwards;
+}
+
+/* Gradient animation */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 4s ease infinite;
+}
+
+/* Aurora animation */
+@keyframes aurora {
+  0%, 100% {
+    transform: translateX(-10%) rotate(-2deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(10%) rotate(2deg);
+    opacity: 0.4;
+  }
+}
+
+.animate-aurora {
+  animation: aurora 20s ease-in-out infinite;
+}
+
+/* Float animations */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.02);
+  }
+  66% {
+    transform: translate(-20px, 10px) scale(0.98);
+  }
+}
+
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-25px, -30px) scale(1.03);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, 15px);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 25s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 30s ease-in-out infinite;
+  animation-delay: -5s;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 20s ease-in-out infinite;
+  animation-delay: -10s;
+}
+
+/* Premium scrollbar */
+:deep(::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:deep(::-webkit-scrollbar-track) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+:deep(::-webkit-scrollbar-thumb) {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
+}
+
+:deep(::-webkit-scrollbar-thumb:hover) {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+/* Custom scrollbar for project list */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.700') transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: theme('colors.gray.700');
-  border-radius: 9999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: theme('colors.gray.600');
-}
-
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  background-size: 200% auto;
-  animation: gradient-shift 4s ease infinite;
-}
-
-/* Add subtle animation for loading state */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-pulse {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.animate-pulse-slow {
-  animation: pulse 3s ease-in-out infinite;
-}
-
-/* Float animation for background orbs */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-.animate-float {
-  animation: float 15s ease-in-out infinite;
-}
-
-.animate-float-delay {
-  animation: float 18s ease-in-out infinite reverse;
-}
-
-.delay-700 {
-  animation-delay: 700ms;
-}
-
-/* Custom scrollbar styling for project container */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.700') transparent;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -1009,15 +1038,16 @@ input:focus, textarea:focus {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: theme('colors.gray.700');
-  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: theme('colors.gray.600');
+  background: rgba(139, 92, 246, 0.5);
 }
 </style>

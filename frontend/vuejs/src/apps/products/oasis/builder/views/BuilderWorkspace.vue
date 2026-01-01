@@ -33,12 +33,12 @@
         <!-- Intentionally left empty to remove all sidebar UI -->
       </template>
 
-      <!-- Modern Dark-themed Main Content Area -->
-      <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-dark-950 relative">
+      <!-- Premium Dark-themed Main Content Area - Matching Home Page -->
+      <div class="flex flex-col h-screen max-h-screen w-full overflow-hidden bg-[#050508] relative">
         <WorkspaceBackground />
         
-        <!-- Subtle top border for definition -->
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
+        <!-- Premium top accent line -->
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent z-20"></div>
 
         <!-- Enhanced Error State Display -->
         <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
@@ -48,65 +48,73 @@
           <!-- Main Content: Show Apps section first; switch to chat after submit -->
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
             <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
-            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-6 flex flex-col relative">
-              <!-- Subtle background effects behind the apps panel -->
-              <div class="pointer-events-none absolute inset-0 opacity-[0.03] bg-[url('/grid-pattern.svg')]"></div>
-              <div class="pointer-events-none absolute inset-0 bg-noise opacity-[0.02]"></div>
-              <div class="pointer-events-none absolute -top-[10%] right-[15%] w-[600px] h-[600px] rounded-full bg-indigo-600/5 blur-[140px] animate-float"></div>
-              <div class="pointer-events-none absolute bottom-[0%] left-[10%] w-[500px] h-[500px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
-
-              <!-- Glass apps container -->
-              <div class="relative rounded-2xl border border-white/5 bg-gradient-to-b from-dark-900/70 via-dark-900/50 to-dark-900/70 backdrop-blur-xl shadow-xl shadow-black/20 ring-1 ring-white/5 p-5">
+            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-6 sm:p-8 lg:p-12 flex flex-col relative">
+              <!-- Premium glass apps container - Matching Home Page CTA Style -->
+              <div class="group relative flex-1">
+                <!-- Background glow -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
                 
-                <!-- Simple: App Gallery for non-technical users -->
-                <WorkspaceAppsSimple
-                  v-if="appsViewMode === 'simple'"
-                  :files="store.files || []"
-                  :project-id="projectId || ''"
-                  :version-history="versionHistory"
-                  :is-loading-versions="isLoadingVersions"
-                  :selected-version-hash="selectedVersionHash"
-                  @selectFile="handleFileSelect"
-                  @createApp="handleCreateAppFromGallery"
-                  @preview="handlePreview"
-                  @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
-                  @version-select="onVersionSelect"
-                  @version-reset="handleVersionReset"
-                />
-
-                <!-- Advanced: full file explorer -->
-                <WorkspaceAppsAdvanced
-                  v-else
-                  :files="advancedFiles || []"
-                  :selected-file="store.selectedFile || null"
-                  :file-types="fileTypes"
-                  :project-id="projectId || ''"
-                  @back="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
-                  @select-file="handleFileSelect"
-                  @create-file="handleFileCreate"
-                  @delete-file="handleFileDelete"
-                />
-
-                <!-- Compact chat input section fixed below Apps area -->
-                <div class="mt-4">
-                  <WorkspaceChat
-                    :messages="ensureValidMessages(store.conversation || [])"
-                    :is-processing="store.isProcessing"
-                    :mode="store.mode || 'chat'"
-                    :selected-file="store.selectedFile"
-                    :selected-model-id="store.selectedModelId"
-                    :available-models="store.availableModels || []"
-                    :prompt-placeholder="promptPlaceholder"
-                    :show-examples="false"
-                    :prompt-examples="promptExamplesComputed"
-                    v-model="prompt"
-                    :compact="true"
-                    :show-conversation="false"
-                    @update:model-id="handleModelSelect"
-                    @update:mode="handleModeSwitch"
-                    @submit="handlePrompt"
-                    @use-example="handleExamplePrompt"
+                <!-- Card content -->
+                <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden flex flex-col">
+                  <!-- Accent line -->
+                  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+                  
+                  <!-- Decorative elements -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                  <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                  <!-- Simple: App Gallery for non-technical users -->
+                  <WorkspaceAppsSimple
+                    v-if="appsViewMode === 'simple'"
+                    :files="store.files || []"
+                    :project-id="projectId || ''"
+                    :version-history="versionHistory"
+                    :is-loading-versions="isLoadingVersions"
+                    :selected-version-hash="selectedVersionHash"
+                    @selectFile="handleFileSelect"
+                    @createApp="handleCreateAppFromGallery"
+                    @preview="handlePreview"
+                    @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
+                    @version-select="onVersionSelect"
+                    @version-reset="handleVersionReset"
+                    class="flex-1 min-h-0"
                   />
+
+                  <!-- Advanced: full file explorer -->
+                  <WorkspaceAppsAdvanced
+                    v-else
+                    :files="advancedFiles || []"
+                    :selected-file="store.selectedFile || null"
+                    :file-types="fileTypes"
+                    :project-id="projectId || ''"
+                    @back="() => { appsViewMode = 'simple'; advancedAppFilter = null }"
+                    @select-file="handleFileSelect"
+                    @create-file="handleFileCreate"
+                    @delete-file="handleFileDelete"
+                    class="flex-1 min-h-0"
+                  />
+
+                  <!-- Compact chat input section fixed below Apps area -->
+                  <div class="mt-6 shrink-0">
+                    <WorkspaceChat
+                      :messages="ensureValidMessages(store.conversation || [])"
+                      :is-processing="store.isProcessing"
+                      :mode="store.mode || 'chat'"
+                      :selected-file="store.selectedFile"
+                      :selected-model-id="store.selectedModelId"
+                      :available-models="store.availableModels || []"
+                      :prompt-placeholder="promptPlaceholder"
+                      :show-examples="false"
+                      :prompt-examples="promptExamplesComputed"
+                      v-model="prompt"
+                      :compact="true"
+                      :show-conversation="false"
+                      @update:model-id="handleModelSelect"
+                      @update:mode="handleModeSwitch"
+                      @submit="handlePrompt"
+                      @use-example="handleExamplePrompt"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1225,152 +1233,26 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* Ultra-premium background effects */
-.bg-grid-pattern {
-  background-image: linear-gradient(to right, theme('colors.dark.800') 1px, transparent 1px),
-                    linear-gradient(to bottom, theme('colors.dark.800') 1px, transparent 1px);
-  background-size: 20px 20px;
+/* Premium scrollbar - Matching Home Page */
+:deep(::-webkit-scrollbar) {
+  width: 6px;
 }
 
-/* Local noise texture utility for subtle grain */
-.bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+:deep(::-webkit-scrollbar-track) {
+  background: rgba(255, 255, 255, 0.02);
 }
 
-/* Sophisticated orchestrated floating animations */
-@keyframes float-orchestrated-1 {
-  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
-  25% { transform: translateY(-40px) translateX(25px) rotate(0.8deg) scale(1.02); }
-  50% { transform: translateY(-20px) translateX(35px) rotate(-0.3deg) scale(1.05); }
-  75% { transform: translateY(-35px) translateX(-10px) rotate(0.5deg) scale(1.01); }
+:deep(::-webkit-scrollbar-thumb) {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
 }
 
-@keyframes float-orchestrated-2 {
-  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
-  30% { transform: translateY(-30px) translateX(-20px) rotate(-0.6deg) scale(1.03); }
-  60% { transform: translateY(10px) translateX(30px) rotate(0.4deg) scale(1.04); }
-  90% { transform: translateY(-15px) translateX(-5px) rotate(-0.2deg) scale(1.01); }
-}
-
-@keyframes float-orchestrated-3 {
-  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
-  40% { transform: translateY(25px) translateX(-25px) rotate(0.7deg) scale(1.06); }
-  70% { transform: translateY(-20px) translateX(15px) rotate(-0.4deg) scale(1.02); }
-}
-
-@keyframes float-orchestrated-4 {
-  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); }
-  35% { transform: translateY(-25px) translateX(20px) rotate(-0.5deg) scale(1.04); }
-  65% { transform: translateY(15px) translateX(-30px) rotate(0.3deg) scale(1.07); }
-}
-
-.animate-float-orchestrated-1 {
-  animation: float-orchestrated-1 28s ease-in-out infinite;
-}
-
-.animate-float-orchestrated-2 {
-  animation: float-orchestrated-2 35s ease-in-out infinite reverse;
-}
-
-.animate-float-orchestrated-3 {
-  animation: float-orchestrated-3 32s ease-in-out infinite;
-}
-
-.animate-float-orchestrated-4 {
-  animation: float-orchestrated-4 40s ease-in-out infinite reverse;
-}
-
-/* Sophisticated pulse animations for decorative elements */
-@keyframes pulse-sophisticated {
-  0%, 100% { 
-    opacity: 0.8; 
-    transform: scaleX(1); 
-  }
-  25% { 
-    opacity: 0.4; 
-    transform: scaleX(1.02); 
-  }
-  50% { 
-    opacity: 0.6; 
-    transform: scaleX(0.98); 
-  }
-  75% { 
-    opacity: 0.3; 
-    transform: scaleX(1.01); 
-  }
-}
-
-.animate-pulse-sophisticated {
-  animation: pulse-sophisticated 4s ease-in-out infinite;
-}
-
-/* Sophisticated delay system */
-.delay-1200 {
-  animation-delay: 1200ms;
-}
-
-.delay-2400 {
-  animation-delay: 2400ms;
-}
-
-.delay-3600 {
-  animation-delay: 3600ms;
+:deep(::-webkit-scrollbar-thumb:hover) {
+  background: rgba(139, 92, 246, 0.5);
 }
 
 /* Safe area padding for mobile */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Ensure proper z-index layering */
-.relative {
-  position: relative;
-}
-
-/* Enhanced animations matching About page */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-.animate-float {
-  animation: float 15s ease-in-out infinite;
-}
-
-.animate-float-delay {
-  animation: float 18s ease-in-out infinite reverse;
-}
-
-/* Add subtle animation for loading state */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-pulse-slow {
-  animation: pulse 3s ease-in-out infinite;
-}
-
-.delay-700 {
-  animation-delay: 700ms;
-}
-
-/* Legacy animations for compatibility */
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  50% { transform: translateY(-20px) translateX(10px); }
-}
-
-@keyframes float-slow-reverse {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  50% { transform: translateY(20px) translateX(-10px); }
-}
-
-.animate-float-slow {
-  animation: float-slow 20s ease-in-out infinite;
-}
-
-.animate-float-slow-reverse {
-  animation: float-slow-reverse 25s ease-in-out infinite;
 }
 </style>

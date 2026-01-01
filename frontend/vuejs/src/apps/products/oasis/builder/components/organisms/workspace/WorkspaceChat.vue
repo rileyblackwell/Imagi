@@ -1,19 +1,21 @@
 <template>
-  <!-- Main dark-themed layout with sophisticated background -->
+  <!-- Premium dark-themed layout - Matching Home Page -->
   <div
-    class="bg-dark-950 relative overflow-hidden w-full"
+    class="bg-[#050508] relative overflow-hidden w-full"
     :class="compact ? '' : 'flex-1 flex flex-col h-full'"
   >
-    <!-- Enhanced sophisticated background effects matching About page -->
-    <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <!-- Enhanced Pattern Overlay -->
-      <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.02]"></div>
-      <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-      <div class="absolute inset-0 bg-gradient-to-br from-dark-950/95 via-dark-900 to-violet-950/10"></div>
+    <!-- Premium Background System (for non-compact mode only) -->
+    <div v-if="!compact" class="absolute inset-0 pointer-events-none overflow-hidden">
+      <!-- Base gradient mesh -->
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.1),transparent_50%)]"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.06),transparent_40%)]"></div>
       
-      <!-- Enhanced floating orbs -->
-      <div class="absolute -top-[15%] right-[10%] w-[600px] h-[600px] rounded-full bg-indigo-600/4 blur-[120px] animate-float"></div>
-      <div class="absolute bottom-[5%] left-[15%] w-[500px] h-[500px] rounded-full bg-violet-600/3 blur-[100px] animate-float-delay"></div>
+      <!-- Subtle grain texture -->
+      <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
+      
+      <!-- Floating orbs -->
+      <div class="absolute -top-[15%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/6 to-violet-600/3 blur-[120px] animate-float-slow"></div>
+      <div class="absolute bottom-[5%] left-[15%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/5 to-purple-600/2 blur-[100px] animate-float-delayed"></div>
     </div>
     
     <!-- Chat Conversation Area -->
@@ -34,47 +36,51 @@
       </div>
     </div>
 
-    <!-- Enhanced Input Section at Bottom -->
+    <!-- Premium Input Section at Bottom -->
     <div class="shrink-0 relative z-10 w-full">
-      <!-- Enhanced background overlay -->
-      <div class="absolute inset-0 bg-gradient-to-t from-dark-950/85 via-dark-950/50 to-transparent pointer-events-none"></div>
-      <div class="absolute inset-0 bg-gradient-to-t from-dark-900/20 via-transparent to-transparent pointer-events-none"></div>
+      <!-- Background overlay -->
+      <div class="absolute inset-0 bg-gradient-to-t from-[#050508]/95 via-[#050508]/70 to-transparent pointer-events-none"></div>
       
       <div class="relative z-10 w-full">
-        <!-- Content container matching dashboard layout -->
+        <!-- Content container -->
         <div class="max-w-4xl mx-auto px-6 py-6">
-          <!-- Modern glassmorphism container matching project library style -->
-          <div class="relative rounded-3xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-visible">
-            <!-- Sleek gradient header matching dashboard -->
-            <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+          <!-- Premium glass card - Matching Home Page CTA Style -->
+          <div class="group relative">
+            <!-- Background glow -->
+            <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
             
-            <!-- Subtle background effects matching dashboard -->
-            <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50"></div>
+            <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-visible">
+              <!-- Accent line -->
+              <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+              
+              <!-- Decorative elements -->
+              <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
             
-            <!-- Content with dashboard-style padding -->
-            <div class="relative z-10 p-6">
-              <!-- Header section with pill badge matching dashboard style -->
-              <div class="mb-4">
-                <!-- Modern pill badge matching dashboard -->
-                <div class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border border-indigo-400/20 rounded-full mb-3 backdrop-blur-sm">
-                  <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
-                  <span class="text-indigo-300 font-medium text-xs tracking-wide uppercase">
-                    {{ mode === 'chat' ? 'AI Chat' : 'Code Generation' }}
-                  </span>
-                </div>
-                
-                <!-- Title section matching dashboard style -->
-                <div class="flex justify-between items-start">
-                  <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-white leading-tight">
-                      {{ mode === 'chat' ? 'Ask me anything' : 'Describe what to build' }}
-                    </h3>
-                    <p class="text-gray-400 text-sm mt-1 leading-relaxed">
-                      {{ mode === 'chat' 
-                          ? 'Get help with your project, code review, or technical questions' 
-                          : 'Tell me what you want to create and I\'ll generate the code' }}
-                    </p>
+              <!-- Content -->
+              <div class="relative z-10 p-6 md:p-8">
+                <!-- Header section -->
+                <div class="mb-4">
+                  <!-- Badge matching home page -->
+                  <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-4">
+                    <i :class="mode === 'chat' ? 'fas fa-comments' : 'fas fa-code'" class="text-xs text-violet-400/80"></i>
+                    <span class="text-sm font-medium text-white/60">
+                      {{ mode === 'chat' ? 'AI Chat' : 'Code Generation' }}
+                    </span>
                   </div>
+                  
+                  <!-- Title section -->
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <h3 class="text-lg font-semibold text-white/90 leading-tight">
+                        {{ mode === 'chat' ? 'Ask me anything' : 'Describe what to build' }}
+                      </h3>
+                      <p class="text-white/50 text-sm mt-2 leading-relaxed">
+                        {{ mode === 'chat' 
+                            ? 'Get help with your project, code review, or technical questions' 
+                            : 'Tell me what you want to create and I\'ll generate the code' }}
+                      </p>
+                    </div>
                   
                   <!-- Controls in top right: Model selector + Mode toggle -->
                   <div class="ml-4 flex items-start gap-3">
@@ -87,60 +93,57 @@
                       />
                     </div>
                     <div class="relative min-w-[160px]">
-                      <!-- Dropdown Trigger Button (matches ModelSelector style) -->
+                      <!-- Dropdown Trigger Button - Premium Style -->
                       <button
                         @click="toggleModeDropdown"
-                        class="w-full flex items-center justify-between p-2.5 rounded-lg border transition-all duration-300 bg-dark-800/70 backdrop-blur-sm border-dark-700/50 hover:border-primary-500/30 group"
-                        :class="{ 'border-primary-500/40 bg-gradient-to-r from-primary-500/10 to-violet-500/10': isModeDropdownOpen }"
+                        class="w-full flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 bg-white/[0.03] backdrop-blur-sm border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.12] group"
+                        :class="{ 'border-violet-400/40 bg-white/[0.05]': isModeDropdownOpen }"
                         aria-haspopup="listbox"
                         :aria-expanded="isModeDropdownOpen ? 'true' : 'false'"
                       >
-                        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
                         <div class="relative flex items-center space-x-2">
-                          <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 shadow-[0_0_12px_rgba(139,92,246,0.15)]">
-                            <i class="fas bg-gradient-to-br from-primary-300 to-violet-300 bg-clip-text text-transparent drop-shadow-[0_0_6px_rgba(139,92,246,0.35)]" :class="mode === 'chat' ? 'fa-comments' : 'fa-code'"></i>
+                          <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/20">
+                            <i class="text-violet-400" :class="mode === 'chat' ? 'fas fa-comments' : 'fas fa-code'"></i>
                           </div>
-                          <span class="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{{ mode === 'chat' ? 'Chat' : 'Build' }}</span>
+                          <span class="text-sm font-medium text-white/70 group-hover:text-white/90 transition-colors">{{ mode === 'chat' ? 'Chat' : 'Build' }}</span>
                         </div>
-                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300 relative"
-                           :class="{ 'transform rotate-180 text-primary-400': isModeDropdownOpen }"></i>
+                        <i class="fas fa-chevron-down text-white/40 transition-transform duration-300"
+                           :class="{ 'transform rotate-180 text-violet-400': isModeDropdownOpen }"></i>
                       </button>
 
-                      <!-- Dropdown Menu -->
+                      <!-- Dropdown Menu - Premium Style -->
                       <div
                         v-show="isModeDropdownOpen"
-                        class="absolute z-50 w-full mt-2 bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+                        class="absolute z-50 w-full mt-2 bg-[#0a0a0f]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
                         role="listbox"
                         aria-label="Select mode"
                       >
                         <div class="max-h-48 py-1">
                           <button
-                            class="w-full flex items-center gap-2 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
-                            :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': mode === 'chat' }"
+                            class="w-full flex items-center gap-2 p-3 hover:bg-white/[0.05] transition-all duration-200 group relative"
+                            :class="{ 'bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border-l-2 border-l-violet-500': mode === 'chat' }"
                             role="option"
                             :aria-selected="mode === 'chat'"
                             @click="handleSelectMode('chat')"
                           >
-                            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-indigo-500/15 to-sky-500/15 border-indigo-400/30 shadow-[0_0_10px_rgba(99,102,241,0.18)]">
-                              <i class="fas fa-comments bg-gradient-to-br from-indigo-300 to-sky-300 bg-clip-text text-transparent"></i>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/20">
+                              <i class="fas fa-comments text-violet-400"></i>
                             </div>
-                            <span class="flex-1 text-left text-sm text-gray-200 group-hover:text-white">Chat</span>
-                            <span v-if="mode === 'chat'" class="text-primary-400"><i class="fas fa-check"></i></span>
+                            <span class="flex-1 text-left text-sm text-white/70 group-hover:text-white/90">Chat</span>
+                            <span v-if="mode === 'chat'" class="text-violet-400"><i class="fas fa-check"></i></span>
                           </button>
                           <button
-                            class="w-full flex items-center gap-2 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
-                            :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': mode === 'build' }"
+                            class="w-full flex items-center gap-2 p-3 hover:bg-white/[0.05] transition-all duration-200 group relative"
+                            :class="{ 'bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border-l-2 border-l-violet-500': mode === 'build' }"
                             role="option"
                             :aria-selected="mode === 'build'"
                             @click="handleSelectMode('build')"
                           >
-                            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/15 to-fuchsia-500/15 border-violet-400/30 shadow-[0_0_10px_rgba(139,92,246,0.18)]">
-                              <i class="fas fa-code bg-gradient-to-br from-violet-300 to-fuchsia-300 bg-clip-text text-transparent"></i>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-fuchsia-500/20 to-violet-500/20 border-fuchsia-500/20">
+                              <i class="fas fa-code text-fuchsia-400"></i>
                             </div>
-                            <span class="flex-1 text-left text-sm text-gray-200 group-hover:text-white">Build</span>
-                            <span v-if="mode === 'build'" class="text-primary-400"><i class="fas fa-check"></i></span>
+                            <span class="flex-1 text-left text-sm text-white/70 group-hover:text-white/90">Build</span>
+                            <span v-if="mode === 'build'" class="text-violet-400"><i class="fas fa-check"></i></span>
                           </button>
                         </div>
                       </div>
@@ -155,46 +158,40 @@
                   </div>
                 </div>
               </div>
+                    </div>
               
               <!-- Input form section -->
               <div class="relative">
-                <!-- Chat Input with enhanced styling to match dashboard inputs -->
-                <div class="relative group/input">
-                  <!-- Enhanced glow effect on focus matching dashboard -->
-                  <div class="absolute inset-0 bg-gradient-to-r from-violet-500/12 to-indigo-500/12 rounded-xl blur-sm opacity-0 group-focus-within/input:opacity-100 transition-all duration-300 pointer-events-none"></div>
-                  
-                  <ChatInputArea
-                    v-model="localPrompt"
-                    :placeholder="promptPlaceholder"
-                    :focused="true"
-                    :is-processing="isProcessing"
-                    :show-examples="false"
-                    @submit="handleSubmit"
-                    @examples="$emit('examples')"
-                    class="relative z-10"
-                  >
-                    <template #mode-indicator>
-                      <!-- Empty since we moved it to header -->
-                    </template>
-                  </ChatInputArea>
-                </div>
+                <!-- Chat Input -->
+                <ChatInputArea
+                  v-model="localPrompt"
+                  :placeholder="promptPlaceholder"
+                  :focused="true"
+                  :is-processing="isProcessing"
+                  :show-examples="false"
+                  @submit="handleSubmit"
+                  @examples="$emit('examples')"
+                  class="relative z-10"
+                >
+                  <template #mode-indicator>
+                    <!-- Empty since we moved it to header -->
+                  </template>
+                </ChatInputArea>
                 
-                <!-- Bottom section with keyboard shortcuts matching dashboard style -->
+                <!-- Keyboard shortcuts -->
                 <div class="flex justify-between items-center mt-4 px-1">
-                  <!-- Left side - empty for balance -->
                   <div class="flex-1"></div>
                   
-                  <!-- Enhanced keyboard shortcuts on the right matching dashboard -->
                   <div class="flex-shrink-0">
-                    <div class="text-xs text-gray-400 flex items-center gap-3">
+                    <div class="text-xs text-white/30 flex items-center gap-3">
                       <span class="flex items-center gap-1.5">
-                        <kbd class="px-2 py-1 bg-dark-800/80 rounded-md border border-dark-700/60 text-gray-300 text-xs font-medium shadow-sm">⏎</kbd> 
-                        <span class="text-gray-500">to send</span>
+                        <kbd class="px-2 py-1 bg-white/[0.03] rounded-md border border-white/[0.08] text-white/50 text-xs font-medium">⏎</kbd> 
+                        <span>to send</span>
                       </span>
-                      <span class="text-gray-600/40">•</span>
+                      <span class="text-white/20">•</span>
                       <span class="flex items-center gap-1.5">
-                        <kbd class="px-2 py-1 bg-dark-800/80 rounded-md border border-dark-700/60 text-gray-300 text-xs font-medium shadow-sm">⇧⏎</kbd> 
-                        <span class="text-gray-500">for new line</span>
+                        <kbd class="px-2 py-1 bg-white/[0.03] rounded-md border border-white/[0.08] text-white/50 text-xs font-medium">⇧⏎</kbd> 
+                        <span>for new line</span>
                       </span>
                     </div>
                   </div>
@@ -343,41 +340,58 @@ function handleSelectMode(value: BuilderMode) {
 </script>
 
 <style scoped>
-/* Enhanced animations matching About page */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+/* Float animations - Matching Home Page */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.02);
+  }
+  66% {
+    transform: translate(-20px, 10px) scale(0.98);
+  }
 }
 
-.animate-float {
-  animation: float 15s ease-in-out infinite;
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-25px, -30px) scale(1.03);
+  }
 }
 
-.animate-float-delay {
-  animation: float 18s ease-in-out infinite reverse;
+.animate-float-slow {
+  animation: float-slow 25s ease-in-out infinite;
 }
 
-/* Sophisticated dark scrollbar styles */
+.animate-float-delayed {
+  animation: float-delayed 30s ease-in-out infinite;
+  animation-delay: -5s;
+}
+
+/* Premium scrollbar */
 .overflow-auto {
   scrollbar-width: thin;
   scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
 }
 
 .overflow-auto::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .overflow-auto::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .overflow-auto::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, rgba(139, 92, 246, 0.4), rgba(124, 58, 237, 0.3));
-  border-radius: 2px;
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
 }
 
 .overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, rgba(139, 92, 246, 0.6), rgba(124, 58, 237, 0.5));
+  background: rgba(139, 92, 246, 0.5);
 }
 
 /* Ensure chat layout works properly */

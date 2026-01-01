@@ -1,12 +1,17 @@
 <template>
-  <div class="flex-1 min-h-0 relative grid grid-cols-1 gap-4 overflow-hidden auto-rows-[minmax(0,1fr)]">
-    <div class="rounded-2xl border bg-dark-800/60 backdrop-blur-md border-dark-700/60 flex flex-col h-full min-h-0">
-      <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-dark-900/50">
-        <div class="text-[11px] font-medium tracking-wide uppercase text-white/70"></div>
-        <div class="flex items-center gap-2"></div>
+  <div class="flex-1 min-h-0 relative overflow-hidden">
+    <!-- Premium App Gallery Container -->
+    <div class="h-full flex flex-col">
+      <!-- Header with badge -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08]">
+          <i class="fas fa-th-large text-xs text-violet-400/80"></i>
+          <span class="text-sm font-medium text-white/60">Your Apps</span>
+        </div>
       </div>
-      <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-      <div class="p-2 flex-1 min-h-0 overflow-hidden">
+      
+      <!-- App Gallery Content -->
+      <div class="flex-1 min-h-0 overflow-hidden">
         <AppGallery
           class="h-full"
           :files="files"
