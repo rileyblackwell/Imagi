@@ -59,7 +59,7 @@
               <div class="rounded-lg rounded-tr-sm bg-violet-500/10 border border-violet-500/20 p-2 text-[11px]">
                 <div class="font-medium text-violet-400/70 mb-0.5">You</div>
                 <div class="text-white/70">
-                  <span ref="typedText" class="typing-text"></span>
+                  <span class="typing-text">{{ typedText }}</span>
                   <span class="cursor-blink text-violet-400">│</span>
                 </div>
               </div>
@@ -146,15 +146,16 @@
 </template>
 
 <script>
-import { defineComponent, onMounted, ref } from 'vue'
+import { defineComponent, onMounted, onBeforeUnmount, ref } from 'vue'
 
 export default defineComponent({
   name: 'AnimatedTerminal',
   setup() {
-    const typedText = ref(null)
+    const typedText = ref('')
     const showProgress = ref(false)
     const currentStep = ref(-1)
     const showSuccess = ref(false)
+    let animationActive = true
 
     const progressSteps = [
       'Analyzing requirements',
@@ -164,35 +165,43 @@ export default defineComponent({
       'Ready to deploy'
     ]
 
-    const typeText = async (element, text, speed = 40) => {
-      for (let i = 0; i < text.length; i++) {
-        element.textContent += text[i]
+    const typeText = async (text, speed = 40) => {
+      for (let i = 0; i < text.length && animationActive; i++) {
+        typedText.value += text[i]
         await new Promise(resolve => setTimeout(resolve, speed))
       }
     }
 
     const animateProgress = async () => {
+      if (!animationActive) return
       await new Promise(resolve => setTimeout(resolve, 800))
       showProgress.value = true
       
-      for (let i = 0; i < progressSteps.length; i++) {
+      for (let i = 0; i < progressSteps.length && animationActive; i++) {
         currentStep.value = i
         
         const delay = i === progressSteps.length - 1 ? 1500 : 1000
         await new Promise(resolve => setTimeout(resolve, delay))
       }
       
+      if (!animationActive) return
       await new Promise(resolve => setTimeout(resolve, 300))
       currentStep.value = progressSteps.length
       
       await new Promise(resolve => setTimeout(resolve, 300))
-      showSuccess.value = true
+      if (animationActive) {
+        showSuccess.value = true
+      }
     }
 
     onMounted(async () => {
       const text = "Create an e-commerce platform with authentication, product catalog, and payment integration"
-      await typeText(typedText.value, text)
+      await typeText(text)
       await animateProgress()
+    })
+
+    onBeforeUnmount(() => {
+      animationActive = false
     })
 
     return {

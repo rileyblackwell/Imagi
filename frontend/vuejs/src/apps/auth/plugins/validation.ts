@@ -12,8 +12,14 @@ defineRule('email', (value: string) => {
   return true
 })
 
-// Simple username validation
-defineRule('username', () => true)
+// Username validation - must be at least 3 characters, alphanumeric with underscores allowed
+defineRule('username', (value: string) => {
+  if (!value) return true // Let required rule handle empty values
+  if (value.length < 3) return 'Username must be at least 3 characters'
+  if (value.length > 150) return 'Username must be less than 150 characters'
+  if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores'
+  return true
+})
 
 // Add terms agreement validation
 defineRule('terms', () => true)

@@ -45,6 +45,26 @@ axios.defaults.withCredentials = true
 // axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 
+// Filter out browser extension errors from console (development only)
+if (import.meta.env.DEV) {
+  const originalError = console.error
+  console.error = (...args: any[]) => {
+    // Filter out extension-related errors
+    const errorString = args.join(' ')
+    if (
+      errorString.includes('content_script.js') ||
+      errorString.includes('chrome-extension://') ||
+      errorString.includes('moz-extension://') ||
+      (errorString.includes('deref') && errorString.includes('MutationObserver'))
+    ) {
+      // Silently ignore extension errors
+      return
+    }
+    // Log all other errors normally
+    originalError.apply(console, args)
+  }
+}
+
 // Type augmentation for Vue
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {

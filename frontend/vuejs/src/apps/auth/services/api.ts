@@ -40,7 +40,6 @@ export const AuthAPI = {
       })
       return response
     } catch (error: any) {
-      console.error('CSRF token request failed:', error.message)
       throw error
     }
   },
@@ -57,7 +56,6 @@ export const AuthAPI = {
           throw new Error('Failed to obtain CSRF token')
         }
       } catch (error: any) {
-        console.error('Error fetching CSRF token:', error.message)
         throw error
       }
     }
@@ -135,10 +133,6 @@ export const AuthAPI = {
       if (userData.password !== userData.password_confirmation) {
         throw new Error('Passwords do not match')
       }
-      
-      if (!userData.terms_accepted) {
-        throw new Error('You must accept the terms and conditions')
-      }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!userData.email || !emailRegex.test(userData.email)) {
@@ -156,7 +150,15 @@ export const AuthAPI = {
         headers['X-CSRFToken'] = csrfToken;
       }
       
-      const response = await api.post(fullRequestUrl, userData, {
+      // Only send fields that backend expects
+      const registrationData = {
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        password_confirmation: userData.password_confirmation
+      }
+      
+      const response = await api.post(fullRequestUrl, registrationData, {
         headers,
         timeout: 30000
       })
@@ -174,20 +176,43 @@ export const AuthAPI = {
         
         // Handle field-specific errors
         if (errorData.username) {
-          throw new Error(`Username: ${errorData.username[0]}`)
+          const usernameError = Array.isArray(errorData.username) ? errorData.username[0] : errorData.username
+          throw new Error(`Username: ${usernameError}`)
         }
         if (errorData.email) {
-          throw new Error(`Email: ${errorData.email[0]}`)
+          const emailError = Array.isArray(errorData.email) ? errorData.email[0] : errorData.email
+          throw new Error(`Email: ${emailError}`)
         }
         if (errorData.password) {
-          throw new Error(`Password: ${errorData.password[0]}`)
+          const passwordError = Array.isArray(errorData.password) ? errorData.password[0] : errorData.password
+          throw new Error(`Password: ${passwordError}`)
+        }
+        if (errorData.password_confirmation) {
+          const confirmError = Array.isArray(errorData.password_confirmation) ? errorData.password_confirmation[0] : errorData.password_confirmation
+          throw new Error(`${confirmError}`)
         }
         if (errorData.non_field_errors) {
-          throw new Error(errorData.non_field_errors[0])
+          const nonFieldError = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : errorData.non_field_errors
+          throw new Error(nonFieldError)
+        }
+        if (errorData.error) {
+          throw new Error(errorData.error)
+        }
+        if (errorData.detail) {
+          const detail = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail)
+          throw new Error(detail)
+        }
+        
+        // If we have any error data, show it
+        if (Object.keys(errorData).length > 0) {
+          const firstKey = Object.keys(errorData)[0]
+          const firstError = errorData[firstKey]
+          const errorMsg = Array.isArray(firstError) ? firstError[0] : firstError
+          throw new Error(`${firstKey}: ${errorMsg}`)
         }
         
         // Generic validation error
-        throw new Error('Please check your input and try again')
+        throw new Error('Registration failed. Please check your input and try again.')
       }
       
       // Handle other HTTP errors
@@ -221,7 +246,6 @@ export const AuthAPI = {
       localStorage.removeItem('token')
       // The shared API client will handle removing the Authorization header
     } catch (error) {
-      console.error('Logout error:', error)
       throw error
     } finally {
       logoutPromise = null
@@ -240,7 +264,6 @@ export const AuthAPI = {
       })
       return response
     } catch (error: any) {
-      console.error('Health check failed:', error.message)
       throw error
     }
   }

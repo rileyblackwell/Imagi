@@ -107,7 +107,7 @@ export const useAuthStore = defineStore('auth-module', () => {
         await router.push('/')
       }
     } catch (err) {
-      console.error('Logout error:', err)
+      // Silently handle logout errors
     } finally {
       isLoggingOut.value = false
     }

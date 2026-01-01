@@ -88,7 +88,7 @@ const extendSession = async () => {
     resetTimers()
     startWarningTimer()
   } catch (error) {
-    console.error('Failed to extend session:', error)
+    // Failed to extend session - logout user
     logout()
   }
 }

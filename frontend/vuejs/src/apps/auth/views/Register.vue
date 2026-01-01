@@ -1,19 +1,26 @@
 <template>
   <div class="space-y-6">
-    <Form v-slot="{ errors: formErrors, submitCount, submitForm }" class="space-y-5" @submit="handleSubmit">
+    <Form v-slot="{ errors: formErrors, submitCount: formSubmitCount }" class="space-y-5" @submit="handleSubmit">
       <!-- Username input with premium styling -->
       <div class="relative group">
         <Field name="username" rules="required|username" :validateOnBlur="false" v-slot="{ errorMessage, field }">
           <FormInput
-            v-bind="field"
+            :modelValue="field.value || ''"
+            @update:modelValue="field.onChange"
+            @blur="field.onBlur"
             name="username"
             label="Username"
             icon="fas fa-user"
-            placeholder="Create a username"
+            placeholder="Create a username (min. 3 characters)"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && submitCount > 0"
-            v-model="formData.username"
+            :hasError="!!errorMessage && formSubmitCount > 0"
           />
+          <transition name="fade-up">
+            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+              <i class="fas fa-exclamation-circle text-xs"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+          </transition>
         </Field>
       </div>
 
@@ -21,15 +28,22 @@
       <div class="relative group">
         <Field name="email" rules="required|email" :validateOnBlur="false" v-slot="{ errorMessage, field }">
           <FormInput
-            v-bind="field"
+            :modelValue="field.value || ''"
+            @update:modelValue="field.onChange"
+            @blur="field.onBlur"
             name="email"
             label="Email"
             icon="fas fa-envelope"
-            placeholder="Enter your email"
+            placeholder="Enter your email address"
             :disabled="authStore.loading || isSubmitting"
-            :hasError="!!errorMessage && submitCount > 0"
-            v-model="formData.email"
+            :hasError="!!errorMessage && formSubmitCount > 0"
           />
+          <transition name="fade-up">
+            <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+              <i class="fas fa-exclamation-circle text-xs"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+          </transition>
         </Field>
       </div>
 
@@ -37,39 +51,46 @@
       <div class="space-y-4">
         <!-- Password input -->
         <div class="relative group">
-          <Field name="password" rules="required|registration_password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+          <Field name="password" rules="required|registration_password" :validateOnBlur="false" v-slot="{ errorMessage, field, value }">
             <PasswordInput
-              v-bind="field"
+              :modelValue="field.value || ''"
+              @update:modelValue="field.onChange"
+              @blur="field.onBlur"
               name="password"
-              v-model="formData.password"
               placeholder="Create password"
               :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && submitCount > 0"
+              :hasError="!!errorMessage && formSubmitCount > 0"
             />
+            <!-- Password requirements with premium glass styling -->
+            <div class="mt-4 p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
+              <PasswordRequirements 
+                :password="value || ''"
+                ref="passwordRequirements"
+                class="text-sm"
+              />
+            </div>
           </Field>
         </div>
 
         <!-- Confirm password input -->
         <div class="relative group">
-          <Field name="password_confirmation" :rules="{ required: true, password_confirmation: formData.password }" :validateOnBlur="false" v-slot="{ errorMessage, field }">
+          <Field name="password_confirmation" rules="required|password_confirmation:@password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
             <PasswordInput
-              v-bind="field"
+              :modelValue="field.value || ''"
+              @update:modelValue="field.onChange"
+              @blur="field.onBlur"
               name="password_confirmation"
-              v-model="formData.passwordConfirmation"
               placeholder="Confirm password"
               :disabled="authStore.loading || isSubmitting"
-              :hasError="!!errorMessage && submitCount > 0"
+              :hasError="!!errorMessage && formSubmitCount > 0"
             />
+            <transition name="fade-up">
+              <div v-if="errorMessage && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+                <i class="fas fa-exclamation-circle text-xs"></i>
+                <span>{{ errorMessage }}</span>
+              </div>
+            </transition>
           </Field>
-        </div>
-
-        <!-- Password requirements with premium glass styling -->
-        <div class="p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
-          <PasswordRequirements 
-            :password="formData.password || ''"
-            ref="passwordRequirements"
-            class="text-sm"
-          />
         </div>
       </div>
 
@@ -77,7 +98,7 @@
       <div class="space-y-5 pt-2">
         <!-- Terms checkbox with premium styling -->
         <div class="p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
-          <Field name="agreeToTerms" rules="required|terms" :validateOnBlur="false">
+          <Field name="agreeToTerms" :rules="{ required: { allowFalse: false } }" :validateOnBlur="false" v-slot="{ errorMessage }">
             <FormCheckbox 
               name="agreeToTerms" 
               :disabled="authStore.loading || isSubmitting"
@@ -92,6 +113,10 @@
                 Privacy Policy
               </router-link>
             </FormCheckbox>
+            <div v-if="(errorMessage || !hasAcceptedTerms) && formSubmitCount > 0" class="mt-2 text-sm text-red-400 flex items-center gap-2">
+              <i class="fas fa-exclamation-circle text-xs"></i>
+              <span>You must accept the terms to continue</span>
+            </div>
           </Field>
         </div>
 
@@ -143,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
@@ -164,14 +189,7 @@ const authStore = useAuthStore()
 const serverError = ref('')
 const isSubmitting = ref(false)
 const passwordRequirements = ref<PasswordRequirementsRef | null>(null)
-
-const formData = reactive({
-  email: '',
-  password: '',
-  passwordConfirmation: '',
-  username: '',
-  agreeToTerms: false
-})
+const hasAcceptedTerms = ref(false)
 
 defineOptions({
   name: 'Register'
@@ -181,22 +199,11 @@ defineOptions({
 onMounted(async () => {
   // Perform health check when component mounts
   try {
-    const healthResponse = await AuthAPI.healthCheck()
-    console.log('Auth service health check:', healthResponse.data)
+    await AuthAPI.healthCheck()
   } catch (error) {
-    console.error('Auth service health check failed:', error)
+    // Health check failed - silently handle
   }
 })
-
-// Clear error when form fields change
-watch(
-  [() => formData.email, () => formData.password, () => formData.passwordConfirmation, () => formData.username],
-  () => {
-    if (serverError.value) {
-      serverError.value = ''
-    }
-  }
-)
 
 // Clear any auth errors when component is unmounted
 onBeforeUnmount(() => {
@@ -208,40 +215,50 @@ const handleSubmit = async (values: RegisterFormValues) => {
   isSubmitting.value = true
 
   try {
-    // Set form data from values if empty
-    if (!formData.username && values.username) {
-      formData.username = values.username
-    }
+    // Get values from VeeValidate
+    const username = values.username?.trim()
+    const email = values.email?.trim()
+    const password = values.password
+    const passwordConfirmation = values.password_confirmation
+    const agreeToTerms = values.agreeToTerms === true
     
-    if (!formData.email && values.email) {
-      formData.email = values.email
-    }
-    
-    if (!formData.password && values.password) {
-      formData.password = values.password
-    }
+    // Update terms acceptance state
+    hasAcceptedTerms.value = agreeToTerms
     
     // Validate all required fields
-    if (!formData.username || !formData.email || !formData.password || !values.agreeToTerms) {
-      serverError.value = 'All fields are required'
+    if (!username || !email || !password) {
+      serverError.value = 'Please fill in all required fields'
+      isSubmitting.value = false
+      return
+    }
+    
+    // Check terms acceptance first
+    if (!agreeToTerms) {
+      serverError.value = 'You must accept the Terms of Service and Privacy Policy to continue'
       isSubmitting.value = false
       return
     }
 
     // Check password confirmation matches
-    if (formData.password !== formData.passwordConfirmation) {
+    if (password !== passwordConfirmation) {
       serverError.value = 'Passwords do not match'
       isSubmitting.value = false
       return
     }
+    
+    // Validate password length
+    if (password.length < 8) {
+      serverError.value = 'Password must be at least 8 characters long'
+      isSubmitting.value = false
+      return
+    }
 
-    // Create registration data
+    // Create registration data (don't send terms_accepted - it's frontend only)
     const registerData = {
-      username: formData.username.trim(),
-      email: formData.email.trim(),
-      password: formData.password,
-      password_confirmation: formData.passwordConfirmation,
-      terms_accepted: values.agreeToTerms
+      username,
+      email,
+      password,
+      password_confirmation: passwordConfirmation
     }
 
     document.body.style.cursor = 'wait'

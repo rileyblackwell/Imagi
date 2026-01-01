@@ -5,14 +5,15 @@
       <div class="relative group">
         <Field name="username" rules="login_username" :validateOnBlur="false" v-slot="{ errorMessage, field }">
           <FormInput
-            v-bind="field"
+            :modelValue="field.value || ''"
+            @update:modelValue="field.onChange"
+            @blur="field.onBlur"
             name="username"
             label="Username"
             icon="fas fa-user"
             placeholder="Enter your username"
             :disabled="authStore.loading || isSubmitting"
             :hasError="!!errorMessage && submitCount > 0"
-            v-model="formData.username"
           />
         </Field>
       </div>
@@ -21,9 +22,10 @@
       <div class="relative group">
         <Field name="password" rules="login_password" :validateOnBlur="false" v-slot="{ errorMessage, field }">
           <PasswordInput
-            v-bind="field"
+            :modelValue="field.value || ''"
+            @update:modelValue="field.onChange"
+            @blur="field.onBlur"
             name="password"
-            v-model="formData.password"
             placeholder="Enter your password"
             :disabled="authStore.loading || isSubmitting"
             :hasError="!!errorMessage && submitCount > 0"
@@ -77,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Form, Field, ErrorMessage } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
@@ -96,29 +98,15 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const serverError = ref('')
-const hasAttemptedSubmit = ref(false)
 const isSubmitting = ref(false)
-
-const formData = reactive({
-  username: '',
-  password: ''
-})
 
 // Component mounted
 onMounted(async () => {
   // Perform health check when component mounts
   try {
-    const healthResponse = await AuthAPI.healthCheck()
-    console.log('Auth service health check:', healthResponse.data)
+    await AuthAPI.healthCheck()
   } catch (error) {
-    console.error('Auth service health check failed:', error)
-  }
-})
-
-// Clear error when username or password changes
-watch([() => formData.username, () => formData.password], () => {
-  if (serverError.value) {
-    serverError.value = ''
+    // Health check failed - silently handle
   }
 })
 
@@ -128,22 +116,13 @@ onBeforeUnmount(() => {
 })
 
 const onSubmit = async (values: LoginFormValues) => {
-  // Set form data from values if empty
-  if (!formData.username && values.username) {
-    formData.username = values.username
-  }
-  
-  if (!formData.password && values.password) {
-    formData.password = values.password
-  }
-  
   serverError.value = ''
   isSubmitting.value = true
   
   try {
-    // Get values either from form values or from local formData
-    const username = formData.username.trim()
-    const password = formData.password.trim()
+    // Get values from VeeValidate
+    const username = values.username?.trim()
+    const password = values.password?.trim()
     
     // Validate input - ensure both fields are filled
     if (!username || !password) {

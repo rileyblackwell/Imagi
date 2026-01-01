@@ -52,7 +52,7 @@ const inputType = computed(() => isVisible.value ? 'text' : 'password')
 const props = defineProps({
   modelValue: {
     type: String,
-    required: true
+    default: ''
   },
   label: {
     type: String,
