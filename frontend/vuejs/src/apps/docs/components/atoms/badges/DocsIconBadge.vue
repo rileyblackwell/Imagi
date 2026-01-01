@@ -1,12 +1,12 @@
 <template>
   <div 
     :class="[
-      'flex-shrink-0 rounded-xl flex items-center justify-center border transition-all duration-300',
-      size === 'sm' ? 'w-5 h-5 mr-3 mt-0.5' : size === 'md' ? 'w-6 h-6 mr-3 mt-0.5' : 'w-8 h-8 mr-3',
+      'flex-shrink-0 rounded-full flex items-center justify-center transition-all duration-300',
+      getSizeClass(size),
       getIconContainerClass(color)
     ]"
   >
-    <i :class="[icon, getIconClass(color), size === 'sm' ? 'text-xs' : 'text-sm']"></i>
+    <i :class="[icon, getIconClass(color), size === 'xs' ? 'text-[8px]' : size === 'sm' ? 'text-[10px]' : 'text-xs']"></i>
   </div>
 </template>
 
@@ -14,43 +14,53 @@
 withDefaults(defineProps<{
   icon: string;
   color?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }>(), {
   color: 'primary',
   size: 'sm'
 });
 
+const getSizeClass = (size: string) => {
+  const sizes = {
+    xs: 'w-4 h-4 mr-2 mt-0.5',
+    sm: 'w-5 h-5 mr-3 mt-0.5',
+    md: 'w-6 h-6 mr-3 mt-0.5',
+    lg: 'w-8 h-8 mr-3',
+  } as Record<string, string>
+  return sizes[size] || sizes.sm
+}
+
 const getIconContainerClass = (color: string) => {
   const classes = {
-    primary: 'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20',
-    violet: 'bg-gradient-to-br from-violet-400/20 to-purple-400/20 border-violet-400/20',
-    blue: 'bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border-blue-400/20',
-    green: 'bg-gradient-to-br from-emerald-400/20 to-green-400/20 border-emerald-400/20',
-    purple: 'bg-gradient-to-br from-purple-400/20 to-fuchsia-400/20 border-purple-400/20',
-    cyan: 'bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border-cyan-400/20',
+    primary: 'bg-violet-500/15',
+    violet: 'bg-violet-500/15',
+    fuchsia: 'bg-fuchsia-500/15',
+    blue: 'bg-blue-500/15',
+    cyan: 'bg-cyan-500/15',
+    emerald: 'bg-emerald-500/15',
+    green: 'bg-emerald-500/15',
+    amber: 'bg-amber-500/15',
+    yellow: 'bg-amber-500/15',
+    purple: 'bg-purple-500/15',
+    rose: 'bg-rose-500/15',
   } as Record<string, string>
   return classes[color] || classes.primary
 }
 
 const getIconClass = (color: string) => {
   const classes = {
-    primary: 'text-indigo-300',
-    violet: 'text-violet-300',
-    blue: 'text-blue-300',
-    green: 'text-emerald-300',
-    purple: 'text-purple-300',
-    cyan: 'text-cyan-300',
+    primary: 'text-violet-400',
+    violet: 'text-violet-400',
+    fuchsia: 'text-fuchsia-400',
+    blue: 'text-blue-400',
+    cyan: 'text-cyan-400',
+    emerald: 'text-emerald-400',
+    green: 'text-emerald-400',
+    amber: 'text-amber-400',
+    yellow: 'text-amber-400',
+    purple: 'text-purple-400',
+    rose: 'text-rose-400',
   } as Record<string, string>
   return classes[color] || classes.primary
 }
 </script>
-
-<style scoped>
-:root {
-  --primary-rgb: 59, 130, 246;
-  --violet-rgb: 139, 92, 246;
-  --blue-rgb: 59, 130, 246;
-  --green-rgb: 34, 197, 94;
-  --purple-rgb: 168, 85, 247;
-}
-</style> 

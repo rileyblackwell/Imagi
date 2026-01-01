@@ -1,7 +1,10 @@
 <template>
-  <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full border border-indigo-400/20 backdrop-blur-sm">
-    <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full mr-2 animate-pulse"></div>
-    <span class="text-indigo-300 font-medium text-sm tracking-wide uppercase">{{ text }}</span>
+  <div class="inline-flex items-center gap-3 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300 cursor-default">
+    <span class="relative flex h-2 w-2">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+      <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
+    </span>
+    <span class="text-sm font-medium text-white/70 tracking-wide uppercase">{{ text }}</span>
   </div>
 </template>
 
@@ -9,4 +12,4 @@
 defineProps<{
   text: string;
 }>();
-</script> 
+</script>

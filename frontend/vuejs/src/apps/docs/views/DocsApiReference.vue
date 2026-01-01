@@ -1,134 +1,123 @@
 <template>
   <DocsLayout>
-    <div class="max-w-4xl mx-auto">
-      <!-- Page header with attractive styling -->
-      <div class="mb-10">
-        <div class="inline-block px-4 py-1.5 bg-primary-500/10 rounded-full mb-4">
-          <span class="text-primary-400 font-semibold text-sm tracking-wider">DOCUMENTATION</span>
-        </div>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-          API Reference
-        </h1>
-        <p class="text-xl text-gray-300 leading-relaxed">
-          Complete reference for the Imagi Oasis REST API endpoints and SDK.
-        </p>
-      </div>
-
-      <!-- Attractive divider -->
-      <div class="relative h-16 mb-10">
-        <div class="absolute inset-x-0 h-px mx-auto w-2/3 sm:w-1/2 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-pulse-slow"></div>
-      </div>
-
-      <!-- Main content with sections -->
-      <div class="prose prose-invert prose-lg max-w-none">
-        <!-- API Coming Soon Notice -->
-        <div class="bg-primary-500/10 border border-primary-500/20 rounded-xl p-6 my-8">
-          <div class="flex items-start">
-            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center mr-4">
-              <i class="fas fa-code text-primary-400"></i>
-            </div>
-            <div>
-              <h3 class="text-white font-bold mt-0 mb-2">API Coming Soon</h3>
-              <p class="text-gray-300 m-0">
-                The Imagi Oasis API is currently under development and not yet available for public use.
-                This documentation provides a preview of planned endpoints and functionality.
-                Stay tuned for updates on API availability.
-              </p>
-            </div>
+    <DocsContentWrapper
+      title="API Reference"
+      description="Complete reference for the Imagi Oasis REST API endpoints and SDK."
+      badge-text="API DOCUMENTATION"
+    >
+      <!-- API Coming Soon Notice -->
+      <DocsCard color-variant="violet">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 border border-violet-400/20 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-code text-violet-300 text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-white font-semibold text-lg mb-2">API Coming Soon</h3>
+            <p class="text-white/50 leading-relaxed">
+              The Imagi Oasis API is currently under development and not yet available for public use.
+              This documentation provides a preview of planned endpoints and functionality.
+              Stay tuned for updates on API availability.
+            </p>
           </div>
         </div>
-      
-        <h2>Introduction</h2>
-        <p>
+      </DocsCard>
+
+      <!-- Introduction -->
+      <DocsCard color-variant="primary">
+        <DocsCardHeader title="Introduction" icon="fas fa-book-open" color="primary" />
+        <p class="text-white/50 leading-relaxed mb-6">
           The upcoming Imagi Oasis API will enable you to programmatically interact with your projects,
           generate code, and manage deployments. The API follows RESTful principles and
           uses standard HTTP status codes and methods.
         </p>
 
-        <div class="bg-dark-900/50 border border-dark-800 rounded-xl p-6 my-8">
-          <h3 class="text-primary-400 mt-0">Base URL</h3>
-          <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-            <code class="text-green-400">https://api.imagioasis.com/api/v1</code>
+        <div class="space-y-6">
+          <div class="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+            <h4 class="text-violet-400 font-medium mb-2">Base URL</h4>
+            <div class="bg-[#0a0a0f] p-3 rounded-lg border border-white/[0.06] overflow-x-auto">
+              <code class="text-emerald-400 text-sm">https://api.imagioasis.com/api/v1</code>
+            </div>
           </div>
 
-          <h3 class="text-primary-400 mt-6">Authentication</h3>
-          <p class="mb-4">
-            All API requests require authentication using a Bearer token.
-          </p>
-          <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-            <code class="text-yellow-400">Authorization: Bearer YOUR_API_KEY</code>
+          <div class="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+            <h4 class="text-violet-400 font-medium mb-2">Authentication</h4>
+            <p class="text-white/50 text-sm mb-3">
+              All API requests require authentication using a Bearer token.
+            </p>
+            <div class="bg-[#0a0a0f] p-3 rounded-lg border border-white/[0.06] overflow-x-auto">
+              <code class="text-amber-400 text-sm">Authorization: Bearer YOUR_API_KEY</code>
+            </div>
           </div>
 
-          <h3 class="text-primary-400 mt-6">Rate Limiting</h3>
-          <p class="mb-0">
-            API calls are limited based on your subscription plan. Rate limit information is included in the response headers.
-          </p>
+          <div class="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+            <h4 class="text-violet-400 font-medium mb-2">Rate Limiting</h4>
+            <p class="text-white/50 text-sm">
+              API calls are limited based on your subscription plan. Rate limit information is included in the response headers.
+            </p>
+          </div>
         </div>
+      </DocsCard>
 
-        <!-- API Endpoints Section -->
-        <h2>API Endpoints</h2>
-        <p>
-          The following endpoints are available for interacting with Imagi Oasis:
-        </p>
-
-        <!-- Project Endpoints -->
-        <div class="mt-8 space-y-6">
-          <div class="border border-dark-800 rounded-xl overflow-hidden">
-            <div class="bg-dark-900 p-4 border-b border-dark-800 flex items-center justify-between">
-              <div class="flex items-center">
-                <div class="px-2 py-1 bg-green-500/20 rounded text-green-400 font-mono text-sm mr-3">GET</div>
-                <h3 class="text-white font-medium m-0">/projects</h3>
+      <!-- API Endpoints Section -->
+      <DocsCard color-variant="blue">
+        <DocsCardHeader title="Project Endpoints" icon="fas fa-folder" color="blue" />
+        
+        <div class="space-y-4 mt-4">
+          <!-- GET /projects -->
+          <div class="border border-white/[0.08] rounded-xl overflow-hidden">
+            <div class="bg-white/[0.02] p-4 border-b border-white/[0.08] flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 bg-emerald-500/20 rounded-lg text-emerald-400 font-mono text-xs font-medium">GET</span>
+                <code class="text-white/80 text-sm">/projects</code>
               </div>
-              <button class="text-gray-400 hover:text-white transition-colors" @click="toggleEndpoint('getProjects')">
+              <button 
+                class="text-white/40 hover:text-white transition-colors p-2" 
+                @click="toggleEndpoint('getProjects')"
+              >
                 <i :class="[isEndpointExpanded('getProjects') ? 'fas fa-chevron-up' : 'fas fa-chevron-down']"></i>
               </button>
             </div>
-            <div v-if="isEndpointExpanded('getProjects')" class="p-4 bg-dark-800/50">
-              <div class="mb-4">
-                <p class="text-gray-300 m-0">
-                  Returns a list of all projects associated with your account.
-                </p>
+            <div v-if="isEndpointExpanded('getProjects')" class="p-4 bg-white/[0.01]">
+              <p class="text-white/50 text-sm mb-4">
+                Returns a list of all projects associated with your account.
+              </p>
+              
+              <h5 class="text-blue-400 text-sm font-medium mb-2">Parameters</h5>
+              <div class="bg-[#0a0a0f] rounded-lg border border-white/[0.06] overflow-hidden mb-4">
+                <table class="w-full">
+                  <thead>
+                    <tr class="border-b border-white/[0.06]">
+                      <th class="text-left p-3 text-white/40 font-medium text-xs">Name</th>
+                      <th class="text-left p-3 text-white/40 font-medium text-xs">Type</th>
+                      <th class="text-left p-3 text-white/40 font-medium text-xs">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-sm">
+                    <tr class="border-b border-white/[0.06]">
+                      <td class="p-3 text-violet-400 font-mono">page</td>
+                      <td class="p-3 text-amber-400">integer</td>
+                      <td class="p-3 text-white/50">Page number (default: 1)</td>
+                    </tr>
+                    <tr>
+                      <td class="p-3 text-violet-400 font-mono">limit</td>
+                      <td class="p-3 text-amber-400">integer</td>
+                      <td class="p-3 text-white/50">Results per page (default: 20, max: 100)</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div class="mb-4">
-                <h4 class="text-primary-400 text-sm font-medium mb-2">Parameters</h4>
-                <div class="bg-dark-800 rounded-md overflow-hidden">
-                  <table class="w-full border-collapse">
-                    <thead>
-                      <tr class="border-b border-dark-700">
-                        <th class="text-left p-3 text-gray-400 font-medium">Name</th>
-                        <th class="text-left p-3 text-gray-400 font-medium">Type</th>
-                        <th class="text-left p-3 text-gray-400 font-medium">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr class="border-b border-dark-700">
-                        <td class="p-3 text-primary-400 font-mono text-sm">page</td>
-                        <td class="p-3 text-yellow-400">integer</td>
-                        <td class="p-3 text-gray-300">Page number (default: 1)</td>
-                      </tr>
-                      <tr>
-                        <td class="p-3 text-primary-400 font-mono text-sm">limit</td>
-                        <td class="p-3 text-yellow-400">integer</td>
-                        <td class="p-3 text-gray-300">Results per page (default: 20, max: 100)</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="mb-4">
-                <h4 class="text-primary-400 text-sm font-medium mb-2">Response</h4>
-                <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-                  <pre class="text-gray-300 m-0 whitespace-pre"><code>{
+              
+              <h5 class="text-blue-400 text-sm font-medium mb-2">Response</h5>
+              <div class="bg-[#0a0a0f] p-4 rounded-lg border border-white/[0.06] overflow-x-auto">
+                <pre class="text-white/70 text-sm m-0"><code>{
   "projects": [
     {
       "id": "proj_123abc",
       "name": "Task Manager",
       "description": "A task management application",
       "created_at": "2023-04-15T10:30:00Z",
-      "updated_at": "2023-04-20T15:45:00Z",
       "status": "active"
-    },
-    ...
+    }
   ],
   "meta": {
     "current_page": 1,
@@ -136,113 +125,84 @@
     "total_count": 42
   }
 }</code></pre>
-                </div>
               </div>
             </div>
           </div>
 
-          <div class="border border-dark-800 rounded-xl overflow-hidden">
-            <div class="bg-dark-900 p-4 border-b border-dark-800 flex items-center justify-between">
-              <div class="flex items-center">
-                <div class="px-2 py-1 bg-blue-500/20 rounded text-blue-400 font-mono text-sm mr-3">POST</div>
-                <h3 class="text-white font-medium m-0">/projects</h3>
+          <!-- POST /projects -->
+          <div class="border border-white/[0.08] rounded-xl overflow-hidden">
+            <div class="bg-white/[0.02] p-4 border-b border-white/[0.08] flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 bg-blue-500/20 rounded-lg text-blue-400 font-mono text-xs font-medium">POST</span>
+                <code class="text-white/80 text-sm">/projects</code>
               </div>
-              <button class="text-gray-400 hover:text-white transition-colors" @click="toggleEndpoint('createProject')">
+              <button 
+                class="text-white/40 hover:text-white transition-colors p-2" 
+                @click="toggleEndpoint('createProject')"
+              >
                 <i :class="[isEndpointExpanded('createProject') ? 'fas fa-chevron-up' : 'fas fa-chevron-down']"></i>
               </button>
             </div>
-            <div v-if="isEndpointExpanded('createProject')" class="p-4 bg-dark-800/50">
-              <div class="mb-4">
-                <p class="text-gray-300 m-0">
-                  Creates a new project with the specified parameters.
-                </p>
-              </div>
-              <div class="mb-4">
-                <h4 class="text-primary-400 text-sm font-medium mb-2">Request Body</h4>
-                <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-                  <pre class="text-gray-300 m-0 whitespace-pre"><code>{
+            <div v-if="isEndpointExpanded('createProject')" class="p-4 bg-white/[0.01]">
+              <p class="text-white/50 text-sm mb-4">
+                Creates a new project with the specified parameters.
+              </p>
+              
+              <h5 class="text-blue-400 text-sm font-medium mb-2">Request Body</h5>
+              <div class="bg-[#0a0a0f] p-4 rounded-lg border border-white/[0.06] overflow-x-auto mb-4">
+                <pre class="text-white/70 text-sm m-0"><code>{
   "name": "E-commerce Platform",
-  "description": "Online store with product catalog and checkout",
+  "description": "Online store with product catalog",
   "project_type": "web_application",
   "tech_stack": {
     "frontend": "vue",
-    "backend": "django",
-    "database": "postgresql"
+    "backend": "django"
   }
 }</code></pre>
-                </div>
               </div>
-              <div class="mb-4">
-                <h4 class="text-primary-400 text-sm font-medium mb-2">Response</h4>
-                <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-                  <pre class="text-gray-300 m-0 whitespace-pre"><code>{
+              
+              <h5 class="text-blue-400 text-sm font-medium mb-2">Response</h5>
+              <div class="bg-[#0a0a0f] p-4 rounded-lg border border-white/[0.06] overflow-x-auto">
+                <pre class="text-white/70 text-sm m-0"><code>{
   "id": "proj_456def",
   "name": "E-commerce Platform",
-  "description": "Online store with product catalog and checkout",
-  "created_at": "2023-05-10T09:15:00Z",
-  "updated_at": "2023-05-10T09:15:00Z",
   "status": "initializing",
-  "project_type": "web_application",
-  "tech_stack": {
-    "frontend": "vue",
-    "backend": "django",
-    "database": "postgresql"
-  }
+  "created_at": "2023-05-10T09:15:00Z"
 }</code></pre>
-                </div>
               </div>
             </div>
           </div>
         </div>
+      </DocsCard>
 
-        <!-- Generation Endpoints -->
-        <h3 class="mt-12">Code Generation</h3>
-        <p>
-          Endpoints for generating code and components.
-        </p>
-
-        <div class="mt-6 border border-dark-800 rounded-xl overflow-hidden">
-          <div class="bg-dark-900 p-4 border-b border-dark-800 flex items-center justify-between">
-            <div class="flex items-center">
-              <div class="px-2 py-1 bg-blue-500/20 rounded text-blue-400 font-mono text-sm mr-3">POST</div>
-              <h3 class="text-white font-medium m-0">/projects/{project_id}/generate</h3>
+      <!-- Code Generation Endpoints -->
+      <DocsCard color-variant="cyan">
+        <DocsCardHeader title="Code Generation" icon="fas fa-wand-magic-sparkles" color="cyan" />
+        
+        <div class="space-y-4 mt-4">
+          <!-- POST /projects/{project_id}/generate -->
+          <div class="border border-white/[0.08] rounded-xl overflow-hidden">
+            <div class="bg-white/[0.02] p-4 border-b border-white/[0.08] flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 bg-blue-500/20 rounded-lg text-blue-400 font-mono text-xs font-medium">POST</span>
+                <code class="text-white/80 text-sm">/projects/{project_id}/generate</code>
+              </div>
+              <button 
+                class="text-white/40 hover:text-white transition-colors p-2" 
+                @click="toggleEndpoint('generateCode')"
+              >
+                <i :class="[isEndpointExpanded('generateCode') ? 'fas fa-chevron-up' : 'fas fa-chevron-down']"></i>
+              </button>
             </div>
-            <button class="text-gray-400 hover:text-white transition-colors" @click="toggleEndpoint('generateCode')">
-              <i :class="[isEndpointExpanded('generateCode') ? 'fas fa-chevron-up' : 'fas fa-chevron-down']"></i>
-            </button>
-          </div>
-          <div v-if="isEndpointExpanded('generateCode')" class="p-4 bg-dark-800/50">
-            <div class="mb-4">
-              <p class="text-gray-300 m-0">
+            <div v-if="isEndpointExpanded('generateCode')" class="p-4 bg-white/[0.01]">
+              <p class="text-white/50 text-sm mb-4">
                 Generates code based on the provided description or requirements.
               </p>
-            </div>
-            <div class="mb-4">
-              <h4 class="text-primary-400 text-sm font-medium mb-2">Path Parameters</h4>
-              <div class="bg-dark-800 rounded-md overflow-hidden">
-                <table class="w-full border-collapse">
-                  <thead>
-                    <tr class="border-b border-dark-700">
-                      <th class="text-left p-3 text-gray-400 font-medium">Name</th>
-                      <th class="text-left p-3 text-gray-400 font-medium">Type</th>
-                      <th class="text-left p-3 text-gray-400 font-medium">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td class="p-3 text-primary-400 font-mono text-sm">project_id</td>
-                      <td class="p-3 text-yellow-400">string</td>
-                      <td class="p-3 text-gray-300">The ID of the project</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="mb-4">
-              <h4 class="text-primary-400 text-sm font-medium mb-2">Request Body</h4>
-              <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-                <pre class="text-gray-300 m-0 whitespace-pre"><code>{
-  "description": "Create a login form with email and password fields, plus a 'Forgot Password' link",
+              
+              <h5 class="text-cyan-400 text-sm font-medium mb-2">Request Body</h5>
+              <div class="bg-[#0a0a0f] p-4 rounded-lg border border-white/[0.06] overflow-x-auto mb-4">
+                <pre class="text-white/70 text-sm m-0"><code>{
+  "description": "Create a login form with email and password fields",
   "type": "component",
   "options": {
     "language": "vue",
@@ -251,84 +211,78 @@
   }
 }</code></pre>
               </div>
-            </div>
-            <div class="mb-4">
-              <h4 class="text-primary-400 text-sm font-medium mb-2">Response</h4>
-              <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-                <pre class="text-gray-300 m-0 whitespace-pre"><code>{
+              
+              <h5 class="text-cyan-400 text-sm font-medium mb-2">Response</h5>
+              <div class="bg-[#0a0a0f] p-4 rounded-lg border border-white/[0.06] overflow-x-auto">
+                <pre class="text-white/70 text-sm m-0"><code>{
   "id": "gen_789ghi",
   "status": "completed",
   "files": [
     {
       "path": "components/LoginForm.vue",
-      "content": "<!-- Generated login form component code -->",
+      "content": "...",
       "language": "vue"
     }
-  ],
-  "created_at": "2023-05-15T14:30:00Z"
+  ]
 }</code></pre>
               </div>
             </div>
           </div>
         </div>
+      </DocsCard>
 
-        <!-- SDK Section -->
-        <h2 class="mt-12">JavaScript SDK</h2>
-        <p>
+      <!-- SDK Section -->
+      <DocsCard color-variant="fuchsia">
+        <DocsCardHeader title="JavaScript SDK" icon="fas fa-cube" color="fuchsia" />
+        <p class="text-white/50 leading-relaxed mb-6">
           For convenience, we provide a JavaScript SDK that simplifies API integration.
         </p>
 
-        <div class="mt-6 bg-dark-900/50 border border-dark-800 rounded-xl p-6">
-          <h3 class="text-primary-400 mt-0">Installation</h3>
-          <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-            <code class="text-gray-300">npm install @imagi/sdk</code>
+        <div class="space-y-6">
+          <div class="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+            <h4 class="text-fuchsia-400 font-medium mb-2">Installation</h4>
+            <div class="bg-[#0a0a0f] p-3 rounded-lg border border-white/[0.06] overflow-x-auto">
+              <code class="text-white/70 text-sm">npm install @imagi/sdk</code>
+            </div>
           </div>
 
-          <h3 class="text-primary-400 mt-6">Usage Example</h3>
-          <div class="bg-dark-800 p-3 rounded-md overflow-x-auto">
-            <pre class="text-gray-300 m-0 whitespace-pre"><code>import { ImagiClient } from '@imagi/sdk';
+          <div class="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
+            <h4 class="text-fuchsia-400 font-medium mb-2">Usage Example</h4>
+            <div class="bg-[#0a0a0f] p-4 rounded-lg border border-white/[0.06] overflow-x-auto">
+              <pre class="text-white/70 text-sm m-0"><code>import { ImagiClient } from '@imagi/sdk';
 
 const client = new ImagiClient('YOUR_API_KEY');
 
 // List projects
-client.projects.list()
-  .then(projects => console.log(projects))
-  .catch(error => console.error(error));
+const projects = await client.projects.list();
 
 // Create a new project
-client.projects.create({
+const project = await client.projects.create({
   name: 'My Awesome Project',
-  description: 'Description of my project',
-  projectType: 'web_application'
-})
-  .then(project => console.log(project))
-  .catch(error => console.error(error));</code></pre>
+  description: 'Description of my project'
+});</code></pre>
+            </div>
           </div>
         </div>
+      </DocsCard>
 
-        <!-- Additional Resources -->
-        <div class="mt-12 bg-primary-500/10 border border-primary-500/20 rounded-xl p-6">
-          <h3 class="text-primary-400 mt-0 flex items-center">
-            <i class="fas fa-info-circle mr-2"></i>
-            Need More Help?
-          </h3>
-          <p class="mb-4">
-            If you need additional assistance, explore these resources:
-          </p>
-          <ul class="mb-4">
-            <li>Check our <router-link to="/docs/troubleshooting" class="text-primary-400 hover:text-primary-300 transition-colors">Troubleshooting Guide</router-link></li>
-            <li>Join our <a href="#" class="text-primary-400 hover:text-primary-300 transition-colors">Discord community</a></li>
-            <li>Contact <a href="#" class="text-primary-400 hover:text-primary-300 transition-colors">Support Team</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
+      <!-- Additional Resources -->
+      <DocsCTASection 
+        title="Need More Help?" 
+        icon="fas fa-question-circle" 
+        description="If you need additional assistance with the API, check our troubleshooting guide or contact our support team."
+        buttonText="View Troubleshooting"
+        buttonLink="/docs/troubleshooting"
+        buttonIcon="fas fa-wrench"
+      />
+    </DocsContentWrapper>
   </DocsLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import DocsLayout from '../layouts/DocsLayout.vue'
+import { DocsContentWrapper, DocsCard, DocsCardHeader, DocsCTASection } from '../components'
 
 // Track expanded endpoint sections
 const expandedEndpoints = ref(new Set(['getProjects']))
@@ -349,12 +303,13 @@ const isEndpointExpanded = (endpointId) => {
 </script>
 
 <style scoped>
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+/* Override Tailwind prose styling */
+:deep(.prose ul) {
+  list-style-type: none;
+  padding-left: 0;
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
+:deep(.prose ol) {
+  padding-left: 1.75rem;
 }
-</style> 
+</style>

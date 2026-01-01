@@ -225,21 +225,21 @@
           Now that you understand how to build UIs with Imagi Oasis, explore these related resources:
         </p>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-wrap gap-4">
           <router-link 
             to="/docs/project-structure" 
-            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 mr-4 mb-4"
+            class="group/btn inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
           >
-            <i class="fas fa-sitemap mr-2 text-sm"></i>
-            Project Structure
+            <i class="fas fa-sitemap text-sm"></i>
+            <span>Project Structure</span>
           </router-link>
           
           <router-link 
             to="/docs/backend" 
-            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 hover:from-indigo-500/30 hover:to-violet-500/30 text-indigo-300 hover:text-indigo-200 rounded-xl transition-all duration-300 border border-indigo-400/20 hover:border-indigo-400/30 mb-4"
+            class="group/btn inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
           >
-            <i class="fas fa-server mr-2 text-sm"></i>
-            Backend Logic
+            <i class="fas fa-server text-sm"></i>
+            <span>Backend Logic</span>
           </router-link>
         </div>
       </DocsCard>
