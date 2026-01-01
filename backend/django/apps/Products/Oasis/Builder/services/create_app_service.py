@@ -9,7 +9,7 @@ from typing import Dict, List, Any
 import os
 from rest_framework.exceptions import ValidationError, NotFound
 from apps.Products.Oasis.ProjectManager.models import Project
-from .file_service import FileService
+from .create_file_service import CreateFileService
 from .codegen.prebuilt_apps import generate_prebuilt_app_files
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class CreateAppService:
         """
         self.user = user
         self.project = project
-        self.file_service = FileService(user=user, project=project)
+        self.file_service = CreateFileService(user=user, project=project)
         
     def get_project(self, project_id):
         """Get a project by ID when initialized with user."""
@@ -57,7 +57,7 @@ class CreateAppService:
             # Get project if needed
             if project_id and not self.project:
                 project = self.get_project(project_id)
-                self.file_service = FileService(project=project)
+                self.file_service = CreateFileService(project=project)
             elif not self.project and not project_id:
                 raise ValidationError("No project specified")
             
@@ -122,7 +122,7 @@ class CreateAppService:
             # Get project if needed
             if project_id and not self.project:
                 project = self.get_project(project_id)
-                self.file_service = FileService(project=project)
+                self.file_service = CreateFileService(project=project)
             elif not self.project and not project_id:
                 raise ValidationError("No project specified")
             

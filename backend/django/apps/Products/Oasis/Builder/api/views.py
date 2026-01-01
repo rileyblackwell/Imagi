@@ -14,7 +14,9 @@ from django.utils.decorators import method_decorator
 from .serializers import (
     ProjectSerializer,
 )
-from ..services.file_service import FileService
+from ..services.create_file_service import CreateFileService
+from ..services.view_file_service import ViewFileService
+from ..services.delete_file_service import DeleteFileService
 from ..services.models_service import ModelsService
 from apps.Products.Oasis.Agents.services import (
     process_builder_mode_input,
@@ -28,11 +30,6 @@ from rest_framework.exceptions import NotFound
 from apps.Products.Oasis.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
 from ..services.create_app_service import CreateAppService
-from ..services.create_view_service import CreateViewService
-from ..services.create_component_service import CreateComponentService
-from ..services.create_app_service import CreateAppService
-from ..services.create_view_service import CreateViewService
-from ..services.create_component_service import CreateComponentService
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +53,8 @@ class ProjectDirectoriesView(APIView):
     def get(self, request, project_id):
         try:
             project = self.get_project(project_id)
-            file_service = FileService(project=project)
-            files = file_service.list_files()
+            view_file_service = ViewFileService(project=project)
+            files = view_file_service.list_files()
             return Response(files)
         except Exception as e:
             logger.error(f"Error listing project files: {str(e)}")
@@ -129,9 +126,9 @@ class GenerateCodeView(APIView):
             # If file_path is provided, get the file content
             file_content = None
             if file_path:
-                file_service = FileService(project=project)
+                view_file_service = ViewFileService(project=project)
                 try:
-                    file_content = file_service.get_file_content(file_path)
+                    file_content = view_file_service.get_file_content(file_path)
                 except Exception as e:
                     logger.error(f"Error getting file content: {str(e)}")
             
@@ -173,8 +170,8 @@ class FileContentView(APIView):
             # Get project from ProjectManager
             project = self.get_project(project_id)
             
-            file_service = FileService(project=project)
-            content = file_service.get_file_content(file_path)
+            view_file_service = ViewFileService(project=project)
+            content = view_file_service.get_file_content(file_path)
             return Response({'content': content})
         except Exception as e:
             logger.error(f"Error getting file content: {str(e)}")
@@ -213,8 +210,8 @@ class FileContentView(APIView):
                     # Continue anyway as the file creation might still succeed
             
             # Create or update the file
-            file_service = FileService(project=project)
-            file_data = file_service.update_file(file_path, content)
+            view_file_service = ViewFileService(project=project)
+            file_data = view_file_service.update_file(file_path, content)
             
             return Response(file_data, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -347,8 +344,8 @@ class CreateFileView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Create file using the Builder's FileService
-            file_service = FileService(project=project)
+            # Create file using the CreateFileService
+            create_file_service = CreateFileService(project=project)
             
             # Handle requests with path directly
             if file_data.get('path'):
@@ -372,25 +369,15 @@ class CreateFileView(APIView):
                         file_data['type'] = 'json'
                     elif ext == '.md':
                         file_data['type'] = 'markdown'
+                    elif ext == '.vue':
+                        file_data['type'] = 'vue'
+                    elif ext == '.ts':
+                        file_data['type'] = 'typescript'
                     else:
                         file_data['type'] = 'text'
-                
-                # Ensure parent directories exist
-                import os
-                file_path = file_data.get('path')
-                dir_path = os.path.dirname(file_path)
-                
-                if dir_path:
-                    try:
-                        # Create all necessary parent directories
-                        logger.info(f"Creating directory structure for {file_path}: {dir_path}")
-                        os.makedirs(os.path.join(project.project_path, dir_path), exist_ok=True)
-                    except Exception as dir_error:
-                        logger.error(f"Error creating directory structure: {str(dir_error)}")
-                        # Continue anyway as the file creation might still succeed
             
-            # Create the file
-            result = file_service.create_file(file_data)
+            # Create the file (CreateFileService handles directory creation)
+            result = create_file_service.create_file(file_data)
             
             # If this is an HTML template file in the templates directory, create a corresponding view and URL
             file_path = result.get('path', '')
@@ -458,9 +445,9 @@ class DeleteFileView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
                 
-            # Delete file using the Builder's FileService
-            file_service = FileService(project=project)
-            result = file_service.delete_file(file_path)
+            # Delete file using the DeleteFileService
+            delete_file_service = DeleteFileService(project=project)
+            result = delete_file_service.delete_file(file_path)
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error deleting file: {str(e)}")
@@ -514,10 +501,10 @@ class FileUndoView(APIView):
             # After a successful undo, refresh the file list
             if result.get('success', False):
                 # Also update the file content with the undone version
-                file_service = FileService(project=project)
+                view_file_service = ViewFileService(project=project)
                 if 'content' in result:
                     # Overwrite the file with the undone content
-                    file_service.update_file_content(file_path, result['content'])
+                    view_file_service.update_file(file_path, result['content'])
             
             return Response(result)
         except Exception as e:
@@ -750,128 +737,6 @@ class CreateAppView(APIView):
                 
         except Exception as e:
             logger.error(f"Error creating app: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class CreateView(APIView):
-    """Create a new Vue.js view within an app."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def post(self, request, project_id):
-        """Create a new view in an app."""
-        try:
-            # Get project
-            project = self.get_project(project_id)
-            
-            # Get request data
-            app_name = request.data.get('app_name', '')
-            page_name = request.data.get('page_name', '')
-            page_type = request.data.get('page_type', 'view')  # 'view', 'component', 'layout'
-            route_path = request.data.get('route_path', None)  # Optional custom route
-            
-            if not app_name or not page_name:
-                return Response(
-                    {'error': 'App name and page name are required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Initialize service
-            page_service = CreateViewService(user=self.request.user, project=project)
-            
-            # Create page with or without custom route
-            if route_path:
-                result = page_service.create_page_with_route(
-                    app_name=app_name,
-                    page_name=page_name,
-                    route_path=route_path
-                )
-            else:
-                result = page_service.create_page(
-                    app_name=app_name,
-                    page_name=page_name,
-                    page_type=page_type
-                )
-            
-            if result.get('success'):
-                return Response(result, status=status.HTTP_201_CREATED)
-            else:
-                return Response(result, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            logger.error(f"Error creating page: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-@method_decorator(never_cache, name='dispatch')
-class CreateComponentView(APIView):
-    """Create a new Vue.js atomic component."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def post(self, request, project_id):
-        """Create a new atomic component."""
-        try:
-            # Get project
-            project = self.get_project(project_id)
-            
-            # Get request data
-            app_name = request.data.get('app_name', '')
-            component_name = request.data.get('component_name', '')
-            component_type = request.data.get('component_type', 'atom')  # 'atom', 'molecule', 'organism'
-            component_variant = request.data.get('component_variant', 'generic')  # 'generic', 'button', 'input'
-            
-            if not app_name or not component_name:
-                return Response(
-                    {'error': 'App name and component name are required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Initialize service
-            component_service = CreateComponentService(user=self.request.user, project=project)
-            
-            # Create component based on variant
-            if component_variant == 'button':
-                result = component_service.create_button_component(
-                    app_name=app_name,
-                    button_name=component_name
-                )
-            elif component_variant == 'input':
-                result = component_service.create_input_component(
-                    app_name=app_name,
-                    input_name=component_name
-                )
-            else:
-                result = component_service.create_atomic_component(
-                    app_name=app_name,
-                    component_name=component_name,
-                    component_type=component_type
-                )
-            
-            if result.get('success'):
-                return Response(result, status=status.HTTP_201_CREATED)
-            else:
-                return Response(result, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            logger.error(f"Error creating component: {str(e)}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
