@@ -1,19 +1,28 @@
 <template>
-  <div class="flex-1 min-h-0 relative grid grid-cols-1 gap-4 overflow-hidden auto-rows-[minmax(0,1fr)]">
-    <div class="rounded-2xl border bg-dark-800/60 backdrop-blur-md border-dark-700/60 flex flex-col h-full min-h-0">
-      <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-dark-900/50">
+  <div class="flex-1 min-h-0 relative overflow-hidden">
+    <div class="rounded-2xl border border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl flex flex-col h-full min-h-0 shadow-2xl shadow-black/20">
+      <!-- Header with back button and badge -->
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-gradient-to-r from-[#0a0a0f]/90 to-[#0d0d14]/90">
         <button
-          class="text-xs px-2 py-1 rounded-md border border-white/10 text-gray-200 hover:text-white hover:bg-white/10 transition"
+          class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-gray-300 hover:text-white hover:bg-white/[0.06] hover:border-white/10 transition-all duration-200"
           @click="$emit('back')"
         >
-          <i class="fas fa-arrow-left mr-1"></i> Back
+          <i class="fas fa-arrow-left text-[10px]"></i>
+          <span>Back</span>
         </button>
         <div class="flex items-center gap-2">
-          <div class="text-[11px] px-2 py-0.5 rounded-full border bg-dark-800/60 border-dark-700/50 text-gray-300">Advanced</div>
+          <div class="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border border-violet-500/20 bg-violet-500/10 text-violet-300">
+            <i class="fas fa-code text-[9px]"></i>
+            <span>Advanced</span>
+          </div>
         </div>
       </div>
-      <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-      <div class="p-2 flex-1 min-h-0 overflow-hidden">
+      
+      <!-- Accent gradient line -->
+      <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/40 to-transparent"></div>
+      
+      <!-- File browser content -->
+      <div class="flex-1 min-h-0 overflow-hidden">
         <VisualFileBrowser
           :files="files"
           :selected-file="selectedFile"
