@@ -20,7 +20,6 @@
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
               </span>
               <span class="text-sm font-medium text-white/70 tracking-wide">AI-Powered Web Development</span>
-              <i class="fas fa-arrow-right text-xs text-white/40 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all duration-300"></i>
             </div>
           </div>
 
@@ -59,16 +58,12 @@
                 <div class="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
               </div>
               
-              <!-- Subtle glow effect -->
-              <div class="absolute -inset-[1px] bg-gradient-to-r from-violet-400/0 via-fuchsia-400/50 to-violet-400/0 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-300 rounded-xl"></div>
-              
               <!-- Button content -->
-              <span class="relative flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base backdrop-blur-sm border border-white/10 group-hover:border-white/20 transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-lg group-hover:shadow-violet-500/25">
+              <span class="relative flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-white font-semibold text-base backdrop-blur-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:shadow-lg group-hover:shadow-violet-500/25">
                 <span class="flex items-center justify-center w-5 h-5 rounded-lg bg-white/15 group-hover:bg-white/25 transition-colors duration-300 group-hover:rotate-[-5deg]">
                   <i class="fas fa-rocket text-xs"></i>
                 </span>
                 <span class="tracking-wide">{{ primaryButtonText }}</span>
-                <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1.5 transition-transform duration-300"></i>
               </span>
             </HomeNavbarButton>
 
