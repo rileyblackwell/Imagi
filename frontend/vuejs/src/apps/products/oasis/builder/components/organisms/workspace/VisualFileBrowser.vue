@@ -1,12 +1,12 @@
 <template>
-  <div class="flex h-full w-full">
+  <div class="flex h-full w-full bg-[#050508]">
     <!-- Apps list (left) -->
-    <aside class="hidden md:flex md:w-56 flex-col border-r border-white/[0.06] bg-[#0a0a0f]/60 backdrop-blur-sm">
+    <aside class="hidden md:flex md:w-56 flex-col border-r border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl">
       <div class="px-3 py-3 border-b border-white/[0.06] flex items-center gap-2">
-        <span class="w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 text-violet-300 shadow-lg shadow-violet-500/10">
+        <span class="w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 text-violet-300 shadow-lg shadow-violet-500/10">
           <i class="fas fa-cubes text-xs"></i>
         </span>
-        <div class="text-sm font-semibold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Apps</div>
+        <div class="text-sm font-semibold text-white/90">Apps</div>
       </div>
       <div class="p-2 overflow-auto space-y-1.5">
         <button
@@ -16,8 +16,8 @@
           class="w-full text-left px-2.5 py-2 rounded-lg border transition-all duration-200 flex items-center gap-2.5 group"
           :class="[
             selectedApp && selectedApp.key === app.key
-              ? 'border-violet-500/40 bg-violet-500/10 shadow-lg shadow-violet-500/5'
-              : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10'
+              ? 'border-violet-500/30 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 shadow-lg shadow-violet-500/5'
+              : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.08]'
           ]"
           @click="selectApp(app)"
         >
@@ -26,7 +26,7 @@
           </span>
           <span class="min-w-0 flex-1">
             <span class="block text-xs font-medium text-white/90 truncate">{{ app.displayName }}</span>
-            <span class="block text-[10px] text-gray-500 truncate">{{ app.files.length }} files</span>
+            <span class="block text-[10px] text-white/40 truncate">{{ app.files.length }} files</span>
           </span>
         </button>
       </div>
@@ -35,16 +35,16 @@
     <!-- Main content (right) -->
     <section class="flex-1 min-w-0 flex flex-col bg-[#050508]">
       <!-- Toolbar -->
-      <div class="px-4 py-3 flex items-center gap-3 border-b border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-sm">
+      <div class="px-4 py-3 flex items-center gap-3 border-b border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl">
         <div class="flex items-center gap-3 min-w-0">
           <span v-if="selectedApp" :class="['w-9 h-9 rounded-xl flex items-center justify-center border text-base shadow-lg', selectedApp.color.bg, selectedApp.color.border, selectedApp.color.text]">
             <i :class="selectedApp.icon"></i>
           </span>
           <div class="min-w-0">
-            <div class="text-sm font-semibold text-white truncate">
+            <div class="text-sm font-semibold text-white/90 truncate">
               {{ selectedApp ? selectedApp.displayName : 'Browse Apps' }}
             </div>
-            <div class="text-[11px] text-gray-500 truncate">
+            <div class="text-[11px] text-white/40 truncate">
               {{ selectedApp ? 'Select a file to chat or build' : 'Choose an app to view its files' }}
             </div>
           </div>
@@ -52,19 +52,19 @@
         <div class="ml-auto flex items-center gap-3">
           <!-- Search -->
           <div class="relative">
-            <i class="fas fa-search text-gray-600 absolute left-3 top-1/2 -translate-y-1/2 text-xs"></i>
+            <i class="fas fa-search text-white/30 absolute left-3 top-1/2 -translate-y-1/2 text-xs"></i>
             <input
               v-model="query"
               type="text"
               placeholder="Search files..."
-              class="w-48 pl-8 pr-3 py-2 text-xs bg-white/[0.03] border border-white/[0.08] rounded-lg text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-violet-500/30 focus:border-violet-500/30 transition-all"
+              class="w-48 pl-8 pr-3 py-2 text-xs bg-white/[0.03] border border-white/[0.08] rounded-lg text-white/90 placeholder-white/30 outline-none focus:ring-1 focus:ring-violet-500/30 focus:border-violet-500/30 transition-all"
             />
           </div>
           <!-- View toggle -->
           <div class="inline-flex rounded-lg border border-white/[0.08] overflow-hidden bg-white/[0.02]">
             <button
               class="px-2.5 py-1.5 text-xs border-r border-white/[0.08] transition-all"
-              :class="viewMode === 'grid' ? 'bg-violet-500/20 text-violet-300' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'"
+              :class="viewMode === 'grid' ? 'bg-violet-500/20 text-violet-300' : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'"
               @click="viewMode = 'grid'"
               title="Grid view"
             >
@@ -72,7 +72,7 @@
             </button>
             <button
               class="px-2.5 py-1.5 text-xs transition-all"
-              :class="viewMode === 'list' ? 'bg-violet-500/20 text-violet-300' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'"
+              :class="viewMode === 'list' ? 'bg-violet-500/20 text-violet-300' : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'"
               @click="viewMode = 'list'"
               title="List view"
             >
@@ -83,13 +83,13 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 min-h-0 overflow-auto p-4">
+      <div class="flex-1 min-h-0 overflow-auto p-4 bg-[#050508]">
         <!-- Files for selected app -->
         <div class="space-y-4">
           <!-- File count badge -->
           <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] rounded-full border border-white/[0.06]">
             <i class="fas fa-file text-[10px] text-violet-400/70"></i>
-            <span class="text-[11px] text-gray-400">{{ filteredFiles.length }} files</span>
+            <span class="text-[11px] text-white/50">{{ filteredFiles.length }} files</span>
           </div>
 
           <!-- Tabs by category -->
@@ -99,8 +99,8 @@
               :key="cat.key"
               class="px-4 py-2.5 text-xs font-medium rounded-t-lg border-b-2 -mb-px transition-all"
               :class="activeCategory === cat.key 
-                ? 'border-violet-400 text-white bg-violet-500/10' 
-                : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'"
+                ? 'border-violet-400 text-white/90 bg-violet-500/10' 
+                : 'border-transparent text-white/40 hover:text-white/60 hover:bg-white/[0.02]'"
               @click="setCategory(cat.key)"
             >
               {{ cat.label }}
@@ -111,7 +111,7 @@
           <template v-if="activeCategory === 'components'">
             <div v-for="group in subgroupOrder" :key="group.key" class="space-y-3">
               <div class="flex items-center gap-2">
-                <div class="text-[11px] uppercase tracking-wider font-medium text-gray-500">{{ group.label }}</div>
+                <div class="text-[11px] uppercase tracking-wider font-medium text-white/40">{{ group.label }}</div>
                 <div class="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent"></div>
                 <button
                   @click="openNewComponentModal(group.key)"
@@ -125,14 +125,14 @@
               
               <!-- Empty state when no files in this subgroup -->
               <div v-if="!componentSubgroups[group.key].length" class="py-4 text-center">
-                <p class="text-xs text-gray-600">No {{ group.label.toLowerCase() }} yet</p>
+                <p class="text-xs text-white/30">No {{ group.label.toLowerCase() }} yet</p>
               </div>
               <!-- Grid view for components -->
               <div v-if="viewMode === 'grid' && componentSubgroups[group.key].length" class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
                 <div
                   v-for="file in componentSubgroups[group.key]"
                   :key="file.path"
-                  class="group relative rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent hover:from-white/[0.06] hover:border-white/10 text-left p-3.5 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5"
+                  class="group relative rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent hover:from-white/[0.06] hover:border-white/[0.08] text-left p-3.5 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5 cursor-pointer"
                   @click="emit('select-file', file)"
                   @keydown.enter.prevent="emit('select-file', file)"
                   @keydown.space.prevent="emit('select-file', file)"
@@ -162,7 +162,7 @@
                 <div
                   v-for="file in componentSubgroups[group.key]"
                   :key="file.path"
-                  class="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-white/[0.03] transition-all group"
+                  class="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-white/[0.03] transition-all group cursor-pointer"
                   @click="emit('select-file', file)"
                   @keydown.enter.prevent="emit('select-file', file)"
                   @keydown.space.prevent="emit('select-file', file)"
@@ -181,7 +181,7 @@
                   >
                     <i class="fas fa-trash text-[10px]"></i>
                   </button>
-                  <i class="fas fa-chevron-right text-[10px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                  <i class="fas fa-chevron-right text-[10px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                 </div>
               </div>
             </div>
@@ -202,7 +202,7 @@
               <div
                 v-for="file in categorizedFiles"
                 :key="file.path"
-                class="group relative rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent hover:from-white/[0.06] hover:border-white/10 text-left p-3.5 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5"
+                class="group relative rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-transparent hover:from-white/[0.06] hover:border-white/[0.08] text-left p-3.5 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5 cursor-pointer"
                 @click="emit('select-file', file)"
                 @keydown.enter.prevent="emit('select-file', file)"
                 @keydown.space.prevent="emit('select-file', file)"
@@ -231,7 +231,7 @@
               <div
                 v-for="file in categorizedFiles"
                 :key="file.path"
-                class="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-white/[0.03] transition-all group"
+                class="w-full text-left px-3.5 py-2.5 flex items-center gap-3 hover:bg-white/[0.03] transition-all group cursor-pointer"
                 @click="emit('select-file', file)"
                 @keydown.enter.prevent="emit('select-file', file)"
                 @keydown.space.prevent="emit('select-file', file)"
@@ -251,7 +251,7 @@
                 >
                   <i class="fas fa-trash text-[10px]"></i>
                 </button>
-                <i class="fas fa-chevron-right text-[10px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                <i class="fas fa-chevron-right text-[10px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity"></i>
               </div>
             </div>
           </template>
@@ -271,21 +271,21 @@
           <div class="px-6 py-4 border-b border-white/[0.06]">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center">
                   <i class="fas fa-plus text-violet-300"></i>
                 </div>
                 <div>
-                  <h3 class="text-base font-semibold text-white">
+                  <h3 class="text-base font-semibold text-white/90">
                     {{ newFileType === 'view' ? 'New View' : `New ${newFileSubtype.charAt(0).toUpperCase() + newFileSubtype.slice(1)} Component` }}
                   </h3>
-                  <p class="text-xs text-gray-500 mt-0.5">
+                  <p class="text-xs text-white/40 mt-0.5">
                     {{ selectedApp ? `in ${selectedApp.displayName}` : '' }}
                   </p>
                 </div>
               </div>
               <button
                 @click="closeNewFileModal"
-                class="w-8 h-8 rounded-lg hover:bg-white/[0.05] text-gray-400 hover:text-white transition-all flex items-center justify-center"
+                class="w-8 h-8 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-white/90 transition-all flex items-center justify-center"
               >
                 <i class="fas fa-times"></i>
               </button>
@@ -295,19 +295,19 @@
           <!-- Body -->
           <div class="px-6 py-5 space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
+              <label class="block text-sm font-medium text-white/60 mb-2">
                 File Name
               </label>
               <input
                 v-model="newFileName"
                 type="text"
                 placeholder="MyComponent"
-                class="w-full px-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-lg text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/30 transition-all"
+                class="w-full px-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-lg text-white/90 placeholder-white/30 outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/30 transition-all"
                 @keydown.enter="createNewFile"
                 @keydown.escape="closeNewFileModal"
                 autofocus
               />
-              <p class="text-xs text-gray-500 mt-2">
+              <p class="text-xs text-white/30 mt-2">
                 .vue extension will be added automatically
               </p>
             </div>
@@ -317,14 +317,14 @@
           <div class="px-6 py-4 border-t border-white/[0.06] flex items-center justify-end gap-3">
             <button
               @click="closeNewFileModal"
-              class="px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-gray-300 hover:text-white transition-all text-sm font-medium"
+              class="px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-white/60 hover:text-white/90 transition-all text-sm font-medium"
             >
               Cancel
             </button>
             <button
               @click="createNewFile"
               :disabled="!newFileName.trim()"
-              class="px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/20"
+              class="px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/20"
             >
               Create File
             </button>
@@ -344,21 +344,21 @@
           <!-- Header -->
           <div class="px-6 py-4 border-b border-white/[0.06]">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center">
+              <div class="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/20 flex items-center justify-center">
                 <i class="fas fa-exclamation-triangle text-red-400"></i>
               </div>
               <div>
-                <h3 class="text-base font-semibold text-white">Delete File</h3>
-                <p class="text-xs text-gray-500 mt-0.5">This action cannot be undone</p>
+                <h3 class="text-base font-semibold text-white/90">Delete File</h3>
+                <p class="text-xs text-white/40 mt-0.5">This action cannot be undone</p>
               </div>
             </div>
           </div>
 
           <!-- Body -->
           <div class="px-6 py-5">
-            <p class="text-sm text-gray-300">
+            <p class="text-sm text-white/60">
               Are you sure you want to delete 
-              <span class="font-semibold text-white">{{ fileToDelete ? fileName(fileToDelete.path) : '' }}</span>?
+              <span class="font-semibold text-white/90">{{ fileToDelete ? fileName(fileToDelete.path) : '' }}</span>?
             </p>
           </div>
 
@@ -366,7 +366,7 @@
           <div class="px-6 py-4 border-t border-white/[0.06] flex items-center justify-end gap-3">
             <button
               @click="closeDeleteConfirm"
-              class="px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-gray-300 hover:text-white transition-all text-sm font-medium"
+              class="px-4 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] text-white/60 hover:text-white/90 transition-all text-sm font-medium"
             >
               Cancel
             </button>

@@ -12,11 +12,11 @@
 -->
 <template>
   <BuilderLayout storage-key="builderDashboardSidebarCollapsed">
-    <!-- Custom Sidebar Content with docs-style design -->
+    <!-- Custom Sidebar Content with modern design -->
     <template #sidebar-content="{ collapsed }">
       <div class="p-4">
         <div class="mb-6">
-          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3" v-if="!collapsed">
+          <div class="text-xs font-medium text-white/40 uppercase tracking-wider mb-3" v-if="!collapsed">
             Navigation
           </div>
           <ul class="space-y-1">
@@ -26,8 +26,8 @@
                 class="group block px-3 py-2 rounded-xl transition-all duration-200 cursor-pointer"
                 :class="[
                   isActiveRoute(item.to, item.exact) 
-                    ? 'bg-gradient-to-r from-indigo-500/20 to-violet-500/20 text-indigo-300 border border-indigo-400/20' 
-                    : 'hover:bg-white/5 text-gray-300 hover:text-white border border-transparent hover:border-white/10'
+                    ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border border-violet-400/20' 
+                    : 'hover:bg-white/[0.05] text-white/60 hover:text-white/90 border border-transparent hover:border-white/[0.08]'
                 ]"
               >
                 <div class="flex items-center">

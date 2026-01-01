@@ -1,10 +1,10 @@
 <template>
   <DashboardLayout>
-    <!-- Custom Sidebar Content with docs-style design -->
+    <!-- Custom Sidebar Content with modern design -->
     <template #sidebar-content="{ isSidebarCollapsed }">
       <div class="p-4">
         <div class="mb-6">
-          <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3" v-if="!isSidebarCollapsed">
+          <div class="text-xs font-medium text-white/40 uppercase tracking-wider mb-3" v-if="!isSidebarCollapsed">
             Navigation
           </div>
           <ul class="space-y-1">
@@ -14,8 +14,8 @@
                 class="group block px-3 py-2 rounded-xl transition-all duration-200 cursor-pointer"
                 :class="[
                   isActiveRoute(item.to, item.exact) 
-                    ? 'bg-gradient-to-r from-indigo-500/20 to-violet-500/20 text-indigo-300 border border-indigo-400/20' 
-                    : 'hover:bg-white/5 text-gray-300 hover:text-white border border-transparent hover:border-white/10'
+                    ? 'bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border border-violet-400/20' 
+                    : 'hover:bg-white/[0.05] text-white/60 hover:text-white/90 border border-transparent hover:border-white/[0.08]'
                 ]"
               >
                 <div class="flex items-center">
@@ -29,112 +29,148 @@
       </div>
     </template>
 
-    <!-- Enhanced Main Content with Dynamic Background -->
-    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Improved Decorative Background Elements -->
-      <div class="absolute inset-0 pointer-events-none">
-        <!-- Enhanced Pattern Overlay -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+    <!-- Premium Main Content - Matching Home Page -->
+    <div class="min-h-screen bg-[#050508] relative overflow-hidden">
+      <!-- Premium Background System -->
+      <div class="fixed inset-0 pointer-events-none">
+        <!-- Base gradient mesh -->
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.15),transparent_50%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.08),transparent_40%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.06),transparent_35%)]"></div>
         
-        <!-- Enhanced Glowing Orbs Animation -->
-        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
-        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        <!-- Subtle grain texture -->
+        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
         
-        <!-- Animated Lines and Particles -->
-        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
-        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
+        <!-- Animated aurora effect -->
+        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-30">
+          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/20 via-fuchsia-500/10 to-transparent blur-[100px] animate-aurora"></div>
+        </div>
+        
+        <!-- Floating orbs -->
+        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/8 to-violet-600/4 blur-[120px] animate-float-slow"></div>
+        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/6 to-purple-600/3 blur-[100px] animate-float-delayed"></div>
+        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/4 to-orange-500/2 blur-[80px] animate-float-reverse"></div>
       </div>
 
-      <!-- Enhanced Content Container -->
+      <!-- Content Container -->
       <div class="relative z-10">
         <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 sm:py-20">
-          <!-- Modern Welcome Header Section -->
+          <!-- Premium Header Section - Matching Home Page -->
           <div class="pt-16 pb-16">
-            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
-              <div class="space-y-6 md:max-w-3xl">
-                <!-- Enhanced Badge -->
-                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
-                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">DASHBOARD</span>
+            <div class="text-center">
+              <!-- Animated badge matching home page -->
+              <div class="mb-8 inline-block animate-fade-in">
+                <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300 cursor-default">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
+                  </span>
+                  <span class="text-sm font-medium text-white/70 tracking-wide">Dashboard</span>
                 </div>
-                
-                <!-- Modern Title with Gradient Enhancement -->
-                <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
-                  Welcome back, {{ authStore.user?.name || 'Developer' }}! 👋<br class="hidden sm:block" />
-                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Imagi Oasis</span>
-                </h2>
-                
-                <!-- Enhanced Description -->
-                <p class="text-xl text-gray-300 max-w-2xl">
-                  Your AI-powered app builder dashboard. Create, manage, and deploy applications with ease.
-                </p>
               </div>
+              
+              <!-- Title with gradient text -->
+              <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight mb-6 leading-[1.1]">
+                <span class="block text-white/90">Welcome back,</span>
+                <span class="block mt-2">
+                  <span class="relative inline-block">
+                    <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-x">
+                      {{ authStore.user?.name || 'Developer' }}! 👋
+                    </span>
+                    <span class="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent"></span>
+                  </span>
+                </span>
+              </h1>
+              
+              <!-- Description -->
+              <p class="text-lg sm:text-xl text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Your AI-powered app builder dashboard. Create, manage, and deploy applications with ease.
+              </p>
             </div>
             
-            <!-- Animated Divider Line -->
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
+            <!-- Elegant Divider -->
+            <div class="relative py-8 md:py-12">
+              <div class="relative flex items-center justify-center">
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+                <div class="mx-6 flex items-center gap-2">
+                  <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-violet-400/70"></div>
+                  <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+                </div>
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+              </div>
+            </div>
           </div>
 
-          <!-- Enhanced Stats Overview with Modern Glassmorphism -->
+          <!-- Stats Overview with Premium Glass Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
             <div 
               v-for="stat in statsData" 
               :key="stat.title"
               class="group relative transform transition-all duration-300 hover:-translate-y-1"
             >
-              <!-- Modern glassmorphism container -->
-              <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                <!-- Sleek gradient header -->
-                <div class="h-1 w-full"
+              <!-- Background glow -->
+              <div class="absolute -inset-0.5 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                :class="{
+                  'bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20': stat.color === 'primary',
+                  'bg-gradient-to-r from-green-600/20 via-emerald-600/20 to-green-600/20': stat.color === 'success',
+                  'bg-gradient-to-r from-yellow-600/20 via-amber-600/20 to-yellow-600/20': stat.color === 'warning',
+                  'bg-gradient-to-r from-blue-600/20 via-sky-600/20 to-blue-600/20': stat.color === 'info'
+                }"
+              ></div>
+              
+              <!-- Premium glass card -->
+              <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/90 backdrop-blur-xl overflow-hidden h-full transition-all duration-300 hover:border-white/[0.12]">
+                <!-- Accent line -->
+                <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent to-transparent"
                   :class="{
-                    'bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400': stat.color === 'primary',
-                    'bg-gradient-to-r from-green-400 via-emerald-400 to-green-400': stat.color === 'success',
-                    'bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400': stat.color === 'warning',
-                    'bg-gradient-to-r from-blue-400 via-sky-400 to-blue-400': stat.color === 'info'
+                    'via-violet-500/50': stat.color === 'primary',
+                    'via-green-500/50': stat.color === 'success',
+                    'via-yellow-500/50': stat.color === 'warning',
+                    'via-blue-500/50': stat.color === 'info'
                   }"
                 ></div>
                 
-                <!-- Subtle background effects -->
-                <div class="absolute -top-16 -right-16 w-32 h-32 rounded-full blur-2xl opacity-30 transition-opacity duration-500 group-hover:opacity-40"
+                <!-- Decorative blur element -->
+                <div class="absolute -bottom-16 -right-16 w-32 h-32 rounded-full blur-2xl pointer-events-none group-hover:opacity-80 transition-opacity duration-500"
                   :class="{
-                    'bg-gradient-to-br from-indigo-400/20 to-violet-400/20': stat.color === 'primary',
-                    'bg-gradient-to-br from-green-400/20 to-emerald-400/20': stat.color === 'success',
-                    'bg-gradient-to-br from-yellow-400/20 to-amber-400/20': stat.color === 'warning',
-                    'bg-gradient-to-br from-blue-400/20 to-sky-400/20': stat.color === 'info'
+                    'bg-violet-500/5': stat.color === 'primary',
+                    'bg-green-500/5': stat.color === 'success',
+                    'bg-yellow-500/5': stat.color === 'warning',
+                    'bg-blue-500/5': stat.color === 'info'
                   }"
                 ></div>
                 
                 <div class="relative z-10 p-6">
                   <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">{{ stat.title }}</h3>
-                    <div class="w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110"
+                    <h3 class="text-sm font-medium text-white/40 uppercase tracking-wider">{{ stat.title }}</h3>
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110"
                       :class="{
-                        'bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border-indigo-400/20': stat.color === 'primary',
-                        'bg-gradient-to-br from-green-400/20 to-emerald-400/20 border-green-400/20': stat.color === 'success',
-                        'bg-gradient-to-br from-yellow-400/20 to-amber-400/20 border-yellow-400/20': stat.color === 'warning',
-                        'bg-gradient-to-br from-blue-400/20 to-sky-400/20 border-blue-400/20': stat.color === 'info'
+                        'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/20': stat.color === 'primary',
+                        'bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/20': stat.color === 'success',
+                        'bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border-yellow-500/20': stat.color === 'warning',
+                        'bg-gradient-to-br from-blue-500/20 to-sky-500/20 border-blue-500/20': stat.color === 'info'
                       }"
                     >
-                                             <i :class="[
-                           stat.icon, 
-                           'text-sm',
-                           {
-                             'text-indigo-300': stat.color === 'primary',
-                             'text-green-300': stat.color === 'success',
-                             'text-yellow-300': stat.color === 'warning',
-                             'text-blue-300': stat.color === 'info'
-                           }
-                         ]"
-                       ></i>
+                      <i :class="[
+                        stat.icon, 
+                        'text-sm',
+                        {
+                          'text-violet-300': stat.color === 'primary',
+                          'text-green-300': stat.color === 'success',
+                          'text-yellow-300': stat.color === 'warning',
+                          'text-blue-300': stat.color === 'info'
+                        }
+                      ]"
+                      ></i>
                     </div>
                   </div>
-                  <div class="text-2xl font-bold text-white mb-1">{{ stat.value }}</div>
+                  <div class="text-2xl font-bold text-white/90 mb-1">{{ stat.value }}</div>
                   <div v-if="stat.trend" class="text-xs font-medium"
                     :class="{
                       'text-green-400': stat.trend.startsWith('+'),
                       'text-red-400': stat.trend.startsWith('-'),
-                      'text-gray-400': !stat.trend.startsWith('+') && !stat.trend.startsWith('-')
+                      'text-white/40': !stat.trend.startsWith('+') && !stat.trend.startsWith('-')
                     }"
                   >
                     {{ stat.trend }}
@@ -150,71 +186,78 @@
             <div class="lg:col-span-2 space-y-10">
               <!-- Recent Projects -->
               <div class="group relative">
-                <!-- Modern glassmorphism container -->
-                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                  <!-- Sleek gradient header -->
-                  <div class="h-1 w-full bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 opacity-80"></div>
+                <!-- Background glow -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+                
+                <!-- Premium glass card -->
+                <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden transition-all duration-300 hover:border-white/[0.12]">
+                  <!-- Accent line -->
+                  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
                   
-                  <!-- Subtle background effects -->
-                  <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-indigo-400/4 to-violet-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  <!-- Decorative elements -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                  <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
                   
                   <div class="relative z-10 p-8">
-                    <!-- Modern header section -->
+                    <!-- Header section -->
                     <div class="flex items-center justify-between mb-6">
                       <div class="flex items-center gap-3">
-                        <!-- Modern icon with subtle gradient -->
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-400/20 to-violet-400/20 flex items-center justify-center border border-indigo-400/20 flex-shrink-0">
-                          <svg class="w-4 h-4 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <!-- Icon -->
+                        <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                          <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                           </svg>
                         </div>
-                        <h2 class="text-xl font-semibold text-white">Recent Projects</h2>
+                        <h2 class="text-xl font-semibold text-white/90">Recent Projects</h2>
                       </div>
                       <router-link 
                         to="/products/oasis/builder/projects"
-                        class="inline-flex items-center px-3 py-1.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-indigo-400/30 text-gray-400 hover:text-gray-300 rounded-xl transition-all duration-200 text-sm font-medium"
+                        class="inline-flex items-center px-4 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] hover:border-violet-400/30 text-white/60 hover:text-white/90 rounded-xl transition-all duration-200 text-sm font-medium"
                       >
                         View All
-                        <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                       </router-link>
                     </div>
                     
-                    <!-- Modern separator -->
-                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    <!-- Separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-6"></div>
                     
                     <div class="space-y-5">
                       <div 
                         v-for="project in recentProjects"
                         :key="project.id"
-                        class="group relative transform transition-all duration-300"
+                        class="group/card relative transform transition-all duration-300"
                       >
-                        <!-- Modern glassmorphism container matching ProjectCardWithDescription -->
-                        <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden h-full flex flex-col transition-all duration-300 hover:border-white/20 hover:shadow-black/40 transform hover:-translate-y-1 cursor-pointer"
+                        <!-- Background glow -->
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl blur-lg opacity-0 group-hover/card:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <!-- Premium glass card -->
+                        <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/90 backdrop-blur-xl overflow-hidden h-full flex flex-col transition-all duration-300 hover:border-white/[0.12] hover:-translate-y-1 cursor-pointer"
                              @click="goToProject(project.id)">
-                          <!-- Sleek gradient header -->
-                          <div class="h-1 w-full bg-gradient-to-r from-violet-400 via-indigo-400 to-violet-400 opacity-80"></div>
+                          <!-- Accent line -->
+                          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
                           
-                          <!-- Subtle background effects -->
-                          <div class="absolute -top-16 -left-16 w-32 h-32 bg-gradient-to-br from-violet-400/4 to-indigo-400/4 rounded-full blur-2xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                          <!-- Decorative blur element -->
+                          <div class="absolute -bottom-16 -right-16 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl pointer-events-none"></div>
                           
-                          <!-- Content with padding matching ProjectCardWithDescription -->
+                          <!-- Content -->
                           <div class="relative z-10 p-5 flex flex-col h-full">
-                            <!-- Modern project header -->
+                            <!-- Project header -->
                             <div class="flex items-center gap-3 mb-4">
-                              <!-- Modern icon with subtle gradient -->
-                              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400/20 to-indigo-400/20 flex items-center justify-center border border-violet-400/20 flex-shrink-0">
-                                <svg class="w-4 h-4 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <!-- Icon -->
+                              <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                 </svg>
                               </div>
                               
-                              <!-- Project name with improved typography -->
+                              <!-- Project name -->
                               <div class="flex-1 min-w-0">
-                                <h3 class="text-base font-semibold text-white truncate leading-tight">{{ project.name }}</h3>
-                                <div class="flex items-center text-xs text-gray-400 mt-1">
-                                  <svg class="w-3 h-3 mr-1.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <h3 class="text-base font-semibold text-white/90 truncate leading-tight">{{ project.name }}</h3>
+                                <div class="flex items-center text-xs text-white/40 mt-1">
+                                  <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                   </svg>
                                   {{ formatDate(project.updated_at) }}
@@ -222,21 +265,21 @@
                               </div>
                             </div>
                             
-                            <!-- Modern separator -->
-                            <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
+                            <!-- Separator -->
+                            <div class="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-4"></div>
                             
                             <!-- Project description -->
                             <div class="mb-4 flex-grow">
-                              <p class="text-gray-300 text-sm line-clamp-2 leading-relaxed">
+                              <p class="text-white/50 text-sm line-clamp-2 leading-relaxed">
                                 {{ project.description || 'No description provided' }}
                               </p>
                             </div>
                             
-                            <!-- Footer section with modern styling -->
+                            <!-- Footer section -->
                             <div class="mt-auto">
-                              <!-- Sleek Open button -->
-                              <div class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-violet-400/30 text-white rounded-xl transition-all duration-300 text-sm font-medium group/button">
-                                <svg class="w-4 h-4 mr-2 group-hover/button:text-violet-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <!-- Open button -->
+                              <div class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 hover:from-violet-500/20 hover:to-fuchsia-500/20 border border-violet-500/20 hover:border-violet-400/40 text-white/90 rounded-xl transition-all duration-300 text-sm font-medium">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                                 </svg>
                                 Open Project
@@ -247,16 +290,16 @@
                       </div>
                       
                       <div v-if="!recentProjects.length" class="flex flex-col items-center justify-center py-12">
-                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-400/20 to-violet-400/20 rounded-2xl flex items-center justify-center mb-4 border border-indigo-400/20">
-                          <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-16 h-16 bg-white/[0.05] border border-white/[0.08] rounded-2xl flex items-center justify-center mb-4">
+                          <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                           </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-white mb-1">No projects yet</h3>
-                        <p class="text-gray-400 text-center max-w-md mb-4 text-sm">Create your first project to start building with Imagi</p>
+                        <h3 class="text-lg font-medium text-white/90 mb-2">No projects yet</h3>
+                        <p class="text-white/40 text-center max-w-md mb-4 text-sm">Create your first project to start building with Imagi</p>
                         
-                        <!-- Elegant directional hint -->
-                        <div class="flex items-center text-indigo-400 text-sm">
+                        <!-- Directional hint -->
+                        <div class="flex items-center text-violet-400 text-sm">
                           <svg class="w-4 h-4 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                           </svg>
@@ -270,56 +313,60 @@
 
               <!-- Payment Transactions -->
               <div class="group relative">
-                <!-- Modern glassmorphism container -->
-                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                  <!-- Sleek gradient header -->
-                  <div class="h-1 w-full bg-gradient-to-r from-green-400 via-emerald-400 to-green-400 opacity-80"></div>
+                <!-- Background glow -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-green-600/20 via-emerald-600/20 to-green-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+                
+                <!-- Premium glass card -->
+                <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden transition-all duration-300 hover:border-white/[0.12]">
+                  <!-- Accent line -->
+                  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/50 to-transparent"></div>
                   
-                  <!-- Subtle background effects -->
-                  <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-green-400/4 to-emerald-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  <!-- Decorative elements -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-green-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                  <div class="absolute -top-20 -left-20 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
                   
                   <div class="relative z-10 p-8">
-                    <!-- Modern header section -->
+                    <!-- Header section -->
                     <div class="flex items-center justify-between mb-6">
                       <div class="flex items-center gap-3">
-                        <!-- Modern icon with subtle gradient -->
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400/20 to-emerald-400/20 flex items-center justify-center border border-green-400/20 flex-shrink-0">
-                          <svg class="w-5 h-5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <!-- Icon -->
+                        <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                          <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                           </svg>
                         </div>
-                        <h2 class="text-xl font-semibold text-white">Payment Transactions</h2>
+                        <h2 class="text-xl font-semibold text-white/90">Payment Transactions</h2>
                       </div>
                       <router-link 
                         :to="{ name: 'PaymentHistory' }"
-                        class="inline-flex items-center px-3 py-1.5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-green-400/30 text-gray-400 hover:text-gray-300 rounded-xl transition-all duration-200 text-sm font-medium"
+                        class="inline-flex items-center px-4 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] hover:border-green-400/30 text-white/60 hover:text-white/90 rounded-xl transition-all duration-200 text-sm font-medium"
                       >
                         View All
-                        <svg class="w-3 h-3 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                       </router-link>
                     </div>
                     
-                    <!-- Modern separator -->
-                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    <!-- Separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-6"></div>
                     
                     <div class="space-y-3">
                       <div v-if="recentTransactions.length" class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-dark-700">
+                        <table class="min-w-full divide-y divide-white/[0.05]">
                           <thead>
                             <tr>
-                              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Model</th>
-                              <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Request Type</th>
-                              <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Amount</th>
+                              <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Date</th>
+                              <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Model</th>
+                              <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Request Type</th>
+                              <th class="px-4 py-3 text-right text-xs font-medium text-white/40 uppercase tracking-wider">Amount</th>
                             </tr>
                           </thead>
-                          <tbody class="divide-y divide-dark-700">
-                            <tr v-for="tx in recentTransactions" :key="tx.id" class="hover:bg-dark-800/40 transition-colors">
-                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ formatDate(tx.created_at) }}</td>
-                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ tx.model || '—' }}</td>
-                              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{{ mapRequestType(tx.request_type) }}</td>
+                          <tbody class="divide-y divide-white/[0.05]">
+                            <tr v-for="tx in recentTransactions" :key="tx.id" class="hover:bg-white/[0.02] transition-colors">
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-white/60">{{ formatDate(tx.created_at) }}</td>
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-white/60">{{ tx.model || '—' }}</td>
+                              <td class="px-4 py-3 whitespace-nowrap text-sm text-white/60">{{ mapRequestType(tx.request_type) }}</td>
                               <td class="px-4 py-3 whitespace-nowrap text-sm text-right">
                                 <span :class="tx.amount < 0 ? 'text-red-400' : 'text-green-400'">
                                   {{ formatTransactionAmount(Math.abs(tx.amount)) }}
@@ -330,15 +377,15 @@
                         </table>
                       </div>
                       <div v-else class="flex flex-col items-center justify-center py-12">
-                        <div class="w-14 h-14 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-2xl flex items-center justify-center mb-4 border border-green-400/20">
-                          <svg class="w-6 h-6 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-16 h-16 bg-white/[0.05] border border-white/[0.08] rounded-2xl flex items-center justify-center mb-4">
+                          <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                           </svg>
                         </div>
-                        <h3 class="text-lg font-medium text-white mb-1">No transactions yet</h3>
-                        <p class="text-gray-400 text-center max-w-md mb-4 text-sm">Add funds to your account to see transactions here</p>
+                        <h3 class="text-lg font-medium text-white/90 mb-2">No transactions yet</h3>
+                        <p class="text-white/40 text-center max-w-md mb-4 text-sm">Add funds to your account to see transactions here</p>
                         
-                        <!-- Elegant directional hint -->
+                        <!-- Directional hint -->
                         <div class="flex items-center text-green-400 text-sm">
                           <svg class="w-4 h-4 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -356,45 +403,49 @@
             <div class="space-y-10">
               <!-- Quick Actions -->
               <div class="group relative">
-                <!-- Modern glassmorphism container -->
-                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                  <!-- Sleek gradient header -->
-                  <div class="h-1 w-full bg-gradient-to-r from-orange-400 via-amber-400 to-orange-400 opacity-80"></div>
+                <!-- Background glow -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-orange-600/20 via-amber-600/20 to-orange-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+                
+                <!-- Premium glass card -->
+                <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden transition-all duration-300 hover:border-white/[0.12]">
+                  <!-- Accent line -->
+                  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/50 to-transparent"></div>
                   
-                  <!-- Subtle background effects -->
-                  <div class="absolute -top-32 -left-32 w-64 h-64 bg-gradient-to-br from-orange-400/4 to-amber-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  <!-- Decorative elements -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                  <div class="absolute -top-20 -left-20 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
                   
                   <div class="relative z-10 p-8">
-                    <!-- Modern header section -->
+                    <!-- Header section -->
                     <div class="flex items-center gap-3 mb-6">
-                      <!-- Modern icon with subtle gradient -->
-                      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400/20 to-amber-400/20 flex items-center justify-center border border-orange-400/20 flex-shrink-0">
-                        <svg class="w-4 h-4 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <!-- Icon -->
+                      <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                       </div>
-                      <h2 class="text-xl font-semibold text-white">Quick Actions</h2>
+                      <h2 class="text-xl font-semibold text-white/90">Quick Actions</h2>
                     </div>
                     
-                    <!-- Modern separator -->
-                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    <!-- Separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-6"></div>
                     
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                       <button
                         v-for="action in quickActions"
                         :key="action.title"
                         @click="$router.push(action.route)"
-                        class="w-full flex items-center justify-between p-5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-orange-400/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 text-white hover:text-orange-400 group"
+                        class="w-full flex items-center justify-between p-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-orange-400/30 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 group/action"
                       >
-                                                  <div class="flex items-center gap-4">
-                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400/20 to-amber-400/20 border border-orange-400/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                              <i :class="[action.icon, 'text-orange-300 text-sm']"></i>
-                            </div>
-                            <span class="font-medium">{{ action.title }}</span>
+                        <div class="flex items-center gap-3">
+                          <div class="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover/action:scale-110 transition-all duration-300">
+                            <i :class="[action.icon, 'text-orange-400 text-sm']"></i>
                           </div>
-                          <svg class="w-4 h-4 text-gray-500 group-hover:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                          </svg>
+                          <span class="font-medium text-white/90 group-hover/action:text-orange-400 transition-colors">{{ action.title }}</span>
+                        </div>
+                        <svg class="w-4 h-4 text-white/30 group-hover/action:text-orange-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -403,49 +454,53 @@
 
               <!-- Resources -->
               <div class="group relative">
-                <!-- Modern glassmorphism container -->
-                <div class="relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/90 via-dark-900/80 to-dark-800/90 backdrop-blur-xl shadow-2xl shadow-black/25 overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-                  <!-- Sleek gradient header -->
-                  <div class="h-1 w-full bg-gradient-to-r from-blue-400 via-sky-400 to-blue-400 opacity-80"></div>
+                <!-- Background glow -->
+                <div class="absolute -inset-1 bg-gradient-to-r from-blue-600/20 via-sky-600/20 to-blue-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+                
+                <!-- Premium glass card -->
+                <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden transition-all duration-300 hover:border-white/[0.12]">
+                  <!-- Accent line -->
+                  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
                   
-                  <!-- Subtle background effects -->
-                  <div class="absolute -top-32 -right-32 w-64 h-64 bg-gradient-to-br from-blue-400/4 to-sky-400/4 rounded-full blur-3xl opacity-50 group-hover:opacity-60 transition-opacity duration-500"></div>
+                  <!-- Decorative elements -->
+                  <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                  <div class="absolute -top-20 -left-20 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
                   
                   <div class="relative z-10 p-8">
-                    <!-- Modern header section -->
+                    <!-- Header section -->
                     <div class="flex items-center gap-3 mb-6">
-                      <!-- Modern icon with subtle gradient -->
-                      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400/20 to-sky-400/20 flex items-center justify-center border border-blue-400/20 flex-shrink-0">
-                        <svg class="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <!-- Icon -->
+                      <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
                       </div>
-                      <h2 class="text-xl font-semibold text-white">Resources</h2>
+                      <h2 class="text-xl font-semibold text-white/90">Resources</h2>
                     </div>
                     
-                    <!-- Modern separator -->
-                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+                    <!-- Separator -->
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-6"></div>
                     
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                       <template v-for="resource in resourceLinks" :key="resource.title">
                         <router-link 
                           v-if="resource.url.startsWith('/')"
                           :to="resource.url" 
-                          class="block p-5 bg-white/5 hover:bg-white/8 border border-white/10 hover:border-blue-400/30 rounded-xl transition-all duration-300 transform hover:-translate-y-1 group"
+                          class="block p-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-blue-400/30 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 group/resource"
                         >
-                                                      <div class="flex items-center justify-between">
-                                                              <div class="flex items-center gap-4">
-                                  <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400/20 to-sky-400/20 border border-blue-400/20 flex items-center justify-center group-hover:scale-110 transition-all duration-300">
-                                    <i :class="[resource.icon, 'text-blue-300 text-sm']"></i>
-                                  </div>
-                                  <div>
-                                    <h3 class="text-white group-hover:text-blue-400 transition-colors font-medium">{{ resource.title }}</h3>
-                                    <p class="text-sm text-gray-400">{{ resource.description }}</p>
-                                  </div>
-                                </div>
-                                <svg class="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                                </svg>
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                              <div class="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover/resource:scale-110 transition-all duration-300">
+                                <i :class="[resource.icon, 'text-blue-400 text-sm']"></i>
+                              </div>
+                              <div>
+                                <h3 class="text-white/90 group-hover/resource:text-blue-400 transition-colors font-medium text-sm">{{ resource.title }}</h3>
+                                <p class="text-xs text-white/40 mt-0.5">{{ resource.description }}</p>
+                              </div>
+                            </div>
+                            <svg class="w-4 h-4 text-white/30 group-hover/resource:text-blue-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
                           </div>
                         </router-link>
                       </template>
@@ -647,70 +702,96 @@ const formatTransactionAmount = (amount) => {
 </script>
 
 <style scoped>
-/* Enhanced scrollbar styling */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.700') transparent;
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* Gradient animation for text */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: theme('colors.gray.700');
-  border-radius: 9999px;
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: theme('colors.gray.600');
+/* Aurora animation */
+@keyframes aurora {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-20px) scale(1.05);
+  }
 }
 
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.animate-aurora {
+  animation: aurora 15s ease-in-out infinite;
 }
 
-.animate-gradient {
-  background-size: 200% auto;
-  animation: gradient-shift 4s ease infinite;
+/* Float animations for orbs */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(30px, -30px) rotate(120deg);
+  }
+  66% {
+    transform: translate(-20px, 20px) rotate(240deg);
+  }
 }
 
-/* Add subtle animation for loading state */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  33% {
+    transform: translate(-30px, 30px) rotate(-120deg);
+  }
+  66% {
+    transform: translate(20px, -20px) rotate(-240deg);
+  }
 }
 
-.animate-pulse {
-  animation: pulse 1.5s ease-in-out infinite;
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-30px, -30px);
+  }
 }
 
-.animate-pulse-slow {
-  animation: pulse 3s ease-in-out infinite;
+.animate-float-slow {
+  animation: float-slow 20s ease-in-out infinite;
 }
 
-/* Float animation for background orbs */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+.animate-float-delayed {
+  animation: float-delayed 25s ease-in-out infinite;
 }
 
-.animate-float {
-  animation: float 15s ease-in-out infinite;
-}
-
-.animate-float-delay {
-  animation: float 18s ease-in-out infinite reverse;
-}
-
-.delay-700 {
-  animation-delay: 700ms;
+.animate-float-reverse {
+  animation: float-reverse 18s ease-in-out infinite;
 }
 
 /* Line clamp for description */

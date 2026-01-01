@@ -29,124 +29,137 @@
       </div>
     </template>
 
-    <!-- Enhanced Main Content with Dynamic Background -->
-    <div class="min-h-screen bg-dark-950 relative overflow-hidden">
-      <!-- Improved Decorative Background Elements -->
-      <div class="absolute inset-0 pointer-events-none">
-        <!-- Enhanced Pattern Overlay -->
-        <div class="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03]"></div>
-        <div class="absolute inset-0 bg-noise opacity-[0.015]"></div>
-        <div class="absolute inset-0 bg-gradient-to-br from-primary-950/10 via-dark-900 to-violet-950/10"></div>
+    <!-- Premium Main Content - Matching Home Page & Dashboard -->
+    <div class="min-h-screen bg-[#050508] relative overflow-hidden">
+      <!-- Premium Background System -->
+      <div class="fixed inset-0 pointer-events-none">
+        <!-- Base gradient mesh -->
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.15),transparent_50%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.08),transparent_40%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.06),transparent_35%)]"></div>
         
-        <!-- Enhanced Glowing Orbs Animation -->
-        <div class="absolute -top-[10%] right-[15%] w-[800px] h-[800px] rounded-full bg-indigo-600/5 blur-[150px] animate-float"></div>
-        <div class="absolute bottom-[5%] left-[20%] w-[600px] h-[600px] rounded-full bg-fuchsia-600/5 blur-[120px] animate-float-delay"></div>
+        <!-- Subtle grain texture -->
+        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
         
-        <!-- Animated Lines and Particles -->
-        <div class="absolute left-0 right-0 top-1/3 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent animate-pulse-slow"></div>
-        <div class="absolute left-0 right-0 bottom-1/3 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent animate-pulse-slow delay-700"></div>
+        <!-- Animated aurora effect -->
+        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-30">
+          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/20 via-fuchsia-500/10 to-transparent blur-[100px] animate-aurora"></div>
+        </div>
+        
+        <!-- Floating orbs -->
+        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/8 to-violet-600/4 blur-[120px] animate-float-slow"></div>
+        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/6 to-purple-600/3 blur-[100px] animate-float-delayed"></div>
+        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/4 to-orange-500/2 blur-[80px] animate-float-reverse"></div>
       </div>
 
-      <!-- Enhanced Content Container -->
+      <!-- Content Container -->
       <div class="relative z-10">
-        <!-- Modern Welcome Header Section -->
-        <div class="pt-16 pb-12 px-6 sm:px-8 lg:px-12">
+        <!-- Premium Header Section - Matching Home Page & Dashboard -->
+        <div class="pt-20 pb-12 px-6 sm:px-8 lg:px-12">
           <div class="max-w-7xl mx-auto">
-            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
-              <div class="space-y-6 md:max-w-3xl">
-                <!-- Enhanced Badge -->
-                <div class="inline-flex items-center px-4 py-1.5 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 rounded-full">
-                  <span class="text-indigo-400 font-semibold text-sm tracking-wider">PROJECT COLLECTION</span>
+            <div class="text-center">
+              <!-- Animated badge matching home page -->
+              <div class="mb-8 inline-block animate-fade-in">
+                <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300 cursor-default">
+                  <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
+                  </span>
+                  <span class="text-sm font-medium text-white/70 tracking-wide">Project Collection</span>
                 </div>
-                
-                <!-- Modern Title with Gradient Enhancement -->
-                <h2 class="text-4xl md:text-5xl font-bold text-white leading-tight">
-                  <span class="inline-block bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent pb-1">Manage & Organize</span> 
-                  <br class="hidden sm:block" />Your Applications
-                </h2>
-                
-                <!-- Enhanced Description -->
-                <p class="text-xl text-gray-300 max-w-2xl">
-                  Access all your web applications in one place. Edit descriptions, track updates, and continue building.
-                </p>
               </div>
               
-              <!-- Enhanced CTA button -->
-              <div>
-                <button
-                  @click="$router.push({ name: 'builder-dashboard' })"
-                  class="group relative overflow-hidden inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300"
-                >
-                  <!-- Animated glow effect -->
-                  <span class="absolute inset-0 bg-white/20 blur-md opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
-                  <span class="relative flex items-center">
-                    <i class="fas fa-plus mr-2.5"></i>
-                    Create New Project
+              <!-- Title with gradient text -->
+              <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight mb-6 leading-[1.1]">
+                <span class="block text-white/90">Manage & Organize</span>
+                <span class="block mt-2">
+                  <span class="relative inline-block">
+                    <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-x">
+                      Your Applications
+                    </span>
+                    <span class="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent"></span>
                   </span>
-                </button>
-              </div>
+                </span>
+              </h1>
+              
+              <!-- Description -->
+              <p class="text-lg sm:text-xl text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Access all your web applications in one place. Edit descriptions, track updates, and continue building.
+              </p>
+              
+              <!-- CTA button -->
+              <button
+                @click="$router.push({ name: 'builder-dashboard' })"
+                class="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <i class="fas fa-plus"></i>
+                Create New Project
+                <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
+              </button>
             </div>
             
-            <!-- Animated Divider Line -->
-            <div class="w-full h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent my-12 animate-pulse-slow"></div>
+            <!-- Elegant Divider -->
+            <div class="relative py-8 md:py-12">
+              <div class="relative flex items-center justify-center">
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+                <div class="mx-6 flex items-center gap-2">
+                  <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+                  <div class="w-1.5 h-1.5 rounded-full bg-violet-400/70"></div>
+                  <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+                </div>
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Enhanced Project Section with Modern Layout -->
+        <!-- Project Section with Premium Glass Card -->
         <div class="px-6 sm:px-8 lg:px-12 pb-24">
           <div class="max-w-7xl mx-auto">
-            <!-- Unified Project Library Container with modern styling -->
-            <div class="relative rounded-2xl border border-dark-800/60 bg-dark-900/80 backdrop-blur-lg shadow-lg shadow-dark-900/20 overflow-hidden">
-              <!-- Purple gradient header line at the top of the project library -->
-              <div class="h-2 w-full bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+            <!-- Premium glass card - Matching Dashboard Style -->
+            <div class="group relative">
+              <!-- Background glow -->
+              <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
               
-              <div class="p-8">
-                <!-- Subtle background gradient -->
-                <div class="absolute inset-0 bg-gradient-to-br opacity-5 -z-10 from-indigo-900 to-violet-900"></div>
+              <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden">
+                <!-- Accent line -->
+                <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
                 
-                <!-- Subtle glowing orb effect -->
-                <div class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-5 blur-3xl bg-indigo-500"></div>
+                <!-- Decorative elements -->
+                <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
                 
-                <!-- Header Section -->
-                <div class="relative z-10 mb-8">
-                  <!-- Badge -->
-                  <div class="inline-flex items-center px-4 py-1.5 bg-indigo-500/10 rounded-full mb-4">
-                    <span class="text-indigo-400 font-semibold text-sm tracking-wider">YOUR PROJECTS</span>
-                  </div>
-                  
-                  <!-- Header with title and project count -->
-                  <div class="relative mb-6">
-                    <!-- Project count positioned in top-right corner -->
-                    <div class="absolute top-0 right-0 group">
-                      <!-- Glow effect on hover -->
-                      <div class="absolute -inset-1 rounded-xl bg-gradient-to-r from-indigo-500/30 to-violet-500/30 opacity-0 group-hover:opacity-100 blur-sm transition-all duration-300"></div>
+                <!-- Content -->
+                <div class="relative z-10 p-6 md:p-8">
+                  <!-- Header Section -->
+                  <div class="mb-8">
+                    <!-- Badge matching home page -->
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-4">
+                      <i class="fas fa-folder text-xs text-violet-400/80"></i>
+                      <span class="text-sm font-medium text-white/60">Your Projects</span>
+                    </div>
+                    
+                    <!-- Title and count -->
+                    <div class="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 class="text-2xl font-semibold text-white/90 leading-tight mb-2">Project Library</h3>
+                        <p class="text-white/50 text-sm leading-relaxed">Continue working on your existing applications</p>
+                      </div>
                       
-                      <!-- Icon container with updated styling -->
-                      <div class="relative bg-dark-800/60 backdrop-blur-sm rounded-xl border border-dark-800/60 hover:border-indigo-500/30 transition-all duration-300 p-3 flex items-center gap-3 shadow-lg shadow-dark-900/20">
-                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/15 to-violet-500/15 flex items-center justify-center group-hover:scale-110 transition-all duration-300 border border-indigo-500/20 shadow-md shadow-indigo-500/5">
-                          <i class="fas fa-folder-open text-indigo-300 text-sm"></i>
+                      <!-- Project count badge -->
+                      <div class="inline-flex items-center gap-3 px-4 py-3 bg-white/[0.03] rounded-xl border border-white/[0.08]">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center">
+                          <i class="fas fa-folder-open text-violet-400"></i>
                         </div>
                         <div>
-                          <p class="text-xs text-gray-400 uppercase">Total</p>
-                          <p class="text-xl font-bold text-white">{{ projects.length || 0 }}</p>
+                          <p class="text-xs text-white/40 uppercase tracking-wider">Total</p>
+                          <p class="text-xl font-bold text-white/90">{{ projects.length || 0 }}</p>
                         </div>
                       </div>
                     </div>
                     
-                    <!-- Centered title and description -->
-                    <div class="flex flex-col items-center justify-center pt-2 pb-2">
-                      <div class="space-y-4 text-center w-full">
-                        <h2 class="text-2xl font-bold text-white mb-2">Project Library</h2>
-                        <p class="text-gray-300">Continue working on your existing web applications</p>
-                        <!-- Decorative element - centered on all screen sizes -->
-                        <div class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full mx-auto"></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Search Input - Centered below title -->
-                  <div v-if="projects.length > 0" class="mb-6 flex justify-center">
-                    <div class="w-full max-w-md">
+                    <!-- Search Input -->
+                    <div v-if="projects.length > 0" class="max-w-md">
                       <SearchInput 
                         v-model="searchQuery"
                         placeholder="Search projects"
@@ -154,83 +167,84 @@
                       />
                     </div>
                   </div>
-                </div>
 
-                <!-- Content Section -->
-                <div class="relative z-10">
-                  <!-- Loading State -->
-                  <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
-                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-violet-500/15 rounded-full flex items-center justify-center mb-5 animate-pulse border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
-                      <i class="fas fa-spinner fa-spin text-2xl text-indigo-400"></i>
-                    </div>
-                    <p class="text-gray-300 text-lg">Loading your projects...</p>
-                  </div>
-
-                  <!-- Error State -->
-                  <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
-                    <div class="w-16 h-16 bg-gradient-to-r from-red-500/15 to-orange-500/15 rounded-full flex items-center justify-center mb-5 border border-red-500/20 shadow-lg shadow-red-500/10">
-                      <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-white mb-2">Connection Error</h3>
-                    <p class="text-gray-300 mb-6 text-center max-w-md">{{ error }}</p>
-                    <button
-                      @click="retryFetch"
-                      class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/40 hover:border-indigo-400/50 text-white rounded-xl shadow-lg hover:shadow-indigo-500/20 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
-                    >
-                      <i class="fas fa-sync-alt mr-2"></i>
-                      Try Again
-                    </button>
-                  </div>
-
-                  <!-- Empty State -->
-                  <div v-else-if="projects.length === 0" class="flex flex-col items-center justify-center py-16">
-                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500/15 to-violet-500/15 rounded-full flex items-center justify-center mb-5 border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
-                      <i class="fas fa-folder-open text-2xl text-indigo-400"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-white mb-2">No projects yet</h3>
-                    <p class="text-gray-300 text-center max-w-md mb-6">Create your first project to start building with Imagi</p>
-                    
-                    <!-- Directional hint -->
-                    <div class="flex items-center text-indigo-400 animate-pulse-slow mb-8">
-                      <i class="fas fa-long-arrow-alt-up text-lg mr-2"></i>
-                      <span>Get started with a new project</span>
-                    </div>
-                    
-                    <button
-                      @click="$router.push({ name: 'builder-dashboard' })"
-                      class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center"
-                    >
-                      <i class="fas fa-plus mr-2"></i>
-                      Create Your First Project
-                    </button>
-                  </div>
-
-                  <!-- Projects Grid -->
-                  <div v-else>
-                    <!-- If searching, show message -->
-                    <div v-if="searchQuery && filteredProjects.length === 0" class="flex flex-col items-center justify-center py-16">
-                      <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-5">
-                        <i class="fas fa-search text-2xl text-indigo-400"></i>
+                  <!-- Content Section -->
+                  <div>
+                    <!-- Loading State -->
+                    <div v-if="isLoading" class="flex flex-col items-center justify-center py-16">
+                      <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 mb-4">
+                        <div class="w-6 h-6 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin"></div>
                       </div>
-                      <h3 class="text-xl font-semibold text-white mb-2">No matching projects</h3>
-                      <p class="text-gray-300 text-center max-w-md">No projects found matching "{{ searchQuery }}"</p>
+                      <p class="text-white/50 text-sm">Loading your projects...</p>
                     </div>
-                    
-                    <!-- All Projects Grid -->
-                    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <ProjectCardWithDescription
-                        v-for="project in displayedProjects"
-                        :key="project.id"
-                        :project="project"
-                        :editing-description="editingDescription"
-                        :edited-description="editedDescription"
-                        @start-edit="startEditDescription"
-                        @save-description="saveDescription"
-                        @cancel-edit="cancelEditDescription"
-                        @delete="confirmDelete"
-                        @open="openProject"
-                        @update:edited-description="editedDescription = $event"
-                      />
+
+                    <!-- Error State -->
+                    <div v-else-if="error" class="flex flex-col items-center justify-center py-16">
+                      <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/20 mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                      </div>
+                      <h3 class="text-lg font-medium text-white/90 mb-1">Connection Error</h3>
+                      <p class="text-white/50 mb-6 text-center max-w-md text-sm">{{ error }}</p>
+                      <button
+                        @click="retryFetch"
+                        class="group/btn inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
+                      >
+                        <i class="fas fa-redo text-sm"></i>
+                        <span>Try Again</span>
+                      </button>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else-if="projects.length === 0" class="flex flex-col items-center justify-center py-16">
+                      <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 mb-4">
+                        <i class="fas fa-folder-open text-violet-400 text-xl"></i>
+                      </div>
+                      <h3 class="text-lg font-medium text-white/90 mb-1">No projects yet</h3>
+                      <p class="text-white/50 text-center max-w-md mb-6 text-sm">Create your first project to start building with Imagi</p>
+                      
+                      <!-- Directional hint -->
+                      <div class="flex items-center text-violet-400 text-sm mb-6">
+                        <i class="fas fa-arrow-up mr-2 animate-pulse"></i>
+                        <span>Get started with a new project</span>
+                      </div>
+                      
+                      <button
+                        @click="$router.push({ name: 'builder-dashboard' })"
+                        class="group inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
+                      >
+                        <i class="fas fa-plus"></i>
+                        Create Your First Project
+                        <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
+                      </button>
+                    </div>
+
+                    <!-- Projects Grid -->
+                    <div v-else>
+                      <!-- If searching, show message -->
+                      <div v-if="searchQuery && filteredProjects.length === 0" class="flex flex-col items-center justify-center py-16">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/[0.08] mb-4">
+                          <i class="fas fa-search text-white/40 text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white/90 mb-1">No matching projects</h3>
+                        <p class="text-white/50 text-center max-w-md text-sm">No projects found matching "{{ searchQuery }}"</p>
+                      </div>
+                      
+                      <!-- All Projects Grid -->
+                      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <ProjectCardWithDescription
+                          v-for="project in displayedProjects"
+                          :key="project.id"
+                          :project="project"
+                          :editing-description="editingDescription"
+                          :edited-description="editedDescription"
+                          @start-edit="startEditDescription"
+                          @save-description="saveDescription"
+                          @cancel-edit="cancelEditDescription"
+                          @delete="confirmDelete"
+                          @open="openProject"
+                          @update:edited-description="editedDescription = $event"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -473,53 +487,92 @@ onActivated(async () => {
 </script>
 
 <style scoped>
-/* Enhanced scrollbar styling */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: theme('colors.gray.700') transparent;
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out forwards;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* Gradient animation */
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: theme('colors.gray.700');
-  border-radius: 8px;
+.animate-gradient-x {
+  animation: gradient-x 4s ease infinite;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: theme('colors.gray.600');
+/* Aurora animation */
+@keyframes aurora {
+  0%, 100% {
+    transform: translateX(-10%) rotate(-2deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(10%) rotate(2deg);
+    opacity: 0.4;
+  }
 }
 
-/* Float animation for background orbs */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+.animate-aurora {
+  animation: aurora 20s ease-in-out infinite;
 }
 
-.animate-float {
-  animation: float 15s ease-in-out infinite;
+/* Float animations */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.02);
+  }
+  66% {
+    transform: translate(-20px, 10px) scale(0.98);
+  }
 }
 
-.animate-float-delay {
-  animation: float 18s ease-in-out infinite reverse;
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-25px, -30px) scale(1.03);
+  }
 }
 
-.delay-700 {
-  animation-delay: 700ms;
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, 15px);
+  }
 }
 
-.animate-pulse-slow {
-  animation: pulse 3s ease-in-out infinite;
+.animate-float-slow {
+  animation: float-slow 25s ease-in-out infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+.animate-float-delayed {
+  animation: float-delayed 30s ease-in-out infinite;
+  animation-delay: -5s;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 20s ease-in-out infinite;
+  animation-delay: -10s;
 }
 </style>
