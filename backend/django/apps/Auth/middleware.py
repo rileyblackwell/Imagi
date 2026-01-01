@@ -51,25 +51,13 @@ class CORSErrorMiddleware:
             logger.info("🚂 Running in Railway production environment")
 
     def __call__(self, request):
-        # Enhanced logging for Railway debugging
-        origin = request.headers.get('Origin', 'No Origin')
-        host = request.headers.get('Host', 'No Host')
-        x_forwarded_for = request.headers.get('X-Forwarded-For', 'No X-Forwarded-For')
-        user_agent = request.headers.get('User-Agent', 'No User-Agent')[:100]  # Truncate for logging
-        
-        logger.info(f"🌐 Request: {request.method} {request.path}")
-        logger.info(f"📍 Origin: {origin}")
-        logger.info(f"🏠 Host: {host}")
-        logger.info(f"🔄 X-Forwarded-For: {x_forwarded_for}")
-        logger.info(f"🖥️ User-Agent: {user_agent}")
-        
         # Store the request in thread-local storage for access in _add_cors_headers
         import threading
         setattr(threading.current_thread(), 'request', request)
         
         # For preflight OPTIONS requests, handle them separately for CORS
         if request.method == 'OPTIONS':
-            logger.info("🔧 Handling OPTIONS preflight request")
+            logger.debug("🔧 Handling OPTIONS preflight request")
             response = HttpResponse()
             response.status_code = 200
             # Add required CORS headers for preflight
@@ -78,7 +66,6 @@ class CORSErrorMiddleware:
             response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE, PATCH'
             response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken, X-API-Client, Accept'
             response['Access-Control-Max-Age'] = '86400'  # 24 hours
-            logger.info("✅ OPTIONS preflight request handled successfully")
             return response
             
         try:
@@ -89,11 +76,6 @@ class CORSErrorMiddleware:
                 # Add CORS headers to ALL responses, not just API responses
                 # This ensures even redirects and other responses have proper CORS headers
                 self._add_cors_headers(response)
-                
-                # Enhanced response logging
-                if hasattr(response, 'status_code'):
-                    status_emoji = "✅" if 200 <= response.status_code < 300 else "⚠️" if 300 <= response.status_code < 400 else "❌"
-                    logger.info(f"{status_emoji} Response for {request.path}: {response.status_code}")
             
             return response
         except Exception as e:
@@ -141,35 +123,24 @@ class CORSErrorMiddleware:
             'http://frontend.railway.internal:80',
         ]
         
-        # Log the request details for debugging
-        if request:
-            logger.debug(f"🔍 Request Origin: {origin}")
-            logger.debug(f"🔍 Request Accept: {request.headers.get('Accept')}")
-            logger.debug(f"🔍 Response Content-Type: {response.get('Content-Type')}")
-        
         # Set Access-Control-Allow-Origin header
         if getattr(settings, 'IS_RAILWAY_PRODUCTION', False):
             # In Railway production, be more permissive to debug connection issues
             if origin:
                 response['Access-Control-Allow-Origin'] = origin
-                logger.info(f"🎯 CORS: Allowing origin {origin}")
             else:
                 # Fallback for requests without Origin header (like direct API calls)
                 response['Access-Control-Allow-Origin'] = '*'
-                logger.info("🎯 CORS: Allowing all origins (no Origin header)")
         else:
             # Development environment
             if origin and origin in allowed_origins:
                 response['Access-Control-Allow-Origin'] = origin
-                logger.debug(f"🎯 CORS: Allowing known origin {origin}")
             else:
                 response['Access-Control-Allow-Origin'] = 'http://localhost:5174'
-                logger.debug("🎯 CORS: Using default development origin")
             
         # Add streaming-specific headers if this is a streaming response
         content_type = response.get('Content-Type', '')
         if 'text/event-stream' in content_type:
-            logger.debug("📡 Adding streaming-specific headers")
             response['Cache-Control'] = 'no-cache'
             response['Connection'] = 'keep-alive'
             response['X-Accel-Buffering'] = 'no'
@@ -179,9 +150,6 @@ class CORSErrorMiddleware:
         response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With, X-CSRFToken, X-API-Client, Accept'
         response['Access-Control-Allow-Credentials'] = 'true'
         response['Access-Control-Max-Age'] = '86400'  # 24 hours
-        
-        # For debugging, log the headers we're setting
-        logger.debug(f"🏷️ CORS headers set: Origin={response.get('Access-Control-Allow-Origin')}")
         
         return response
 

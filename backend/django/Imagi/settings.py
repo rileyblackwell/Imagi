@@ -413,7 +413,7 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',  # Allow all levels through the handler
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -426,8 +426,13 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',  # Show INFO level and above
-            'propagate': True,
+            'level': 'INFO',
+            'propagate': False,  # Changed to False to prevent propagation
+        },
+        'django.server': {
+            'handlers': [],  # Disable Django's built-in server logging
+            'level': 'INFO',
+            'propagate': False,
         },
         'django.request': {
             'handlers': ['api_console'],
