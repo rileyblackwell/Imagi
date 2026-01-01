@@ -28,38 +28,59 @@
           >
             <!-- Step container -->
             <div 
-              class="flex flex-col md:flex-row items-start gap-6 md:gap-12"
+              class="relative flex flex-col md:flex-row items-start gap-6 md:gap-12"
               :class="index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'"
             >
+              <!-- Bubble-to-card connector -->
+              <div 
+                class="hidden md:block absolute left-1/2 top-14 h-px w-[calc(50%-5rem)] pointer-events-none"
+                :class="[
+                  index % 2 === 0 ? '-translate-x-full bg-gradient-to-l' : 'translate-x-0 bg-gradient-to-r',
+                  getConnectorClass(step.color)
+                ]"
+              ></div>
+
               <!-- Timeline node -->
-              <div class="hidden md:flex absolute left-1/2 top-8 -translate-x-1/2 z-10">
+              <div class="hidden md:flex absolute left-1/2 top-5 -translate-x-1/2 z-10">
                 <div class="relative">
                   <!-- Outer glow -->
-                  <div class="absolute -inset-2 rounded-full blur-md opacity-50" :class="getGlowClass(step.color)"></div>
-                  <!-- Node circle -->
-                  <div 
-                    class="relative flex items-center justify-center w-12 h-12 rounded-full border-2 border-[#0a0a0f] shadow-lg"
-                    :class="getNodeClass(step.color)"
-                  >
-                    <span class="text-white font-semibold text-sm">{{ String(index + 1).padStart(2, '0') }}</span>
+                  <div class="absolute -inset-2 rounded-full blur-2xl opacity-50" :class="getGlowClass(step.color)"></div>
+                  <!-- Bubble -->
+                  <div class="relative flex items-center justify-center w-14 h-14">
+                    <!-- Glass highlight -->
+                    <div class="absolute inset-0 rounded-full bg-white/10 blur-xl opacity-60"></div>
+                    <div class="relative w-full h-full rounded-full border border-white/10 bg-[#05050d] shadow-[0_10px_28px_rgba(0,0,0,0.5)]">
+                      <div class="absolute inset-[2px] rounded-full border border-white/15 overflow-hidden" :class="getNodeClass(step.color)">
+                        <div class="absolute top-0 inset-x-1.5 h-1/2 rounded-full bg-white/30 blur-md opacity-60"></div>
+                        <div class="absolute bottom-1 inset-x-2 h-1/4 rounded-full bg-black/30 opacity-40 blur-sm"></div>
+                      </div>
+                      <div class="relative flex items-center justify-center w-full h-full">
+                        <span class="text-white/95 font-semibold text-base tracking-[0.15em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]">{{ index + 1 }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <!-- Mobile node -->
               <div class="sm:hidden flex items-center gap-4 mb-4">
-                <div 
-                  class="flex items-center justify-center w-10 h-10 rounded-full"
-                  :class="getNodeClass(step.color)"
-                >
-                  <span class="text-white font-semibold text-sm">{{ index + 1 }}</span>
+                <div class="relative flex items-center justify-center w-11 h-11 rounded-full">
+                  <div class="absolute inset-0 rounded-full bg-white/20 blur-lg opacity-40"></div>
+                  <div class="relative w-full h-full rounded-full border border-white/10 bg-[#05050d]">
+                    <div class="absolute inset-px rounded-full overflow-hidden border border-white/10" :class="getNodeClass(step.color)">
+                      <div class="absolute top-0 inset-x-1 h-1/2 rounded-full bg-white/30 blur-sm opacity-70"></div>
+                    </div>
+                    <div class="relative flex items-center justify-center w-full h-full">
+                      <span class="text-white/95 font-semibold text-sm tracking-[0.1em] drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]">{{ index + 1 }}</span>
+                    </div>
+                  </div>
                 </div>
                 <h3 class="text-lg font-semibold text-white/90">{{ step.title }}</h3>
               </div>
               
               <!-- Content card -->
               <div 
-                class="flex-1 md:w-[calc(50%-4rem)]"
+                class="relative flex-1 md:w-[calc(50%-4rem)]"
                 :class="index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'"
               >
                 <div class="group relative p-6 md:p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 overflow-hidden">
@@ -289,6 +310,15 @@ export default defineComponent({
         fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
         blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
         emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent'
+      }
+      return classes[color] || classes.violet
+    },
+    getConnectorClass(color) {
+      const classes = {
+        violet: 'from-violet-400/70 via-violet-400/20 to-transparent',
+        fuchsia: 'from-fuchsia-400/70 via-fuchsia-400/20 to-transparent',
+        blue: 'from-blue-400/70 via-blue-400/20 to-transparent',
+        emerald: 'from-emerald-400/70 via-emerald-400/20 to-transparent'
       }
       return classes[color] || classes.violet
     }
