@@ -20,11 +20,22 @@
           <template #menu>
             <router-link
               :to="{ name: 'builder-dashboard' }"
-              class="block px-5 py-3 text-sm text-white/80 hover:text-white transition-all duration-200 hover:bg-gradient-to-r hover:from-primary-500/10 hover:via-indigo-500/10 hover:to-violet-500/10"
+              class="group flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-white/90 hover:text-white transition-all duration-300 hover:bg-gradient-to-r hover:from-primary-500/20 hover:via-indigo-500/20 hover:to-violet-500/20 relative overflow-hidden"
               @click="isProductsMenuOpen = false"
             >
-              <i class="fas fa-magic mr-2 text-primary-400"></i>
-              Oasis Web App Builder
+              <!-- Hover glow effect -->
+              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 via-primary-500/5 to-primary-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              
+              <!-- Icon with gradient on hover -->
+              <div class="relative z-10 flex items-center justify-center w-8 h-8 rounded-lg bg-primary-500/10 group-hover:bg-primary-500/20 transition-all duration-300">
+                <i class="fas fa-magic text-primary-400 group-hover:text-primary-300 transition-colors duration-300"></i>
+              </div>
+              
+              <!-- Text -->
+              <span class="relative z-10 flex-1">Oasis Web App Builder</span>
+              
+              <!-- Arrow indicator -->
+              <i class="fas fa-arrow-right text-xs text-white/40 group-hover:text-white/80 transform group-hover:translate-x-1 transition-all duration-300 relative z-10"></i>
             </router-link>
           </template>
         </HomeNavbarDropdownButton>

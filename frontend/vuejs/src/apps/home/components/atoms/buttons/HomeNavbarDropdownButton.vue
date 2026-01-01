@@ -4,36 +4,73 @@
     <button
       :class="[
         gradientClass,
-        'transform hover:scale-[1.02] transition-all duration-200 shadow-sm hover:shadow-md min-w-[100px] h-10 px-4',
-        'inline-flex items-center justify-center text-sm font-medium rounded-lg',
-        { 'shadow-md': isOpen }
+        'group relative overflow-hidden',
+        'transform hover:scale-[1.03] active:scale-[0.98]',
+        'transition-all duration-300 ease-out',
+        'shadow-lg hover:shadow-xl',
+        'min-w-[120px] h-11 px-5',
+        'inline-flex items-center justify-center gap-2',
+        'text-sm font-semibold tracking-wide rounded-xl',
+        'backdrop-blur-sm',
+        'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
+        'before:transition-all before:duration-300',
+        { 'shadow-xl scale-[1.02]': isOpen }
       ]"
       @click="toggleDropdown"
     >
       <slot name="trigger">
-        <span class="flex items-center">
+        <span class="flex items-center gap-2 relative z-10">
           <slot></slot>
-          <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-200" :class="{ 'transform rotate-180': isOpen }"></i>
+          <i 
+            class="fas fa-chevron-down text-xs transition-all duration-300 ease-out" 
+            :class="{ 'transform rotate-180': isOpen }"
+          ></i>
         </span>
       </slot>
     </button>
 
-    <!-- Dropdown Menu -->
-    <div
-      v-show="isOpen"
-      class="absolute right-0 mt-2 w-56 rounded-lg bg-gradient-to-br from-dark-900/95 via-dark-800/95 to-dark-900/95 border border-primary-500/20 shadow-lg shadow-primary-500/5 backdrop-blur-md z-50 overflow-hidden ring-1 ring-primary-500/10"
+    <!-- Dropdown Menu with enhanced styling -->
+    <transition
+      enter-active-class="transition ease-out duration-200"
+      enter-from-class="opacity-0 scale-95 -translate-y-2"
+      enter-to-class="opacity-100 scale-100 translate-y-0"
+      leave-active-class="transition ease-in duration-150"
+      leave-from-class="opacity-100 scale-100 translate-y-0"
+      leave-to-class="opacity-0 scale-95 -translate-y-2"
     >
-      <div class="py-1">
-        <slot name="menu"></slot>
+      <div
+        v-show="isOpen"
+        class="absolute right-0 mt-3 w-64 origin-top-right z-50"
+      >
+        <div class="rounded-2xl bg-gradient-to-br from-dark-900/98 via-dark-800/98 to-dark-900/98 border border-primary-400/20 shadow-2xl shadow-primary-500/10 backdrop-blur-xl overflow-hidden ring-1 ring-white/5">
+          <!-- Glow effect at top -->
+          <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/50 to-transparent"></div>
+          
+          <div class="py-2">
+            <slot name="menu"></slot>
+          </div>
+          
+          <!-- Glow effect at bottom -->
+          <div class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary-400/30 to-transparent"></div>
+        </div>
       </div>
-    </div>
+    </transition>
 
-    <!-- Overlay -->
-    <div
-      v-if="isOpen"
-      class="fixed inset-0 z-40 bg-dark-900/5 backdrop-blur-[2px]"
-      @click="closeDropdown"
-    ></div>
+    <!-- Enhanced Overlay -->
+    <transition
+      enter-active-class="transition-opacity ease-out duration-200"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity ease-in duration-150"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 z-40 bg-dark-900/20 backdrop-blur-[3px]"
+        @click="closeDropdown"
+      ></div>
+    </transition>
   </div>
 </template>
 
@@ -62,11 +99,11 @@ export default defineComponent({
 
     const gradientClass = computed(() => {
       const gradients = {
-        primary: 'bg-gradient-to-r from-primary-500 via-indigo-500 to-violet-500 hover:from-primary-400 hover:via-indigo-400 hover:to-violet-400 hover:shadow-primary-500/20',
-        secondary: 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 hover:from-violet-400 hover:via-fuchsia-400 hover:to-pink-400 hover:shadow-violet-500/20',
-        amber: 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:via-orange-400 hover:to-yellow-400 hover:shadow-amber-500/20',
-        indigo: 'bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 hover:from-blue-400 hover:via-indigo-400 hover:to-violet-400 hover:shadow-blue-500/20',
-        ghost: 'bg-gradient-to-r from-primary-500/90 via-indigo-500/90 to-violet-500/90 hover:from-primary-400/90 hover:via-indigo-400/90 hover:to-violet-400/90 backdrop-blur-md border border-white/10 hover:border-white/20 shadow-sm hover:shadow-primary-500/10 text-white hover:text-white'
+        primary: 'bg-gradient-to-br from-primary-600 via-primary-500 to-indigo-600 hover:from-primary-500 hover:via-primary-400 hover:to-indigo-500 text-white shadow-primary-500/30 hover:shadow-primary-500/50',
+        secondary: 'bg-gradient-to-br from-violet-600 via-fuchsia-500 to-pink-600 hover:from-violet-500 hover:via-fuchsia-400 hover:to-pink-500 text-white shadow-violet-500/30 hover:shadow-violet-500/50',
+        amber: 'bg-gradient-to-br from-amber-600 via-orange-500 to-yellow-600 hover:from-amber-500 hover:via-orange-400 hover:to-yellow-500 text-white shadow-amber-500/30 hover:shadow-amber-500/50',
+        indigo: 'bg-gradient-to-br from-blue-600 via-indigo-500 to-violet-600 hover:from-blue-500 hover:via-indigo-400 hover:to-violet-500 text-white shadow-indigo-500/30 hover:shadow-indigo-500/50',
+        ghost: 'bg-dark-800/40 hover:bg-dark-700/60 backdrop-blur-md border border-primary-400/30 hover:border-primary-400/60 text-white shadow-primary-500/10 hover:shadow-primary-500/20'
       }
       return gradients[props.gradientType]
     })
