@@ -253,12 +253,13 @@ const handleSubmit = async (values: RegisterFormValues) => {
       return
     }
 
-    // Create registration data (don't send terms_accepted - it's frontend only)
+    // Create registration data
     const registerData = {
       username,
       email,
       password,
-      password_confirmation: passwordConfirmation
+      password_confirmation: passwordConfirmation,
+      terms_accepted: agreeToTerms
     }
 
     document.body.style.cursor = 'wait'
