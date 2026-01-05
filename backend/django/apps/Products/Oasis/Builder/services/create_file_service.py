@@ -254,8 +254,8 @@ const emit = defineEmits<{{
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(os.path.abspath(full_file_path)), exist_ok=True)
             
-            # Generate default content if none provided
-            if not content:
+            # Generate default content if none provided or if content is whitespace-only
+            if not content or not content.strip():
                 content = self._generate_default_content(file_path, file_type)
             
             # Write content to file with UTF-8 encoding

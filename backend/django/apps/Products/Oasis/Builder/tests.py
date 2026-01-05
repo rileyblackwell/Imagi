@@ -1,10 +1,12 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
-from .models import Project, Conversation, Page, Message
-from apps.Products.Oasis.ProjectManager.models import UserProject
+from .models import Conversation, Page, Message
+from apps.Products.Oasis.ProjectManager.models import Project as PMProject
+from apps.Products.Oasis.Builder.services.create_file_service import CreateFileService
 import os
 import shutil
+import tempfile
 
 class BuilderModelTests(TestCase):
     def setUp(self):
@@ -13,25 +15,20 @@ class BuilderModelTests(TestCase):
             username='testuser',
             password='testpass123'
         )
-        
-        # Create a test project
-        self.user_project = UserProject.objects.create(
-            user=self.user,
-            name="Test Project",
-            project_path="/tmp/test_project"
-        )
-        
+
         # Create a project
-        self.project = Project.objects.create(
+        self.project_root = tempfile.mkdtemp(prefix='builder_model_')
+        self.project = PMProject.objects.create(
             user=self.user,
             name="Test Project",
-            user_project=self.user_project
+            project_path=self.project_root
         )
-        
+        self.addCleanup(lambda: shutil.rmtree(self.project_root, ignore_errors=True))
+
         # Create a conversation
         self.conversation = Conversation.objects.create(
             user=self.user,
-            project=self.project
+            project_id=self.project.id
         )
         
         # Create a page
@@ -42,12 +39,12 @@ class BuilderModelTests(TestCase):
 
     def test_project_creation(self):
         """Test project model creation and string representation"""
-        self.assertEqual(str(self.project), "Test Project - testuser")
-        self.assertEqual(self.project.get_url_safe_name(), "test-project")
+        self.assertEqual(str(self.project), "Test Project (testuser)")
+        self.assertEqual(self.project.slug, "test-project")
 
     def test_conversation_creation(self):
         """Test conversation model creation and string representation"""
-        expected_str = f"Conversation {self.conversation.id} for testuser - Project: Test Project"
+        expected_str = f"Conversation {self.conversation.id} for testuser - Project ID: {self.project.id}"
         self.assertEqual(str(self.conversation), expected_str)
 
     def test_page_creation(self):
@@ -75,24 +72,16 @@ class BuilderViewTests(TestCase):
         )
         self.client = Client()
         self.client.login(username='testuser', password='testpass123')
-        
-        # Create test project
-        self.user_project = UserProject.objects.create(
+
+        self.project_root = tempfile.mkdtemp(prefix='builder_view_')
+        self.project = PMProject.objects.create(
             user=self.user,
             name="Test Project",
-            project_path="/tmp/test_project"
-        )
-        
-        self.project = Project.objects.create(
-            user=self.user,
-            name="Test Project",
-            user_project=self.user_project
+            project_path=self.project_root
         )
 
     def tearDown(self):
-        # Clean up any test project directories
-        if os.path.exists("/tmp/test_project"):
-            shutil.rmtree("/tmp/test_project")
+        shutil.rmtree(self.project_root, ignore_errors=True)
 
     def test_landing_page_view(self):
         """Test the landing page view"""
@@ -108,7 +97,7 @@ class BuilderViewTests(TestCase):
             {'project_name': 'New Test Project'}
         )
         self.assertEqual(response.status_code, 302)  # Redirect after creation
-        self.assertTrue(Project.objects.filter(name='New Test Project').exists())
+        self.assertTrue(PMProject.objects.filter(name='New Test Project').exists())
 
     def test_delete_project_view(self):
         """Test project deletion"""
@@ -116,13 +105,13 @@ class BuilderViewTests(TestCase):
             reverse('builder:delete_project', args=[self.project.id])
         )
         self.assertEqual(response.status_code, 302)  # Redirect after deletion
-        self.assertFalse(Project.objects.filter(id=self.project.id).exists())
+        self.assertFalse(PMProject.objects.filter(id=self.project.id).exists())
 
     def test_project_workspace_view(self):
         """Test the project workspace view"""
         response = self.client.get(
             reverse('builder:project_workspace', 
-                   args=[self.project.get_url_safe_name()])
+                   args=[self.project.slug])
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'builder/oasis_builder.html')
@@ -134,24 +123,18 @@ class BuilderServiceTests(TestCase):
             username='testuser',
             password='testpass123'
         )
-        
-        # Create test project
-        self.user_project = UserProject.objects.create(
+
+        self.project_root = tempfile.mkdtemp(prefix='builder_service_')
+        self.project = PMProject.objects.create(
             user=self.user,
             name="Test Project",
-            project_path="/tmp/test_project"
+            project_path=self.project_root
         )
-        
-        self.project = Project.objects.create(
-            user=self.user,
-            name="Test Project",
-            user_project=self.user_project
-        )
-        
+
         # Create conversation and page
         self.conversation = Conversation.objects.create(
             user=self.user,
-            project=self.project
+            project_id=self.project.id
         )
         
         self.page = Page.objects.create(
@@ -160,17 +143,15 @@ class BuilderServiceTests(TestCase):
         )
 
     def tearDown(self):
-        # Clean up test project directories
-        if os.path.exists("/tmp/test_project"):
-            shutil.rmtree("/tmp/test_project")
+        shutil.rmtree(self.project_root, ignore_errors=True)
 
     def test_process_builder_mode_input(self):
         """Test the builder mode input processing"""
         from apps.Products.Oasis.Agents.services import process_builder_mode_input
         
         # Create necessary directories
-        os.makedirs("/tmp/test_project/templates", exist_ok=True)
-        os.makedirs("/tmp/test_project/static/css", exist_ok=True)
+        os.makedirs(os.path.join(self.project_root, "templates"), exist_ok=True)
+        os.makedirs(os.path.join(self.project_root, "static/css"), exist_ok=True)
         
         response = process_builder_mode_input(
             user_input="Create a simple landing page",
@@ -232,12 +213,12 @@ class BuilderIntegrationTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         
-        project = Project.objects.get(name='Lifecycle Test Project')
+        project = PMProject.objects.get(name='Lifecycle Test Project')
         
         # 2. Access project workspace
         response = self.client.get(
             reverse('builder:project_workspace', 
-                   args=[project.get_url_safe_name()])
+                   args=[project.slug])
         )
         self.assertEqual(response.status_code, 200)
         
@@ -258,4 +239,61 @@ class BuilderIntegrationTests(TestCase):
             reverse('builder:delete_project', args=[project.id])
         )
         self.assertEqual(response.status_code, 302)
-        self.assertFalse(Project.objects.filter(id=project.id).exists())
+        self.assertFalse(PMProject.objects.filter(id=project.id).exists())
+
+
+class CreateFileServiceTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='fileserviceuser',
+            password='testpass123'
+        )
+        self.project_root = tempfile.mkdtemp(prefix='imagi_file_service_')
+        self.project = PMProject.objects.create(
+            user=self.user,
+            name='File Service Project',
+            project_path=self.project_root
+        )
+        self.service = CreateFileService(project=self.project)
+
+    def tearDown(self):
+        shutil.rmtree(self.project_root, ignore_errors=True)
+
+    def test_creates_default_view_when_content_blank(self):
+        relative_path = 'frontend/vuejs/src/apps/blog/views/NewAbout.vue'
+        result = self.service.create_file({
+            'name': relative_path,
+            'type': 'vue',
+            'content': '   '  # simulate blank content coming from UI
+        })
+
+        expected_path = os.path.join(self.project_root, relative_path)
+        self.assertTrue(os.path.exists(expected_path))
+        self.assertEqual(result['path'], relative_path)
+        self.assertEqual(result['type'], 'vue')
+
+        with open(expected_path, 'r', encoding='utf-8') as created_file:
+            created_content = created_file.read()
+
+        self.assertIn('<template>', created_content)
+        self.assertIn('Welcome to NewAbout', created_content)
+        self.assertIn("defineOptions({ name: 'NewAbout' })", created_content)
+
+    def test_creates_default_component_when_content_empty(self):
+        relative_path = 'frontend/vuejs/src/components/atoms/PrimaryButton.vue'
+        result = self.service.create_file({
+            'name': relative_path,
+            'type': 'vue',
+            'content': '\n'
+        })
+
+        expected_path = os.path.join(self.project_root, relative_path)
+        self.assertTrue(os.path.exists(expected_path))
+        self.assertEqual(result['path'], relative_path)
+
+        with open(expected_path, 'r', encoding='utf-8') as created_file:
+            created_content = created_file.read()
+
+        self.assertIn('<!-- Atom: PrimaryButton -->', created_content)
+        self.assertIn('.primarybutton-component', created_content)
+        self.assertIn("defineOptions({ name: 'PrimaryButton' })", created_content)
