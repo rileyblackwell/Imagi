@@ -590,20 +590,102 @@ function createNewFile() {
     filename += '.vue'
   }
   
+  // Extract component name without extension for template
+  const componentName = filename.replace('.vue', '')
+  
   // Build the file path based on type
   let filePath = ''
+  let defaultContent = ''
+  
   if (newFileType.value === 'view') {
     filePath = `frontend/vuejs/src/apps/${selectedApp.value.name}/views/${filename}`
+    // Generate default view template
+    defaultContent = `<template>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+        ${componentName}
+      </h1>
+      
+      <!-- Add your content here -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <p class="text-gray-600 dark:text-gray-300">
+          Welcome to ${componentName}
+        </p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
+// Define component name
+defineOptions({ name: '${componentName}' })
+
+// Add your reactive state here
+const loading = ref(false)
+
+// Lifecycle hooks
+onMounted(() => {
+  console.log('${componentName} mounted')
+})
+<\/script>
+
+<style scoped>
+/* Add component-specific styles here */
+</style>
+`
   } else {
     // Component path
     const subdir = newFileSubtype.value !== 'other' ? `${newFileSubtype.value}/` : ''
     filePath = `frontend/vuejs/src/apps/${selectedApp.value.name}/components/${subdir}${filename}`
+    
+    // Generate default component template based on atomic design level
+    const atomicLevel = newFileSubtype.value.charAt(0).toUpperCase() + newFileSubtype.value.slice(1, -1) // atoms -> Atom
+    defaultContent = `<template>
+  <div class="${componentName.toLowerCase()}-component">
+    <!-- ${atomicLevel} Component: ${componentName} -->
+    <slot />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+// Define component name
+defineOptions({ name: '${componentName}' })
+
+// Define props
+interface Props {
+  // Add your props here
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  // Add default values here
+})
+
+// Define emits
+const emit = defineEmits<{
+  // Add your events here
+  // (e: 'event-name', payload: any): void
+}>()
+
+// Add your reactive state and logic here
+<\/script>
+
+<style scoped>
+.${componentName.toLowerCase()}-component {
+  /* Add component-specific styles here */
+}
+</style>
+`
   }
   
   emit('create-file', {
     name: filePath,
     type: 'vue',
-    content: ''
+    content: defaultContent
   })
   
   closeNewFileModal()

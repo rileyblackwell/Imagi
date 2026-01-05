@@ -82,6 +82,7 @@
 
                   <!-- Advanced: full file explorer -->
                   <WorkspaceAppsAdvanced
+                    :key="advancedViewRefreshKey"
                     v-else
                     :files="advancedFiles || []"
                     :selected-file="store.selectedFile || null"
@@ -311,6 +312,7 @@ async function onVersionSelect() {
 const prompt = ref('')
 const showAppsInMain = ref(true)
 const appsViewMode = ref<'simple' | 'advanced'>('simple')
+const advancedViewRefreshKey = ref(0)
 // When in advanced mode, restrict files to a specific app
 const advancedAppFilter = ref<string | null>(null)
 
@@ -846,10 +848,18 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
       ...data
     })
 
-    // If a view was created under an app, auto-register it in that app's router
     const createdPath = created?.path || ''
     const requestedPath = data?.name || ''
     const pathForMatch = createdPath || requestedPath
+    const appMatch = pathForMatch.match(/src\/apps\/([^/]+)/i)
+
+    // Determine file type for notification message
+    const fileName = pathForMatch.split('/').pop() || 'file'
+    const isView = data.name.includes('/views/')
+    const isComponent = data.name.includes('/components/')
+    const fileTypeLabel = isView ? 'View' : isComponent ? 'Component' : 'File'
+
+    // If a view was created under an app, auto-register it in that app's router
     const viewInAppRegex = /(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/[^\/]+\/views\/[^\/]+\.vue$/i
     if (pathForMatch && viewInAppRegex.test(pathForMatch)) {
       try {
@@ -862,6 +872,15 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     // Force refresh file list after creating a new file to ensure it appears in the explorer
     console.debug('File created, refreshing file list from backend...')
     await loadProjectFiles(true)
+
+    // Ensure Apps area is visible and switched to Advanced mode
+    showAppsInMain.value = true
+    appsViewMode.value = 'advanced'
+    if (appMatch?.[1]) {
+      advancedAppFilter.value = appMatch[1]
+    }
+    advancedViewRefreshKey.value += 1
+    await nextTick()
     
     // Automatically commit the file creation
     VersionControlService.commitAfterFileOperation(
@@ -869,8 +888,24 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
       created?.path || data.name,
       `Created ${created?.path || data.name}`
     )
+    
+    // Show success notification
+    const { showNotification } = useNotification()
+    showNotification({
+      type: 'success',
+      message: `${fileTypeLabel} "${fileName}" created successfully`,
+      duration: 3000
+    })
   } catch (error) {
     console.error('Error creating file:', error)
+    
+    // Show error notification
+    const { showNotification } = useNotification()
+    showNotification({
+      type: 'error',
+      message: `Failed to create file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      duration: 5000
+    })
   }
 }
 

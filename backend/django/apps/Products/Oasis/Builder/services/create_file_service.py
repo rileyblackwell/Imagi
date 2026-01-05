@@ -79,6 +79,114 @@ class CreateFileService:
         
         return type_mapping.get(ext, 'unknown')
     
+    def _generate_default_content(self, file_path, file_type):
+        """Generate default content for a file based on its type and path."""
+        if file_type == 'vue':
+            # Extract component name from file path
+            file_name = os.path.basename(file_path).replace('.vue', '')
+            
+            # Determine if this is a view or component based on path
+            is_view = '/views/' in file_path
+            is_atom = '/atoms/' in file_path
+            is_molecule = '/molecules/' in file_path
+            is_organism = '/organisms/' in file_path
+            
+            if is_view:
+                # Generate view template
+                return f'''<template>
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+        {file_name}
+      </h1>
+      
+      <!-- Add your content here -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <p class="text-gray-600 dark:text-gray-300">
+          Welcome to {file_name}
+        </p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {{ ref, onMounted }} from 'vue'
+
+// Define component name
+defineOptions({{ name: '{file_name}' }})
+
+// Add your reactive state here
+const loading = ref(false)
+
+// Lifecycle hooks
+onMounted(() => {{
+  console.log('{file_name} mounted')
+}})
+</script>
+
+<style scoped>
+/* Add component-specific styles here */
+</style>
+'''
+            else:
+                # Generate component template
+                atomic_level = 'Component'
+                if is_atom:
+                    atomic_level = 'Atom'
+                elif is_molecule:
+                    atomic_level = 'Molecule'
+                elif is_organism:
+                    atomic_level = 'Organism'
+                
+                return f'''<template>
+  <div class="{file_name.lower()}-component">
+    <!-- {atomic_level}: {file_name} -->
+    <slot />
+  </div>
+</template>
+
+<script setup lang="ts">
+import {{ ref }} from 'vue'
+
+// Define component name
+defineOptions({{ name: '{file_name}' }})
+
+// Define props
+interface Props {{
+  // Add your props here
+}}
+
+const props = withDefaults(defineProps<Props>(), {{
+  // Add default values here
+}})
+
+// Define emits
+const emit = defineEmits<{{
+  // Add your events here
+  // (e: 'event-name', payload: any): void
+}}>()
+
+// Add your reactive state and logic here
+</script>
+
+<style scoped>
+.{file_name.lower()}-component {{
+  /* Add component-specific styles here */
+}}
+</style>
+'''
+        elif file_type == 'typescript':
+            return '// TypeScript file\n\nexport {}\n'
+        elif file_type == 'javascript':
+            return '// JavaScript file\n\nexport {}\n'
+        elif file_type == 'css':
+            return '/* CSS file */\n\n'
+        elif file_type == 'html':
+            return '<!DOCTYPE html>\n<html>\n<head>\n    <title>New Page</title>\n</head>\n<body>\n    <h1>New Page</h1>\n</body>\n</html>\n'
+        
+        return ''
+    
     def create_file(self, file_data, project_id=None):
         """Create a new file."""
         try:
@@ -145,6 +253,10 @@ class CreateFileService:
             
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(os.path.abspath(full_file_path)), exist_ok=True)
+            
+            # Generate default content if none provided
+            if not content:
+                content = self._generate_default_content(file_path, file_type)
             
             # Write content to file with UTF-8 encoding
             with open(full_file_path, 'w', encoding='utf-8') as f:
