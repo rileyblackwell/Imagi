@@ -1,25 +1,25 @@
 <template>
   <div class="flex h-full w-full flex-col">
-    <!-- Header: title, search, simple/clear language -->
-    <div class="px-4 py-3 flex items-center gap-3 border-b border-dark-700/50 bg-dark-850/60 rounded-t-2xl">
-      <div class="flex items-center gap-2">
-        <span class="w-7 h-7 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-          <i class="fas fa-cubes"></i>
+    <!-- Header: title, search, approachable language -->
+    <div class="px-4 py-3 flex flex-wrap gap-3 items-center border-b border-dark-700/50 bg-dark-850/60 rounded-t-2xl">
+      <div class="flex items-center gap-2 min-w-[16rem]">
+        <span class="w-9 h-9 rounded-xl flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-200 shadow-inner">
+          <i class="fas fa-diagram-project text-sm"></i>
         </span>
         <div class="flex flex-col">
-          <span class="text-sm font-semibold text-white">Your Apps</span>
-          <span class="text-xxs text-gray-400">Apps are the building blocks of your web application. Search, create, or open an app.</span>
+          <span class="text-base font-semibold text-white tracking-tight">System overview</span>
+          <span class="text-[11px] text-gray-400 leading-snug">See how each app powers your product stack. Click a node to jump into the builder.</span>
         </div>
       </div>
-      <div class="ml-auto flex items-center gap-2">
+      <div class="ml-auto flex items-center gap-2 flex-1 justify-end min-w-[14rem]">
         <!-- Search apps -->
         <div class="relative">
           <i class="fas fa-search text-gray-500 absolute left-2.5 top-2.5 text-xs"></i>
           <input
             v-model="query"
             type="text"
-            placeholder="Search apps..."
-            class="pl-7 pr-3 py-2 text-xs bg-dark-900/80 border border-dark-700/60 rounded-md text-white placeholder-gray-500 outline-none focus:ring-0 focus:border-primary-500/40"
+          placeholder='Search for "Home", "Auth", etc.'
+          class="pl-7 pr-3 py-2 text-xs bg-dark-900/80 border border-dark-700/60 rounded-lg text-white placeholder-gray-500 outline-none focus:ring-0 focus:border-primary-500/40 focus:bg-dark-900"
           />
         </div>
 
@@ -151,40 +151,81 @@
       </div>
     </div>
 
-    <!-- Apps grid -->
+    <!-- System diagram -->
     <div v-else class="flex-1 min-h-0">
-      <div class="h-full p-4 overflow-auto">
-        <div class="grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-          <div
-            v-for="app in filteredApps"
-            :key="app.key"
-            class="group relative rounded-2xl border border-white/10 bg-gradient-to-br from-dark-900/70 to-dark-800/60 backdrop-blur-sm transition shadow hover:shadow-xl hover:-translate-y-0.5 ring-0 hover:ring-1 hover:ring-primary-500/30 overflow-hidden"
-          >
-            <!-- Decorative top overlay -->
-            <div class="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-            <!-- Top-right Open arrow-only button -->
-            <GlassButton
-              class="absolute top-2 right-2 p-1 w-8 h-8 rounded-md flex items-center justify-center"
-              size="sm"
-              @click="openApp(app)"
-              aria-label="Open app"
-              :title="`Open ${app.displayName}`"
-            >
-              <i class="fas fa-arrow-right text-sm"></i>
-            </GlassButton>
+      <div class="h-full p-6 overflow-auto">
+        <div
+          v-if="filteredApps.length === 0"
+          class="flex h-full items-center justify-center text-sm text-gray-400"
+        >
+          No apps match your search. Try a different name.
+        </div>
 
-            <div class="pl-3 pr-16 pt-4 pb-3 flex items-start gap-3">
-              <div :class="['w-10 h-10 rounded-xl flex items-center justify-center border text-lg shadow-inner', app.color.bg, app.color.border, app.color.text]">
-                <i :class="app.icon"></i>
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <div class="text-sm font-semibold text-white tracking-tight truncate">{{ app.displayName }}</div>
+        <div
+          v-else
+          class="relative rounded-3xl border border-white/10 bg-dark-900/40 p-6 shadow-2xl overflow-hidden"
+        >
+          <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:24px_24px] opacity-25"></div>
+          <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(88,86,214,0.25),_transparent_65%)] opacity-40"></div>
+
+          <div class="relative flex flex-col gap-6 xl:flex-row xl:min-w-[980px]">
+            <div
+              v-for="(layer, idx) in diagramLayers"
+              :key="layer.key"
+              class="relative flex-1 min-w-[240px]"
+            >
+              <div
+                v-if="idx < diagramLayers.length - 1"
+                class="hidden xl:block absolute top-12 right-[-32px] h-px w-16 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              ></div>
+
+              <div class="relative rounded-2xl border border-white/12 bg-dark-900/70 p-4 shadow-lg backdrop-blur">
+                <div class="flex items-center gap-3">
+                  <span class="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/15 bg-white/5 text-white">
+                    <i :class="layer.config.icon"></i>
+                  </span>
+                  <div>
+                    <div class="text-sm font-semibold text-white">{{ layer.config.title }}</div>
+                    <div class="text-xxs text-gray-400 leading-snug">{{ layer.config.description }}</div>
+                  </div>
                 </div>
-                <div class="text-xs text-gray-400/90 mt-1 whitespace-normal break-words">{{ app.hint }}</div>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <div
+                  v-for="app in layer.apps"
+                  :key="app.key"
+                  class="relative group rounded-2xl border border-white/10 bg-dark-950/70 px-4 py-3 shadow-inner transition hover:border-primary-500/40 hover:shadow-primary-500/20 focus-within:border-primary-500/40 cursor-pointer"
+                  role="button"
+                  tabindex="0"
+                  @click="openApp(app)"
+                  @keydown.enter.prevent="openApp(app)"
+                  @keydown.space.prevent="openApp(app)"
+                >
+                  <div class="absolute left-[-32px] top-1/2 hidden xl:block h-px w-9 bg-gradient-to-r from-transparent via-white/35 to-white/60"></div>
+
+                  <div class="flex items-start gap-3">
+                    <div :class="['w-11 h-11 rounded-2xl flex items-center justify-center border text-lg shadow-inner shrink-0', app.color.bg, app.color.border, app.color.text]">
+                      <i :class="app.icon"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm font-semibold text-white truncate">{{ app.displayName }}</span>
+                        <span class="text-[10px] uppercase tracking-wide text-gray-400">{{ layer.config.short }}</span>
+                      </div>
+                      <p class="mt-1 text-[11px] text-gray-400 leading-snug">{{ app.hint }}</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex items-center justify-end text-[11px] text-primary-200">
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold">
+                      Open
+                      <i class="fas fa-arrow-right text-[10px]"></i>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-            <!-- Footer actions removed; open action moved to top-right -->
           </div>
         </div>
       </div>
@@ -286,8 +327,101 @@ watch(isDropdownOpen, async (open) => {
 })
 
 // Extract apps from files
+type GalleryApp = {
+  key: string
+  name: string
+  displayName: string
+  files: ProjectFile[]
+  icon: string
+  color: { bg: string; border: string; text: string }
+  hint: string
+  category: string
+  layer: string
+  stats: {
+    screens: number
+    components: number
+    files: number
+  }
+}
+
+type LayerConfig = {
+  key: string
+  title: string
+  short: string
+  description: string
+  icon: string
+  order: number
+}
+
+type DiagramLayer = {
+  key: string
+  config: LayerConfig
+  apps: GalleryApp[]
+}
+
+const layerConfigMap: Record<string, LayerConfig> = {
+  experience: {
+    key: 'experience',
+    title: 'Experience layer',
+    short: 'Home',
+    description: 'Landing, marketing, and main navigation.',
+    icon: 'fas fa-globe',
+    order: 1,
+  },
+  access: {
+    key: 'access',
+    title: 'Access & identity',
+    short: 'Auth',
+    description: 'Sign in, onboarding, and user profiles.',
+    icon: 'fas fa-user-shield',
+    order: 2,
+  },
+  commerce: {
+    key: 'commerce',
+    title: 'Plans & payments',
+    short: 'Billing',
+    description: 'Subscriptions, checkout, and invoices.',
+    icon: 'fas fa-credit-card',
+    order: 3,
+  },
+  support: {
+    key: 'support',
+    title: 'Guidance & docs',
+    short: 'Docs',
+    description: 'Help centers, FAQs, and product education.',
+    icon: 'fas fa-book-open',
+    order: 4,
+  },
+  operations: {
+    key: 'operations',
+    title: 'Operations & admin',
+    short: 'Ops',
+    description: 'Back-office tools and internal controls.',
+    icon: 'fas fa-gauge-high',
+    order: 5,
+  },
+  custom: {
+    key: 'custom',
+    title: 'Custom modules',
+    short: 'Custom',
+    description: 'Any other building blocks unique to you.',
+    icon: 'fas fa-puzzle-piece',
+    order: 6,
+  },
+}
+
+const layerFor = (name: string) => {
+  const n = name.toLowerCase()
+  if (n.includes('home') || n.includes('landing') || n.includes('dashboard')) return 'experience'
+  if (n.includes('auth') || n.includes('account') || n.includes('profile')) return 'access'
+  if (n.includes('payment') || n.includes('billing') || n.includes('checkout') || n.includes('plan')) return 'commerce'
+  if (n.includes('doc') || n.includes('help') || n.includes('guide')) return 'support'
+  if (n.includes('admin') || n.includes('ops') || n.includes('internal')) return 'operations'
+  return 'custom'
+}
+
 const apps = computed(() => {
-  const map: Record<string, { key: string; name: string; displayName: string; files: ProjectFile[]; icon: string; color: { bg: string; border: string; text: string }; hint: string }> = {}
+  const map: Record<string, GalleryApp> = {}
   const colorMap = [
     { bg: 'bg-indigo-600/15', border: 'border-indigo-400/30', text: 'text-indigo-300' },
     { bg: 'bg-violet-600/15', border: 'border-violet-400/30', text: 'text-violet-300' },
@@ -317,6 +451,17 @@ const apps = computed(() => {
     return 'Pages and components for this part of your app'
   }
 
+  const categoryFor = (name: string) => {
+    const n = name.toLowerCase()
+    if (n.includes('auth')) return 'Sign-in experience'
+    if (n.includes('home')) return 'Homepage'
+    if (n.includes('product')) return 'Product area'
+    if (n.includes('payment')) return 'Billing & checkout'
+    if (n.includes('docs')) return 'Help center'
+    if (n.includes('admin')) return 'Admin tools'
+    return 'App section'
+  }
+
   let colorIdx = 0
   props.files.forEach((file) => {
     const normalized = (file.path || '').toLowerCase().replace(/\\/g, '/')
@@ -328,6 +473,7 @@ const apps = computed(() => {
     const sanitized = displayBase.replace(/spacex/ig, '').trim()
     const displayName = sanitized || 'Main'
     const key = rawName
+    const layer = layerFor(rawName)
 
     if (!map[key]) {
       const color = colorMap[colorIdx % colorMap.length]
@@ -340,9 +486,22 @@ const apps = computed(() => {
         icon: guessIcon(rawName),
         color,
         hint: hintFor(rawName),
+        category: categoryFor(rawName),
+        layer,
+        stats: {
+          screens: 0,
+          components: 0,
+          files: 0,
+        },
       }
     }
     map[key].files.push(file)
+    map[key].stats.files += 1
+    if (/\/views\//i.test(normalized)) {
+      map[key].stats.screens += 1
+    } else if (/\/components\//i.test(normalized)) {
+      map[key].stats.components += 1
+    }
   })
 
   const priority = ['home', 'auth', 'payments', 'payment']
@@ -371,7 +530,24 @@ const filteredApps = computed(() => {
   })
 })
 
-function openApp(app: { name: string; files: ProjectFile[] }) {
+const diagramLayers = computed<DiagramLayer[]>(() => {
+  const layers: DiagramLayer[] = Object.values(layerConfigMap)
+    .sort((a, b) => a.order - b.order)
+    .map((config) => ({ key: config.key, config, apps: [] }))
+  const lookup = layers.reduce<Record<string, DiagramLayer>>((acc, layer) => {
+    acc[layer.key] = layer
+    return acc
+  }, {})
+
+  filteredApps.value.forEach((app) => {
+    const key = app.layer && lookup[app.layer] ? app.layer : 'custom'
+    lookup[key]?.apps.push(app)
+  })
+
+  return layers.filter((layer) => layer.apps.length > 0)
+})
+
+function openApp(app: GalleryApp) {
   // Prioritize a view file; else first file
   const view = app.files.find((f) => /\/views\//i.test(f.path))
   const target = view || app.files[0]

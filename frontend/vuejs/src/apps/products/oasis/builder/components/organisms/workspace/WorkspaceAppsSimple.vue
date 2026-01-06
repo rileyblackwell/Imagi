@@ -2,14 +2,6 @@
   <div class="flex-1 min-h-0 relative overflow-hidden">
     <!-- Premium App Gallery Container -->
     <div class="h-full flex flex-col">
-      <!-- Header with badge -->
-      <div class="flex items-center justify-between mb-4">
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08]">
-          <i class="fas fa-th-large text-xs text-violet-400/80"></i>
-          <span class="text-sm font-medium text-white/60">Your Apps</span>
-        </div>
-      </div>
-      
       <!-- App Gallery Content -->
       <div class="flex-1 min-h-0 overflow-hidden">
         <AppGallery
