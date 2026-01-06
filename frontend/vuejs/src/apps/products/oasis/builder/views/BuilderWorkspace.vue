@@ -48,14 +48,14 @@
           <!-- Main Content: Show Apps section first; switch to chat after submit -->
           <div class="flex-1 flex flex-col h-full min-h-0 relative">
             <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
-            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-6 sm:p-8 lg:p-12 flex flex-col relative">
+            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-6 sm:p-8 lg:p-12 flex flex-col relative overflow-y-auto overflow-x-hidden">
               <!-- Premium glass apps container - Matching Home Page CTA Style -->
-              <div class="group relative flex-1">
+              <div class="group relative flex-1 min-h-0">
                 <!-- Background glow -->
                 <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
                 
                 <!-- Card content -->
-                <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden flex flex-col">
+                <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-y-auto overflow-x-hidden flex flex-col">
                   <!-- Accent line -->
                   <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
                   
@@ -95,8 +95,8 @@
                     class="flex-1 min-h-0"
                   />
 
-                  <!-- Compact chat input section fixed below Apps area -->
-                  <div class="mt-6 shrink-0">
+                  <!-- Compact chat input section fixed below Apps area - ONLY in advanced view -->
+                  <div v-if="appsViewMode === 'advanced'" class="mt-6 shrink-0">
                     <WorkspaceChat
                       :messages="ensureValidMessages(store.conversation || [])"
                       :is-processing="store.isProcessing"

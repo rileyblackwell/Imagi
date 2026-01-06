@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full w-full flex-col">
+  <div class="flex h-full w-full flex-col overflow-x-hidden">
     <!-- Header: title, search, approachable language -->
     <div class="px-4 py-3 flex flex-wrap gap-3 items-center border-b border-dark-700/50 bg-dark-850/60 rounded-t-2xl">
       <div class="flex items-center gap-2 min-w-[16rem]">
@@ -153,7 +153,7 @@
 
     <!-- System diagram -->
     <div v-else class="flex-1 min-h-0">
-      <div class="h-full p-6 overflow-auto">
+      <div class="h-full p-6 overflow-y-auto overflow-x-hidden">
         <div
           v-if="filteredApps.length === 0"
           class="flex h-full items-center justify-center text-sm text-gray-400"
@@ -168,7 +168,7 @@
           <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:24px_24px] opacity-25"></div>
           <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(88,86,214,0.25),_transparent_65%)] opacity-40"></div>
 
-          <div class="relative flex flex-col gap-6 xl:flex-row xl:min-w-[980px]">
+          <div class="relative flex flex-col gap-6 xl:flex-row">
             <div
               v-for="(layer, idx) in diagramLayers"
               :key="layer.key"
