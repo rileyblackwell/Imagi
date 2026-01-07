@@ -41,35 +41,8 @@
         </div>
       </div>
 
-      <!-- Bottom Row: Layout Controls and Version History -->
-      <div class="flex items-center gap-1.5 sm:gap-2 justify-between flex-wrap">
-        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-          <!-- Connection Mode Toggle -->
-          <GlassButton
-            size="sm"
-            :class="[
-              'transition-none !px-1.5 sm:!px-2 !py-1',
-              connectionMode 
-                ? 'bg-primary-500/20 border-primary-500/40 hover:!bg-primary-500/25' 
-                : 'hover:!bg-white/5 hover:!border-white/10'
-            ]"
-            @click="toggleConnectionMode"
-          >
-            <i class="fas fa-arrow-right-arrow-left text-[9px] sm:text-[10px] mr-0.5 sm:mr-1"></i>
-            <span class="text-[9px] sm:text-[10px]">{{ connectionMode ? 'Cancel' : 'Connect' }}</span>
-          </GlassButton>
-
-          <!-- Reset Layout -->
-          <GlassButton
-            size="sm"
-            class="transition-none hover:!bg-white/5 hover:!border-white/10 !px-1.5 sm:!px-2 !py-1"
-            @click="resetLayout"
-          >
-            <i class="fas fa-arrows-rotate text-[9px] sm:text-[10px] mr-0.5 sm:mr-1"></i>
-            <span class="text-[9px] sm:text-[10px]">Reset</span>
-          </GlassButton>
-        </div>
-
+      <!-- Bottom Row: Version history -->
+      <div class="flex items-center gap-1.5 sm:gap-2 justify-end flex-wrap">
         <!-- Version history dropdown - Responsive -->
         <div
           class="relative inline-flex items-center text-xs px-1.5 sm:px-2 pr-6 sm:pr-7 py-1 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition max-w-[180px] sm:max-w-[240px] min-w-[120px] sm:min-w-[160px] flex-1"
@@ -186,21 +159,28 @@
         </div>
       </div>
 
-      <!-- Connection Mode Banner -->
+      <!-- Undo Connection Toast -->
       <div
-        v-if="connectionMode"
-        class="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-lg bg-primary-500/20 border border-primary-500/40 backdrop-blur-sm"
+        v-if="undoConnectionEntry"
+        class="absolute top-4 right-4 z-40 flex items-center gap-3 px-4 py-2 rounded-xl border border-white/10 bg-dark-900/90 backdrop-blur text-xs text-gray-200 shadow-lg"
       >
-        <div class="flex items-center gap-2 text-sm text-white">
-          <i class="fas fa-arrow-right-arrow-left text-primary-300"></i>
-          <span>{{ connectionFromApp ? 'Click another app to connect' : 'Click an app to start connection' }}</span>
-          <button
-            @click="toggleConnectionMode"
-            class="ml-2 px-2 py-1 text-xs rounded bg-white/10 hover:bg-white/20 transition"
-          >
-            Cancel
-          </button>
+        <div class="flex items-center gap-2">
+          <i class="fas fa-link-slash text-primary-300 text-sm"></i>
+          <span>Connection created.</span>
         </div>
+        <button
+          class="px-2.5 py-1 rounded-md bg-primary-500/20 border border-primary-500/40 text-primary-100 hover:bg-primary-500/30 transition text-[11px]"
+          @click.stop="handleUndoConnection"
+        >
+          Undo
+        </button>
+        <button
+          class="text-gray-400 hover:text-white transition text-base leading-none"
+          aria-label="Dismiss undo"
+          @click.stop="dismissUndoConnection"
+        >
+          &times;
+        </button>
       </div>
 
       <!-- Canvas Content -->
@@ -242,6 +222,14 @@
               fill="none"
               marker-end="url(#arrowhead)"
             />
+            <path
+              v-if="connectionPreviewPath"
+              :d="connectionPreviewPath"
+              stroke="rgba(139, 92, 246, 0.6)"
+              stroke-width="2"
+              fill="none"
+              stroke-dasharray="6 4"
+            />
           </svg>
 
           <!-- Draggable App Nodes -->
@@ -250,29 +238,26 @@
             :key="app.key"
             :data-app-key="app.key"
             class="absolute transition-all duration-200"
-            :class="{
-              'cursor-move': !connectionMode,
-              'cursor-pointer': connectionMode,
-              'shadow-2xl shadow-primary-500/30 scale-105': draggingApp === app.key,
-              'hover:shadow-lg hover:shadow-primary-500/20 hover:scale-[1.02]': draggingApp !== app.key && !connectionMode,
-              'ring-2 ring-primary-500/60 animate-pulse': connectionMode && connectionFromApp === app.key
-            }"
+            :class="[
+              draggingApp === app.key ? 'cursor-grabbing shadow-2xl shadow-primary-500/30 scale-105' : 'cursor-grab hover:shadow-lg hover:shadow-primary-500/20 hover:scale-[1.02]',
+              connectionDrag?.from === app.key ? 'ring-2 ring-primary-500/40' : '',
+              connectionHoverTarget === app.key ? 'ring-2 ring-primary-400/60' : ''
+            ]"
             :style="{
               left: `${appPositions[app.key]?.x || 0}px`,
               top: `${appPositions[app.key]?.y || 0}px`,
               zIndex: draggingApp === app.key ? 1000 : 2,
               transition: draggingApp === app.key ? 'none' : 'all 0.2s ease-out'
             }"
-            @mousedown="!connectionMode && startDrag($event, app)"
+            @mousedown="startDrag($event, app)"
           >
             <div
               class="w-[260px] rounded-xl sm:rounded-2xl border bg-dark-950/90 backdrop-blur px-2.5 sm:px-3 py-2.5 sm:py-3 shadow-xl transition"
               :class="[
-                connectionMode 
-                  ? 'border-primary-500/40 hover:border-primary-500/60 hover:bg-dark-900/90' 
+                connectionDrag?.from === app.key
+                  ? 'border-primary-500/50'
                   : 'border-white/10 hover:border-primary-500/40'
               ]"
-              @click.stop="handleAppClick(app)"
             >
               <div class="flex items-start gap-2 sm:gap-2.5">
                 <div
@@ -286,19 +271,37 @@
                   <i :class="app.icon"></i>
                     </div>
                 <div class="min-w-0 flex-1">
-                  <div class="text-xs sm:text-[13px] font-semibold text-white truncate">
-                    {{ app.displayName }}
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 min-w-0 text-xs sm:text-[13px] font-semibold text-white truncate">
+                      {{ app.displayName }}
+                    </div>
+                    <button
+                      class="w-6 h-6 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:bg-primary-500/20 hover:text-white hover:border-primary-500/40 transition flex items-center justify-center text-[10px]"
+                      @mousedown.stop.prevent="startConnectionDrag($event, app)"
+                      :aria-label="`Connect ${app.displayName}`"
+                      data-app-action="connect"
+                    >
+                      <i class="fas fa-link"></i>
+                    </button>
                   </div>
                   <p class="mt-0.5 text-[9px] sm:text-[10px] text-gray-400 leading-snug line-clamp-2">
                     {{ app.hint }}
                   </p>
                       </div>
                     </div>
-
-              <div class="mt-1.5 sm:mt-2 flex items-center justify-end">
-                <div class="text-[9px] sm:text-[10px] text-primary-300">
-                  <i class="fas fa-arrow-right text-[8px] sm:text-[9px]"></i>
+              <div class="mt-2 flex items-center justify-between text-[9px] sm:text-[10px] text-gray-400">
+                <div class="flex items-center gap-1 uppercase tracking-wide text-[8px] sm:text-[9px]">
+                  <i class="fas fa-arrows-up-down-left-right text-primary-300 text-[10px]"></i>
+                  <span>Drag to move</span>
                 </div>
+                <button
+                  class="w-7 h-7 rounded-full border border-white/10 bg-white/5 text-primary-300 hover:bg-primary-500/20 hover:border-primary-500/40 hover:text-white transition flex items-center justify-center"
+                  @click.stop="openApp(app)"
+                  aria-label="Open advanced view"
+                  data-app-action="open"
+                >
+                  <i class="fas fa-arrow-right text-[8px] sm:text-[9px]"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -364,10 +367,9 @@ const appPositions = ref<Record<string, { x: number; y: number }>>({})
 
 // Connections between apps
 const connections = ref<Array<{ from: string; to: string }>>([])
-
-// Connection creation mode
-const connectionMode = ref(false)
-const connectionFromApp = ref<string | null>(null)
+const connectionDrag = ref<{ from: string; pointer: { x: number; y: number } } | null>(null)
+const connectionHoverTarget = ref<string | null>(null)
+const undoConnectionEntry = ref<{ from: string; to: string } | null>(null)
 
 // Loading state
 const isLoadingLayout = ref(false)
@@ -381,6 +383,8 @@ const gridStartY = ref(60)
 
 // Debounce timer for auto-save
 let saveTimer: NodeJS.Timeout | null = null
+let undoTimer: NodeJS.Timeout | null = null
+const UNDO_TIMEOUT = 5000
 
 // Version dropdown state
 const isDropdownOpen = ref(false)
@@ -696,9 +700,10 @@ watch([gridColumns, horizontalSpacing, verticalSpacing], () => {
 
 // Dragging functions
 function startDrag(event: MouseEvent, app: GalleryApp) {
-  // Prevent drag if clicking on the card itself to open it
+  if (event.button !== 0) return
+  // Prevent drag if interacting with action buttons
   const target = event.target as HTMLElement
-  if (target.closest('[data-app-key]') !== event.currentTarget) {
+  if (target.closest('[data-app-action]')) {
     return
   }
   
@@ -741,40 +746,122 @@ function stopDrag() {
   document.removeEventListener('mouseup', stopDrag)
 }
 
-// Reset layout to auto-grid
-async function resetLayout() {
-  if (!props.projectId) return
-  
-  try {
-    // Delete saved layout from backend
-    const response = await LayoutService.resetLayout(props.projectId)
-    
-    if (response.success) {
-      // Reset to auto-grid locally
-      appPositions.value = calculateAutoGridPositions()
-      connections.value = []
-      
-      showNotification({
-        type: 'success',
-        message: 'Layout reset to default.',
-        duration: 2000
-      })
-    } else {
-      console.error('Failed to reset layout:', response.error)
-      showNotification({
-        type: 'error',
-        message: 'Failed to reset layout.',
-        duration: 3000
-      })
+function startConnectionDrag(event: MouseEvent, app: GalleryApp) {
+  if (event.button !== 0) return
+  event.preventDefault()
+  event.stopPropagation()
+  const pointer = getPointerPosition(event)
+  if (!pointer) return
+
+  connectionDrag.value = {
+    from: app.key,
+    pointer
+  }
+  connectionHoverTarget.value = null
+
+  document.addEventListener('mousemove', onConnectionDrag)
+  document.addEventListener('mouseup', stopConnectionDrag)
+}
+
+function onConnectionDrag(event: MouseEvent) {
+  if (!connectionDrag.value) return
+  const pointer = getPointerPosition(event)
+  if (!pointer) return
+
+  connectionDrag.value = {
+    ...connectionDrag.value,
+    pointer
+  }
+  connectionHoverTarget.value = findAppAtPointer(pointer, connectionDrag.value.from)
+}
+
+function stopConnectionDrag(event: MouseEvent) {
+  if (!connectionDrag.value) return
+  const pointer = getPointerPosition(event)
+  const fromKey = connectionDrag.value.from
+
+  document.removeEventListener('mousemove', onConnectionDrag)
+  document.removeEventListener('mouseup', stopConnectionDrag)
+
+  const dropTarget = pointer ? findAppAtPointer(pointer, fromKey) : null
+  const resolvedTarget = dropTarget || connectionHoverTarget.value
+
+  connectionDrag.value = null
+  connectionHoverTarget.value = null
+
+  if (resolvedTarget) {
+    createConnection(fromKey, resolvedTarget)
+  }
+}
+
+function findAppAtPointer(pointer: { x: number; y: number }, excludeKey?: string) {
+  for (const app of apps.value) {
+    if (excludeKey && app.key === excludeKey) continue
+    const pos = appPositions.value[app.key]
+    if (!pos) continue
+    const withinX = pointer.x >= pos.x && pointer.x <= pos.x + CARD_WIDTH
+    const withinY = pointer.y >= pos.y && pointer.y <= pos.y + CARD_HEIGHT
+    if (withinX && withinY) {
+      return app.key
     }
-  } catch (error) {
-    console.error('Error resetting layout:', error)
+  }
+  return null
+}
+
+function createConnection(fromKey: string, toKey: string) {
+  if (fromKey === toKey) return
+  const exists = connections.value.some(
+    connection => connection.from === fromKey && connection.to === toKey
+  )
+  if (exists) return
+
+  connections.value.push({ from: fromKey, to: toKey })
+  savePositionsToBackend()
+  showNotification({
+    type: 'success',
+    message: 'Apps connected.',
+    duration: 1500
+  })
+  scheduleUndoPrompt({ from: fromKey, to: toKey })
+}
+
+function scheduleUndoPrompt(connection: { from: string; to: string }) {
+  clearUndoPrompt()
+  undoConnectionEntry.value = connection
+  undoTimer = setTimeout(() => {
+    undoConnectionEntry.value = null
+    undoTimer = null
+  }, UNDO_TIMEOUT)
+}
+
+function clearUndoPrompt() {
+  if (undoTimer) {
+    clearTimeout(undoTimer)
+    undoTimer = null
+  }
+  undoConnectionEntry.value = null
+}
+
+function handleUndoConnection() {
+  if (!undoConnectionEntry.value) return
+  const target = undoConnectionEntry.value
+  const before = connections.value.length
+  connections.value = connections.value.filter(
+    connection => !(connection.from === target.from && connection.to === target.to)
+  )
+  clearUndoPrompt()
+  if (connections.value.length !== before) {
+    savePositionsToBackend()
     showNotification({
-      type: 'error',
-      message: 'Error resetting layout.',
-      duration: 3000
+      type: 'info',
+      message: 'Connection undone.',
+      duration: 1500
     })
   }
+}
+
+function dismissUndoConnection() {
+  clearUndoPrompt()
 }
 
 // Connection path calculation for SVG lines
@@ -794,6 +881,17 @@ function getConnectionPath(connection: { from: string; to: string }): string {
   const controlPointOffset = Math.abs(toX - fromX) * 0.5
   return `M ${fromX} ${fromY} C ${fromX + controlPointOffset} ${fromY}, ${toX - controlPointOffset} ${toY}, ${toX} ${toY}`
 }
+
+const connectionPreviewPath = computed(() => {
+  if (!connectionDrag.value) return ''
+  const fromPos = appPositions.value[connectionDrag.value.from]
+  if (!fromPos) return ''
+  const fromX = fromPos.x + CARD_WIDTH / 2
+  const fromY = fromPos.y + CARD_HEIGHT / 2
+  const pointer = connectionDrag.value.pointer
+  const controlPointOffset = Math.abs(pointer.x - fromX) * 0.5
+  return `M ${fromX} ${fromY} C ${fromX + controlPointOffset} ${fromY}, ${pointer.x - controlPointOffset} ${pointer.y}, ${pointer.x} ${pointer.y}`
+})
 
 // Backend integration functions
 async function loadLayoutFromBackend() {
@@ -886,55 +984,12 @@ function savePositionsToBackend() {
   }, 1000)
 }
 
-function handleAppClick(app: GalleryApp) {
-  if (connectionMode.value) {
-    handleConnectionClick(app)
-  } else {
-    openApp(app)
-  }
-}
-
 function openApp(app: GalleryApp) {
   // Prioritize a view file; else first file
   const view = app.files.find((f) => /\/views\//i.test(f.path))
   const target = view || app.files[0]
   if (target) {
     emit('selectFile', target)
-  }
-}
-
-// Connection mode functions
-function toggleConnectionMode() {
-  connectionMode.value = !connectionMode.value
-  if (!connectionMode.value) {
-    // Reset connection state when exiting mode
-    connectionFromApp.value = null
-  }
-}
-
-function handleConnectionClick(app: GalleryApp) {
-  if (!connectionFromApp.value) {
-    // First click - select source app
-    connectionFromApp.value = app.key
-  } else if (connectionFromApp.value === app.key) {
-    // Clicked same app - deselect
-    connectionFromApp.value = null
-  } else {
-    // Second click - create connection
-    const newConnection = {
-      from: connectionFromApp.value,
-      to: app.key
-    }
-    // Check if connection already exists
-    const exists = connections.value.some(
-      c => c.from === newConnection.from && c.to === newConnection.to
-    )
-    if (!exists) {
-      connections.value.push(newConnection)
-      savePositionsToBackend()
-    }
-    // Reset for next connection
-    connectionFromApp.value = null
   }
 }
 
@@ -988,6 +1043,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick)
   document.removeEventListener('mousemove', onDrag)
   document.removeEventListener('mouseup', stopDrag)
+  document.removeEventListener('mousemove', onConnectionDrag)
+  document.removeEventListener('mouseup', stopConnectionDrag)
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', updateCanvasScale)
   }
@@ -999,6 +1056,9 @@ onBeforeUnmount(() => {
   // Clear save timer if it exists
   if (saveTimer) {
     clearTimeout(saveTimer)
+  }
+  if (undoTimer) {
+    clearTimeout(undoTimer)
   }
 })
 </script>
