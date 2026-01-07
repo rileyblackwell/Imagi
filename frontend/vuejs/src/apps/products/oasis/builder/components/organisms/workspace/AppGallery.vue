@@ -1,32 +1,46 @@
 <template>
-  <div class="flex h-full w-full flex-col overflow-x-hidden">
-    <!-- Header: title, search, approachable language -->
+  <div class="flex h-full w-full flex-col overflow-hidden">
+    <!-- Header: title and controls -->
     <div class="px-4 py-3 flex flex-wrap gap-3 items-center border-b border-dark-700/50 bg-dark-850/60 rounded-t-2xl">
       <div class="flex items-center gap-2 min-w-[16rem]">
         <span class="w-9 h-9 rounded-xl flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-200 shadow-inner">
           <i class="fas fa-diagram-project text-sm"></i>
         </span>
         <div class="flex flex-col">
-          <span class="text-base font-semibold text-white tracking-tight">System overview</span>
-          <span class="text-[11px] text-gray-400 leading-snug">See how each app powers your product stack. Click a node to jump into the builder.</span>
+          <span class="text-base font-semibold text-white tracking-tight">System Overview</span>
+          <span class="text-[11px] text-gray-400 leading-snug">Drag apps to design your layout. Click to open.</span>
         </div>
       </div>
       <div class="ml-auto flex items-center gap-2 flex-1 justify-end min-w-[14rem]">
-        <!-- Search apps -->
-        <div class="relative">
-          <i class="fas fa-search text-gray-500 absolute left-2.5 top-2.5 text-xs"></i>
-          <input
-            v-model="query"
-            type="text"
-          placeholder='Search for "Home", "Auth", etc.'
-          class="pl-7 pr-3 py-2 text-xs bg-dark-900/80 border border-dark-700/60 rounded-lg text-white placeholder-gray-500 outline-none focus:ring-0 focus:border-primary-500/40 focus:bg-dark-900"
-          />
-        </div>
+        <!-- Connection Mode Toggle -->
+        <GlassButton
+          size="sm"
+          :class="[
+            'transition-none',
+            connectionMode 
+              ? 'bg-primary-500/20 border-primary-500/40 hover:!bg-primary-500/25' 
+              : 'hover:!bg-white/5 hover:!border-white/10'
+          ]"
+          @click="toggleConnectionMode"
+        >
+          <i class="fas fa-arrow-right-arrow-left text-xs mr-1.5"></i>
+          <span class="text-xs">{{ connectionMode ? 'Cancel Connect' : 'Connect Apps' }}</span>
+        </GlassButton>
+
+        <!-- Reset Layout -->
+        <GlassButton
+          size="sm"
+          class="transition-none hover:!bg-white/5 hover:!border-white/10"
+          @click="resetLayout"
+        >
+          <i class="fas fa-arrows-rotate text-xs mr-1.5"></i>
+          <span class="text-xs">Reset Layout</span>
+        </GlassButton>
 
         <!-- New App -->
         <GlassButton
           size="sm"
-          class="transition-none hover:!bg-white/5 hover:!border-white/10 active:!bg-white/5 active:!border-white/10 focus:!ring-0 focus:!ring-transparent focus:!outline-none focus:!border-white/10 focus-visible:!ring-0 focus-visible:!border-white/10"
+          class="transition-none hover:!bg-white/5 hover:!border-white/10"
           @click="onCreateAppClick"
         >
           <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
@@ -39,7 +53,7 @@
         <GlassButton
           size="sm"
           type="button"
-          class="transition-none hover:!bg-white/5 hover:!border-white/10 active:!bg-white/5 active:!border-white/10 focus:!ring-0 focus:!ring-transparent focus:!outline-none focus:!border-white/10 focus-visible:!ring-0 focus-visible:!border-white/10"
+          class="transition-none hover:!bg-white/5 hover:!border-white/10"
           @click="onPreviewClick"
         >
           <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
@@ -151,79 +165,132 @@
       </div>
     </div>
 
-    <!-- System diagram -->
-    <div v-else class="flex-1 min-h-0">
-      <div class="h-full p-6 overflow-y-auto overflow-x-hidden">
-        <div
-          v-if="filteredApps.length === 0"
-          class="flex h-full items-center justify-center text-sm text-gray-400"
-        >
-          No apps match your search. Try a different name.
+    <!-- Canvas Container -->
+    <div v-else class="flex-1 min-h-0 relative overflow-auto" ref="canvasContainerRef">
+      <!-- Loading Overlay -->
+      <div
+        v-if="isLoadingLayout"
+        class="absolute inset-0 z-50 flex items-center justify-center bg-dark-900/80 backdrop-blur-sm"
+      >
+        <div class="flex flex-col items-center gap-3">
+          <div class="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+          <span class="text-sm text-gray-400">Loading layout...</span>
         </div>
+      </div>
 
-        <div
-          v-else
-          class="relative rounded-3xl border border-white/10 bg-dark-900/40 p-6 shadow-2xl overflow-hidden"
+      <!-- Connection Mode Banner -->
+      <div
+        v-if="connectionMode"
+        class="absolute top-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-lg bg-primary-500/20 border border-primary-500/40 backdrop-blur-sm"
+      >
+        <div class="flex items-center gap-2 text-sm text-white">
+          <i class="fas fa-arrow-right-arrow-left text-primary-300"></i>
+          <span>{{ connectionFromApp ? 'Click another app to connect' : 'Click an app to start connection' }}</span>
+          <button
+            @click="toggleConnectionMode"
+            class="ml-2 px-2 py-1 text-xs rounded bg-white/10 hover:bg-white/20 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid Background -->
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="w-full h-full bg-[radial-gradient(circle,_rgba(255,255,255,0.03)_1px,_transparent_1px)] bg-[size:20px_20px]"></div>
+      </div>
+
+      <!-- Canvas Content -->
+      <div class="relative min-w-[2000px] min-h-[2000px] p-12">
+        <!-- SVG Connections Layer -->
+        <svg
+          class="absolute top-0 left-0 w-full h-full pointer-events-none"
+          style="z-index: 1;"
         >
-          <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:24px_24px] opacity-25"></div>
-          <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(88,86,214,0.25),_transparent_65%)] opacity-40"></div>
-
-          <div class="relative flex flex-col gap-6 xl:flex-row">
-            <div
-              v-for="(layer, idx) in diagramLayers"
-              :key="layer.key"
-              class="relative flex-1 min-w-[240px]"
+          <defs>
+            <marker
+              id="arrowhead"
+              markerWidth="10"
+              markerHeight="10"
+              refX="9"
+              refY="3"
+              orient="auto"
             >
+              <polygon
+                points="0 0, 10 3, 0 6"
+                fill="rgba(139, 92, 246, 0.4)"
+              />
+            </marker>
+          </defs>
+          <path
+            v-for="connection in connections"
+            :key="`${connection.from}-${connection.to}`"
+            :d="getConnectionPath(connection)"
+            stroke="rgba(139, 92, 246, 0.4)"
+            stroke-width="2"
+            fill="none"
+            marker-end="url(#arrowhead)"
+          />
+        </svg>
+
+        <!-- Draggable App Nodes -->
+        <div
+          v-for="app in apps"
+          :key="app.key"
+          :data-app-key="app.key"
+          class="absolute transition-all duration-200"
+          :class="{
+            'cursor-move': !connectionMode,
+            'cursor-pointer': connectionMode,
+            'shadow-2xl shadow-primary-500/30 scale-105': draggingApp === app.key,
+            'hover:shadow-lg hover:shadow-primary-500/20 hover:scale-[1.02]': draggingApp !== app.key && !connectionMode,
+            'ring-2 ring-primary-500/60 animate-pulse': connectionMode && connectionFromApp === app.key
+          }"
+          :style="{
+            left: `${appPositions[app.key]?.x || 0}px`,
+            top: `${appPositions[app.key]?.y || 0}px`,
+            zIndex: draggingApp === app.key ? 1000 : 2,
+            transition: draggingApp === app.key ? 'none' : 'all 0.2s ease-out'
+          }"
+          @mousedown="!connectionMode && startDrag($event, app)"
+        >
+          <div
+            class="w-[280px] rounded-2xl border bg-dark-950/90 backdrop-blur px-4 py-4 shadow-xl transition"
+            :class="[
+              connectionMode 
+                ? 'border-primary-500/40 hover:border-primary-500/60 hover:bg-dark-900/90' 
+                : 'border-white/10 hover:border-primary-500/40'
+            ]"
+            @click.stop="handleAppClick(app)"
+          >
+            <div class="flex items-start gap-3">
               <div
-                v-if="idx < diagramLayers.length - 1"
-                class="hidden xl:block absolute top-12 right-[-32px] h-px w-16 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-              ></div>
-
-              <div class="relative rounded-2xl border border-white/12 bg-dark-900/70 p-4 shadow-lg backdrop-blur">
-                <div class="flex items-center gap-3">
-                  <span class="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/15 bg-white/5 text-white">
-                    <i :class="layer.config.icon"></i>
-                  </span>
-                  <div>
-                    <div class="text-sm font-semibold text-white">{{ layer.config.title }}</div>
-                    <div class="text-xxs text-gray-400 leading-snug">{{ layer.config.description }}</div>
+                :class="[
+                  'w-12 h-12 rounded-xl flex items-center justify-center border text-lg shadow-inner shrink-0',
+                  app.color.bg,
+                  app.color.border,
+                  app.color.text
+                ]"
+              >
+                <i :class="app.icon"></i>
                   </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-semibold text-white truncate">
+                  {{ app.displayName }}
                 </div>
+                <p class="mt-1 text-[11px] text-gray-400 leading-snug line-clamp-2">
+                  {{ app.hint }}
+                </p>
+                    </div>
+                  </div>
+
+            <div class="mt-3 flex items-center justify-between">
+              <div class="flex items-center gap-2 text-[10px] text-gray-500">
+                <span><i class="fas fa-window text-[9px]"></i> {{ app.stats.screens }}</span>
+                <span><i class="fas fa-cube text-[9px]"></i> {{ app.stats.components }}</span>
               </div>
-
-              <div class="mt-4 space-y-3">
-                <div
-                  v-for="app in layer.apps"
-                  :key="app.key"
-                  class="relative group rounded-2xl border border-white/10 bg-dark-950/70 px-4 py-3 shadow-inner transition hover:border-primary-500/40 hover:shadow-primary-500/20 focus-within:border-primary-500/40 cursor-pointer"
-                  role="button"
-                  tabindex="0"
-                  @click="openApp(app)"
-                  @keydown.enter.prevent="openApp(app)"
-                  @keydown.space.prevent="openApp(app)"
-                >
-                  <div class="absolute left-[-32px] top-1/2 hidden xl:block h-px w-9 bg-gradient-to-r from-transparent via-white/35 to-white/60"></div>
-
-                  <div class="flex items-start gap-3">
-                    <div :class="['w-11 h-11 rounded-2xl flex items-center justify-center border text-lg shadow-inner shrink-0', app.color.bg, app.color.border, app.color.text]">
-                      <i :class="app.icon"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-center justify-between gap-2">
-                        <span class="text-sm font-semibold text-white truncate">{{ app.displayName }}</span>
-                        <span class="text-[10px] uppercase tracking-wide text-gray-400">{{ layer.config.short }}</span>
-                      </div>
-                      <p class="mt-1 text-[11px] text-gray-400 leading-snug">{{ app.hint }}</p>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 flex items-center justify-end text-[11px] text-primary-200">
-                    <span class="inline-flex items-center gap-1 text-xs font-semibold">
-                      Open
+              <div class="text-[11px] text-primary-300">
                       <i class="fas fa-arrow-right text-[10px]"></i>
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -237,6 +304,8 @@
 import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import type { ProjectFile } from '../../../types/components'
 import { GradientButton, GlassButton } from '@/shared/components/atoms'
+import { LayoutService } from '../../../services/layoutService'
+import { useNotification } from '@/shared/composables/useNotification'
 
 const props = defineProps<{
   files: ProjectFile[]
@@ -255,7 +324,35 @@ const emit = defineEmits<{
   (e: 'version-select'): void
 }>()
 
-const query = ref('')
+const { showNotification } = useNotification()
+
+// Canvas and dragging state
+const canvasContainerRef = ref<HTMLElement | null>(null)
+const draggingApp = ref<string | null>(null)
+const dragOffset = ref({ x: 0, y: 0 })
+
+// App positions - will be loaded from backend and saved
+const appPositions = ref<Record<string, { x: number; y: number }>>({})
+
+// Connections between apps
+const connections = ref<Array<{ from: string; to: string }>>([])
+
+// Connection creation mode
+const connectionMode = ref(false)
+const connectionFromApp = ref<string | null>(null)
+
+// Loading state
+const isLoadingLayout = ref(false)
+
+// Auto-grid layout configuration
+const GRID_COLUMNS = 4
+const HORIZONTAL_SPACING = 320
+const VERTICAL_SPACING = 200
+const GRID_START_X = 100
+const GRID_START_Y = 100
+
+// Debounce timer for auto-save
+let saveTimer: NodeJS.Timeout | null = null
 
 // Version dropdown state
 const isDropdownOpen = ref(false)
@@ -264,7 +361,6 @@ const dropdownPanelRef = ref<HTMLElement | null>(null)
 const activeIndex = ref<number>(-1)
 const currentVersion = computed(() => props.versionHistory.find(v => (v.hash || v.commit_hash) === props.selectedVersionHash))
 const currentVersionLabel = computed(() => {
-  // If nothing is selected, return empty so the UI falls back to the placeholder 'Version history'
   if (!props.selectedVersionHash) return ''
   const v: any = currentVersion.value
   if (!v) return ''
@@ -286,8 +382,6 @@ function onDocumentClick(e: MouseEvent) {
     isDropdownOpen.value = false
   }
 }
-onMounted(() => document.addEventListener('click', onDocumentClick))
-onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 
 function selectVersion(v: any) {
   const val = v.hash || v.commit_hash || ''
@@ -300,7 +394,6 @@ function moveActive(delta: number) {
   const total = props.versionHistory.length
   if (!total) return
   if (activeIndex.value === -1) {
-    // Initialize to current selected index or 0
     const idx = props.versionHistory.findIndex(v => (v.hash || v.commit_hash) === props.selectedVersionHash)
     activeIndex.value = idx >= 0 ? idx : 0
   } else {
@@ -317,7 +410,6 @@ function activateActive() {
 
 watch(isDropdownOpen, async (open) => {
   if (open) {
-    // Set active to current selection
     activeIndex.value = props.versionHistory.findIndex(v => (v.hash || v.commit_hash) === props.selectedVersionHash)
     await nextTick()
     dropdownPanelRef.value?.focus()
@@ -335,89 +427,11 @@ type GalleryApp = {
   icon: string
   color: { bg: string; border: string; text: string }
   hint: string
-  category: string
-  layer: string
   stats: {
     screens: number
     components: number
     files: number
   }
-}
-
-type LayerConfig = {
-  key: string
-  title: string
-  short: string
-  description: string
-  icon: string
-  order: number
-}
-
-type DiagramLayer = {
-  key: string
-  config: LayerConfig
-  apps: GalleryApp[]
-}
-
-const layerConfigMap: Record<string, LayerConfig> = {
-  experience: {
-    key: 'experience',
-    title: 'Experience layer',
-    short: 'Home',
-    description: 'Landing, marketing, and main navigation.',
-    icon: 'fas fa-globe',
-    order: 1,
-  },
-  access: {
-    key: 'access',
-    title: 'Access & identity',
-    short: 'Auth',
-    description: 'Sign in, onboarding, and user profiles.',
-    icon: 'fas fa-user-shield',
-    order: 2,
-  },
-  commerce: {
-    key: 'commerce',
-    title: 'Plans & payments',
-    short: 'Billing',
-    description: 'Subscriptions, checkout, and invoices.',
-    icon: 'fas fa-credit-card',
-    order: 3,
-  },
-  support: {
-    key: 'support',
-    title: 'Guidance & docs',
-    short: 'Docs',
-    description: 'Help centers, FAQs, and product education.',
-    icon: 'fas fa-book-open',
-    order: 4,
-  },
-  operations: {
-    key: 'operations',
-    title: 'Operations & admin',
-    short: 'Ops',
-    description: 'Back-office tools and internal controls.',
-    icon: 'fas fa-gauge-high',
-    order: 5,
-  },
-  custom: {
-    key: 'custom',
-    title: 'Custom modules',
-    short: 'Custom',
-    description: 'Any other building blocks unique to you.',
-    icon: 'fas fa-puzzle-piece',
-    order: 6,
-  },
-}
-
-const layerFor = (name: string) => {
-  const n = name.toLowerCase()
-  if (n.includes('home') || n.includes('landing') || n.includes('dashboard')) return 'experience'
-  if (n.includes('auth') || n.includes('account') || n.includes('profile')) return 'access'
-  if (n.includes('payment') || n.includes('billing') || n.includes('checkout') || n.includes('plan')) return 'commerce'
-  if (n.includes('doc') || n.includes('help') || n.includes('guide')) return 'support'
-  if (n.includes('admin') || n.includes('ops') || n.includes('internal')) return 'operations'
-  return 'custom'
 }
 
 const apps = computed(() => {
@@ -451,17 +465,6 @@ const apps = computed(() => {
     return 'Pages and components for this part of your app'
   }
 
-  const categoryFor = (name: string) => {
-    const n = name.toLowerCase()
-    if (n.includes('auth')) return 'Sign-in experience'
-    if (n.includes('home')) return 'Homepage'
-    if (n.includes('product')) return 'Product area'
-    if (n.includes('payment')) return 'Billing & checkout'
-    if (n.includes('docs')) return 'Help center'
-    if (n.includes('admin')) return 'Admin tools'
-    return 'App section'
-  }
-
   let colorIdx = 0
   props.files.forEach((file) => {
     const normalized = (file.path || '').toLowerCase().replace(/\\/g, '/')
@@ -469,11 +472,9 @@ const apps = computed(() => {
     if (!match) return
     const rawName = match[1]
     const displayBase = rawName.charAt(0).toUpperCase() + rawName.slice(1)
-    // Sanitize out the word 'spacex' from display names
     const sanitized = displayBase.replace(/spacex/ig, '').trim()
     const displayName = sanitized || 'Main'
     const key = rawName
-    const layer = layerFor(rawName)
 
     if (!map[key]) {
       const color = colorMap[colorIdx % colorMap.length]
@@ -486,8 +487,6 @@ const apps = computed(() => {
         icon: guessIcon(rawName),
         color,
         hint: hintFor(rawName),
-        category: categoryFor(rawName),
-        layer,
         stats: {
           screens: 0,
           components: 0,
@@ -505,7 +504,7 @@ const apps = computed(() => {
   })
 
   const priority = ['home', 'auth', 'payments', 'payment']
-  return Object.values(map).sort((a, b) => {
+  const sortedApps = Object.values(map).sort((a, b) => {
     const an = (a.name || '').toLowerCase()
     const bn = (b.name || '').toLowerCase()
     const ai = priority.indexOf(an)
@@ -517,35 +516,242 @@ const apps = computed(() => {
     }
     return a.displayName.localeCompare(b.displayName)
   })
+  
+  // Debug logging
+  console.log('[AppGallery] Detected apps:', sortedApps.map(a => a.name).join(', '))
+  console.log('[AppGallery] Total files:', props.files.length)
+  
+  return sortedApps
 })
 
-const filteredApps = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  if (!q) return apps.value
-  return apps.value.filter((a) => {
-    const name = (a.name || '').toLowerCase()
-    // Normalize display name by stripping a trailing ' App'
-    const display = (a.displayName || '').toLowerCase().replace(/\s+app$/, '')
-    return name.startsWith(q) || display.startsWith(q)
+// Auto-grid layout calculation
+function calculateAutoGridPositions() {
+  const positions: Record<string, { x: number; y: number }> = {}
+  apps.value.forEach((app, index) => {
+    const col = index % GRID_COLUMNS
+    const row = Math.floor(index / GRID_COLUMNS)
+    positions[app.key] = {
+      x: GRID_START_X + col * HORIZONTAL_SPACING,
+      y: GRID_START_Y + row * VERTICAL_SPACING
+    }
   })
-})
+  return positions
+}
 
-const diagramLayers = computed<DiagramLayer[]>(() => {
-  const layers: DiagramLayer[] = Object.values(layerConfigMap)
-    .sort((a, b) => a.order - b.order)
-    .map((config) => ({ key: config.key, config, apps: [] }))
-  const lookup = layers.reduce<Record<string, DiagramLayer>>((acc, layer) => {
-    acc[layer.key] = layer
-    return acc
-  }, {})
+// Initialize positions when apps change
+watch(() => apps.value, async (newApps) => {
+  if (newApps.length > 0) {
+    // Check if we need to load layout from backend
+    const needsLoad = newApps.some(app => !appPositions.value[app.key])
+    if (needsLoad && !isLoadingLayout.value) {
+      await loadLayoutFromBackend()
+    }
+  }
+}, { immediate: true })
 
-  filteredApps.value.forEach((app) => {
-    const key = app.layer && lookup[app.layer] ? app.layer : 'custom'
-    lookup[key]?.apps.push(app)
-  })
+// Dragging functions
+function startDrag(event: MouseEvent, app: GalleryApp) {
+  // Prevent drag if clicking on the card itself to open it
+  const target = event.target as HTMLElement
+  if (target.closest('[data-app-key]') !== event.currentTarget) {
+    return
+  }
+  
+  event.preventDefault()
+  draggingApp.value = app.key
+  
+  const currentPos = appPositions.value[app.key] || { x: 0, y: 0 }
+  dragOffset.value = {
+    x: event.clientX - currentPos.x,
+    y: event.clientY - currentPos.y
+  }
+  
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+}
 
-  return layers.filter((layer) => layer.apps.length > 0)
-})
+function onDrag(event: MouseEvent) {
+  if (!draggingApp.value) return
+  
+  const container = canvasContainerRef.value
+  if (!container) return
+  
+  // Calculate new position relative to the canvas container
+  const containerRect = container.getBoundingClientRect()
+  const scrollLeft = container.scrollLeft
+  const scrollTop = container.scrollTop
+  
+  const newX = event.clientX - containerRect.left + scrollLeft - dragOffset.value.x
+  const newY = event.clientY - containerRect.top + scrollTop - dragOffset.value.y
+  
+  // Apply boundary constraints
+  const constrainedX = Math.max(0, Math.min(newX, 1700))
+  const constrainedY = Math.max(0, Math.min(newY, 1700))
+  
+  appPositions.value[draggingApp.value] = {
+    x: constrainedX,
+    y: constrainedY
+  }
+}
+
+function stopDrag() {
+  if (draggingApp.value) {
+    // Save positions to backend (will be implemented later)
+    savePositionsToBackend()
+  }
+  draggingApp.value = null
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+}
+
+// Reset layout to auto-grid
+async function resetLayout() {
+  if (!props.projectId) return
+  
+  try {
+    // Delete saved layout from backend
+    const response = await LayoutService.resetLayout(props.projectId)
+    
+    if (response.success) {
+      // Reset to auto-grid locally
+      appPositions.value = calculateAutoGridPositions()
+      connections.value = []
+      
+      showNotification({
+        type: 'success',
+        message: 'Layout reset to default.',
+        duration: 2000
+      })
+    } else {
+      console.error('Failed to reset layout:', response.error)
+      showNotification({
+        type: 'error',
+        message: 'Failed to reset layout.',
+        duration: 3000
+      })
+    }
+  } catch (error) {
+    console.error('Error resetting layout:', error)
+    showNotification({
+      type: 'error',
+      message: 'Error resetting layout.',
+      duration: 3000
+    })
+  }
+}
+
+// Connection path calculation for SVG lines
+function getConnectionPath(connection: { from: string; to: string }): string {
+  const fromPos = appPositions.value[connection.from]
+  const toPos = appPositions.value[connection.to]
+  
+  if (!fromPos || !toPos) return ''
+  
+  // Calculate center points of app nodes (280px width, ~80px height)
+  const fromX = fromPos.x + 140
+  const fromY = fromPos.y + 40
+  const toX = toPos.x + 140
+  const toY = toPos.y + 40
+  
+  // Create a curved path using cubic bezier
+  const controlPointOffset = Math.abs(toX - fromX) * 0.5
+  return `M ${fromX} ${fromY} C ${fromX + controlPointOffset} ${fromY}, ${toX - controlPointOffset} ${toY}, ${toX} ${toY}`
+}
+
+// Backend integration functions
+async function loadLayoutFromBackend() {
+  // When no project is persisted yet, fall back to the auto-grid immediately
+  if (!props.projectId) {
+    appPositions.value = calculateAutoGridPositions()
+    connections.value = []
+    return
+  }
+  
+  try {
+    isLoadingLayout.value = true
+    const response = await LayoutService.loadLayout(props.projectId)
+    
+    if (response.success && response.layout_data) {
+      const { positions, connections: savedConnections } = response.layout_data
+      
+      // Only load positions for apps that actually exist
+      const validPositions: Record<string, { x: number; y: number }> = {}
+      apps.value.forEach(app => {
+        if (positions[app.key]) {
+          validPositions[app.key] = positions[app.key]
+        }
+      })
+      
+      // If we have saved positions, use them; otherwise use auto-grid
+      if (Object.keys(validPositions).length > 0) {
+        appPositions.value = validPositions
+        connections.value = savedConnections || []
+        return
+      }
+    }
+
+    // No saved layout or no matches for current apps - use auto-grid
+    appPositions.value = calculateAutoGridPositions()
+    connections.value = []
+  } catch (error) {
+    console.error('Error loading layout:', error)
+    // Fall back to auto-grid on error
+    appPositions.value = calculateAutoGridPositions()
+    connections.value = []
+    showNotification({
+      type: 'error',
+      message: 'Failed to load saved layout. Using default layout.',
+      duration: 3000
+    })
+  } finally {
+    isLoadingLayout.value = false
+  }
+}
+
+function savePositionsToBackend() {
+  if (!props.projectId) return
+  
+  // Clear any existing timer
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+  }
+  
+  // Debounce the save operation (wait 1 second after last change)
+  saveTimer = setTimeout(async () => {
+    try {
+      const layoutData = {
+        positions: appPositions.value,
+        connections: connections.value
+      }
+      
+      const response = await LayoutService.saveLayout(props.projectId!, layoutData)
+      
+      if (!response.success) {
+        console.error('Failed to save layout:', response.error)
+        showNotification({
+          type: 'error',
+          message: 'Failed to save layout changes.',
+          duration: 3000
+        })
+      }
+    } catch (error) {
+      console.error('Error saving layout:', error)
+      showNotification({
+        type: 'error',
+        message: 'Error saving layout changes.',
+        duration: 3000
+      })
+    }
+  }, 1000)
+}
+
+function handleAppClick(app: GalleryApp) {
+  if (connectionMode.value) {
+    handleConnectionClick(app)
+  } else {
+    openApp(app)
+  }
+}
 
 function openApp(app: GalleryApp) {
   // Prioritize a view file; else first file
@@ -556,7 +762,41 @@ function openApp(app: GalleryApp) {
   }
 }
 
-// Suppress any lingering focus styles by blurring the clicked button
+// Connection mode functions
+function toggleConnectionMode() {
+  connectionMode.value = !connectionMode.value
+  if (!connectionMode.value) {
+    // Reset connection state when exiting mode
+    connectionFromApp.value = null
+  }
+}
+
+function handleConnectionClick(app: GalleryApp) {
+  if (!connectionFromApp.value) {
+    // First click - select source app
+    connectionFromApp.value = app.key
+  } else if (connectionFromApp.value === app.key) {
+    // Clicked same app - deselect
+    connectionFromApp.value = null
+  } else {
+    // Second click - create connection
+    const newConnection = {
+      from: connectionFromApp.value,
+      to: app.key
+    }
+    // Check if connection already exists
+    const exists = connections.value.some(
+      c => c.from === newConnection.from && c.to === newConnection.to
+    )
+    if (!exists) {
+      connections.value.push(newConnection)
+      savePositionsToBackend()
+    }
+    // Reset for next connection
+    connectionFromApp.value = null
+  }
+}
+
 function onCreateAppClick(ev: MouseEvent) {
   (ev.currentTarget as HTMLElement | null)?.blur()
   emit('createApp')
@@ -566,4 +806,20 @@ function onPreviewClick(ev: MouseEvent) {
   (ev.currentTarget as HTMLElement | null)?.blur()
   emit('preview')
 }
+
+// Lifecycle hooks
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick)
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  
+  // Clear save timer if it exists
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+  }
+})
 </script>

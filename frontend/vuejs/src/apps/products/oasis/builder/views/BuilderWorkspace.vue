@@ -955,19 +955,44 @@ async function handlePreview() {
 // Ensure default apps exist for every new project
 async function ensureDefaultApps() {
   try {
+    console.log('[BuilderWorkspace] Ensuring default apps for project:', projectId.value)
+    
     // Call the backend API to ensure default apps exist
     const result = await BuilderCreationService.ensureDefaultApps(projectId.value)
 
     if (result.success) {
-      console.log('Default apps ensured:', result.message)
+      console.log('[BuilderWorkspace] Default apps ensured successfully:', result.message)
+      console.log('[BuilderWorkspace] Created apps:', result.created_apps || 'none')
+      console.log('[BuilderWorkspace] Existing apps:', result.existing_frontend || 'none')
+      
       // Reload project files to show any newly created default apps
       await loadProjectFiles(true)
+      
+      const { showNotification } = useNotification()
+      if (result.created_apps && result.created_apps.length > 0) {
+        showNotification({
+          type: 'success',
+          message: `Created ${result.created_apps.length} default app(s): ${result.created_apps.join(', ')}`,
+          duration: 3000
+        })
+      }
     } else {
-      console.warn('Failed to ensure default apps:', result.error)
-      // Don't show error notification for this as it's not critical
+      console.error('[BuilderWorkspace] Failed to ensure default apps:', result.error)
+      const { showNotification } = useNotification()
+      showNotification({
+        type: 'warning',
+        message: 'Some default apps may not have been created. Check console for details.',
+        duration: 4000
+      })
     }
   } catch (e) {
-    console.error('Error ensuring default apps:', e)
+    console.error('[BuilderWorkspace] Error ensuring default apps:', e)
+    const { showNotification } = useNotification()
+    showNotification({
+      type: 'error',
+      message: 'Error creating default apps. Please try refreshing.',
+      duration: 5000
+    })
   }
 }
 

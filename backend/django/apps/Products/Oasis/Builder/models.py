@@ -59,3 +59,21 @@ class Message(models.Model):
 class AIModel(models.TextChoices):
     # Dynamically create choices from the centralized model definitions
     __choices__ = _model_choices
+
+
+class ProjectLayout(models.Model):
+    """Store custom layout positions and connections for apps in a project"""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="project_layouts")
+    project_id = models.CharField(max_length=255)  # Project ID from ProjectManager
+    layout_data = models.JSONField(default=dict)  # Stores positions and connections
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'project_id']
+        indexes = [
+            models.Index(fields=['user', 'project_id']),
+        ]
+
+    def __str__(self):
+        return f"Layout for Project {self.project_id} - User {self.user.username}"

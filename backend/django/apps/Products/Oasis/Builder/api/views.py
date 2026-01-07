@@ -741,3 +741,114 @@ class CreateAppView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@method_decorator(never_cache, name='dispatch')
+class ProjectLayoutView(APIView):
+    """Manage project layout positions and connections."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def get(self, request, project_id):
+        """Load saved layout for a project."""
+        try:
+            from ..models import ProjectLayout
+            
+            # Get project to verify access
+            project = self.get_project(project_id)
+            
+            # Try to get existing layout
+            layout = ProjectLayout.objects.filter(
+                user=request.user,
+                project_id=str(project_id)
+            ).first()
+            
+            if layout:
+                return Response({
+                    'success': True,
+                    'layout_data': layout.layout_data,
+                    'updated_at': layout.updated_at.isoformat()
+                })
+            else:
+                # No saved layout - return empty
+                return Response({
+                    'success': True,
+                    'layout_data': {'positions': {}, 'connections': []},
+                    'updated_at': None
+                })
+                
+        except Exception as e:
+            logger.error(f"Error loading project layout: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request, project_id):
+        """Save layout positions and connections."""
+        try:
+            from ..models import ProjectLayout
+            
+            # Get project to verify access
+            project = self.get_project(project_id)
+            
+            # Get layout data from request
+            layout_data = request.data.get('layout_data', {})
+            
+            if not isinstance(layout_data, dict):
+                return Response({
+                    'success': False,
+                    'error': 'layout_data must be an object'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create or update layout
+            layout, created = ProjectLayout.objects.update_or_create(
+                user=request.user,
+                project_id=str(project_id),
+                defaults={'layout_data': layout_data}
+            )
+            
+            return Response({
+                'success': True,
+                'message': 'Layout saved successfully',
+                'updated_at': layout.updated_at.isoformat()
+            })
+                
+        except Exception as e:
+            logger.error(f"Error saving project layout: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, project_id):
+        """Delete saved layout (reset to default)."""
+        try:
+            from ..models import ProjectLayout
+            
+            # Get project to verify access
+            project = self.get_project(project_id)
+            
+            # Delete layout if it exists
+            deleted_count, _ = ProjectLayout.objects.filter(
+                user=request.user,
+                project_id=str(project_id)
+            ).delete()
+            
+            return Response({
+                'success': True,
+                'message': f'Layout reset successfully (deleted {deleted_count} record(s))'
+            })
+                
+        except Exception as e:
+            logger.error(f"Error resetting project layout: {str(e)}")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -11,6 +11,7 @@ from .views import (
     VersionControlHistoryView, VersionControlResetView,
     CreateAppView,
     ProjectDirectoriesView,
+    ProjectLayoutView,
 )
 
 urlpatterns = [
@@ -34,4 +35,7 @@ urlpatterns = [
     
     # App creation endpoint
     path('<int:project_id>/apps/create/', CreateAppView.as_view(), name='api-create-app'),
+    
+    # Layout management endpoint
+    path('<int:project_id>/layout/', ProjectLayoutView.as_view(), name='api-project-layout'),
 ]
