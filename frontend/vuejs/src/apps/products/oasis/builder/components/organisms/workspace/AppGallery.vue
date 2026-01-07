@@ -1,79 +1,87 @@
 <template>
   <div class="flex h-full w-full flex-col overflow-hidden">
-    <!-- Header: title and controls -->
-    <div class="px-4 py-3 flex flex-wrap gap-3 items-center border-b border-dark-700/50 bg-dark-850/60 rounded-t-2xl">
-      <div class="flex items-center gap-2 min-w-[16rem]">
-        <span class="w-9 h-9 rounded-xl flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-200 shadow-inner">
-          <i class="fas fa-diagram-project text-sm"></i>
-        </span>
-        <div class="flex flex-col">
-          <span class="text-base font-semibold text-white tracking-tight">System Overview</span>
-          <span class="text-[11px] text-gray-400 leading-snug">Drag apps to design your layout. Click to open.</span>
+    <!-- Header: title and controls - Fully responsive -->
+    <div class="px-2 sm:px-3 py-2 sm:py-2.5 flex flex-col gap-2 border-b border-dark-700/50 bg-dark-850/60 rounded-t-2xl">
+      <!-- Top Row: Title and Primary Actions -->
+      <div class="flex items-center gap-2 justify-between flex-wrap sm:flex-nowrap">
+        <div class="flex items-center gap-2 min-w-0 flex-shrink">
+          <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-200 shadow-inner flex-shrink-0">
+            <i class="fas fa-diagram-project text-[10px] sm:text-xs"></i>
+          </span>
+          <div class="flex flex-col min-w-0">
+            <span class="text-xs sm:text-sm font-semibold text-white tracking-tight">System Overview</span>
+            <span class="hidden sm:block text-[10px] text-gray-400 leading-tight">Drag apps to design layout. Click to open.</span>
+          </div>
+        </div>
+        
+        <!-- Primary Actions: New & Preview -->
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          <GlassButton
+            size="sm"
+            class="transition-none hover:!bg-white/5 hover:!border-white/10 !px-1.5 sm:!px-2 !py-1 sm:!py-1.5"
+            @click="onCreateAppClick"
+          >
+            <span class="mr-1 sm:mr-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300 text-[9px] sm:text-[10px]">
+              <i class="fas fa-plus"></i>
+            </span>
+            <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent text-[10px] sm:text-[11px]">New</span>
+          </GlassButton>
+
+          <GlassButton
+            size="sm"
+            type="button"
+            class="transition-none hover:!bg-white/5 hover:!border-white/10 !px-1.5 sm:!px-2 !py-1 sm:!py-1.5"
+            @click="onPreviewClick"
+          >
+            <span class="mr-1 sm:mr-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300 text-[9px] sm:text-[10px]">
+              <i class="fas fa-eye"></i>
+            </span>
+            <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent text-[10px] sm:text-[11px]">Preview</span>
+          </GlassButton>
         </div>
       </div>
-      <div class="ml-auto flex items-center gap-2 flex-1 justify-end min-w-[14rem]">
-        <!-- Connection Mode Toggle -->
-        <GlassButton
-          size="sm"
-          :class="[
-            'transition-none',
-            connectionMode 
-              ? 'bg-primary-500/20 border-primary-500/40 hover:!bg-primary-500/25' 
-              : 'hover:!bg-white/5 hover:!border-white/10'
-          ]"
-          @click="toggleConnectionMode"
-        >
-          <i class="fas fa-arrow-right-arrow-left text-xs mr-1.5"></i>
-          <span class="text-xs">{{ connectionMode ? 'Cancel Connect' : 'Connect Apps' }}</span>
-        </GlassButton>
 
-        <!-- Reset Layout -->
-        <GlassButton
-          size="sm"
-          class="transition-none hover:!bg-white/5 hover:!border-white/10"
-          @click="resetLayout"
-        >
-          <i class="fas fa-arrows-rotate text-xs mr-1.5"></i>
-          <span class="text-xs">Reset Layout</span>
-        </GlassButton>
+      <!-- Bottom Row: Layout Controls and Version History -->
+      <div class="flex items-center gap-1.5 sm:gap-2 justify-between flex-wrap">
+        <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          <!-- Connection Mode Toggle -->
+          <GlassButton
+            size="sm"
+            :class="[
+              'transition-none !px-1.5 sm:!px-2 !py-1',
+              connectionMode 
+                ? 'bg-primary-500/20 border-primary-500/40 hover:!bg-primary-500/25' 
+                : 'hover:!bg-white/5 hover:!border-white/10'
+            ]"
+            @click="toggleConnectionMode"
+          >
+            <i class="fas fa-arrow-right-arrow-left text-[9px] sm:text-[10px] mr-0.5 sm:mr-1"></i>
+            <span class="text-[9px] sm:text-[10px]">{{ connectionMode ? 'Cancel' : 'Connect' }}</span>
+          </GlassButton>
 
-        <!-- New App -->
-        <GlassButton
-          size="sm"
-          class="transition-none hover:!bg-white/5 hover:!border-white/10"
-          @click="onCreateAppClick"
-        >
-          <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-            <i class="fas fa-plus"></i>
-          </span>
-          <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">New App</span>
-        </GlassButton>
+          <!-- Reset Layout -->
+          <GlassButton
+            size="sm"
+            class="transition-none hover:!bg-white/5 hover:!border-white/10 !px-1.5 sm:!px-2 !py-1"
+            @click="resetLayout"
+          >
+            <i class="fas fa-arrows-rotate text-[9px] sm:text-[10px] mr-0.5 sm:mr-1"></i>
+            <span class="text-[9px] sm:text-[10px]">Reset</span>
+          </GlassButton>
+        </div>
 
-        <!-- Preview App -->
-        <GlassButton
-          size="sm"
-          type="button"
-          class="transition-none hover:!bg-white/5 hover:!border-white/10"
-          @click="onPreviewClick"
-        >
-          <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
-            <i class="fas fa-eye"></i>
-          </span>
-          <span class="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Preview App</span>
-        </GlassButton>
-
-        <!-- Version history dropdown -->
+        <!-- Version history dropdown - Responsive -->
         <div
-          class="relative inline-flex items-center text-xs px-3 pr-9 py-2 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition min-w-[16rem]"
+          class="relative inline-flex items-center text-xs px-1.5 sm:px-2 pr-6 sm:pr-7 py-1 rounded-md border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/20 transition max-w-[180px] sm:max-w-[240px] min-w-[120px] sm:min-w-[160px] flex-1"
           :class="{ 'opacity-60 cursor-not-allowed': isLoadingVersions || !versionHistory.length }"
           ref="versionDropdownRef"
         >
-          <span class="mr-2 w-6 h-6 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+          <span class="mr-1 sm:mr-1.5 w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300 flex-shrink-0 text-[9px] sm:text-[10px]">
             <i class="fas fa-history"></i>
           </span>
           <button
             type="button"
-            class="w-full text-left bg-transparent border-0 focus:outline-none text-xs text-current pr-2 pl-1 truncate"
+            class="w-full text-left bg-transparent border-0 focus:outline-none text-[9px] sm:text-[10px] text-current truncate min-w-0"
             :disabled="isLoadingVersions || !versionHistory.length"
             :title="currentVersionLabel || (isLoadingVersions ? 'Loading versions…' : (!versionHistory.length ? 'No versions' : 'Version history'))"
             @click="toggleDropdown"
@@ -82,11 +90,11 @@
             aria-label="Version history"
             :aria-expanded="isDropdownOpen ? 'true' : 'false'"
           >
-            <span v-if="isLoadingVersions">Loading versions…</span>
+            <span v-if="isLoadingVersions">Loading…</span>
             <span v-else-if="!versionHistory.length">No versions</span>
             <span v-else>{{ currentVersionLabel || 'Version history' }}</span>
           </button>
-          <i class="fas fa-chevron-down pointer-events-none absolute right-2 text-gray-400"></i>
+          <i class="fas fa-chevron-down pointer-events-none absolute right-1.5 sm:right-2 text-gray-400 text-[8px] sm:text-[9px]"></i>
 
           <!-- Dropdown panel -->
           <div
@@ -165,8 +173,8 @@
       </div>
     </div>
 
-    <!-- Canvas Container -->
-    <div v-else class="flex-1 min-h-0 relative overflow-auto" ref="canvasContainerRef">
+    <!-- Canvas Container - Prevents horizontal overflow -->
+    <div v-else class="flex-1 min-h-0 relative overflow-x-hidden overflow-y-auto" ref="canvasContainerRef">
       <!-- Loading Overlay -->
       <div
         v-if="isLoadingLayout"
@@ -195,102 +203,102 @@
         </div>
       </div>
 
-      <!-- Grid Background -->
-      <div class="absolute inset-0 pointer-events-none">
-        <div class="w-full h-full bg-[radial-gradient(circle,_rgba(255,255,255,0.03)_1px,_transparent_1px)] bg-[size:20px_20px]"></div>
-      </div>
-
       <!-- Canvas Content -->
-      <div class="relative min-w-[2000px] min-h-[2000px] p-12">
-        <!-- SVG Connections Layer -->
-        <svg
-          class="absolute top-0 left-0 w-full h-full pointer-events-none"
-          style="z-index: 1;"
-        >
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="10"
-              refX="9"
-              refY="3"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3, 0 6"
-                fill="rgba(139, 92, 246, 0.4)"
-              />
-            </marker>
-          </defs>
-          <path
-            v-for="connection in connections"
-            :key="`${connection.from}-${connection.to}`"
-            :d="getConnectionPath(connection)"
-            stroke="rgba(139, 92, 246, 0.4)"
-            stroke-width="2"
-            fill="none"
-            marker-end="url(#arrowhead)"
-          />
-        </svg>
-
-        <!-- Draggable App Nodes -->
-        <div
-          v-for="app in apps"
-          :key="app.key"
-          :data-app-key="app.key"
-          class="absolute transition-all duration-200"
-          :class="{
-            'cursor-move': !connectionMode,
-            'cursor-pointer': connectionMode,
-            'shadow-2xl shadow-primary-500/30 scale-105': draggingApp === app.key,
-            'hover:shadow-lg hover:shadow-primary-500/20 hover:scale-[1.02]': draggingApp !== app.key && !connectionMode,
-            'ring-2 ring-primary-500/60 animate-pulse': connectionMode && connectionFromApp === app.key
-          }"
-          :style="{
-            left: `${appPositions[app.key]?.x || 0}px`,
-            top: `${appPositions[app.key]?.y || 0}px`,
-            zIndex: draggingApp === app.key ? 1000 : 2,
-            transition: draggingApp === app.key ? 'none' : 'all 0.2s ease-out'
-          }"
-          @mousedown="!connectionMode && startDrag($event, app)"
-        >
-          <div
-            class="w-[280px] rounded-2xl border bg-dark-950/90 backdrop-blur px-4 py-4 shadow-xl transition"
-            :class="[
-              connectionMode 
-                ? 'border-primary-500/40 hover:border-primary-500/60 hover:bg-dark-900/90' 
-                : 'border-white/10 hover:border-primary-500/40'
-            ]"
-            @click.stop="handleAppClick(app)"
+      <div
+        ref="canvasContentRef"
+        class="relative transition-transform duration-300 ease-out"
+        :style="canvasWrapperStyle"
+      >
+        <div class="absolute inset-0 rounded-2xl sm:rounded-3xl lg:rounded-[36px] border border-white/5 bg-dark-950/70 backdrop-blur overflow-hidden pointer-events-none">
+          <div class="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.03)_1px,_transparent_1px)] bg-[size:20px_20px] opacity-70"></div>
+        </div>
+        <div class="relative w-full h-full p-6 sm:p-8 lg:p-10">
+          <!-- SVG Connections Layer -->
+          <svg
+            class="absolute top-0 left-0 w-full h-full pointer-events-none"
+            style="z-index: 1;"
           >
-            <div class="flex items-start gap-3">
-              <div
-                :class="[
-                  'w-12 h-12 rounded-xl flex items-center justify-center border text-lg shadow-inner shrink-0',
-                  app.color.bg,
-                  app.color.border,
-                  app.color.text
-                ]"
+            <defs>
+              <marker
+                id="arrowhead"
+                markerWidth="10"
+                markerHeight="10"
+                refX="9"
+                refY="3"
+                orient="auto"
               >
-                <i :class="app.icon"></i>
-                  </div>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold text-white truncate">
-                  {{ app.displayName }}
-                </div>
-                <p class="mt-1 text-[11px] text-gray-400 leading-snug line-clamp-2">
-                  {{ app.hint }}
-                </p>
-                    </div>
-                  </div>
+                <polygon
+                  points="0 0, 10 3, 0 6"
+                  fill="rgba(139, 92, 246, 0.4)"
+                />
+              </marker>
+            </defs>
+            <path
+              v-for="connection in connections"
+              :key="`${connection.from}-${connection.to}`"
+              :d="getConnectionPath(connection)"
+              stroke="rgba(139, 92, 246, 0.4)"
+              stroke-width="2"
+              fill="none"
+              marker-end="url(#arrowhead)"
+            />
+          </svg>
 
-            <div class="mt-3 flex items-center justify-between">
-              <div class="flex items-center gap-2 text-[10px] text-gray-500">
-                <span><i class="fas fa-window text-[9px]"></i> {{ app.stats.screens }}</span>
-                <span><i class="fas fa-cube text-[9px]"></i> {{ app.stats.components }}</span>
-              </div>
-              <div class="text-[11px] text-primary-300">
-                      <i class="fas fa-arrow-right text-[10px]"></i>
+          <!-- Draggable App Nodes -->
+          <div
+            v-for="app in apps"
+            :key="app.key"
+            :data-app-key="app.key"
+            class="absolute transition-all duration-200"
+            :class="{
+              'cursor-move': !connectionMode,
+              'cursor-pointer': connectionMode,
+              'shadow-2xl shadow-primary-500/30 scale-105': draggingApp === app.key,
+              'hover:shadow-lg hover:shadow-primary-500/20 hover:scale-[1.02]': draggingApp !== app.key && !connectionMode,
+              'ring-2 ring-primary-500/60 animate-pulse': connectionMode && connectionFromApp === app.key
+            }"
+            :style="{
+              left: `${appPositions[app.key]?.x || 0}px`,
+              top: `${appPositions[app.key]?.y || 0}px`,
+              zIndex: draggingApp === app.key ? 1000 : 2,
+              transition: draggingApp === app.key ? 'none' : 'all 0.2s ease-out'
+            }"
+            @mousedown="!connectionMode && startDrag($event, app)"
+          >
+            <div
+              class="w-[260px] rounded-xl sm:rounded-2xl border bg-dark-950/90 backdrop-blur px-2.5 sm:px-3 py-2.5 sm:py-3 shadow-xl transition"
+              :class="[
+                connectionMode 
+                  ? 'border-primary-500/40 hover:border-primary-500/60 hover:bg-dark-900/90' 
+                  : 'border-white/10 hover:border-primary-500/40'
+              ]"
+              @click.stop="handleAppClick(app)"
+            >
+              <div class="flex items-start gap-2 sm:gap-2.5">
+                <div
+                  :class="[
+                    'w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center border text-sm sm:text-base shadow-inner shrink-0',
+                    app.color.bg,
+                    app.color.border,
+                    app.color.text
+                  ]"
+                >
+                  <i :class="app.icon"></i>
+                    </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-xs sm:text-[13px] font-semibold text-white truncate">
+                    {{ app.displayName }}
+                  </div>
+                  <p class="mt-0.5 text-[9px] sm:text-[10px] text-gray-400 leading-snug line-clamp-2">
+                    {{ app.hint }}
+                  </p>
+                      </div>
+                    </div>
+
+              <div class="mt-1.5 sm:mt-2 flex items-center justify-end">
+                <div class="text-[9px] sm:text-[10px] text-primary-300">
+                  <i class="fas fa-arrow-right text-[8px] sm:text-[9px]"></i>
+                </div>
               </div>
             </div>
           </div>
@@ -328,8 +336,28 @@ const { showNotification } = useNotification()
 
 // Canvas and dragging state
 const canvasContainerRef = ref<HTMLElement | null>(null)
+const canvasContentRef = ref<HTMLElement | null>(null)
 const draggingApp = ref<string | null>(null)
 const dragOffset = ref({ x: 0, y: 0 })
+
+// Responsive canvas dimensions based on viewport
+const canvasWidth = ref(1400)
+const canvasHeight = ref(1000)
+const CARD_WIDTH = 260
+const CARD_HEIGHT = 130
+
+const canvasScale = ref(1)
+const canvasOffset = ref({ x: 0, y: 0 })
+const canvasWrapperStyle = computed(() => ({
+  width: `${canvasWidth.value}px`,
+  height: `${canvasHeight.value}px`,
+  transform: `scale(${canvasScale.value})`,
+  transformOrigin: 'top left',
+  marginLeft: `${canvasOffset.value.x}px`,
+  marginTop: `${canvasOffset.value.y}px`
+}))
+
+let resizeObserver: ResizeObserver | null = null
 
 // App positions - will be loaded from backend and saved
 const appPositions = ref<Record<string, { x: number; y: number }>>({})
@@ -344,12 +372,12 @@ const connectionFromApp = ref<string | null>(null)
 // Loading state
 const isLoadingLayout = ref(false)
 
-// Auto-grid layout configuration
-const GRID_COLUMNS = 4
-const HORIZONTAL_SPACING = 320
-const VERTICAL_SPACING = 200
-const GRID_START_X = 100
-const GRID_START_Y = 100
+// Responsive grid layout configuration - adapts to screen size
+const gridColumns = ref(4)
+const horizontalSpacing = ref(320)
+const verticalSpacing = ref(180)
+const gridStartX = ref(60)
+const gridStartY = ref(60)
 
 // Debounce timer for auto-save
 let saveTimer: NodeJS.Timeout | null = null
@@ -524,23 +552,132 @@ const apps = computed(() => {
   return sortedApps
 })
 
-// Auto-grid layout calculation
+// Auto-grid layout calculation - uses responsive values
 function calculateAutoGridPositions() {
   const positions: Record<string, { x: number; y: number }> = {}
   apps.value.forEach((app, index) => {
-    const col = index % GRID_COLUMNS
-    const row = Math.floor(index / GRID_COLUMNS)
+    const col = index % gridColumns.value
+    const row = Math.floor(index / gridColumns.value)
     positions[app.key] = {
-      x: GRID_START_X + col * HORIZONTAL_SPACING,
-      y: GRID_START_Y + row * VERTICAL_SPACING
+      x: gridStartX.value + col * horizontalSpacing.value,
+      y: gridStartY.value + row * verticalSpacing.value
     }
   })
-  return positions
+  return normalizePositions(positions)
+}
+
+function clampPosition(position: { x: number; y: number }) {
+  return {
+    x: Math.max(0, Math.min(position.x, canvasWidth.value - CARD_WIDTH)),
+    y: Math.max(0, Math.min(position.y, canvasHeight.value - CARD_HEIGHT))
+  }
+}
+
+function normalizePositions(positions: Record<string, { x: number; y: number }>) {
+  const bounded: Record<string, { x: number; y: number }> = {}
+  Object.keys(positions).forEach((key) => {
+    bounded[key] = clampPosition(positions[key])
+  })
+  return bounded
+}
+
+function getPointerPosition(event: MouseEvent) {
+  const canvasEl = canvasContentRef.value
+  if (!canvasEl) return null
+  const rect = canvasEl.getBoundingClientRect()
+  const scale = canvasScale.value || 1
+  return {
+    x: (event.clientX - rect.left) / scale,
+    y: (event.clientY - rect.top) / scale
+  }
+}
+
+function updateCanvasScale() {
+  if (typeof window === 'undefined') return
+  const container = canvasContainerRef.value
+  if (!container) return
+  const width = container.clientWidth
+  const height = container.clientHeight
+  if (!width || !height) return
+
+  // Responsive breakpoints for grid layout
+  let columns = 4
+  let spacing = 320
+  let vSpacing = 180
+  let startPadding = 60
+  
+  if (width < 640) {
+    // Mobile: 1 column
+    columns = 1
+    spacing = 0
+    vSpacing = 160
+    startPadding = 40
+  } else if (width < 1024) {
+    // Tablet: 2 columns
+    columns = 2
+    spacing = 300
+    vSpacing = 170
+    startPadding = 50
+  } else if (width < 1536) {
+    // Desktop small: 3 columns
+    columns = 3
+    spacing = 310
+    vSpacing = 175
+    startPadding = 55
+  } else {
+    // Desktop large: 4 columns
+    columns = 4
+    spacing = 320
+    vSpacing = 180
+    startPadding = 60
+  }
+  
+  // Update grid configuration
+  gridColumns.value = columns
+  horizontalSpacing.value = spacing
+  verticalSpacing.value = vSpacing
+  gridStartX.value = startPadding
+  gridStartY.value = startPadding
+  
+  // Calculate required canvas size based on number of apps and grid layout
+  const numApps = apps.value.length
+  const rows = Math.ceil(numApps / columns)
+  
+  // Calculate canvas dimensions dynamically
+  const calculatedWidth = startPadding * 2 + (columns - 1) * spacing + columns * CARD_WIDTH
+  const calculatedHeight = startPadding * 2 + (rows - 1) * vSpacing + rows * CARD_HEIGHT
+  
+  // Set canvas dimensions
+  canvasWidth.value = calculatedWidth
+  canvasHeight.value = Math.max(calculatedHeight, 600) // Minimum height
+  
+  // Calculate scale to fit width (prevent horizontal scrolling)
+  const PADDING = 24
+  const availableWidth = Math.max(width - PADDING * 2, 0)
+  const scaleX = availableWidth / canvasWidth.value
+  
+  // Limit scale to prevent horizontal scrolling, but allow up to 1.0
+  const nextScale = Math.min(scaleX, 1.0)
+  const clampedScale = Number.isFinite(nextScale) && nextScale > 0 ? Math.max(nextScale, 0.5) : 0.85
+  canvasScale.value = clampedScale
+
+  // Center the canvas
+  const scaledWidth = canvasWidth.value * clampedScale
+  const scaledHeight = canvasHeight.value * clampedScale
+  canvasOffset.value = {
+    x: Math.max((width - scaledWidth) / 2, 0),
+    y: Math.max((height - scaledHeight) / 2, 0)
+  }
 }
 
 // Initialize positions when apps change
 watch(() => apps.value, async (newApps) => {
   if (newApps.length > 0) {
+    // Recalculate canvas scale for new app count
+    nextTick(() => {
+      updateCanvasScale()
+    })
+    
     // Check if we need to load layout from backend
     const needsLoad = newApps.some(app => !appPositions.value[app.key])
     if (needsLoad && !isLoadingLayout.value) {
@@ -548,6 +685,14 @@ watch(() => apps.value, async (newApps) => {
     }
   }
 }, { immediate: true })
+
+// Recalculate positions when grid configuration changes
+watch([gridColumns, horizontalSpacing, verticalSpacing], () => {
+  // Only update positions if they're using auto-grid (not custom saved positions)
+  if (Object.keys(appPositions.value).length === 0) {
+    appPositions.value = calculateAutoGridPositions()
+  }
+})
 
 // Dragging functions
 function startDrag(event: MouseEvent, app: GalleryApp) {
@@ -561,9 +706,11 @@ function startDrag(event: MouseEvent, app: GalleryApp) {
   draggingApp.value = app.key
   
   const currentPos = appPositions.value[app.key] || { x: 0, y: 0 }
+  const pointer = getPointerPosition(event)
+  if (!pointer) return
   dragOffset.value = {
-    x: event.clientX - currentPos.x,
-    y: event.clientY - currentPos.y
+    x: pointer.x - currentPos.x,
+    y: pointer.y - currentPos.y
   }
   
   document.addEventListener('mousemove', onDrag)
@@ -572,26 +719,16 @@ function startDrag(event: MouseEvent, app: GalleryApp) {
 
 function onDrag(event: MouseEvent) {
   if (!draggingApp.value) return
+  const pointer = getPointerPosition(event)
+  if (!pointer) return
   
-  const container = canvasContainerRef.value
-  if (!container) return
+  const newX = pointer.x - dragOffset.value.x
+  const newY = pointer.y - dragOffset.value.y
   
-  // Calculate new position relative to the canvas container
-  const containerRect = container.getBoundingClientRect()
-  const scrollLeft = container.scrollLeft
-  const scrollTop = container.scrollTop
-  
-  const newX = event.clientX - containerRect.left + scrollLeft - dragOffset.value.x
-  const newY = event.clientY - containerRect.top + scrollTop - dragOffset.value.y
-  
-  // Apply boundary constraints
-  const constrainedX = Math.max(0, Math.min(newX, 1700))
-  const constrainedY = Math.max(0, Math.min(newY, 1700))
-  
-  appPositions.value[draggingApp.value] = {
-    x: constrainedX,
-    y: constrainedY
-  }
+  appPositions.value[draggingApp.value] = clampPosition({
+    x: newX,
+    y: newY
+  })
 }
 
 function stopDrag() {
@@ -647,11 +784,11 @@ function getConnectionPath(connection: { from: string; to: string }): string {
   
   if (!fromPos || !toPos) return ''
   
-  // Calculate center points of app nodes (280px width, ~80px height)
-  const fromX = fromPos.x + 140
-  const fromY = fromPos.y + 40
-  const toX = toPos.x + 140
-  const toY = toPos.y + 40
+  // Calculate center points of app nodes (260px width, ~130px height)
+  const fromX = fromPos.x + 130
+  const fromY = fromPos.y + 65
+  const toX = toPos.x + 130
+  const toY = toPos.y + 65
   
   // Create a curved path using cubic bezier
   const controlPointOffset = Math.abs(toX - fromX) * 0.5
@@ -678,13 +815,17 @@ async function loadLayoutFromBackend() {
       const validPositions: Record<string, { x: number; y: number }> = {}
       apps.value.forEach(app => {
         if (positions[app.key]) {
-          validPositions[app.key] = positions[app.key]
+          validPositions[app.key] = clampPosition(positions[app.key])
         }
       })
+      const defaultPositions = calculateAutoGridPositions()
       
       // If we have saved positions, use them; otherwise use auto-grid
       if (Object.keys(validPositions).length > 0) {
-        appPositions.value = validPositions
+        appPositions.value = {
+          ...defaultPositions,
+          ...validPositions
+        }
         connections.value = savedConnections || []
         return
       }
@@ -807,15 +948,53 @@ function onPreviewClick(ev: MouseEvent) {
   emit('preview')
 }
 
+// Force recalculation when component becomes visible
+watch(() => canvasContainerRef.value, (newRef) => {
+  if (newRef) {
+    // Wait for DOM to be fully rendered
+    nextTick(() => {
+      setTimeout(() => {
+        updateCanvasScale()
+      }, 50)
+    })
+  }
+})
+
+// Watch for apps changes to ensure layout is recalculated
+watch(() => apps.value.length, () => {
+  nextTick(() => {
+    setTimeout(() => {
+      updateCanvasScale()
+    }, 100)
+  })
+})
+
 // Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', onDocumentClick)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateCanvasScale)
+  }
+  nextTick(() => {
+    updateCanvasScale()
+    if (typeof window !== 'undefined' && 'ResizeObserver' in window && canvasContainerRef.value) {
+      resizeObserver = new ResizeObserver(() => updateCanvasScale())
+      resizeObserver.observe(canvasContainerRef.value)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick)
   document.removeEventListener('mousemove', onDrag)
   document.removeEventListener('mouseup', stopDrag)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', updateCanvasScale)
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
   
   // Clear save timer if it exists
   if (saveTimer) {
