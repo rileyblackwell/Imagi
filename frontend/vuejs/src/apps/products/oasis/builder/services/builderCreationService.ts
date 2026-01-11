@@ -34,7 +34,13 @@ export class BuilderCreationService {
    */
   static async ensureDefaultApps(
     projectId: string
-  ): Promise<{ success: boolean; message?: string; error?: string }> {
+  ): Promise<{ 
+    success: boolean; 
+    message?: string; 
+    error?: string;
+    created_apps?: string[];
+    existing_frontend?: boolean;
+  }> {
     try {
       const response = await api.post(`/v1/builder/${projectId}/apps/create/`, {
         action: 'ensure_defaults'
