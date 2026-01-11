@@ -133,20 +133,6 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // Check if navigating to a project-related view
-  const projectRoutes = [
-    'builder-dashboard',
-    'builder-projects', 
-    'builder-workspace', 
-    'dashboard'
-  ]
-  
-  if (projectRoutes.includes(String(to.name))) {
-    // Remove automatic project fetching on navigation
-    // Projects should only be fetched by the specific pages that need them
-    // when they mount, not automatically on every navigation
-  }
-
   next()
 })
 

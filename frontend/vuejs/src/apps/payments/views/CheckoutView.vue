@@ -142,26 +142,6 @@
               </div>
             </div>
             
-            <!-- Enhanced Payment History Link -->
-            <div class="animate-fade-in-up animation-delay-900 mt-8 text-center">
-              <router-link to="/payments/history" class="group inline-block">
-                <div class="relative transform transition-all duration-300 hover:-translate-y-1 hover:scale-105">
-                  <div class="absolute -inset-0.5 rounded-xl opacity-30 group-hover:opacity-70 bg-gradient-to-r from-violet-500/50 to-indigo-500/50 blur group-hover:blur-md transition-all duration-300"></div>
-                  <div class="relative flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-dark-900/80 to-dark-800/80 backdrop-blur-sm rounded-xl border border-white/10 group-hover:border-white/20 transition-all duration-300">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center border border-violet-400/20 group-hover:border-violet-400/40 transition-all duration-300">
-                      <i class="fas fa-history text-violet-400 group-hover:text-violet-300 transition-colors"></i>
-                    </div>
-                    <div class="text-left">
-                      <div class="text-white font-medium group-hover:text-violet-200 transition-colors">View Payment History</div>
-                      <div class="text-gray-400 text-sm group-hover:text-gray-300 transition-colors">Track your transactions</div>
-                    </div>
-                    <div class="w-5 h-5 text-violet-400 group-hover:text-violet-300 group-hover:translate-x-1 transition-all duration-300">
-                      <i class="fas fa-arrow-right"></i>
-                    </div>
-                  </div>
-                </div>
-              </router-link>
-            </div>
           </div>
         </div>
       </div>

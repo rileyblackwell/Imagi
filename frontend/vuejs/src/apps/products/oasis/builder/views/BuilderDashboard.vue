@@ -354,18 +354,6 @@
                             @delete="confirmDelete"
                           />
                         </div>
-                        
-                        <!-- View All Link -->
-                        <div v-if="!searchQuery && projects.length > 3" class="mt-6 pt-4 border-t border-white/[0.08]">
-                          <router-link
-                            to="/products/oasis/builder/projects"
-                            class="group/btn inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white/70 hover:text-white font-medium transition-all duration-300 w-full justify-center"
-                          >
-                            <i class="fas fa-folder text-sm text-violet-400/80"></i>
-                            <span>View All Projects</span>
-                            <i class="fas fa-arrow-right text-sm transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
-                          </router-link>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -453,7 +441,7 @@ const displayedProjects = computed<Project[]>(() => {
     // Return filtered search results
     baseProjects = filteredProjects.value || [];
   } else {
-    // Show 3 most recently updated projects when not searching
+    // Show all projects when not searching (projects page removed)
     if (!normalizedProjects.value?.length) {
       return [];
     }
@@ -468,7 +456,6 @@ const displayedProjects = computed<Project[]>(() => {
         const dateB = new Date(b.updated_at).getTime()
         return dateB - dateA
       })
-      .slice(0, 3);
   }
   
   // Filter out deleted projects to prevent UI issues
@@ -479,22 +466,10 @@ const displayedProjects = computed<Project[]>(() => {
 
 // Navigation items
 const navigationItems = [
-  { 
-    name: 'Dashboard',
-    to: '/dashboard',
-    icon: 'fas fa-home',
-    exact: true
-  },
   {
-    name: 'Oasis Projects',
-    to: '/products/oasis/builder/projects',
-    icon: 'fas fa-folder',
-    exact: true
-  },
-  {
-    name: 'Create Project',
+    name: 'Builder',
     to: '/products/oasis/builder/dashboard',
-    icon: 'fas fa-plus-circle',
+    icon: 'fas fa-hammer',
     exact: true
   },
   {

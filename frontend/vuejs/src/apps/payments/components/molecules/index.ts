@@ -4,6 +4,5 @@ export { default as CreditBalance } from './cards/CreditBalance';
 export { default as OrderSummary } from './summaries/OrderSummary';
 export { default as PageHeader } from './headers/PageHeader';
 export { default as PaymentAmountSelector } from './selectors/PaymentAmountSelector';
-export { default as TimePeriodSelector } from './selectors/TimePeriodSelector';
 export { default as PaymentForm } from './forms/PaymentForm';
 export { default as StatusMessage } from './messages/StatusMessage';

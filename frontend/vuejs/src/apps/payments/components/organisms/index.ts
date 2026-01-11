@@ -1,6 +1,4 @@
 export { default as AccountBalanceCard } from './cards/AccountBalanceCard';
-export { default as SummaryStatsCard } from './cards/SummaryStatsCard';
-export { default as BalanceChart } from './charts/BalanceChart';
 export { default as PaymentForm } from './forms/PaymentForm';
 export { default as PaymentFormSection } from './forms/PaymentFormSection';
 export { default as AddCredits } from './forms/AddCredits';

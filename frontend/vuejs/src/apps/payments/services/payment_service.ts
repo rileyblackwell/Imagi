@@ -8,7 +8,6 @@ import type {
   TransactionFilter,
   PaymentMethod,
   Plan,
-  TransactionHistoryItem,
   PaymentData,
   SessionResponse,
   SessionStatus,
@@ -66,19 +65,6 @@ class PaymentService implements IPaymentService {
       } 
       
       throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch balance')
-    }
-  }
-
-  /**
-   * Get payment history
-   */
-  async getPaymentHistory(): Promise<TransactionHistoryItem[]> {
-    try {
-      const response = await api.get('/v1/payments/history/')
-      return response.data.payments || []
-    } catch (error: any) {
-      console.error('Error fetching payment history:', error)
-      throw new Error(error.response?.data?.error || error.response?.data?.message || 'Failed to fetch payment history')
     }
   }
 

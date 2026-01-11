@@ -17,14 +17,6 @@ export interface Transaction {
   stripe_checkout_session_id?: string;
 }
 
-export interface TransactionHistoryItem {
-  id: string;
-  date: string;
-  amount: number;
-  status: string;
-  description: string;
-}
-
 export interface TransactionFilter {
   status?: string;
   sortBy?: string;

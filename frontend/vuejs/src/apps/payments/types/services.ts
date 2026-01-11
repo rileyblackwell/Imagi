@@ -36,15 +36,6 @@ export interface PaymentMethod {
   }
 }
 
-export interface TransactionHistoryItem {
-  id: string
-  amount: number
-  status: string
-  created: string
-  type: string
-  description: string
-}
-
 export interface SessionResponse {
   id: string
   url: string
@@ -70,7 +61,6 @@ export interface IPaymentService {
   setupCustomer(): Promise<any>
   getPaymentMethods(): Promise<PaymentMethod[]>
   attachPaymentMethod(paymentMethodId: string): Promise<any>
-  getTransactionHistory(): Promise<TransactionHistoryItem[]>
   handleError(error: AxiosError | Error): Error
   getErrorMessage(status: number): string
   createCheckoutSession(data: PaymentData): Promise<SessionResponse>
