@@ -5,13 +5,13 @@
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-6">
-          <i class="fas fa-chart-line text-xs text-emerald-400/80"></i>
-          <span class="text-sm font-medium text-white/60">By The Numbers</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
+          <i class="fas fa-chart-line text-xs text-emerald-400/90"></i>
+          <span class="text-sm font-medium text-white/80">By The Numbers</span>
         </div>
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white/90 mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
       <!-- Stats grid -->
@@ -22,10 +22,10 @@
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 cursor-default overflow-hidden text-center">
+          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-default overflow-hidden text-center">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.03]" :class="getGradientClass(stat.color)"></div>
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(stat.color)"></div>
             </div>
             
             <!-- Icon -->
@@ -42,7 +42,7 @@
             </div>
             
             <!-- Label -->
-            <p class="relative text-white/50 text-sm">{{ stat.label }}</p>
+            <p class="relative text-white/70 text-sm">{{ stat.label }}</p>
 
             <!-- Bottom accent -->
             <div 
@@ -61,10 +61,10 @@
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 cursor-default overflow-hidden">
+          <div class="relative p-6 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-default overflow-hidden">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.03]" :class="getGradientClass(metric.color)"></div>
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(metric.color)"></div>
             </div>
             
             <div class="relative flex items-center gap-4 mb-4">
@@ -74,16 +74,16 @@
               </div>
               
               <div>
-                <div class="font-semibold text-white/90">{{ metric.value }}</div>
-                <div class="text-xs text-white/40">{{ metric.label }}</div>
+                <div class="font-semibold text-white">{{ metric.value }}</div>
+                <div class="text-xs text-white/60">{{ metric.label }}</div>
               </div>
             </div>
             
             <!-- Divider -->
-            <div class="relative w-full h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-4"></div>
+            <div class="relative w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
             
             <!-- Detail -->
-            <p class="relative text-white/50 text-sm leading-relaxed">{{ metric.detail }}</p>
+            <p class="relative text-white/70 text-sm leading-relaxed">{{ metric.detail }}</p>
 
             <!-- Bottom accent -->
             <div 
@@ -105,41 +105,41 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Build Apps Without Code'
+      default: 'Built for Speed & Savings'
     },
     subtitle: {
       type: String,
-      default: 'Create web apps in minutes for dollars instead of paying thousands for developers over months.'
+      default: 'Skip the months of development and thousands in costs. Build production-ready apps in minutes for dollars.'
     },
     stats: {
       type: Array,
       default: () => [
         {
           icon: 'fas fa-dollar-sign',
-          value: '$5-10',
+          value: '$5-15',
           unit: '',
-          label: 'Average App Cost',
+          label: 'Typical App Cost',
           color: 'emerald'
         },
         {
           icon: 'fas fa-clock',
-          value: '30',
+          value: '~30',
           unit: 'min',
-          label: 'Average Build Time',
+          label: 'Build Time',
           color: 'violet'
         },
         {
-          icon: 'fas fa-credit-card',
-          value: 'Pay',
+          icon: 'fas fa-layer-group',
+          value: '2',
           unit: '',
-          label: 'Per AI Request',
+          label: 'Full Stacks',
           color: 'blue'
         },
         {
-          icon: 'fas fa-code',
+          icon: 'fas fa-code-branch',
           value: '0',
           unit: '',
-          label: 'Coding Required',
+          label: 'Lines to Write',
           color: 'fuchsia'
         }
       ]
@@ -148,25 +148,25 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          icon: 'fas fa-file-code',
-          value: 'HTML, CSS & JS',
-          label: 'Current Support',
-          detail: 'Build simple Django web apps with static frontend files',
+          icon: 'fas fa-palette',
+          value: 'Vue.js + Tailwind',
+          label: 'Frontend Stack',
+          detail: 'Modern, responsive UI with component-based architecture',
           color: 'violet'
         },
         {
-          icon: 'fas fa-globe',
-          value: 'Coming Soon',
-          label: 'Web Deployment',
-          detail: 'Deploy your Imagi Django web apps directly to the internet',
+          icon: 'fas fa-server',
+          value: 'Django + REST',
+          label: 'Backend Stack',
+          detail: 'Python backend with REST APIs and data models',
           color: 'fuchsia'
         },
         {
-          icon: 'fas fa-database',
-          value: 'In Development',
-          label: 'Auth & Database',
-          detail: 'User authentication, database support, and payment integration',
-          color: 'blue'
+          icon: 'fas fa-rocket',
+          value: 'Q1 2026',
+          label: 'Imagi Hosting',
+          detail: 'One-click deploy to .imagi.app domains with SSL',
+          color: 'amber'
         }
       ]
     }
@@ -177,7 +177,8 @@ export default defineComponent({
         violet: 'from-violet-500 to-purple-500',
         fuchsia: 'from-fuchsia-500 to-pink-500',
         blue: 'from-blue-500 to-cyan-500',
-        emerald: 'from-emerald-500 to-teal-500'
+        emerald: 'from-emerald-500 to-teal-500',
+        amber: 'from-amber-500 to-orange-500'
       }
       return gradients[color] || gradients.violet
     },
@@ -186,7 +187,8 @@ export default defineComponent({
         violet: 'bg-violet-500/10 border-violet-500/20',
         fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20',
         blue: 'bg-blue-500/10 border-blue-500/20',
-        emerald: 'bg-emerald-500/10 border-emerald-500/20'
+        emerald: 'bg-emerald-500/10 border-emerald-500/20',
+        amber: 'bg-amber-500/10 border-amber-500/20'
       }
       return classes[color] || classes.violet
     },
@@ -195,7 +197,8 @@ export default defineComponent({
         violet: 'text-violet-400',
         fuchsia: 'text-fuchsia-400',
         blue: 'text-blue-400',
-        emerald: 'text-emerald-400'
+        emerald: 'text-emerald-400',
+        amber: 'text-amber-400'
       }
       return classes[color] || classes.violet
     },
@@ -204,7 +207,8 @@ export default defineComponent({
         violet: 'from-violet-300 to-purple-300',
         fuchsia: 'from-fuchsia-300 to-pink-300',
         blue: 'from-blue-300 to-cyan-300',
-        emerald: 'from-emerald-300 to-teal-300'
+        emerald: 'from-emerald-300 to-teal-300',
+        amber: 'from-amber-300 to-orange-300'
       }
       return classes[color] || classes.violet
     },
@@ -213,7 +217,8 @@ export default defineComponent({
         violet: 'text-violet-400/80',
         fuchsia: 'text-fuchsia-400/80',
         blue: 'text-blue-400/80',
-        emerald: 'text-emerald-400/80'
+        emerald: 'text-emerald-400/80',
+        amber: 'text-amber-400/80'
       }
       return classes[color] || classes.violet
     },
@@ -222,7 +227,8 @@ export default defineComponent({
         violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
         fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
         blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
-        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent'
+        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent',
+        amber: 'bg-gradient-to-r from-transparent via-amber-500/50 to-transparent'
       }
       return classes[color] || classes.violet
     }

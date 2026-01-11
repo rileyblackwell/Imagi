@@ -5,6 +5,10 @@ import UseCasesSection from './UseCasesSection.vue'
 import StatsSection from './StatsSection.vue'
 import TestimonialsSection from './TestimonialsSection.vue'
 import CTASection from './CTASection.vue'
+import ProductTourSection from './ProductTourSection.vue'
+import DeployPreviewSection from './DeployPreviewSection.vue'
+import TemplateGallerySection from './TemplateGallerySection.vue'
+import FAQSection from './FAQSection.vue'
 
 export {
   HeroSection,
@@ -13,5 +17,9 @@ export {
   UseCasesSection,
   StatsSection,
   TestimonialsSection,
-  CTASection
+  CTASection,
+  ProductTourSection,
+  DeployPreviewSection,
+  TemplateGallerySection,
+  FAQSection
 } 

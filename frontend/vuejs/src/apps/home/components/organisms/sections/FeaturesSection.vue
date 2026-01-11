@@ -5,13 +5,13 @@
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-6">
-          <i class="fas fa-sparkles text-xs text-amber-400/80"></i>
-          <span class="text-sm font-medium text-white/60">Powerful Features</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
+          <i class="fas fa-sparkles text-xs text-amber-400/90"></i>
+          <span class="text-sm font-medium text-white/80">Powerful Features</span>
         </div>
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white/90 mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
       <!-- Feature cards grid -->
@@ -23,10 +23,10 @@
           :style="{ animationDelay: `${index * 100}ms` }"
         >
           <!-- Card -->
-          <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 cursor-default overflow-hidden">
+          <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-default overflow-hidden">
             <!-- Subtle hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.03]" :class="getGradientClass(feature.color)"></div>
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(feature.color)"></div>
             </div>
             
             <!-- Icon -->
@@ -40,8 +40,8 @@
             </div>
             
             <!-- Content -->
-            <h3 class="relative text-lg font-semibold text-white/90 mb-3">{{ feature.title }}</h3>
-            <p class="relative text-white/50 text-sm leading-relaxed mb-6">{{ feature.description }}</p>
+            <h3 class="relative text-lg font-semibold text-white mb-3">{{ feature.title }}</h3>
+            <p class="relative text-white/70 text-sm leading-relaxed mb-6">{{ feature.description }}</p>
             
             <!-- Learn more link -->
             <div class="relative flex items-center gap-2 text-sm font-medium transition-colors duration-300" :class="getLinkClass(feature.color)">
@@ -69,49 +69,49 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'Full-Stack Apps Made Simple'
+      default: 'Everything You Need to Ship'
     },
     subtitle: {
       type: String,
-      default: 'Build complete web applications with Vue.js frontends and Django backends in minutes — no technical knowledge required.'
+      default: 'Imagi generates complete, production-ready applications with modern frontends and robust backends — all from plain English descriptions.'
     },
     features: {
       type: Array,
       default: () => [
         {
-          title: 'No Technical Skills Needed',
-          description: 'Perfect for entrepreneurs, small business owners, and anyone with an idea. Just describe your app in plain English.',
-          icon: 'fas fa-user-friends',
+          title: 'Vue.js Frontend',
+          description: 'Beautiful, responsive user interfaces built with Vue.js and Tailwind CSS. Modern component architecture that scales with your needs.',
+          icon: 'fas fa-palette',
           color: 'violet'
         },
         {
-          title: 'Full-Stack Applications',
-          description: 'Get complete web applications with professional Vue.js frontends and robust Django backends that work together seamlessly.',
-          icon: 'fas fa-layer-group',
+          title: 'Django Backend',
+          description: 'Powerful Python backend with Django REST framework. Secure APIs, data models, and business logic generated automatically.',
+          icon: 'fas fa-server',
           color: 'fuchsia'
         },
         {
-          title: 'Minutes, Not Months',
-          description: 'Build professional web applications in minutes that would normally take developers months and cost thousands.',
+          title: 'Instant Generation',
+          description: 'Go from idea to working app in minutes. Describe what you want and watch as Imagi builds your entire application stack.',
           icon: 'fas fa-bolt',
           color: 'amber'
         },
         {
-          title: 'Affordable for Everyone',
-          description: 'Pay only for what you build with our credit system. Create a complete full-stack web app for just a few dollars.',
-          icon: 'fas fa-coins',
-          color: 'emerald'
-        },
-        {
-          title: 'Natural Conversation',
-          description: 'Edit and improve your app through simple conversation. Describe changes you want, and the AI updates everything instantly.',
+          title: 'Chat-Based Editing',
+          description: 'Refine your app through natural conversation. Request changes, add features, or tweak designs — no coding required.',
           icon: 'fas fa-comments',
           color: 'blue'
         },
         {
-          title: 'Professional Results',
-          description: 'Get production-ready applications with modern Vue.js interfaces and powerful Django APIs. Database integration coming soon.',
-          icon: 'fas fa-rocket',
+          title: 'Pay Per Build',
+          description: 'No subscriptions or hidden fees. Purchase credits and use them when you need. Build a complete app for just a few dollars.',
+          icon: 'fas fa-coins',
+          color: 'emerald'
+        },
+        {
+          title: 'Own Your Code',
+          description: 'Download your complete source code anytime. Standard Vue.js and Django that you can modify, extend, and host anywhere.',
+          icon: 'fas fa-download',
           color: 'rose'
         }
       ]

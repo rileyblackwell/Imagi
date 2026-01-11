@@ -5,13 +5,13 @@
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-6">
-          <i class="fas fa-route text-xs text-violet-400/80"></i>
-          <span class="text-sm font-medium text-white/60">Simple Process</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
+          <i class="fas fa-route text-xs text-violet-400/90"></i>
+          <span class="text-sm font-medium text-white/80">Simple Process</span>
         </div>
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white/90 mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
       <!-- Steps timeline -->
@@ -83,10 +83,10 @@
                 class="relative flex-1 md:w-[calc(50%-4rem)]"
                 :class="index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'"
               >
-                <div class="group relative p-6 md:p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 overflow-hidden">
+                <div class="group relative p-6 md:p-8 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 overflow-hidden">
                   <!-- Hover glow -->
                   <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div class="absolute inset-0 bg-gradient-to-br opacity-[0.02]" :class="getGradientClass(step.color)"></div>
+                    <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(step.color)"></div>
                   </div>
                   
                   <!-- Icon and title -->
@@ -99,12 +99,12 @@
                     </div>
                     <div>
                       <div class="text-xs font-medium uppercase tracking-wider mb-1" :class="getLabelClass(step.color)">Step {{ index + 1 }}</div>
-                      <h3 class="hidden sm:block text-lg font-semibold text-white/90">{{ step.title }}</h3>
+                      <h3 class="hidden sm:block text-lg font-semibold text-white">{{ step.title }}</h3>
                     </div>
                   </div>
                   
                   <!-- Description -->
-                  <p class="relative text-white/50 text-sm leading-relaxed mb-6">{{ step.description }}</p>
+                  <p class="relative text-white/70 text-sm leading-relaxed mb-6">{{ step.description }}</p>
                   
                   <!-- Features list -->
                   <ul class="relative space-y-3">
@@ -119,7 +119,7 @@
                       >
                         <i class="fas fa-check text-[10px]" :class="getCheckIconClass(step.color)"></i>
                       </div>
-                      <span class="text-white/60 text-sm">{{ feature }}</span>
+                      <span class="text-white/80 text-sm">{{ feature }}</span>
                     </li>
                   </ul>
 
@@ -168,57 +168,57 @@ export default defineComponent({
   props: {
     title: {
       type: String,
-      default: 'From Idea to Full-Stack App'
+      default: 'From Idea to Working App'
     },
     subtitle: {
       type: String,
-      default: 'Build professional web applications in just four simple steps — no coding experience required.'
+      default: 'Four simple steps to transform your vision into a production-ready full-stack application.'
     },
     steps: {
       type: Array,
       default: () => [
         {
-          title: 'Describe Your Vision',
-          description: 'Simply tell us what you want your web application to do. No technical knowledge needed — describe it like you\'re talking to a friend.',
+          title: 'Describe Your App',
+          description: 'Tell Imagi what you want to build using plain English. Describe features, user flows, and functionality — no technical jargon required.',
           icon: 'fas fa-lightbulb',
           color: 'violet',
           features: [
-            'Use everyday language',
-            'Describe business goals, not code',
-            'Perfect for non-technical users'
+            'Natural language input',
+            'Describe what, not how',
+            'No coding knowledge needed'
           ]
         },
         {
-          title: 'AI Builds Your App',
-          description: 'Our AI creates a complete application with a Vue.js frontend for users to interact with and a Django backend to handle data and logic.',
-          icon: 'fas fa-robot',
+          title: 'AI Generates Everything',
+          description: 'Imagi\'s AI builds your complete application: Vue.js frontend with modern UI components and Django backend with APIs and data models.',
+          icon: 'fas fa-wand-magic-sparkles',
           color: 'fuchsia',
           features: [
-            'Vue.js frontend automatically generated',
-            'Django backend with APIs created',
-            'Both parts work together seamlessly'
+            'Full Vue.js frontend generated',
+            'Django backend with REST APIs',
+            'Connected and working together'
           ]
         },
         {
-          title: 'Refine Through Conversation',
-          description: 'Make changes by chatting with the AI. Ask for design tweaks, new features, or functionality changes — no coding required.',
+          title: 'Iterate via Chat',
+          description: 'Refine your app through conversation. Request changes, add features, or adjust the design — Imagi updates your entire stack instantly.',
           icon: 'fas fa-comments',
           color: 'blue',
           features: [
-            'Natural language edits',
-            'Frontend and backend updates together',
-            'See changes instantly'
+            'Chat-based modifications',
+            'Real-time preview updates',
+            'Unlimited iterations'
           ]
         },
         {
-          title: 'Launch Your App',
-          description: 'Receive a complete, professional web application with modern Vue.js interface and robust Django API — ready for users and scalable for growth.',
+          title: 'Download & Deploy',
+          description: 'Export your complete source code and deploy anywhere. Imagi-hosted deployment with custom domains coming soon.',
           icon: 'fas fa-rocket',
           color: 'emerald',
           features: [
-            'Production-ready full-stack app',
-            'Modern, responsive frontend',
-            'Professional backend architecture'
+            'Download full source code',
+            'Deploy to any host',
+            'Imagi hosting coming soon'
           ]
         }
       ]

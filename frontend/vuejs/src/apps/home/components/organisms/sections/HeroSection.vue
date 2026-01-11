@@ -14,19 +14,19 @@
         <div class="flex-1 text-center lg:text-left">
           <!-- Animated badge -->
           <div class="mb-8 inline-block animate-fade-in">
-            <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-300 cursor-default">
+            <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/15 transition-all duration-300 cursor-default">
               <span class="relative flex h-2 w-2">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
               </span>
-              <span class="text-sm font-medium text-white/70 tracking-wide">AI-Powered Web Development</span>
+              <span class="text-sm font-medium text-white/80 tracking-wide">No‑Code for Everyone</span>
             </div>
           </div>
 
           <!-- Hero title with staggered animation -->
           <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-[3.5rem] xl:text-6xl font-semibold tracking-tight mb-8 leading-[1.1]">
-            <span class="block text-white/90 animate-fade-in-up" style="animation-delay: 100ms">{{ titleLine1 }}</span>
-            <span class="block text-white/90 animate-fade-in-up" style="animation-delay: 200ms">{{ titleLine2 }}</span>
+            <span class="block text-white animate-fade-in-up" style="animation-delay: 100ms">{{ titleLine1 }}</span>
+            <span class="block text-white animate-fade-in-up" style="animation-delay: 200ms">{{ titleLine2 }}</span>
             <span class="block mt-3 animate-fade-in-up" style="animation-delay: 300ms">
               <span class="relative inline-block">
                 <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-x">
@@ -39,9 +39,22 @@
           </h1>
 
           <!-- Description -->
-          <p class="text-lg sm:text-xl text-white/50 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up" style="animation-delay: 400ms">
+          <p class="text-lg sm:text-xl text-white/70 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up" style="animation-delay: 400ms">
             {{ description }}
           </p>
+
+          <!-- Capabilities chips -->
+          <div class="flex flex-wrap items-center gap-2 justify-center lg:justify-start mb-10 animate-fade-in-up" style="animation-delay: 450ms">
+            <div v-for="(cap, idx) in capabilities" :key="idx" 
+                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300"
+                 :class="cap.comingSoon 
+                   ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300' 
+                   : 'bg-white/[0.06] border border-white/10 text-white/70 hover:bg-white/[0.08] hover:text-white/90'">
+              <i :class="cap.icon" class="text-[10px]"></i>
+              <span>{{ cap.label }}</span>
+              <span v-if="cap.comingSoon" class="ml-1 px-1.5 py-0.5 bg-amber-500/20 rounded text-[9px] uppercase tracking-wider">Soon</span>
+            </div>
+          </div>
 
           <!-- CTA buttons -->
           <div class="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start animate-fade-in-up" style="animation-delay: 500ms">
@@ -70,9 +83,9 @@
             <!-- Secondary button -->
             <a 
               :href="secondaryButtonHref" 
-              class="group flex items-center gap-3 px-6 py-3.5 text-white/70 hover:text-white transition-all duration-300"
+              class="group flex items-center gap-3 px-6 py-3.5 text-white/80 hover:text-white transition-all duration-300"
             >
-              <span class="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.05] border border-white/[0.08] group-hover:bg-white/[0.08] group-hover:border-white/[0.12] transition-all duration-300">
+              <span class="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.08] border border-white/10 group-hover:bg-white/10 group-hover:border-white/15 transition-all duration-300">
                 <i class="fas fa-play text-xs text-violet-400"></i>
               </span>
               <span class="font-medium text-sm">{{ secondaryButtonText }}</span>
@@ -80,19 +93,19 @@
           </div>
 
           <!-- Trust indicators -->
-          <div class="mt-12 pt-10 border-t border-white/[0.06] animate-fade-in-up" style="animation-delay: 600ms">
+          <div class="mt-12 pt-10 border-t border-white/10 animate-fade-in-up" style="animation-delay: 600ms">
             <div class="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 justify-center lg:justify-start">
-              <div class="flex items-center gap-2 text-white/40">
-                <i class="fas fa-bolt text-amber-400/80 text-sm"></i>
-                <span class="text-sm">Built in minutes</span>
+              <div class="flex items-center gap-2 text-white/60">
+                <i class="fas fa-bolt text-amber-400/90 text-sm"></i>
+                <span class="text-sm">Build in minutes</span>
               </div>
-              <div class="flex items-center gap-2 text-white/40">
-                <i class="fas fa-check-circle text-emerald-400/80 text-sm"></i>
-                <span class="text-sm">Production ready</span>
+              <div class="flex items-center gap-2 text-white/60">
+                <i class="fas fa-layer-group text-emerald-400/90 text-sm"></i>
+                <span class="text-sm">No code required</span>
               </div>
-              <div class="flex items-center gap-2 text-white/40">
-                <i class="fas fa-dollar-sign text-violet-400/80 text-sm"></i>
-                <span class="text-sm">Pay per build</span>
+              <div class="flex items-center gap-2 text-white/60">
+                <i class="fas fa-globe text-violet-400/90 text-sm"></i>
+                <span class="text-sm">Publish coming soon</span>
               </div>
             </div>
           </div>
@@ -105,7 +118,7 @@
             <div class="absolute -inset-4 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
             
             <!-- Terminal container -->
-            <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl shadow-2xl overflow-hidden">
+            <div class="relative rounded-2xl border border-white/10 bg-[#0d0d12]/80 backdrop-blur-xl shadow-2xl overflow-hidden">
               <!-- Gradient accent line -->
               <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
               
@@ -142,31 +155,40 @@ export default defineComponent({
   props: {
     titleLine1: {
       type: String,
-      default: 'Build Full-Stack'
+      default: 'Build web apps'
     },
     titleLine2: {
       type: String,
-      default: 'Web Apps Without'
+      default: 'in minutes.'
     },
     highlightedTitle: {
       type: String,
-      default: 'Writing Code'
+      default: 'No technical skills needed'
     },
     description: {
       type: String,
-      default: 'Perfect for non-technical users! Create professional web applications with Vue.js frontends and Django backends in minutes. Just describe what you want in plain English.'
+      default: 'Tell Imagi what you want to build, then tweak it visually. Natural language + AI help you create screens, data, and workflows — without writing code.'
     },
     primaryButtonText: {
       type: String,
-      default: 'Start Building'
+      default: 'Start Building Free'
     },
     secondaryButtonText: {
       type: String,
-      default: 'How It Works'
+      default: 'See How It Works'
     },
     secondaryButtonHref: {
       type: String,
       default: '#how-it-works'
+    },
+    capabilities: {
+      type: Array,
+      default: () => [
+        { icon: 'fas fa-palette', label: 'Visual builder' },
+        { icon: 'fas fa-comments', label: 'Natural language' },
+        { icon: 'fas fa-magic', label: 'AI guidance' },
+        { icon: 'fas fa-cloud-upload-alt', label: 'Hosting', comingSoon: true }
+      ]
     }
   },
   setup() {
