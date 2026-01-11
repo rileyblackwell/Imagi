@@ -5,18 +5,18 @@
       <!-- CTA Card -->
       <div class="group relative">
         <!-- Background glow -->
-        <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+        <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/30 via-fuchsia-600/30 to-violet-600/30 rounded-3xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
         
         <!-- Card content -->
-        <div class="relative p-8 md:p-12 rounded-2xl border border-white/15 bg-[#0d0d12]/80 backdrop-blur-xl overflow-hidden">
+        <div class="relative p-8 md:p-12 rounded-2xl border border-white/25 bg-[#12121d]/85 backdrop-blur-xl overflow-hidden">
           <!-- Accent line -->
-          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+          <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/60 to-transparent"></div>
           
           <!-- Content layout -->
           <div class="flex flex-col md:flex-row items-start gap-8">
             <!-- Icon -->
             <div class="flex-shrink-0">
-              <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/25 to-fuchsia-500/25 border border-violet-500/30">
+              <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 border border-violet-500/40">
                 <i :class="icon" class="text-violet-400 text-xl"></i>
               </div>
             </div>
@@ -28,7 +28,7 @@
                 <span class="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">{{ highlightedText }}</span>
               </h2>
               
-              <p class="text-base md:text-lg text-white/70 mb-8 leading-relaxed max-w-xl">
+              <p class="text-base md:text-lg text-white/85 mb-8 leading-relaxed max-w-xl">
                 {{ description }}
                 <span v-if="highlightedStat" class="font-medium text-violet-400">{{ highlightedStat }}</span>{{ descriptionSuffix }}
               </p>
@@ -49,9 +49,9 @@
                 <router-link 
                   v-if="showSecondaryButton"
                   :to="secondaryButtonTo"
-                  class="group/btn inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
+                  class="group/btn inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white/[0.08] border border-white/[0.2] hover:bg-white/[0.12] hover:border-white/[0.25] rounded-xl text-white font-medium transition-all duration-300"
                 >
-                  <i :class="secondaryButtonIcon" class="text-violet-400/80"></i>
+                  <i :class="secondaryButtonIcon" class="text-violet-400"></i>
                   <span>{{ secondaryButtonText }}</span>
                 </router-link>
               </div>

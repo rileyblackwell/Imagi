@@ -5,19 +5,19 @@
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
-          <i class="fas fa-route text-xs text-violet-400/90"></i>
-          <span class="text-sm font-medium text-white/80">Simple Process</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
+          <i class="fas fa-route text-xs text-violet-400"></i>
+          <span class="text-sm font-medium text-white/90">Simple Process</span>
         </div>
         
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
       <!-- Steps timeline -->
       <div class="relative max-w-4xl mx-auto">
         <!-- Vertical connector line -->
-        <div class="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-violet-500/30 via-fuchsia-500/20 to-transparent md:-translate-x-px hidden sm:block"></div>
+        <div class="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-violet-500/40 via-fuchsia-500/30 to-transparent md:-translate-x-px hidden sm:block"></div>
         
         <!-- Steps -->
         <div class="space-y-8 md:space-y-0">
@@ -83,10 +83,10 @@
                 class="relative flex-1 md:w-[calc(50%-4rem)]"
                 :class="index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'"
               >
-                <div class="group relative p-6 md:p-8 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 overflow-hidden">
+                <div class="group relative p-6 md:p-8 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 overflow-hidden">
                   <!-- Hover glow -->
                   <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(step.color)"></div>
+                    <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(step.color)"></div>
                   </div>
                   
                   <!-- Icon and title -->
@@ -104,7 +104,7 @@
                   </div>
                   
                   <!-- Description -->
-                  <p class="relative text-white/70 text-sm leading-relaxed mb-6">{{ step.description }}</p>
+                  <p class="relative text-white/85 text-sm leading-relaxed mb-6">{{ step.description }}</p>
                   
                   <!-- Features list -->
                   <ul class="relative space-y-3">
@@ -119,7 +119,7 @@
                       >
                         <i class="fas fa-check text-[10px]" :class="getCheckIconClass(step.color)"></i>
                       </div>
-                      <span class="text-white/80 text-sm">{{ feature }}</span>
+                      <span class="text-white/90 text-sm">{{ feature }}</span>
                     </li>
                   </ul>
 
@@ -261,10 +261,10 @@ export default defineComponent({
     },
     getIconContainerClass(color) {
       const classes = {
-        violet: 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/15 group-hover:border-violet-500/30',
-        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20 group-hover:bg-fuchsia-500/15 group-hover:border-fuchsia-500/30',
-        blue: 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15 group-hover:border-blue-500/30',
-        emerald: 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15 group-hover:border-emerald-500/30'
+        violet: 'bg-violet-500/15 border-violet-500/30 group-hover:bg-violet-500/20 group-hover:border-violet-500/40',
+        fuchsia: 'bg-fuchsia-500/15 border-fuchsia-500/30 group-hover:bg-fuchsia-500/20 group-hover:border-fuchsia-500/40',
+        blue: 'bg-blue-500/15 border-blue-500/30 group-hover:bg-blue-500/20 group-hover:border-blue-500/40',
+        emerald: 'bg-emerald-500/15 border-emerald-500/30 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40'
       }
       return classes[color] || classes.violet
     },
@@ -279,19 +279,19 @@ export default defineComponent({
     },
     getLabelClass(color) {
       const classes = {
-        violet: 'text-violet-400/70',
-        fuchsia: 'text-fuchsia-400/70',
-        blue: 'text-blue-400/70',
-        emerald: 'text-emerald-400/70'
+        violet: 'text-violet-400/85',
+        fuchsia: 'text-fuchsia-400/85',
+        blue: 'text-blue-400/85',
+        emerald: 'text-emerald-400/85'
       }
       return classes[color] || classes.violet
     },
     getCheckClass(color) {
       const classes = {
-        violet: 'bg-violet-500/15',
-        fuchsia: 'bg-fuchsia-500/15',
-        blue: 'bg-blue-500/15',
-        emerald: 'bg-emerald-500/15'
+        violet: 'bg-violet-500/20',
+        fuchsia: 'bg-fuchsia-500/20',
+        blue: 'bg-blue-500/20',
+        emerald: 'bg-emerald-500/20'
       }
       return classes[color] || classes.violet
     },
@@ -306,19 +306,19 @@ export default defineComponent({
     },
     getAccentClass(color) {
       const classes = {
-        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
-        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
-        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
-        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent'
+        violet: 'bg-gradient-to-r from-transparent via-violet-500/60 to-transparent',
+        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/60 to-transparent',
+        blue: 'bg-gradient-to-r from-transparent via-blue-500/60 to-transparent',
+        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent'
       }
       return classes[color] || classes.violet
     },
     getConnectorClass(color) {
       const classes = {
-        violet: 'from-violet-400/70 via-violet-400/20 to-transparent',
-        fuchsia: 'from-fuchsia-400/70 via-fuchsia-400/20 to-transparent',
-        blue: 'from-blue-400/70 via-blue-400/20 to-transparent',
-        emerald: 'from-emerald-400/70 via-emerald-400/20 to-transparent'
+        violet: 'from-violet-400/80 via-violet-400/30 to-transparent',
+        fuchsia: 'from-fuchsia-400/80 via-fuchsia-400/30 to-transparent',
+        blue: 'from-blue-400/80 via-blue-400/30 to-transparent',
+        emerald: 'from-emerald-400/80 via-emerald-400/30 to-transparent'
       }
       return classes[color] || classes.violet
     }

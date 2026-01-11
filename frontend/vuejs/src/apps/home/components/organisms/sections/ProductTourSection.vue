@@ -5,15 +5,15 @@
       <!-- Section header -->
       <div class="text-center mb-12 md:mb-16">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
-          <i class="fas fa-play-circle text-xs text-violet-400/90"></i>
-          <span class="text-sm font-medium text-white/80">Product Tour</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
+          <i class="fas fa-play-circle text-xs text-violet-400"></i>
+          <span class="text-sm font-medium text-white/90">Product Tour</span>
         </div>
         
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
           See Imagi in Action
         </h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
           From idea to deployed app in three simple steps. No coding, no complexity.
         </p>
       </div>
@@ -30,10 +30,10 @@
           :key="idx"
           :ref="el => { if (el) tabRefs[idx] = el }"
           @click="activeStep = idx"
-          class="group relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-[#050508]"
+          class="group relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-[#0f0f1a]"
           :class="activeStep === idx 
-            ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30' 
-            : 'bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1]'"
+            ? 'bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-500/40' 
+            : 'bg-white/[0.06] border border-white/[0.12] hover:bg-white/[0.08] hover:border-white/[0.18]'"
           :aria-selected="activeStep === idx"
           :tabindex="activeStep === idx ? 0 : -1"
           :id="`tour-tab-${idx}`"
@@ -44,8 +44,8 @@
           <div 
             class="flex items-center justify-center w-8 h-8 rounded-lg text-sm font-semibold transition-all duration-300"
             :class="activeStep === idx 
-              ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25' 
-              : 'bg-white/[0.05] text-white/40 group-hover:text-white/60'"
+              ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30' 
+              : 'bg-white/[0.08] text-white/50 group-hover:text-white/70'"
           >
             {{ idx + 1 }}
           </div>
@@ -53,18 +53,18 @@
           <!-- Step info -->
           <div class="text-left hidden sm:block">
             <div class="text-sm font-medium transition-colors duration-300"
-                 :class="activeStep === idx ? 'text-white/90' : 'text-white/50 group-hover:text-white/70'">
+                 :class="activeStep === idx ? 'text-white/95' : 'text-white/65 group-hover:text-white/80'">
               {{ step.title }}
             </div>
             <div class="text-xs transition-colors duration-300"
-                 :class="activeStep === idx ? 'text-white/50' : 'text-white/30'">
+                 :class="activeStep === idx ? 'text-white/65' : 'text-white/45'">
               {{ step.subtitle }}
             </div>
           </div>
           
           <!-- Coming soon badge -->
           <span v-if="step.comingSoon" 
-                class="absolute -top-2 -right-2 px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded text-[9px] text-amber-300 font-medium">
+                class="absolute -top-2 -right-2 px-1.5 py-0.5 bg-amber-500/25 border border-amber-500/40 rounded text-[9px] text-amber-300 font-medium">
             Soon
           </span>
         </button>
@@ -73,12 +73,12 @@
       <!-- Content Panel -->
       <div class="relative">
         <!-- Background glow -->
-        <div class="absolute -inset-4 bg-gradient-to-r from-violet-600/10 via-fuchsia-600/10 to-violet-600/10 rounded-3xl blur-2xl opacity-50"></div>
+        <div class="absolute -inset-4 bg-gradient-to-r from-violet-600/18 via-fuchsia-600/18 to-violet-600/18 rounded-3xl blur-2xl opacity-60"></div>
         
         <!-- Panel container -->
-        <div class="relative rounded-2xl border border-white/15 bg-[#0d0d12]/80 backdrop-blur-xl overflow-hidden">
+        <div class="relative rounded-2xl border border-white/20 bg-[#12121d]/85 backdrop-blur-xl overflow-hidden">
           <!-- Accent line -->
-          <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+          <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/60 to-transparent"></div>
           
           <!-- Panel content with transition -->
           <div class="p-6 md:p-10">

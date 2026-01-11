@@ -5,13 +5,13 @@
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
-          <i class="fas fa-chart-line text-xs text-emerald-400/90"></i>
-          <span class="text-sm font-medium text-white/80">By The Numbers</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
+          <i class="fas fa-chart-line text-xs text-emerald-400"></i>
+          <span class="text-sm font-medium text-white/90">By The Numbers</span>
         </div>
         
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
       <!-- Stats grid -->
@@ -22,10 +22,10 @@
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-default overflow-hidden text-center">
+          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 cursor-default overflow-hidden text-center">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(stat.color)"></div>
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(stat.color)"></div>
             </div>
             
             <!-- Icon -->
@@ -42,7 +42,7 @@
             </div>
             
             <!-- Label -->
-            <p class="relative text-white/70 text-sm">{{ stat.label }}</p>
+            <p class="relative text-white/85 text-sm">{{ stat.label }}</p>
 
             <!-- Bottom accent -->
             <div 
@@ -61,10 +61,10 @@
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative p-6 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-default overflow-hidden">
+          <div class="relative p-6 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 cursor-default overflow-hidden">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(metric.color)"></div>
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(metric.color)"></div>
             </div>
             
             <div class="relative flex items-center gap-4 mb-4">
@@ -75,15 +75,15 @@
               
               <div>
                 <div class="font-semibold text-white">{{ metric.value }}</div>
-                <div class="text-xs text-white/60">{{ metric.label }}</div>
+                <div class="text-xs text-white/75">{{ metric.label }}</div>
               </div>
             </div>
             
             <!-- Divider -->
-            <div class="relative w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4"></div>
+            <div class="relative w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-4"></div>
             
             <!-- Detail -->
-            <p class="relative text-white/70 text-sm leading-relaxed">{{ metric.detail }}</p>
+            <p class="relative text-white/85 text-sm leading-relaxed">{{ metric.detail }}</p>
 
             <!-- Bottom accent -->
             <div 
@@ -184,11 +184,11 @@ export default defineComponent({
     },
     getIconContainerClass(color) {
       const classes = {
-        violet: 'bg-violet-500/10 border-violet-500/20',
-        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20',
-        blue: 'bg-blue-500/10 border-blue-500/20',
-        emerald: 'bg-emerald-500/10 border-emerald-500/20',
-        amber: 'bg-amber-500/10 border-amber-500/20'
+        violet: 'bg-violet-500/15 border-violet-500/30',
+        fuchsia: 'bg-fuchsia-500/15 border-fuchsia-500/30',
+        blue: 'bg-blue-500/15 border-blue-500/30',
+        emerald: 'bg-emerald-500/15 border-emerald-500/30',
+        amber: 'bg-amber-500/15 border-amber-500/30'
       }
       return classes[color] || classes.violet
     },
@@ -214,21 +214,21 @@ export default defineComponent({
     },
     getUnitClass(color) {
       const classes = {
-        violet: 'text-violet-400/80',
-        fuchsia: 'text-fuchsia-400/80',
-        blue: 'text-blue-400/80',
-        emerald: 'text-emerald-400/80',
-        amber: 'text-amber-400/80'
+        violet: 'text-violet-400/90',
+        fuchsia: 'text-fuchsia-400/90',
+        blue: 'text-blue-400/90',
+        emerald: 'text-emerald-400/90',
+        amber: 'text-amber-400/90'
       }
       return classes[color] || classes.violet
     },
     getAccentClass(color) {
       const classes = {
-        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
-        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
-        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
-        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent',
-        amber: 'bg-gradient-to-r from-transparent via-amber-500/50 to-transparent'
+        violet: 'bg-gradient-to-r from-transparent via-violet-500/60 to-transparent',
+        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/60 to-transparent',
+        blue: 'bg-gradient-to-r from-transparent via-blue-500/60 to-transparent',
+        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent',
+        amber: 'bg-gradient-to-r from-transparent via-amber-500/60 to-transparent'
       }
       return classes[color] || classes.violet
     }

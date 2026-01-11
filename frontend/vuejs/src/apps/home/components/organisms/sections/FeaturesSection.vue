@@ -5,13 +5,13 @@
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
-          <i class="fas fa-sparkles text-xs text-amber-400/90"></i>
-          <span class="text-sm font-medium text-white/80">Powerful Features</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
+          <i class="fas fa-sparkles text-xs text-amber-400"></i>
+          <span class="text-sm font-medium text-white/90">Powerful Features</span>
         </div>
         
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
       </div>
 
       <!-- Feature cards grid -->
@@ -23,10 +23,10 @@
           :style="{ animationDelay: `${index * 100}ms` }"
         >
           <!-- Card -->
-          <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 cursor-default overflow-hidden">
+          <div class="relative h-full p-6 md:p-8 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 cursor-default overflow-hidden">
             <!-- Subtle hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="getGradientClass(feature.color)"></div>
+              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(feature.color)"></div>
             </div>
             
             <!-- Icon -->
@@ -41,7 +41,7 @@
             
             <!-- Content -->
             <h3 class="relative text-lg font-semibold text-white mb-3">{{ feature.title }}</h3>
-            <p class="relative text-white/70 text-sm leading-relaxed mb-6">{{ feature.description }}</p>
+            <p class="relative text-white/85 text-sm leading-relaxed mb-6">{{ feature.description }}</p>
             
             <!-- Learn more link -->
             <div class="relative flex items-center gap-2 text-sm font-medium transition-colors duration-300" :class="getLinkClass(feature.color)">
@@ -131,12 +131,12 @@ export default defineComponent({
     },
     getIconContainerClass(color) {
       const classes = {
-        violet: 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/15 group-hover:border-violet-500/30',
-        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20 group-hover:bg-fuchsia-500/15 group-hover:border-fuchsia-500/30',
-        amber: 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500/15 group-hover:border-amber-500/30',
-        emerald: 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15 group-hover:border-emerald-500/30',
-        blue: 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15 group-hover:border-blue-500/30',
-        rose: 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/15 group-hover:border-rose-500/30'
+        violet: 'bg-violet-500/15 border-violet-500/30 group-hover:bg-violet-500/20 group-hover:border-violet-500/40',
+        fuchsia: 'bg-fuchsia-500/15 border-fuchsia-500/30 group-hover:bg-fuchsia-500/20 group-hover:border-fuchsia-500/40',
+        amber: 'bg-amber-500/15 border-amber-500/30 group-hover:bg-amber-500/20 group-hover:border-amber-500/40',
+        emerald: 'bg-emerald-500/15 border-emerald-500/30 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40',
+        blue: 'bg-blue-500/15 border-blue-500/30 group-hover:bg-blue-500/20 group-hover:border-blue-500/40',
+        rose: 'bg-rose-500/15 border-rose-500/30 group-hover:bg-rose-500/20 group-hover:border-rose-500/40'
       }
       return classes[color] || classes.violet
     },
@@ -153,23 +153,23 @@ export default defineComponent({
     },
     getLinkClass(color) {
       const classes = {
-        violet: 'text-violet-400/70 group-hover:text-violet-400',
-        fuchsia: 'text-fuchsia-400/70 group-hover:text-fuchsia-400',
-        amber: 'text-amber-400/70 group-hover:text-amber-400',
-        emerald: 'text-emerald-400/70 group-hover:text-emerald-400',
-        blue: 'text-blue-400/70 group-hover:text-blue-400',
-        rose: 'text-rose-400/70 group-hover:text-rose-400'
+        violet: 'text-violet-400/85 group-hover:text-violet-400',
+        fuchsia: 'text-fuchsia-400/85 group-hover:text-fuchsia-400',
+        amber: 'text-amber-400/85 group-hover:text-amber-400',
+        emerald: 'text-emerald-400/85 group-hover:text-emerald-400',
+        blue: 'text-blue-400/85 group-hover:text-blue-400',
+        rose: 'text-rose-400/85 group-hover:text-rose-400'
       }
       return classes[color] || classes.violet
     },
     getAccentLineClass(color) {
       const classes = {
-        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
-        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
-        amber: 'bg-gradient-to-r from-transparent via-amber-500/50 to-transparent',
-        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent',
-        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
-        rose: 'bg-gradient-to-r from-transparent via-rose-500/50 to-transparent'
+        violet: 'bg-gradient-to-r from-transparent via-violet-500/60 to-transparent',
+        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/60 to-transparent',
+        amber: 'bg-gradient-to-r from-transparent via-amber-500/60 to-transparent',
+        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent',
+        blue: 'bg-gradient-to-r from-transparent via-blue-500/60 to-transparent',
+        rose: 'bg-gradient-to-r from-transparent via-rose-500/60 to-transparent'
       }
       return classes[color] || classes.violet
     }

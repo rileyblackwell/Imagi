@@ -1,26 +1,26 @@
 <!-- Home landing page -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
+    <div class="min-h-screen bg-[#0f0f1a] relative overflow-hidden">
       <!-- Premium Background System -->
       <div class="fixed inset-0 pointer-events-none">
         <!-- Base gradient mesh -->
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.22),transparent_50%)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.12),transparent_40%)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.1),transparent_35%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.35),transparent_50%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.22),transparent_40%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.18),transparent_35%)]"></div>
         
         <!-- Subtle grain texture -->
-        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
+        <div class="absolute inset-0 opacity-[0.025]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
         
         <!-- Animated aurora effect -->
-        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-30">
-          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/20 via-fuchsia-500/10 to-transparent blur-[100px] animate-aurora"></div>
+        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-45">
+          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/30 via-fuchsia-500/18 to-transparent blur-[100px] animate-aurora"></div>
         </div>
         
         <!-- Floating orbs -->
-        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/8 to-violet-600/4 blur-[120px] animate-float-slow"></div>
-        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/6 to-purple-600/3 blur-[100px] animate-float-delayed"></div>
-        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/4 to-orange-500/2 blur-[80px] animate-float-reverse"></div>
+        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/14 to-violet-600/8 blur-[120px] animate-float-slow"></div>
+        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/12 to-purple-600/6 blur-[100px] animate-float-delayed"></div>
+        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/8 to-orange-500/4 blur-[80px] animate-float-reverse"></div>
       </div>
 
       <!-- Main Content -->
@@ -31,13 +31,13 @@
         <!-- Elegant Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div class="relative flex items-center justify-center">
-            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             <div class="mx-6 flex items-center gap-2">
-              <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
-              <div class="w-1.5 h-1.5 rounded-full bg-violet-400/70"></div>
-              <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+              <div class="w-1 h-1 rounded-full bg-violet-400/70"></div>
+              <div class="w-1.5 h-1.5 rounded-full bg-violet-400/90"></div>
+              <div class="w-1 h-1 rounded-full bg-violet-400/70"></div>
             </div>
-            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
         </div>
         
@@ -46,7 +46,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- Features Section -->
@@ -54,7 +54,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- Template Gallery Section (NEW - Carousel) -->
@@ -62,7 +62,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- How It Works Section -->
@@ -70,7 +70,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- Deploy Preview Section (NEW - Coming soon showcase) -->
@@ -78,7 +78,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- Stats Section -->
@@ -86,7 +86,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- Testimonials Section -->
@@ -94,7 +94,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- FAQ Section (NEW - Accordion) -->
@@ -102,7 +102,7 @@
         
         <!-- Simple Divider -->
         <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <div class="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         </div>
         
         <!-- CTA Section -->

@@ -5,15 +5,15 @@
       <!-- Section header -->
       <div class="text-center mb-12 md:mb-16">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
-          <i class="fas fa-question-circle text-xs text-blue-400/90"></i>
-          <span class="text-sm font-medium text-white/80">FAQ</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
+          <i class="fas fa-question-circle text-xs text-blue-400"></i>
+          <span class="text-sm font-medium text-white/90">FAQ</span>
         </div>
         
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
           Frequently Asked Questions
         </h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
           Everything you need to know about building apps with Imagi.
         </p>
       </div>
@@ -28,15 +28,15 @@
             <div 
               class="rounded-xl border transition-all duration-300 overflow-hidden"
               :class="openIndex === idx 
-                ? 'border-violet-500/40 bg-violet-500/10' 
-                : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.06] hover:border-white/20'"
+                ? 'border-violet-500/50 bg-violet-500/15' 
+                : 'border-white/15 bg-white/[0.07] hover:bg-white/[0.1] hover:border-white/25'"
             >
               <!-- Question button -->
               <button
                 :ref="el => { if (el) accordionRefs[idx] = el }"
                 @click="toggleFaq(idx)"
                 @keydown="handleAccordionKeyNav($event, idx)"
-                class="w-full flex items-center justify-between gap-4 p-5 text-left focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-[#0a0a0f] rounded-xl"
+                class="w-full flex items-center justify-between gap-4 p-5 text-left focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-[#0f0f1a] rounded-xl"
                 :aria-expanded="openIndex === idx"
                 :aria-controls="`faq-answer-${idx}`"
                 :id="`faq-question-${idx}`"
@@ -45,16 +45,16 @@
                   <div 
                     class="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300"
                     :class="openIndex === idx 
-                      ? 'bg-violet-500/25 border border-violet-500/40' 
-                      : 'bg-white/[0.06] border border-white/10'"
+                      ? 'bg-violet-500/30 border border-violet-500/50' 
+                      : 'bg-white/[0.1] border border-white/20'"
                   >
                     <i 
-                      :class="[faq.icon, 'text-sm transition-colors duration-300', openIndex === idx ? 'text-violet-400' : 'text-white/50']"
+                      :class="[faq.icon, 'text-sm transition-colors duration-300', openIndex === idx ? 'text-violet-400' : 'text-white/65']"
                     ></i>
                   </div>
                   <span 
                     class="font-medium transition-colors duration-300"
-                    :class="openIndex === idx ? 'text-white' : 'text-white/80'"
+                    :class="openIndex === idx ? 'text-white' : 'text-white/90'"
                   >
                     {{ faq.question }}
                   </span>
@@ -63,12 +63,12 @@
                 <div 
                   class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300"
                   :class="openIndex === idx 
-                    ? 'bg-violet-500/25 rotate-180' 
-                    : 'bg-white/[0.06]'"
+                    ? 'bg-violet-500/30 rotate-180' 
+                    : 'bg-white/[0.1]'"
                 >
                   <i 
                     class="fas fa-chevron-down text-xs transition-colors duration-300"
-                    :class="openIndex === idx ? 'text-violet-400' : 'text-white/50'"
+                    :class="openIndex === idx ? 'text-violet-400' : 'text-white/65'"
                   ></i>
                 </div>
               </button>

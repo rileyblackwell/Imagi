@@ -1,16 +1,16 @@
 <template>
-  <footer class="relative bg-[#0a0a0f] border-t border-white/10 overflow-hidden">
+  <footer class="relative bg-[#0f0f1a] border-t border-white/20 overflow-hidden">
     <!-- Background effects -->
     <div class="absolute inset-0 pointer-events-none">
       <!-- Subtle gradient mesh -->
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,119,198,0.12),transparent_50%)]"></div>
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_80%_80%,rgba(78,68,206,0.08),transparent_40%)]"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,119,198,0.20),transparent_50%)]"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_80%_80%,rgba(78,68,206,0.14),transparent_40%)]"></div>
       
       <!-- Subtle grain texture -->
-      <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
+      <div class="absolute inset-0 opacity-[0.025]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
       
       <!-- Floating orb -->
-      <div class="absolute bottom-0 left-[20%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-violet-600/6 to-fuchsia-600/3 blur-[100px]"></div>
+      <div class="absolute bottom-0 left-[20%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-violet-600/10 to-fuchsia-600/6 blur-[100px]"></div>
     </div>
 
     <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -20,7 +20,7 @@
         <div class="md:col-span-5 space-y-6">
           <div class="space-y-4">
             <ImagiLogo size="md" />
-            <p class="text-white/70 leading-relaxed text-sm max-w-sm">
+            <p class="text-white/85 leading-relaxed text-sm max-w-sm">
               Transform your ideas into powerful web applications using natural language with Imagi's AI technology.
             </p>
           </div>
@@ -29,24 +29,24 @@
           <div class="flex items-center gap-3">
             <a 
               href="#" 
-              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
+              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.08] border border-white/20 hover:bg-white/[0.12] hover:border-white/30 transition-all duration-300"
               aria-label="Twitter"
             >
-              <i class="fab fa-twitter text-white/60 group-hover:text-white/90 transition-colors duration-300 text-sm"></i>
+              <i class="fab fa-twitter text-white/75 group-hover:text-white transition-colors duration-300 text-sm"></i>
             </a>
             <a 
               href="#" 
-              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
+              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.08] border border-white/20 hover:bg-white/[0.12] hover:border-white/30 transition-all duration-300"
               aria-label="GitHub"
             >
-              <i class="fab fa-github text-white/60 group-hover:text-white/90 transition-colors duration-300 text-sm"></i>
+              <i class="fab fa-github text-white/75 group-hover:text-white transition-colors duration-300 text-sm"></i>
             </a>
             <a 
               href="#" 
-              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
+              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.08] border border-white/20 hover:bg-white/[0.12] hover:border-white/30 transition-all duration-300"
               aria-label="Discord"
             >
-              <i class="fab fa-discord text-white/60 group-hover:text-white/90 transition-colors duration-300 text-sm"></i>
+              <i class="fab fa-discord text-white/75 group-hover:text-white transition-colors duration-300 text-sm"></i>
             </a>
           </div>
         </div>
@@ -62,7 +62,7 @@
               <li>
                 <router-link 
                   to="/docs" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300"
+                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
                 >
                   <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
                   <span>Documentation</span>
@@ -71,7 +71,7 @@
               <li>
                 <router-link 
                   to="/about" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300"
+                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
                 >
                   <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
                   <span>About Us</span>
@@ -80,7 +80,7 @@
               <li>
                 <router-link 
                   to="/contact" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300"
+                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
                 >
                   <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
                   <span>Contact</span>
@@ -98,7 +98,7 @@
               <li>
                 <router-link 
                   to="/privacy" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300"
+                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
                 >
                   <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
                   <span>Privacy Policy</span>
@@ -107,7 +107,7 @@
               <li>
                 <router-link 
                   to="/terms" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300"
+                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
                 >
                   <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
                   <span>Terms of Service</span>
@@ -125,7 +125,7 @@
               <li>
                 <router-link 
                   to="/products/oasis/builder/dashboard" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors duration-300"
+                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
                 >
                   <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
                   <span>Oasis Builder</span>
@@ -146,12 +146,12 @@
       </div>
 
       <!-- Bottom bar -->
-      <div class="relative py-6 border-t border-white/10">
+      <div class="relative py-6 border-t border-white/20">
         <!-- Top accent line -->
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/60 to-transparent"></div>
         
         <div class="flex items-center justify-center">
-          <p class="text-white/60 text-xs font-light">
+          <p class="text-white/75 text-xs font-light">
             &copy; {{ currentYear }} Imagi. All rights reserved.
           </p>
         </div>

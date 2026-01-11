@@ -5,15 +5,15 @@
       <!-- Section header -->
       <div class="text-center mb-12 md:mb-16">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 rounded-full border border-amber-500/20 mb-6">
-          <i class="fas fa-rocket text-xs text-amber-400/80"></i>
-          <span class="text-sm font-medium text-amber-300/80">Coming Soon</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 rounded-full border border-amber-500/30 mb-6">
+          <i class="fas fa-rocket text-xs text-amber-400"></i>
+          <span class="text-sm font-medium text-amber-300/90">Coming Soon</span>
         </div>
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white/90 mb-5 tracking-tight">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
           One-Click <span class="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Deploy</span>
         </h2>
-        <p class="text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
           Publish your app to the web instantly. Imagi handles hosting, SSL, and scaling — you just share your link.
         </p>
       </div>
@@ -21,26 +21,26 @@
       <!-- Deploy Card -->
       <div class="relative">
         <!-- Background glow -->
-        <div class="absolute -inset-4 bg-gradient-to-r from-amber-600/10 via-orange-600/10 to-amber-600/10 rounded-3xl blur-2xl opacity-60"></div>
+        <div class="absolute -inset-4 bg-gradient-to-r from-amber-600/18 via-orange-600/18 to-amber-600/18 rounded-3xl blur-2xl opacity-70"></div>
         
         <!-- Card container -->
-        <div class="relative rounded-2xl border border-amber-500/20 bg-[#0a0a0f]/90 backdrop-blur-xl overflow-hidden">
+        <div class="relative rounded-2xl border border-amber-500/30 bg-[#0f0f1a]/90 backdrop-blur-xl overflow-hidden">
           <!-- Accent line -->
-          <div class="h-px w-full bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
+          <div class="h-px w-full bg-gradient-to-r from-transparent via-amber-500/60 to-transparent"></div>
           
           <!-- Card header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.12]">
             <div class="flex items-center gap-3">
-              <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30">
+              <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/25 to-orange-500/25 border border-amber-500/40">
                 <i class="fas fa-cloud-upload-alt text-amber-400"></i>
               </div>
               <div>
-                <h3 class="text-white/90 font-semibold">Deployment Dashboard</h3>
-                <p class="text-xs text-white/40">Manage your live applications</p>
+                <h3 class="text-white font-semibold">Deployment Dashboard</h3>
+                <p class="text-xs text-white/60">Manage your live applications</p>
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span class="px-2.5 py-1 bg-amber-500/20 border border-amber-500/30 rounded-lg text-xs text-amber-300 font-medium">
+              <span class="px-2.5 py-1 bg-amber-500/25 border border-amber-500/40 rounded-lg text-xs text-amber-300 font-medium">
                 Preview
               </span>
             </div>
@@ -52,24 +52,24 @@
               <!-- Left: Deployment info -->
               <div class="space-y-5">
                 <!-- Domain section -->
-                <div class="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                <div class="p-4 rounded-xl bg-white/[0.05] border border-white/[0.12]">
                   <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs text-white/40 uppercase tracking-wider font-medium">Domain</span>
+                    <span class="text-xs text-white/60 uppercase tracking-wider font-medium">Domain</span>
                     <span class="flex items-center gap-1.5 text-[10px] text-emerald-400">
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       SSL Active
                     </span>
                   </div>
                   <div class="flex items-center gap-3">
-                    <div class="flex-1 flex items-center gap-2 px-3 py-2.5 bg-[#0d0d12] rounded-lg border border-white/[0.08]">
-                      <i class="fas fa-globe text-amber-400/60 text-sm"></i>
-                      <span class="text-white/70 text-sm font-mono">my-awesome-app.imagi.app</span>
+                    <div class="flex-1 flex items-center gap-2 px-3 py-2.5 bg-[#12121d] rounded-lg border border-white/[0.15]">
+                      <i class="fas fa-globe text-amber-400/75 text-sm"></i>
+                      <span class="text-white/85 text-sm font-mono">my-awesome-app.imagi.app</span>
                     </div>
-                    <button class="p-2.5 bg-white/[0.05] hover:bg-white/[0.08] rounded-lg border border-white/[0.08] transition-colors">
-                      <i class="fas fa-copy text-white/40 text-sm"></i>
+                    <button class="p-2.5 bg-white/[0.08] hover:bg-white/[0.12] rounded-lg border border-white/[0.15] transition-colors">
+                      <i class="fas fa-copy text-white/60 text-sm"></i>
                     </button>
                   </div>
-                  <p class="text-[11px] text-white/30 mt-2">
+                  <p class="text-[11px] text-white/50 mt-2">
                     <i class="fas fa-info-circle mr-1"></i>
                     Custom domains available with Pro plan
                   </p>

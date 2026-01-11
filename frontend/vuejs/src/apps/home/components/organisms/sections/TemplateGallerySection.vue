@@ -5,15 +5,15 @@
       <!-- Section header -->
       <div class="text-center mb-12 md:mb-16">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 mb-6">
-          <i class="fas fa-th-large text-xs text-fuchsia-400/90"></i>
-          <span class="text-sm font-medium text-white/80">App Templates</span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
+          <i class="fas fa-th-large text-xs text-fuchsia-400"></i>
+          <span class="text-sm font-medium text-white/90">App Templates</span>
         </div>
         
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
           Start with a Template
         </h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
           Jump-start your project with pre-built templates. Customize everything through conversation.
         </p>
       </div>
@@ -23,7 +23,7 @@
         <!-- Navigation arrows -->
         <button 
           @click="scrollPrev"
-          class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-[#0a0a0f]/90 border border-white/[0.1] text-white/60 hover:text-white hover:border-white/[0.2] transition-all duration-300 shadow-xl backdrop-blur-sm"
+          class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-[#0f0f1a]/90 border border-white/[0.2] text-white/75 hover:text-white hover:border-white/[0.3] transition-all duration-300 shadow-xl backdrop-blur-sm"
           :class="{ 'opacity-50 cursor-not-allowed': !canScrollPrev }"
           :disabled="!canScrollPrev"
           aria-label="Previous templates"
@@ -33,7 +33,7 @@
         
         <button 
           @click="scrollNext"
-          class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-[#0a0a0f]/90 border border-white/[0.1] text-white/60 hover:text-white hover:border-white/[0.2] transition-all duration-300 shadow-xl backdrop-blur-sm"
+          class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 hidden md:flex items-center justify-center w-12 h-12 rounded-full bg-[#0f0f1a]/90 border border-white/[0.2] text-white/75 hover:text-white hover:border-white/[0.3] transition-all duration-300 shadow-xl backdrop-blur-sm"
           :class="{ 'opacity-50 cursor-not-allowed': !canScrollNext }"
           :disabled="!canScrollNext"
           aria-label="Next templates"
@@ -57,21 +57,21 @@
             class="flex-shrink-0 w-[300px] md:w-[340px] snap-start"
           >
             <!-- Template card -->
-            <div class="group relative h-full rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500 overflow-hidden">
+            <div class="group relative h-full rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 overflow-hidden">
               <!-- Hover glow -->
               <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div class="absolute inset-0 bg-gradient-to-br opacity-[0.05]" :class="template.gradient"></div>
+                <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="template.gradient"></div>
               </div>
               
               <!-- Preview image area -->
-              <div class="relative h-40 bg-gradient-to-br from-white/[0.04] to-white/[0.02] border-b border-white/10 overflow-hidden">
+              <div class="relative h-40 bg-gradient-to-br from-white/[0.07] to-white/[0.04] border-b border-white/15 overflow-hidden">
                 <!-- Stylized preview -->
-                <div class="absolute inset-3 rounded-lg bg-[#0d0d12] border border-white/15 overflow-hidden">
+                <div class="absolute inset-3 rounded-lg bg-[#12121d] border border-white/20 overflow-hidden">
                   <!-- Mini browser chrome -->
-                  <div class="flex items-center gap-1 px-2 py-1 bg-white/[0.05] border-b border-white/10">
-                    <div class="w-1.5 h-1.5 rounded-full bg-white/20"></div>
-                    <div class="w-1.5 h-1.5 rounded-full bg-white/20"></div>
-                    <div class="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+                  <div class="flex items-center gap-1 px-2 py-1 bg-white/[0.08] border-b border-white/15">
+                    <div class="w-1.5 h-1.5 rounded-full bg-white/30"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-white/30"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-white/30"></div>
                   </div>
                   <!-- Preview content -->
                   <div class="p-2">

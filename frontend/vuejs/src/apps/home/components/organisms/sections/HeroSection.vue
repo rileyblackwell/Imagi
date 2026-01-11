@@ -4,7 +4,7 @@
     <!-- Local background effects -->
     <div class="absolute inset-0 pointer-events-none">
       <!-- Spotlight effect -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.08)_0%,transparent_60%)]"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[80%] bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.15)_0%,transparent_60%)]"></div>
     </div>
 
     <!-- Content -->
@@ -14,12 +14,12 @@
         <div class="flex-1 text-center lg:text-left">
           <!-- Animated badge -->
           <div class="mb-8 inline-block animate-fade-in">
-            <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.05] rounded-full border border-white/10 backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/15 transition-all duration-300 cursor-default">
+            <div class="group inline-flex items-center gap-3 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 backdrop-blur-sm hover:bg-white/[0.12] hover:border-white/25 transition-all duration-300 cursor-default">
               <span class="relative flex h-2 w-2">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-400"></span>
               </span>
-              <span class="text-sm font-medium text-white/80 tracking-wide">No‑Code for Everyone</span>
+              <span class="text-sm font-medium text-white/90 tracking-wide">No‑Code for Everyone</span>
             </div>
           </div>
 
@@ -39,7 +39,7 @@
           </h1>
 
           <!-- Description -->
-          <p class="text-lg sm:text-xl text-white/70 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up" style="animation-delay: 400ms">
+          <p class="text-lg sm:text-xl text-white/85 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up" style="animation-delay: 400ms">
             {{ description }}
           </p>
 
@@ -48,11 +48,11 @@
             <div v-for="(cap, idx) in capabilities" :key="idx" 
                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300"
                  :class="cap.comingSoon 
-                   ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300' 
-                   : 'bg-white/[0.06] border border-white/10 text-white/70 hover:bg-white/[0.08] hover:text-white/90'">
+                   ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' 
+                   : 'bg-white/[0.1] border border-white/20 text-white/85 hover:bg-white/[0.14] hover:text-white/95'">
               <i :class="cap.icon" class="text-[10px]"></i>
               <span>{{ cap.label }}</span>
-              <span v-if="cap.comingSoon" class="ml-1 px-1.5 py-0.5 bg-amber-500/20 rounded text-[9px] uppercase tracking-wider">Soon</span>
+              <span v-if="cap.comingSoon" class="ml-1 px-1.5 py-0.5 bg-amber-500/25 rounded text-[9px] uppercase tracking-wider">Soon</span>
             </div>
           </div>
 
@@ -83,9 +83,9 @@
             <!-- Secondary button -->
             <a 
               :href="secondaryButtonHref" 
-              class="group flex items-center gap-3 px-6 py-3.5 text-white/80 hover:text-white transition-all duration-300"
+              class="group flex items-center gap-3 px-6 py-3.5 text-white/90 hover:text-white transition-all duration-300"
             >
-              <span class="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.08] border border-white/10 group-hover:bg-white/10 group-hover:border-white/15 transition-all duration-300">
+              <span class="flex items-center justify-center w-9 h-9 rounded-full bg-white/[0.12] border border-white/20 group-hover:bg-white/[0.16] group-hover:border-white/25 transition-all duration-300">
                 <i class="fas fa-play text-xs text-violet-400"></i>
               </span>
               <span class="font-medium text-sm">{{ secondaryButtonText }}</span>
@@ -93,18 +93,18 @@
           </div>
 
           <!-- Trust indicators -->
-          <div class="mt-12 pt-10 border-t border-white/10 animate-fade-in-up" style="animation-delay: 600ms">
+          <div class="mt-12 pt-10 border-t border-white/20 animate-fade-in-up" style="animation-delay: 600ms">
             <div class="flex flex-col sm:flex-row items-center gap-6 sm:gap-10 justify-center lg:justify-start">
-              <div class="flex items-center gap-2 text-white/60">
-                <i class="fas fa-bolt text-amber-400/90 text-sm"></i>
+              <div class="flex items-center gap-2 text-white/75">
+                <i class="fas fa-bolt text-amber-400 text-sm"></i>
                 <span class="text-sm">Build in minutes</span>
               </div>
-              <div class="flex items-center gap-2 text-white/60">
-                <i class="fas fa-layer-group text-emerald-400/90 text-sm"></i>
+              <div class="flex items-center gap-2 text-white/75">
+                <i class="fas fa-layer-group text-emerald-400 text-sm"></i>
                 <span class="text-sm">No code required</span>
               </div>
-              <div class="flex items-center gap-2 text-white/60">
-                <i class="fas fa-globe text-violet-400/90 text-sm"></i>
+              <div class="flex items-center gap-2 text-white/75">
+                <i class="fas fa-globe text-violet-400 text-sm"></i>
                 <span class="text-sm">Publish coming soon</span>
               </div>
             </div>
@@ -115,12 +115,12 @@
         <div class="flex-1 w-full max-w-xl mx-auto lg:mx-0 animate-fade-in-up" style="animation-delay: 400ms">
           <div class="group relative">
             <!-- Glow effect behind terminal -->
-            <div class="absolute -inset-4 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+            <div class="absolute -inset-4 bg-gradient-to-r from-violet-600/30 via-fuchsia-600/30 to-violet-600/30 rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
             
             <!-- Terminal container -->
-            <div class="relative rounded-2xl border border-white/10 bg-[#0d0d12]/80 backdrop-blur-xl shadow-2xl overflow-hidden">
+            <div class="relative rounded-2xl border border-white/20 bg-[#12121d]/85 backdrop-blur-xl shadow-2xl overflow-hidden">
               <!-- Gradient accent line -->
-              <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+              <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/60 to-transparent"></div>
               
               <!-- Terminal component -->
               <div class="relative">
