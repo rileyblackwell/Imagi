@@ -1,19 +1,20 @@
 <!-- FAQ Section - Accordion design -->
 <template>
-  <section id="faq" class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden scroll-mt-20">
+  <section id="faq" class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden scroll-mt-20">
     <div class="max-w-4xl mx-auto relative z-10">
       <!-- Section header -->
-      <div class="text-center mb-12 md:mb-16">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
-          <i class="fas fa-question-circle text-xs text-blue-400"></i>
-          <span class="text-sm font-medium text-white/90">FAQ</span>
-        </div>
+      <div class="text-center mb-10 md:mb-14">
+        <SectionPill
+          class="mb-7"
+          tone="blue"
+          icon="fas fa-question-circle"
+          label="FAQ"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">
           Frequently Asked Questions
         </h2>
-        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">
           Everything you need to know about building apps with Imagi.
         </p>
       </div>
@@ -28,8 +29,8 @@
             <div 
               class="rounded-xl border transition-all duration-300 overflow-hidden"
               :class="openIndex === idx 
-                ? 'border-violet-500/50 bg-violet-500/15' 
-                : 'border-white/15 bg-white/[0.07] hover:bg-white/[0.1] hover:border-white/25'"
+                ? 'border-violet-500/40 bg-violet-500/12' 
+                : 'border-white/[0.12] bg-white/[0.05] hover:bg-white/[0.07] hover:border-white/[0.18]'"
             >
               <!-- Question button -->
               <button
@@ -108,21 +109,21 @@
       </div>
       
       <!-- Bottom CTA -->
-      <div class="mt-12 p-6 rounded-2xl border border-white/10 bg-white/[0.04] text-center">
+      <div class="mt-10 p-6 rounded-2xl border border-white/[0.10] bg-white/[0.03] text-center">
         <div class="flex items-center justify-center gap-3 mb-3">
-          <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/30">
+          <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-500/15 border border-violet-500/25">
             <i class="fas fa-headset text-violet-400"></i>
           </div>
           <h3 class="text-lg font-semibold text-white">Still have questions?</h3>
         </div>
-        <p class="text-white/70 text-sm mb-4">
+        <p class="text-white/65 text-sm mb-4">
           Our team is here to help. Reach out and we'll get back to you within 24 hours.
         </p>
         <router-link 
           to="/contact"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-lg text-white text-sm font-medium transition-all duration-300"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-lg text-white text-sm font-medium transition-all duration-300"
         >
-          <i class="fas fa-envelope text-violet-400/80 text-xs"></i>
+          <i class="fas fa-envelope text-violet-400/75 text-xs"></i>
           Contact Support
         </router-link>
       </div>
@@ -132,9 +133,13 @@
 
 <script>
 import { defineComponent, ref, reactive } from 'vue'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'FAQSection',
+  components: {
+    SectionPill
+  },
   setup() {
     const openIndex = ref(0) // First one open by default
     const accordionRefs = reactive({})

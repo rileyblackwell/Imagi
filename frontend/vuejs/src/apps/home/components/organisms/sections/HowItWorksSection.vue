@@ -1,17 +1,18 @@
 <!-- How It Works Section - Premium Timeline Design -->
 <template>
-  <section id="how-it-works" class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+  <section id="how-it-works" class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <div class="max-w-7xl mx-auto relative">
       <!-- Section header -->
-      <div class="text-center mb-16 md:mb-20">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
-          <i class="fas fa-route text-xs text-violet-400"></i>
-          <span class="text-sm font-medium text-white/90">Simple Process</span>
-        </div>
+      <div class="text-center mb-14 md:mb-18">
+        <SectionPill
+          class="mb-7"
+          tone="violet"
+          icon="fas fa-route"
+          label="Simple Process"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">{{ title }}</h2>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">{{ subtitle }}</p>
       </div>
 
       <!-- Steps timeline -->
@@ -83,7 +84,7 @@
                 class="relative flex-1 md:w-[calc(50%-4rem)]"
                 :class="index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'"
               >
-                <div class="group relative p-6 md:p-8 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 overflow-hidden">
+                <div class="group relative p-6 md:p-7 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 overflow-hidden">
                   <!-- Hover glow -->
                   <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                     <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(step.color)"></div>
@@ -141,14 +142,21 @@
         </div>
       </div>
       
-      <!-- CTA button -->
-      <div class="text-center mt-16">
+      <!-- CTA button - enhanced -->
+      <div class="text-center mt-14">
         <HomeNavbarButton
           :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-          class="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
+          class="group relative inline-flex items-center gap-3 px-8 py-4 rounded-xl text-white font-semibold overflow-hidden"
         >
-          Try It Yourself
-          <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
+          <!-- Button glow -->
+          <div class="absolute -inset-1 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 rounded-xl blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
+          <!-- Button background -->
+          <div class="absolute inset-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl"></div>
+          <!-- Inner highlight -->
+          <div class="absolute inset-[1px] bg-gradient-to-b from-white/15 to-transparent rounded-xl"></div>
+          <!-- Content -->
+          <span class="relative">Try It Yourself</span>
+          <i class="fas fa-arrow-right text-sm relative transform group-hover:translate-x-1 transition-transform duration-300"></i>
         </HomeNavbarButton>
       </div>
     </div>
@@ -159,11 +167,13 @@
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/shared/stores/auth'
 import { HomeNavbarButton } from '@/apps/home/components/atoms/buttons'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'HowItWorksSection',
   components: {
-    HomeNavbarButton
+    HomeNavbarButton,
+    SectionPill
   },
   props: {
     title: {

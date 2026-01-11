@@ -1,29 +1,30 @@
 <!-- Testimonials Section - Premium Design -->
 <template>
-  <section class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <div class="max-w-7xl mx-auto relative">
       <!-- Section header -->
-      <div class="text-center mb-16 md:mb-20">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
-          <i class="fas fa-heart text-xs text-rose-400"></i>
-          <span class="text-sm font-medium text-white/90">Success Stories</span>
-        </div>
+      <div class="text-center mb-14 md:mb-18">
+        <SectionPill
+          class="mb-7"
+          tone="rose"
+          icon="fas fa-heart"
+          label="Success Stories"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">{{ title }}</h2>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">{{ subtitle }}</p>
       </div>
 
       <!-- Testimonial cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
         <div 
           v-for="(testimonial, index) in testimonials" 
           :key="index"
           class="group relative"
-          :class="{ 'md:translate-y-6': index === 1 }"
+          :class="{ 'md:translate-y-4': index === 1 }"
         >
           <!-- Card -->
-          <div class="relative h-full p-7 md:p-8 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 cursor-default overflow-hidden flex flex-col">
+          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 cursor-default overflow-hidden flex flex-col">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
               <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(testimonial.color)"></div>
@@ -75,11 +76,11 @@
         </div>
       </div>
       
-      <!-- CTA button -->
-      <div class="mt-14 text-center">
+      <!-- CTA button - enhanced -->
+      <div class="mt-12 text-center">
         <HomeNavbarButton
           :to="{ name: 'about' }"
-          class="group inline-flex items-center gap-3 px-8 py-4 bg-white/[0.08] border border-white/[0.2] hover:bg-white/[0.12] hover:border-white/[0.25] rounded-xl text-white font-medium transition-all duration-300 hover:-translate-y-0.5"
+          class="group inline-flex items-center gap-3 px-7 py-3.5 bg-white/[0.06] border border-white/[0.15] hover:bg-white/[0.10] hover:border-white/[0.22] rounded-xl text-white font-medium transition-all duration-300 hover:-translate-y-0.5"
         >
           View More Stories
           <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
@@ -93,11 +94,13 @@
 import { defineComponent, computed } from 'vue'
 import { useAuthStore } from '@/shared/stores/auth'
 import { HomeNavbarButton } from '@/apps/home/components/atoms/buttons'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'TestimonialsSection',
   components: {
-    HomeNavbarButton
+    HomeNavbarButton,
+    SectionPill
   },
   props: {
     title: {

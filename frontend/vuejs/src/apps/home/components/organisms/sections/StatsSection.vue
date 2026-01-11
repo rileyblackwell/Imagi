@@ -1,28 +1,29 @@
 <!-- Stats Section - Premium Design -->
 <template>
-  <section class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <div class="max-w-7xl mx-auto relative">
       <!-- Section header -->
-      <div class="text-center mb-16 md:mb-20">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
-          <i class="fas fa-chart-line text-xs text-emerald-400"></i>
-          <span class="text-sm font-medium text-white/90">By The Numbers</span>
-        </div>
+      <div class="text-center mb-14 md:mb-18">
+        <SectionPill
+          class="mb-7"
+          tone="emerald"
+          icon="fas fa-chart-line"
+          label="By The Numbers"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">{{ title }}</h2>
-        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">{{ subtitle }}</p>
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">{{ title }}</h2>
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">{{ subtitle }}</p>
       </div>
 
       <!-- Stats grid -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 mb-12">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-10">
         <div 
           v-for="(stat, index) in stats" 
           :key="index"
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 cursor-default overflow-hidden text-center">
+          <div class="relative h-full p-5 md:p-6 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 cursor-default overflow-hidden text-center">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
               <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(stat.color)"></div>
@@ -54,14 +55,14 @@
       </div>
 
       <!-- Metrics row -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
         <div 
           v-for="(metric, index) in metrics" 
           :key="index"
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative p-6 rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 cursor-default overflow-hidden">
+          <div class="relative p-5 md:p-6 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 cursor-default overflow-hidden">
             <!-- Hover glow -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
               <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(metric.color)"></div>
@@ -99,9 +100,13 @@
 
 <script>
 import { defineComponent } from 'vue'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'StatsSection',
+  components: {
+    SectionPill
+  },
   props: {
     title: {
       type: String,

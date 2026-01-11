@@ -1,19 +1,20 @@
 <!-- Template Gallery Section - Carousel/scroll-snap gallery -->
 <template>
-  <section class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <div class="max-w-7xl mx-auto relative">
       <!-- Section header -->
-      <div class="text-center mb-12 md:mb-16">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
-          <i class="fas fa-th-large text-xs text-fuchsia-400"></i>
-          <span class="text-sm font-medium text-white/90">App Templates</span>
-        </div>
+      <div class="text-center mb-10 md:mb-14">
+        <SectionPill
+          class="mb-7"
+          tone="fuchsia"
+          icon="fas fa-th-large"
+          label="App Templates"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">
           Start with a Template
         </h2>
-        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">
           Jump-start your project with pre-built templates. Customize everything through conversation.
         </p>
       </div>
@@ -57,7 +58,7 @@
             class="flex-shrink-0 w-[300px] md:w-[340px] snap-start"
           >
             <!-- Template card -->
-            <div class="group relative h-full rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-sm hover:bg-white/[0.1] hover:border-white/25 transition-all duration-500 overflow-hidden">
+            <div class="group relative h-full rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 overflow-hidden">
               <!-- Hover glow -->
               <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                 <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="template.gradient"></div>
@@ -160,6 +161,7 @@
 
 <script>
 import { defineComponent, ref, onMounted, onUnmounted, h } from 'vue'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 // Mini preview components
 const EcommercePreview = {
@@ -262,6 +264,9 @@ const InternalToolPreview = {
 
 export default defineComponent({
   name: 'TemplateGallerySection',
+  components: {
+    SectionPill
+  },
   setup() {
     const galleryRef = ref(null)
     const canScrollPrev = ref(false)

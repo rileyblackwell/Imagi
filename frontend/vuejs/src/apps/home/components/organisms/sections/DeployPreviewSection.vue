@@ -1,19 +1,21 @@
 <!-- Deploy Preview Section - Stylized deployment card -->
 <template>
-  <section class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <div class="max-w-5xl mx-auto relative">
       <!-- Section header -->
-      <div class="text-center mb-12 md:mb-16">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/15 rounded-full border border-amber-500/30 mb-6">
-          <i class="fas fa-rocket text-xs text-amber-400"></i>
-          <span class="text-sm font-medium text-amber-300/90">Coming Soon</span>
-        </div>
+      <div class="text-center mb-10 md:mb-14">
+        <SectionPill
+          class="mb-7"
+          tone="amber"
+          icon="fas fa-rocket"
+          label="Coming Soon"
+          labelColor="tone"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">
           One-Click <span class="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Deploy</span>
         </h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/65 max-w-2xl mx-auto leading-relaxed font-light">
           Publish your app to the web instantly. Imagi handles hosting, SSL, and scaling — you just share your link.
         </p>
       </div>
@@ -21,12 +23,12 @@
       <!-- Deploy Card -->
       <div class="relative">
         <!-- Background glow -->
-        <div class="absolute -inset-4 bg-gradient-to-r from-amber-600/18 via-orange-600/18 to-amber-600/18 rounded-3xl blur-2xl opacity-70"></div>
+        <div class="absolute -inset-5 bg-gradient-to-r from-amber-600/15 via-orange-600/15 to-amber-600/15 rounded-3xl blur-2xl opacity-60"></div>
         
         <!-- Card container -->
-        <div class="relative rounded-2xl border border-amber-500/30 bg-[#0f0f1a]/90 backdrop-blur-xl overflow-hidden">
+        <div class="relative rounded-2xl border border-amber-500/25 bg-[#0a0a14]/92 backdrop-blur-xl overflow-hidden">
           <!-- Accent line -->
-          <div class="h-px w-full bg-gradient-to-r from-transparent via-amber-500/60 to-transparent"></div>
+          <div class="h-[2px] w-full bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
           
           <!-- Card header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-white/[0.12]">
@@ -201,9 +203,13 @@
 
 <script>
 import { defineComponent } from 'vue'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'DeployPreviewSection',
+  components: {
+    SectionPill
+  },
   setup() {
     const features = [
       {

@@ -1,26 +1,27 @@
 <!-- Product Tour Section - Interactive Tabs/Stepper -->
 <template>
-  <section class="py-20 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
     <div class="max-w-7xl mx-auto relative">
       <!-- Section header -->
-      <div class="text-center mb-12 md:mb-16">
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.08] rounded-full border border-white/20 mb-6">
-          <i class="fas fa-play-circle text-xs text-violet-400"></i>
-          <span class="text-sm font-medium text-white/90">Product Tour</span>
-        </div>
+      <div class="text-center mb-10 md:mb-14">
+        <SectionPill
+          class="mb-7"
+          tone="violet"
+          icon="fas fa-play-circle"
+          label="Product Tour"
+        />
         
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-5 tracking-tight">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">
           See Imagi in Action
         </h2>
-        <p class="text-lg text-white/85 max-w-2xl mx-auto leading-relaxed">
+        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">
           From idea to deployed app in three simple steps. No coding, no complexity.
         </p>
       </div>
 
       <!-- Pipeline Indicator -->
       <div 
-        class="flex items-center justify-center gap-2 mb-12"
+        class="flex items-center justify-center gap-2.5 mb-10"
         role="tablist"
         aria-label="Product tour steps"
         @keydown="handleKeyNav"
@@ -30,10 +31,10 @@
           :key="idx"
           :ref="el => { if (el) tabRefs[idx] = el }"
           @click="activeStep = idx"
-          class="group relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-[#0f0f1a]"
+          class="group relative flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:ring-offset-2 focus:ring-offset-[#08081a]"
           :class="activeStep === idx 
-            ? 'bg-gradient-to-r from-violet-500/25 to-fuchsia-500/25 border border-violet-500/40' 
-            : 'bg-white/[0.06] border border-white/[0.12] hover:bg-white/[0.08] hover:border-white/[0.18]'"
+            ? 'bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/35' 
+            : 'bg-white/[0.05] border border-white/[0.10] hover:bg-white/[0.07] hover:border-white/[0.15]'"
           :aria-selected="activeStep === idx"
           :tabindex="activeStep === idx ? 0 : -1"
           :id="`tour-tab-${idx}`"
@@ -73,12 +74,12 @@
       <!-- Content Panel -->
       <div class="relative">
         <!-- Background glow -->
-        <div class="absolute -inset-4 bg-gradient-to-r from-violet-600/18 via-fuchsia-600/18 to-violet-600/18 rounded-3xl blur-2xl opacity-60"></div>
+        <div class="absolute -inset-5 bg-gradient-to-r from-violet-600/15 via-fuchsia-600/15 to-violet-600/15 rounded-3xl blur-2xl opacity-55"></div>
         
         <!-- Panel container -->
-        <div class="relative rounded-2xl border border-white/20 bg-[#12121d]/85 backdrop-blur-xl overflow-hidden">
+        <div class="relative rounded-2xl border border-white/[0.15] bg-[#0c0c18]/90 backdrop-blur-xl overflow-hidden">
           <!-- Accent line -->
-          <div class="h-px w-full bg-gradient-to-r from-transparent via-violet-500/60 to-transparent"></div>
+          <div class="h-[2px] w-full bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
           
           <!-- Panel content with transition -->
           <div class="p-6 md:p-10">
@@ -239,9 +240,13 @@
 
 <script>
 import { defineComponent, ref, reactive } from 'vue'
+import { SectionPill } from '@/apps/home/components/atoms'
 
 export default defineComponent({
   name: 'ProductTourSection',
+  components: {
+    SectionPill
+  },
   setup() {
     const activeStep = ref(0)
     const tabRefs = reactive({})
