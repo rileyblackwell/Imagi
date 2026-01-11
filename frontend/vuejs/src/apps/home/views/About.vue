@@ -1,26 +1,44 @@
 <!-- About Page - Premium Design matching Home -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-[#050508] relative overflow-hidden">
-      <!-- Premium Background System -->
+    <div class="min-h-screen bg-[#050509] relative overflow-hidden">
+      <!-- Ultra Premium Background System (match Home) -->
       <div class="fixed inset-0 pointer-events-none">
-        <!-- Base gradient mesh -->
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(120,119,198,0.15),transparent_50%)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_80%_50%,rgba(78,68,206,0.08),transparent_40%)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_10%_80%,rgba(167,139,250,0.06),transparent_35%)]"></div>
-        
-        <!-- Subtle grain texture -->
-        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
-        
-        <!-- Animated aurora effect -->
-        <div class="absolute top-0 left-1/4 right-1/4 h-[600px] opacity-30">
-          <div class="absolute inset-0 bg-gradient-to-b from-violet-500/20 via-fuchsia-500/10 to-transparent blur-[100px] animate-aurora"></div>
+        <!-- Deep space base with richer gradients -->
+        <div class="absolute inset-0 bg-gradient-to-b from-[#08081a] via-[#050509] to-[#020204]"></div>
+
+        <!-- Animated mesh gradient layer -->
+        <div class="absolute inset-0 opacity-95">
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(124,58,237,0.22),transparent_50%)] animate-pulse-slow"></div>
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_90%_20%,rgba(139,92,246,0.15),transparent_45%)] animate-drift"></div>
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_5%_60%,rgba(217,70,239,0.10),transparent_40%)] animate-drift-reverse"></div>
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(79,70,229,0.12),transparent_50%)]"></div>
         </div>
-        
-        <!-- Floating orbs -->
-        <div class="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-indigo-600/8 to-violet-600/4 blur-[120px] animate-float-slow"></div>
-        <div class="absolute bottom-[10%] left-[5%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-fuchsia-600/6 to-purple-600/3 blur-[100px] animate-float-delayed"></div>
-        <div class="absolute top-[60%] right-[30%] w-[300px] h-[300px] rounded-full bg-gradient-to-bl from-amber-500/4 to-orange-500/2 blur-[80px] animate-float-reverse"></div>
+
+        <!-- Refined grid pattern -->
+        <div class="absolute inset-0 opacity-[0.025]" style="background-image: linear-gradient(rgba(139,92,246,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.4) 1px, transparent 1px); background-size: 80px 80px;"></div>
+
+        <!-- Premium noise texture -->
+        <div class="absolute inset-0 opacity-[0.015]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 512 512%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.7%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
+
+        <!-- Northern lights aurora -->
+        <div class="absolute top-0 left-0 right-0 h-[800px] overflow-hidden">
+          <div class="absolute inset-x-[5%] top-0 h-full opacity-45 animate-aurora">
+            <div class="absolute inset-0 bg-gradient-to-b from-violet-500/30 via-fuchsia-500/15 to-transparent blur-[140px] transform rotate-[-2deg]"></div>
+          </div>
+          <div class="absolute inset-x-[15%] top-0 h-[600px] opacity-30 animate-aurora-delayed">
+            <div class="absolute inset-0 bg-gradient-to-b from-cyan-400/15 via-violet-400/10 to-transparent blur-[120px] transform rotate-[1deg]"></div>
+          </div>
+        </div>
+
+        <!-- Floating luminous orbs -->
+        <div class="absolute top-[10%] right-[5%] w-[700px] h-[700px] rounded-full bg-gradient-to-br from-violet-600/10 via-indigo-600/6 to-transparent blur-[180px] animate-float-slow"></div>
+        <div class="absolute bottom-[10%] left-[0%] w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-fuchsia-600/8 via-purple-600/5 to-transparent blur-[160px] animate-float-delayed"></div>
+        <div class="absolute top-[50%] right-[20%] w-[400px] h-[400px] rounded-full bg-gradient-to-bl from-amber-500/6 via-rose-500/4 to-transparent blur-[120px] animate-float-reverse"></div>
+        <div class="absolute top-[30%] left-[10%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-cyan-500/5 to-transparent blur-[100px] animate-float-gentle"></div>
+
+        <!-- Additional subtle accent orb -->
+        <div class="absolute top-[70%] left-[40%] w-[300px] h-[300px] rounded-full bg-gradient-to-br from-emerald-500/4 to-transparent blur-[100px] animate-float-slow" style="animation-delay: -10s;"></div>
       </div>
 
       <!-- Main Content -->
@@ -74,16 +92,19 @@
           </div>
         </section>
 
-        <!-- Elegant Divider -->
-        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        <!-- Elegant Divider with Glow (match Home) -->
+        <div class="relative py-12 md:py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div class="relative flex items-center justify-center">
-            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
-            <div class="mx-6 flex items-center gap-2">
-              <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
-              <div class="w-1.5 h-1.5 rounded-full bg-violet-400/70"></div>
-              <div class="w-1 h-1 rounded-full bg-violet-400/50"></div>
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent"></div>
+            <div class="mx-10 flex items-center gap-4">
+              <div class="w-1.5 h-1.5 rounded-full bg-violet-400/40 animate-pulse"></div>
+              <div class="relative w-2.5 h-2.5">
+                <div class="absolute inset-0 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-400 opacity-70 animate-pulse"></div>
+                <div class="absolute -inset-1.5 rounded-full bg-violet-400/25 blur-md"></div>
+              </div>
+              <div class="w-1.5 h-1.5 rounded-full bg-violet-400/40 animate-pulse"></div>
             </div>
-            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+            <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent"></div>
           </div>
         </div>
 
@@ -138,8 +159,11 @@
               </section>
 
         <!-- Simple Divider -->
-        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="relative py-12 md:py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="relative h-px">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.10] to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/12 to-transparent blur-sm"></div>
+          </div>
         </div>
 
               <!-- What We Do Section -->
@@ -193,8 +217,11 @@
               </section>
 
         <!-- Simple Divider -->
-        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="relative py-12 md:py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="relative h-px">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.10] to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/12 to-transparent blur-sm"></div>
+          </div>
         </div>
 
               <!-- Vision Section -->
@@ -242,8 +269,11 @@
               </section>
 
         <!-- Simple Divider -->
-        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="relative py-12 md:py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="relative h-px">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.10] to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/12 to-transparent blur-sm"></div>
+          </div>
         </div>
 
               <!-- Technology Section -->
@@ -288,97 +318,45 @@
               </section>
 
         <!-- Simple Divider -->
-        <div class="relative py-8 md:py-12 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div class="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="relative py-12 md:py-16 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div class="relative h-px">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.10] to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/12 to-transparent blur-sm"></div>
+          </div>
         </div>
               
-              <!-- CTA Section -->
-        <section class="py-16 sm:py-24 px-6 sm:px-8 lg:px-12">
-          <div class="max-w-4xl mx-auto">
-            <!-- CTA Card -->
-            <div class="group relative">
-              <!-- Background glow -->
-              <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-              
-              <!-- Card content -->
-              <div class="relative p-8 md:p-12 rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden">
-                <!-- Accent line -->
-                <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
-                
-                <!-- Content layout -->
-                <div class="flex flex-col md:flex-row items-start gap-8">
-                  <!-- Icon -->
-                  <div class="flex-shrink-0">
-                    <div class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20">
-                      <i class="fas fa-rocket text-violet-400 text-xl"></i>
-                    </div>
-                      </div>
-                      
-                  <!-- Text content -->
-                  <div class="flex-1">
-                    <h2 class="text-2xl md:text-3xl font-semibold text-white/90 mb-4 leading-tight">
-                          Ready to Build Your App?
-                      <span class="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">No Coding Required!</span>
-                        </h2>
-                    
-                    <p class="text-base md:text-lg text-white/50 mb-8 leading-relaxed max-w-xl">
-                          Start building your own web application today. Just describe your idea, and let Imagi do the rest.
-                        </p>
-                        
-                    <!-- Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-4">
-                      <!-- Primary Button -->
-                          <router-link 
-                        :to="getAuthenticatedRedirect"
-                        class="group/btn inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
-                          >
-                        <i class="fas fa-rocket"></i>
-                        <span>Start Building</span>
-                        <i class="fas fa-arrow-right text-sm transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
-                          </router-link>
-                          
-                      <!-- Secondary Button -->
-                          <router-link 
-                            to="/docs"
-                        class="group/btn inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
-                          >
-                        <i class="fas fa-book text-violet-400/80"></i>
-                        <span>Learn More</span>
-                          </router-link>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Decorative elements -->
-                <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl"></div>
-                <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl"></div>
-              </div>
-            </div>
-          </div>
-        </section>
+              <!-- CTA Section (reuse Home component) -->
+        <CTASection 
+          icon="fas fa-rocket"
+          title="Ready to Build Your App?"
+          highlightedText="No Coding Required!"
+          description="Start building your own web application today. Just describe your idea, and let Imagi do the rest."
+          highlightedStat=""
+          descriptionSuffix=""
+          primaryButtonText="Start Building"
+          primaryButtonTo="/products/oasis/builder/dashboard"
+          :showSecondaryButton="true"
+          secondaryButtonText="Learn More"
+          secondaryButtonTo="/docs"
+          secondaryButtonIcon="fas fa-book"
+        />
       </main>
     </div>
   </DefaultLayout>
 </template>
 
 <script>
-import { defineComponent, computed } from 'vue'
+import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { useAuthStore } from '@/shared/stores/auth'
+import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
   name: 'About',
   components: {
-    DefaultLayout
+    DefaultLayout,
+    CTASection
   },
   setup() {
-    const authStore = useAuthStore()
-    const isAuthenticated = computed(() => authStore.isAuthenticated)
-    
-    const getAuthenticatedRedirect = computed(() => {
-      return isAuthenticated.value ? '/products/oasis/builder/dashboard' : '/auth/login'
-    })
-    
     const stats = [
       { value: '10K+', label: 'Active Users', icon: 'fas fa-users' },
       { value: '50K+', label: 'Apps Generated', icon: 'fas fa-cube' },
@@ -533,8 +511,6 @@ export default defineComponent({
       features,
       visionItems,
       technologies,
-      isAuthenticated,
-      getAuthenticatedRedirect,
       getTechIcon,
       getStatIconClass,
       getGradientClass,
