@@ -92,7 +92,7 @@ onMounted(async () => {
     
     // Initialize auth store to fetch user data
     try {
-      await authStore.init()
+      await authStore.initAuth()
     } catch (error) {
       console.error('Failed to initialize auth store:', error)
     }
