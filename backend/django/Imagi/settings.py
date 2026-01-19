@@ -286,7 +286,8 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # Only allow specific hosts
 ALLOWED_HOSTS = [
-    '.railway.app',  # Matches *.railway.app domains
+    '.railway.app',  # Matches *.railway.app public domains
+    '.railway.internal',  # Matches Railway's internal networking (backend.railway.internal)
 ]
 
 # Development-specific settings
