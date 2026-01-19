@@ -5,8 +5,8 @@
 
 set -e  # Exit on any error
 
-# Configuration - Force port 8000 for consistency
-RUN_PORT="8000"
+# Configuration - Respect PORT environment variable (Railway sets this)
+RUN_PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-3}"
 THREADS="${THREADS:-2}"
 TIMEOUT="${TIMEOUT:-120}"
@@ -62,7 +62,7 @@ else
     
     echo "🌐 Starting Gunicorn server on port $RUN_PORT..."
     exec gunicorn Imagi.wsgi:application \
-        --bind [::]:$RUN_PORT \
+        --bind 0.0.0.0:$RUN_PORT \
         --workers $WORKERS \
         --threads $THREADS \
         --timeout $TIMEOUT \

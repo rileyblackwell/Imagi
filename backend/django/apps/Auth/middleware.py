@@ -160,6 +160,8 @@ class LoginRequiredMiddleware:
         self.public_paths = [
             '/auth/',
             '/api/auth/',
+            '/api/v1/auth/',  # Allow unauthenticated access to auth endpoints (login, register, CSRF)
+            '/api/v1/health/',  # Allow health check endpoint
             '/',
             '/about/',
             '/contact/',

@@ -4,7 +4,7 @@ URL configuration for Imagi project.
 
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_GET
 from django.conf import settings
 
@@ -12,9 +12,30 @@ from django.conf import settings
 def favicon_view(request):
     return HttpResponse(status=204)
 
+@require_GET
+def health_check_view(request):
+    """Global health check endpoint for monitoring and Railway health checks."""
+    from django.contrib.auth import get_user_model
+    try:
+        # Quick database connectivity check
+        User = get_user_model()
+        User.objects.exists()
+        db_status = 'connected'
+    except Exception as e:
+        db_status = f'error: {str(e)}'
+    
+    return JsonResponse({
+        'status': 'healthy',
+        'service': 'imagi-backend',
+        'database': db_status,
+        'timestamp': request.META.get('HTTP_DATE', 'unknown')
+    }, status=200)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Global health check endpoint (before api/v1/ routes)
+    path('api/v1/health/', health_check_view, name='health-check'),
     path('api/v1/', include([
         path('project-manager/', include('apps.Products.Oasis.ProjectManager.api.urls')),
         path('auth/', include('apps.Auth.api.urls')),
