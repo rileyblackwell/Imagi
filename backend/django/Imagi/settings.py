@@ -219,12 +219,7 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",  # Development: Vite dev server
     "http://127.0.0.1:5174",  # Development: Vite dev server (alternate)
-    "https://imagi.up.railway.app",  # Production: Public frontend domain
-]
-
-# Allow Railway subdomains via regex pattern (wildcards don't work in CORS_ALLOWED_ORIGINS)
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.railway\.app$",  # Matches any Railway subdomain
+    "https://*.railway.app",  # Production: Public frontend domain
 ]
 
 # CORS settings - production ready
@@ -291,8 +286,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # Only allow specific hosts
 ALLOWED_HOSTS = [
-    '.railway.app',  # Matches *.railway.app public domains
-    '.railway.internal',  # Matches Railway's internal networking (backend.railway.internal)
+    '.railway.app',  # Matches *.railway.app domains
 ]
 
 # Development-specific settings
