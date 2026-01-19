@@ -105,75 +105,180 @@ Running Tests
 
 ⸻
 
-🔄 Deployment & API Architecture
+🔄 Development & Production Architecture
+
+This project follows a clean separation between development and production environments, controlled by a single `DJANGO_DEBUG` flag.
+
+## Architecture Overview
+
+### Development (Local)
+```
+┌─────────────────┐         ┌──────────────────┐
+│  Vite Dev       │  /api/* │  Django          │
+│  localhost:5174 ├────────►│  runserver:8000  │
+│  (Proxy)        │         │  (Local only)    │
+└─────────────────┘         └──────────────────┘
+```
+
+### Production (Railway)
+```
+┌─────────────────┐         ┌──────────────────┐
+│  NGINX          │  /api/* │  Gunicorn        │
+│  (Public)       ├────────►│  (Private)       │
+│  Static Files   │         │  Django WSGI     │
+└─────────────────┘         └──────────────────┘
+```
 
 ## Development Environment
-- **Frontend**: Vite dev server on `http://localhost:5174`
-- **Backend**: Django dev server on `http://localhost:8000`
-- **Proxying**: Vite dev server proxies `/api/*` requests to `VITE_BACKEND_URL`
-- **Environment Variable**: `VITE_BACKEND_URL=http://localhost:8000`
 
-## Production Environment
-- **Frontend**: Nginx serving static files from `https://imagi.up.railway.app`
-- **Backend**: Django + Gunicorn on Railway internal network `http://backend.railway.internal:8000`
-- **Proxying**: Nginx proxies `/api/*` requests to backend service
-- **Environment Variable**: `VITE_BACKEND_URL` is **not used** in production (relative URLs only)
+### Backend
+- **Server**: Django development server (`python manage.py runserver`)
+- **Port**: `8000`
+- **Network**: Local machine only
+- **Toggle**: Set `DJANGO_DEBUG=1` or `DJANGO_DEBUG=true`
+
+### Frontend
+- **Server**: Vite dev server with HMR
+- **Port**: `5174`
+- **Proxy**: `/api/*` → `http://localhost:8000` (configurable via `VITE_BACKEND_URL`)
+- **Network**: Local machine only
+
+### Running Locally
+
+```bash
+# Backend (Terminal 1)
+cd backend/django
+export DJANGO_DEBUG=1
+export DJANGO_SECRET_KEY="dev-secret-key"
+python manage.py migrate
+python manage.py runserver
+
+# Frontend (Terminal 2)
+cd frontend/vuejs
+npm run dev
+# Visit http://localhost:5174
+```
+
+## Production Environment (Railway)
+
+### Backend Service
+- **Server**: Gunicorn WSGI server (3 workers, 2 threads)
+- **Port**: `8000` (internal only)
+- **Network**: Railway private network (`backend.railway.internal:8000`)
+- **Toggle**: Set `DJANGO_DEBUG=0` (default)
+- **Dockerfile**: `backend/django/Dockerfile`
+- **Entrypoint**: `/usr/local/bin/run-server.sh`
+
+### Frontend Service
+- **Server**: NGINX
+- **Port**: `80` (public)
+- **Proxy**: `/api/*` → `http://backend.railway.internal:8000`
+- **Static Files**: Serves built Vue.js app from `/usr/share/nginx/html`
+- **Dockerfile**: `frontend/vuejs/Dockerfile`
+- **Entrypoint**: `/usr/local/bin/entrypoint.sh` (substitutes `BACKEND_URL` into NGINX config)
+
+### Railway Environment Variables
+
+#### Backend Service
+```bash
+# Required
+DJANGO_SECRET_KEY=<your-secret-key>
+DJANGO_DEBUG=0
+DATABASE_URL=<postgresql-url>
+OPENAI_KEY=<your-openai-key>
+ANTHROPIC_KEY=<your-anthropic-key>
+STRIPE_SECRET_KEY=<your-stripe-secret>
+STRIPE_PUBLIC_KEY=<your-stripe-public>
+
+# Optional
+FRONTEND_URL=https://your-frontend.railway.app
+FRONTEND_REDIRECT_ENABLED=true
+```
+
+#### Frontend Service
+```bash
+# Required
+BACKEND_URL=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
+
+# Optional
+VITE_STRIPE_PUBLISHABLE_KEY=<your-stripe-public>
+```
 
 ## Key Configuration Files
 
-### Frontend
-- `frontend/vuejs/vite.config.ts` - Development proxy configuration
-- `frontend/vuejs/Dockerfile` - Production build and deployment with inline Nginx config
-- `frontend/vuejs/src/shared/services/api.ts` - API client using relative URLs
-
 ### Backend
-- `backend/django/Imagi/settings.py` - CORS and CSRF configuration
-- Django handles both development and production with different settings
+- `backend/django/Imagi/settings.py` - Django settings (uses `DJANGO_DEBUG` flag)
+- `backend/django/scripts/run-server.sh` - Startup script (switches between runserver/Gunicorn)
+- `backend/django/Dockerfile` - Production container
+- `backend/django/railway.json` - Railway deployment config
 
-## Railway Deployment
+### Frontend
+- `frontend/vuejs/vite.config.ts` - Vite dev proxy (uses `VITE_BACKEND_URL`)
+- `frontend/vuejs/nginx.conf` - NGINX reverse proxy config
+- `frontend/vuejs/scripts/entrypoint.sh` - Runtime NGINX config substitution
+- `frontend/vuejs/Dockerfile` - Production container
+- `frontend/vuejs/railway.json` - Railway deployment config
+- `frontend/vuejs/src/shared/services/api.ts` - Centralized API client (uses relative `/api` URLs)
 
-### Frontend Service
-```bash
-# Uses frontend/vuejs/Dockerfile
-# Builds Vue.js app and serves with Nginx
-# Proxies /api/* to backend.railway.internal:8000
-```
+## API Client Architecture
 
-### Backend Service  
-```bash
-# Uses Python buildpack or custom Dockerfile
-# Runs Django + Gunicorn
-# Accessible at backend.railway.internal:8000 (internal network only)
-```
+The frontend uses **relative URLs** for all API calls, which works seamlessly in both environments:
 
-## Centralized API Client
+```typescript
+// frontend/vuejs/src/shared/services/api.ts
+import axios from 'axios'
 
-Use relative URLs for API requests:
+const api = axios.create({
+  baseURL: '/api',  // Relative URL - no hardcoded backend URL
+  withCredentials: true
+})
 
-```javascript
+// Usage
 import api from '@/shared/services/api'
-const response = await api.get('/api/v1/projects/')
+const response = await api.get('/v1/projects/')
 ```
+
+### How It Works
+- **Development**: Vite proxy intercepts `/api/*` and forwards to `http://localhost:8000`
+- **Production**: NGINX intercepts `/api/*` and forwards to `http://backend.railway.internal:8000`
+- **Browser**: Always calls same-origin `/api/*` (no CORS issues, no mixed content warnings)
+
+## Environment Toggle Behavior
+
+The `DJANGO_DEBUG` flag controls:
+
+| Aspect | Development (`DJANGO_DEBUG=1`) | Production (`DJANGO_DEBUG=0`) |
+|--------|-------------------------------|------------------------------|
+| Backend Server | Django `runserver` | Gunicorn WSGI |
+| Django Checks | `manage.py check` | `manage.py check --deploy` |
+| Static Files | Not collected | `collectstatic` runs |
+| Security | Relaxed (HTTP, insecure cookies) | Strict (HTTPS, secure cookies) |
+| CORS | `localhost:5174` | `*.railway.app` |
+| Debug Toolbar | Enabled | Disabled |
+| AI/Stripe Keys | Optional (warnings only) | Required (validation enforced) |
+| Database | SQLite (default) | PostgreSQL (via `DATABASE_URL`) |
 
 ## Important Notes
 
-1. **Never set `VITE_BACKEND_URL` to `backend.railway.internal:8000` in production**
-   - Browsers cannot access Railway's internal network
-   - Use Nginx proxying instead
+1. **All network calls are local in development**
+   - Backend: `localhost:8000`
+   - Frontend: `localhost:5174`
+   - No external services required
 
-2. **Always use relative URLs in frontend code**
-   - Development: Vite proxy handles routing
-   - Production: Nginx proxy handles routing
+2. **Production uses internal networking**
+   - Browser never calls backend directly
+   - NGINX proxies all `/api/*` requests
+   - Backend is not publicly accessible
 
-3. **CORS Configuration**
-   - Development: Allow `localhost:5174`
-   - Production: Allow `imagi.up.railway.app`
-   - Backend also allows Railway internal origins for service-to-service communication
+3. **Single source of truth: `DJANGO_DEBUG`**
+   - Controls both Django settings and server behavior
+   - Use `1`, `true`, `True`, `yes`, or `Yes` for development
+   - Use `0`, `false`, `False`, `no`, or `No` for production
 
 4. **CSRF Tokens**
-   - Required in both development and production
+   - Required in both environments
    - Handled automatically by the API client
-   - Uses cookie-based CSRF tokens
+   - Uses cookie-based tokens
 
 ⸻
 

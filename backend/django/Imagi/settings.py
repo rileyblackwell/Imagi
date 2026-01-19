@@ -468,14 +468,21 @@ if not DEBUG:
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default=None)
 STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLIC_KEY', default=None)
 
-# Ensure these keys are not None
-if not STRIPE_SECRET_KEY:
-    raise ValueError("STRIPE_SECRET_KEY is not set in the environment variables.")
-if not STRIPE_PUBLISHABLE_KEY:
-    raise ValueError("STRIPE_PUBLIC_KEY is not set in the environment variables.")
+# Only enforce Stripe keys in production
+if not DEBUG:
+    if not STRIPE_SECRET_KEY:
+        raise ValueError("STRIPE_SECRET_KEY is not set in the environment variables.")
+    if not STRIPE_PUBLISHABLE_KEY:
+        raise ValueError("STRIPE_PUBLIC_KEY is not set in the environment variables.")
 
-# Validate Stripe key formats
-if not STRIPE_SECRET_KEY.startswith(('sk_test_', 'sk_live_')):
-    raise ValueError("STRIPE_SECRET_KEY appears to be in an invalid format")
-if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
-    raise ValueError("STRIPE_PUBLIC_KEY appears to be in an invalid format")
+    # Validate Stripe key formats
+    if not STRIPE_SECRET_KEY.startswith(('sk_test_', 'sk_live_')):
+        raise ValueError("STRIPE_SECRET_KEY appears to be in an invalid format")
+    if not STRIPE_PUBLISHABLE_KEY.startswith(('pk_test_', 'pk_live_')):
+        raise ValueError("STRIPE_PUBLIC_KEY appears to be in an invalid format")
+else:
+    # In development, warn if keys are missing but don't fail
+    if not STRIPE_SECRET_KEY:
+        print("⚠️  WARNING: STRIPE_SECRET_KEY is not set (payment features will not work)")
+    if not STRIPE_PUBLISHABLE_KEY:
+        print("⚠️  WARNING: STRIPE_PUBLIC_KEY is not set (payment features will not work)")

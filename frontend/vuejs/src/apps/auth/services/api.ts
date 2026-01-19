@@ -5,7 +5,6 @@ import type {
   AuthResponse, 
   UserRegistrationData 
 } from '@/apps/auth/types/auth'
-import axios from 'axios'
 
 // API Configuration
 const API_PATH = '/v1/auth'
@@ -29,9 +28,27 @@ function getCookie(name: string): string | null {
 let logoutPromise: Promise<any> | null = null
 
 export const AuthAPI = {
+  formatFieldErrors(detail: Record<string, unknown>): string {
+    const fieldMessages: string[] = []
+    for (const [field, message] of Object.entries(detail)) {
+      const normalizedMessage = Array.isArray(message) ? message[0] : message
+      if (field === 'non_field_errors' || field === 'error') {
+        fieldMessages.push(String(normalizedMessage))
+      } else if (field === 'username') {
+        fieldMessages.push(`Username: ${normalizedMessage}`)
+      } else if (field === 'password') {
+        fieldMessages.push(`Password: ${normalizedMessage}`)
+      } else if (field === 'email') {
+        fieldMessages.push(`Email: ${normalizedMessage}`)
+      } else {
+        fieldMessages.push(`${field.replace(/_/g, ' ')}: ${normalizedMessage}`)
+      }
+    }
+    return fieldMessages.join('\n')
+  },
   async getCSRFToken() {
     try {
-      const response = await axios.get(`http://backend.railway.internal:8000/${API_PATH}/csrf/`, {
+      const response = await api.get(`${API_PATH}/csrf/`, {
         timeout: 30000,
         headers: {
           'X-Request-Type': 'csrf-token',
@@ -80,7 +97,7 @@ export const AuthAPI = {
       
       const response = await api.post(`${API_PATH}/login/`, credentials, {
         headers: csrfToken !== 'bypass' ? { 'X-CSRFToken': csrfToken } : {},
-        timeout: 15000
+        timeout: 1000
       });
 
       if (!response.data) {
@@ -99,14 +116,21 @@ export const AuthAPI = {
       }
     } catch (error: any) {
       if (error.response?.status === 400) {
-        const errorMessage = error.response.data?.non_field_errors?.[0] || 
-                           error.response.data?.detail || 
+        const errorData = error.response.data
+        if (errorData?.detail && typeof errorData.detail === 'object') {
+          throw new Error(this.formatFieldErrors(errorData.detail))
+        }
+        const errorMessage = errorData?.non_field_errors?.[0] || 
+                           errorData?.detail || 
+                           errorData?.error ||
                            'Invalid username or password'
         throw new Error(errorMessage)
       } else if (error.response?.status === 401) {
         throw new Error('Invalid username or password')
       } else if (error.response?.status === 429) {
         throw new Error('Too many login attempts. Please try again later.')
+      } else if (error.response?.status >= 500) {
+        throw new Error('Backend server error. Please try again later.')
       } else if (!error.response) {
         throw new Error('Network Error: Unable to connect to server')
       }
@@ -160,7 +184,7 @@ export const AuthAPI = {
       
       const response = await api.post(fullRequestUrl, registrationData, {
         headers,
-        timeout: 30000
+        timeout: 1000
       })
       
       return { 
@@ -222,6 +246,10 @@ export const AuthAPI = {
       
       if (error.response?.status === 429) {
         throw new Error('Too many registration attempts. Please try again later.')
+      }
+
+      if (error.response?.status >= 500) {
+        throw new Error('Backend server error. Please try again later.')
       }
       
       // Handle network errors

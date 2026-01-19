@@ -30,7 +30,7 @@ This directory contains a modular Docker setup for the Django backend applicatio
 docker build -t imagi-backend .
 
 # Run the container
-docker run -p 8000:8000 -e SECRET_KEY=your-secret-key imagi-backend
+docker run -p 8000:8000 -e DJANGO_SECRET_KEY=your-secret-key imagi-backend
 ```
 
 ### Development with Docker Compose
@@ -51,19 +51,19 @@ docker-compose --profile postgres --profile redis up
 ### Environment Variables
 
 #### Required
-- `SECRET_KEY` - Django secret key for cryptographic signing
-- `DATABASE_URL` - Database connection string
+- `DJANGO_SECRET_KEY` - Django secret key for cryptographic signing
+- `DATABASE_URL` - Database connection string (optional in dev, uses SQLite by default)
 
 #### Optional
-- `DEBUG` - Enable Django debug mode (default: 0)
+- `DJANGO_DEBUG` - Enable Django debug mode (default: 0 for production, set to 1 or true for development)
 - `OPENAI_KEY` - OpenAI API key for AI features
 - `ANTHROPIC_KEY` - Anthropic API key for Claude integration
 - `STRIPE_SECRET_KEY` - Stripe secret key for payments
 - `STRIPE_PUBLIC_KEY` - Stripe publishable key
-- `FRONTEND_URL` - Frontend application URL (default: http://localhost:3000)
-- `WORKERS` - Gunicorn worker processes (default: 3)
-- `THREADS` - Gunicorn threads per worker (default: 2)
-- `TIMEOUT` - Request timeout in seconds (default: 120)
+- `FRONTEND_URL` - Frontend application URL (default: http://localhost:5174)
+- `WORKERS` - Gunicorn worker processes (default: 3, only used in production)
+- `THREADS` - Gunicorn threads per worker (default: 2, only used in production)
+- `TIMEOUT` - Request timeout in seconds (default: 120, only used in production)
 
 ## Features
 
@@ -184,6 +184,6 @@ docker-compose exec postgres psql -U imagi -d imagi
 - **Environment Variables**: Never commit secrets to version control
 - **Database**: Use strong passwords and connection encryption
 - **HTTPS**: Always use HTTPS in production
-- **Debug Mode**: Ensure DEBUG=0 in production
+- **Debug Mode**: Ensure DJANGO_DEBUG=0 in production
 - **Static Files**: Serve via CDN or reverse proxy in production
 - **User Permissions**: Runs as www-data user (non-root) 

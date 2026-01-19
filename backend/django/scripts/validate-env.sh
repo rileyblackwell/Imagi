@@ -35,11 +35,11 @@ fi
 # Check critical environment variables
 echo "🔍 Checking required environment variables..."
 
-if [ -z "$SECRET_KEY" ]; then
-    echo "❌ Error: SECRET_KEY environment variable is required!"
+if [ -z "$DJANGO_SECRET_KEY" ]; then
+    echo "❌ Error: DJANGO_SECRET_KEY environment variable is required!"
     VALIDATION_PASSED=false
 else
-    echo "✅ SECRET_KEY is set"
+    echo "✅ DJANGO_SECRET_KEY is set"
 fi
 
 if [ -z "$DATABASE_URL" ]; then
@@ -71,12 +71,23 @@ fi
 
 # Validate Django configuration
 echo "🔍 Validating Django configuration..."
-if ! python manage.py check --deploy --quiet 2>/dev/null; then
-    echo "❌ Django configuration check failed!"
-    echo "ℹ️  Run 'python manage.py check --deploy' for details"
-    VALIDATION_PASSED=false
+# Only run deployment checks in production (DJANGO_DEBUG=0 or unset)
+if [ "${DJANGO_DEBUG:-0}" = "0" ] || [ "${DJANGO_DEBUG}" = "false" ]; then
+    if ! python manage.py check --deploy --quiet 2>/dev/null; then
+        echo "❌ Django configuration check failed!"
+        echo "ℹ️  Run 'python manage.py check --deploy' for details"
+        VALIDATION_PASSED=false
+    else
+        echo "✅ Django configuration is valid (production mode)"
+    fi
 else
-    echo "✅ Django configuration is valid"
+    if ! python manage.py check --quiet 2>/dev/null; then
+        echo "❌ Django configuration check failed!"
+        echo "ℹ️  Run 'python manage.py check' for details"
+        VALIDATION_PASSED=false
+    else
+        echo "✅ Django configuration is valid (development mode)"
+    fi
 fi
 
 # Final validation result

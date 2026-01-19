@@ -11,6 +11,6 @@
     "watchPatterns": []
   },
   "start": {
-    "cmd": "nginx -g 'daemon off;'"
+    "cmd": "/usr/local/bin/entrypoint.sh"
   }
 } 

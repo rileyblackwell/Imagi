@@ -53,12 +53,14 @@ const errorMessages = {
   'Password must be at least 8 characters long': 'Password must be at least 8 characters long.',
   'Passwords don\'t match': 'Passwords don\'t match. Please make sure they are identical.',
   'Unable to complete registration. Please try again.': 'Unable to complete registration. Please try again.',
+  'Registration failed': 'Registration failed due to a backend error. Please try again.',
   
   // Login errors
   'No account found with this username': 'No account found with this username. Please check your spelling or create an account.',
   'Invalid password. Please try again': 'Incorrect password. Please try again.',
   'This account has been disabled': 'This account has been disabled. Please contact support.',
   'Unable to log in with provided credentials.': 'Invalid username or password. Please try again.',
+  'Invalid login credentials': 'Invalid username or password. Please try again.',
   'Username is required': 'Username is required.',
   'Password is required': 'Password is required.',
   'Not found.': 'Account not found. Please check your username.',
@@ -67,9 +69,11 @@ const errorMessages = {
   'Login failed. Please try again later': 'Login failed. Please try again later.',
   'Login failed: No token received': 'Unable to log in. Please try again.',
   'Network Error': 'Unable to connect to server. Please check your internet connection.',
+  'Network Error: Unable to connect to server': 'Unable to reach the backend server. Please check your connection.',
   'Login failed: Please try again': 'Login failed. Please try again later.',
   'Login failed: Invalid response format': 'Unable to complete login. Please try again.',
   'Invalid server response: Missing token': 'Unable to complete login. Please try again.',
+  'Login failed': 'Login failed due to a backend error. Please try again.',
   'default': 'An unexpected error occurred. Please try again.'
 } as const
 
@@ -83,6 +87,11 @@ export const formatAuthError = (error: unknown, context: 'login' | 'register' = 
     const axiosError = error as any
     if (axiosError?.response?.data) {
       const responseData = axiosError.response.data
+      const status = axiosError.response.status
+
+      if (status >= 500) {
+        return 'Backend server error. Please try again later.'
+      }
       
       // Check for different error formats
       if (responseData.error) {
@@ -92,17 +101,27 @@ export const formatAuthError = (error: unknown, context: 'login' | 'register' = 
       if (responseData.detail) {
         if (typeof responseData.detail === 'object') {
           // Convert detailed validation errors to readable messages
-          const errorMessages = []
+          const fieldMessages = []
           
           for (const [field, message] of Object.entries(responseData.detail)) {
+            const normalizedMessage = Array.isArray(message) ? message[0] : message
             if (field === 'non_field_errors' || field === 'error') {
-              errorMessages.push(message)
+              fieldMessages.push(normalizedMessage)
             } else {
-              errorMessages.push(`${field}: ${message}`)
+              const fieldLabel = field.replace(/_/g, ' ')
+              if (field === 'password') {
+                fieldMessages.push(`Password: ${normalizedMessage}`)
+              } else if (field === 'username') {
+                fieldMessages.push(`Username: ${normalizedMessage}`)
+              } else if (field === 'email') {
+                fieldMessages.push(`Email: ${normalizedMessage}`)
+              } else {
+                fieldMessages.push(`${fieldLabel}: ${normalizedMessage}`)
+              }
             }
           }
           
-          return errorMessages.join('\n')
+          return fieldMessages.join('\n')
         }
         
         return responseData.detail
