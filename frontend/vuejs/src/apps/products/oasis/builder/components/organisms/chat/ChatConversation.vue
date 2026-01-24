@@ -11,12 +11,12 @@
               <i :class="[mode === 'chat' ? 'fas fa-comment-dots text-lg' : 'fas fa-code-branch text-lg', 'text-indigo-300']"></i>
             </div>
             <h3 class="text-xl font-semibold text-white mb-3 bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              {{ mode === 'chat' ? 'Start a conversation' : 'Build your application' }}
+              {{ mode === 'chat' ? 'How can I help?' : 'What would you like to change?' }}
             </h3>
             <p class="text-gray-300 mb-0 text-sm leading-relaxed max-w-lg mx-auto">
               {{ mode === 'chat' 
-                 ? 'Ask me anything about your project, coding questions, or get help with a specific task.' 
-                 : 'Tell me what you want to build, and I\'ll help you create it step by step.' }}
+                 ? 'Ask me anything about your app, get ideas, or learn how things work.' 
+                 : 'Describe what you want and I\'ll update your page or block for you.' }}
             </p>
           </div>
 
@@ -405,20 +405,20 @@ const getSystemMessageIcon = (content: string) => {
   return 'fa-info-circle'
 }
 
-// Enhanced chat examples for empty state
+// Non-technical chat examples for empty state
 const chatExamples = [
-  "How can I optimize this app's performance and loading speed?",
-  "What are the best practices for structuring this application?",
-  "Can you review my code architecture and suggest improvements?",
-  "How should I handle state management in this project?"
+  "How do I add a new page to my app?",
+  "What's the best way to organize my pages and blocks?",
+  "Can you explain how this page works?",
+  "What features should I add to make my app better?"
 ]
 
-// Enhanced build examples for empty state
+// Non-technical build examples for empty state
 const buildExamples = [
-  "Create a modern dashboard with responsive cards and charts",
-  "Add smooth animations and transitions to improve user experience",
-  "Build a comprehensive search and filter system",
-  "Implement real-time notifications with elegant toast messages"
+  "Make this page look better on mobile phones",
+  "Add a contact form with name, email, and message fields",
+  "Change the colors to match my brand (blue and white)",
+  "Add a header with my logo and navigation links"
 ]
 </script>
 

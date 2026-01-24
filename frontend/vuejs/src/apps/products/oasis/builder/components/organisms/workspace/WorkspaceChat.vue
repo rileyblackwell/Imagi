@@ -63,9 +63,9 @@
                 <div class="mb-4">
                   <!-- Badge matching home page -->
                   <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.03] rounded-full border border-white/[0.08] mb-4">
-                    <i :class="mode === 'chat' ? 'fas fa-comments' : 'fas fa-code'" class="text-xs text-violet-400/80"></i>
+                    <i :class="mode === 'chat' ? 'fas fa-comments' : 'fas fa-magic'" class="text-xs text-violet-400/80"></i>
                     <span class="text-sm font-medium text-white/60">
-                      {{ mode === 'chat' ? 'AI Chat' : 'Code Generation' }}
+                      {{ mode === 'chat' ? 'Assistant' : 'Make Changes' }}
                     </span>
                   </div>
                   
@@ -73,12 +73,12 @@
                   <div class="flex justify-between items-start">
                     <div class="flex-1">
                       <h3 class="text-lg font-semibold text-white/90 leading-tight">
-                        {{ mode === 'chat' ? 'Ask me anything' : 'Describe what to build' }}
+                        {{ mode === 'chat' ? 'Ask me anything' : 'What would you like to change?' }}
                       </h3>
                       <p class="text-white/50 text-sm mt-2 leading-relaxed">
                         {{ mode === 'chat' 
-                            ? 'Get help with your project, code review, or technical questions' 
-                            : 'Tell me what you want to create and I\'ll generate the code' }}
+                            ? 'Get help with your project, ask questions, or brainstorm ideas' 
+                            : 'Describe what you want and I\'ll update your page or block' }}
                       </p>
                     </div>
                   
@@ -103,9 +103,9 @@
                       >
                         <div class="relative flex items-center space-x-2">
                           <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/20">
-                            <i class="text-violet-400" :class="mode === 'chat' ? 'fas fa-comments' : 'fas fa-code'"></i>
+                            <i class="text-violet-400" :class="mode === 'chat' ? 'fas fa-comments' : 'fas fa-magic'"></i>
                           </div>
-                          <span class="text-sm font-medium text-white/70 group-hover:text-white/90 transition-colors">{{ mode === 'chat' ? 'Chat' : 'Build' }}</span>
+                          <span class="text-sm font-medium text-white/70 group-hover:text-white/90 transition-colors">{{ mode === 'chat' ? 'Ask' : 'Edit' }}</span>
                         </div>
                         <i class="fas fa-chevron-down text-white/40 transition-transform duration-300"
                            :class="{ 'transform rotate-180 text-violet-400': isModeDropdownOpen }"></i>
@@ -129,7 +129,7 @@
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-500/20">
                               <i class="fas fa-comments text-violet-400"></i>
                             </div>
-                            <span class="flex-1 text-left text-sm text-white/70 group-hover:text-white/90">Chat</span>
+                            <span class="flex-1 text-left text-sm text-white/70 group-hover:text-white/90">Ask questions</span>
                             <span v-if="mode === 'chat'" class="text-violet-400"><i class="fas fa-check"></i></span>
                           </button>
                           <button
@@ -140,9 +140,9 @@
                             @click="handleSelectMode('build')"
                           >
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center border bg-gradient-to-br from-fuchsia-500/20 to-violet-500/20 border-fuchsia-500/20">
-                              <i class="fas fa-code text-fuchsia-400"></i>
+                              <i class="fas fa-magic text-fuchsia-400"></i>
                             </div>
-                            <span class="flex-1 text-left text-sm text-white/70 group-hover:text-white/90">Build</span>
+                            <span class="flex-1 text-left text-sm text-white/70 group-hover:text-white/90">Make changes</span>
                             <span v-if="mode === 'build'" class="text-violet-400"><i class="fas fa-check"></i></span>
                           </button>
                         </div>

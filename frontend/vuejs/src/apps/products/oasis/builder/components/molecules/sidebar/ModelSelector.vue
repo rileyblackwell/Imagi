@@ -7,91 +7,120 @@
     
     <!-- Modern Model Selection Dropdown -->
     <div class="relative" ref="containerEl">
-      <!-- Dropdown Trigger Button with Enhanced Design -->
+      <!-- Compact Mode Trigger Button -->
       <button
+        v-if="props.compact"
         @click="toggleDropdown"
-        class="w-full flex items-center justify-between p-3 rounded-lg border transition-all duration-300 bg-dark-800/70 backdrop-blur-sm border-dark-700/50 hover:border-primary-500/30 group"
-        :class="{ 'border-primary-500/40 bg-gradient-to-r from-primary-500/10 to-violet-500/10': isDropdownOpen }"
+        class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition-all duration-200 bg-white/[0.03] backdrop-blur-sm border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1] group"
+        :class="{ 'border-violet-500/30 bg-violet-500/5': isDropdownOpen }"
       >
-        <!-- Subtle glow effect on hover -->
-        <div class="absolute -inset-0.5 bg-gradient-to-r from-primary-500/30 to-violet-500/30 rounded-lg blur opacity-0 group-hover:opacity-50 transition duration-300"></div>
-        
-        <div v-if="selectedModel" class="relative flex items-center space-x-3 max-w-[85%]">
-          <!-- Selected Model Icon with enhanced styling -->
+        <div v-if="selectedModel" class="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+          <!-- Compact Model Icon -->
           <div 
-            class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
+            class="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
             :class="[getModelTypeClass(selectedModel)]"
           >
-            <i class="fas" :class="getModelTypeIcon(selectedModel)"></i>
+            <i class="fas text-[10px]" :class="getModelTypeIcon(selectedModel)"></i>
           </div>
           
-          <!-- Selected Model Info with improved typography -->
-          <div class="flex flex-col text-left">
-            <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ selectedModel.name }}</span>
-            <div class="flex items-center gap-1 text-xs truncate max-w-[150px]">
-              <span class="text-gray-400">{{ shorten(selectedModel.description || '') }}</span>
-              <span class="text-xs font-semibold ml-auto px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20">${{ formatPrice(selectedModel.costPerRequest) }}</span>
-            </div>
+          <!-- Compact Model Info -->
+          <div class="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+            <span class="text-xs font-medium text-white/70 truncate">{{ selectedModel.name }}</span>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300/80 shrink-0 whitespace-nowrap">${{ formatPrice(selectedModel.costPerRequest) }}</span>
           </div>
         </div>
-        <div v-else class="relative flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-lg bg-dark-700/50 flex items-center justify-center text-gray-400 border border-dark-600/30">
-            <i class="fas fa-robot"></i>
+        <div v-else class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-md bg-white/[0.05] flex items-center justify-center text-white/30">
+            <i class="fas fa-robot text-[10px]"></i>
           </div>
-          <span class="text-gray-400">Select a model</span>
+          <span class="text-xs text-white/40">Select model</span>
+        </div>
+        
+        <!-- Compact Dropdown Arrow -->
+        <i class="fas fa-chevron-down text-[8px] text-white/30 transition-transform duration-200 ml-1 shrink-0"
+           :class="{ 'rotate-180 text-violet-400': isDropdownOpen }"></i>
+      </button>
+      
+      <!-- Regular Mode Trigger Button -->
+      <button
+        v-else
+        @click="toggleDropdown"
+        class="w-full flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200 bg-white/[0.03] backdrop-blur-sm border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1] group"
+        :class="{ 'border-violet-500/30 bg-violet-500/5': isDropdownOpen }"
+      >
+        <div v-if="selectedModel" class="relative flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
+          <!-- Selected Model Icon - compact -->
+          <div 
+            class="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+            :class="[getModelTypeClass(selectedModel)]"
+          >
+            <i class="fas text-xs" :class="getModelTypeIcon(selectedModel)"></i>
+          </div>
+          
+          <!-- Selected Model Info - compact -->
+          <div class="flex items-center gap-2.5 text-left flex-1 min-w-0 overflow-hidden">
+            <span class="text-sm font-medium text-white/70 group-hover:text-white/90 transition-colors truncate">{{ selectedModel.name }}</span>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300/80 border border-violet-500/20 shrink-0 whitespace-nowrap">${{ formatPrice(selectedModel.costPerRequest) }}</span>
+          </div>
+        </div>
+        <div v-else class="relative flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-md bg-white/[0.05] flex items-center justify-center text-white/30 border border-white/[0.08]">
+            <i class="fas fa-robot text-xs"></i>
+          </div>
+          <span class="text-sm text-white/40">Select model</span>
         </div>
         
         <!-- Dropdown Arrow with animation -->
-        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300 relative"
-           :class="{ 'transform rotate-180 text-primary-400': isDropdownOpen }"></i>
+        <i class="fas fa-chevron-down text-[10px] text-white/30 transition-transform duration-200 relative ml-1 shrink-0"
+           :class="{ 'rotate-180 text-violet-400': isDropdownOpen }"></i>
       </button>
       
       <!-- Dropdown Menu positioned like the mode selector (default, always below). Disabled because we use portal for fixed positioning. -->
       <div 
         v-show="false && isDropdownOpen && !usePortal" 
-        class="absolute z-[11000] w-full mt-2 bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+        class="absolute z-[11000] w-full min-w-[280px] mt-2 bg-[#0c0c12]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
         role="listbox"
         aria-label="Select model"
         :style="dropdownInlineStyle"
       >
-        <!-- Subtle header -->
-        <div class="px-3 py-2 border-b border-dark-700/50 text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
-          Available Models
+        <!-- Compact header -->
+        <div class="px-3 py-2 border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-wider text-white/30">
+          Models
         </div>
         
-        <div class="overflow-y-auto py-1 pb-4 pr-2" :style="{ maxHeight: scrollMaxHeight }">
+        <div class="overflow-y-auto py-1" :style="{ maxHeight: scrollMaxHeight }">
           <button
             v-for="model in displayModels"
             :key="model.id"
-            class="w-full flex items-start gap-1 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
-            :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': modelId === model.id }"
+            class="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.05] transition-all duration-200 group relative"
+            :class="{ 'bg-violet-500/15 text-violet-300': modelId === model.id }"
             @click="handleModelSelect(model.id)"
             role="option"
             :aria-selected="modelId === model.id"
           >
-            <!-- Subtle hover effect -->
-            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-            
-            <!-- Model Icon with enhanced styling -->
+            <!-- Model Icon - compact -->
             <div 
-              class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
+              class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
               :class="[getModelTypeClass(model)]"
             >
-              <i class="fas" :class="getModelTypeIcon(model)"></i>
+              <i class="fas text-[10px]" :class="getModelTypeIcon(model)"></i>
             </div>
             
-            <!-- Model Info with improved layout -->
-            <div class="flex flex-col text-left flex-1 min-w-0">
-              <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ model.name }}</span>
-              <span class="text-gray-400 group-hover:text-gray-200 transition-colors whitespace-normal break-words pt-1 block text-xs" :title="model.description">{{ shorten(model.description || '') }}</span>
+            <!-- Model Info - no truncation -->
+            <div class="flex items-center text-left flex-1">
+              <span class="text-xs font-medium transition-colors whitespace-nowrap"
+                :class="modelId === model.id ? 'text-violet-300' : 'text-white/70 group-hover:text-white/90'">
+                {{ model.name }}
+              </span>
             </div>
-            <div class="flex flex-col items-center justify-between h-full flex-shrink-0">
-              <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
-              <span v-if="modelId === model.id" class="text-primary-400"><i class="fas fa-check"></i></span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 whitespace-nowrap"
+                :class="modelId === model.id ? 'text-violet-300' : 'text-violet-300/80'">
+                ${{ formatPrice(model.costPerRequest) }}
+              </span>
+              <span v-if="modelId === model.id" class="text-violet-400 w-3"><i class="fas fa-check text-[10px]"></i></span>
             </div>
           </button>
-          <!-- Spacer to prevent last item from being visually clipped -->
-          <div class="h-3"></div>
         </div>
       </div>
 
@@ -106,48 +135,49 @@
       <Teleport to="body">
         <div 
           v-show="isDropdownOpen && usePortal"
-          class="fixed z-[12000] bg-dark-800/90 backdrop-blur-md border border-dark-700/50 rounded-xl shadow-lg overflow-hidden"
+          class="fixed z-[12000] bg-[#0c0c12]/98 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/60 overflow-hidden min-w-[280px]"
           :style="portalStyle"
           role="listbox"
           aria-label="Select model"
         >
-          <!-- Subtle header -->
-          <div class="px-3 py-2 border-b border-dark-700/50 text-xs font-semibold uppercase tracking-wider bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
-            Available Models
+          <!-- Compact header -->
+          <div class="px-3 py-2 border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-wider text-white/30">
+            Models
           </div>
           
-          <div class="overflow-y-auto py-1 pb-4 pr-2" :style="{ maxHeight: scrollMaxHeight }">
+          <div class="overflow-y-auto py-1" :style="{ maxHeight: scrollMaxHeight }">
             <button
               v-for="model in displayModels"
               :key="model.id"
-              class="w-full flex items-start gap-1 p-3 hover:bg-dark-700/50 transition-all duration-200 group relative"
-              :class="{ 'bg-gradient-to-r from-primary-500/10 to-violet-500/10 border-l-2 border-l-primary-500': modelId === model.id }"
+              class="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.05] transition-all duration-200 group relative"
+              :class="{ 'bg-violet-500/15 text-violet-300': modelId === model.id }"
               @click="handleModelSelect(model.id)"
               role="option"
               :aria-selected="modelId === model.id"
             >
-              <!-- Subtle hover effect -->
-              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 to-primary-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-              
-              <!-- Model Icon with enhanced styling -->
+              <!-- Model Icon - compact -->
               <div 
-                class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
+                class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                 :class="[getModelTypeClass(model)]"
               >
-                <i class="fas" :class="getModelTypeIcon(model)"></i>
+                <i class="fas text-[10px]" :class="getModelTypeIcon(model)"></i>
               </div>
               
-              <!-- Model Info with improved layout -->
-              <div class="flex flex-col text-left flex-1 min-w-0">
-                <span class="font-medium text-gray-200 group-hover:text-white transition-colors">{{ model.name }}</span>
-                <span class="text-gray-400 group-hover:text-gray-200 transition-colors whitespace-normal break-words pt-1 block text-xs" :title="model.description">{{ shorten(model.description || '') }}</span>
+              <!-- Model Info - no truncation -->
+              <div class="flex items-center text-left flex-1">
+                <span class="text-xs font-medium transition-colors whitespace-nowrap"
+                  :class="modelId === model.id ? 'text-violet-300' : 'text-white/70 group-hover:text-white/90'">
+                  {{ model.name }}
+                </span>
               </div>
-              <div class="flex flex-col items-center justify-between h-full flex-shrink-0">
-                <span class="text-xs font-semibold px-1.5 py-0.5 rounded-md bg-primary-500/20 text-primary-300 border border-primary-500/20 whitespace-nowrap">${{ formatPrice(model.costPerRequest) }}</span>
-                <span v-if="modelId === model.id" class="text-primary-400"><i class="fas fa-check"></i></span>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 whitespace-nowrap"
+                  :class="modelId === model.id ? 'text-violet-300' : 'text-violet-300/80'">
+                  ${{ formatPrice(model.costPerRequest) }}
+                </span>
+                <span v-if="modelId === model.id" class="text-violet-400 w-3"><i class="fas fa-check text-[10px]"></i></span>
               </div>
             </button>
-            <div class="h-3"></div>
           </div>
         </div>
       </Teleport>
@@ -161,8 +191,8 @@
     </div>
     
     <!-- No Models Available Message with improved styling -->
-    <div v-if="displayModels.length === 0" class="mt-2 p-3 bg-dark-800/70 backdrop-blur-sm rounded-lg text-center text-gray-400 text-sm border border-dark-700/50">
-      <i class="fas fa-exclamation-circle mr-1 text-gray-500"></i>
+    <div v-if="displayModels.length === 0" class="mt-2 p-3 bg-white/[0.03] backdrop-blur-sm rounded-lg text-center text-white/40 text-xs border border-white/[0.06]">
+      <i class="fas fa-exclamation-circle mr-1 text-white/30 text-[10px]"></i>
       No AI models available
     </div>
 
@@ -177,10 +207,10 @@
     >
       <div 
         v-if="rateLimitWarning"
-        class="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs backdrop-blur-sm"
+        class="mt-2 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-400 text-[11px] backdrop-blur-sm"
         :key="'warning'"
       >
-        <i class="fas fa-exclamation-triangle mr-1"></i>
+        <i class="fas fa-exclamation-triangle mr-1 text-[10px]"></i>
         {{ rateLimitWarning }}
       </div>
     </TransitionGroup>
@@ -197,6 +227,7 @@ const props = defineProps<{
   modelId: string | null
   models: AIModel[]
   mode: 'chat' | 'build'
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -222,7 +253,7 @@ const computeDropdownPlacement = () => {
   // Always use portal so dropdown is fixed while page scrolls
   usePortal.value = true
   const left = Math.round(rect.left)
-  const width = Math.round(rect.width)
+  const width = Math.max(280, Math.round(rect.width)) // Ensure minimum width of 280px
   const triggerTop = rect.bottom + 8
   // Available space below the trigger within viewport
   const availBelow = Math.max(140, window.innerHeight - triggerTop - 8)
@@ -355,13 +386,6 @@ const availableModels = computed(() => {
   return filtered.length > 0 ? filtered : defaultModels.value
 })
 
-// Helper to make descriptions concise
-function shorten(text: string, max = 90): string {
-  if (!text) return ''
-  if (text.length <= max) return text
-  return text.slice(0, max - 1).trimEnd() + '…'
-}
-
 // Filter models based on mode
 const displayModels = computed(() => {
   return availableModels.value.filter(model => {
@@ -387,10 +411,10 @@ const selectedModel = computed(() => {
 </script>
 
 <style scoped>
-/* Custom scrollbar for dropdown */
+/* Custom scrollbar for dropdown - matching builder design */
 .overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.dark.600') transparent;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
 }
 
 .overflow-y-auto::-webkit-scrollbar {
@@ -402,8 +426,12 @@ const selectedModel = computed(() => {
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: theme('colors.dark.600');
+  background: rgba(139, 92, 246, 0.3);
   border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
 }
 
 /* Smooth transitions */

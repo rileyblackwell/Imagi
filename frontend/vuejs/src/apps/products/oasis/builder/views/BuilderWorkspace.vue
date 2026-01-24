@@ -43,104 +43,366 @@
         <!-- Enhanced Error State Display -->
         <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
         
-        <!-- Enhanced ChatGPT-like Interface -->
+        <!-- Main Layout: Navigation above, Chat Input always at bottom -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
-          <!-- Main Content: Show Apps section first; switch to chat after submit -->
-          <div class="flex-1 flex flex-col h-full min-h-0 relative">
-            <!-- Apps Section (moved from sidebar) with chat input kept visible below -->
-            <div v-if="showAppsInMain" class="flex-1 min-h-0 p-4 sm:p-6 lg:p-8 flex flex-col relative overflow-x-hidden overflow-y-auto">
-              <!-- Premium glass apps container - Matching Home Page CTA Style -->
-              <div class="group relative flex-1 min-h-0">
-                <!-- Background glow -->
-                <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl sm:rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-                
-                <!-- Card content -->
-                <div class="relative h-full p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-y-auto overflow-x-hidden flex flex-col">
-                  <!-- Accent line -->
-                  <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+          <!-- Navigation Area (scrollable) -->
+          <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <!-- Conversation Panel (when there are messages) -->
+            <div v-if="hasConversation" class="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <!-- Breadcrumb Header -->
+              <div class="shrink-0 px-6 py-3 border-b border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl">
+                <div class="flex items-center justify-between">
+                  <!-- Breadcrumb navigation -->
+                  <div class="flex items-center gap-2 text-sm">
+                    <button 
+                      @click="handleBackToApps"
+                      class="text-white/50 hover:text-white transition-colors"
+                    >
+                      Apps
+                    </button>
+                    <template v-if="selectedApp">
+                      <i class="fas fa-chevron-right text-[10px] text-white/30"></i>
+                      <button 
+                        @click="handleBackToApp"
+                        class="text-white/50 hover:text-white transition-colors"
+                      >
+                        {{ selectedApp.displayName }}
+                      </button>
+                    </template>
+                    <template v-if="store.selectedFile">
+                      <i class="fas fa-chevron-right text-[10px] text-white/30"></i>
+                      <span class="text-white/90 font-medium">{{ getDisplayName(store.selectedFile.path) }}</span>
+                    </template>
+                  </div>
                   
-                  <!-- Decorative elements -->
-                  <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                  <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                
-                  <!-- Simple: App Gallery for non-technical users -->
-                  <WorkspaceAppsSimple
-                    :key="simpleViewRefreshKey"
-                    v-if="appsViewMode === 'simple'"
-                    :files="store.files || []"
-                    :project-id="projectId || ''"
-                    :version-history="versionHistory"
-                    :is-loading-versions="isLoadingVersions"
-                    :selected-version-hash="selectedVersionHash"
-                    @selectFile="handleFileSelect"
-                    @createApp="handleCreateAppFromGallery"
-                    @preview="handlePreview"
-                    @update:selectedVersionHash="(v) => (selectedVersionHash = v)"
-                    @version-select="onVersionSelect"
-                    @version-reset="handleVersionReset"
-                    class="flex-1 min-h-0"
-                  />
+                  <!-- Close conversation button -->
+                  <button
+                    @click="handleCloseConversation"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all text-sm text-white/70 hover:text-white"
+                  >
+                    <i class="fas fa-times text-xs"></i>
+                    <span>Close</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Chat Conversation Area -->
+              <div class="flex-1 min-h-0 overflow-y-auto">
+                <ChatConversation
+                  :messages="ensureValidMessages(store.conversation || [])"
+                  :is-processing="store.isProcessing"
+                  @use-example="handleExamplePrompt"
+                />
+              </div>
+            </div>
+            
+            <!-- Navigation Views (when no conversation or minimized) -->
+            <div v-else class="flex-1 min-h-0 overflow-hidden">
+              <!-- Split Screen Layout: Apps List + Detail View -->
+              <div class="h-full p-4 sm:p-6 lg:p-8 flex gap-4">
+                <!-- Left Side: Apps List (1/3 width) -->
+                <div class="w-1/3 flex flex-col min-h-0">
+                  <div class="group relative flex-1 min-h-0">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+                    
+                    <div class="relative h-full rounded-xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden flex flex-col">
+                      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+                      <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                      <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                      <AppsList
+                        :files="store.files || []"
+                        @select-app="handleSelectApp"
+                        @create-app="handleCreateAppFromGallery"
+                        class="flex-1 min-h-0"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-                  <!-- Advanced: full file explorer -->
-                  <WorkspaceAppsAdvanced
-                    :key="advancedViewRefreshKey"
-                    v-else
-                    :files="advancedFiles || []"
-                    :selected-file="store.selectedFile || null"
-                    :file-types="fileTypes"
-                    :project-id="projectId || ''"
-                    @back="() => { appsViewMode = 'simple'; advancedAppFilter = null; simpleViewRefreshKey += 1 }"
-                    @select-file="handleFileSelect"
-                    @create-file="handleFileCreate"
-                    @delete-file="handleFileDelete"
-                    class="flex-1 min-h-0"
-                  />
-
-                  <!-- Compact chat input section fixed below Apps area - ONLY in advanced view -->
-                  <div v-if="appsViewMode === 'advanced'" class="mt-4 shrink-0">
-                    <WorkspaceChat
-                      :messages="ensureValidMessages(store.conversation || [])"
-                      :is-processing="store.isProcessing"
-                      :mode="store.mode || 'chat'"
-                      :selected-file="store.selectedFile"
-                      :selected-model-id="store.selectedModelId"
-                      :available-models="store.availableModels || []"
-                      :prompt-placeholder="promptPlaceholder"
-                      :show-examples="false"
-                      :prompt-examples="promptExamplesComputed"
-                      v-model="prompt"
-                      :compact="true"
-                      :show-conversation="false"
-                      @update:model-id="handleModelSelect"
-                      @update:mode="handleModeSwitch"
-                      @submit="handlePrompt"
-                      @use-example="handleExamplePrompt"
-                    />
+                <!-- Right Side: App Detail View (2/3 width) -->
+                <div class="w-2/3 flex flex-col min-h-0">
+                  <div class="group relative flex-1 min-h-0">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
+                    
+                    <div class="relative h-full rounded-xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden flex flex-col">
+                      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
+                      <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                      <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                      <!-- App Detail View (when app selected) -->
+                      <AppDetailView
+                        v-if="selectedApp"
+                        :app="selectedApp"
+                        @back="handleBackToList"
+                        @select-file="handleFileSelectFromDetail"
+                        @create-file="handleFileCreate"
+                        @category-change="handleCategoryChange"
+                        class="flex-1 min-h-0"
+                      />
+                      
+                      <!-- Empty State (when no app selected) -->
+                      <div v-else class="flex-1 flex items-center justify-center p-8">
+                        <div class="text-center max-w-md">
+                          <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 mb-6">
+                            <i class="fas fa-arrow-left text-violet-400 text-3xl"></i>
+                          </div>
+                          <h3 class="text-2xl font-semibold text-white/90 mb-3">Select an App</h3>
+                          <p class="text-white/50 leading-relaxed">
+                            Choose an app from the left to view its pages, blocks, and other files. You can then edit them or create new ones.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Chat Component -->
-            <div v-else class="flex-1 relative min-h-0">
-              <WorkspaceChat
-                :messages="ensureValidMessages(store.conversation || [])"
-                :is-processing="store.isProcessing"
-                :mode="store.mode || 'chat'"
-                :selected-file="store.selectedFile"
-                :selected-model-id="store.selectedModelId"
-                :available-models="store.availableModels || []"
-                :prompt-placeholder="promptPlaceholder"
-                :show-examples="false"
-                :prompt-examples="promptExamplesComputed"
-                v-model="prompt"
-                @update:model-id="handleModelSelect"
-                @update:mode="handleModeSwitch"
-                @submit="handlePrompt"
-                @use-example="handleExamplePrompt"
-                class="h-full w-full"
-                style="height: 100%; overflow: hidden; display: flex; flex-direction: column;"
-              />
+          </div>
+          
+          <!-- Persistent Chat Input Section (always at bottom) -->
+          <div class="shrink-0 relative">
+            <!-- Background with subtle gradient -->
+            <div class="bg-gradient-to-t from-[#050508] via-[#050508]/98 to-[#050508]/95 backdrop-blur-xl border-t border-white/[0.03]">
+              <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5">
+                <!-- Main Input Card -->
+                <div class="group relative">
+                  <!-- Card container with subtle shadow on focus -->
+                  <div class="relative rounded-2xl border bg-[#0a0a0f]/70 backdrop-blur-xl overflow-hidden transition-all duration-200"
+                       :class="prompt.trim() ? 'border-white/[0.08] shadow-lg shadow-black/20' : 'border-white/[0.04] group-focus-within:border-white/[0.06] group-focus-within:shadow-md group-focus-within:shadow-black/10'">
+                    
+                    <!-- Controls Row - Reorganized: Files (left) → Model (middle) → Ask/Edit (right) -->
+                    <div class="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.03]">
+                      <!-- File Context Picker - Now supports multiple file selection -->
+                      <div class="relative" ref="filePickerRef">
+                        <button
+                          @click="toggleFilePicker"
+                          class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-xs font-medium"
+                          :class="selectedContextFiles.length > 0
+                            ? 'bg-white/[0.08] text-white/90 hover:bg-white/[0.12] border border-white/[0.08]' 
+                            : 'bg-white/[0.02] text-white/40 hover:bg-white/[0.04] hover:text-white/60 border border-white/[0.04]'"
+                        >
+                          <i :class="selectedContextFiles.length > 0 ? 'fas fa-file-code' : 'fas fa-plus'" class="text-[10px]"></i>
+                          <span v-if="selectedContextFiles.length === 1" class="max-w-[120px] truncate">{{ getDisplayName(selectedContextFiles[0].path) }}</span>
+                          <span v-else-if="selectedContextFiles.length > 1" class="max-w-[120px] truncate">{{ selectedContextFiles.length }} files</span>
+                          <span v-else>Add context</span>
+                          <i class="fas fa-chevron-down text-[8px] opacity-50 transition-transform duration-200" :class="{ 'rotate-180': isFilePickerOpen }"></i>
+                        </button>
+                        
+                        <!-- File Picker Dropdown with multi-select -->
+                        <div
+                          v-if="isFilePickerOpen"
+                          class="absolute top-full left-0 mt-2 w-72 max-h-80 flex flex-col bg-[#0a0a0f]/98 backdrop-blur-xl border border-white/[0.06] rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden"
+                        >
+                          <div class="flex-1 overflow-y-auto p-2">
+                            <!-- Clear all button -->
+                            <button
+                              v-if="selectedContextFiles.length > 0"
+                              @click="clearAllFileSelections"
+                              class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs text-white/50 hover:bg-white/[0.04] hover:text-white/80 transition-colors mb-2 border-b border-white/[0.04] pb-3"
+                            >
+                              <i class="fas fa-times text-[10px]"></i>
+                              <span>Clear all ({{ selectedContextFiles.length }})</span>
+                            </button>
+                            
+                            <!-- Files grouped by category with checkboxes -->
+                            <div v-if="selectedApp" class="space-y-1">
+                              <!-- Pages -->
+                              <div v-if="appPages.length > 0">
+                                <div class="px-3 py-1.5 text-[10px] font-semibold text-white/25 uppercase tracking-wider">Pages</div>
+                                <button
+                                  v-for="file in appPages"
+                                  :key="file.path"
+                                  @click="toggleFileContext(file)"
+                                  class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
+                                  :class="isFileSelected(file.path)
+                                    ? 'bg-white/[0.08] text-white/90 border border-white/[0.10]' 
+                                    : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70 border border-transparent'"
+                                >
+                                  <!-- Checkbox -->
+                                  <div class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
+                                    :class="isFileSelected(file.path)
+                                      ? 'bg-white/[0.15] border-white/[0.25]'
+                                      : 'bg-white/[0.02] border-white/[0.10]'"
+                                  >
+                                    <i v-if="isFileSelected(file.path)" class="fas fa-check text-[8px] text-white"></i>
+                                  </div>
+                                  <i class="fas fa-window-maximize text-[10px] text-white/40"></i>
+                                  <span class="truncate flex-1">{{ getDisplayName(file.path) }}</span>
+                                </button>
+                              </div>
+                              
+                              <!-- Blocks -->
+                              <div v-if="appBlocks.length > 0">
+                                <div class="px-3 py-1.5 text-[10px] font-semibold text-white/25 uppercase tracking-wider mt-2">Blocks</div>
+                                <button
+                                  v-for="file in appBlocks"
+                                  :key="file.path"
+                                  @click="toggleFileContext(file)"
+                                  class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
+                                  :class="isFileSelected(file.path)
+                                    ? 'bg-white/[0.08] text-white/90 border border-white/[0.10]' 
+                                    : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70 border border-transparent'"
+                                >
+                                  <!-- Checkbox -->
+                                  <div class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
+                                    :class="isFileSelected(file.path)
+                                      ? 'bg-white/[0.15] border-white/[0.25]'
+                                      : 'bg-white/[0.02] border-white/[0.10]'"
+                                  >
+                                    <i v-if="isFileSelected(file.path)" class="fas fa-check text-[8px] text-white"></i>
+                                  </div>
+                                  <i class="fas fa-puzzle-piece text-[10px] text-white/40"></i>
+                                  <span class="truncate flex-1">{{ getDisplayName(file.path) }}</span>
+                                </button>
+                              </div>
+                              
+                              <!-- Data -->
+                              <div v-if="appStores.length > 0">
+                                <div class="px-3 py-1.5 text-[10px] font-semibold text-white/25 uppercase tracking-wider mt-2">Data</div>
+                                <button
+                                  v-for="file in appStores"
+                                  :key="file.path"
+                                  @click="toggleFileContext(file)"
+                                  class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
+                                  :class="isFileSelected(file.path)
+                                    ? 'bg-white/[0.08] text-white/90 border border-white/[0.10]' 
+                                    : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70 border border-transparent'"
+                                >
+                                  <!-- Checkbox -->
+                                  <div class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
+                                    :class="isFileSelected(file.path)
+                                      ? 'bg-white/[0.15] border-white/[0.25]'
+                                      : 'bg-white/[0.02] border-white/[0.10]'"
+                                  >
+                                    <i v-if="isFileSelected(file.path)" class="fas fa-check text-[8px] text-white"></i>
+                                  </div>
+                                  <i class="fas fa-database text-[10px] text-white/40"></i>
+                                  <span class="truncate flex-1">{{ getDisplayName(file.path) }}</span>
+                                </button>
+                              </div>
+                              
+                              <!-- Empty state -->
+                              <div v-if="appPages.length === 0 && appBlocks.length === 0 && appStores.length === 0" class="px-3 py-4 text-center text-xs text-white/30">
+                                No files in this app yet
+                              </div>
+                            </div>
+                            
+                            <!-- No app selected -->
+                            <div v-else class="px-3 py-4 text-center text-xs text-white/30">
+                              Select an app first
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Divider -->
+                      <div class="w-px h-5 bg-white/[0.04]"></div>
+                      
+                      <!-- Model Selector - Now in middle -->
+                      <div class="min-w-[160px] max-w-[200px]">
+                        <ModelSelector 
+                          :models="store.availableModels || []"
+                          :model-id="store.selectedModelId"
+                          :mode="store.mode || 'chat'"
+                          @update:model-id="handleModelSelect"
+                          compact
+                        />
+                      </div>
+                      
+                      <!-- Spacer -->
+                      <div class="flex-1"></div>
+                      
+                      <!-- Mode Toggle - Now on right side -->
+                      <div class="flex items-center bg-white/[0.02] rounded-lg p-0.5 border border-white/[0.04]">
+                        <button
+                          @click="handleModeSwitch('chat')"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
+                          :class="store.mode === 'chat' 
+                            ? 'bg-white/[0.08] text-white/90 shadow-sm' 
+                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'"
+                        >
+                          <i class="fas fa-comments text-[10px]"></i>
+                          <span>Ask</span>
+                        </button>
+                        <button
+                          @click="handleModeSwitch('build')"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
+                          :class="store.mode === 'build' 
+                            ? 'bg-white/[0.08] text-white/90 shadow-sm' 
+                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'"
+                        >
+                          <i class="fas fa-magic text-[10px]"></i>
+                          <span>Edit</span>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="relative">
+                      <!-- Textarea -->
+                      <textarea
+                        ref="promptTextarea"
+                        v-model="prompt"
+                        :placeholder="promptPlaceholder"
+                        @keydown.enter.exact.prevent="handlePrompt"
+                        @keydown.enter.shift.exact="() => {}"
+                        @input="autoResizeTextarea"
+                        :disabled="store.isProcessing"
+                        rows="1"
+                        class="w-full bg-transparent text-white/90 placeholder-white/30 text-sm pl-4 pr-14 py-3.5 resize-none focus:outline-none leading-relaxed transition-all duration-200 focus:placeholder-white/40"
+                        style="min-height: 52px; max-height: 160px;"
+                      ></textarea>
+                      
+                      <!-- Send Button -->
+                      <div class="absolute right-3 bottom-3">
+                        <button
+                          @click="handlePrompt"
+                          :disabled="!prompt.trim() || store.isProcessing"
+                          class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+                          :class="prompt.trim() && !store.isProcessing
+                            ? 'bg-white/[0.12] text-white hover:bg-white/[0.18] active:bg-white/[0.15]'
+                            : 'bg-white/[0.03] text-white/15 cursor-not-allowed'"
+                        >
+                          <i v-if="store.isProcessing" class="fas fa-circle-notch fa-spin text-xs"></i>
+                          <i v-else class="fas fa-arrow-up text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Footer hints -->
+                    <div class="flex items-center justify-between px-4 py-2 border-t border-white/[0.02]">
+                      <div class="text-[11px] text-white/25 flex items-center gap-2 flex-1 min-w-0">
+                        <span v-if="store.mode === 'build' && selectedContextFiles.length === 0" class="flex items-center gap-1.5 text-white/30">
+                          <i class="fas fa-info-circle text-[9px]"></i>
+                          <span>Select a file to make changes</span>
+                        </span>
+                        <span v-else-if="selectedContextFiles.length > 0" class="flex items-center gap-2 flex-wrap">
+                          <span class="flex items-center gap-1.5">
+                            <i class="fas fa-file-code text-[9px] text-white/30"></i>
+                            <span class="font-medium text-white/25">Context:</span>
+                          </span>
+                          <span v-if="selectedContextFiles.length === 1" class="text-white/35">{{ getDisplayName(selectedContextFiles[0].path) }}</span>
+                          <span v-else class="flex items-center gap-1">
+                            <span class="truncate max-w-[120px] text-white/35">{{ getDisplayName(selectedContextFiles[0].path) }}</span>
+                            <span class="text-white/40">+{{ selectedContextFiles.length - 1 }} more</span>
+                          </span>
+                        </span>
+                      </div>
+                      <div class="text-[11px] text-white/20 flex items-center gap-3 flex-shrink-0">
+                        <span class="flex items-center gap-1">
+                          <kbd class="px-1.5 py-0.5 bg-white/[0.02] rounded text-[9px] font-medium border border-white/[0.04]">⏎</kbd>
+                          <span>send</span>
+                        </span>
+                        <span class="flex items-center gap-1">
+                          <kbd class="px-1.5 py-0.5 bg-white/[0.02] rounded text-[9px] font-medium border border-white/[0.04]">⇧⏎</kbd>
+                          <span>new line</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -182,10 +444,12 @@ import {
   WorkspaceChat,
   WorkspaceBackground,
   WorkspaceError,
-  WorkspaceAppsSimple,
-  WorkspaceAppsAdvanced
 } from '../components/organisms/workspace'
+import { ChatConversation } from '../components/organisms/chat'
+import AppsList from '../components/organisms/workspace/AppsList.vue'
+import AppDetailView from '../components/organisms/workspace/AppDetailView.vue'
 import NewAppModal from '../components/organisms/workspace/NewAppModal.vue'
+import ModelSelector from '../components/molecules/sidebar/ModelSelector.vue'
 // Set component name
 defineOptions({ name: 'BuilderWorkspace' })
 
@@ -312,17 +576,53 @@ async function onVersionSelect() {
 // Local state
 const prompt = ref('')
 const showAppsInMain = ref(true)
-const appsViewMode = ref<'simple' | 'advanced'>('simple')
-const advancedViewRefreshKey = ref(0)
-const simpleViewRefreshKey = ref(0)
-// When in advanced mode, restrict files to a specific app
-const advancedAppFilter = ref<string | null>(null)
+const selectedApp = ref<any>(null)
+const selectedCategory = ref<{ key: string; label: string } | null>(null)
+const isFilePickerOpen = ref(false)
+const filePickerRef = ref<HTMLElement | null>(null)
+const promptTextarea = ref<HTMLTextAreaElement | null>(null)
+const selectedContextFiles = ref<ProjectFile[]>([])
 
-const advancedFiles = computed(() => {
-  const files = store.files || []
-  if (!advancedAppFilter.value) return files
-  const app = advancedAppFilter.value.toLowerCase()
-  return files.filter((f: any) => (f.path || '').toLowerCase().includes(`/src/apps/${app}/`))
+// Auto-resize textarea based on content
+function autoResizeTextarea() {
+  if (!promptTextarea.value) return
+  promptTextarea.value.style.height = 'auto'
+  const scrollHeight = promptTextarea.value.scrollHeight
+  const maxHeight = 160
+  promptTextarea.value.style.height = `${Math.min(scrollHeight, maxHeight)}px`
+}
+
+// Computed: check if there's an active conversation
+const hasConversation = computed(() => {
+  return store.conversation && store.conversation.length > 0
+})
+
+// Helper to check if file is a barrel file
+function isBarrelFile(path: string): boolean {
+  const filename = path.split('/').pop()?.toLowerCase() || ''
+  return filename === 'index.ts' || filename === 'index.js' || filename === 'index.vue'
+}
+
+// Computed: files in the selected app categorized
+const appPages = computed(() => {
+  if (!selectedApp.value?.files) return []
+  return selectedApp.value.files.filter((f: ProjectFile) => 
+    /\/views\//i.test(f.path) && !isBarrelFile(f.path)
+  )
+})
+
+const appBlocks = computed(() => {
+  if (!selectedApp.value?.files) return []
+  return selectedApp.value.files.filter((f: ProjectFile) => 
+    /\/components\//i.test(f.path) && !isBarrelFile(f.path)
+  )
+})
+
+const appStores = computed(() => {
+  if (!selectedApp.value?.files) return []
+  return selectedApp.value.files.filter((f: ProjectFile) => 
+    (/\/stores\//i.test(f.path) || /store\.(ts|js)$/i.test(f.path)) && !isBarrelFile(f.path)
+  )
 })
 
 // Navigation items for sidebar
@@ -379,15 +679,39 @@ async function handleVersionReset(version: Record<string, any>) {
   }
 }
 
+// Helper to get friendly display name from file path
+function getDisplayName(path: string): string {
+  if (!path) return ''
+  const parts = path.split('/')
+  const filename = parts[parts.length - 1]
+  // Remove extension and return friendly name
+  return filename.replace(/\.(vue|ts|js|tsx|jsx)$/, '')
+}
+
+// Helper to determine item kind from path (Page, Block, or Item)
+function getItemKind(path: string): string {
+  if (!path) return 'item'
+  if (/\/views\//i.test(path)) return 'page'
+  if (/\/components\//i.test(path)) return 'block'
+  if (/\/stores\//i.test(path)) return 'data store'
+  return 'item'
+}
+
 const promptPlaceholder = computed(() => {
   if (store.mode === 'chat') {
-    return store.selectedFile 
-      ? `Ask me anything about ${store.selectedFile.path} or your project...`
-      : 'Ask me anything about your project, get coding help, or discuss architecture...'
+    if (store.selectedFile) {
+      const displayName = getDisplayName(store.selectedFile.path)
+      const itemKind = getItemKind(store.selectedFile.path)
+      return `Ask me anything about "${displayName}" or your project...`
+    }
+    return 'Ask me anything about your project or get help with your app...'
   } else {
-    return store.selectedFile
-      ? `Describe the changes you want to make to ${getFileName(store.selectedFile.path)}...`
-      : 'Select a file from the sidebar to start building...'
+    if (store.selectedFile) {
+      const displayName = getDisplayName(store.selectedFile.path)
+      const itemKind = getItemKind(store.selectedFile.path)
+      return `Describe the changes you want to make to "${displayName}"...`
+    }
+    return 'Select a page or block to start making changes...'
   }
 })
 
@@ -457,10 +781,6 @@ async function handlePrompt(eventData?: { timestamp: string }) {
   if (!prompt.value.trim()) return
   
   try {
-    // Switch main area from Apps to Chat upon first submission
-    if (showAppsInMain.value) {
-      showAppsInMain.value = false
-    }
     if (!store.selectedModelId) {
       return
     }
@@ -822,22 +1142,114 @@ async function handleModeSwitch(mode: BuilderMode) {
   }
 }
 
-async function handleFileSelect(file: ProjectFile) {
-  // Always proceed even if the same file is selected to allow re-opening the same app
-  // Determine file type before selecting the file (reserved for future specialized handling)
-  const fileExtension = file.path.split('.').pop()?.toLowerCase() || ''
-  const isCSS = fileExtension === 'css' || file.type === 'css'
-  const isHTML = fileExtension === 'html' || file.type === 'html'
+function handleSelectApp(app: any) {
+  selectedApp.value = app
+}
 
-  // Ensure selected file is set (call even if same path to keep state consistent)
-  store.selectFile(file)
+function handleBackToList() {
+  selectedApp.value = null
+  selectedCategory.value = null
+  store.setSelectedFile(null)
+}
 
-  // Switch to Advanced view and filter to the selected app
-  appsViewMode.value = 'advanced'
-  const appMatch = (file.path || '').toLowerCase().match(/\/src\/apps\/([^/]+)\//)
-  if (appMatch && appMatch[1]) {
-    advancedAppFilter.value = appMatch[1]
+function handleCategoryChange(category: { key: string; label: string } | null) {
+  selectedCategory.value = category
+}
+
+function handleBackToApps() {
+  selectedApp.value = null
+  selectedCategory.value = null
+  store.setSelectedFile(null)
+}
+
+function handleBackToApp() {
+  selectedCategory.value = null
+  store.setSelectedFile(null)
+}
+
+function handleBackToCategory() {
+  store.setSelectedFile(null)
+}
+
+function handleBackFromChat() {
+  store.setSelectedFile(null)
+}
+
+// File picker methods
+function toggleFilePicker() {
+  isFilePickerOpen.value = !isFilePickerOpen.value
+}
+
+// Toggle file selection in context (multi-select)
+function toggleFileContext(file: ProjectFile) {
+  const index = selectedContextFiles.value.findIndex(f => f.path === file.path)
+  if (index >= 0) {
+    // Remove if already selected
+    selectedContextFiles.value.splice(index, 1)
+  } else {
+    // Add if not selected
+    selectedContextFiles.value.push(file)
   }
+  
+  // Update store with the primary selected file (first in list or null)
+  if (selectedContextFiles.value.length > 0) {
+    store.selectFile(selectedContextFiles.value[0])
+  } else {
+    store.setSelectedFile(null)
+  }
+}
+
+// Check if a file is selected
+function isFileSelected(filePath: string): boolean {
+  return selectedContextFiles.value.some(f => f.path === filePath)
+}
+
+// Clear all file selections
+function clearAllFileSelections() {
+  selectedContextFiles.value = []
+  store.setSelectedFile(null)
+}
+
+// Legacy single-select method (kept for compatibility)
+function selectFileContext(file: ProjectFile) {
+  store.selectFile(file)
+  isFilePickerOpen.value = false
+}
+
+function clearFileSelection() {
+  selectedContextFiles.value = []
+  store.setSelectedFile(null)
+  isFilePickerOpen.value = false
+}
+
+function handleCloseConversation() {
+  store.clearConversation()
+}
+
+// Close file picker when clicking outside
+function handleClickOutside(event: MouseEvent) {
+  if (filePickerRef.value && !filePickerRef.value.contains(event.target as Node)) {
+    isFilePickerOpen.value = false
+  }
+}
+
+async function handleFileSelectFromDetail(file: ProjectFile) {
+  // Set the selected file in store (for context in chat input)
+  store.selectFile(file)
+  
+  // Also add to context files if not already there
+  if (!selectedContextFiles.value.some(f => f.path === file.path)) {
+    selectedContextFiles.value = [file]
+  }
+  
+  // Force UI update
+  await nextTick()
+}
+
+async function handleFileSelect(file: ProjectFile) {
+  // Ensure selected file is set
+  store.selectFile(file)
+  showAppsInMain.value = false
 
   // Force UI update to reflect mode/selection changes
   await nextTick()
@@ -875,13 +1287,28 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     console.debug('File created, refreshing file list from backend...')
     await loadProjectFiles(true)
 
-    // Ensure Apps area is visible and switched to Advanced mode
-    showAppsInMain.value = true
-    appsViewMode.value = 'advanced'
-    if (appMatch?.[1]) {
-      advancedAppFilter.value = appMatch[1]
+    // Stay in detail view if an app is selected
+    if (appMatch?.[1] && !selectedApp.value) {
+      // Find the app and show detail view
+      const appFiles = store.files?.filter((f: any) => 
+        (f.path || '').toLowerCase().includes(`/src/apps/${appMatch[1]}/`)
+      ) || []
+      if (appFiles.length > 0) {
+        // Build app object
+        const appKey = appMatch[1]
+        const appName = appKey.charAt(0).toUpperCase() + appKey.slice(1)
+        selectedApp.value = {
+          key: appKey,
+          name: appKey,
+          displayName: appName,
+          files: appFiles,
+          icon: 'fas fa-cube',
+          color: { bg: 'bg-violet-600/15', border: 'border-violet-400/30', text: 'text-violet-300' },
+          hint: 'App files'
+        }
+      }
     }
-    advancedViewRefreshKey.value += 1
+    
     await nextTick()
     
     // Automatically commit the file creation
@@ -1233,6 +1660,9 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error initializing workspace:', error);
   }
+  
+  // Add click outside listener for file picker
+  document.addEventListener('click', handleClickOutside)
 })
 
 // Watch for route parameter changes (e.g., if user navigates to different project)
@@ -1281,6 +1711,8 @@ onBeforeUnmount(() => {
   // Clean up resources
   store.clearConversation()
   store.setSelectedFile(null)
+  // Remove click outside listener
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
