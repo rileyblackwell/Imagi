@@ -59,14 +59,10 @@
             >
               <div class="absolute -inset-0.5 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-violet-600/10 to-fuchsia-600/10"></div>
               <div class="relative p-6 rounded-xl border bg-[#0a0a0f]/80 backdrop-blur-xl transition-all duration-300 flex flex-col border-white/[0.08] hover:border-violet-500/30">
-                <!-- Icon and count -->
+                <!-- Icon -->
                 <div class="flex items-start justify-between mb-4">
                   <div class="w-14 h-14 rounded-xl flex items-center justify-center border bg-violet-500/10 border-violet-500/20">
                     <i class="fas fa-window-maximize text-xl text-violet-400"></i>
-                  </div>
-                  <div class="flex flex-col items-end">
-                    <span class="text-2xl font-bold text-violet-400">{{ pagesCategory.count }}</span>
-                    <span class="text-xs text-white/40">{{ pagesCategory.count === 1 ? 'page' : 'pages' }}</span>
                   </div>
                 </div>
                 
@@ -77,14 +73,7 @@
                 </div>
                 
                 <!-- Footer -->
-                <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
-                  <button
-                    @click.stop="handleCreatePage"
-                    class="text-xs font-medium transition-colors flex items-center gap-1.5 text-violet-400 hover:opacity-80"
-                  >
-                    <i class="fas fa-plus text-[10px]"></i>
-                    <span>New Page</span>
-                  </button>
+                <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/[0.06]">
                   <i class="fas fa-arrow-right text-sm transition-all duration-300 group-hover:translate-x-1 text-violet-400"></i>
                 </div>
               </div>
@@ -97,14 +86,10 @@
             >
               <div class="absolute -inset-0.5 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-fuchsia-600/10 to-violet-600/10"></div>
               <div class="relative p-6 rounded-xl border bg-[#0a0a0f]/80 backdrop-blur-xl transition-all duration-300 flex flex-col border-white/[0.08] hover:border-fuchsia-500/30">
-                <!-- Icon and count -->
+                <!-- Icon -->
                 <div class="flex items-start justify-between mb-4">
                   <div class="w-14 h-14 rounded-xl flex items-center justify-center border bg-fuchsia-500/10 border-fuchsia-500/20">
                     <i class="fas fa-puzzle-piece text-xl text-fuchsia-400"></i>
-                  </div>
-                  <div class="flex flex-col items-end">
-                    <span class="text-2xl font-bold text-fuchsia-400">{{ blocksCategory.count }}</span>
-                    <span class="text-xs text-white/40">{{ blocksCategory.count === 1 ? 'block' : 'blocks' }}</span>
                   </div>
                 </div>
                 
@@ -115,14 +100,7 @@
                 </div>
                 
                 <!-- Footer -->
-                <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
-                  <button
-                    @click.stop="handleCreateBlock"
-                    class="text-xs font-medium transition-colors flex items-center gap-1.5 text-fuchsia-400 hover:opacity-80"
-                  >
-                    <i class="fas fa-plus text-[10px]"></i>
-                    <span>New Block</span>
-                  </button>
+                <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/[0.06]">
                   <i class="fas fa-arrow-right text-sm transition-all duration-300 group-hover:translate-x-1 text-fuchsia-400"></i>
                 </div>
               </div>
@@ -141,14 +119,10 @@
                 'relative p-6 rounded-xl border bg-[#0a0a0f]/80 backdrop-blur-xl transition-all duration-300 flex flex-col border-white/[0.08]',
                 dataCategory.count > 0 ? 'hover:border-emerald-500/30' : ''
               ]">
-                <!-- Icon and count -->
+                <!-- Icon -->
                 <div class="flex items-start justify-between mb-4">
                   <div class="w-14 h-14 rounded-xl flex items-center justify-center border bg-emerald-500/10 border-emerald-500/20">
                     <i class="fas fa-database text-xl text-emerald-400"></i>
-                  </div>
-                  <div class="flex flex-col items-end">
-                    <span class="text-2xl font-bold text-emerald-400">{{ dataCategory.count }}</span>
-                    <span class="text-xs text-white/40">{{ dataCategory.count === 1 ? 'store' : 'stores' }}</span>
                   </div>
                 </div>
                 
@@ -159,9 +133,7 @@
                 </div>
                 
                 <!-- Footer -->
-                <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.06]">
-                  <span v-if="dataCategory.count === 0" class="text-xs text-white/30">No data stores yet</span>
-                  <div v-else></div>
+                <div class="flex items-center justify-end mt-4 pt-4 border-t border-white/[0.06]">
                   <i v-if="dataCategory.count > 0" class="fas fa-arrow-right text-sm transition-all duration-300 group-hover:translate-x-1 text-emerald-400"></i>
                 </div>
               </div>
@@ -177,7 +149,6 @@
           >
             <i :class="['fas fa-chevron-right text-xs transition-transform duration-200', showAdvanced ? 'rotate-90' : '']"></i>
             <span>Advanced</span>
-            <span class="text-xs text-white/30">({{ advancedFilesCount }} items)</span>
           </button>
           
           <div v-if="showAdvanced" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -206,7 +177,6 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-medium text-white/90 truncate">{{ category.label }}</div>
-                  <div class="text-xs text-white/40">{{ category.count }} {{ category.count === 1 ? 'item' : 'items' }}</div>
                 </div>
                 <i :class="['fas fa-chevron-right text-xs text-white/20 group-hover:text-white/40', category.iconColor]"></i>
               </div>
