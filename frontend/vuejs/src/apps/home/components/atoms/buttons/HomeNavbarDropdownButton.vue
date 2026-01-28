@@ -4,13 +4,8 @@
     <button
       :class="[
         gradientClass,
+        buttonStyleClass,
         'group relative overflow-hidden',
-        'transform hover:scale-[1.03] active:scale-[0.98]',
-        'transition-all duration-300 ease-out',
-        'shadow-lg hover:shadow-xl',
-        'min-w-[120px] h-11 px-5',
-        'inline-flex items-center justify-center gap-2',
-        'text-sm font-semibold tracking-wide rounded-xl',
         'backdrop-blur-sm',
         'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
         'before:transition-all before:duration-300',
@@ -83,7 +78,7 @@ export default defineComponent({
     gradientType: {
       type: String,
       default: 'primary',
-      validator: value => ['primary', 'secondary', 'amber', 'indigo', 'ghost'].includes(value)
+      validator: value => ['primary', 'secondary', 'amber', 'indigo', 'ghost', 'minimal'].includes(value)
     },
     modelValue: {
       type: Boolean,
@@ -98,6 +93,11 @@ export default defineComponent({
     })
 
     const gradientClass = computed(() => {
+      // Minimal style - clean Apple/Cursor-inspired design
+      if (props.gradientType === 'minimal') {
+        return 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:shadow-xl';
+      }
+
       const gradients = {
         primary: 'bg-gradient-to-br from-primary-600 via-primary-500 to-indigo-600 hover:from-primary-500 hover:via-primary-400 hover:to-indigo-500 text-white shadow-primary-500/30 hover:shadow-primary-500/50',
         secondary: 'bg-gradient-to-br from-violet-600 via-fuchsia-500 to-pink-600 hover:from-violet-500 hover:via-fuchsia-400 hover:to-pink-500 text-white shadow-violet-500/30 hover:shadow-violet-500/50',
@@ -106,6 +106,29 @@ export default defineComponent({
         ghost: 'bg-dark-800/40 hover:bg-dark-700/60 backdrop-blur-md border border-primary-400/30 hover:border-primary-400/60 text-white shadow-primary-500/10 hover:shadow-primary-500/20'
       }
       return gradients[props.gradientType]
+    })
+
+    // Computed class for button styling - different for minimal vs gradient buttons
+    const buttonStyleClass = computed(() => {
+      if (props.gradientType === 'minimal') {
+        return [
+          'transform hover:scale-[1.02] active:scale-[0.98]',
+          'transition-all duration-300',
+          'min-w-[100px] px-6 py-2.5',
+          'inline-flex items-center justify-center gap-2',
+          'text-sm font-medium rounded-full'
+        ].join(' ');
+      }
+      
+      // Default gradient button styling
+      return [
+        'transform hover:scale-[1.03] active:scale-[0.98]',
+        'transition-all duration-300 ease-out',
+        'shadow-lg hover:shadow-xl',
+        'min-w-[120px] h-11 px-5',
+        'inline-flex items-center justify-center gap-2',
+        'text-sm font-semibold tracking-wide rounded-xl'
+      ].join(' ');
     })
 
     const toggleDropdown = () => {
@@ -119,6 +142,7 @@ export default defineComponent({
     return {
       isOpen,
       gradientClass,
+      buttonStyleClass,
       toggleDropdown,
       closeDropdown
     }

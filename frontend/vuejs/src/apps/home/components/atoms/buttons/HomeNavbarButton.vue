@@ -8,13 +8,8 @@
     :class="[
       gradientClass,
       'group relative overflow-hidden',
-      'transform hover:scale-[1.03] active:scale-[0.98]',
-      'transition-all duration-300 ease-out',
-      'shadow-lg hover:shadow-xl',
-      'min-w-[120px] h-11 px-5',
-      'inline-flex items-center justify-center gap-2',
-      'text-sm font-semibold tracking-wide rounded-xl',
-      '!text-white hover:!text-white',
+      buttonStyleClass,
+      '!text-white hover:!text-white dark:!text-gray-900 dark:hover:!text-gray-900',
       'backdrop-blur-sm',
       'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
       'before:transition-all before:duration-300'
@@ -56,13 +51,18 @@ export default defineComponent({
     gradientType: {
       type: String,
       default: 'primary',
-      validator: (value) => ['primary', 'amber', 'emerald', 'rose', 'fuchsia', 'indigo'].includes(value)
+      validator: (value) => ['primary', 'amber', 'emerald', 'rose', 'fuchsia', 'indigo', 'minimal'].includes(value)
     }
   },
   emits: ['click'],
   setup(props) {
     // Computed class for gradient with enhanced modern styling
     const gradientClass = computed(() => {
+      // Minimal style - clean Apple/Cursor-inspired design
+      if (props.gradientType === 'minimal') {
+        return 'bg-gray-900 dark:bg-white hover:shadow-xl';
+      }
+
       const gradients = {
         primary: 'bg-gradient-to-br from-primary-600 via-primary-500 to-indigo-600 hover:from-primary-500 hover:via-primary-400 hover:to-indigo-500 shadow-primary-500/30 hover:shadow-primary-500/50',
         amber: 'bg-gradient-to-br from-amber-600 via-amber-500 to-orange-600 hover:from-amber-500 hover:via-amber-400 hover:to-orange-500 shadow-amber-500/30 hover:shadow-amber-500/50',
@@ -90,8 +90,32 @@ export default defineComponent({
       return '';
     });
 
+    // Computed class for button styling - different for minimal vs gradient buttons
+    const buttonStyleClass = computed(() => {
+      if (props.gradientType === 'minimal') {
+        return [
+          'transform hover:scale-[1.02] active:scale-[0.98]',
+          'transition-all duration-300',
+          'min-w-[100px] px-6 py-2.5',
+          'inline-flex items-center justify-center gap-2',
+          'text-sm font-medium rounded-full'
+        ].join(' ');
+      }
+      
+      // Default gradient button styling
+      return [
+        'transform hover:scale-[1.03] active:scale-[0.98]',
+        'transition-all duration-300 ease-out',
+        'shadow-lg hover:shadow-xl',
+        'min-w-[120px] h-11 px-5',
+        'inline-flex items-center justify-center gap-2',
+        'text-sm font-semibold tracking-wide rounded-xl'
+      ].join(' ');
+    });
+
     return {
-      gradientClass
+      gradientClass,
+      buttonStyleClass
     };
   }
 })

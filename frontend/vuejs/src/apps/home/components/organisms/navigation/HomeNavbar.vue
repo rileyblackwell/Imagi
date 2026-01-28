@@ -13,7 +13,7 @@
         <HomeNavbarDropdownButton
           v-if="isAuthenticated"
           v-model="isProductsMenuOpen"
-          gradient-type="primary"
+          gradient-type="minimal"
         >
           Products
           
@@ -47,7 +47,7 @@
           variant="primary"
           size="base"
           icon="fas fa-coins"
-          gradient-type="amber"
+          gradient-type="minimal"
         >
           Buy AI Credits
         </HomeNavbarButton>
@@ -60,7 +60,7 @@
               variant="primary"
               size="base"
               icon="fas fa-sign-out-alt"
-              gradient-type="indigo"
+              gradient-type="minimal"
             >
               Logout
             </HomeNavbarButton>
@@ -71,7 +71,7 @@
               variant="primary"
               size="base"
               icon="fas fa-sign-in-alt"
-              gradient-type="indigo"
+              gradient-type="minimal"
             >
               Sign In
             </HomeNavbarButton>
