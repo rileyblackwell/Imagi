@@ -61,7 +61,7 @@ export default defineComponent({
     const gradientClass = computed(() => {
       // Minimal style - clean Apple/Cursor-inspired design
       if (props.gradientType === 'minimal') {
-        return 'bg-gray-900 dark:bg-white hover:shadow-xl';
+        return '!bg-gray-900 dark:!bg-white hover:shadow-xl';
       }
 
       const gradients = {
