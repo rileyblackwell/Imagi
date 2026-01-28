@@ -5,12 +5,12 @@
       
       <!-- Hero title -->
       <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
-        Create web apps without writing code
+        Turn ideas into web apps
       </h1>
 
       <!-- Subtitle -->
       <p class="text-xl sm:text-2xl text-gray-500 dark:text-white/60 mb-10 max-w-3xl mx-auto transition-colors duration-300">
-        Imagi gives anyone the power to build professional web applications. Just describe what you want — our AI handles the rest.
+        Your practical partner for building web applications. Chat with AI, design visually, and launch to the web—fast, affordable, and approachable.
       </p>
 
       <!-- CTA buttons -->
@@ -32,19 +32,19 @@
           <svg class="w-4 h-4 text-gray-400 dark:text-white/40" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          No technical skills needed
+          Prototype and validate ideas quickly
         </span>
         <span class="flex items-center gap-2">
           <svg class="w-4 h-4 text-gray-400 dark:text-white/40" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          Production-ready code
+          Easy path to scale with engineers
         </span>
         <span class="flex items-center gap-2">
           <svg class="w-4 h-4 text-gray-400 dark:text-white/40" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          You own everything you create
+          Made for founders and teams
         </span>
       </div>
 

@@ -5,12 +5,12 @@
       
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
-        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Features</p>
+        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">How it works</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
-          Everything you need
+          Your product-building partner
         </h2>
         <p class="text-xl text-gray-500 dark:text-white/60 max-w-2xl mx-auto transition-colors duration-300">
-          Build production-ready applications with modern frontends and robust backends.
+          Three simple tools that work together to help you build, test, and launch web applications.
         </p>
       </div>
 
@@ -53,34 +53,34 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          title: 'AI-Powered Generation',
-          description: 'Describe your app in plain English and watch as Imagi generates a complete full-stack application in minutes.',
-          icon: 'fas fa-wand-magic-sparkles'
-        },
-        {
-          title: 'Full-Stack Applications',
-          description: 'Get both a modern Vue.js frontend and a robust Django REST backend with database models, all working together.',
-          icon: 'fas fa-layer-group'
-        },
-        {
-          title: 'No Code Required',
-          description: 'Build professional web applications without writing a single line of code. Perfect for non-technical founders.',
-          icon: 'fas fa-rocket'
-        },
-        {
-          title: 'Conversational Editing',
-          description: 'Refine your app through natural conversation. Chat with AI to add features, fix bugs, or redesign components.',
+          title: 'Chat and Plan',
+          description: 'An AI agent that understands your ideas. Chat together to plan features, solve problems, and write the code collaboratively.',
           icon: 'fas fa-comments'
         },
         {
-          title: 'Simple Pricing',
-          description: 'Pay only for what you build. No monthly subscriptions, no hidden fees. Credits never expire.',
-          icon: 'fas fa-tag'
+          title: 'Design Visually',
+          description: 'A simple graphical interface for building and shaping your application. See changes instantly as you design.',
+          icon: 'fas fa-pencil-ruler'
         },
         {
-          title: 'Export Your Code',
-          description: 'Download the complete source code anytime. Host it yourself or modify it however you want — it\'s yours.',
-          icon: 'fas fa-code'
+          title: 'Launch to the Web',
+          description: 'Deploy your application with a single click. Get it online quickly so you can test with real users.',
+          icon: 'fas fa-rocket'
+        },
+        {
+          title: 'Perfect for Prototyping',
+          description: 'Validate ideas inside companies, test startup concepts, or build personal projects. Often the first step before bringing in engineers.',
+          icon: 'fas fa-lightbulb'
+        },
+        {
+          title: 'Built to Grow',
+          description: 'Start simple, then scale. Everything is designed so professional engineers can extend and enhance what you create.',
+          icon: 'fas fa-arrow-up'
+        },
+        {
+          title: 'Fast and Affordable',
+          description: 'Skip months of development time and thousands in costs. Pay only for what you build, with no monthly subscriptions.',
+          icon: 'fas fa-gauge-high'
         }
       ]
     }

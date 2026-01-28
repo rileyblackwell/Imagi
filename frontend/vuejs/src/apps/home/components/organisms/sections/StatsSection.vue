@@ -5,12 +5,12 @@
       
       <!-- Section header -->
       <div class="text-center mb-16">
-        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">By the numbers</p>
+        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Why Imagi</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
-          Built for speed
+          Fast, affordable, approachable
         </h2>
         <p class="text-xl text-gray-500 dark:text-white/60 max-w-2xl mx-auto transition-colors duration-300">
-          Skip months of development and thousands in costs. Build production-ready apps in minutes.
+          Build and validate your ideas quickly without the traditional barriers of time, cost, or technical complexity.
         </p>
       </div>
 
@@ -76,22 +76,22 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          icon: 'fab fa-vuejs',
-          value: 'Vue.js + Tailwind',
-          label: 'Frontend Stack',
-          detail: 'Modern, responsive UI with component-based architecture'
+          icon: 'fas fa-building',
+          value: 'Non-Technical Teams',
+          label: 'Perfect For',
+          detail: 'Employees prototyping ideas inside companies without needing engineers'
         },
         {
-          icon: 'fab fa-python',
-          value: 'Django + REST',
-          label: 'Backend Stack',
-          detail: 'Python backend with REST APIs and data models'
+          icon: 'fas fa-seedling',
+          value: 'Startup Founders',
+          label: 'Ideal For',
+          detail: 'Validate early product ideas before committing to a full dev team'
         },
         {
-          icon: 'fas fa-rocket',
-          value: 'Q1 2026',
-          label: 'Imagi Hosting',
-          detail: 'One-click deploy to .imagi.app domains with SSL'
+          icon: 'fas fa-code',
+          value: 'Technical Teams',
+          label: 'Great For',
+          detail: 'Engineers who want a faster interface for experimentation and prototypes'
         }
       ]
     }

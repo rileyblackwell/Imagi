@@ -21,8 +21,8 @@
         
         <!-- CTA Section -->
         <CTASection 
-          title="Ready to build?" 
-          description="Transform your ideas into production-ready web applications. Start building for free today."
+          title="Start building today" 
+          description="Turn your ideas into web applications. Prototype quickly, test with real users, and build momentum."
           primaryButtonText="Get Started"
           primaryButtonTo="/products/oasis/builder/dashboard"
           :showSecondaryButton="false"
