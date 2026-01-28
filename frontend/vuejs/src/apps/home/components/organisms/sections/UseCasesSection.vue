@@ -22,17 +22,13 @@
           class="group relative"
         >
           <!-- Card -->
-          <div class="relative h-full p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 cursor-default overflow-hidden flex flex-col">
-            <!-- Hover glow -->
-            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.03]" :class="getGradientClass(useCase.color)"></div>
-            </div>
+          <div class="relative h-full p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm cursor-default overflow-hidden flex flex-col">
             
             <!-- Icon -->
             <div class="relative mb-5">
               <div 
-                class="inline-flex items-center justify-center w-11 h-11 rounded-xl border transition-all duration-300"
-                :class="getIconContainerClass(useCase.color)"
+                class="inline-flex items-center justify-center w-11 h-11 rounded-xl border"
+                :class="getIconContainerClassStatic(useCase.color)"
               >
                 <i :class="[useCase.icon, 'text-base', getIconClass(useCase.color)]"></i>
               </div>
@@ -56,17 +52,11 @@
             
             <!-- Learn more link -->
             <div class="relative mt-auto">
-              <a href="#" class="inline-flex items-center gap-2 text-sm font-medium transition-colors duration-300" :class="getLinkClass(useCase.color)">
+              <a href="#" class="inline-flex items-center gap-2 text-sm font-medium" :class="getLinkClassStatic(useCase.color)">
                 <span>Explore</span>
-                <i class="fas fa-arrow-right text-xs transform group-hover:translate-x-1 transition-transform duration-300"></i>
+                <i class="fas fa-arrow-right text-xs"></i>
               </a>
             </div>
-
-            <!-- Bottom accent -->
-            <div 
-              class="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-              :class="getAccentClass(useCase.color)"
-            ></div>
           </div>
         </div>
       </div>
@@ -75,10 +65,10 @@
       <div class="mt-14 text-center">
         <HomeNavbarButton
           :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
-          class="group inline-flex items-center gap-3 px-8 py-4 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300 hover:-translate-y-0.5"
+          class="inline-flex items-center gap-3 px-8 py-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white font-medium"
         >
           Start Your Project
-          <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
+          <i class="fas fa-arrow-right text-sm"></i>
         </HomeNavbarButton>
       </div>
     </div>
@@ -171,12 +161,12 @@ export default defineComponent({
       }
       return gradients[color] || gradients.violet
     },
-    getIconContainerClass(color) {
+    getIconContainerClassStatic(color) {
       const classes = {
-        violet: 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/15 group-hover:border-violet-500/30',
-        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20 group-hover:bg-fuchsia-500/15 group-hover:border-fuchsia-500/30',
-        blue: 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/15 group-hover:border-blue-500/30',
-        emerald: 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/15 group-hover:border-emerald-500/30'
+        violet: 'bg-violet-500/10 border-violet-500/20',
+        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20',
+        blue: 'bg-blue-500/10 border-blue-500/20',
+        emerald: 'bg-emerald-500/10 border-emerald-500/20'
       }
       return classes[color] || classes.violet
     },
@@ -189,21 +179,12 @@ export default defineComponent({
       }
       return classes[color] || classes.violet
     },
-    getLinkClass(color) {
+    getLinkClassStatic(color) {
       const classes = {
-        violet: 'text-violet-400/70 group-hover:text-violet-400',
-        fuchsia: 'text-fuchsia-400/70 group-hover:text-fuchsia-400',
-        blue: 'text-blue-400/70 group-hover:text-blue-400',
-        emerald: 'text-emerald-400/70 group-hover:text-emerald-400'
-      }
-      return classes[color] || classes.violet
-    },
-    getAccentClass(color) {
-      const classes = {
-        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
-        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
-        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
-        emerald: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent'
+        violet: 'text-violet-400/70',
+        fuchsia: 'text-fuchsia-400/70',
+        blue: 'text-blue-400/70',
+        emerald: 'text-emerald-400/70'
       }
       return classes[color] || classes.violet
     }

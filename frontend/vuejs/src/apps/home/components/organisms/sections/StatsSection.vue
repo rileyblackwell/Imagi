@@ -33,7 +33,7 @@
         <div 
           v-for="(metric, index) in metrics" 
           :key="index"
-          class="p-8 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-all duration-300 hover:border-gray-300 dark:hover:border-white/20 hover:scale-[1.02]"
+          class="p-8 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10"
         >
           <!-- Icon and Title (side by side) -->
           <div class="flex items-center gap-3 mb-4">

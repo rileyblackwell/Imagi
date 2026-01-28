@@ -24,8 +24,8 @@
         >
           <!-- Icon -->
           <div class="mb-6 flex justify-center">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-all duration-300 group-hover:border-gray-300 dark:group-hover:border-white/20 group-hover:scale-110">
-              <i :class="[feature.icon, 'text-2xl text-gray-700 dark:text-white/70 transition-colors duration-300']"></i>
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10">
+              <i :class="[feature.icon, 'text-2xl text-gray-700 dark:text-white/70']"></i>
             </div>
           </div>
           
@@ -53,34 +53,19 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          title: 'Chat and Plan',
-          description: 'An AI agent that understands your ideas. Chat together to plan features, solve problems, and write the code collaboratively.',
-          icon: 'fas fa-comments'
-        },
-        {
           title: 'Design Visually',
           description: 'A simple graphical interface for building and shaping your application. See changes instantly as you design.',
           icon: 'fas fa-pencil-ruler'
         },
         {
+          title: 'Chat and Plan',
+          description: 'An AI agent that understands your ideas. Chat together to plan features, solve problems, and write the code collaboratively.',
+          icon: 'fas fa-comments'
+        },
+        {
           title: 'Launch to the Web',
           description: 'Deploy your application with a single click. Get it online quickly so you can test with real users.',
           icon: 'fas fa-rocket'
-        },
-        {
-          title: 'Perfect for Prototyping',
-          description: 'Validate ideas inside companies, test startup concepts, or build personal projects. Often the first step before bringing in engineers.',
-          icon: 'fas fa-lightbulb'
-        },
-        {
-          title: 'Built to Grow',
-          description: 'Start simple, then scale. Everything is designed so professional engineers can extend and enhance what you create.',
-          icon: 'fas fa-arrow-up'
-        },
-        {
-          title: 'Fast and Affordable',
-          description: 'Skip months of development time and thousands in costs. Pay only for what you build, with no monthly subscriptions.',
-          icon: 'fas fa-gauge-high'
         }
       ]
     }
