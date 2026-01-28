@@ -1,143 +1,98 @@
 <template>
-  <footer class="relative bg-[#0f0f1a] border-t border-white/20 overflow-hidden">
-    <!-- Background effects -->
-    <div class="absolute inset-0 pointer-events-none">
-      <!-- Subtle gradient mesh -->
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,119,198,0.20),transparent_50%)]"></div>
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_80%_80%,rgba(78,68,206,0.14),transparent_40%)]"></div>
-      
-      <!-- Subtle grain texture -->
-      <div class="absolute inset-0 opacity-[0.025]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E');"></div>
-      
-      <!-- Floating orb -->
-      <div class="absolute bottom-0 left-[20%] w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-violet-600/10 to-fuchsia-600/6 blur-[100px]"></div>
-    </div>
-
+  <footer class="relative bg-white dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-white/10 transition-colors duration-300">
     <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+      
       <!-- Main footer content -->
-      <div class="py-12 sm:py-16 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
-        <!-- Brand section -->
-        <div class="md:col-span-5 space-y-6">
-          <div class="space-y-4">
-            <ImagiLogo size="md" />
-            <p class="text-white/85 leading-relaxed text-sm max-w-sm">
-              Transform your ideas into powerful web applications using natural language with Imagi's AI technology.
-            </p>
-          </div>
+      <div class="py-16">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-16">
           
-          <!-- Social links placeholder - can be expanded later -->
-          <div class="flex items-center gap-3">
-            <a 
-              href="#" 
-              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.08] border border-white/20 hover:bg-white/[0.12] hover:border-white/30 transition-all duration-300"
-              aria-label="Twitter"
-            >
-              <i class="fab fa-twitter text-white/75 group-hover:text-white transition-colors duration-300 text-sm"></i>
-            </a>
-            <a 
-              href="#" 
-              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.08] border border-white/20 hover:bg-white/[0.12] hover:border-white/30 transition-all duration-300"
-              aria-label="GitHub"
-            >
-              <i class="fab fa-github text-white/75 group-hover:text-white transition-colors duration-300 text-sm"></i>
-            </a>
-            <a 
-              href="#" 
-              class="group flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.08] border border-white/20 hover:bg-white/[0.12] hover:border-white/30 transition-all duration-300"
-              aria-label="Discord"
-            >
-              <i class="fab fa-discord text-white/75 group-hover:text-white transition-colors duration-300 text-sm"></i>
-            </a>
-          </div>
-        </div>
-
-        <!-- Links sections -->
-        <div class="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
-          <!-- Learn section -->
-          <div class="space-y-4">
-            <h4 class="text-xs font-semibold text-white uppercase tracking-wider">
-              Learn
-            </h4>
-            <ul class="space-y-3">
-              <li>
-                <router-link 
-                  to="/docs" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
-                >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>Documentation</span>
-                </router-link>
-              </li>
-              <li>
-                <router-link 
-                  to="/about" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
-                >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>About Us</span>
-                </router-link>
-              </li>
-              <li>
-                <router-link 
-                  to="/contact" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
-                >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>Contact</span>
-                </router-link>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Legal section -->
-          <div class="space-y-4">
-            <h4 class="text-xs font-semibold text-white uppercase tracking-wider">
-              Legal
-            </h4>
-            <ul class="space-y-3">
-              <li>
-                <router-link 
-                  to="/privacy" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
-                >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>Privacy Policy</span>
-                </router-link>
-              </li>
-              <li>
-                <router-link 
-                  to="/terms" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
-                >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>Terms of Service</span>
-                </router-link>
-              </li>
-            </ul>
-          </div>
-
           <!-- Product section -->
-          <div class="space-y-4">
-            <h4 class="text-xs font-semibold text-white uppercase tracking-wider">
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
               Product
             </h4>
             <ul class="space-y-3">
               <li>
                 <router-link 
                   to="/products/oasis/builder/dashboard" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/85 hover:text-white transition-colors duration-300"
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
                 >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>Oasis Builder</span>
+                  Oasis Builder
                 </router-link>
               </li>
               <li>
                 <router-link 
                   to="/payments/checkout" 
-                  class="group inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-all duration-300"
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
                 >
-                  <span class="w-0 group-hover:w-1 h-1 rounded-full bg-violet-400 transition-all duration-300"></span>
-                  <span>Pricing</span>
+                  Pricing
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Resources section -->
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
+              Resources
+            </h4>
+            <ul class="space-y-3">
+              <li>
+                <router-link 
+                  to="/docs" 
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+                >
+                  Documentation
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Company section -->
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
+              Company
+            </h4>
+            <ul class="space-y-3">
+              <li>
+                <router-link 
+                  to="/about" 
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+                >
+                  About Us
+                </router-link>
+              </li>
+              <li>
+                <router-link 
+                  to="/contact" 
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+                >
+                  Contact
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Legal section -->
+          <div>
+            <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
+              Legal
+            </h4>
+            <ul class="space-y-3">
+              <li>
+                <router-link 
+                  to="/privacy" 
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+                >
+                  Privacy Policy
+                </router-link>
+              </li>
+              <li>
+                <router-link 
+                  to="/terms" 
+                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+                >
+                  Terms of Service
                 </router-link>
               </li>
             </ul>
@@ -146,14 +101,13 @@
       </div>
 
       <!-- Bottom bar -->
-      <div class="relative py-6 border-t border-white/20">
-        <!-- Top accent line -->
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/60 to-transparent"></div>
-        
-        <div class="flex items-center justify-center">
-          <p class="text-white/75 text-xs font-light">
+      <div class="py-6 border-t border-gray-200 dark:border-white/10 transition-colors duration-300">
+        <div class="flex items-center justify-between">
+          <p class="text-gray-500 dark:text-white/50 text-sm transition-colors duration-300">
             &copy; {{ currentYear }} Imagi. All rights reserved.
           </p>
+          
+          <ThemeToggle />
         </div>
       </div>
     </div>
@@ -162,26 +116,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ImagiLogo } from '@/shared/components/molecules'
+import { ThemeToggle } from '@/shared/components/atoms'
 
 const currentYear = computed(() => new Date().getFullYear())
 </script>
-
-<style scoped>
-/* Animations matching homepage */
-@keyframes float-slow {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -20px) scale(1.02);
-  }
-  66% {
-    transform: translate(-20px, 10px) scale(0.98);
-  }
-}
-
-.animate-float-slow {
-  animation: float-slow 25s ease-in-out infinite;
-}
-</style>

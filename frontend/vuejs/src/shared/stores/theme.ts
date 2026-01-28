@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 
 interface ThemeState {
   currentTheme: 'light' | 'dark' | 'system'
+  effectiveTheme: 'light' | 'dark'
   userPreferences: {
     fontSize: 'sm' | 'base' | 'lg' | 'xl'
     contrast: 'default' | 'high' | 'low'
@@ -15,7 +16,8 @@ interface ThemeState {
 
 export const useThemeStore = defineStore('theme', {
   state: (): ThemeState => ({
-    currentTheme: 'dark',
+    currentTheme: 'system',
+    effectiveTheme: 'dark',
     userPreferences: {
       fontSize: 'base',
       contrast: 'default',
@@ -28,8 +30,8 @@ export const useThemeStore = defineStore('theme', {
   }),
 
   getters: {
-    isDarkMode: (state): boolean => state.currentTheme === 'dark',
-    isLightMode: (state): boolean => state.currentTheme === 'light',
+    isDarkMode: (state): boolean => state.effectiveTheme === 'dark',
+    isLightMode: (state): boolean => state.effectiveTheme === 'light',
     isSystemTheme: (state): boolean => state.currentTheme === 'system',
     currentFontSize: (state): string => state.userPreferences.fontSize,
     currentContrast: (state): string => state.userPreferences.contrast
@@ -45,13 +47,80 @@ export const useThemeStore = defineStore('theme', {
     },
 
     initializeTheme() {
+      // Check for saved theme preference, default to system
       const savedTheme = localStorage.getItem('theme')
       if (savedTheme && this.availableThemes.includes(savedTheme)) {
         this.currentTheme = savedTheme as 'light' | 'dark' | 'system'
       } else {
         this.currentTheme = 'system'
       }
+      
+      // Set up system theme listener
+      this.setupSystemThemeListener()
+      
+      // Apply the theme
       this.applyTheme()
+    },
+
+    setupSystemThemeListener() {
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      
+      const handleSystemThemeChange = (e: MediaQueryListEvent | MediaQueryList) => {
+        if (this.currentTheme === 'system') {
+          this.effectiveTheme = e.matches ? 'dark' : 'light'
+          this.updateDOMTheme()
+        }
+      }
+
+      // Initial check
+      handleSystemThemeChange(mediaQuery)
+      
+      // Listen for changes
+      mediaQuery.addEventListener('change', handleSystemThemeChange)
+    },
+
+    getSystemTheme(): 'light' | 'dark' {
+      // Check system preference
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark'
+      }
+      return 'light'
+    },
+
+    applyTheme() {
+      // Determine the effective theme
+      if (this.currentTheme === 'system') {
+        this.effectiveTheme = this.getSystemTheme()
+      } else {
+        this.effectiveTheme = this.currentTheme
+      }
+      
+      this.updateDOMTheme()
+    },
+
+    updateDOMTheme() {
+      // Apply the theme to the DOM
+      const html = document.documentElement
+      
+      if (this.effectiveTheme === 'dark') {
+        html.classList.add('dark')
+        html.classList.remove('light')
+      } else {
+        html.classList.add('light')
+        html.classList.remove('dark')
+      }
+      
+      // Set data attribute for reference
+      html.setAttribute('data-theme', this.currentTheme)
+    },
+
+    toggleTheme() {
+      // Cycle through: system -> light -> dark -> system
+      const themes: Array<'light' | 'dark' | 'system'> = ['system', 'light', 'dark']
+      const currentIndex = themes.indexOf(this.currentTheme)
+      const nextIndex = (currentIndex + 1) % themes.length
+      this.setTheme(themes[nextIndex])
     },
 
     setFontSize(size: 'sm' | 'base' | 'lg' | 'xl') {
@@ -84,13 +153,6 @@ export const useThemeStore = defineStore('theme', {
       } else {
         localStorage.removeItem('customColors')
         this.removeCustomColors()
-      }
-    },
-
-    applyTheme() {
-      document.documentElement.setAttribute('data-theme', this.currentTheme)
-      if (this.currentTheme === 'system') {
-        document.documentElement.removeAttribute('data-theme')
       }
     },
 

@@ -22,7 +22,9 @@ import {
   faCheckCircle,
   faSpinner,
   faEye,
-  faEyeSlash 
+  faEyeSlash,
+  faSun,
+  faMoon
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to library
@@ -34,7 +36,9 @@ library.add(
   faCheckCircle,
   faSpinner,
   faEye,
-  faEyeSlash
+  faEyeSlash,
+  faSun,
+  faMoon
 )
 
 // Configure axios

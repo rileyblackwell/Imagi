@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="min-h-screen bg-dark-950 text-white flex flex-col">
+  <div id="app" class="min-h-screen bg-light-50 dark:bg-dark-950 text-gray-900 dark:text-white flex flex-col transition-colors duration-300">
     <router-view v-slot="{ Component }" class="flex-grow">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -13,11 +13,13 @@
 import { NotificationToast } from '@/shared/components/atoms';
 import { useAuthStore } from '@/shared/stores/auth';
 import { useBalanceStore } from '@/shared/stores/balance';
+import { useThemeStore } from '@/shared/stores/theme';
 import { onMounted, onBeforeUnmount, watch, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const authStore = useAuthStore();
 const balanceStore = useBalanceStore();
+const themeStore = useThemeStore();
 const router = useRouter();
 const isNavigating = ref(false);
 
@@ -71,6 +73,9 @@ watch(() => router.currentRoute.value.fullPath, () => {
 
 onMounted(async () => {
   try {
+    // Initialize theme first (before other UI elements)
+    themeStore.initializeTheme();
+    
     // Initialize auth state on app mount
     await authStore.initAuth();
     

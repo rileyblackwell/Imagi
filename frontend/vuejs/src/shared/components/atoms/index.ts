@@ -9,6 +9,7 @@ export { default as ActionButton } from './buttons/ActionButton.vue'
 export { default as GradientButton } from './buttons/GradientButton.vue'
 export { default as GlassButton } from './buttons/GlassButton.vue'
 export { default as DangerButton } from './buttons/DangerButton.vue'
+export { default as ThemeToggle } from './buttons/ThemeToggle.vue'
 
 // Text Components
 export { default as GradientText } from './text/GradientText.vue'

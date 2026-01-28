@@ -1,116 +1,69 @@
-<!-- Testimonials Section - Premium Design -->
+<!-- Testimonials Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 relative overflow-hidden">
-    <div class="max-w-7xl mx-auto relative">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12">
+    <div class="max-w-6xl mx-auto">
+      
       <!-- Section header -->
-      <div class="text-center mb-14 md:mb-18">
-        <SectionPill
-          class="mb-7"
-          tone="rose"
-          icon="fas fa-heart"
-          label="Success Stories"
-        />
-        
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 tracking-[-0.02em]">{{ title }}</h2>
-        <p class="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed font-light">{{ subtitle }}</p>
+      <div class="text-center mb-16">
+        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Testimonials</p>
+        <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+          Loved by builders
+        </h2>
+        <p class="text-xl text-gray-500 dark:text-white/60 max-w-2xl mx-auto transition-colors duration-300">
+          See how creators are shipping full-stack apps without writing code.
+        </p>
       </div>
 
       <!-- Testimonial cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div 
           v-for="(testimonial, index) in testimonials" 
           :key="index"
-          class="group relative"
-          :class="{ 'md:translate-y-4': index === 1 }"
+          class="flex flex-col p-8 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-all duration-300"
         >
-          <!-- Card -->
-          <div class="relative h-full p-6 md:p-7 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 cursor-default overflow-hidden flex flex-col">
-            <!-- Hover glow -->
-            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="getGradientClass(testimonial.color)"></div>
+          <!-- Star rating -->
+          <div class="flex gap-1 mb-6">
+            <svg 
+              v-for="n in 5" 
+              :key="n" 
+              class="w-5 h-5"
+              :class="n <= testimonial.rating ? 'text-yellow-400' : 'text-gray-200 dark:text-white/10'"
+              fill="currentColor" 
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+          
+          <!-- Testimonial text -->
+          <p class="text-gray-700 dark:text-white/80 leading-relaxed mb-8 flex-1 transition-colors duration-300">
+            "{{ testimonial.text }}"
+          </p>
+          
+          <!-- Author info -->
+          <div class="flex items-center gap-4 pt-6 border-t border-gray-100 dark:border-white/5 transition-colors duration-300">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 transition-colors duration-300">
+              <span class="text-sm font-semibold text-gray-600 dark:text-white/60">
+                {{ getInitials(testimonial.author) }}
+              </span>
             </div>
-            
-            <!-- Star rating -->
-            <div class="relative flex gap-1 mb-5">
-              <i 
-                v-for="n in 5" 
-                :key="n" 
-                class="fas fa-star text-sm"
-                :class="n <= testimonial.rating ? getStarClass(testimonial.color) : 'text-white/20'"
-              ></i>
+            <div>
+              <h4 class="font-semibold text-gray-900 dark:text-white transition-colors duration-300">{{ testimonial.author }}</h4>
+              <p class="text-sm text-gray-500 dark:text-white/50 transition-colors duration-300">{{ testimonial.position }}</p>
             </div>
-            
-            <!-- Testimonial text -->
-            <p class="relative text-white/90 text-base leading-relaxed mb-8 flex-1">
-              {{ testimonial.text }}
-            </p>
-            
-            <!-- Divider -->
-            <div class="relative w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-6"></div>
-            
-            <!-- Author info -->
-            <div class="relative flex items-center gap-4">
-              <!-- Avatar -->
-              <div 
-                class="flex items-center justify-center w-11 h-11 rounded-full border"
-                :class="getAvatarClass(testimonial.color)"
-              >
-                <span class="text-sm font-semibold" :class="getAvatarTextClass(testimonial.color)">
-                  {{ getInitials(testimonial.author) }}
-                </span>
-              </div>
-              
-              <!-- Name and position -->
-              <div>
-                <h4 class="font-semibold text-white text-sm">{{ testimonial.author }}</h4>
-                <p class="text-xs" :class="getPositionClass(testimonial.color)">{{ testimonial.position }}</p>
-              </div>
-            </div>
-
-            <!-- Bottom accent -->
-            <div 
-              class="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-              :class="getAccentClass(testimonial.color)"
-            ></div>
           </div>
         </div>
-      </div>
-      
-      <!-- CTA button - enhanced -->
-      <div class="mt-12 text-center">
-        <HomeNavbarButton
-          :to="{ name: 'about' }"
-          class="group inline-flex items-center gap-3 px-7 py-3.5 bg-white/[0.06] border border-white/[0.15] hover:bg-white/[0.10] hover:border-white/[0.22] rounded-xl text-white font-medium transition-all duration-300 hover:-translate-y-0.5"
-        >
-          View More Stories
-          <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform duration-300"></i>
-        </HomeNavbarButton>
       </div>
     </div>
   </section>
 </template>
 
 <script>
-import { defineComponent, computed } from 'vue'
-import { useAuthStore } from '@/shared/stores/auth'
-import { HomeNavbarButton } from '@/apps/home/components/atoms/buttons'
-import { SectionPill } from '@/apps/home/components/atoms'
+import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'TestimonialsSection',
-  components: {
-    HomeNavbarButton,
-    SectionPill
-  },
   props: {
-    title: {
-      type: String,
-      default: 'Loved by Builders'
-    },
-    subtitle: {
-      type: String,
-      default: 'See how entrepreneurs and creators are shipping full-stack apps without writing a single line of code.'
-    },
     testimonials: {
       type: Array,
       default: () => [
@@ -118,96 +71,27 @@ export default defineComponent({
           author: 'Sarah Mitchell',
           position: 'Startup Founder',
           text: 'I went from idea to working MVP in one afternoon. The AI understood exactly what I needed — a customer portal with booking and payments. Would have cost me $5k+ with a developer.',
-          rating: 5,
-          color: 'violet'
+          rating: 5
         },
         {
           author: 'David Park',
           position: 'Agency Owner',
           text: 'The chat-based editing is a game changer. I can iterate on designs and features just by describing what I want. Built three client dashboards last month for under $30 total.',
-          rating: 5,
-          color: 'fuchsia'
+          rating: 5
         },
         {
           author: 'Maria Santos',
           position: 'Course Creator',
           text: 'Finally, a no-code tool that gives me real code I can own and customize. Built my entire course platform with Imagi and downloaded the source to host myself.',
-          rating: 5,
-          color: 'blue'
+          rating: 5
         }
       ]
-    }
-  },
-  setup() {
-    const authStore = useAuthStore()
-    
-    return {
-      isAuthenticated: computed(() => authStore.isAuthenticated)
     }
   },
   methods: {
     getInitials(name) {
       return name.split(' ').map(n => n[0]).join('').toUpperCase()
-    },
-    getGradientClass(color) {
-      const gradients = {
-        violet: 'from-violet-500 to-purple-500',
-        fuchsia: 'from-fuchsia-500 to-pink-500',
-        blue: 'from-blue-500 to-cyan-500'
-      }
-      return gradients[color] || gradients.violet
-    },
-    getQuoteClass(color) {
-      const classes = {
-        violet: 'text-violet-500/20',
-        fuchsia: 'text-fuchsia-500/20',
-        blue: 'text-blue-500/20'
-      }
-      return classes[color] || classes.violet
-    },
-    getStarClass(color) {
-      const classes = {
-        violet: 'text-violet-400',
-        fuchsia: 'text-fuchsia-400',
-        blue: 'text-blue-400'
-      }
-      return classes[color] || classes.violet
-    },
-    getAvatarClass(color) {
-      const classes = {
-        violet: 'bg-violet-500/10 border-violet-500/20',
-        fuchsia: 'bg-fuchsia-500/10 border-fuchsia-500/20',
-        blue: 'bg-blue-500/10 border-blue-500/20'
-      }
-      return classes[color] || classes.violet
-    },
-    getAvatarTextClass(color) {
-      const classes = {
-        violet: 'text-violet-400',
-        fuchsia: 'text-fuchsia-400',
-        blue: 'text-blue-400'
-      }
-      return classes[color] || classes.violet
-    },
-    getPositionClass(color) {
-      const classes = {
-        violet: 'text-violet-400/70',
-        fuchsia: 'text-fuchsia-400/70',
-        blue: 'text-blue-400/70'
-      }
-      return classes[color] || classes.violet
-    },
-    getAccentClass(color) {
-      const classes = {
-        violet: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
-        fuchsia: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
-        blue: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent'
-      }
-      return classes[color] || classes.violet
     }
   }
 })
 </script>
-
-<style scoped>
-</style>
