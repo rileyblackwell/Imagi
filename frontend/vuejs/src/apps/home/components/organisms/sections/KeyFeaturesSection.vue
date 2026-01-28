@@ -25,41 +25,33 @@
           <!-- Card -->
           <div class="h-full p-8 rounded-3xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-colors duration-300">
             
-            <!-- Icon and Title Row -->
-            <div class="flex items-center gap-4 mb-5">
-              <!-- Icon -->
-              <div class="flex-shrink-0">
-                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/[0.05] border border-gray-200 dark:border-white/10 transition-colors duration-300">
-                  <i :class="[feature.icon, 'text-xl text-gray-700 dark:text-white/70 transition-colors duration-300']"></i>
-                </div>
-              </div>
-              
-              <!-- Title -->
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-                {{ feature.title }}
-              </h3>
-            </div>
+            <!-- Title -->
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-5 text-center">
+              {{ feature.title }}
+            </h3>
             
             <!-- Description -->
-            <p class="text-gray-500 dark:text-white/60 leading-relaxed mb-5 transition-colors duration-300">
+            <p class="text-gray-500 dark:text-white/60 leading-relaxed mb-5 transition-colors duration-300 text-center">
               {{ feature.description }}
             </p>
 
             <!-- Feature highlights -->
-            <ul class="space-y-3">
-              <li 
-                v-for="(highlight, hIndex) in feature.highlights" 
-                :key="hIndex"
-                class="flex items-start gap-3"
-              >
-                <div class="flex-shrink-0 mt-1">
-                  <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center transition-colors duration-300">
-                    <i class="fas fa-check text-[10px] text-gray-700 dark:text-white/70 transition-colors duration-300"></i>
+            <div class="flex justify-center">
+              <ul class="space-y-3 inline-flex flex-col">
+                <li 
+                  v-for="(highlight, hIndex) in feature.highlights" 
+                  :key="hIndex"
+                  class="flex items-start gap-3"
+                >
+                  <div class="flex-shrink-0 mt-1">
+                    <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center transition-colors duration-300">
+                      <i class="fas fa-check text-[10px] text-gray-700 dark:text-white/70 transition-colors duration-300"></i>
+                    </div>
                   </div>
-                </div>
-                <span class="text-gray-600 dark:text-white/50 text-sm transition-colors duration-300">{{ highlight }}</span>
-              </li>
-            </ul>
+                  <span class="text-gray-600 dark:text-white/50 text-sm transition-colors duration-300">{{ highlight }}</span>
+                </li>
+              </ul>
+            </div>
 
           </div>
         </div>
