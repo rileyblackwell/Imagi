@@ -473,7 +473,7 @@ const navigationItems = [
     exact: true
   },
   {
-    name: 'Buy AI Credits',
+    name: 'Purchase AI Credits',
     to: '/payments/checkout',
     icon: 'fas fa-money-bill-wave',
     exact: true

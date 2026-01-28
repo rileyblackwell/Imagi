@@ -1,7 +1,14 @@
 <!-- Key Features Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500">
-    <div class="max-w-6xl mx-auto">
+  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+    
+    <!-- Subtle ambient glow -->
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute top-0 right-1/4 w-[500px] h-[500px] bg-gradient-radial from-blue-500/[0.03] via-transparent to-transparent rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-gradient-radial from-purple-500/[0.03] via-transparent to-transparent rounded-full blur-3xl"></div>
+    </div>
+    
+    <div class="relative max-w-6xl mx-auto">
       
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
@@ -14,7 +21,7 @@
         </p>
       </div>
 
-      <!-- Features grid -->
+      <!-- Features grid with enhanced cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
         
         <div 
@@ -22,8 +29,8 @@
           :key="index"
           class="group relative"
         >
-          <!-- Card -->
-          <div class="h-full p-8 rounded-3xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-colors duration-300">
+          <!-- Card with glassmorphism -->
+          <div class="relative h-full p-8 rounded-3xl bg-white/80 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-200/30 dark:group-hover:shadow-none">
             
             <!-- Title -->
             <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-5 text-center">
@@ -35,7 +42,7 @@
               {{ feature.description }}
             </p>
 
-            <!-- Feature highlights -->
+            <!-- Feature highlights with green checkmarks -->
             <div class="flex justify-center">
               <ul class="space-y-3 inline-flex flex-col">
                 <li 
@@ -44,8 +51,8 @@
                   class="flex items-start gap-3"
                 >
                   <div class="flex-shrink-0 mt-1">
-                    <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center transition-colors duration-300">
-                      <i class="fas fa-check text-[10px] text-gray-700 dark:text-white/70 transition-colors duration-300"></i>
+                    <div class="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center transition-all duration-300">
+                      <i class="fas fa-check text-[10px] text-emerald-600 dark:text-emerald-400/80"></i>
                     </div>
                   </div>
                   <span class="text-gray-600 dark:text-white/50 text-sm transition-colors duration-300">{{ highlight }}</span>

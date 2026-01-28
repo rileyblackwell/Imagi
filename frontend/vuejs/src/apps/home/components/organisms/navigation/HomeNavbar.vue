@@ -3,80 +3,44 @@
   <BaseNavbar>
     <!-- Logo override -->
     <template #logo>
-      <GradientText variant="imagi" size="xl">Imagi</GradientText>
+      <span class="text-xl font-bold text-black dark:text-white tracking-tight transition-colors duration-300">Imagi</span>
     </template>
 
-    <!-- Right side menu -->
-    <template #right>
+    <!-- Center menu -->
+    <template #center>
       <div class="flex items-center space-x-4">
         <!-- Products Dropdown - Only shown when authenticated -->
         <HomeNavbarDropdownButton
           v-if="isAuthenticated"
           v-model="isProductsMenuOpen"
           gradient-type="minimal"
+          text-style
         >
           Products
           
           <template #menu>
             <router-link
               :to="{ name: 'builder-dashboard' }"
-              class="group flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-white/90 hover:text-white transition-all duration-300 hover:bg-gradient-to-r hover:from-primary-500/20 hover:via-indigo-500/20 hover:to-violet-500/20 relative overflow-hidden"
+              class="flex items-center justify-center px-3 py-2.5 text-sm font-semibold text-black rounded-lg mx-1 my-0.5 group"
               @click="isProductsMenuOpen = false"
             >
-              <!-- Hover glow effect -->
-              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/0 via-primary-500/5 to-primary-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              
-              <!-- Icon with gradient on hover -->
-              <div class="relative z-10 flex items-center justify-center w-8 h-8 rounded-lg bg-primary-500/10 group-hover:bg-primary-500/20 transition-all duration-300">
-                <i class="fas fa-magic text-primary-400 group-hover:text-primary-300 transition-colors duration-300"></i>
-              </div>
-              
-              <!-- Text -->
-              <span class="relative z-10 flex-1">Oasis Web App Builder</span>
-              
-              <!-- Arrow indicator -->
-              <i class="fas fa-arrow-right text-xs text-white/40 group-hover:text-white/80 transform group-hover:translate-x-1 transition-all duration-300 relative z-10"></i>
+              <span class="tracking-wide">Imagi</span>
+              <i class="fas fa-arrow-right text-xs ml-2 transition-transform duration-200 group-hover:translate-x-1"></i>
             </router-link>
           </template>
         </HomeNavbarDropdownButton>
 
-        <!-- Buy Credits Button - Only shown when authenticated -->
+        <!-- Purchase Credits Button - Only shown when authenticated -->
         <HomeNavbarButton
           v-if="isAuthenticated"
           to="/payments/checkout"
           variant="primary"
           size="base"
-          icon="fas fa-coins"
           gradient-type="minimal"
+          text-style
         >
-          Buy AI Credits
+          Purchase AI Credits
         </HomeNavbarButton>
-
-        <!-- Auth Buttons -->
-        <div class="flex items-center space-x-3">
-          <template v-if="isAuthenticated">
-            <HomeNavbarButton
-              @click="handleLogout"
-              variant="primary"
-              size="base"
-              icon="fas fa-sign-out-alt"
-              gradient-type="minimal"
-            >
-              Logout
-            </HomeNavbarButton>
-          </template>
-          <template v-else>
-            <HomeNavbarButton
-              to="/auth/login"
-              variant="primary"
-              size="base"
-              icon="fas fa-sign-in-alt"
-              gradient-type="minimal"
-            >
-              Sign In
-            </HomeNavbarButton>
-          </template>
-        </div>
       </div>
 
       <!-- Overlay for closing dropdown when clicking outside -->
@@ -86,16 +50,42 @@
         @click="isProductsMenuOpen = false"
       ></div>
     </template>
+
+    <!-- Right side menu -->
+    <template #right>
+      <!-- Auth Buttons -->
+      <div class="flex items-center space-x-3">
+        <template v-if="isAuthenticated">
+          <HomeNavbarButton
+            @click="handleLogout"
+            variant="primary"
+            size="base"
+            gradient-type="minimal"
+          >
+            Sign Out
+          </HomeNavbarButton>
+        </template>
+        <template v-else>
+          <HomeNavbarButton
+            to="/auth/login"
+            variant="primary"
+            size="base"
+            gradient-type="minimal"
+          >
+            Sign In
+          </HomeNavbarButton>
+        </template>
+      </div>
+    </template>
   </BaseNavbar>
 </template>
 
 <script>
-import { defineComponent, ref, computed } from 'vue'
+import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAuth } from '@/apps/auth'
 import BaseNavbar from '@/shared/components/organisms/navigation/BaseNavbar.vue'
-import GradientText from '@/apps/home/components/atoms/text/GradientText.vue'
 import IconButton from '@/apps/home/components/atoms/buttons/IconButton.vue'
 import HomeNavbarButton from '@/apps/home/components/atoms/buttons/HomeNavbarButton.vue'
 import HomeNavbarDropdownButton from '@/apps/home/components/atoms/buttons/HomeNavbarDropdownButton.vue'
@@ -106,8 +96,7 @@ export default defineComponent({
     BaseNavbar,
     IconButton,
     HomeNavbarButton,
-    HomeNavbarDropdownButton,
-    GradientText
+    HomeNavbarDropdownButton
   },
   setup() {
     const router = useRouter()
@@ -131,6 +120,21 @@ export default defineComponent({
     const navigateToLogin = () => {
       router.push('/auth/login')
     }
+
+    // Close dropdown on scroll
+    const handleScroll = () => {
+      if (isProductsMenuOpen.value) {
+        isProductsMenuOpen.value = false
+      }
+    }
+
+    onMounted(() => {
+      window.addEventListener('scroll', handleScroll)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('scroll', handleScroll)
+    })
 
     return {
       isAuthenticated: computed(() => authStore.isAuthenticated),

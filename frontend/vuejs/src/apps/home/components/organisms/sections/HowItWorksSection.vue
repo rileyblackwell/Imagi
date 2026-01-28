@@ -81,34 +81,22 @@
               >
                 <div class="group relative p-6 md:p-7 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm transition-all duration-500 overflow-hidden">
                   
-                  <!-- Icon and title -->
-                  <div class="relative flex items-center gap-4 mb-5">
-                    <div 
-                      class="flex items-center justify-center w-11 h-11 rounded-xl border border-white/10 bg-white/5 transition-all duration-300"
-                    >
-                      <i :class="[step.icon, 'text-base text-white/70']"></i>
-                    </div>
-                    <div>
-                      <div class="text-xs font-medium uppercase tracking-wider mb-1 text-white/65">Step {{ index + 1 }}</div>
-                      <h3 class="hidden sm:block text-lg font-semibold text-white">{{ step.title }}</h3>
-                    </div>
+                  <!-- Title -->
+                  <div class="relative mb-5">
+                    <div class="text-xs font-medium uppercase tracking-wider mb-1 text-white/65">Step {{ index + 1 }}</div>
+                    <h3 class="hidden sm:block text-lg font-semibold text-white">{{ step.title }}</h3>
                   </div>
                   
                   <!-- Description -->
                   <p class="relative text-white/85 text-sm leading-relaxed mb-6">{{ step.description }}</p>
                   
                   <!-- Features list -->
-                  <ul class="relative space-y-3">
+                  <ul class="relative space-y-2.5">
                     <li 
                       v-for="(feature, fIndex) in step.features" 
                       :key="fIndex" 
-                      class="flex items-start gap-3"
+                      class="flex items-start"
                     >
-                      <div 
-                        class="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full mt-0.5 bg-white/10"
-                      >
-                        <i class="fas fa-check text-[10px] text-white/70"></i>
-                      </div>
                       <span class="text-white/90 text-sm">{{ feature }}</span>
                     </li>
                   </ul>

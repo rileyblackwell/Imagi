@@ -7,13 +7,13 @@
     :icon="icon"
     :class="[
       gradientClass,
-      'group relative overflow-hidden',
       buttonStyleClass,
-      '!text-white hover:!text-white dark:!text-gray-900 dark:hover:!text-gray-900',
-      'backdrop-blur-sm',
-      'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
-      'before:transition-all before:duration-300',
-      '!rounded-full'
+      (textStyle && gradientType === 'minimal') ? '' : 'group relative overflow-hidden',
+      (textStyle && gradientType === 'minimal') ? '' : (gradientType === 'minimal' ? '!text-white hover:!text-white dark:!text-gray-900 dark:hover:!text-gray-900' : '!text-white hover:!text-white'),
+      (textStyle && gradientType === 'minimal') ? '' : 'backdrop-blur-sm',
+      (textStyle && gradientType === 'minimal') ? '' : 'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
+      (textStyle && gradientType === 'minimal') ? '' : 'before:transition-all before:duration-300',
+      (textStyle && gradientType === 'minimal') ? '' : '!rounded-full'
     ]"
     v-bind="$attrs"
     @click="$emit('click', $event)"
@@ -53,13 +53,22 @@ export default defineComponent({
       type: String,
       default: 'primary',
       validator: (value) => ['primary', 'amber', 'emerald', 'rose', 'fuchsia', 'indigo', 'minimal'].includes(value)
+    },
+    textStyle: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['click'],
   setup(props) {
     // Computed class for gradient with enhanced modern styling
     const gradientClass = computed(() => {
-      // Minimal style - clean Apple/Cursor-inspired design
+      // Text style - plain text on navbar (no button appearance)
+      if (props.textStyle && props.gradientType === 'minimal') {
+        return '!bg-transparent !text-gray-900 dark:!text-white hover:!opacity-70';
+      }
+      
+      // Minimal style - clean Apple/Cursor-inspired button design
       if (props.gradientType === 'minimal') {
         return '!bg-gray-900 dark:!bg-white hover:shadow-xl';
       }
@@ -67,7 +76,7 @@ export default defineComponent({
       const gradients = {
         primary: 'bg-gradient-to-br from-primary-600 via-primary-500 to-indigo-600 hover:from-primary-500 hover:via-primary-400 hover:to-indigo-500 shadow-primary-500/30 hover:shadow-primary-500/50',
         amber: 'bg-gradient-to-br from-amber-600 via-amber-500 to-orange-600 hover:from-amber-500 hover:via-amber-400 hover:to-orange-500 shadow-amber-500/30 hover:shadow-amber-500/50',
-        emerald: 'bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-500 shadow-emerald-500/30 hover:shadow-emerald-500/50',
+        emerald: 'bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:via-emerald-400 hover:to-teal-500 shadow-emerald-500/30 hover:shadow-emerald-500/30',
         rose: 'bg-gradient-to-br from-rose-600 via-rose-500 to-pink-600 hover:from-rose-500 hover:via-rose-400 hover:to-pink-500 shadow-rose-500/30 hover:shadow-rose-500/50',
         fuchsia: 'bg-gradient-to-br from-fuchsia-600 via-fuchsia-500 to-purple-600 hover:from-fuchsia-500 hover:via-fuchsia-400 hover:to-purple-500 shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50',
         indigo: 'bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-600 hover:from-indigo-500 hover:via-indigo-400 hover:to-blue-500 shadow-indigo-500/30 hover:shadow-indigo-500/50'
@@ -93,6 +102,18 @@ export default defineComponent({
 
     // Computed class for button styling - different for minimal vs gradient buttons
     const buttonStyleClass = computed(() => {
+      // Text style - plain text styling
+      if (props.textStyle && props.gradientType === 'minimal') {
+        return [
+          'transition-all duration-200',
+          'px-3 py-2',
+          'inline-flex items-center justify-center gap-2',
+          'text-sm font-medium',
+          '!shadow-none hover:!shadow-none'
+        ].join(' ');
+      }
+      
+      // Minimal button style
       if (props.gradientType === 'minimal') {
         return [
           'transform hover:scale-[1.02] active:scale-[0.98]',

@@ -5,11 +5,12 @@
       :class="[
         gradientClass,
         buttonStyleClass,
-        'group relative overflow-hidden',
-        'backdrop-blur-sm',
-        'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
-        'before:transition-all before:duration-300',
-        { 'shadow-xl scale-[1.02]': isOpen }
+        (textStyle && gradientType === 'minimal') ? 'group relative' : 'group relative overflow-hidden',
+        (textStyle && gradientType === 'minimal') ? '' : 'backdrop-blur-sm',
+        (textStyle && gradientType === 'minimal') ? '' : 'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
+        (textStyle && gradientType === 'minimal') ? '' : 'before:transition-all before:duration-300',
+        { 'opacity-100': isOpen },
+        (textStyle && gradientType === 'minimal') ? '' : { 'shadow-xl scale-[1.02]': isOpen }
       ]"
       @click="toggleDropdown"
     >
@@ -35,18 +36,12 @@
     >
       <div
         v-show="isOpen"
-        class="absolute right-0 mt-3 w-64 origin-top-right z-50"
+        class="absolute left-1/2 -translate-x-1/2 mt-3 w-24 origin-top z-50"
       >
-        <div class="rounded-2xl bg-gradient-to-br from-dark-900/98 via-dark-800/98 to-dark-900/98 border border-primary-400/20 shadow-2xl shadow-primary-500/10 backdrop-blur-xl overflow-hidden ring-1 ring-white/5">
-          <!-- Glow effect at top -->
-          <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/50 to-transparent"></div>
-          
-          <div class="py-2">
+        <div class="rounded-xl bg-white border border-gray-200/50 shadow-xl backdrop-blur-xl overflow-hidden">
+          <div class="py-1.5">
             <slot name="menu"></slot>
           </div>
-          
-          <!-- Glow effect at bottom -->
-          <div class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary-400/30 to-transparent"></div>
         </div>
       </div>
     </transition>
@@ -62,7 +57,7 @@
     >
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-40 bg-dark-900/20 backdrop-blur-[3px]"
+        class="fixed inset-0 z-40 bg-gray-900/10 dark:bg-black/20 backdrop-blur-[2px]"
         @click="closeDropdown"
       ></div>
     </transition>
@@ -83,6 +78,10 @@ export default defineComponent({
     modelValue: {
       type: Boolean,
       default: false
+    },
+    textStyle: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue'],
@@ -93,7 +92,12 @@ export default defineComponent({
     })
 
     const gradientClass = computed(() => {
-      // Minimal style - clean Apple/Cursor-inspired design
+      // Text style - plain text on navbar (no button appearance)
+      if (props.textStyle && props.gradientType === 'minimal') {
+        return 'text-gray-900 dark:text-white hover:opacity-70';
+      }
+      
+      // Minimal style - clean button design
       if (props.gradientType === 'minimal') {
         return 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:shadow-xl';
       }
@@ -110,6 +114,18 @@ export default defineComponent({
 
     // Computed class for button styling - different for minimal vs gradient buttons
     const buttonStyleClass = computed(() => {
+      // Text style - plain text styling
+      if (props.textStyle && props.gradientType === 'minimal') {
+        return [
+          'transition-all duration-200',
+          'px-3 py-2',
+          'inline-flex items-center justify-center gap-1.5',
+          'text-sm font-medium',
+          'bg-transparent'
+        ].join(' ');
+      }
+      
+      // Minimal button style
       if (props.gradientType === 'minimal') {
         return [
           'transform hover:scale-[1.02] active:scale-[0.98]',

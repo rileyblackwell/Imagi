@@ -1,7 +1,13 @@
 <!-- CTA Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500">
-    <div class="max-w-4xl mx-auto text-center">
+  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500 overflow-hidden">
+    
+    <!-- Subtle ambient glow -->
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute top-1/2 left-1/2 w-[600px] h-[300px] bg-gradient-radial from-gray-200/40 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+    </div>
+    
+    <div class="relative max-w-4xl mx-auto text-center">
       
       <!-- Content -->
       <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
@@ -12,14 +18,16 @@
         {{ description }}
       </p>
       
-      <!-- Buttons -->
+      <!-- Buttons with enhanced styling -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <router-link 
           :to="getAuthenticatedRedirect"
-          class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+          class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl overflow-hidden"
         >
-          {{ primaryButtonText }}
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- Subtle shine effect on hover -->
+          <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out"></span>
+          <span class="relative">{{ primaryButtonText }}</span>
+          <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
           </svg>
         </router-link>
@@ -27,7 +35,7 @@
         <router-link 
           v-if="showSecondaryButton"
           :to="secondaryButtonTo"
-          class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-white/5 text-gray-700 dark:text-white/80 border border-gray-200 dark:border-white/10 rounded-full font-medium text-lg transition-all duration-300 hover:border-gray-300 dark:hover:border-white/20"
+          class="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/80 dark:bg-white/5 backdrop-blur-sm text-gray-700 dark:text-white/80 border border-gray-200/80 dark:border-white/10 rounded-full font-medium text-lg transition-all duration-300 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-lg hover:shadow-gray-200/30 dark:hover:shadow-none"
         >
           {{ secondaryButtonText }}
         </router-link>

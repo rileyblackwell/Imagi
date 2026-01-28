@@ -2,10 +2,14 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Clean minimal background -->
+      <!-- Enhanced minimal background with subtle noise texture effect -->
       <div class="fixed inset-0 pointer-events-none">
         <!-- Subtle gradient - very minimal -->
         <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
+        
+        <!-- Very subtle grid pattern for texture (dark mode only) -->
+        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
+             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
       </div>
 
       <!-- Main Content -->
@@ -60,7 +64,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Minimal scrollbar */
+/* Refined minimal scrollbar */
 :deep(::-webkit-scrollbar) {
   width: 8px;
 }
@@ -70,19 +74,25 @@ export default defineComponent({
 }
 
 :deep(::-webkit-scrollbar-thumb) {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
 :deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 :root.dark :deep(::-webkit-scrollbar-thumb) {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 :root.dark :deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth scroll behavior */
+:deep(html) {
+  scroll-behavior: smooth;
 }
 </style>

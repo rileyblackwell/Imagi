@@ -1,7 +1,7 @@
 <template>
   <nav class="fixed w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200/80 dark:border-white/5 transition-colors duration-300">
     <div class="relative max-w-7xl mx-auto pl-6 pr-6 sm:pl-8 sm:pr-8 lg:pl-12 lg:pr-12">
-      <div class="relative flex items-center h-16">
+      <div class="relative flex items-center h-14">
         <!-- Left section -->
         <div class="flex items-center z-10 -ml-36">
           <ImagiLogo size="md">
