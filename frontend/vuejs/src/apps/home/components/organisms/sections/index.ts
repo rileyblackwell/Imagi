@@ -1,5 +1,6 @@
 import HeroSection from './HeroSection.vue'
 import FeaturesSection from './FeaturesSection.vue'
+import KeyFeaturesSection from './KeyFeaturesSection.vue'
 import HowItWorksSection from './HowItWorksSection.vue'
 import UseCasesSection from './UseCasesSection.vue'
 import StatsSection from './StatsSection.vue'
@@ -13,6 +14,7 @@ import FAQSection from './FAQSection.vue'
 export {
   HeroSection,
   FeaturesSection,
+  KeyFeaturesSection,
   HowItWorksSection,
   UseCasesSection,
   StatsSection,

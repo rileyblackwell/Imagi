@@ -1,6 +1,6 @@
 <!-- Stats Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500">
     <div class="max-w-6xl mx-auto">
       
       <!-- Section header -->
@@ -10,7 +10,7 @@
           Fast, affordable, approachable
         </h2>
         <p class="text-xl text-gray-500 dark:text-white/60 max-w-2xl mx-auto transition-colors duration-300">
-          Build and validate your ideas quickly without the traditional barriers of time, cost, or technical complexity.
+          Your practical partner for building web applications. We handle the technical complexity while you focus on your ideas.
         </p>
       </div>
 
@@ -21,30 +21,34 @@
           :key="index"
           class="text-center p-10 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-all duration-300"
         >
-          <div class="text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-3 transition-colors duration-300">
+          <p class="text-lg text-gray-500 dark:text-white/60 mb-3 transition-colors duration-300">{{ stat.label }}</p>
+          <div class="text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white transition-colors duration-300">
             {{ stat.value }}<span v-if="stat.unit" class="text-3xl text-gray-500 dark:text-white/50 ml-1">{{ stat.unit }}</span>
           </div>
-          <p class="text-lg text-gray-500 dark:text-white/60 transition-colors duration-300">{{ stat.label }}</p>
         </div>
       </div>
 
-      <!-- Tech stack cards -->
+      <!-- Use case cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div 
           v-for="(metric, index) in metrics" 
           :key="index"
-          class="p-6 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-all duration-300"
+          class="p-8 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/10 transition-all duration-300 hover:border-gray-300 dark:hover:border-white/20 hover:scale-[1.02]"
         >
-          <div class="flex items-center gap-4 mb-4">
-            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 transition-colors duration-300">
-              <i :class="[metric.icon, 'text-lg text-gray-700 dark:text-white/70']"></i>
+          <!-- Icon and Title (side by side) -->
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/5 flex-shrink-0 transition-colors duration-300">
+              <i :class="[metric.icon, 'text-xl text-gray-700 dark:text-white/70']"></i>
             </div>
-            <div>
-              <div class="font-semibold text-gray-900 dark:text-white transition-colors duration-300">{{ metric.value }}</div>
-              <div class="text-xs text-gray-500 dark:text-white/50 transition-colors duration-300">{{ metric.label }}</div>
-            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300">
+              {{ metric.title }}
+            </h3>
           </div>
-          <p class="text-gray-500 dark:text-white/60 text-sm leading-relaxed transition-colors duration-300">{{ metric.detail }}</p>
+          
+          <!-- Description -->
+          <p class="text-gray-500 dark:text-white/60 text-base leading-relaxed transition-colors duration-300">
+            {{ metric.description }}
+          </p>
         </div>
       </div>
     </div>
@@ -66,8 +70,8 @@ export default defineComponent({
           label: 'Typical App Cost'
         },
         {
-          value: '~1',
-          unit: 'hr',
+          value: '30',
+          unit: 'min',
           label: 'Typical Build Time'
         }
       ]
@@ -76,22 +80,19 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          icon: 'fas fa-building',
-          value: 'Non-Technical Teams',
-          label: 'Perfect For',
-          detail: 'Employees prototyping ideas inside companies without needing engineers'
+          icon: 'fas fa-seedling',
+          title: 'Ideal for Startup Founders',
+          description: 'No coding experience needed. Quickly get up and running to prototype and validate your ideas with real users.'
         },
         {
-          icon: 'fas fa-seedling',
-          value: 'Startup Founders',
-          label: 'Ideal For',
-          detail: 'Validate early product ideas before committing to a full dev team'
+          icon: 'fas fa-users',
+          title: 'Ideal for Non-Technical Teams',
+          description: 'Empower your team to rapidly prototype and test ideas without waiting for engineering resources.'
         },
         {
           icon: 'fas fa-code',
-          value: 'Technical Teams',
-          label: 'Great For',
-          detail: 'Engineers who want a faster interface for experimentation and prototypes'
+          title: 'Ideal for Technical Teams',
+          description: 'A quick, easy interface to get something up and running and test it out.'
         }
       ]
     }

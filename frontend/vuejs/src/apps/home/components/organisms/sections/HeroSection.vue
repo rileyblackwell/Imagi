@@ -10,7 +10,7 @@
 
       <!-- Subtitle -->
       <p class="text-xl sm:text-2xl text-gray-500 dark:text-white/60 mb-10 max-w-3xl mx-auto transition-colors duration-300">
-        Your practical partner for building web applications. Chat with AI, design visually, and launch to the web—fast, affordable, and approachable.
+        Imagi is a suite of AI tools that empowers non-technical developers to build web applications. Design visually, chat with AI, and launch to the web—fast, affordable, and approachable.
       </p>
 
       <!-- CTA buttons -->
@@ -38,13 +38,13 @@
           <svg class="w-4 h-4 text-gray-400 dark:text-white/40" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          Easy path to scale with engineers
+          Deploy to the web in minutes
         </span>
         <span class="flex items-center gap-2">
           <svg class="w-4 h-4 text-gray-400 dark:text-white/40" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          Made for founders and teams
+          No coding experience required
         </span>
       </div>
 

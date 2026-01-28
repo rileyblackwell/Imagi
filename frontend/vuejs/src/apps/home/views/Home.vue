@@ -13,11 +13,14 @@
         <!-- Hero Section -->
         <HeroSection />
         
+        <!-- Stats Section -->
+        <StatsSection />
+        
         <!-- Features Section -->
         <FeaturesSection />
         
-        <!-- Stats Section -->
-        <StatsSection />
+        <!-- Key Features Section -->
+        <KeyFeaturesSection />
         
         <!-- CTA Section -->
         <CTASection 
@@ -38,6 +41,7 @@ import { DefaultLayout } from '@/shared/layouts'
 import { 
   HeroSection,
   FeaturesSection,
+  KeyFeaturesSection,
   StatsSection,
   CTASection
 } from '@/apps/home/components/organisms/sections'
@@ -48,6 +52,7 @@ export default defineComponent({
     DefaultLayout,
     HeroSection,
     FeaturesSection,
+    KeyFeaturesSection,
     StatsSection,
     CTASection
   }

@@ -1,6 +1,6 @@
 <!-- Features Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12">
+  <section class="py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500">
     <div class="max-w-6xl mx-auto">
       
       <!-- Section header -->
