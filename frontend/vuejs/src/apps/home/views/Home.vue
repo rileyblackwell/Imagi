@@ -13,17 +13,11 @@
         <!-- Hero Section -->
         <HeroSection />
         
-        <!-- Product Tour Section -->
-        <ProductTourSection />
-        
         <!-- Features Section -->
         <FeaturesSection />
         
         <!-- Stats Section -->
         <StatsSection />
-        
-        <!-- Testimonials Section -->
-        <TestimonialsSection />
         
         <!-- CTA Section -->
         <CTASection 
@@ -45,9 +39,7 @@ import {
   HeroSection,
   FeaturesSection,
   StatsSection,
-  TestimonialsSection,
-  CTASection,
-  ProductTourSection
+  CTASection
 } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
@@ -57,9 +49,7 @@ export default defineComponent({
     HeroSection,
     FeaturesSection,
     StatsSection,
-    TestimonialsSection,
-    CTASection,
-    ProductTourSection
+    CTASection
   }
 })
 </script>

@@ -1,0 +1,129 @@
+---
+alwaysApply: true
+---
+
+Local Development
+
+Backend
+	•	Django 4.x
+	•	SQLite (local only)
+	•	Pipenv for environment management
+	•	Run via Django development server
+
+Frontend
+	•	Vue.js 3 (Composition API)
+	•	Vite dev server (HMR enabled)
+
+Local Servers
+	•	Frontend: http://localhost:5174 (npm run dev)
+	•	Backend: http://localhost:8000 (python manage.py runserver)
+
+Agents must assume both are already running unless explicitly told otherwise.
+
+⸻
+
+Staging & Production
+
+Backend
+	•	Django served with Gunicorn
+	•	May migrate to Uvicorn when async is required
+
+Database
+	•	PostgreSQL ≥ 14
+
+Frontend
+	•	Built using vite build
+	•	Served as static assets via Nginx
+
+Hosting
+	•	Railway.com
+
+Architecture
+	•	Separate Docker images for frontend and backend
+	•	Separate Railway services per container
+	•	Services communicate only over Railway’s private network
+
+⸻
+
+Development Environment
+	•	OS: macOS with zsh
+	•	Python ≥ 3.10
+	•	Node.js ≥ 16.x
+
+Package Managers
+	•	Backend: pipenv
+	•	Frontend: npm or yarn
+
+Editor
+	•	Cursor (primary)
+	•	Recommended extensions:
+	•	Python
+	•	Vue
+	•	Tailwind IntelliSense
+
+⸻
+
+Backend Stack & Conventions
+
+Core Stack
+	•	Django REST Framework
+	•	pytest for testing
+	•	Django auth + DRF token auth (OAuth2 planned)
+
+API Rules
+	•	All endpoints must live under /api/v1/
+	•	RESTful naming and methods
+	•	Separation of concerns:
+	•	models.py — data
+	•	serializers.py — validation
+	•	views.py — logic
+	•	urls.py — routing
+
+Backend Apps
+	•	auth
+	•	builder
+	•	agents
+	•	project_manager
+	•	payments
+	•	home
+
+Testing
+	•	Unit + integration tests required for all new features
+	•	Must test success paths, failures, and permissions
+
+⸻
+
+Frontend Stack & Conventions
+
+Core Stack
+	•	Vue 3 + Composition API
+	•	Pinia
+	•	Axios
+	•	TailwindCSS
+	•	TypeScript preferred
+	•	Vite build tooling
+
+Testing
+	•	Unit: Jest
+	•	E2E: Cypress
+
+Module Structure
+
+Each module must contain:
+	•	components/
+	•	routes/
+	•	store/
+	•	services/
+	•	types/
+	•	tests/
+
+Architecture
+	•	Atomic Design (atoms → molecules → organisms → templates)
+	•	Shared logic belongs in composables
+	•	All imports must use the @ alias
+
+UI / UX
+	•	Minimal, modern aesthetic
+	•	Fully responsive
+	•	WCAG 2.1 compliant
+	•	Dark + light mode required

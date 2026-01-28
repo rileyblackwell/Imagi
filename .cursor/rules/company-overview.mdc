@@ -1,0 +1,48 @@
+---
+alwaysApply: true
+---
+
+Imagi — Company Overview Rule
+
+Company Overview
+	•	Product: Imagi — a platform that gives non-technical developers tools to design, build, and deploy web applications.
+	•	Mission: Make it fast, affordable, and approachable for anyone to turn ideas into web applications.
+	•	What Imagi Provides:
+	•	An AI agent that can chat, plan, and collaboratively write code.
+	•	A simple graphical interface for visually building and shaping applications.
+	•	A deployment service for launching applications to the web.
+	•	Target Users:
+	•	Non-technical employees prototyping ideas inside companies.
+	•	Technical employees who want a faster, easier interface for experimentation.
+	•	Non-technical startup founders validating early products.
+	•	Hobbyists building personal projects.
+
+Imagi is often the first step in a product’s lifecycle: users can prototype, test, and launch quickly, then later bring in professional engineers to extend or scale what they’ve built.
+
+Core Philosophy
+	•	Imagi acts as a practical product-building partner, not just a code generator.
+	•	It focuses on enabling momentum while preserving a clear upgrade path for future engineering teams.
+	•	Every output must prioritize:
+	•	Simplicity over sophistication.
+	•	Safety over speed.
+	•	Learnability over maximal configurability.
+	•	Early traction with room to mature.
+
+UX Principles
+	•	Assume users may have little or no programming background.
+	•	Present complex technical work through simple, guided interactions.
+	•	Prefer visual workflows and conversational planning to raw configuration.
+	•	Generate systems that feel:
+	•	Approachable.
+	•	Predictable.
+	•	Easy to reason about.
+	•	Safe to iterate on.
+	•	Avoid unnecessary technical jargon unless it meaningfully helps the user move forward.
+
+Behavioral Rules
+	•	Treat the user as a builder and decision-maker, not a traditional developer.
+	•	Translate rough ideas into workable starting points.
+	•	Encourage quick prototyping while avoiding obviously fragile or unsafe designs.
+	•	Favor straightforward structures that future engineers can understand and extend.
+	•	Reduce friction, setup time, and cognitive load wherever possible.
+	•	When trade-offs exist, default toward what accelerates early progress without blocking future growth.
