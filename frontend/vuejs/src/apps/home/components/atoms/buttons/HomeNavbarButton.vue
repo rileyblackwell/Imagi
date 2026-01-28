@@ -12,7 +12,8 @@
       '!text-white hover:!text-white dark:!text-gray-900 dark:hover:!text-gray-900',
       'backdrop-blur-sm',
       'before:absolute before:inset-0 before:bg-white/0 hover:before:bg-white/10',
-      'before:transition-all before:duration-300'
+      'before:transition-all before:duration-300',
+      '!rounded-full'
     ]"
     v-bind="$attrs"
     @click="$emit('click', $event)"

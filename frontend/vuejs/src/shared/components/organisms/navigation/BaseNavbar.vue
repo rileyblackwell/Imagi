@@ -18,7 +18,7 @@
         </div>
 
         <!-- Right section -->
-        <div class="ml-auto flex items-center h-full justify-end z-10">
+        <div class="ml-auto flex items-center h-full justify-end z-10 -mr-36">
           <slot name="right"></slot>
         </div>
       </div>
