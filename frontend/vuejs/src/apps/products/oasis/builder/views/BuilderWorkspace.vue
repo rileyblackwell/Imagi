@@ -777,7 +777,7 @@ function createCommitFromPrompt(filePath: string, prompt: string) {
   );
 }
 
-async function handlePrompt(eventData?: { timestamp: string }) {
+async function handlePrompt() {
   if (!prompt.value.trim()) return
   
   try {
@@ -785,7 +785,7 @@ async function handlePrompt(eventData?: { timestamp: string }) {
       return
     }
     
-    const timestamp = eventData?.timestamp || new Date().toISOString()
+    const timestamp = new Date().toISOString()
     
     // Get payments store for updating balance
     const balanceStore = useBalanceStore()
