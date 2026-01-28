@@ -17,7 +17,7 @@
                   to="/products/oasis/builder/dashboard" 
                   class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
                 >
-                  Oasis Builder
+                  Imagi
                 </router-link>
               </li>
               <li>
