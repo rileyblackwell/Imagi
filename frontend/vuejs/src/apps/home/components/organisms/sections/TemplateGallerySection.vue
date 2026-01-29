@@ -115,7 +115,7 @@
                 
                 <!-- CTA -->
                 <router-link 
-                  to="/auth/login"
+                  to="/auth/signin"
                   class="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-300"
                   :class="template.buttonClass"
                 >
@@ -148,7 +148,7 @@
       <div class="text-center mt-12">
         <p class="text-white/60 text-sm mb-4">Don't see what you need? Describe any app and we'll build it.</p>
         <router-link 
-          to="/auth/login"
+          to="/auth/signin"
           class="inline-flex items-center gap-2 px-6 py-3 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
         >
           <i class="fas fa-plus text-violet-400"></i>

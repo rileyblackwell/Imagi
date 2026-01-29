@@ -3,7 +3,7 @@
     <label class="relative block group">
       <span class="sr-only">{{ label }}</span>
       <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10">
-        <i :class="[icon, 'text-gray-400 dark:text-white transition-colors duration-200']"></i>
+        <i :class="[icon, 'text-black dark:text-white transition-colors duration-200']"></i>
       </span>
       <input
         :value="modelValue"

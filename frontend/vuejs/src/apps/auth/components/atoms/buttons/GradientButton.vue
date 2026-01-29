@@ -8,7 +8,6 @@
            text-white dark:text-gray-900 
            font-medium 
            shadow-sm 
-           hover:bg-gray-800 dark:hover:bg-gray-100 
            transition-all duration-200
            disabled:opacity-50 disabled:cursor-not-allowed
            overflow-hidden"

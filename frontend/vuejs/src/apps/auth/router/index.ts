@@ -6,7 +6,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../layouts/AuthLayout.vue'),
     children: [
       {
-        path: 'login',
+        path: 'signin',
         name: 'login',
         component: () => import('../views/Login.vue'),
         meta: {
@@ -31,7 +31,7 @@ const routes: RouteRecordRaw[] = [
           subtitle: 'Start building your next great idea with AI',
           badge: 'Get Started',
           mainText: 'Already have an account?',
-          mainLinkPath: '/auth/login',
+          mainLinkPath: '/auth/signin',
           mainLinkText: 'Sign in'
         }
       }

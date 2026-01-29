@@ -1887,7 +1887,7 @@ defineExpose({ isValid })
           <template v-else>
             Already have an account?
             <router-link 
-              to="/auth/login" 
+              to="/auth/signin" 
               class="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-300 underline decoration-blue-400/40 hover:decoration-blue-300/60"
             >
               Sign in here
@@ -1916,7 +1916,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const isLoginPage = computed(() => route.path === '/auth/login')
+const isLoginPage = computed(() => route.path === '/auth/signin')
 </script>
 '''
     })

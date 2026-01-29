@@ -12,7 +12,7 @@ urlpatterns = [
     path('init/', views.InitView.as_view(), name='init'),
     
     # Authentication endpoints
-    path('login/', views.LoginView.as_view(), name='login'),
+    path('signin/', views.LoginView.as_view(), name='signin'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('register/', views.RegisterView.as_view(), name='register'),
     

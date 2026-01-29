@@ -95,7 +95,7 @@ export const AuthAPI = {
         throw new Error('Authentication error: Could not obtain security token');
       }
       
-      const response = await api.post(`${API_PATH}/login/`, credentials, {
+      const response = await api.post(`${API_PATH}/signin/`, credentials, {
         headers: csrfToken !== 'bypass' ? { 'X-CSRFToken': csrfToken } : {},
         timeout: 1000
       });

@@ -44,7 +44,7 @@ const authStore = useAuthStore()
 const errorMessage = ref('')
 
 const goToLogin = () => {
-  router.push('/auth/login')
+  router.push('/auth/signin')
 }
 
 onMounted(async () => {
@@ -75,7 +75,7 @@ onMounted(async () => {
       
       // Redirect to login after showing error
       setTimeout(() => {
-        router.push(`/auth/login?sso_error=${ssoError}`)
+        router.push(`/auth/signin?sso_error=${ssoError}`)
       }, 3000)
       return
     }

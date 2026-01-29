@@ -82,7 +82,7 @@ export default defineComponent({
     const getAuthenticatedRedirect = computed(() => {
       return isAuthenticated.value 
         ? (typeof props.primaryButtonTo === 'string' ? props.primaryButtonTo : '/products/oasis/builder/dashboard')
-        : '/auth/login'
+        : '/auth/signin'
     })
     
     return {

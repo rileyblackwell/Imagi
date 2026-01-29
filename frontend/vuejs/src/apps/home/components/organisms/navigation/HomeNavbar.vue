@@ -67,7 +67,7 @@
         </template>
         <template v-else>
           <HomeNavbarButton
-            to="/auth/login"
+            to="/auth/signin"
             variant="primary"
             size="base"
             gradient-type="minimal"
@@ -118,7 +118,7 @@ export default defineComponent({
     }
 
     const navigateToLogin = () => {
-      router.push('/auth/login')
+      router.push('/auth/signin')
     }
 
     // Close dropdown on scroll

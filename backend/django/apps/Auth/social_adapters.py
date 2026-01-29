@@ -41,7 +41,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 logger.warning("Google SSO attempted without email")
                 frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5174')
                 raise ImmediateHttpResponse(
-                    redirect(f'{frontend_url}/auth/login?sso_error=no_email')
+                    redirect(f'{frontend_url}/auth/signin?sso_error=no_email')
                 )
             
             # Check if a user with this email exists
@@ -55,7 +55,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 logger.warning(f"Google SSO attempted with non-existing email: {email}")
                 frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5174')
                 raise ImmediateHttpResponse(
-                    redirect(f'{frontend_url}/auth/login?sso_error=no_account')
+                    redirect(f'{frontend_url}/auth/signin?sso_error=no_account')
                 )
     
     def is_auto_signup_allowed(self, request, sociallogin):

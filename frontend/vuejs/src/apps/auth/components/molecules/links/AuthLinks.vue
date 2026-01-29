@@ -3,7 +3,7 @@
     <!-- Enhanced Links Section -->
     <div class="text-center">
       <!-- Alternate Auth Action -->
-      <p class="text-white text-sm transition-colors duration-300">
+      <p class="text-black dark:text-white text-sm transition-colors duration-300">
         <template v-if="isLoginPage">
           New to Imagi?
           <router-link 
@@ -16,7 +16,7 @@
         <template v-else>
           Already have an account?
           <router-link 
-            to="/auth/login" 
+            to="/auth/signin" 
             class="text-black dark:text-white hover:text-gray-600 dark:hover:text-white/70 font-medium transition-colors duration-200 ml-1"
           >
             Sign in here
@@ -32,5 +32,5 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const isLoginPage = computed(() => route.path === '/auth/login')
+const isLoginPage = computed(() => route.path === '/auth/signin')
 </script>

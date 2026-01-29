@@ -227,7 +227,7 @@ export default defineComponent({
         ],
         visualTitle: 'imagi-builder',
         ctaText: 'Start Building',
-        ctaLink: '/auth/login'
+        ctaLink: '/auth/signin'
       },
       {
         title: 'Refine',
@@ -241,7 +241,7 @@ export default defineComponent({
         ],
         visualTitle: 'imagi-chat',
         ctaText: 'Try It Now',
-        ctaLink: '/auth/login'
+        ctaLink: '/auth/signin'
       },
       {
         title: 'Deploy',

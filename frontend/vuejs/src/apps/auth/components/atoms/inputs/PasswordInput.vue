@@ -3,7 +3,7 @@
     <label v-if="label" :for="id" class="sr-only">{{ label }}</label>
     <div class="relative group">
       <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10">
-        <i class="fas fa-lock text-gray-400 dark:text-white transition-colors duration-200"></i>
+        <i class="fas fa-lock text-black dark:text-white transition-colors duration-200"></i>
       </span>
       <input
         :id="id"
@@ -33,8 +33,8 @@
         type="button"
         @click="togglePassword"
         class="absolute inset-y-0 right-0 flex items-center pr-4 
-               text-gray-400 dark:text-white 
-               hover:text-gray-600 dark:hover:text-white/80 
+               text-black dark:text-white 
+               hover:text-black/70 dark:hover:text-white/80 
                transition-colors duration-200 z-10"
       >
         <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']"></i>

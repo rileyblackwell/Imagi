@@ -2,11 +2,11 @@
 <template>
   <DefaultLayout>
     <!-- Clean full-screen layout matching Home page design -->
-    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
+    <div class="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] relative overflow-hidden transition-colors duration-500">
       <!-- Minimal background with subtle texture - matching Home page -->
       <div class="fixed inset-0 pointer-events-none">
         <!-- Subtle gradient - very minimal -->
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-gray-50 to-gray-50 dark:from-[#0f0f0f] dark:via-[#0f0f0f] dark:to-[#0f0f0f] transition-colors duration-500"></div>
         
         <!-- Very subtle grid pattern for texture (dark mode only) -->
         <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 

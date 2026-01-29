@@ -129,7 +129,7 @@
                 <h2 class="text-2xl font-semibold text-white mb-3">Authentication Required</h2>
                 <p class="text-gray-300 mb-8 max-w-md mx-auto">Please log in to view and manage your projects.</p>
                 <router-link 
-                  to="/login" 
+                  to="/auth/signin" 
                   class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl transform hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
                 >
                   <i class="fas fa-sign-in-alt mr-2.5"></i>

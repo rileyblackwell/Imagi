@@ -62,7 +62,11 @@
               :hasError="!!errorMessage && formSubmitCount > 0"
             />
             <!-- Password requirements with premium glass styling -->
-            <div class="mt-4 p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
+            <div class="mt-4 p-4 rounded-xl 
+                        border border-black/[0.08] dark:border-white/[0.08] 
+                        bg-black/[0.02] dark:bg-white/[0.02] 
+                        backdrop-blur-sm 
+                        transition-all duration-300">
               <PasswordRequirements 
                 :password="value || ''"
                 ref="passwordRequirements"
@@ -97,7 +101,13 @@
       <!-- Bottom section -->
       <div class="space-y-5 pt-2">
         <!-- Terms checkbox with premium styling -->
-        <div class="p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-300">
+        <div class="p-4 rounded-xl 
+                    border border-black/[0.08] dark:border-white/[0.08] 
+                    bg-black/[0.02] dark:bg-white/[0.02] 
+                    backdrop-blur-sm 
+                    hover:bg-black/[0.04] dark:hover:bg-white/[0.04] 
+                    hover:border-black/[0.12] dark:hover:border-white/[0.12] 
+                    transition-all duration-300">
           <Field name="agreeToTerms" :rules="{ required: { allowFalse: false } }" :validateOnBlur="false" v-slot="{ errorMessage }">
             <FormCheckbox 
               name="agreeToTerms" 
@@ -105,11 +115,11 @@
               :showError="false"
             >
               I agree to the 
-              <router-link to="/terms" class="text-white hover:text-white/70 transition-colors duration-300 font-medium">
+              <router-link to="/terms" class="text-black dark:text-white hover:text-black/70 dark:hover:text-white/70 transition-colors duration-300 font-medium">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="text-white hover:text-white/70 transition-colors duration-300 font-medium">
+              <router-link to="/privacy" class="text-black dark:text-white hover:text-black/70 dark:hover:text-white/70 transition-colors duration-300 font-medium">
                 Privacy Policy
               </router-link>
             </FormCheckbox>
@@ -149,17 +159,17 @@
     <!-- Separator -->
     <div class="relative py-4">
       <div class="relative flex items-center justify-center">
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
-        <div class="mx-4 text-xs text-white uppercase tracking-wider">or</div>
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-black/[0.08] dark:via-white/[0.08] to-transparent"></div>
+        <div class="mx-4 text-xs text-gray-400 dark:text-white uppercase tracking-wider transition-colors duration-300">or</div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-black/[0.08] dark:via-white/[0.08] to-transparent"></div>
       </div>
     </div>
 
     <!-- Auth Links -->
     <div class="text-center">
-      <p class="text-white text-sm">
+      <p class="text-black dark:text-white text-sm transition-colors duration-300">
         Already have an account?
-        <router-link to="/auth/login" class="text-white font-medium ml-1">
+        <router-link to="/auth/signin" class="text-black dark:text-white hover:text-gray-600 dark:hover:text-white/70 font-medium transition-colors duration-200 ml-1">
           Sign in
         </router-link>
       </p>
