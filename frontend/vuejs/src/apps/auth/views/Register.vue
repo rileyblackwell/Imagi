@@ -105,11 +105,11 @@
               :showError="false"
             >
               I agree to the 
-              <router-link to="/terms" class="text-violet-400 hover:text-violet-300 transition-colors duration-300 font-medium">
+              <router-link to="/terms" class="text-white hover:text-white/70 transition-colors duration-300 font-medium">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="text-violet-400 hover:text-violet-300 transition-colors duration-300 font-medium">
+              <router-link to="/privacy" class="text-white hover:text-white/70 transition-colors duration-300 font-medium">
                 Privacy Policy
               </router-link>
             </FormCheckbox>
@@ -150,16 +150,16 @@
     <div class="relative py-4">
       <div class="relative flex items-center justify-center">
         <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
-        <div class="mx-4 text-xs text-white/30 uppercase tracking-wider">or</div>
+        <div class="mx-4 text-xs text-white uppercase tracking-wider">or</div>
         <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
       </div>
     </div>
 
     <!-- Auth Links -->
     <div class="text-center">
-      <p class="text-white/50 text-sm">
+      <p class="text-white text-sm">
         Already have an account?
-        <router-link to="/auth/login" class="text-violet-400 hover:text-violet-300 font-medium transition-colors duration-300 ml-1">
+        <router-link to="/auth/login" class="text-white font-medium ml-1">
           Sign in
         </router-link>
       </p>

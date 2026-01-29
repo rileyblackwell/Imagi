@@ -10,7 +10,11 @@
     <span 
       class="font-bold text-black dark:text-white tracking-tight transition-colors duration-300"
       :class="[
-        size === 'sm' ? 'text-base' : size === 'md' ? 'text-xl' : size === 'lg' ? 'text-2xl' : 'text-xl'
+        size === 'sm' ? 'text-base' : 
+        size === 'md' ? 'text-xl' : 
+        size === 'lg' ? 'text-2xl' : 
+        size === 'xl' ? 'text-4xl' : 
+        'text-xl'
       ]"
     >
       <slot>Imagi</slot>
@@ -33,7 +37,7 @@ defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value: string) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value: string) => ['sm', 'md', 'lg', 'xl'].includes(value)
   },
   /**
    * Whether to show only the icon

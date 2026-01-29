@@ -33,16 +33,16 @@
         </Field>
       </div>
 
-      <!-- Error message display with premium styling -->
+      <!-- Error message display -->
       <div class="space-y-5 pt-2">
         <transition name="fade-up">
           <div v-if="serverError" 
-               class="p-4 rounded-xl border border-red-500/20 bg-red-500/10 backdrop-blur-sm">
+               class="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-exclamation-triangle text-red-400 text-sm"></i>
+              <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 flex items-center justify-center flex-shrink-0 transition-colors duration-300">
+                <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-sm transition-colors duration-300"></i>
               </div>
-              <p class="text-sm font-medium text-red-400 whitespace-pre-line">
+              <p class="text-sm font-medium text-red-600 dark:text-red-400 whitespace-pre-line transition-colors duration-300">
                 {{ serverError }}
               </p>
             </div>
@@ -65,9 +65,9 @@
     <!-- Separator -->
     <div class="relative py-4">
       <div class="relative flex items-center justify-center">
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
-        <div class="mx-4 text-xs text-white/30 uppercase tracking-wider">or</div>
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"></div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300/50 dark:via-white/[0.08] to-transparent transition-colors duration-300"></div>
+        <div class="mx-4 text-xs text-gray-400 dark:text-white uppercase tracking-wider transition-colors duration-300">or</div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300/50 dark:via-white/[0.08] to-transparent transition-colors duration-300"></div>
       </div>
     </div>
 
