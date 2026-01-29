@@ -1,29 +1,11 @@
 <template>
-  <div class="group relative my-8">
+  <div class="relative my-8">
     <!-- Card container matching homepage feature cards -->
-    <div class="relative p-6 md:p-8 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-500 overflow-hidden">
-      <!-- Subtle hover glow -->
-      <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-        <div class="absolute inset-0 bg-gradient-to-br opacity-[0.03]" :class="getGradientClass(colorVariant)"></div>
-      </div>
-      
-      <!-- Top accent line -->
-      <div class="absolute top-0 left-0 right-0 h-px" :class="getAccentLineClass(colorVariant)"></div>
-      
-      <!-- Decorative corner glow -->
-      <div class="absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"
-           :class="getCardBackgroundClass(colorVariant)"></div>
-      
+    <div class="relative p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] backdrop-blur-sm transition-colors duration-300 overflow-hidden">
       <!-- Card content -->
       <div class="relative z-10">
         <slot></slot>
       </div>
-      
-      <!-- Bottom accent line on hover -->
-      <div 
-        class="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        :class="getBottomAccentClass(colorVariant)"
-      ></div>
     </div>
   </div>
 </template>

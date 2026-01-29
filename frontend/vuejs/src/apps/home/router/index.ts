@@ -1,7 +1,6 @@
 import type { RouteRecordRaw, NavigationGuardWithThis } from 'vue-router'
 import Home from '@/apps/home/views/Home.vue'
 import About from '@/apps/home/views/About.vue'
-import Contact from '@/apps/home/views/Contact.vue'
 import Privacy from '@/apps/home/views/PrivacyPolicy.vue'
 import Terms from '@/apps/home/views/TermsOfService.vue'
 
@@ -22,15 +21,6 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: false,
       title: 'About'
-    }
-  },
-  {
-    path: '/contact',
-    name: 'contact',
-    component: Contact,
-    meta: {
-      requiresAuth: false,
-      title: 'Contact'
     }
   },
   {

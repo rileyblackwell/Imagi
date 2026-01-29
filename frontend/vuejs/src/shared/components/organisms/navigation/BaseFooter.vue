@@ -62,14 +62,6 @@
                   About Us
                 </router-link>
               </li>
-              <li>
-                <router-link 
-                  to="/contact" 
-                  class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
-                >
-                  Contact
-                </router-link>
-              </li>
             </ul>
           </div>
 

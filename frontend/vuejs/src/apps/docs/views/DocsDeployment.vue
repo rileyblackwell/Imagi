@@ -2,126 +2,64 @@
   <DocsLayout>
     <DocsContentWrapper
       title="Deployment Guide"
-      description="Learn how to share your Imagi Oasis applications with the world."
+      description="Learn how to share your Imagi applications with the world."
       badge-text="DEPLOYMENT"
     >
       <!-- What is Deployment -->
       <DocsCard color-variant="primary">
-        <DocsCardHeader title="What is Deployment?" icon="fas fa-rocket" color="primary" />
+        <DocsCardHeader title="What is Deployment?" color="primary" />
         <p class="text-gray-300 leading-relaxed mb-4">
           Deployment is the process of making your application available online for others to use. 
           It's like moving from designing a house to actually building it so people can move in.
         </p>
         <p class="text-gray-300 leading-relaxed mb-6">
-          With Imagi Oasis, we're working to make deployment simple so you can share your creation with the world without needing technical expertise.
+          With Imagi, we're working to make deployment simple so you can share your creation with the world without needing technical expertise.
         </p>
         
         <div class="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400/20 to-violet-400/20 border border-indigo-400/20 flex items-center justify-center flex-shrink-0">
-              <i class="fas fa-lightbulb text-indigo-300 text-sm"></i>
-            </div>
-            <div>
-              <h4 class="text-indigo-300 font-semibold mb-2">Why deployment matters</h4>
-              <p class="text-gray-300 text-sm leading-relaxed">
-                Until your app is deployed, it only exists in your Imagi workspace. Deployment makes your app available on the internet with its own address (URL) that anyone can access.
-              </p>
-            </div>
-          </div>
+          <h4 class="text-white font-semibold mb-2">Why deployment matters</h4>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            Until your app is deployed, it only exists in your Imagi workspace. Deployment makes your app available on the internet with its own address (URL) that anyone can access.
+          </p>
         </div>
       </DocsCard>
 
       <!-- Coming Soon Section -->
       <DocsCard color-variant="cyan">
         <div class="text-center">
-          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center mx-auto mb-6">
-            <i class="fas fa-rocket text-2xl text-cyan-300"></i>
-          </div>
-          
-          <DocsCardHeader title="Deployment Features Coming Soon!" icon="fas fa-clock" color="cyan" />
+          <DocsCardHeader title="Deployment Features Coming Soon!" color="cyan" />
           <p class="text-gray-300 text-center max-w-md mx-auto mb-8 leading-relaxed">
-            We're currently building our deployment pipeline to make it easy for you to take your Imagi Oasis applications live. Soon you'll be able to deploy your applications with just a few clicks.
+            We're currently building our deployment pipeline to make it easy for you to take your Imagi applications live. Soon you'll be able to deploy your applications with just a few clicks.
           </p>
           
           <!-- Planned Features -->
           <div class="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
             <h4 class="text-lg font-semibold text-white mb-6">Planned Deployment Options</h4>
             <div class="space-y-6">
-              <div class="flex items-start gap-4 text-left">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-400/20 border border-cyan-400/20 flex items-center justify-center flex-shrink-0">
-                  <i class="fas fa-bolt text-cyan-300"></i>
-                </div>
-                <div>
-                  <h5 class="text-white font-semibold mb-1">One-Click Deployment</h5>
-                  <p class="text-gray-300 text-sm leading-relaxed">
-                    Deploy your application with minimal configuration to our secure cloud infrastructure.
-                  </p>
-                </div>
+              <div class="text-left">
+                <h5 class="text-white font-semibold mb-1">One-Click Deployment</h5>
+                <p class="text-gray-300 text-sm leading-relaxed">
+                  Deploy your application with minimal configuration to our secure cloud infrastructure.
+                </p>
               </div>
               
-              <div class="flex items-start gap-4 text-left">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400/20 to-purple-400/20 border border-violet-400/20 flex items-center justify-center flex-shrink-0">
-                  <i class="fas fa-download text-violet-300"></i>
-                </div>
-                <div>
-                  <h5 class="text-white font-semibold mb-1">Code Export</h5>
-                  <p class="text-gray-300 text-sm leading-relaxed">
-                    Download your application code to deploy it to your preferred hosting provider.
-                  </p>
-                </div>
+              <div class="text-left">
+                <h5 class="text-white font-semibold mb-1">Code Export</h5>
+                <p class="text-gray-300 text-sm leading-relaxed">
+                  Download your application code to deploy it to your preferred hosting provider.
+                </p>
               </div>
               
-              <div class="flex items-start gap-4 text-left">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400/20 to-green-400/20 border border-emerald-400/20 flex items-center justify-center flex-shrink-0">
-                  <i class="fas fa-globe text-emerald-300"></i>
-                </div>
-                <div>
-                  <h5 class="text-white font-semibold mb-1">Custom Domains</h5>
-                  <p class="text-gray-300 text-sm leading-relaxed">
-                    Use your own domain name for a professional touch.
-                  </p>
-                </div>
+              <div class="text-left">
+                <h5 class="text-white font-semibold mb-1">Custom Domains</h5>
+                <p class="text-gray-300 text-sm leading-relaxed">
+                  Use your own domain name for a professional touch.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </DocsCard>
-
-      <!-- What's Next -->
-      <DocsCard color-variant="violet">
-        <DocsCardHeader title="What's Next?" icon="fas fa-arrow-right" color="violet" />
-        <p class="text-gray-300 leading-relaxed mb-6">
-          While waiting for deployment features, explore these resources to prepare your application:
-        </p>
-        
-        <div class="flex flex-wrap gap-4">
-          <router-link 
-            to="/docs/best-practices" 
-            class="group/btn inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
-          >
-            <i class="fas fa-check-circle text-sm"></i>
-            <span>Best Practices</span>
-          </router-link>
-          
-          <router-link 
-            to="/docs/troubleshooting" 
-            class="group/btn inline-flex items-center gap-2 px-5 py-2.5 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
-          >
-            <i class="fas fa-bug text-sm"></i>
-            <span>Troubleshooting</span>
-          </router-link>
-        </div>
-      </DocsCard>
-
-      <!-- CTA -->
-      <DocsCTASection 
-        title="Get Notified When Deployment is Ready" 
-        icon="fas fa-bell" 
-        description="Want to be the first to know when one-click deployment is available? Start building your project now and we'll notify you when it's time to go live."
-        buttonText="Start Building"
-        buttonLink="/products/oasis/builder/dashboard"
-        buttonIcon="fas fa-rocket"
-      />
     </DocsContentWrapper>
   </DocsLayout>
 </template>

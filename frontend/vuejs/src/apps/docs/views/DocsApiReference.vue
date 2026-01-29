@@ -2,7 +2,7 @@
   <DocsLayout>
     <DocsContentWrapper
       title="API Reference"
-      description="Complete reference for the Imagi Oasis REST API endpoints and SDK."
+      description="Complete reference for the Imagi REST API endpoints and SDK."
       badge-text="API DOCUMENTATION"
     >
       <!-- API Coming Soon Notice -->
@@ -14,7 +14,7 @@
           <div>
             <h3 class="text-white font-semibold text-lg mb-2">API Coming Soon</h3>
             <p class="text-white/50 leading-relaxed">
-              The Imagi Oasis API is currently under development and not yet available for public use.
+              The Imagi API is currently under development and not yet available for public use.
               This documentation provides a preview of planned endpoints and functionality.
               Stay tuned for updates on API availability.
             </p>
@@ -26,7 +26,7 @@
       <DocsCard color-variant="primary">
         <DocsCardHeader title="Introduction" icon="fas fa-book-open" color="primary" />
         <p class="text-white/50 leading-relaxed mb-6">
-          The upcoming Imagi Oasis API will enable you to programmatically interact with your projects,
+          The upcoming Imagi API will enable you to programmatically interact with your projects,
           generate code, and manage deployments. The API follows RESTful principles and
           uses standard HTTP status codes and methods.
         </p>

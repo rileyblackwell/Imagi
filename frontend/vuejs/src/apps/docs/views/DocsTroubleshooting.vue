@@ -2,14 +2,14 @@
   <DocsLayout>
     <DocsContentWrapper
       title="Troubleshooting"
-      description="Solutions to common issues and challenges with Imagi Oasis."
+      description="Solutions to common issues and challenges with Imagi."
       badge-text="HELP & SUPPORT"
     >
       <!-- Introduction -->
       <DocsCard color-variant="primary">
         <DocsCardHeader title="Resolving Common Issues" icon="fas fa-wrench" color="primary" />
         <p class="text-white/50 leading-relaxed">
-          Even the most intuitive platforms can sometimes present challenges. This guide will help you quickly resolve common issues you might encounter while using Imagi Oasis.
+          Even the most intuitive platforms can sometimes present challenges. This guide will help you quickly resolve common issues you might encounter while using Imagi.
         </p>
       </DocsCard>
 
@@ -53,7 +53,7 @@
           <div class="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 backdrop-blur-sm">
             <h4 class="text-white font-semibold mb-3">I'm getting "Access Denied" or "Unauthorized" errors</h4>
             <div class="text-white/50 text-sm space-y-3">
-              <p>If you're seeing access errors when trying to use Imagi Oasis:</p>
+              <p>If you're seeing access errors when trying to use Imagi:</p>
               <ul class="space-y-2">
                 <DocsListItem icon="fas fa-check" color="violet" size="sm">Make sure you're logged in with the correct account</DocsListItem>
                 <DocsListItem icon="fas fa-check" color="violet" size="sm">Check if your session may have expired (try logging out and back in)</DocsListItem>

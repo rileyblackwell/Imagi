@@ -2,11 +2,6 @@
 <template>
   <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500 overflow-hidden">
     
-    <!-- Subtle ambient glow -->
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute top-1/2 left-1/2 w-[600px] h-[300px] bg-gradient-radial from-gray-200/40 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-    </div>
-    
     <div class="relative max-w-4xl mx-auto text-center">
       
       <!-- Content -->

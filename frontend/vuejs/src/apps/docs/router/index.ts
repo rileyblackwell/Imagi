@@ -24,15 +24,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/docs/concepts',
-    name: 'docs-concepts',
-    component: () => import('../views/DocsConcepts.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Key Concepts'
-    }
-  },
-  {
     path: '/docs/creating-projects',
     name: 'docs-creating-projects',
     component: () => import('../views/DocsCreatingProjects.vue'),
@@ -51,39 +42,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/docs/building-ui',
-    name: 'docs-building-ui',
-    component: () => import('../views/DocsBuildingUI.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Building UIs'
-    }
-  },
-  {
-    path: '/docs/backend',
-    name: 'docs-backend',
-    component: () => import('../views/DocsBackend.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Backend Development'
-    }
-  },
-  {
     path: '/docs/deployment',
     name: 'docs-deployment',
     component: () => import('../views/DocsDeployment.vue'),
     meta: {
       requiresAuth: false,
       title: 'Deployment Guide'
-    }
-  },
-  {
-    path: '/docs/best-practices',
-    name: 'docs-best-practices',
-    component: () => import('../views/DocsBestPractices.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Best Practices'
     }
   }
 ]

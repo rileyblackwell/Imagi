@@ -5,7 +5,7 @@
       <!-- Sidebar -->
       <aside 
         class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-dark-800/70 bg-dark-950/95 backdrop-blur-md shadow-xl" 
-        :class="[isSidebarCollapsed ? 'w-16' : 'w-64']"
+        :class="[isSidebarCollapsed ? 'w-16' : 'w-56']"
       >
         <!-- Logo and Brand -->
         <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-dark-800/70">
@@ -75,12 +75,12 @@
       <!-- Main content -->
       <div 
         class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" 
-        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-64']"
+        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-56']"
       >
         <!-- Navbar -->
         <BaseNavbar 
           class="fixed top-0 right-0 z-20 bg-dark-900/80 backdrop-blur-md border-b border-dark-800/70 shadow-sm" 
-          :class="[isSidebarCollapsed ? 'left-16' : 'left-64']"
+          :class="[isSidebarCollapsed ? 'left-16' : 'left-56']"
         >
           <template #left>
             <!-- Navbar left section -->
@@ -191,8 +191,8 @@ onMounted(() => {
 }
 
 /* Smooth width transitions */
-.w-64 {
-  width: 16rem;
+.w-56 {
+  width: 14rem;
 }
 
 .w-16 {
@@ -200,8 +200,8 @@ onMounted(() => {
 }
 
 /* Smooth margin transitions */
-.ml-64 {
-  margin-left: 16rem;
+.ml-56 {
+  margin-left: 14rem;
 }
 
 .ml-16 {
