@@ -56,8 +56,8 @@ const variantClass = computed(() => {
   if (props.variant === 'primary') {
     return 'bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 hover:from-indigo-400 hover:via-violet-400 hover:to-fuchsia-400 text-white shadow-indigo-500/25 hover:shadow-indigo-500/35'
   }
-  // Oasis variant: tuned to Imagi site palette with primary + violet/indigo accents
-  if (props.variant === 'oasis') {
+  // Imagi variant: tuned to Imagi site palette with primary + violet/indigo accents
+  if (props.variant === 'imagi') {
     return 'bg-gradient-to-r from-primary-500 via-violet-500 to-indigo-500 hover:from-primary-400 hover:via-violet-400 hover:to-indigo-400 text-white shadow-violet-500/20 hover:shadow-violet-500/30'
   }
   return 'bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 hover:from-indigo-400 hover:via-violet-400 hover:to-fuchsia-400 text-white shadow-indigo-500/25 hover:shadow-indigo-500/35'

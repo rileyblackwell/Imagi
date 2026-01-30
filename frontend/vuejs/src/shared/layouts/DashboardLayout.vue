@@ -5,7 +5,7 @@
       <!-- Sidebar -->
       <aside 
         class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 bg-white dark:bg-dark-950/95 backdrop-blur-md shadow-xl" 
-        :class="[isSidebarCollapsed ? 'w-16' : 'w-56']"
+        :class="[isSidebarCollapsed ? 'w-16' : 'w-[28rem]']"
       >
         <!-- Logo and Brand -->
         <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-gray-200 dark:border-dark-800/70">
@@ -75,12 +75,12 @@
       <!-- Main content -->
       <div 
         class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" 
-        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-56']"
+        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-[28rem]']"
       >
         <!-- Navbar -->
         <BaseNavbar 
           class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm" 
-          :class="[isSidebarCollapsed ? 'left-16' : 'left-56']"
+          :class="[isSidebarCollapsed ? 'left-16' : 'left-[28rem]']"
         >
           <template #left>
             <!-- Navbar left section -->

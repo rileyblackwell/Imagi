@@ -26,13 +26,13 @@ const routes: RouteRecordRaw[] = [
     path: '/payments/success',
     name: 'payment-success',
     component: () => import('@/apps/payments/views/PaymentSuccessView.vue'),
-    meta: { requiresAuth: true, title: 'Payment Successful - Imagi Oasis' }
+    meta: { requiresAuth: true, title: 'Payment Successful - Imagi' }
   },
   {
     path: '/payments/cancel',
     name: 'payment-cancel',
     component: () => import('@/apps/payments/views/PaymentCancelView.vue'),
-    meta: { requiresAuth: true, title: 'Payment Cancelled - Imagi Oasis' }
+    meta: { requiresAuth: true, title: 'Payment Cancelled - Imagi' }
   },
 ]
 

@@ -87,7 +87,7 @@ export default defineComponent({
     const sections = [
       {
         badge: '1. Introduction',
-        description: 'At Imagi Oasis, we understand that privacy is fundamental to building trust with our users. This Privacy Policy is designed to help you understand what information we collect, why we collect it, and how we use and protect it. We are committed to transparency in our data practices and to complying with applicable data protection laws including GDPR, CCPA, and other privacy regulations. This policy applies to all users of our platform, whether you are creating applications, managing projects, or simply exploring our services. We may update this policy periodically to reflect changes in our practices or legal requirements, and we will notify you of any material changes. By continuing to use our services after changes are made, you acknowledge and accept the updated policy.'
+        description: 'At Imagi, we understand that privacy is fundamental to building trust with our users. This Privacy Policy is designed to help you understand what information we collect, why we collect it, and how we use and protect it. We are committed to transparency in our data practices and to complying with applicable data protection laws including GDPR, CCPA, and other privacy regulations. This policy applies to all users of our platform, whether you are creating applications, managing projects, or simply exploring our services. We may update this policy periodically to reflect changes in our practices or legal requirements, and we will notify you of any material changes. By continuing to use our services after changes are made, you acknowledge and accept the updated policy.'
       },
       {
         badge: '2. Information We Collect',
@@ -95,7 +95,7 @@ export default defineComponent({
         items: [
           { 
             title: '2.1 Account Information', 
-            text: 'When you create an account with Imagi Oasis, we collect your full name, email address, and authentication credentials. Your password is encrypted using industry-standard bcrypt hashing and is never stored in plain text. If you choose to add a profile picture, we store this image securely. We also maintain records of your account creation date, last login time, and account verification status. This information is essential for providing you access to our platform and personalizing your experience.' 
+            text: 'When you create an account with Imagi, we collect your full name, email address, and authentication credentials. Your password is encrypted using industry-standard bcrypt hashing and is never stored in plain text. If you choose to add a profile picture, we store this image securely. We also maintain records of your account creation date, last login time, and account verification status. This information is essential for providing you access to our platform and personalizing your experience.' 
           },
           { 
             title: '2.2 Technical Data', 
@@ -121,7 +121,7 @@ export default defineComponent({
       },
       {
         badge: '3. How We Protect Your Data',
-        description: 'Security is a top priority at Imagi Oasis. We implement multiple layers of protection to safeguard your personal information against unauthorized access, alteration, disclosure, or destruction. Our security practices meet or exceed industry standards and are regularly updated to address emerging threats.',
+        description: 'Security is a top priority at Imagi. We implement multiple layers of protection to safeguard your personal information against unauthorized access, alteration, disclosure, or destruction. Our security practices meet or exceed industry standards and are regularly updated to address emerging threats.',
         items: [
           { 
             title: '3.1 Encryption Standards', 
@@ -193,7 +193,7 @@ export default defineComponent({
           },
           { 
             title: '5.3 Business Transfers and Changes', 
-            text: 'If Imagi Oasis is involved in a merger, acquisition, asset sale, or bankruptcy, your information may be transferred as part of that transaction. In such cases, we will notify you via email and prominent notice on our website at least 30 days before your information is transferred and becomes subject to a different privacy policy. You will have the opportunity to delete your account before the transfer if you do not agree to the new privacy practices.' 
+            text: 'If Imagi is involved in a merger, acquisition, asset sale, or bankruptcy, your information may be transferred as part of that transaction. In such cases, we will notify you via email and prominent notice on our website at least 30 days before your information is transferred and becomes subject to a different privacy policy. You will have the opportunity to delete your account before the transfer if you do not agree to the new privacy practices.' 
           },
           { 
             title: '5.4 Aggregated and Anonymized Data', 

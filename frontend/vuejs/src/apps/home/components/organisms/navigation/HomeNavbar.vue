@@ -20,7 +20,7 @@
           
           <template #menu>
             <router-link
-              :to="{ name: 'builder-dashboard' }"
+              :to="{ name: 'projects' }"
               class="flex items-center justify-center px-3 py-2.5 text-sm font-semibold text-black rounded-lg mx-1 my-0.5 group"
               @click="isProductsMenuOpen = false"
             >

@@ -31,7 +31,7 @@
           title="Start building today" 
           description="Turn your ideas into web applications. Prototype quickly, test with real users, and build momentum."
           primaryButtonText="Get Started"
-          primaryButtonTo="/products/oasis/builder/dashboard"
+          primaryButtonTo="/products/imagi/projects"
           :showSecondaryButton="false"
         />
       </main>

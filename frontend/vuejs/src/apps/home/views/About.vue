@@ -147,7 +147,7 @@
           highlightedStat=""
           descriptionSuffix=""
           primaryButtonText="Start Building"
-          primaryButtonTo="/products/oasis/builder/dashboard"
+          primaryButtonTo="/products/imagi/projects"
           :showSecondaryButton="true"
           secondaryButtonText="Learn More"
           secondaryButtonTo="/docs"

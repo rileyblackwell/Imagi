@@ -20,7 +20,7 @@
               <div class="w-full h-px bg-gray-200 dark:bg-gray-300 mb-6"></div>
               
               <router-link 
-                to="/products/oasis/builder/dashboard" 
+                to="/products/imagi/projects" 
                 class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 !text-white dark:!text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
               >
                 <!-- Top edge highlight for 3D effect -->

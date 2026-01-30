@@ -87,15 +87,15 @@ export default defineComponent({
     const sections = [
       {
         badge: '1. Introduction',
-        description: 'Welcome to Imagi Oasis, an AI-powered platform designed to help you build, deploy, and manage web applications. These Terms of Service constitute a legally binding agreement between you and Imagi regarding your use of our platform and services. By creating an account, accessing our website, or using any of our features, you acknowledge that you have read, understood, and agree to be bound by these terms in their entirety. If you do not agree with any part of these terms, you must immediately discontinue use of our services. These terms were last updated on July 15, 2023. We reserve the right to modify these terms at any time, and we will notify you of material changes via email or through prominent notices on our platform. Your continued use of our services following such modifications constitutes acceptance of the updated terms.'
+        description: 'Welcome to Imagi, an AI-powered platform designed to help you build, deploy, and manage web applications. These Terms of Service constitute a legally binding agreement between you and Imagi regarding your use of our platform and services. By creating an account, accessing our website, or using any of our features, you acknowledge that you have read, understood, and agree to be bound by these terms in their entirety. If you do not agree with any part of these terms, you must immediately discontinue use of our services. These terms were last updated on July 15, 2023. We reserve the right to modify these terms at any time, and we will notify you of material changes via email or through prominent notices on our platform. Your continued use of our services following such modifications constitutes acceptance of the updated terms.'
       },
       {
         badge: '2. Acceptance and Eligibility',
-        description: 'By accessing or using Imagi Oasis, you represent and warrant that you meet all eligibility requirements and have the legal capacity to enter into this binding agreement. You must be at least 18 years old or have reached the age of majority in your jurisdiction to use our services. If you are using our services on behalf of an organization, you represent that you have the authority to bind that organization to these terms. You also agree that all registration information you submit is truthful, accurate, and complete, and you will maintain the accuracy of this information. We reserve the right to refuse service, terminate accounts, or remove content at our sole discretion if we believe you have violated these terms or engaged in conduct we deem inappropriate or harmful to our platform or other users.'
+        description: 'By accessing or using Imagi, you represent and warrant that you meet all eligibility requirements and have the legal capacity to enter into this binding agreement. You must be at least 18 years old or have reached the age of majority in your jurisdiction to use our services. If you are using our services on behalf of an organization, you represent that you have the authority to bind that organization to these terms. You also agree that all registration information you submit is truthful, accurate, and complete, and you will maintain the accuracy of this information. We reserve the right to refuse service, terminate accounts, or remove content at our sole discretion if we believe you have violated these terms or engaged in conduct we deem inappropriate or harmful to our platform or other users.'
       },
       {
         badge: '3. Account Responsibilities',
-        description: 'When you create an account with Imagi Oasis, you assume certain responsibilities to ensure the security and proper use of our platform.',
+        description: 'When you create an account with Imagi, you assume certain responsibilities to ensure the security and proper use of our platform.',
         items: [
           { 
             title: '3.1 Account Security and Credentials', 
@@ -107,7 +107,7 @@ export default defineComponent({
           },
           { 
             title: '3.3 Lawful Use and Compliance', 
-            text: 'You agree to use Imagi Oasis only for lawful purposes and in compliance with all applicable laws, regulations, and ordinances in your jurisdiction. This includes export control laws, data protection regulations, intellectual property laws, and any industry-specific regulations that apply to your use case. You are solely responsible for ensuring that your use of our platform and any applications you create comply with all applicable laws. We reserve the right to report any suspected illegal activity to law enforcement authorities.' 
+            text: 'You agree to use Imagi only for lawful purposes and in compliance with all applicable laws, regulations, and ordinances in your jurisdiction. This includes export control laws, data protection regulations, intellectual property laws, and any industry-specific regulations that apply to your use case. You are solely responsible for ensuring that your use of our platform and any applications you create comply with all applicable laws. We reserve the right to report any suspected illegal activity to law enforcement authorities.' 
           },
           { 
             title: '3.4 Application Security', 
@@ -151,7 +151,7 @@ export default defineComponent({
       },
       {
         badge: '5. Service Provision and Availability',
-        description: 'Imagi Oasis provides an AI-powered platform for code generation, application building, and deployment. While we strive to provide reliable and high-quality services, there are important limitations and considerations you should understand.',
+        description: 'Imagi provides an AI-powered platform for code generation, application building, and deployment. While we strive to provide reliable and high-quality services, there are important limitations and considerations you should understand.',
         items: [
           { 
             title: '5.1 As-Is Basis and No Warranties', 
@@ -233,11 +233,11 @@ export default defineComponent({
       },
       {
         badge: '8. Limitation of Liability',
-        description: 'To the maximum extent permitted by law, Imagi Oasis and its affiliates, officers, employees, agents, and licensors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenue, data, or goodwill arising from your use or inability to use our services. This includes damages resulting from errors in generated code, security vulnerabilities, data loss, service interruptions, or any other service failures. Our total aggregate liability for all claims relating to these terms or our services shall not exceed the amount you paid us in the twelve months preceding the claim, or $100, whichever is greater. Some jurisdictions do not allow certain limitations of liability, so these limitations may not apply to you.'
+        description: 'To the maximum extent permitted by law, Imagi and its affiliates, officers, employees, agents, and licensors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenue, data, or goodwill arising from your use or inability to use our services. This includes damages resulting from errors in generated code, security vulnerabilities, data loss, service interruptions, or any other service failures. Our total aggregate liability for all claims relating to these terms or our services shall not exceed the amount you paid us in the twelve months preceding the claim, or $100, whichever is greater. Some jurisdictions do not allow certain limitations of liability, so these limitations may not apply to you.'
       },
       {
         badge: '9. Indemnification',
-        description: 'You agree to indemnify, defend, and hold harmless Imagi Oasis, its affiliates, officers, directors, employees, agents, and licensors from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorney fees) arising from your use of our services, your violation of these terms, your infringement of any third-party rights, or any applications you create or deploy through our platform. This indemnification obligation survives termination of your account and these terms.'
+        description: 'You agree to indemnify, defend, and hold harmless Imagi, its affiliates, officers, directors, employees, agents, and licensors from and against any claims, liabilities, damages, losses, costs, or expenses (including reasonable attorney fees) arising from your use of our services, your violation of these terms, your infringement of any third-party rights, or any applications you create or deploy through our platform. This indemnification obligation survives termination of your account and these terms.'
       },
       {
         badge: '10. Termination',

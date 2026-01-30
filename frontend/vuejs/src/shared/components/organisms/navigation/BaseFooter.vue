@@ -14,7 +14,7 @@
             <ul class="space-y-3">
               <li>
                 <router-link 
-                  to="/products/oasis/builder/dashboard" 
+                  to="/products/imagi/projects" 
                   class="text-sm text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
                 >
                   Imagi

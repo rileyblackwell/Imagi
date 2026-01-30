@@ -64,7 +64,7 @@
       <!-- CTA button -->
       <div class="mt-14 text-center">
         <HomeNavbarButton
-          :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
+          :to="{ name: isAuthenticated ? 'projects' : 'login' }"
           class="inline-flex items-center gap-3 px-8 py-4 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white font-medium"
         >
           Start Your Project

@@ -46,9 +46,9 @@ INSTALLED_APPS = [
     'apps.Auth',
     'apps.Home',
     'apps.Payments',
-    'apps.Products.Oasis.Builder',
-    'apps.Products.Oasis.Agents',
-    'apps.Products.Oasis.ProjectManager',
+    'apps.Products.Imagi.Builder',
+    'apps.Products.Imagi.Agents',
+    'apps.Products.Imagi.ProjectManager',
     # Add django-allauth required apps
     'django.contrib.sites',
     'allauth',
@@ -81,12 +81,12 @@ TEMPLATES = [
         'DIRS': [
             BASE_DIR / 'templates',
             BASE_DIR / 'templates' / 'admin',
-            BASE_DIR / 'apps' / 'Products' / 'Oasis' / 'Builder' / 'templates',
+            BASE_DIR / 'apps' / 'Products' / 'Imagi' / 'Builder' / 'templates',
             BASE_DIR / 'apps' / 'Home' / 'templates',
             BASE_DIR / 'apps' / 'Auth' / 'templates',
             BASE_DIR / 'apps' / 'Payments' / 'templates',
-            BASE_DIR / 'apps' / 'Products' / 'Oasis' / 'ProjectManager' / 'templates',
-            BASE_DIR / 'apps' / 'Products' / 'Oasis' / 'Agents' / 'templates',
+            BASE_DIR / 'apps' / 'Products' / 'Imagi' / 'ProjectManager' / 'templates',
+            BASE_DIR / 'apps' / 'Products' / 'Imagi' / 'Agents' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -195,7 +195,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
-    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'apps.Products.Oasis.Agents.api.negotiation.streaming.StreamingContentNegotiation',
+    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'apps.Products.Imagi.Agents.api.negotiation.streaming.StreamingContentNegotiation',
     # Add acceptable MIME types for streaming
     'ACCEPTED_MEDIA_TYPES': [
         'application/json',

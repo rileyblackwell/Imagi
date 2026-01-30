@@ -13,7 +13,7 @@ export const routes: RouteRecordRaw[] = [
     component: PricingView,
     meta: {
       requiresAuth: false,
-      title: 'Pricing - Imagi Oasis'
+      title: 'Pricing - Imagi'
     }
   },
   {
@@ -22,7 +22,7 @@ export const routes: RouteRecordRaw[] = [
     component: CheckoutView,
     meta: {
       requiresAuth: true,
-      title: 'Checkout - Imagi Oasis'
+      title: 'Checkout - Imagi'
     }
   },
   {
@@ -31,7 +31,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('../views/PaymentSuccessView.vue'),
     meta: {
       requiresAuth: true,
-      title: 'Payment Successful - Imagi Oasis'
+      title: 'Payment Successful - Imagi'
     }
   },
   {
@@ -40,7 +40,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('../views/PaymentCancelView.vue'),
     meta: {
       requiresAuth: true,
-      title: 'Payment Cancelled - Imagi Oasis'
+      title: 'Payment Cancelled - Imagi'
     }
   }
 ]

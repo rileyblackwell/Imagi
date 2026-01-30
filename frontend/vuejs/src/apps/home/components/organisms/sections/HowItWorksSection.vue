@@ -117,7 +117,7 @@
       <!-- CTA button - clean -->
       <div class="text-center mt-14">
         <HomeNavbarButton
-          :to="{ name: isAuthenticated ? 'builder-dashboard' : 'login' }"
+          :to="{ name: isAuthenticated ? 'projects' : 'login' }"
           class="group relative inline-flex items-center gap-3 px-8 py-4 rounded-xl font-semibold overflow-hidden"
         >
           <!-- Button background -->
