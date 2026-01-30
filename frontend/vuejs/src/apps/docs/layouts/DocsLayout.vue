@@ -1,10 +1,10 @@
 <template>
-  <DashboardLayout :navigationItems="[]" storageKey="docs_sidebar_collapsed">
+  <DashboardLayout :navigationItems="[]" storageKey="docs_sidebar_collapsed" class="docs-layout">
     <template #sidebar-content="{ isSidebarCollapsed }">
       <!-- Categories -->
       <div class="p-4">
         <div v-for="category in navigation" :key="category.title" class="mb-6">
-          <div class="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wide mb-3 antialiased" v-if="!isSidebarCollapsed">
+          <div class="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wide mb-3 antialiased" v-if="!isSidebarCollapsed">
             {{ category.title }}
           </div>
           <ul class="space-y-1">
@@ -15,7 +15,7 @@
                 :class="[
                   isActiveRoute(item.to) 
                     ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white border border-gray-200 dark:border-white/[0.12] font-semibold' 
-                    : 'text-gray-600 dark:text-white/60 border border-transparent font-medium'
+                    : 'text-gray-900 dark:text-white border border-transparent font-medium'
                 ]"
               >
                 <div class="flex items-center">
@@ -33,18 +33,19 @@
       <DocsNavbar />
     </template>
     
-    <!-- Main Content with Clean Background (matching homepage) -->
-    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Minimal background with subtle texture (matching homepage) -->
-      <div class="fixed inset-0 pointer-events-none">
-        <!-- Subtle gradient - very minimal -->
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-        
-        <!-- Very subtle grid pattern for texture (dark mode only) -->
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-      </div>
+    <!-- Minimal background with subtle texture (matching homepage) - extends to cover entire screen -->
+    <div class="fixed inset-0 pointer-events-none z-0">
+      <!-- Subtle gradient - very minimal -->
+      <div class="absolute inset-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-500"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
       
+      <!-- Very subtle grid pattern for texture (dark mode only) -->
+      <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
+           style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
+    </div>
+    
+    <!-- Main Content with Clean Background (matching homepage) -->
+    <div class="min-h-screen relative overflow-hidden">
       <!-- Content -->
       <div class="relative z-10 p-6 md:p-8 lg:p-12 docs-content">
         <slot></slot>
@@ -54,12 +55,22 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { DashboardLayout } from '@/shared/layouts'
 import DocsNavbar from '../components/molecules/navbars/DocsNavbar.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+// Add class to document element for styling
+onMounted(() => {
+  document.documentElement.classList.add('docs-layout-active')
+})
+
+onUnmounted(() => {
+  document.documentElement.classList.remove('docs-layout-active')
+})
 
 // Navigation structure
 const navigation = [
@@ -73,9 +84,7 @@ const navigation = [
   {
     title: 'Using Imagi',
     items: [
-      { title: 'Creating Projects', to: '/docs/creating-projects', icon: 'fas fa-plus-circle' },
-      { title: 'Project Structure', to: '/docs/project-structure', icon: 'fas fa-sitemap' },
-      { title: 'Deployment', to: '/docs/deployment', icon: 'fas fa-cloud-upload-alt' }
+      { title: 'Creating Projects', to: '/docs/creating-projects', icon: 'fas fa-plus-circle' }
     ]
   }
 ]
@@ -92,7 +101,36 @@ const isActiveRoute = (path) => {
 }
 </script>
 
+<style>
+/* Global override for docs sidebar - needs to be unscoped to override Tailwind classes */
+.docs-layout-active aside {
+  background-color: white !important;
+}
+
+.dark.docs-layout-active aside {
+  background-color: #0a0a0a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Ensure logo/brand border is visible in dark mode */
+.dark.docs-layout-active aside .border-b {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Ensure collapse button has proper colors in dark mode */
+.dark.docs-layout-active aside button {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dark.docs-layout-active aside button:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: white !important;
+}
+</style>
+
 <style scoped>
+
 /* Crisp, professional font rendering */
 :deep(.p-4) {
   -webkit-font-smoothing: antialiased;

@@ -6,13 +6,13 @@
     </h1>
     
     <!-- Description -->
-    <p class="text-lg sm:text-xl text-gray-500 dark:text-white/60 leading-relaxed max-w-3xl transition-colors duration-300">
+    <p class="text-lg sm:text-xl text-gray-700 dark:text-white/70 leading-relaxed max-w-3xl tracking-wide font-medium transition-colors duration-300">
       {{ description }}
     </p>
     
     <!-- Simple divider -->
     <div class="relative py-6 md:py-8">
-      <div class="h-px bg-gray-200 dark:bg-white/[0.1]"></div>
+      <div class="h-px bg-gray-200 dark:bg-white/10"></div>
     </div>
   </div>
 </template>

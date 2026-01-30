@@ -4,11 +4,11 @@
     <div class="min-h-screen flex">
       <!-- Sidebar -->
       <aside 
-        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-dark-800/70 bg-dark-950/95 backdrop-blur-md shadow-xl" 
+        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 bg-white dark:bg-dark-950/95 backdrop-blur-md shadow-xl" 
         :class="[isSidebarCollapsed ? 'w-16' : 'w-56']"
       >
         <!-- Logo and Brand -->
-        <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-dark-800/70">
+        <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-gray-200 dark:border-dark-800/70">
           <ImagiLogo :icon-only="isSidebarCollapsed" size="md">
             {{ isSidebarCollapsed ? 'I' : 'Imagi' }}
           </ImagiLogo>
@@ -25,14 +25,14 @@
                 'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
                 isActivePath(item) 
                   ? 'bg-primary-500/10 text-primary-400 shadow-sm' 
-                  : 'text-gray-400 hover:bg-dark-800/70 hover:text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white'
               ]"
             >
               <i 
                 :class="[
                   item.icon,
                   'text-lg transition-colors duration-200',
-                  isActivePath(item) ? 'text-primary-400' : 'text-gray-500 group-hover:text-white',
+                  isActivePath(item) ? 'text-primary-400' : 'text-gray-600 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white',
                   isSidebarCollapsed ? '' : 'mr-3'
                 ]"
               ></i>
@@ -52,7 +52,7 @@
         </div>
 
         <!-- Bottom Actions -->
-        <div class="flex-shrink-0 border-t border-dark-800/70">
+        <div class="flex-shrink-0 border-t border-gray-200 dark:border-dark-800/70">
           <!-- Additional bottom actions from slot -->
           <slot name="sidebar-bottom"></slot>
           
@@ -60,7 +60,7 @@
           <div class="p-4">
             <button 
               @click="toggleSidebar"
-              class="w-full flex items-center justify-center p-2 bg-dark-800/70 hover:bg-dark-700/70 rounded-lg text-gray-400 hover:text-white transition-all duration-200 shadow-sm"
+              class="w-full flex items-center justify-center p-2 bg-gray-100 dark:bg-dark-800/70 hover:bg-gray-200 dark:hover:bg-dark-700/70 rounded-lg text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all duration-200 shadow-sm"
               :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
             >
               <i 
@@ -79,7 +79,7 @@
       >
         <!-- Navbar -->
         <BaseNavbar 
-          class="fixed top-0 right-0 z-20 bg-dark-900/80 backdrop-blur-md border-b border-dark-800/70 shadow-sm" 
+          class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm" 
           :class="[isSidebarCollapsed ? 'left-16' : 'left-56']"
         >
           <template #left>
@@ -100,12 +100,12 @@
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 flex flex-col relative mt-16 bg-gradient-to-b from-dark-950 to-dark-900 overflow-hidden">
+        <main class="flex-1 flex flex-col relative mt-16 bg-white dark:bg-gradient-to-b dark:from-dark-950 dark:to-dark-900 overflow-hidden">
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 
         <!-- Footer -->
-        <BaseFooter class="border-t border-dark-800/70 bg-dark-900/50 backdrop-blur-sm" />
+        <BaseFooter class="border-t border-gray-200 dark:border-dark-800/70 bg-gray-50 dark:bg-dark-900/50 backdrop-blur-sm" />
       </div>
     </div>
   </BaseLayout>

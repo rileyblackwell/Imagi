@@ -11,11 +11,11 @@
       
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
-        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">How it works</p>
+        <p class="text-sm font-medium text-gray-600 dark:text-white/60 uppercase tracking-widest mb-4 transition-colors duration-300">How it works</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           Your product-building partner
         </h2>
-        <p class="text-xl text-gray-500 dark:text-white/60 max-w-2xl mx-auto transition-colors duration-300">
+        <p class="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto transition-colors duration-300">
           Three simple tools that work together to help you build, test, and launch web applications.
         </p>
       </div>

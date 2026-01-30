@@ -31,24 +31,6 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false,
       title: 'Creating Projects'
     }
-  },
-  {
-    path: '/docs/project-structure',
-    name: 'docs-project-structure',
-    component: () => import('../views/DocsProjectStructure.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Project Structure'
-    }
-  },
-  {
-    path: '/docs/deployment',
-    name: 'docs-deployment',
-    component: () => import('../views/DocsDeployment.vue'),
-    meta: {
-      requiresAuth: false,
-      title: 'Deployment Guide'
-    }
   }
 ]
 

@@ -9,7 +9,7 @@
         {{ title }}
       </h2>
       
-      <p class="text-xl text-gray-500 dark:text-white/60 mb-10 max-w-2xl mx-auto transition-colors duration-300">
+      <p class="text-xl text-gray-700 dark:text-white/70 mb-10 max-w-2xl mx-auto transition-colors duration-300">
         {{ description }}
       </p>
       

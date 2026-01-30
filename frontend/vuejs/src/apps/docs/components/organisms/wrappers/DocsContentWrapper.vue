@@ -6,7 +6,7 @@
       :badge-text="badgeText" 
     />
     
-    <div class="prose prose-invert prose-lg max-w-none">
+    <div class="prose dark:prose-invert prose-lg max-w-none">
       <slot></slot>
     </div>
   </div>
@@ -40,38 +40,85 @@ withDefaults(defineProps<{
   margin-top: 3rem;
   margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid theme('colors.gray.200');
+  color: theme('colors.gray.900');
   font-weight: 600;
+}
+
+.dark :deep(.prose h2) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: white;
 }
 
 :deep(.prose h3) {
   margin-top: 2rem;
   margin-bottom: 1rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: theme('colors.gray.800');
+}
+
+.dark :deep(.prose h3) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+:deep(.prose h4) {
+  color: theme('colors.gray.800');
+}
+
+.dark :deep(.prose h4) {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 :deep(.prose p) {
   margin-bottom: 1.5rem;
   line-height: 1.75;
-  color: rgba(255, 255, 255, 0.5);
+  color: theme('colors.gray.600');
+}
+
+.dark :deep(.prose p) {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 :deep(.prose li) {
   margin-bottom: 0.5rem;
+  color: theme('colors.gray.600');
+}
+
+.dark :deep(.prose li) {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+:deep(.prose span) {
+  color: inherit;
+}
+
+.dark :deep(.prose span) {
+  color: inherit;
 }
 
 :deep(.prose strong) {
-  color: rgba(255, 255, 255, 0.8);
+  color: theme('colors.gray.900');
+}
+
+.dark :deep(.prose strong) {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 :deep(.prose a) {
-  color: theme('colors.violet.400');
+  color: theme('colors.gray.900');
   text-decoration: none;
   transition: color 0.2s;
 }
 
 :deep(.prose a:hover) {
-  color: theme('colors.violet.300');
+  color: theme('colors.gray.700');
+}
+
+.dark :deep(.prose a) {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark :deep(.prose a:hover) {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: underline;
 }
 </style>

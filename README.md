@@ -193,32 +193,6 @@ Each module must contain:
 
 The frontend will be available at http://localhost:5174 and the backend at http://localhost:8000.
 
-## Project Structure
-
-```
-Imagi/
-├── backend/              # Django backend
-│   ├── auth/            # Authentication
-│   ├── builder/         # Visual builder logic
-│   ├── agents/          # AI agent functionality
-│   ├── project_manager/ # Project management
-│   ├── payments/        # Payment processing
-│   └── home/            # Home/landing features
-│
-└── frontend/
-    └── vuejs/           # Vue.js 3 frontend
-        └── src/
-            ├── apps/    # Feature modules
-            │   ├── auth/
-            │   ├── docs/
-            │   ├── home/
-            │   ├── payments/
-            │   └── products/
-            ├── shared/  # Shared components & utilities
-            ├── assets/  # Images, fonts, etc.
-            └── router/  # Vue Router configuration
-```
-
 ## Design Principles
 
 When building with or contributing to Imagi:

@@ -3,7 +3,7 @@
     <router-link 
       v-if="prevLink"
       :to="prevLink.to" 
-      class="inline-flex items-center px-4 py-2 bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 rounded-lg transition-all duration-300"
+      class="inline-flex items-center px-6 py-3 bg-white dark:bg-white border border-gray-200 dark:border-gray-300 text-gray-900 dark:text-black rounded-full font-medium hover:shadow-md transition-all duration-300"
     >
       <i class="fas fa-arrow-left mr-2"></i>
       {{ prevLink.text }}
@@ -13,7 +13,7 @@
     <router-link 
       v-if="nextLink"
       :to="nextLink.to" 
-      class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-primary-500 to-violet-500 text-white rounded-lg hover:from-primary-600 hover:to-violet-600 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 transform hover:-translate-y-1 transition-all duration-300"
+      class="inline-flex items-center px-6 py-3 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium border border-gray-700/50 dark:border-gray-300/50 hover:shadow-lg transition-all duration-300"
     >
       {{ nextLink.text }}
       <i class="fas fa-arrow-right ml-2"></i>

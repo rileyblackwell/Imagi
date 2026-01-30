@@ -5,11 +5,11 @@
       
       <!-- Section header -->
       <div class="text-center mb-16">
-        <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Why Imagi</p>
+        <p class="text-sm font-medium text-gray-600 dark:text-white/60 uppercase tracking-widest mb-4 transition-colors duration-300">Why Imagi</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           Fast, affordable, approachable
         </h2>
-        <p class="text-xl text-gray-500 dark:text-white/60 max-w-2xl mx-auto transition-colors duration-300">
+        <p class="text-xl text-gray-700 dark:text-white/70 max-w-2xl mx-auto transition-colors duration-300">
           Your practical partner for building web applications. We handle the technical complexity while you focus on your ideas.
         </p>
       </div>

@@ -210,16 +210,21 @@
                             <button
                               @click="createProject"
                               :disabled="!newProjectName?.trim() || isCreating"
-                              class="group/btn w-full inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                              class="btn-3d group relative w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
+                              <!-- Top edge highlight for 3D effect -->
+                              <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
+                              <!-- Bottom edge shadow for depth -->
+                              <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
                               <template v-if="isCreating">
-                                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                <span>Creating...</span>
+                                <div class="relative w-4 h-4 border-2 border-white/30 border-t-white dark:border-gray-900/30 dark:border-t-gray-900 rounded-full animate-spin"></div>
+                                <span class="relative">Creating...</span>
                               </template>
                               <template v-else>
-                                <i class="fas fa-plus"></i>
-                                <span>Create Project</span>
-                                <i class="fas fa-arrow-right text-sm transform group-hover/btn:translate-x-1 transition-transform duration-300"></i>
+                                <span class="relative">Create New Project</span>
+                                <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
                               </template>
                             </button>
                             
@@ -1024,5 +1029,39 @@ input:focus, textarea:focus {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 92, 246, 0.5);
+}
+
+/* 3D Printed Button Effect - matching homepage */
+.btn-3d {
+  transform: translateZ(0);
+  box-shadow: 
+    /* Tight shadow for immediate depth */
+    0 2px 3px -1px rgba(0, 0, 0, 0.4),
+    /* Medium shadow for body lift */
+    0 6px 12px -3px rgba(0, 0, 0, 0.35),
+    /* Large diffuse shadow */
+    0 16px 32px -8px rgba(0, 0, 0, 0.3),
+    0 24px 48px -12px rgba(0, 0, 0, 0.2),
+    /* Bottom edge thickness */
+    0 3px 0 -1px rgba(0, 0, 0, 0.5),
+    /* Inset highlights */
+    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .btn-3d {
+  box-shadow: 
+    /* Tight shadow for immediate depth */
+    0 2px 3px -1px rgba(0, 0, 0, 0.1),
+    /* Medium shadow for body lift */
+    0 6px 12px -3px rgba(0, 0, 0, 0.1),
+    /* Large diffuse shadow */
+    0 16px 32px -8px rgba(0, 0, 0, 0.1),
+    0 24px 48px -12px rgba(0, 0, 0, 0.08),
+    /* Bottom edge thickness */
+    0 3px 0 -1px rgba(0, 0, 0, 0.15),
+    /* Inset highlights */
+    inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
 }
 </style>

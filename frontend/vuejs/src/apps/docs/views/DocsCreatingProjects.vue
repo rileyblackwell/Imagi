@@ -5,92 +5,74 @@
       description="Learn how to create and configure new projects in Imagi."
       badge-text="PROJECTS"
     >
-      <h2>Project Creation Process</h2>
-      <p>
-        Creating a new project in Imagi is simple, intuitive, and designed to get you from idea to working application quickly. 
-        Here's a detailed guide on how to create and configure your projects.
-      </p>
-
-      <!-- Section 1: Starting a New Project -->
-      <DocsCard color-variant="primary">
-        <DocsCardHeader title="Starting a New Project" color="primary" />
-        <p class="text-gray-300 leading-relaxed mb-6">
-          To create a new project, navigate to the Imagi dashboard and follow these steps: 
-        </p>
-        
-        <ol class="space-y-4">
-          <li class="flex items-start gap-4">
-            <div class="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-              <span class="text-white font-bold text-sm">1</span>
-            </div>
-            <div>
-              <strong class="text-white">Click the "New Project" button</strong> on your dashboard homepage or from the projects list.
-            </div>
-          </li>
-          <li class="flex items-start gap-4">
-            <div class="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-              <span class="text-white font-bold text-sm">2</span>
-            </div>
-            <div>
-              <strong class="text-white">Enter a project name</strong> - Choose something descriptive that reflects the purpose of your application.
-            </div>
-          </li>
-          <li class="flex items-start gap-4">
-            <div class="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-              <span class="text-white font-bold text-sm">3</span>
-            </div>
-            <div>
-              <strong class="text-white">Select a project template</strong> (optional) - You can start from scratch or choose from pre-configured templates.
-            </div>
-          </li>
-        </ol>
-        
-        <!-- Pro tip -->
-        <div class="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm mt-6">
-          <h4 class="text-white mt-0 mb-2 text-base font-medium">
-            Pro Tip
-          </h4>
-          <p class="text-gray-300 text-sm mb-0 leading-relaxed">
-            Starting with a template can save time, but creating from scratch gives you more control over the architecture. 
-            Choose based on your specific needs and timeline.
+      <div class="not-prose">
+      <!-- Introduction -->
+      <div class="relative my-8">
+        <div class="relative p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
+          <h3 class="text-2xl font-semibold text-gray-900 dark:!text-gray-900 mb-4 transition-colors duration-300">Project Creation Process</h3>
+          <p class="text-gray-600 dark:text-black text-lg leading-relaxed transition-colors duration-300">
+            Creating a new project in Imagi is simple, intuitive, and designed to get you from idea to working application quickly. 
+            Here's a detailed guide on how to create and configure your projects.
           </p>
         </div>
-      </DocsCard>
-
-      <h2>Next Steps</h2>
-      <p>
-        Once your project is created, explore these guides to make the most of your application:
-      </p>
-      
-      <!-- Next steps cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        <router-link 
-          to="/docs/project-structure" 
-          class="group block transform transition-all duration-300 hover:-translate-y-1"
-        >
-          <div class="relative rounded-xl border border-white/10 bg-dark-800/90 backdrop-blur-xl shadow-lg shadow-black/20 overflow-hidden p-5 h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-            <h3 class="text-white transition-colors font-semibold text-lg mb-2">Project Structure</h3>
-            <p class="text-gray-400 text-sm leading-relaxed">Understand how your generated project is organized</p>
-          </div>
-        </router-link>
-        
-        <router-link 
-          to="/docs/deployment" 
-          class="group block transform transition-all duration-300 hover:-translate-y-1"
-        >
-          <div class="relative rounded-xl border border-white/10 bg-dark-800/90 backdrop-blur-xl shadow-lg shadow-black/20 overflow-hidden p-5 h-full transition-all duration-300 hover:border-white/20 hover:shadow-black/40">
-            <h3 class="text-white transition-colors font-semibold text-lg mb-2">Deployment</h3>
-            <p class="text-gray-400 text-sm leading-relaxed">Learn how to deploy your application to production</p>
-          </div>
-        </router-link>
       </div>
+
+      <!-- Section 1: Starting a New Project -->
+      <div class="relative my-8">
+        <div class="relative p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
+          <h3 class="text-2xl font-semibold text-gray-900 dark:!text-gray-900 mb-4 transition-colors duration-300">Starting a New Project</h3>
+          <p class="text-gray-600 dark:text-black text-lg leading-relaxed mb-6 transition-colors duration-300">
+            To create a new project, navigate to the Imagi dashboard and follow these steps: 
+          </p>
+          
+          <ol class="space-y-4 mb-6">
+            <li class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-100 border-2 border-gray-200 dark:border-gray-300 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span class="text-gray-900 dark:!text-gray-900 font-bold text-base">1</span>
+              </div>
+              <div class="text-gray-600 dark:text-black text-lg leading-relaxed transition-colors duration-300">
+                <strong class="text-gray-900 dark:text-black font-semibold transition-colors duration-300">Click the "New Project" button</strong> on your dashboard homepage or from the projects list.
+              </div>
+            </li>
+            <li class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-100 border-2 border-gray-200 dark:border-gray-300 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span class="text-gray-900 dark:!text-gray-900 font-bold text-base">2</span>
+              </div>
+              <div class="text-gray-600 dark:text-black text-lg leading-relaxed transition-colors duration-300">
+                <strong class="text-gray-900 dark:text-black font-semibold transition-colors duration-300">Enter a project name</strong> - Choose something descriptive that reflects the purpose of your application.
+              </div>
+            </li>
+            <li class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-100 border-2 border-gray-200 dark:border-gray-300 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span class="text-gray-900 dark:!text-gray-900 font-bold text-base">3</span>
+              </div>
+              <div class="text-gray-600 dark:text-black text-lg leading-relaxed transition-colors duration-300">
+                <strong class="text-gray-900 dark:text-black font-semibold transition-colors duration-300">Select a project template</strong> (optional) - You can start from scratch or choose from pre-configured templates.
+              </div>
+            </li>
+          </ol>
+          
+          <!-- Pro tip -->
+          <div class="bg-gray-50 dark:bg-gray-100 border border-gray-200 dark:border-gray-300 rounded-xl p-6 transition-colors duration-300">
+            <h4 class="text-gray-900 dark:!text-gray-900 mt-0 mb-3 text-lg font-semibold transition-colors duration-300">
+              Pro Tip
+            </h4>
+            <p class="text-gray-600 dark:text-black text-lg mb-0 leading-relaxed transition-colors duration-300">
+              Starting with a template can save time, but creating from scratch gives you more control over the architecture. 
+              Choose based on your specific needs and timeline.
+            </p>
+          </div>
+        </div>
+      </div>
+      </div>
+
     </DocsContentWrapper>
   </DocsLayout>
 </template>
 
 <script setup>
 import DocsLayout from '../layouts/DocsLayout.vue'
-import { DocsContentWrapper, DocsCard, DocsCardHeader, DocsListItem } from '../components'
+import { DocsContentWrapper } from '../components'
 </script>
 
 <style scoped>
