@@ -1,51 +1,26 @@
 <!-- Reusable feature card component -->
 <template>
   <div 
-    class="group bg-gradient-to-b from-dark-800/80 to-dark-900/80 backdrop-blur-xl rounded-2xl p-8 border border-dark-700/40 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden hover:shadow-xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.2)]"
-    :class="[
-      hoverBorderClass,
-    ]"
+    class="bg-white dark:bg-white rounded-2xl p-8 border border-gray-200 dark:border-gray-300 relative overflow-hidden shadow-md"
   >
-    <!-- Card top highlight -->
+    <!-- Icon container with solid color background -->
     <div 
-      class="absolute top-0 inset-x-0 h-px bg-gradient-to-r opacity-40 group-hover:opacity-100 transition-opacity duration-300"
-      :class="gradientFromClass"
-    ></div>
-    
-    <!-- Card inner glow -->
-    <div 
-      class="absolute inset-0 bg-gradient-to-br opacity-10 group-hover:opacity-30 transition-opacity duration-500"
-      :class="innerGlowClass"
-    ></div>
-    
-    <!-- Enhanced icon container with vibrant gradients - no tilting -->
-    <div 
-      class="w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-500 shadow-lg relative overflow-hidden"
+      class="w-16 h-16 rounded-xl flex items-center justify-center mb-6 shadow-lg relative overflow-hidden"
       :class="iconBgClass"
     >
       <i 
         class="text-white text-2xl"
         :class="icon"
       ></i>
-      
-      <!-- Subtle inner glow for the icon -->
-      <div class="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-30 transition-all duration-300 blur-sm"></div>
     </div>
     
     <h3 
-      class="text-2xl font-semibold text-white mb-4 transition-colors duration-300"
-      :class="titleHoverClass"
+      class="text-2xl font-semibold text-gray-900 dark:text-black mb-4"
     >
       {{ title }}
     </h3>
     
-    <p class="text-gray-100 text-base leading-relaxed">{{ description }}</p>
-    
-    <!-- Border highlight effect -->
-    <div 
-      class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
-      :class="bottomGradientClass"
-    ></div>
+    <p class="text-gray-600 dark:text-black text-base leading-relaxed">{{ description }}</p>
   </div>
 </template>
 
@@ -116,25 +91,13 @@ export default defineComponent({
       return colorMap[props.color] || 'blue';
     });
     
-    const hoverBorderClass = computed(() => `hover:border-${props.color}-500/50`);
-    const gradientFromClass = computed(() => `from-${props.color}-500/0 via-${props.color}-500/60 to-${props.color}-500/0`);
-    const innerGlowClass = computed(() => `from-${props.color}-500/10 to-${secondaryColor.value}-500/10`);
-    
-    // Static vibrant gradient without animation
+    // Simple solid color background for icon
     const iconBgClass = computed(() => 
-      `bg-gradient-to-br from-${props.color}-400 via-${secondaryColor.value}-500 to-${tertiaryColor.value}-500 group-hover:from-${props.color}-300 group-hover:via-${secondaryColor.value}-400 group-hover:to-${tertiaryColor.value}-400`
+      `bg-${props.color}-500`
     );
-    
-    const titleHoverClass = computed(() => `group-hover:text-${props.color}-300`);
-    const bottomGradientClass = computed(() => `from-${props.color}-500/0 via-${props.color}-500 to-${props.color}-500/0`);
 
     return {
-      hoverBorderClass,
-      gradientFromClass,
-      innerGlowClass,
       iconBgClass,
-      titleHoverClass,
-      bottomGradientClass,
       secondaryColor,
       tertiaryColor
     }

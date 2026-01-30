@@ -79,16 +79,16 @@
                 class="relative flex-1 md:w-[calc(50%-4rem)]"
                 :class="index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'"
               >
-                <div class="group relative p-6 md:p-7 rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm transition-all duration-500 overflow-hidden">
+                <div class="relative p-6 md:p-7 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
                   
                   <!-- Title -->
                   <div class="relative mb-5">
-                    <div class="text-xs font-medium uppercase tracking-wider mb-1 text-white/65">Step {{ index + 1 }}</div>
-                    <h3 class="hidden sm:block text-lg font-semibold text-white">{{ step.title }}</h3>
+                    <div class="text-xs font-medium uppercase tracking-wider mb-1 text-gray-600 dark:text-black">Step {{ index + 1 }}</div>
+                    <h3 class="hidden sm:block text-lg font-semibold text-gray-900 dark:text-black">{{ step.title }}</h3>
                   </div>
                   
                   <!-- Description -->
-                  <p class="relative text-white/85 text-sm leading-relaxed mb-6">{{ step.description }}</p>
+                  <p class="relative text-gray-600 dark:text-black text-sm leading-relaxed mb-6">{{ step.description }}</p>
                   
                   <!-- Features list -->
                   <ul class="relative space-y-2.5">
@@ -97,7 +97,7 @@
                       :key="fIndex" 
                       class="flex items-start"
                     >
-                      <span class="text-white/90 text-sm">{{ feature }}</span>
+                      <span class="text-gray-600 dark:text-black text-sm">{{ feature }}</span>
                     </li>
                   </ul>
 
@@ -211,4 +211,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Styles removed - cards now use simple shadows */
 </style>

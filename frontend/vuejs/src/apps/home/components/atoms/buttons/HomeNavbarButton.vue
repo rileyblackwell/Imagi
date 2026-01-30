@@ -116,7 +116,6 @@ export default defineComponent({
       // Minimal button style
       if (props.gradientType === 'minimal') {
         return [
-          'transform hover:scale-[1.02] active:scale-[0.98]',
           'transition-all duration-300',
           'min-w-[100px] px-6 py-2.5',
           'inline-flex items-center justify-center gap-2',

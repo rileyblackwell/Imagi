@@ -1,6 +1,6 @@
 <!-- Stats Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500">
+  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-100 dark:bg-[#0d0d0d] transition-colors duration-500">
     <div class="max-w-6xl mx-auto">
       
       <!-- Section header -->
@@ -19,11 +19,11 @@
         <div 
           v-for="(stat, index) in stats" 
           :key="index"
-          class="text-center p-10 rounded-2xl bg-white/90 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300"
+          class="relative text-center p-10 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md"
         >
-          <p class="text-lg text-gray-500 dark:text-white/60 mb-3 transition-colors duration-300">{{ stat.label }}</p>
-          <div class="text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white transition-colors duration-300">
-            {{ stat.value }}<span v-if="stat.unit" class="text-3xl text-gray-500 dark:text-white/50 ml-1">{{ stat.unit }}</span>
+          <p class="relative text-lg text-gray-600 dark:text-black mb-3 transition-colors duration-300">{{ stat.label }}</p>
+          <div class="relative text-5xl md:text-6xl font-semibold text-gray-900 dark:text-black transition-colors duration-300">
+            {{ stat.value }}<span v-if="stat.unit" class="text-3xl text-gray-600 dark:text-black ml-1">{{ stat.unit }}</span>
           </div>
         </div>
       </div>
@@ -33,20 +33,20 @@
         <div 
           v-for="(metric, index) in metrics" 
           :key="index"
-          class="p-8 rounded-2xl bg-white/90 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300"
+          class="relative p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md"
         >
           <!-- Icon and Title (side by side) -->
-          <div class="flex items-center gap-3 mb-4">
-            <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-100/80 dark:bg-white/5 flex-shrink-0 transition-colors duration-300">
-              <i :class="[metric.icon, 'text-xl text-gray-700 dark:text-white/70']"></i>
+          <div class="relative flex items-center gap-3 mb-4">
+            <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-200 dark:bg-gray-200 flex-shrink-0 transition-colors duration-300">
+              <i :class="[metric.icon, 'text-xl text-gray-700 dark:text-gray-700']"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-black transition-colors duration-300">
               {{ metric.title }}
             </h3>
           </div>
           
           <!-- Description -->
-          <p class="text-gray-500 dark:text-white/60 text-base leading-relaxed transition-colors duration-300">
+          <p class="relative text-gray-600 dark:text-black text-base leading-relaxed transition-colors duration-300">
             {{ metric.description }}
           </p>
         </div>
@@ -99,3 +99,7 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+/* Styles removed - cards now use simple shadows */
+</style>

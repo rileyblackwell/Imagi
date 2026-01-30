@@ -3,7 +3,7 @@
     <div class="relative max-w-7xl mx-auto pl-6 pr-6 sm:pl-8 sm:pr-8 lg:pl-12 lg:pr-12">
       <div class="relative flex items-center h-14">
         <!-- Left section -->
-        <div class="flex items-center z-10 -ml-36">
+        <div class="flex items-center z-10 -ml-32">
           <ImagiLogo size="md">
             <slot name="logo">Imagi</slot>
           </ImagiLogo>
@@ -18,7 +18,7 @@
         </div>
 
         <!-- Right section -->
-        <div class="ml-auto flex items-center h-full justify-end z-10 -mr-36">
+        <div class="ml-auto flex items-center h-full justify-end z-10 -mr-32">
           <slot name="right"></slot>
         </div>
       </div>

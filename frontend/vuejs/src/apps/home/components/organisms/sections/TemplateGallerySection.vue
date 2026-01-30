@@ -58,11 +58,7 @@
             class="flex-shrink-0 w-[300px] md:w-[340px] snap-start"
           >
             <!-- Template card -->
-            <div class="group relative h-full rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm hover:bg-white/[0.08] hover:border-white/[0.20] transition-all duration-500 overflow-hidden">
-              <!-- Hover glow -->
-              <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div class="absolute inset-0 bg-gradient-to-br opacity-[0.08]" :class="template.gradient"></div>
-              </div>
+            <div class="relative h-full rounded-2xl border border-white/[0.12] bg-white/[0.05] backdrop-blur-sm overflow-hidden">
               
               <!-- Preview image area -->
               <div class="relative h-40 bg-gradient-to-br from-white/[0.07] to-white/[0.04] border-b border-white/15 overflow-hidden">
@@ -125,7 +121,7 @@
               </div>
               
               <!-- Bottom accent -->
-              <div class="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+              <div class="absolute bottom-0 left-0 right-0 h-px opacity-0"
                    :class="template.accentClass"></div>
             </div>
           </div>
@@ -138,7 +134,7 @@
             :key="idx"
             @click="scrollToIndex(idx)"
             class="w-2 h-2 rounded-full transition-all duration-300"
-            :class="currentPage === idx ? 'bg-violet-400 w-6' : 'bg-white/20 hover:bg-white/30'"
+            :class="currentPage === idx ? 'bg-violet-400 w-6' : 'bg-white/20'"
             :aria-label="`Go to page ${idx + 1}`"
           ></button>
         </div>
@@ -149,7 +145,7 @@
         <p class="text-white/60 text-sm mb-4">Don't see what you need? Describe any app and we'll build it.</p>
         <router-link 
           to="/auth/signin"
-          class="inline-flex items-center gap-2 px-6 py-3 bg-white/[0.05] border border-white/[0.1] hover:bg-white/[0.08] hover:border-white/[0.15] rounded-xl text-white font-medium transition-all duration-300"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white font-medium"
         >
           <i class="fas fa-plus text-violet-400"></i>
           Start from Scratch
@@ -283,7 +279,7 @@ export default defineComponent({
         gradient: 'from-violet-500 to-purple-500',
         checkColor: 'text-violet-400',
         accentClass: 'bg-gradient-to-r from-transparent via-violet-500/50 to-transparent',
-        buttonClass: 'bg-violet-500/20 text-violet-300 border border-violet-500/30 hover:bg-violet-500/30',
+        buttonClass: 'bg-violet-500/20 text-violet-300 border border-violet-500/30',
         stack: ['Vue.js', 'Django', 'REST API'],
         features: ['Product management', 'Shopping cart', 'Order tracking'],
         previewComponent: EcommercePreview
@@ -296,7 +292,7 @@ export default defineComponent({
         gradient: 'from-fuchsia-500 to-pink-500',
         checkColor: 'text-fuchsia-400',
         accentClass: 'bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent',
-        buttonClass: 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 hover:bg-fuchsia-500/30',
+        buttonClass: 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30',
         stack: ['Vue.js', 'Django', 'Charts'],
         features: ['Analytics widgets', 'User roles', 'Data export'],
         previewComponent: DashboardPreview
@@ -309,7 +305,7 @@ export default defineComponent({
         gradient: 'from-emerald-500 to-teal-500',
         checkColor: 'text-emerald-400',
         accentClass: 'bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent',
-        buttonClass: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30',
+        buttonClass: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
         stack: ['Vue.js', 'Django', 'Calendar'],
         features: ['Time slot picker', 'Email reminders', 'Staff management'],
         previewComponent: BookingPreview
@@ -322,7 +318,7 @@ export default defineComponent({
         gradient: 'from-blue-500 to-cyan-500',
         checkColor: 'text-blue-400',
         accentClass: 'bg-gradient-to-r from-transparent via-blue-500/50 to-transparent',
-        buttonClass: 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30',
+        buttonClass: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
         stack: ['Vue.js', 'Django', 'REST API'],
         features: ['Contact database', 'Deal pipeline', 'Activity log'],
         previewComponent: CRMPreview
@@ -335,7 +331,7 @@ export default defineComponent({
         gradient: 'from-amber-500 to-orange-500',
         checkColor: 'text-amber-400',
         accentClass: 'bg-gradient-to-r from-transparent via-amber-500/50 to-transparent',
-        buttonClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30',
+        buttonClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
         stack: ['Vue.js', 'Django', 'Media'],
         features: ['Course builder', 'Student progress', 'Certificates'],
         previewComponent: CoursePreview
@@ -348,7 +344,7 @@ export default defineComponent({
         gradient: 'from-rose-500 to-pink-500',
         checkColor: 'text-rose-400',
         accentClass: 'bg-gradient-to-r from-transparent via-rose-500/50 to-transparent',
-        buttonClass: 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30',
+        buttonClass: 'bg-rose-500/20 text-rose-300 border border-rose-500/30',
         stack: ['Vue.js', 'Django', 'Forms'],
         features: ['Custom forms', 'Approval flows', 'Reports'],
         previewComponent: InternalToolPreview

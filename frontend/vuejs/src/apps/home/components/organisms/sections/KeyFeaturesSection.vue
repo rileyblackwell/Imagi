@@ -1,6 +1,6 @@
 <!-- Key Features Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-100 dark:bg-[#0d0d0d] transition-colors duration-500 overflow-hidden">
     
     <!-- Subtle ambient glow -->
     <div class="absolute inset-0 pointer-events-none">
@@ -22,28 +22,28 @@
       </div>
 
       <!-- Features grid with enhanced cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         <div 
           v-for="(feature, index) in features" 
           :key="index"
-          class="group relative"
+          class="relative"
         >
-          <!-- Card with glassmorphism -->
-          <div class="relative h-full p-8 rounded-3xl bg-white/80 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-200/30 dark:group-hover:shadow-none">
+          <!-- Card with solid background -->
+          <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
             
             <!-- Title -->
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-5 text-center">
+            <h3 class="relative text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5 text-center">
               {{ feature.title }}
             </h3>
             
             <!-- Description -->
-            <p class="text-gray-500 dark:text-white/60 leading-relaxed mb-5 transition-colors duration-300 text-center">
+            <p class="relative text-gray-600 dark:text-black leading-relaxed mb-5 transition-colors duration-300 text-center">
               {{ feature.description }}
             </p>
 
             <!-- Feature highlights with green checkmarks -->
-            <div class="flex justify-center">
+            <div class="relative flex justify-center">
               <ul class="space-y-3 inline-flex flex-col">
                 <li 
                   v-for="(highlight, hIndex) in feature.highlights" 
@@ -51,11 +51,11 @@
                   class="flex items-start gap-3"
                 >
                   <div class="flex-shrink-0 mt-1">
-                    <div class="w-5 h-5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center transition-all duration-300">
-                      <i class="fas fa-check text-[10px] text-emerald-600 dark:text-emerald-400/80"></i>
+                    <div class="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
+                      <i class="fas fa-check text-[10px] text-emerald-600 dark:text-emerald-600"></i>
                     </div>
                   </div>
-                  <span class="text-gray-600 dark:text-white/50 text-sm transition-colors duration-300">{{ highlight }}</span>
+                  <span class="text-gray-600 dark:text-black text-sm transition-colors duration-300">{{ highlight }}</span>
                 </li>
               </ul>
             </div>
@@ -112,3 +112,7 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+/* Styles removed - cards now use simple shadows */
+</style>

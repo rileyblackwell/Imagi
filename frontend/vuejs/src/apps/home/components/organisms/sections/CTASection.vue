@@ -1,6 +1,6 @@
 <!-- CTA Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500 overflow-hidden">
+  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
     
     <div class="relative max-w-4xl mx-auto text-center">
       
@@ -13,14 +13,16 @@
         {{ description }}
       </p>
       
-      <!-- Buttons with enhanced styling -->
+      <!-- Buttons with 3D printed styling -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <router-link 
           :to="getAuthenticatedRedirect"
-          class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl overflow-hidden"
+          class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
         >
-          <!-- Subtle shine effect on hover -->
-          <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700 ease-out"></span>
+          <!-- Top edge highlight for 3D effect -->
+          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
+          <!-- Bottom edge shadow for depth -->
+          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
           <span class="relative">{{ primaryButtonText }}</span>
           <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -30,9 +32,11 @@
         <router-link 
           v-if="showSecondaryButton"
           :to="secondaryButtonTo"
-          class="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/80 dark:bg-white/5 backdrop-blur-sm text-gray-700 dark:text-white/80 border border-gray-200/80 dark:border-white/10 rounded-full font-medium text-lg transition-all duration-300 hover:border-gray-300 dark:hover:border-white/20 hover:shadow-lg hover:shadow-gray-200/30 dark:hover:shadow-none"
+          class="btn-secondary-3d group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-br from-white via-gray-50/90 to-gray-100/80 dark:from-white/[0.08] dark:via-white/[0.04] dark:to-white/[0.02] backdrop-blur-sm text-gray-700 dark:text-white/80 border border-gray-200/60 dark:border-white/[0.08] rounded-full font-medium text-lg transition-all duration-300 hover:border-gray-300 dark:hover:border-white/15 overflow-hidden"
         >
-          {{ secondaryButtonText }}
+          <!-- Top highlight -->
+          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/[0.15]"></span>
+          <span class="relative">{{ secondaryButtonText }}</span>
         </router-link>
       </div>
     </div>
@@ -92,3 +96,72 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+/* 3D Printed Button Effect */
+.btn-3d {
+  transform: translateZ(0);
+  box-shadow: 
+    /* Tight shadow for immediate depth */
+    0 2px 3px -1px rgba(0, 0, 0, 0.4),
+    /* Medium shadow for body lift */
+    0 6px 12px -3px rgba(0, 0, 0, 0.35),
+    /* Large diffuse shadow */
+    0 16px 32px -8px rgba(0, 0, 0, 0.3),
+    0 24px 48px -12px rgba(0, 0, 0, 0.2),
+    /* Bottom edge thickness */
+    0 3px 0 -1px rgba(0, 0, 0, 0.5),
+    /* Inset highlights */
+    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .btn-3d {
+  box-shadow: 
+    /* Tight shadow for immediate depth */
+    0 2px 3px -1px rgba(0, 0, 0, 0.1),
+    /* Medium shadow for body lift */
+    0 6px 12px -3px rgba(0, 0, 0, 0.1),
+    /* Large diffuse shadow */
+    0 16px 32px -8px rgba(0, 0, 0, 0.1),
+    0 24px 48px -12px rgba(0, 0, 0, 0.08),
+    /* Bottom edge thickness */
+    0 3px 0 -1px rgba(0, 0, 0, 0.15),
+    /* Inset highlights */
+    inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
+}
+
+
+/* Secondary Button 3D Effect */
+.btn-secondary-3d {
+  transform: translateZ(0);
+  box-shadow: 
+    /* Tight shadow */
+    0 2px 3px -1px rgba(0, 0, 0, 0.08),
+    /* Medium shadow */
+    0 4px 8px -2px rgba(0, 0, 0, 0.1),
+    /* Large shadow */
+    0 12px 24px -6px rgba(0, 0, 0, 0.08),
+    /* Bottom thickness */
+    0 2px 0 -1px rgba(0, 0, 0, 0.12),
+    /* Inset highlights */
+    inset 0 2px 4px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -3px 6px -2px rgba(0, 0, 0, 0.06);
+}
+
+.dark .btn-secondary-3d {
+  box-shadow: 
+    /* Tight shadow */
+    0 2px 3px -1px rgba(0, 0, 0, 0.3),
+    /* Medium shadow */
+    0 4px 8px -2px rgba(0, 0, 0, 0.35),
+    /* Large shadow */
+    0 12px 24px -6px rgba(0, 0, 0, 0.25),
+    /* Bottom thickness */
+    0 2px 0 -1px rgba(0, 0, 0, 0.4),
+    /* Inset highlights */
+    inset 0 1px 3px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -3px 6px -2px rgba(0, 0, 0, 0.3);
+}
+</style>
