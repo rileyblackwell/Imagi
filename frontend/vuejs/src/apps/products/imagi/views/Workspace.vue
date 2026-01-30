@@ -8,49 +8,34 @@
 -->
 <template>
   <div class="relative">
-    <!-- Fixed position account balance display -->
-    <AccountBalanceDisplay />
-    
     <BuilderLayout 
       storage-key="builderWorkspaceSidebarCollapsed"
       :navigation-items="navigationItems"
     >
-      <!-- Centered navbar content: project name and description -->
-      <template #navbar-center>
-        <div class="flex flex-col items-center text-center select-none">
-          <div class="relative flex items-center gap-2">
-            <span class="text-sm font-semibold bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent truncate max-w-[50vw]">
-              {{ navbarNameSanitized }}
-            </span>
-          </div>
-          <div v-if="currentProject && currentProject.description" class="mt-0.5 text-[11px] text-gray-400/90 truncate max-w-[60vw]">
-            {{ navbarDescSanitized }}
-          </div>
-        </div>
-      </template>
       <!-- Sidebar Content: Chat Interface -->
-      <template #sidebar-content>
+      <template #sidebar-content="{ isSidebarCollapsed }">
         <BuilderSidebarChat
           :selected-app="selectedApp"
           :on-prompt-submit="handlePrompt"
           :on-model-select="handleModelSelect"
           :on-mode-switch="handleModeSwitch"
           :on-example-prompt="handleExamplePrompt"
+          :is-collapsed="isSidebarCollapsed"
         />
       </template>
+      
+      <!-- Account balance display in navbar right -->
+      <template #navbar-right>
+        <AccountBalanceDisplay />
+      </template>
 
-      <!-- Premium Dark-themed Main Content Area - Matching Home Page -->
-      <div class="flex flex-col h-screen max-h-screen w-full overflow-x-hidden overflow-y-hidden bg-[#050508] relative">
-        <WorkspaceBackground />
-        
-        <!-- Premium top accent line -->
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent z-20"></div>
-
+      <!-- Clean Main Content Area - Matching Homepage -->
+      <div class="flex flex-col h-screen max-h-screen w-full overflow-x-hidden overflow-y-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500">
         <!-- Enhanced Error State Display -->
         <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
         
         <!-- Main Layout: Navigation -->
-        <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative z-10">
+        <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
           <!-- Navigation Area (scrollable) -->
           <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
             <!-- Navigation Views -->
@@ -59,14 +44,8 @@
               <div class="h-full p-4 sm:p-6 lg:p-8 flex gap-4">
                 <!-- Left Side: Apps List (1/3 width) -->
                 <div class="w-1/3 flex flex-col min-h-0">
-                  <div class="group relative flex-1 min-h-0">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-                    
-                    <div class="relative h-full rounded-xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden flex flex-col">
-                      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
-                      <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                      <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                    
+                  <div class="relative flex-1 min-h-0">
+                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm hover:shadow-md overflow-hidden flex flex-col transition-all duration-300">
                       <AppsList
                         :files="store.files || []"
                         @select-app="handleSelectApp"
@@ -79,14 +58,8 @@
 
                 <!-- Right Side: App Detail View (2/3 width) -->
                 <div class="w-2/3 flex flex-col min-h-0">
-                  <div class="group relative flex-1 min-h-0">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity duration-500"></div>
-                    
-                    <div class="relative h-full rounded-xl border border-white/[0.08] bg-[#0a0a0f]/80 backdrop-blur-xl overflow-hidden flex flex-col">
-                      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
-                      <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-violet-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                      <div class="absolute -top-20 -left-20 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                    
+                  <div class="relative flex-1 min-h-0">
+                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm hover:shadow-md overflow-hidden flex flex-col transition-all duration-300">
                       <!-- App Detail View (when app selected) -->
                       <AppDetailView
                         v-if="selectedApp"
@@ -101,11 +74,11 @@
                       <!-- Empty State (when no app selected) -->
                       <div v-else class="flex-1 flex items-center justify-center p-8">
                         <div class="text-center max-w-md">
-                          <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 mb-6">
-                            <i class="fas fa-arrow-left text-violet-400 text-3xl"></i>
+                          <div class="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-gray-100 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] mb-6">
+                            <i class="fas fa-arrow-left text-gray-700 dark:text-white/70 text-3xl"></i>
                           </div>
-                          <h3 class="text-2xl font-semibold text-white/90 mb-3">Select an App</h3>
-                          <p class="text-white/50 leading-relaxed">
+                          <h3 class="text-2xl font-semibold text-gray-900 dark:text-white/90 mb-3">Select an App</h3>
+                          <p class="text-gray-600 dark:text-white/60 leading-relaxed">
                             Choose an app from the left to view its pages, blocks, and other files. You can then edit them or create new ones.
                           </p>
                         </div>
@@ -152,7 +125,6 @@ import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
 import { 
-  WorkspaceBackground,
   WorkspaceError,
 } from '../components/organisms/workspace'
 import AppsList from '../components/organisms/workspace/AppsList.vue'
@@ -1240,22 +1212,31 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* Premium scrollbar - Matching Home Page */
+/* Refined minimal scrollbar - Matching Homepage */
 :deep(::-webkit-scrollbar) {
-  width: 6px;
+  width: 8px;
 }
 
 :deep(::-webkit-scrollbar-track) {
-  background: rgba(255, 255, 255, 0.02);
+  background: transparent;
 }
 
 :deep(::-webkit-scrollbar-thumb) {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
 :deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(139, 92, 246, 0.5);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+:root.dark :deep(::-webkit-scrollbar-thumb) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:root.dark :deep(::-webkit-scrollbar-thumb:hover) {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Safe area padding for mobile */

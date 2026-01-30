@@ -4,14 +4,24 @@
     <div class="min-h-screen flex">
       <!-- Sidebar -->
       <aside 
-        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 bg-white dark:bg-dark-950/95 backdrop-blur-md shadow-xl" 
-        :class="[isSidebarCollapsed ? 'w-16' : 'w-[28rem]']"
+        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 shadow-xl" 
+        :class="[
+          isSidebarCollapsed ? 'w-16 bg-white dark:bg-[#0a0a0a]' : 'w-[24rem] bg-white dark:bg-dark-950/95 backdrop-blur-md'
+        ]"
       >
         <!-- Logo and Brand -->
-        <div class="flex-shrink-0 h-16 flex items-center justify-center border-b border-gray-200 dark:border-dark-800/70">
-          <ImagiLogo :icon-only="isSidebarCollapsed" size="md">
-            {{ isSidebarCollapsed ? 'I' : 'Imagi' }}
-          </ImagiLogo>
+        <div class="flex-shrink-0 h-16 flex items-center justify-end px-4 border-b border-gray-200 dark:border-dark-800/70">
+          <!-- Collapse/Expand Button -->
+          <button 
+            @click="toggleSidebar"
+            class="sidebar-toggle-btn flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+            :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
+          >
+            <i 
+              class="fas text-sm transition-transform duration-300" 
+              :class="[isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left']"
+            ></i>
+          </button>
         </div>
         
         <!-- Navigation -->
@@ -47,7 +57,7 @@
         </nav>
 
         <!-- Custom Sidebar Content -->
-        <div class="flex-1 overflow-y-auto overflow-x-visible">
+        <div class="flex-1 overflow-hidden" :class="{ 'opacity-0 pointer-events-none': isSidebarCollapsed }">
           <slot name="sidebar-content" :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </div>
 
@@ -55,32 +65,18 @@
         <div class="flex-shrink-0 border-t border-gray-200 dark:border-dark-800/70">
           <!-- Additional bottom actions from slot -->
           <slot name="sidebar-bottom"></slot>
-          
-          <!-- Collapse/Expand Button -->
-          <div class="p-4">
-            <button 
-              @click="toggleSidebar"
-              class="w-full flex items-center justify-center p-2 bg-gray-100 dark:bg-dark-800/70 hover:bg-gray-200 dark:hover:bg-dark-700/70 rounded-lg text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all duration-200 shadow-sm"
-              :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
-            >
-              <i 
-                class="fas transition-transform duration-300" 
-                :class="[isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left']"
-              ></i>
-            </button>
-          </div>
         </div>
       </aside>
 
       <!-- Main content -->
       <div 
         class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" 
-        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-[28rem]']"
+        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-[24rem]']"
       >
         <!-- Navbar -->
         <BaseNavbar 
           class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm" 
-          :class="[isSidebarCollapsed ? 'left-16' : 'left-[28rem]']"
+          :class="[isSidebarCollapsed ? 'left-16' : 'left-[24rem]']"
         >
           <template #left>
             <!-- Navbar left section -->
@@ -93,7 +89,7 @@
           </template>
           <template #right>
             <!-- Pass through the navbar-right slot with proper spacing -->
-            <div class="flex items-center justify-end pe-4">
+            <div class="flex items-center justify-end pe-6">
               <slot name="navbar-right"></slot>
             </div>
           </template>
@@ -117,7 +113,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import BaseLayout from './BaseLayout.vue'
 import { BaseNavbar, BaseFooter } from '@/shared/components'
-import { ImagiLogo } from '@/shared/components/molecules'
 
 interface NavigationItem {
   name: string
@@ -217,5 +212,29 @@ aside {
 :deep(.sidebar-tooltip) {
   z-index: 100;
   visibility: visible;
+}
+
+/* Remove all outline and focus effects from sidebar toggle button */
+.sidebar-toggle-btn {
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.sidebar-toggle-btn:hover,
+.sidebar-toggle-btn:focus,
+.sidebar-toggle-btn:focus-visible,
+.sidebar-toggle-btn:active {
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
 }
 </style>

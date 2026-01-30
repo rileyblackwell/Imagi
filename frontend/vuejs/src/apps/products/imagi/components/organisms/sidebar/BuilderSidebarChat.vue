@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-[#0a0a0f]/80 backdrop-blur-xl border-r border-white/[0.08]">
+  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/[0.08] transition-colors duration-300">
     <!-- Conversation Area (scrollable) -->
     <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
       <ChatConversation
@@ -11,169 +11,8 @@
     </div>
     
     <!-- Chat Input Section (fixed at bottom) -->
-    <div class="shrink-0 border-t border-white/[0.08] bg-[#0a0a0f]/90 backdrop-blur-xl">
+    <div class="shrink-0 border-t border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div class="p-4 space-y-3">
-        <!-- Controls Row -->
-        <div class="flex items-center gap-2">
-          <!-- File Context Picker -->
-          <div class="relative flex-1" ref="filePickerRef">
-            <button
-              @click="toggleFilePicker"
-              class="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-medium"
-              :class="selectedContextFiles.length > 0
-                ? 'bg-white/[0.08] text-white/90 hover:bg-white/[0.12] border border-white/[0.08]' 
-                : 'bg-white/[0.02] text-white/40 hover:bg-white/[0.04] hover:text-white/60 border border-white/[0.04]'"
-            >
-              <i :class="selectedContextFiles.length > 0 ? 'fas fa-file-code' : 'fas fa-plus'" class="text-[10px]"></i>
-              <span v-if="selectedContextFiles.length === 1" class="truncate flex-1 text-left">{{ getDisplayName(selectedContextFiles[0].path) }}</span>
-              <span v-else-if="selectedContextFiles.length > 1" class="truncate flex-1 text-left">{{ selectedContextFiles.length }} files</span>
-              <span v-else class="flex-1 text-left">Add context</span>
-              <i class="fas fa-chevron-down text-[8px] opacity-50 transition-transform duration-200" :class="{ 'rotate-180': isFilePickerOpen }"></i>
-            </button>
-            
-            <!-- File Picker Dropdown -->
-            <div
-              v-if="isFilePickerOpen"
-              class="absolute bottom-full left-0 mb-2 w-full max-h-80 flex flex-col bg-[#0a0a0f]/98 backdrop-blur-xl border border-white/[0.06] rounded-xl shadow-2xl shadow-black/60 z-50 overflow-hidden"
-            >
-              <div class="flex-1 overflow-y-auto p-2">
-                <!-- Clear all button -->
-                <button
-                  v-if="selectedContextFiles.length > 0"
-                  @click="clearAllFileSelections"
-                  class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs text-white/50 hover:bg-white/[0.04] hover:text-white/80 transition-colors mb-2 border-b border-white/[0.04] pb-3"
-                >
-                  <i class="fas fa-times text-[10px]"></i>
-                  <span>Clear all ({{ selectedContextFiles.length }})</span>
-                </button>
-                
-                <!-- Files grouped by category -->
-                <div v-if="selectedApp" class="space-y-1">
-                  <!-- Pages -->
-                  <div v-if="appPages.length > 0">
-                    <div class="px-3 py-1.5 text-[10px] font-semibold text-white/25 uppercase tracking-wider">Pages</div>
-                    <button
-                      v-for="file in appPages"
-                      :key="file.path"
-                      @click="toggleFileContext(file)"
-                      class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
-                      :class="isFileSelected(file.path)
-                        ? 'bg-white/[0.08] text-white/90 border border-white/[0.10]' 
-                        : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70 border border-transparent'"
-                    >
-                      <div class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
-                        :class="isFileSelected(file.path)
-                          ? 'bg-white/[0.15] border-white/[0.25]'
-                          : 'bg-white/[0.02] border-white/[0.10]'"
-                      >
-                        <i v-if="isFileSelected(file.path)" class="fas fa-check text-[8px] text-white"></i>
-                      </div>
-                      <i class="fas fa-window-maximize text-[10px] text-white/40"></i>
-                      <span class="truncate flex-1">{{ getDisplayName(file.path) }}</span>
-                    </button>
-                  </div>
-                  
-                  <!-- Blocks -->
-                  <div v-if="appBlocks.length > 0">
-                    <div class="px-3 py-1.5 text-[10px] font-semibold text-white/25 uppercase tracking-wider mt-2">Blocks</div>
-                    <button
-                      v-for="file in appBlocks"
-                      :key="file.path"
-                      @click="toggleFileContext(file)"
-                      class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
-                      :class="isFileSelected(file.path)
-                        ? 'bg-white/[0.08] text-white/90 border border-white/[0.10]' 
-                        : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70 border border-transparent'"
-                    >
-                      <div class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
-                        :class="isFileSelected(file.path)
-                          ? 'bg-white/[0.15] border-white/[0.25]'
-                          : 'bg-white/[0.02] border-white/[0.10]'"
-                      >
-                        <i v-if="isFileSelected(file.path)" class="fas fa-check text-[8px] text-white"></i>
-                      </div>
-                      <i class="fas fa-puzzle-piece text-[10px] text-white/40"></i>
-                      <span class="truncate flex-1">{{ getDisplayName(file.path) }}</span>
-                    </button>
-                  </div>
-                  
-                  <!-- Data -->
-                  <div v-if="appStores.length > 0">
-                    <div class="px-3 py-1.5 text-[10px] font-semibold text-white/25 uppercase tracking-wider mt-2">Data</div>
-                    <button
-                      v-for="file in appStores"
-                      :key="file.path"
-                      @click="toggleFileContext(file)"
-                      class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs transition-all"
-                      :class="isFileSelected(file.path)
-                        ? 'bg-white/[0.08] text-white/90 border border-white/[0.10]' 
-                        : 'text-white/50 hover:bg-white/[0.03] hover:text-white/70 border border-transparent'"
-                    >
-                      <div class="w-4 h-4 rounded border flex items-center justify-center flex-shrink-0"
-                        :class="isFileSelected(file.path)
-                          ? 'bg-white/[0.15] border-white/[0.25]'
-                          : 'bg-white/[0.02] border-white/[0.10]'"
-                      >
-                        <i v-if="isFileSelected(file.path)" class="fas fa-check text-[8px] text-white"></i>
-                      </div>
-                      <i class="fas fa-database text-[10px] text-white/40"></i>
-                      <span class="truncate flex-1">{{ getDisplayName(file.path) }}</span>
-                    </button>
-                  </div>
-                  
-                  <!-- Empty state -->
-                  <div v-if="appPages.length === 0 && appBlocks.length === 0 && appStores.length === 0" class="px-3 py-4 text-center text-xs text-white/30">
-                    No files in this app yet
-                  </div>
-                </div>
-                
-                <!-- No app selected -->
-                <div v-else class="px-3 py-4 text-center text-xs text-white/30">
-                  Select an app first
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Model Selector and Mode Toggle Row -->
-        <div class="flex items-center gap-2">
-          <!-- Model Selector -->
-          <div class="flex-1">
-            <ModelSelector 
-              :models="store.availableModels || []"
-              :model-id="store.selectedModelId"
-              :mode="store.mode || 'chat'"
-              @update:model-id="handleModelSelect"
-              compact
-            />
-          </div>
-          
-          <!-- Mode Toggle -->
-          <div class="flex items-center bg-white/[0.02] rounded-lg p-0.5 border border-white/[0.04]">
-            <button
-              @click="handleModeSwitch('chat')"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              :class="store.mode === 'chat' 
-                ? 'bg-white/[0.08] text-white/90 shadow-sm' 
-                : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'"
-            >
-              <i class="fas fa-comments text-[10px]"></i>
-              <span>Ask</span>
-            </button>
-            <button
-              @click="handleModeSwitch('build')"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200"
-              :class="store.mode === 'build' 
-                ? 'bg-white/[0.08] text-white/90 shadow-sm' 
-                : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]'"
-            >
-              <i class="fas fa-magic text-[10px]"></i>
-              <span>Build</span>
-            </button>
-          </div>
-        </div>
-        
         <!-- Text Input Area -->
         <div class="relative">
           <textarea
@@ -184,38 +23,53 @@
             @keydown.enter.shift.exact="() => {}"
             @input="autoResizeTextarea"
             :disabled="store.isProcessing"
-            rows="1"
-            class="w-full bg-white/[0.03] border border-white/[0.06] text-white/90 placeholder-white/30 text-sm px-3 pr-12 py-2.5 resize-none focus:outline-none focus:border-white/[0.12] rounded-lg leading-relaxed transition-all duration-200"
-            style="min-height: 42px; max-height: 120px;"
+            rows="3"
+            class="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/30 text-sm px-3 pr-12 py-3 pb-10 resize-none rounded-lg leading-relaxed"
+            style="min-height: 80px; max-height: 200px;"
           ></textarea>
+          
+          <!-- Mode and Model Dropdowns (Bottom Left inside input) -->
+          <div class="absolute left-2 bottom-2 flex items-center gap-2">
+            <!-- Mode Dropdown -->
+            <select
+              :value="store.mode"
+              @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
+              class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
+            >
+              <option value="chat">Chat</option>
+              <option value="build">Agent</option>
+            </select>
+            
+            <!-- Model Dropdown -->
+            <select
+              :value="store.selectedModelId"
+              @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
+              class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
+            >
+              <option 
+                v-for="model in store.availableModels || []" 
+                :key="model.id" 
+                :value="model.id"
+              >
+                {{ model.name }}
+              </option>
+            </select>
+          </div>
           
           <!-- Send Button -->
           <div class="absolute right-2 bottom-2">
             <button
               @click="handlePrompt"
               :disabled="!prompt.trim() || store.isProcessing"
-              class="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200"
+              class="btn-3d flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
               :class="prompt.trim() && !store.isProcessing
-                ? 'bg-white/[0.12] text-white hover:bg-white/[0.18] active:bg-white/[0.15]'
-                : 'bg-white/[0.03] text-white/15 cursor-not-allowed'"
+                ? 'bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 border border-gray-700/50 dark:border-gray-300/50 shadow-lg hover:shadow-xl'
+                : 'bg-gradient-to-b from-gray-200 via-gray-100 to-gray-50 dark:from-white/[0.08] dark:via-white/[0.05] dark:to-white/[0.03] text-gray-400 dark:text-white/40 cursor-not-allowed border border-gray-300/70 dark:border-white/[0.12] shadow-sm'"
             >
-              <i v-if="store.isProcessing" class="fas fa-circle-notch fa-spin text-xs"></i>
-              <i v-else class="fas fa-arrow-up text-xs"></i>
+              <i v-if="store.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
+              <i v-else class="fas fa-arrow-up text-sm"></i>
             </button>
           </div>
-        </div>
-        
-        <!-- Context Info -->
-        <div v-if="selectedContextFiles.length > 0" class="flex items-center gap-2 text-[10px] text-white/30">
-          <i class="fas fa-file-code text-[8px]"></i>
-          <span v-if="selectedContextFiles.length === 1">{{ getDisplayName(selectedContextFiles[0].path) }}</span>
-          <span v-else>{{ selectedContextFiles.length }} files selected</span>
-        </div>
-        
-        <!-- Hint -->
-        <div v-else-if="store.mode === 'build'" class="flex items-center gap-2 text-[10px] text-white/25">
-          <i class="fas fa-info-circle text-[8px]"></i>
-          <span>Select a file to make changes</span>
         </div>
       </div>
     </div>
@@ -223,10 +77,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { ChatConversation } from '../../organisms/chat'
-import ModelSelector from '../../molecules/sidebar/ModelSelector.vue'
 import type { ProjectFile, BuilderMode } from '../../../types/components'
 import type { AIMessage } from '../../../types/index'
 
@@ -237,42 +90,12 @@ const props = defineProps<{
   onModelSelect: (modelId: string) => Promise<void>
   onModeSwitch: (mode: BuilderMode) => Promise<void>
   onExamplePrompt: (example: string) => void
+  isCollapsed?: boolean
 }>()
 
 const store = useAgentStore()
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
-const filePickerRef = ref<HTMLElement | null>(null)
-const isFilePickerOpen = ref(false)
-const selectedContextFiles = ref<ProjectFile[]>([])
-
-// Helper to check if file is a barrel file
-function isBarrelFile(path: string): boolean {
-  const filename = path.split('/').pop()?.toLowerCase() || ''
-  return filename === 'index.ts' || filename === 'index.js' || filename === 'index.vue'
-}
-
-// Computed: files in the selected app categorized
-const appPages = computed(() => {
-  if (!props.selectedApp?.files) return []
-  return props.selectedApp.files.filter((f: ProjectFile) => 
-    /\/views\//i.test(f.path) && !isBarrelFile(f.path)
-  )
-})
-
-const appBlocks = computed(() => {
-  if (!props.selectedApp?.files) return []
-  return props.selectedApp.files.filter((f: ProjectFile) => 
-    /\/components\//i.test(f.path) && !isBarrelFile(f.path)
-  )
-})
-
-const appStores = computed(() => {
-  if (!props.selectedApp?.files) return []
-  return props.selectedApp.files.filter((f: ProjectFile) => 
-    (/\/stores\//i.test(f.path) || /store\.(ts|js)$/i.test(f.path)) && !isBarrelFile(f.path)
-  )
-})
 
 // Helper to get friendly display name from file path
 function getDisplayName(path: string): string {
@@ -293,15 +116,9 @@ function getItemKind(path: string): string {
 
 const promptPlaceholder = computed(() => {
   if (store.mode === 'chat') {
-    if (store.selectedFile) {
-      return `Ask me anything about "${getDisplayName(store.selectedFile.path)}"...`
-    }
-    return 'Ask me anything about your project...'
+    return 'What would you like to build today?'
   } else {
-    if (store.selectedFile) {
-      return `Describe changes to "${getDisplayName(store.selectedFile.path)}"...`
-    }
-    return 'Select a file to start making changes...'
+    return 'Describe what you want to build...'
   }
 })
 
@@ -346,7 +163,7 @@ function autoResizeTextarea() {
   if (!promptTextarea.value) return
   promptTextarea.value.style.height = 'auto'
   const scrollHeight = promptTextarea.value.scrollHeight
-  const maxHeight = 120
+  const maxHeight = 200
   promptTextarea.value.style.height = `${Math.min(scrollHeight, maxHeight)}px`
 }
 
@@ -358,7 +175,7 @@ async function handlePrompt() {
   
   // Reset textarea height
   if (promptTextarea.value) {
-    promptTextarea.value.style.height = '42px'
+    promptTextarea.value.style.height = '80px'
   }
   
   await props.onPromptSubmit(promptText)
@@ -376,75 +193,175 @@ async function handleModelSelect(modelId: string) {
 async function handleModeSwitch(mode: BuilderMode) {
   await props.onModeSwitch(mode)
 }
-
-function toggleFilePicker() {
-  isFilePickerOpen.value = !isFilePickerOpen.value
-}
-
-function toggleFileContext(file: ProjectFile) {
-  const index = selectedContextFiles.value.findIndex(f => f.path === file.path)
-  if (index >= 0) {
-    selectedContextFiles.value.splice(index, 1)
-  } else {
-    selectedContextFiles.value.push(file)
-  }
-  
-  if (selectedContextFiles.value.length > 0) {
-    store.selectFile(selectedContextFiles.value[0])
-  } else {
-    store.setSelectedFile(null)
-  }
-}
-
-function isFileSelected(filePath: string): boolean {
-  return selectedContextFiles.value.some(f => f.path === filePath)
-}
-
-function clearAllFileSelections() {
-  selectedContextFiles.value = []
-  store.setSelectedFile(null)
-}
-
-function handleClickOutside(event: MouseEvent) {
-  if (filePickerRef.value && !filePickerRef.value.contains(event.target as Node)) {
-    isFilePickerOpen.value = false
-  }
-}
-
-// Watch for changes to the selected file in store and sync with selectedContextFiles
-watch(() => store.selectedFile, (newFile) => {
-  if (newFile && !selectedContextFiles.value.some(f => f.path === newFile.path)) {
-    selectedContextFiles.value = [newFile]
-  } else if (!newFile) {
-    selectedContextFiles.value = []
-  }
-})
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
 </script>
 
 <style scoped>
-/* Custom scrollbar */
+/* Dropdown Select Styling - Remove ALL visual effects */
+.dropdown-select {
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(107,114,128,0.7)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1em;
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-offset: 0 !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: none !important;
+}
+
+.dark .dropdown-select {
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(255,255,255,0.5)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: none !important;
+}
+
+/* Remove ALL outlines, focus rings, hover effects, and click effects */
+.dropdown-select:hover,
+.dropdown-select:focus,
+.dropdown-select:focus-visible,
+.dropdown-select:active,
+.dropdown-select:focus-within,
+.dropdown-select:active:hover {
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  border-color: rgb(229 231 235) !important;
+  background-color: rgb(249 250 251) !important;
+  transition: none !important;
+}
+
+.dark .dropdown-select:hover,
+.dark .dropdown-select:focus,
+.dark .dropdown-select:focus-visible,
+.dark .dropdown-select:active,
+.dark .dropdown-select:focus-within,
+.dark .dropdown-select:active:hover {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-color: transparent !important;
+  transition: none !important;
+}
+
+/* Style dropdown options to match the page */
+.dropdown-select option {
+  background-color: white;
+  color: #374151;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  outline: none !important;
+}
+
+.dark .dropdown-select option {
+  background-color: #0a0a0a;
+  color: rgba(255, 255, 255, 0.7);
+  outline: none !important;
+}
+
+.dropdown-select option:focus,
+.dropdown-select option:active,
+.dropdown-select option:hover {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove ALL focus rings and outlines from textarea */
+textarea,
+textarea:hover,
+textarea:focus,
+textarea:focus-visible,
+textarea:active {
+  outline: 0 !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  outline-offset: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  border-color: rgb(229 231 235) !important;
+  transition: none !important;
+}
+
+.dark textarea,
+.dark textarea:hover,
+.dark textarea:focus,
+.dark textarea:focus-visible,
+.dark textarea:active {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 3D Printed Button Effect - matching homepage */
+.btn-3d {
+  transform: translateZ(0);
+  box-shadow: 
+    /* Tight shadow for immediate depth */
+    0 2px 3px -1px rgba(0, 0, 0, 0.4),
+    /* Medium shadow for body lift */
+    0 6px 12px -3px rgba(0, 0, 0, 0.35),
+    /* Large diffuse shadow */
+    0 16px 32px -8px rgba(0, 0, 0, 0.3),
+    0 24px 48px -12px rgba(0, 0, 0, 0.2),
+    /* Bottom edge thickness */
+    0 3px 0 -1px rgba(0, 0, 0, 0.5),
+    /* Inset highlights */
+    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .btn-3d {
+  box-shadow: 
+    /* Tight shadow for immediate depth */
+    0 2px 3px -1px rgba(0, 0, 0, 0.1),
+    /* Medium shadow for body lift */
+    0 6px 12px -3px rgba(0, 0, 0, 0.1),
+    /* Large diffuse shadow */
+    0 16px 32px -8px rgba(0, 0, 0, 0.1),
+    0 24px 48px -12px rgba(0, 0, 0, 0.08),
+    /* Bottom edge thickness */
+    0 3px 0 -1px rgba(0, 0, 0, 0.15),
+    /* Inset highlights */
+    inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* Refined minimal scrollbar - matching homepage */
 :deep(::-webkit-scrollbar) {
-  width: 6px;
+  width: 8px;
 }
 
 :deep(::-webkit-scrollbar-track) {
-  background: rgba(255, 255, 255, 0.02);
+  background: transparent;
 }
 
 :deep(::-webkit-scrollbar-thumb) {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
 :deep(::-webkit-scrollbar-thumb:hover) {
-  background: rgba(139, 92, 246, 0.5);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+:root.dark :deep(::-webkit-scrollbar-thumb) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:root.dark :deep(::-webkit-scrollbar-thumb:hover) {
+  background: rgba(255, 255, 255, 0.2);
 }
 </style>

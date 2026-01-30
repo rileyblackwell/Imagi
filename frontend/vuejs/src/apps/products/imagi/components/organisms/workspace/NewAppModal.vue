@@ -4,13 +4,10 @@
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close" />
 
     <!-- Modal Panel -->
-    <div class="relative w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-gradient-to-b from-dark-900/80 via-dark-900/70 to-dark-900/80 shadow-2xl ring-1 ring-white/5 overflow-hidden">
-      <!-- Decorative borders -->
-      <div class="h-0.5 w-full bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-indigo-500/30 opacity-70"></div>
-
+    <div class="relative w-full max-w-lg mx-4 rounded-2xl border border-white/10 bg-dark-900/90 shadow-2xl ring-1 ring-white/5 overflow-hidden">
       <!-- Header -->
       <div class="px-5 py-4 flex items-center gap-3 border-b border-white/10 bg-dark-900/60">
-        <span class="w-8 h-8 rounded-md flex items-center justify-center border bg-gradient-to-br from-primary-500/15 to-violet-500/15 border-primary-500/30 text-primary-300">
+        <span class="w-8 h-8 rounded-md flex items-center justify-center border bg-white/[0.05] border-white/[0.08] text-white/70">
           <i class="fas fa-cubes"></i>
         </span>
         <div class="flex flex-col">
@@ -73,7 +70,7 @@
           </button>
           <button
             type="submit"
-            class="text-xs px-3 py-2 rounded-md border bg-gradient-to-r from-indigo-600/30 to-violet-600/30 border-primary-500/40 text-white hover:from-indigo-600/40 hover:to-violet-600/40 disabled:opacity-60 disabled:cursor-not-allowed"
+            class="text-xs px-3 py-2 rounded-md border bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 border-white/[0.08] text-white hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="!validName || isSubmitting"
           >
             <span v-if="isSubmitting" class="inline-flex items-center gap-2">
