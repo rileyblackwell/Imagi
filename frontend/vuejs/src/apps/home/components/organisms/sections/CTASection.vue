@@ -32,10 +32,12 @@
         <router-link 
           v-if="showSecondaryButton"
           :to="secondaryButtonTo"
-          class="btn-secondary-3d group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-br from-white via-gray-50/90 to-gray-100/80 dark:from-white/[0.08] dark:via-white/[0.04] dark:to-white/[0.02] backdrop-blur-sm text-gray-700 dark:text-white/80 border border-gray-200/60 dark:border-white/[0.08] rounded-full font-medium text-lg transition-all duration-300 hover:border-gray-300 dark:hover:border-white/15 overflow-hidden"
+          class="btn-3d group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
         >
-          <!-- Top highlight -->
-          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/[0.15]"></span>
+          <!-- Top edge highlight for 3D effect -->
+          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
+          <!-- Bottom edge shadow for depth -->
+          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
           <span class="relative">{{ secondaryButtonText }}</span>
         </router-link>
       </div>
@@ -130,38 +132,5 @@ export default defineComponent({
     /* Inset highlights */
     inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
     inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
-}
-
-
-/* Secondary Button 3D Effect */
-.btn-secondary-3d {
-  transform: translateZ(0);
-  box-shadow: 
-    /* Tight shadow */
-    0 2px 3px -1px rgba(0, 0, 0, 0.08),
-    /* Medium shadow */
-    0 4px 8px -2px rgba(0, 0, 0, 0.1),
-    /* Large shadow */
-    0 12px 24px -6px rgba(0, 0, 0, 0.08),
-    /* Bottom thickness */
-    0 2px 0 -1px rgba(0, 0, 0, 0.12),
-    /* Inset highlights */
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.7),
-    inset 0 -3px 6px -2px rgba(0, 0, 0, 0.06);
-}
-
-.dark .btn-secondary-3d {
-  box-shadow: 
-    /* Tight shadow */
-    0 2px 3px -1px rgba(0, 0, 0, 0.3),
-    /* Medium shadow */
-    0 4px 8px -2px rgba(0, 0, 0, 0.35),
-    /* Large shadow */
-    0 12px 24px -6px rgba(0, 0, 0, 0.25),
-    /* Bottom thickness */
-    0 2px 0 -1px rgba(0, 0, 0, 0.4),
-    /* Inset highlights */
-    inset 0 1px 3px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -3px 6px -2px rgba(0, 0, 0, 0.3);
 }
 </style>

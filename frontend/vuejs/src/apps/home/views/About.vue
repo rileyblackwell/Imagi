@@ -15,26 +15,26 @@
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
             
             <!-- Hero title -->
             <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
-              Making web development accessible to everyone
+              Web development for everyone
             </h1>
             
             <!-- Description -->
-            <p class="text-xl sm:text-2xl text-gray-500 dark:text-white/60 max-w-3xl mx-auto leading-relaxed transition-colors duration-300">
+            <p class="text-lg sm:text-xl text-gray-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed transition-colors duration-300">
               Imagi provides a set of AI tools to non-technical users, creating a quick and easy experience to build and deploy web applications. We handle all the technical complexity behind the scenes, so you can focus on bringing your ideas to life through a clean visual interface.
             </p>
           </div>
         </section>
 
         <!-- Mission Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-100 dark:bg-[#0d0d0d] transition-colors duration-500 overflow-hidden">
           <!-- Subtle ambient background -->
           <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-purple-500/[0.03] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
           </div>
 
           <div class="relative max-w-6xl mx-auto">
@@ -50,14 +50,14 @@
             </div>
                 
             <!-- Mission cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
-              <div v-for="(card, index) in missionCards" :key="index" class="group relative">
-                <div class="relative h-full p-8 rounded-3xl bg-white/80 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-200/30 dark:group-hover:shadow-none">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div v-for="(card, index) in missionCards" :key="index" class="relative">
+                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-5">
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5">
                     {{ card.title }}
                   </h3>
-                  <p class="text-gray-500 dark:text-white/60 leading-relaxed transition-colors duration-300">
+                  <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300">
                     {{ card.description }}
                   </p>
                 </div>
@@ -67,10 +67,10 @@
         </section>
 
         <!-- What We Do Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
           <!-- Subtle ambient background -->
           <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-0 right-1/4 w-[500px] h-[500px] bg-gradient-radial from-amber-500/[0.02] via-transparent to-transparent rounded-full blur-3xl"></div>
+            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
           </div>
 
           <div class="relative max-w-6xl mx-auto">
@@ -86,14 +86,14 @@
             </div>
                       
             <!-- Features grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
-              <div v-for="(feature, index) in features" :key="index" class="group relative">
-                <div class="relative h-full p-8 rounded-3xl bg-white/80 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-200/30 dark:group-hover:shadow-none">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div v-for="(feature, index) in features" :key="index" class="relative">
+                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-5 text-center">
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5 text-center">
                     {{ feature.title }}
                   </h3>
-                  <p class="text-gray-500 dark:text-white/60 leading-relaxed transition-colors duration-300 text-center">
+                  <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300 text-center">
                     {{ feature.description }}
                   </p>
                 </div>
@@ -103,10 +103,10 @@
         </section>
 
         <!-- Who We Serve Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-100 dark:bg-[#0d0d0d] transition-colors duration-500 overflow-hidden">
           <!-- Subtle ambient background -->
           <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute bottom-1/3 left-1/3 w-[600px] h-[400px] bg-gradient-radial from-blue-500/[0.03] via-transparent to-transparent rounded-full blur-3xl"></div>
+            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
           </div>
 
           <div class="relative max-w-6xl mx-auto">
@@ -122,14 +122,14 @@
             </div>
                       
             <!-- User types grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
-              <div v-for="(userType, index) in userTypes" :key="index" class="group relative">
-                <div class="relative h-full p-8 rounded-3xl bg-white/80 dark:bg-white/[0.02] backdrop-blur-sm border border-gray-200/80 dark:border-white/[0.08] transition-all duration-300 group-hover:shadow-xl group-hover:shadow-gray-200/30 dark:group-hover:shadow-none">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div v-for="(userType, index) in userTypes" :key="index" class="relative">
+                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-5">
+                  <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5">
                     {{ userType.title }}
                   </h3>
-                  <p class="text-gray-500 dark:text-white/60 leading-relaxed transition-colors duration-300">
+                  <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300">
                     {{ userType.description }}
                   </p>
                 </div>

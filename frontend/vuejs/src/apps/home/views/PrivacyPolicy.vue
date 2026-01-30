@@ -15,7 +15,7 @@
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-gray-50 dark:bg-[#0f0f0f] transition-colors duration-500 overflow-hidden">
+        <section class="relative pt-32 sm:pt-40 md:pt-48 pb-16 sm:pb-20 md:pb-24 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
             <!-- Hero title -->
             <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
@@ -23,7 +23,7 @@
             </h1>
               
             <!-- Description -->
-            <p class="text-xl sm:text-2xl text-gray-500 dark:text-white/60 max-w-3xl mx-auto leading-relaxed mb-6 transition-colors duration-300">
+            <p class="text-lg sm:text-xl text-gray-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed mb-6 transition-colors duration-300">
               We are committed to protecting your privacy and ensuring the security of your personal information.
             </p>
             
@@ -36,25 +36,19 @@
         <!-- Content Sections -->
         <section v-for="(section, index) in sections" :key="index" 
                  :class="[
-                   'relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 transition-colors duration-500 overflow-hidden',
-                   index % 2 === 0 ? 'bg-white dark:bg-[#0a0a0a]' : 'bg-gray-50 dark:bg-[#0f0f0f]'
+                   'relative px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden',
+                   index === sections.length - 1 ? 'pt-6 md:pt-8 pb-24 md:pb-32' : 
+                   index === 0 ? 'pt-6 md:pt-8 pb-2 md:pb-3' : 'pt-2 md:pt-3 pb-6 md:pb-8'
                  ]">
           <!-- Subtle ambient background -->
           <div class="absolute inset-0 pointer-events-none">
-            <div 
-              :class="[
-                'absolute w-[600px] h-[400px] rounded-full blur-3xl',
-                index % 3 === 0 ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-radial from-purple-500/[0.03] via-transparent to-transparent' :
-                index % 3 === 1 ? 'top-0 right-1/4 bg-gradient-radial from-blue-500/[0.02] via-transparent to-transparent' :
-                'bottom-1/3 left-1/3 bg-gradient-radial from-amber-500/[0.02] via-transparent to-transparent'
-              ]">
-            </div>
+            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
           </div>
 
           <div class="relative max-w-3xl mx-auto">
             <!-- Section header -->
             <div class="mb-12">
-              <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-8 transition-colors duration-300 text-center">
+              <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
                 {{ section.badge }}
               </h2>
               <p v-if="section.description" class="text-lg text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300 mb-8">
@@ -63,9 +57,9 @@
             </div>
             
             <!-- Content as paragraphs -->
-            <div v-if="section.items" class="space-y-6">
+            <div v-if="section.items" class="space-y-8">
               <div v-for="(item, itemIndex) in section.items" :key="itemIndex">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-3 text-center">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-3">
                   {{ item.title }}
                 </h3>
                 <p class="text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300">
