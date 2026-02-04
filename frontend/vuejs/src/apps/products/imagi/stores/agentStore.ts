@@ -8,7 +8,7 @@ import { FileService } from '../services/fileService'
 export const useAgentStore = defineStore('agent', {
   state: (): AgentState => ({
     projectId: null,
-    mode: 'build',
+    mode: 'chat',
     selectedModelId: null,
     availableModels: [],
     conversation: [],

@@ -95,8 +95,8 @@ def chat(request):
         if not message:
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
         
-        # Default to GPT-5.2 if no model specified
-        if not model:
+        # Force GPT-5.2 for chat mode
+        if not model or model != DEFAULT_MODEL:
             model = DEFAULT_MODEL
         
         # Ensure project_id is an integer if provided

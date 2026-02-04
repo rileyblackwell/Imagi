@@ -12,38 +12,15 @@ logger = logging.getLogger(__name__)
 
 # Centralized Model Definitions
 MODELS = {
-    'claude-sonnet-4-20250514': {
-        'id': 'claude-sonnet-4-20250514',
-        'name': 'Claude Sonnet 4',
-        'provider': 'anthropic',
-        'type': 'anthropic',
-        'description': 'Anthropic | High-performance model for complex tasks',
-        'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 200000,
-        'costPerRequest': 0.04,
-        'api_version': 'messages'  # Uses Anthropic messages API
-    },
-    'gpt-5': {
-        'id': 'gpt-5',
-        'name': 'GPT-5',
+    'gpt-5.2': {
+        'id': 'gpt-5.2',
+        'name': 'GPT 5.2',
         'provider': 'openai',
         'type': 'openai',
-        'description': 'OpenAI | Next-generation reasoning and creative capability',
+        'description': 'OpenAI | GPT 5.2 for chat and building assistance',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
         'costPerRequest': 0.04,
-        'api_version': 'responses',  # Uses OpenAI Responses API
-        'supports_temperature': False
-    },
-    'gpt-5-nano': {
-        'id': 'gpt-5-nano',
-        'name': 'GPT-5 Nano',
-        'provider': 'openai',
-        'type': 'openai',
-        'description': 'OpenAI | Lightweight, fast model for everyday tasks',
-        'capabilities': ['code_generation', 'chat', 'analysis'],
-        'maxTokens': 64000,
-        'costPerRequest': 0.01,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False
     }
@@ -52,7 +29,6 @@ MODELS = {
 # Provider Choices
 PROVIDER_CHOICES = [
     ('openai', 'OpenAI'),
-    ('anthropic', 'Anthropic'),
 ]
 
 # Generate MODEL_COSTS from the models for backwards compatibility
@@ -60,8 +36,8 @@ MODEL_COSTS = {model_id: model_data['costPerRequest'] for model_id, model_data i
 
 # Default model costs for unknown models based on common prefixes
 DEFAULT_MODEL_COSTS = {
-    'gpt-5': 0.04,
-    'claude-sonnet-4': 0.04
+    'gpt-5.2': 0.04,
+    'gpt-5': 0.04
 }
 
 def get_model_choices() -> List[Tuple[str, str]]:
@@ -89,7 +65,7 @@ def get_default_provider() -> str:
     Returns:
         str: The default provider ID
     """
-    return 'anthropic'
+    return 'openai'
 
 def get_model_by_id(model_id: str) -> dict:
     """
@@ -130,9 +106,7 @@ def get_model_cost(model_id: str) -> float:
     if amount is None:
         model_lower = model_id.lower()
         
-        if 'claude-sonnet-4' in model_lower:
-            amount = 0.04
-        elif model_lower == 'gpt-5' or model_lower.startswith('gpt-5'):
+        if model_lower == 'gpt-5.2' or model_lower.startswith('gpt-5'):
             amount = 0.04
         else:
             # Default fallback
@@ -156,13 +130,7 @@ def get_default_model_id() -> str:
     Returns:
         str: The default model ID
     """
-    # Find models with default=True or use the first Claude model
-    for model_id, model_data in MODELS.items():
-        if model_data.get('provider') == 'anthropic':
-            return model_id
-    
-    # Fallback to any model if no Claude models found
-    return next(iter(MODELS.keys()))
+    return 'gpt-5.2'
 
 def get_model_display_name(model_id: str) -> str:
     """

@@ -37,7 +37,6 @@
               class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
             >
               <option value="chat">Chat</option>
-              <option value="build">Agent</option>
             </select>
             
             <!-- Model Dropdown -->
@@ -47,7 +46,7 @@
               class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
             >
               <option 
-                v-for="model in store.availableModels || []" 
+                v-for="model in modelOptions" 
                 :key="model.id" 
                 :value="model.id"
               >
@@ -81,7 +80,7 @@ import { ref, computed } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { ChatConversation } from '../../organisms/chat'
 import type { ProjectFile, BuilderMode } from '../../../types/components'
-import type { AIMessage } from '../../../types/index'
+import type { AIMessage, AIModel } from '../../../types/index'
 
 // Props
 const props = defineProps<{
@@ -96,6 +95,20 @@ const props = defineProps<{
 const store = useAgentStore()
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
+
+const modelOptions = computed<AIModel[]>(() => {
+  const available = (store.availableModels || []).filter(model => model.id === 'gpt-5.2')
+  if (available.length > 0) {
+    return available
+  }
+  return [
+    {
+      id: 'gpt-5.2',
+      name: 'GPT 5.2',
+      provider: 'openai'
+    } as AIModel
+  ]
+})
 
 // Helper to get friendly display name from file path
 function getDisplayName(path: string): string {

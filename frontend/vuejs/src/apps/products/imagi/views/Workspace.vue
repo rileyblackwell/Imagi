@@ -3,7 +3,7 @@
   
   This component is responsible for:
   1. Loading an existing project's files and data
-  2. Supporting chat & build modes for AI interaction
+  2. Supporting chat mode for AI interaction
   3. Editing project files through AI assistance
 -->
 <template>
@@ -666,26 +666,27 @@ async function handleModelSelect(modelId: string) {
 
 async function handleModeSwitch(mode: BuilderMode) {
   const previousMode = store.mode
+  if (mode !== 'chat') {
+    store.setMode('chat')
+    return
+  }
   
   // Update the mode in the store
-  store.setMode(mode)
-  
-  // If switching from chat to build and no file is selected
-  if (previousMode === 'chat' && mode === 'build' && !store.selectedFile && store.files.length > 0) {
-    // Auto-select the first file when switching to build mode
-    store.selectFile(store.files[0])
+  if (previousMode === 'chat') {
+    return
   }
+  store.setMode('chat')
   
   // Only add system messages about mode changes if the new mode is chat mode
   // This prevents system messages from appearing in build mode
-  if (mode === 'chat' && previousMode !== mode && store.conversation.length > 0) {
+  if (store.conversation.length > 0) {
     // Add system message about mode change
     // Use a special ID format that can be detected in the ChatConversation component
     const modeChangeId = `system-mode-change-${Date.now()}`;
     
     store.conversation.push({
       role: 'system',
-      content: `Switched to ${mode} mode${store.selectedFile ? ` for file: ${store.selectedFile.path}` : ''}`,
+      content: `Switched to chat mode${store.selectedFile ? ` for file: ${store.selectedFile.path}` : ''}`,
       timestamp: new Date().toISOString(),
       id: modeChangeId
     })
@@ -930,15 +931,15 @@ async function retryProjectLoad() {
     
     // Set default model if needed
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'claude-sonnet-4-20250514') 
+      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.2') 
         || store.availableModels[0];
       if (defaultModel) {
         store.setSelectedModelId(defaultModel.id);
       }
     }
     
-    // Initialize mode if not set
-    if (!store.mode) {
+    // Ensure chat-only mode for now
+    if (store.mode !== 'chat') {
       store.setMode('chat');
     }
   } catch (error: any) {
@@ -1075,15 +1076,15 @@ onMounted(async () => {
         
         // Set default model if not already set
         if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'claude-sonnet-4-20250514') 
+          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.2') 
             || store.availableModels[0];
           if (defaultModel) {
             store.setSelectedModelId(defaultModel.id);
           }
         }
         
-        // Initialize mode if not set
-        if (!store.mode) {
+        // Ensure chat-only mode for now
+        if (store.mode !== 'chat') {
           store.setMode('chat');
         }
       } else {

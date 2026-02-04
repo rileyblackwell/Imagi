@@ -489,8 +489,8 @@ export const AgentService = {
       throw new Error('Prompt, project ID, and file path are required');
     }
     
-    // Use the provided model or default to claude-sonnet-4-20250514
-    const modelId = model || 'claude-sonnet-4-20250514';
+    // Use the provided model or default to GPT 5.2
+    const modelId = model || 'gpt-5.2';
     
     try {
       // Get conversation ID if available

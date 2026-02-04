@@ -155,7 +155,7 @@ class BuilderServiceTests(TestCase):
         
         response = process_builder_mode_input(
             user_input="Create a simple landing page",
-            model="claude-sonnet-4-20250514",
+            model="gpt-5.2",
             file_name="index.html",
             user=self.user
         )
@@ -227,7 +227,7 @@ class BuilderIntegrationTests(TestCase):
             reverse('builder:process_input'),
             {
                 'user_input': 'Create a simple landing page',
-                'model': 'claude-sonnet-4-20250514',
+                'model': 'gpt-5.2',
                 'file': 'index.html',
                 'mode': 'build'
             }

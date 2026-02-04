@@ -55,16 +55,7 @@ export interface UndoResponse {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'claude-sonnet-4-20250514': {
-    maxTokens: 200000,
-    rateLimits: {
-      tokensPerMinute: 100000,
-      requestsPerMinute: 300
-    },
-    contextWindow: 200000,
-    capabilities: ['code_generation', 'chat', 'analysis']
-  },
-  'gpt-5': {
+  'gpt-5.2': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -72,58 +63,22 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     },
     contextWindow: 128000,
     capabilities: ['code_generation', 'chat', 'analysis']
-  },
-  'gpt-5-nano': {
-    maxTokens: 64000,
-    rateLimits: {
-      tokensPerMinute: 120000,
-      requestsPerMinute: 600
-    },
-    contextWindow: 64000,
-    capabilities: ['code_generation', 'chat', 'analysis']
   }
 };
 
 // List of standard models
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'claude-sonnet-4-20250514',
-    name: 'Claude Sonnet 4',
-    provider: 'anthropic',
-    type: 'anthropic',
-    context_window: 200000,
-    features: ['chat', 'code', 'analysis'],
-    default: true,
-    description: 'Anthropic | High-performance model for complex tasks',
-    capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 200000,
-    costPerRequest: 0.04,
-    api_version: 'messages'
-  },
-  {
-    id: 'gpt-5',
-    name: 'GPT-5',
+    id: 'gpt-5.2',
+    name: 'GPT 5.2',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | Next-generation reasoning and creative capability',
+    description: 'OpenAI | GPT 5.2 for chat and building assistance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     costPerRequest: 0.04,
-    api_version: 'responses'
-  },
-  {
-    id: 'gpt-5-nano',
-    name: 'GPT-5 Nano',
-    provider: 'openai',
-    type: 'openai',
-    context_window: 64000,
-    features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | Lightweight, fast model for everyday tasks',
-    capabilities: ['code_generation', 'chat', 'analysis'],
-    maxTokens: 64000,
-    costPerRequest: 0.01,
     api_version: 'responses'
   }
 ];

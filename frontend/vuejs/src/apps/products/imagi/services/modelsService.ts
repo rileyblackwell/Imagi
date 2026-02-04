@@ -98,6 +98,7 @@ export const ModelsService = {
       const response = await api.get('/v1/builder/models/')
       
       if (response.data && Array.isArray(response.data.models)) {
+        const allowedIds = new Set(this.getDefaultModels().map(model => model.id))
         const apiModels: AIModel[] = response.data.models.map((model: any) => {
           // Infer a valid provider if not supplied by API
           let inferredProvider: 'openai' | 'anthropic' | 'google' | 'local' = 'local'
@@ -121,14 +122,8 @@ export const ModelsService = {
           } as AIModel
         })
 
-        // Merge with static defaults to ensure completeness (e.g., gpt-5-nano)
-        const defaults = AI_MODELS
-        const apiIds = new Set(apiModels.map(m => m.id))
-        const merged = [...apiModels]
-        for (const d of defaults) {
-          if (!apiIds.has(d.id)) merged.push(d)
-        }
-        return merged
+        const filtered = apiModels.filter(model => allowedIds.has(model.id))
+        return filtered.length > 0 ? filtered : this.getDefaultModels()
       }
     } catch (error) {
       // If API request fails, fall back to default models
