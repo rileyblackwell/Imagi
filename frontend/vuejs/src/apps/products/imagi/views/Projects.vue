@@ -247,6 +247,7 @@ import { useNotificationStore } from '@/shared/stores/notificationStore'
 import { useProjectSearch } from '../composables/useProjectSearch'
 import type { Project } from '../types/components' 
 import { normalizeProject } from '../types/components'
+import { toSlug } from '../utils/slug'
 
 
 const router = useRouter()
@@ -375,7 +376,7 @@ async function createProject() {
     setTimeout(() => {
       router.push({ 
         name: 'builder-workspace', 
-        params: { projectId: String(newProject.id) } 
+        params: { projectName: toSlug(newProject.name) } 
       })
     }, 1500)
     
@@ -457,7 +458,7 @@ const confirmDelete = async (project: Project) => {
   
   // Check if user is currently in the workspace for this project
   const isCurrentlyInWorkspace = router.currentRoute.value.name === 'builder-workspace' && 
-                                 router.currentRoute.value.params.projectId === String(project.id)
+                                 router.currentRoute.value.params.projectName === toSlug(project.name)
   
   try {
     // First clear the cache to ensure fresh data

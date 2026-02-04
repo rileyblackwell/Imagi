@@ -49,7 +49,7 @@
           
           <!-- Open button -->
           <router-link
-            :to="{ name: 'builder-workspace', params: { projectId: project.id.toString() }}"
+            :to="{ name: 'builder-workspace', params: { projectName: toSlug(project.name) }}"
             class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-900 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-lg transition-all duration-300 text-xs font-medium group/btn"
             title="Open project workspace"
           >
@@ -67,6 +67,7 @@
 
 <script setup lang="ts">
 import type { Project } from '../../../types/components'
+import { toSlug } from '../../../utils/slug'
 
 const props = defineProps<{
   project?: Project;

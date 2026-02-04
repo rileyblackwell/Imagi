@@ -18,11 +18,11 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/products/imagi/workspace/:projectId',
+    path: '/products/imagi/workspace/:projectName',
     name: 'builder-workspace',
     component: Workspace,
     props: route => ({ 
-      projectId: String(route.params.projectId)
+      projectName: String(route.params.projectName)
     }),
     meta: {
       requiresAuth: true,

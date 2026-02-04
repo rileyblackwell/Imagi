@@ -137,6 +137,7 @@ defineOptions({ name: 'Workspace' })
 // Types
 import type { ProjectFile, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
+import { matchesSlug, toSlug } from '../utils/slug'
 
 // Ensure all services use the shared API client with proper timeout configurations
 const AI_TIMEOUT = 90000 // 90 seconds for AI processing
@@ -981,37 +982,8 @@ async function loadProjectFiles(force = false) {
 
 // Lifecycle hooks
 onMounted(async () => {
-  // Get project ID from route params
-  projectId.value = String(route.params.projectId)
-  
-  // IMPORTANT: Check if project is in deleted list BEFORE doing anything else
-  // This prevents any API calls or initialization for deleted projects
-  try {
-    const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-    if (deletedProjects.includes(projectId.value)) {
-      // Try to get project name from store if available
-      let projectName = projectId.value;
-      const existingProject = projectStore.getProjectById(projectId.value);
-      if (existingProject?.name) {
-        projectName = existingProject.name;
-      }
-      
-      // Show notification and redirect immediately
-      const { showNotification } = useNotification();
-      showNotification({
-        type: 'error',
-        message: `Project "${projectName}" has been deleted.`,
-        duration: 3000
-      });
-      
-      // Immediate redirect without waiting
-      router.replace({ name: 'projects' });
-      return; // Exit early to prevent any further initialization
-    }
-  } catch (e) {
-    // Handle localStorage errors silently and continue
-    console.warn('Error checking deleted projects list:', e)
-  }
+  // Get project name from route params (URL slug)
+  const projectNameSlug = String(route.params.projectName)
   
   try {
     // Get stores for easier access
@@ -1046,6 +1018,49 @@ onMounted(async () => {
     
     // First, verify authentication only once
     await executeOnce('verifyAuth', () => authStore.validateAuth());
+    
+    // Load projects list to find the project by slug
+    await executeOnce('fetchProjects', () => projectStore.fetchProjects());
+    
+    // Find the project by slug
+    const foundProject = projectStore.getProjectBySlug(projectNameSlug);
+    
+    if (!foundProject) {
+      console.error('Project not found for slug:', projectNameSlug);
+      const { showNotification } = useNotification();
+      showNotification({
+        type: 'error',
+        message: `Project "${projectNameSlug}" not found.`,
+        duration: 3000
+      });
+      router.replace({ name: 'projects' });
+      return;
+    }
+    
+    // Set the project ID from the found project
+    projectId.value = String(foundProject.id);
+    
+    // IMPORTANT: Check if project is in deleted list BEFORE doing anything else
+    // This prevents any API calls or initialization for deleted projects
+    try {
+      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
+      if (deletedProjects.includes(projectId.value)) {
+        // Show notification and redirect immediately
+        const { showNotification } = useNotification();
+        showNotification({
+          type: 'error',
+          message: `Project "${foundProject.name}" has been deleted.`,
+          duration: 3000
+        });
+        
+        // Immediate redirect without waiting
+        router.replace({ name: 'projects' });
+        return; // Exit early to prevent any further initialization
+      }
+    } catch (e) {
+      // Handle localStorage errors silently and continue
+      console.warn('Error checking deleted projects list:', e)
+    }
     
     // Critical request - project must be loaded first and only once
     try {
@@ -1150,27 +1165,45 @@ onMounted(async () => {
 
 // Watch for route parameter changes (e.g., if user navigates to different project)
 watch(
-  () => route.params.projectId,
-  (newProjectId, oldProjectId) => {
-    if (newProjectId && newProjectId !== oldProjectId) {
-      console.debug('Workspace: Project ID changed in route:', { oldProjectId, newProjectId })
+  () => route.params.projectName,
+  async (newProjectName, oldProjectName) => {
+    if (newProjectName && newProjectName !== oldProjectName) {
+      console.debug('Workspace: Project name changed in route:', { oldProjectName, newProjectName })
+      
+      // Find the new project by slug
+      const foundProject = projectStore.getProjectBySlug(String(newProjectName));
+      
+      if (!foundProject) {
+        // Try to load projects and search again
+        await projectStore.fetchProjects();
+        const retryProject = projectStore.getProjectBySlug(String(newProjectName));
+        
+        if (!retryProject) {
+          const { showNotification } = useNotification();
+          showNotification({
+            type: 'error',
+            message: `Project "${newProjectName}" not found.`,
+            duration: 3000
+          });
+          router.replace({ name: 'projects' });
+          return;
+        }
+        
+        projectId.value = String(retryProject.id);
+        return;
+      }
+      
+      const newProjectId = String(foundProject.id);
       
       // Check if the new project is in the deleted list
       try {
         const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-        if (deletedProjects.includes(String(newProjectId))) {
-          // Try to get project name from store if available
-          let projectName = String(newProjectId);
-          const existingProject = projectStore.getProjectById(String(newProjectId));
-          if (existingProject?.name) {
-            projectName = existingProject.name;
-          }
-          
+        if (deletedProjects.includes(newProjectId)) {
           // Show notification and redirect immediately
           const { showNotification } = useNotification();
           showNotification({
             type: 'error',
-            message: `Project "${projectName}" has been deleted.`,
+            message: `Project "${foundProject.name}" has been deleted.`,
             duration: 3000
           });
           
@@ -1183,7 +1216,7 @@ watch(
       }
       
       // If not deleted, update the project ID and reload
-      projectId.value = String(newProjectId)
+      projectId.value = newProjectId
       // Could add logic here to reload the project if needed
     }
   },
