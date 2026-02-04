@@ -96,7 +96,7 @@
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 flex flex-col relative mt-16 bg-white dark:bg-gradient-to-b dark:from-dark-950 dark:to-dark-900 overflow-hidden">
+        <main class="flex-1 flex flex-col relative pt-16 bg-white dark:bg-gradient-to-b dark:from-dark-950 dark:to-dark-900 overflow-hidden">
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 

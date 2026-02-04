@@ -195,15 +195,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
-    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'apps.Products.Imagi.Agents.api.negotiation.streaming.StreamingContentNegotiation',
-    # Add acceptable MIME types for streaming
-    'ACCEPTED_MEDIA_TYPES': [
-        'application/json',
-        'text/html',
-        'text/event-stream',  # Add this for SSE streaming
-        'multipart/form-data',
-        'application/x-www-form-urlencoded',
-    ],
+    # Removed custom StreamingContentNegotiation - implement streaming via OpenAI Agents SDK if needed
 }
 
 # JWT settings

@@ -18,16 +18,11 @@ from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
 from ..services.models_service import ModelsService
-from apps.Products.Imagi.Agents.services import (
-    process_builder_mode_input,
-    process_chat_mode_input,
-)
 from ..services.preview_service import PreviewService
 from apps.Products.Imagi.ProjectManager.models import Project as PMProject
 from apps.Products.Imagi.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Imagi.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound
-from apps.Products.Imagi.Agents.services.component_agent_service import TemplateAgentService
 from ..services.version_control_service import VersionControlService
 from ..services.create_app_service import CreateAppService
 
@@ -221,45 +216,7 @@ class FileContentView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def process_input(request):
-    """Handle file generation requests."""
-    try:
-        user_input = request.data.get('user_input')
-        model = request.data.get('model', 'claude-sonnet-4-20250514')
-        file_name = request.data.get('file')
-        mode = request.data.get('mode', 'build')
-        
-        if not all([user_input, file_name]):
-            return Response({
-                'error': 'Missing required fields'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        if mode == 'chat':
-            response = process_chat_mode_input(
-                user_input, model, request.user
-            )
-        else:
-            response = process_builder_mode_input(
-                user_input, model, file_name, request.user
-            )
-        
-        if not response['success'] and response.get('error') == 'insufficient_credits':
-            return Response({
-                'success': False,
-                'error': 'Insufficient credits',
-                'required_credits': response.get('required_credits', 1.0),
-                'redirect_url': response.get('redirect_url')
-            }, status=status.HTTP_402_PAYMENT_REQUIRED)
-        
-        return Response(response)
-        
-    except Exception as e:
-        logger.error(f"Error processing input: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# Removed old process_input view - use Agents API instead
 
 @method_decorator(never_cache, name='dispatch')
 class PreviewView(APIView):
@@ -379,29 +336,7 @@ class CreateFileView(APIView):
             # Create the file (CreateFileService handles directory creation)
             result = create_file_service.create_file(file_data)
             
-            # If this is an HTML template file in the templates directory, create a corresponding view and URL
-            file_path = result.get('path', '')
-            file_type = result.get('type', '')
-            
-            if file_type == 'html' or (file_path.startswith('templates/') and file_path.endswith('.html')):
-                try:
-                    # Extract just the filename from the path for the template_name
-                    template_name = os.path.basename(file_path)
-                    
-                    # Clean any 'templates/' prefix from the template name
-                    if template_name.startswith('templates/'):
-                        template_name = template_name.replace('templates/', '')
-                        
-                    logger.info(f"Creating view and URL for template: {template_name}")
-                    
-                    template_agent = TemplateAgentService()
-                    template_agent.create_view_and_url(project.id, template_name, request.user)
-                    result['view_created'] = True
-                except Exception as view_error:
-                    logger.error(f"Error creating view for template: {str(view_error)}")
-                    # Don't fail the entire request if view creation fails
-                    result['view_created'] = False
-                    result['view_error'] = str(view_error)
+            # Automatic view/URL creation removed - implement via OpenAI Agents SDK if needed
             
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -538,20 +473,11 @@ class AnalyzeTemplateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Use the TemplateAgentService to analyze the template
-            template_agent = TemplateAgentService()
-            template_agent.current_template_name = template_name
-            
-            # Validate the template syntax
-            is_valid, error_message = template_agent.validate_response(template_content)
-            
+            # Basic validation - implement advanced validation via OpenAI Agents SDK if needed
             response_data = {
-                'is_valid': is_valid,
-                'template_name': template_name
+                'is_valid': bool(template_content and len(template_content.strip()) > 0),
+                'template_name': template_name,
             }
-            
-            if not is_valid:
-                response_data['error'] = error_message
             
             return Response(response_data)
             

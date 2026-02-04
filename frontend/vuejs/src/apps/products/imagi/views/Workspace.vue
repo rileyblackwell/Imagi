@@ -874,15 +874,10 @@ async function handlePreview() {
 // Ensure default apps exist for every new project
 async function ensureDefaultApps() {
   try {
-    console.log('[Workspace] Ensuring default apps for project:', projectId.value)
-    
     // Call the backend API to ensure default apps exist
     const result = await BuilderCreationService.ensureDefaultApps(projectId.value)
 
     if (result.success) {
-      console.log('[Workspace] Default apps ensured successfully:', result.message)
-      console.log('[Workspace] Created apps:', result.created_apps || 'none')
-      console.log('[Workspace] Existing apps:', result.existing_frontend || 'none')
       
       // Reload project files to show any newly created default apps
       await loadProjectFiles(true)
