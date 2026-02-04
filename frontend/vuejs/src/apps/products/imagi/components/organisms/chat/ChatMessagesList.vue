@@ -7,24 +7,27 @@
   3. Displaying different message types (user vs assistant)
 -->
 <template>
-  <div ref="messagesContainer" class="chat-messages space-y-4">
+  <div ref="messagesContainer" class="chat-messages">
     <TransitionGroup name="message-fade">
       <div
         v-for="(message, index) in messages"
         :key="message.timestamp"
-        class="message-container"
+        class="message-block"
+        :class="message.role === 'user' ? 'message-user' : 'message-assistant'"
       >
         <!-- User Message -->
-        <div v-if="message.role === 'user'" class="flex justify-end mb-2">
-          <div class="user-message max-w-3xl rounded-2xl rounded-tr-sm p-4 bg-blue-500 text-white shadow-sm">
-            <div class="chat-text whitespace-pre-wrap">{{ message.content }}</div>
+        <div v-if="message.role === 'user'">
+          <div class="message-label text-gray-500 dark:text-gray-400">You</div>
+          <div class="message-content text-gray-900 dark:text-white">
+            <p class="whitespace-pre-wrap text-sm leading-relaxed">{{ message.content }}</p>
           </div>
         </div>
         
         <!-- Assistant Message -->
-        <div v-else class="flex justify-start mb-2">
-          <div class="assistant-message max-w-3xl rounded-2xl rounded-tl-sm p-4 bg-white dark:bg-gray-800 shadow-sm">
-            <div class="chat-text whitespace-pre-wrap">{{ message.content }}</div>
+        <div v-else>
+          <div class="message-label text-gray-500 dark:text-gray-400">Imagi</div>
+          <div class="message-content text-gray-900 dark:text-white">
+            <p class="whitespace-pre-wrap text-sm leading-relaxed">{{ message.content }}</p>
             
             <!-- Code Block if exists -->
             <div 
@@ -39,12 +42,13 @@
     </TransitionGroup>
     
     <!-- Loading Indicator -->
-    <div v-if="isLoading" class="flex justify-start mb-2">
-      <div class="assistant-message max-w-3xl rounded-2xl rounded-tl-sm p-4 bg-white dark:bg-gray-800 shadow-sm">
-        <div class="flex space-x-2 items-center">
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></div>
-          <div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-300"></div>
+    <div v-if="isLoading" class="message-block message-assistant">
+      <div class="message-label text-gray-500 dark:text-gray-400">Imagi</div>
+      <div class="message-content">
+        <div class="typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
       </div>
     </div>
@@ -74,6 +78,45 @@ onUpdated(() => {
 </script>
 
 <style scoped>
+.message-block {
+  padding: 1.25rem 1.5rem;
+  border-bottom: none;
+}
+
+.message-block:last-child {
+  border-bottom: none;
+}
+
+/* Alternating backgrounds for user and assistant messages */
+.message-user {
+  background-color: #ffffff;
+}
+
+.dark .message-user {
+  background-color: #000000;
+}
+
+.message-assistant {
+  background-color: #f8fafc;
+}
+
+.dark .message-assistant {
+  background-color: #1a1a1a;
+}
+
+.message-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.5rem;
+}
+
+.message-content {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
 .message-fade-enter-active,
 .message-fade-leave-active {
   transition: all 0.3s ease;
@@ -85,11 +128,46 @@ onUpdated(() => {
   transform: translateY(10px);
 }
 
-.user-message {
-  position: relative;
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
-.assistant-message {
-  position: relative;
+.typing-indicator span {
+  height: 5px;
+  width: 5px;
+  background: #9ca3af;
+  display: block;
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+.dark .typing-indicator span {
+  background: #6b7280;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 </style> 
