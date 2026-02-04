@@ -29,7 +29,7 @@ const props = withDefaults(defineProps<{
   block?: boolean
   icon?: string
   iconRight?: string
-  variant?: 'primary' | 'oasis'
+  variant?: 'primary' | 'imagi'
 }>(), {
   to: null,
   disabled: false,
