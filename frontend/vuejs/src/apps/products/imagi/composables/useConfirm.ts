@@ -1,4 +1,13 @@
+import { ref } from 'vue'
 import type { ConfirmOptions } from '../types/composables'
+
+// Global state for the confirm modal
+const isModalOpen = ref(false)
+const modalOptions = ref<ConfirmOptions>({
+  message: '',
+  type: 'info'
+})
+let resolvePromise: ((value: boolean) => void) | null = null
 
 export function useConfirm() {
   /**
@@ -7,16 +16,35 @@ export function useConfirm() {
    */
   const confirm = (options: ConfirmOptions): Promise<boolean> => {
     return new Promise((resolve) => {
-      // For now, use the native browser confirm dialog
-      // In the future, this could be replaced with a custom modal component
-      const isConfirmed = window.confirm(options.message);
-      resolve(isConfirmed);
-    });
-  };
+      modalOptions.value = options
+      isModalOpen.value = true
+      resolvePromise = resolve
+    })
+  }
+
+  const handleConfirm = () => {
+    isModalOpen.value = false
+    if (resolvePromise) {
+      resolvePromise(true)
+      resolvePromise = null
+    }
+  }
+
+  const handleCancel = () => {
+    isModalOpen.value = false
+    if (resolvePromise) {
+      resolvePromise(false)
+      resolvePromise = null
+    }
+  }
 
   return {
-    confirm
-  };
+    confirm,
+    isModalOpen,
+    modalOptions,
+    handleConfirm,
+    handleCancel
+  }
 }
 
  

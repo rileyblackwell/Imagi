@@ -1,7 +1,7 @@
 import { useNotificationStore } from '@/shared/stores/notificationStore'
 
 interface NotificationOptions {
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: 'success' | 'error' | 'warning' | 'info' | 'delete';
   message: string;
   duration?: number;
 }

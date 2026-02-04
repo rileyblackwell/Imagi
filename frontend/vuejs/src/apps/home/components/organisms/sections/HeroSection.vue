@@ -33,19 +33,19 @@
 
       <!-- Value props - centered and minimal -->
       <div class="flex flex-nowrap items-center justify-center gap-x-3 text-xs transition-colors duration-300">
-        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 hover:shadow-xl whitespace-nowrap">
+        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 whitespace-nowrap">
           <div class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
             <i class="fas fa-check text-[9px] text-emerald-600 dark:text-emerald-600"></i>
           </div>
           <span class="text-gray-900 dark:text-gray-900 font-medium">Prototype and validate ideas quickly</span>
         </span>
-        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 hover:shadow-xl whitespace-nowrap">
+        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 whitespace-nowrap">
           <div class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
             <i class="fas fa-check text-[9px] text-emerald-600 dark:text-emerald-600"></i>
           </div>
           <span class="text-gray-900 dark:text-gray-900 font-medium">No coding experience required</span>
         </span>
-        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 hover:shadow-xl whitespace-nowrap">
+        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 whitespace-nowrap">
           <div class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
             <i class="fas fa-check text-[9px] text-emerald-600 dark:text-emerald-600"></i>
           </div>

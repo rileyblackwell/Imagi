@@ -1,9 +1,9 @@
 <template>
-  <div class="group relative transform transition-all duration-300 hover:-translate-y-0.5">
+  <div class="group relative">
     <!-- Project Card -->
     <div v-if="project && !isNew" class="relative h-full">
       <!-- Main card container with clean style -->
-      <div class="relative rounded-xl border border-gray-200 dark:border-gray-300 bg-gray-50 dark:bg-gray-50 overflow-hidden h-full flex flex-col transition-all duration-300 hover:border-gray-300 dark:hover:border-gray-400 hover:shadow-md">
+      <div class="relative rounded-xl border border-gray-200 dark:border-gray-300 bg-gray-50 dark:bg-gray-50 overflow-hidden h-full flex flex-col">
         
         <!-- Card content -->
         <div class="relative z-10 p-4 flex-1 flex flex-col">
@@ -11,7 +11,7 @@
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-3 flex-1 min-w-0">
               <!-- Icon -->
-              <div class="w-9 h-9 rounded-lg bg-gray-200 dark:bg-gray-200 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+              <div class="w-9 h-9 rounded-lg bg-gray-200 dark:bg-gray-200 flex items-center justify-center flex-shrink-0">
                 <i class="fas fa-folder text-sm text-gray-600 dark:text-gray-600"></i>
               </div>
               
@@ -50,12 +50,9 @@
           <!-- Open button -->
           <router-link
             :to="{ name: 'builder-workspace', params: { projectName: toSlug(project.name) }}"
-            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-900 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-lg transition-all duration-300 text-xs font-medium group/btn"
+            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-900 text-white rounded-lg text-xs font-medium group/btn"
             title="Open project workspace"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-            </svg>
             <span>Open Project</span>
             <i class="fas fa-arrow-right text-xs transform group-hover/btn:translate-x-1 transition-transform duration-200"></i>
           </router-link>

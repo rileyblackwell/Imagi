@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 
 interface Notification {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: 'success' | 'error' | 'warning' | 'info' | 'delete';
   message: string;
   duration: number;
   timeoutId?: number; // Track timeout ID for cleanup

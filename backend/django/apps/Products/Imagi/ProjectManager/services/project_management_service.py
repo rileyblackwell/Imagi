@@ -66,19 +66,103 @@ class ProjectManagementService:
             raise ValidationError(f"Failed to delete project: {str(e)}")
 
     def _delete_project_directory(self, project_path):
-        """Delete project directory at the specific path"""
+        """Delete project directory at the specific path with robust cleanup.
+        
+        Handles common issues like permission problems with node_modules,
+        locked files, and ensures complete cleanup of all project files.
+        """
         if not project_path:
             logger.warning("Cannot delete project directory: No path provided")
             return
             
         try:
-            if os.path.exists(project_path) and os.path.isdir(project_path):
-                logger.info(f"Deleting project directory: {project_path}")
-                import shutil
-                shutil.rmtree(project_path, ignore_errors=True)
-                logger.info(f"Project directory deleted: {project_path}")
-            else:
+            if not os.path.exists(project_path):
                 logger.warning(f"Project directory not found: {project_path}")
+                return
+                
+            if not os.path.isdir(project_path):
+                logger.warning(f"Project path is not a directory: {project_path}")
+                return
+            
+            logger.info(f"Deleting project directory: {project_path}")
+            import shutil
+            import stat
+            
+            def handle_remove_readonly(func, path, exc_info):
+                """Handle permission errors during rmtree by making files writable."""
+                # If the error is a permission error, try to fix it
+                if exc_info[0] == PermissionError or (hasattr(exc_info[1], 'errno') and exc_info[1].errno == 13):
+                    try:
+                        # Make the file/directory writable
+                        os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+                        # Try the operation again
+                        func(path)
+                    except Exception as e:
+                        logger.warning(f"Could not remove {path} after chmod: {e}")
+                else:
+                    logger.warning(f"Error removing {path}: {exc_info[1]}")
+            
+            # First, try to handle node_modules specifically (most common problem)
+            node_modules_paths = [
+                os.path.join(project_path, 'frontend', 'vuejs', 'node_modules'),
+                os.path.join(project_path, 'node_modules'),
+            ]
+            
+            for node_modules_path in node_modules_paths:
+                if os.path.exists(node_modules_path):
+                    logger.info(f"Removing node_modules at: {node_modules_path}")
+                    try:
+                        # Make all files in node_modules writable before deletion
+                        for root, dirs, files in os.walk(node_modules_path):
+                            for d in dirs:
+                                try:
+                                    os.chmod(os.path.join(root, d), stat.S_IRWXU)
+                                except Exception:
+                                    pass
+                            for f in files:
+                                try:
+                                    os.chmod(os.path.join(root, f), stat.S_IRWXU)
+                                except Exception:
+                                    pass
+                        shutil.rmtree(node_modules_path, onerror=handle_remove_readonly)
+                    except Exception as e:
+                        logger.warning(f"Error removing node_modules: {e}")
+            
+            # Now delete the entire project directory
+            shutil.rmtree(project_path, onerror=handle_remove_readonly)
+            
+            # Verify deletion succeeded
+            if os.path.exists(project_path):
+                logger.warning(f"Directory still exists after deletion attempt: {project_path}")
+                # Try one more time with more aggressive approach
+                try:
+                    # Walk through and force delete everything
+                    for root, dirs, files in os.walk(project_path, topdown=False):
+                        for name in files:
+                            file_path = os.path.join(root, name)
+                            try:
+                                os.chmod(file_path, stat.S_IRWXU)
+                                os.remove(file_path)
+                            except Exception as e:
+                                logger.warning(f"Could not remove file {file_path}: {e}")
+                        for name in dirs:
+                            dir_path = os.path.join(root, name)
+                            try:
+                                os.chmod(dir_path, stat.S_IRWXU)
+                                os.rmdir(dir_path)
+                            except Exception as e:
+                                logger.warning(f"Could not remove directory {dir_path}: {e}")
+                    # Finally try to remove the root
+                    os.rmdir(project_path)
+                except Exception as e:
+                    logger.error(f"Final cleanup attempt failed for {project_path}: {e}")
+            
+            # Final verification
+            if os.path.exists(project_path):
+                logger.error(f"Failed to completely delete project directory: {project_path}")
+            else:
+                logger.info(f"Project directory deleted successfully: {project_path}")
+                
         except Exception as e:
             logger.error(f"Error deleting project directory {project_path}: {str(e)}")
             # Don't raise the exception, as we still want to delete the database record
@@ -95,8 +179,8 @@ class ProjectManagementService:
                 project_path = os.path.join(self.base_directory, item)
                 if os.path.isdir(project_path):
                     logger.info(f"Deleting project directory: {project_path}")
-                    import shutil
-                    shutil.rmtree(project_path, ignore_errors=True)
+                    # Use the robust deletion method
+                    self._delete_project_directory(project_path)
 
     def _stop_project_server_and_cleanup_pid(self, project_name):
         """Stop any running dev servers and delete PID files for the project.

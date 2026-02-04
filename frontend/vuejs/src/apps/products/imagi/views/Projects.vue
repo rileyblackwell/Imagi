@@ -11,7 +11,16 @@
   - Project file editing (handled by Workspace.vue)
 -->
 <template>
-  <DefaultLayout :isHomeNav="true">
+  <div>
+    <!-- Confirm Modal (uses Teleport to body) -->
+    <ConfirmModal
+      :is-open="confirmModal.isModalOpen.value"
+      :options="confirmModal.modalOptions.value"
+      @confirm="confirmModal.handleConfirm"
+      @cancel="confirmModal.handleCancel"
+    />
+    
+    <DefaultLayout :isHomeNav="true">
     <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
       <!-- Subtle background matching home page -->
       <div class="fixed inset-0 pointer-events-none">
@@ -232,10 +241,11 @@
       </main>
     </div>
   </DefaultLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount, onMounted, onActivated, nextTick } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { DefaultLayout } from '@/shared/layouts'
 import { useProjectStore } from '@/apps/products/imagi/stores/projectStore'
@@ -248,13 +258,15 @@ import { useProjectSearch } from '../composables/useProjectSearch'
 import type { Project } from '../types/components' 
 import { normalizeProject } from '../types/components'
 import { toSlug } from '../utils/slug'
+import { ConfirmModal } from '../components/organisms/modals'
 
 
 const router = useRouter()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
 const { showNotification } = useNotification()
-const { confirm } = useConfirm()
+const confirmModal = useConfirm()
+const { confirm } = confirmModal
 
 // State
 const newProjectName = ref('')
@@ -355,30 +367,11 @@ async function createProject() {
       idType: typeof newProject.id
     })
     
-    // Show success notification
-    showNotification({
-      message: `Project "${newProject.name}" created successfully! Opening workspace...`,
-      type: 'success',
-      duration: 3000
+    // Navigate immediately to the workspace for the newly created project
+    router.push({ 
+      name: 'builder-workspace', 
+      params: { projectName: toSlug(newProject.name) } 
     })
-    
-    // Force refresh projects list after creation
-    // Use nextTick to ensure the UI updates before refreshing
-    await nextTick()
-    try {
-      await fetchProjects(true) // Use the local fetch function which ensures proper state updates
-    } catch (refreshError) {
-      console.warn('Failed to refresh projects after creation:', refreshError)
-    }
-    
-    // Navigate to the workspace for the newly created project
-    // Give a brief moment for the success notification to be seen
-    setTimeout(() => {
-      router.push({ 
-        name: 'builder-workspace', 
-        params: { projectName: toSlug(newProject.name) } 
-      })
-    }, 1500)
     
   } catch (error: any) {
     showNotification({
@@ -498,9 +491,9 @@ const confirmDelete = async (project: Project) => {
       console.warn('Failed to refresh projects after deletion:', refreshError)
     }
     
-    // Show success notification with captured project name
+    // Show deletion success notification (red to indicate destructive action completed)
     showNotification({
-      type: 'success',
+      type: 'delete',
       message: `"${projectName}" deleted successfully`,
       duration: 4000
     })
@@ -529,9 +522,9 @@ const confirmDelete = async (project: Project) => {
         console.warn('Failed to refresh projects after deletion:', refreshError)
       }
       
-      // Show success notification with captured project name
+      // Show deletion success notification (red to indicate destructive action completed)
       showNotification({
-        type: 'success',
+        type: 'delete',
         message: `"${projectName}" deleted successfully`,
         duration: 4000
       })    } else {
