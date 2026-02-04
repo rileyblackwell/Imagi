@@ -20,6 +20,7 @@ stripe = "*"
 dj-database-url = "*"
 psycopg2-binary = "*"
 python-decouple = "*"
+openai-agents = "*"
 
 [dev-packages]
 django-debug-toolbar = "*"

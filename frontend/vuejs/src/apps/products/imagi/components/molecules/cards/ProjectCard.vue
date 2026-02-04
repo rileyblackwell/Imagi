@@ -1,33 +1,24 @@
 <template>
-  <div class="group relative transform transition-all duration-300">
-    <!-- Existing Project Card -->
+  <div class="group relative transform transition-all duration-300 hover:-translate-y-0.5">
+    <!-- Project Card -->
     <div v-if="project && !isNew" class="relative h-full">
-      <!-- Background glow -->
-      <div class="absolute -inset-0.5 bg-gradient-to-r from-violet-600/20 via-fuchsia-600/20 to-violet-600/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-      
-      <!-- Main card container with premium glass effect -->
-      <div class="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/90 backdrop-blur-xl overflow-hidden h-full flex flex-col transition-all duration-300 hover:border-white/[0.12] hover:-translate-y-1">
-        <!-- Accent line -->
-        <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"></div>
-        
-        <!-- Decorative elements -->
-        <div class="absolute -bottom-16 -right-16 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl pointer-events-none group-hover:opacity-80 transition-opacity duration-500"></div>
-        <div class="absolute -top-16 -left-16 w-24 h-24 bg-fuchsia-500/5 rounded-full blur-2xl pointer-events-none group-hover:opacity-80 transition-opacity duration-500"></div>
+      <!-- Main card container with clean style -->
+      <div class="relative rounded-xl border border-gray-200 dark:border-gray-300 bg-gray-50 dark:bg-gray-50 overflow-hidden h-full flex flex-col transition-all duration-300 hover:border-gray-300 dark:hover:border-gray-400 hover:shadow-md">
         
         <!-- Card content -->
-        <div class="relative z-10 p-5 flex-1 flex flex-col">
+        <div class="relative z-10 p-4 flex-1 flex flex-col">
           <!-- Project header -->
-          <div class="flex items-start justify-between mb-4">
+          <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <!-- Icon with gradient -->
-              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
-                <i class="fas fa-folder text-sm text-violet-300"></i>
+              <!-- Icon -->
+              <div class="w-9 h-9 rounded-lg bg-gray-200 dark:bg-gray-200 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                <i class="fas fa-folder text-sm text-gray-600 dark:text-gray-600"></i>
               </div>
               
               <!-- Project name and metadata -->
               <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-semibold text-white/90 truncate leading-tight">{{ project.name }}</h3>
-                <div class="flex items-center text-xs text-white/40 mt-1">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-900 truncate leading-tight">{{ project.name }}</h3>
+                <div class="flex items-center text-xs text-gray-500 dark:text-gray-600 mt-1">
                   <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
@@ -39,7 +30,7 @@
             <!-- Delete button -->
             <button
               @click.stop="confirmDelete"
-              class="p-2 text-white/40 hover:text-red-400 transition-all duration-200 rounded-lg hover:bg-red-500/10 border border-white/[0.08] hover:border-red-400/30 flex items-center justify-center w-8 h-8 flex-shrink-0"
+              class="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500 transition-all duration-200 rounded-lg hover:bg-red-50 dark:hover:bg-red-50 border border-transparent hover:border-red-200 dark:hover:border-red-200 flex items-center justify-center w-8 h-8 flex-shrink-0"
               title="Delete project"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,24 +39,21 @@
             </button>
           </div>
           
-          <!-- Separator -->
-          <div class="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent mb-4"></div>
-          
           <!-- Project description -->
-          <div class="mb-4 flex-1">
-            <p v-if="project.description" class="text-white/50 text-xs line-clamp-2 leading-relaxed">
+          <div class="mb-3 flex-1">
+            <p v-if="project.description" class="text-gray-600 dark:text-gray-700 text-xs line-clamp-2 leading-relaxed">
               {{ project.description }}
             </p>
-            <p v-else class="text-white/30 text-xs italic">No description provided</p>
+            <p v-else class="text-gray-400 dark:text-gray-500 text-xs italic">No description provided</p>
           </div>
           
           <!-- Open button -->
           <router-link
             :to="{ name: 'builder-workspace', params: { projectId: project.id.toString() }}"
-            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] hover:border-violet-400/30 text-white/90 rounded-xl transition-all duration-300 text-xs font-medium group/btn"
+            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-gray-900 hover:bg-gray-800 dark:hover:bg-gray-800 text-white rounded-lg transition-all duration-300 text-xs font-medium group/btn"
             title="Open project workspace"
           >
-            <svg class="w-4 h-4 group-hover/btn:text-violet-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
             </svg>
             <span>Open Project</span>

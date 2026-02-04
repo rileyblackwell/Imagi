@@ -13,14 +13,14 @@
       :navigation-items="navigationItems"
     >
       <!-- Sidebar Content: Chat Interface -->
-      <template #sidebar-content="{ isSidebarCollapsed }">
+      <template #sidebar-content="{ collapsed }">
         <BuilderSidebarChat
           :selected-app="selectedApp"
           :on-prompt-submit="handlePrompt"
           :on-model-select="handleModelSelect"
           :on-mode-switch="handleModeSwitch"
           :on-example-prompt="handleExamplePrompt"
-          :is-collapsed="isSidebarCollapsed"
+          :is-collapsed="collapsed"
         />
       </template>
       
@@ -479,7 +479,7 @@ async function handlePrompt(promptText: string) {
           const response = await AgentService.generateCode(
             projectId.value,
             {
-              prompt: prompt.value,
+              prompt: promptText,
               model: store.selectedModelId,
               mode: 'build',
               file_path: formattedPath
