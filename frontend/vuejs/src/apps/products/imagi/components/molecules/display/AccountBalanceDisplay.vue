@@ -139,15 +139,14 @@ onBeforeUnmount(() => {
 
 .text-wrap { display: flex; flex-direction: column; gap: 0.125rem; min-width: 5.5rem; }
 .label-row { display: flex; align-items: center; gap: 0.3rem; }
-.label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); font-weight: 600; }
+.label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0, 0, 0, 0.5); font-weight: 600; }
 .value-row { display: flex; align-items: center; gap: 0.25rem; }
 .value {
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(0, 0, 0, 0.9);
   font-weight: 700;
   font-size: 1rem;
   line-height: 1;
 }
-
 
 /* Utilities */
 .tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
@@ -155,4 +154,15 @@ onBeforeUnmount(() => {
 /* Animation for slow pulsing effect */
 @keyframes pulse-slow { 0%,100%{opacity:0; transform:scale(1);} 50%{opacity:0.7; transform:scale(1.05);} }
 .animate-pulse-slow { animation: pulse-slow 3s infinite ease-in-out; }
+</style>
+
+<style>
+/* Dark mode styles - unscoped to access parent .dark class */
+.dark .account-balance-display .label {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .account-balance-display .value {
+  color: rgba(255, 255, 255, 0.95);
+}
 </style>

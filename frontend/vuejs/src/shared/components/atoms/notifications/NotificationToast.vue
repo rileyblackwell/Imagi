@@ -7,7 +7,7 @@
     leave-active-class="transition-all duration-300 ease-in"
     leave-from-class="transform translate-x-0 opacity-100 scale-100"
     leave-to-class="transform translate-x-full opacity-0 scale-95"
-    class="fixed top-6 right-6 z-[100] flex flex-col space-y-3 pointer-events-none"
+    class="fixed bottom-6 right-6 z-[100] flex flex-col-reverse space-y-3 space-y-reverse pointer-events-none"
   >
     <div
       v-for="notification in notifications"

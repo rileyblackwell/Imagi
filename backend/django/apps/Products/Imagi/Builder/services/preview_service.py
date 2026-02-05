@@ -8,8 +8,6 @@ import psutil
 import time
 import logging
 import json
-import webbrowser
-import threading
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -91,18 +89,8 @@ class PreviewService:
         
         frontend_url = f"http://localhost:{self.frontend_port}"
         
-        # Open browser to frontend URL
-        def open_browser():
-            time.sleep(2)  # Wait a bit more before opening
-            try:
-                webbrowser.open(frontend_url)
-            except Exception as e:
-                logger.warning(f"Could not open browser: {e}")
-        
-        # Start browser opening in a separate thread
-        browser_thread = threading.Thread(target=open_browser)
-        browser_thread.daemon = True
-        browser_thread.start()
+        # Note: Browser opening is handled by the frontend client via window.open()
+        # Do not use webbrowser.open() here to avoid opening duplicate tabs
         
         return {
             'success': True,
@@ -294,17 +282,8 @@ class PreviewService:
         
         server_url = f"http://localhost:{port}"
         
-        # Open browser
-        def open_browser():
-            time.sleep(1)
-            try:
-                webbrowser.open(server_url)
-            except Exception as e:
-                logger.warning(f"Could not open browser: {e}")
-        
-        browser_thread = threading.Thread(target=open_browser)
-        browser_thread.daemon = True
-        browser_thread.start()
+        # Note: Browser opening is handled by the frontend client via window.open()
+        # Do not use webbrowser.open() here to avoid opening duplicate tabs
         
         return {
             'success': True,

@@ -45,11 +45,13 @@
                 <!-- Left Side: Apps List (1/3 width) -->
                 <div class="w-1/3 flex flex-col min-h-0">
                   <div class="relative flex-1 min-h-0">
-                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm hover:shadow-md overflow-hidden flex flex-col transition-all duration-300">
+                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm overflow-hidden flex flex-col transition-all duration-300">
                       <AppsList
                         :files="store.files || []"
+                        :preview-loading="isPreviewLoading"
                         @select-app="handleSelectApp"
                         @create-app="handleCreateAppFromGallery"
+                        @preview-app="handlePreview"
                         class="flex-1 min-h-0"
                       />
                     </div>
@@ -59,7 +61,7 @@
                 <!-- Right Side: App Detail View (2/3 width) -->
                 <div class="w-2/3 flex flex-col min-h-0">
                   <div class="relative flex-1 min-h-0">
-                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm hover:shadow-md overflow-hidden flex flex-col transition-all duration-300">
+                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm overflow-hidden flex flex-col transition-all duration-300">
                       <!-- App Detail View (when app selected) -->
                       <AppDetailView
                         v-if="selectedApp"
@@ -169,6 +171,9 @@ const fileTypes = {
 // New App modal state
 const showNewAppModal = ref(false)
 const isCreatingApp = ref(false)
+
+// Preview loading state to prevent multiple tabs
+const isPreviewLoading = ref(false)
 
 // Open the styled New App modal
 async function handleCreateAppFromGallery() {
@@ -855,8 +860,25 @@ async function handleFileDelete(file: ProjectFile) {
 }
 
 async function handlePreview() {
+  // CRITICAL: Set loading state IMMEDIATELY to prevent duplicate tabs
+  // This must be the very first check, before any other code runs
+  if (isPreviewLoading.value) {
+    console.debug('Preview already loading, ignoring duplicate request')
+    return
+  }
+  
+  // Set the flag synchronously BEFORE any async operations
+  isPreviewLoading.value = true
+  
+  const { showNotification } = useNotification()
+  
   try {
     if (!projectId.value) {
+      showNotification({
+        type: 'error',
+        message: 'No project selected for preview',
+        duration: 3000
+      })
       return
     }
 
@@ -865,11 +887,30 @@ async function handlePreview() {
     if (response && response.previewUrl) {
       // Open the preview URL in a new tab
       window.open(response.previewUrl, '_blank')
+      showNotification({
+        type: 'success',
+        message: 'Preview opened in new tab',
+        duration: 3000
+      })
     } else {
-      // Show notification about preview failure
+      showNotification({
+        type: 'error',
+        message: 'Failed to start preview server',
+        duration: 4000
+      })
     }
   } catch (error) {
     console.error('Error starting preview server:', error)
+    showNotification({
+      type: 'error',
+      message: `Preview failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      duration: 5000
+    })
+  } finally {
+    // Reset loading state after a short delay to prevent rapid re-clicks
+    setTimeout(() => {
+      isPreviewLoading.value = false
+    }, 1000)
   }
 }
 

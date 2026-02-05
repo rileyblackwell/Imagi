@@ -7,18 +7,42 @@
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-white/90 transition-colors duration-300">Your Apps</h2>
           <p class="text-sm text-gray-600 dark:text-white/60 mt-1 transition-colors duration-300">Each app is a section of your website (Home, Checkout, Profile...)</p>
         </div>
-        <button
-          @click="$emit('create-app')"
-          class="group relative cursor-pointer"
-        >
-          <!-- Card content -->
-          <div class="relative px-6 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/[0.06] shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.05]">
-              <i class="fas fa-plus text-xs text-gray-700 dark:text-white/70"></i>
+        <div class="flex items-center gap-3">
+          <button
+            @click.stop.prevent="handlePreviewClick"
+            :disabled="previewLoading"
+            :class="[
+              'group relative',
+              previewLoading ? 'cursor-wait' : 'cursor-pointer'
+            ]"
+          >
+            <!-- Card content -->
+            <div :class="[
+              'relative px-6 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm transition-all duration-300 flex items-center gap-2.5',
+              previewLoading ? 'opacity-70' : 'hover:bg-gray-50 dark:hover:bg-white/[0.06] hover:shadow-md'
+            ]">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.05]">
+                <i :class="[
+                  'text-xs text-gray-700 dark:text-white/70',
+                  previewLoading ? 'fas fa-spinner fa-spin' : 'fas fa-play'
+                ]"></i>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white/90">{{ previewLoading ? 'Loading...' : 'Preview' }}</span>
             </div>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white/90">New App</span>
-          </div>
-        </button>
+          </button>
+          <button
+            @click="$emit('create-app')"
+            class="group relative cursor-pointer"
+          >
+            <!-- Card content -->
+            <div class="relative px-6 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm transition-all duration-300 flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.05]">
+                <i class="fas fa-plus text-xs text-gray-700 dark:text-white/70"></i>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white/90">New App</span>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -36,7 +60,7 @@
           class="group relative cursor-pointer"
         >
           <!-- Card content -->
-          <div class="relative px-8 py-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/[0.06] shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-3">
+          <div class="relative px-8 py-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm transition-all duration-300 flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg flex items-center justify-center border border-gray-200 dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.05]">
               <i class="fas fa-plus text-sm text-gray-700 dark:text-white/70"></i>
             </div>
@@ -54,7 +78,7 @@
           class="group relative cursor-pointer"
         >
           <!-- Card content -->
-          <div class="relative p-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/[0.06] shadow-sm hover:shadow-md transition-all duration-300">
+          <div class="relative p-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm transition-all duration-300">
             <!-- Icon and name -->
             <div class="flex items-center gap-4">
               <div
@@ -72,7 +96,7 @@
                 <p class="text-xs text-gray-600 dark:text-white/60 truncate transition-colors duration-300">{{ app.hint }}</p>
               </div>
               <!-- Arrow indicator -->
-              <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] flex items-center justify-center text-gray-600 dark:text-white/60 group-hover:text-gray-900 dark:group-hover:text-white transition-all duration-300 flex-shrink-0">
+              <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] flex items-center justify-center text-gray-600 dark:text-white/60 transition-all duration-300 flex-shrink-0">
                 <i class="fas fa-arrow-right text-xs"></i>
               </div>
             </div>
@@ -84,17 +108,41 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { ProjectFile } from '../../../types/components'
 
 const props = defineProps<{
   files: ProjectFile[]
+  previewLoading?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'select-app', app: any): void
   (e: 'create-app'): void
+  (e: 'preview-app'): void
 }>()
+
+// Local flag to prevent duplicate clicks before parent prop updates
+const localClickGuard = ref(false)
+
+function handlePreviewClick() {
+  // Double-guard: check both the prop AND a local flag
+  // This prevents any race condition where the prop hasn't updated yet
+  if (props.previewLoading || localClickGuard.value) {
+    return
+  }
+  
+  // Set local guard immediately
+  localClickGuard.value = true
+  
+  // Emit the event
+  emit('preview-app')
+  
+  // Reset local guard after a short delay (in case the parent doesn't update the prop)
+  setTimeout(() => {
+    localClickGuard.value = false
+  }, 2000)
+}
 
 type GalleryApp = {
   key: string

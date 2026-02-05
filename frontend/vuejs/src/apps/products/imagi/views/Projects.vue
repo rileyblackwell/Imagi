@@ -164,6 +164,33 @@
                     </div>
                   </div>
 
+                  <!-- Inline Delete Success Notification -->
+                  <Transition
+                    enter-active-class="transition-all duration-300 ease-out"
+                    enter-from-class="opacity-0 -translate-y-2"
+                    enter-to-class="opacity-100 translate-y-0"
+                    leave-active-class="transition-all duration-200 ease-in"
+                    leave-from-class="opacity-100 translate-y-0"
+                    leave-to-class="opacity-0 -translate-y-2"
+                  >
+                    <div 
+                      v-if="deletedProjectMessage"
+                      class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3"
+                    >
+                      <div class="w-8 h-8 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-trash-alt text-red-600 text-sm"></i>
+                      </div>
+                      <p class="flex-1 text-sm font-medium text-gray-900">{{ deletedProjectMessage }}</p>
+                      <button
+                        @click="clearDeletedProjectMessage"
+                        class="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 transition-all duration-200"
+                        aria-label="Dismiss"
+                      >
+                        <i class="fas fa-times text-xs"></i>
+                      </button>
+                    </div>
+                  </Transition>
+
                   <!-- Content Section -->
                   <div class="flex-1 flex flex-col overflow-hidden">
                     <!-- Loading State -->
@@ -273,6 +300,31 @@ const newProjectName = ref('')
 const newProjectDescription = ref('')
 const isCreating = ref(false)
 const isInitializing = ref(true)
+const deletedProjectMessage = ref('')
+let deleteMessageTimeout: ReturnType<typeof setTimeout> | null = null
+
+// Clear the inline delete success message
+const clearDeletedProjectMessage = () => {
+  deletedProjectMessage.value = ''
+  if (deleteMessageTimeout) {
+    clearTimeout(deleteMessageTimeout)
+    deleteMessageTimeout = null
+  }
+}
+
+// Show inline delete success message with auto-clear
+const showDeleteSuccess = (projectName: string) => {
+  // Clear any existing timeout
+  if (deleteMessageTimeout) {
+    clearTimeout(deleteMessageTimeout)
+  }
+  deletedProjectMessage.value = `"${projectName}" deleted successfully`
+  // Auto-clear after 4 seconds
+  deleteMessageTimeout = setTimeout(() => {
+    deletedProjectMessage.value = ''
+    deleteMessageTimeout = null
+  }, 4000)
+}
 
 // Computed
 const projects = computed(() => projectStore.projects)
@@ -491,12 +543,8 @@ const confirmDelete = async (project: Project) => {
       console.warn('Failed to refresh projects after deletion:', refreshError)
     }
     
-    // Show deletion success notification (red to indicate destructive action completed)
-    showNotification({
-      type: 'delete',
-      message: `"${projectName}" deleted successfully`,
-      duration: 4000
-    })
+    // Show inline deletion success message in the Project Library section
+    showDeleteSuccess(projectName)
 
   } catch (error: any) {
     console.error('Error deleting project:', error)
@@ -522,12 +570,9 @@ const confirmDelete = async (project: Project) => {
         console.warn('Failed to refresh projects after deletion:', refreshError)
       }
       
-      // Show deletion success notification (red to indicate destructive action completed)
-      showNotification({
-        type: 'delete',
-        message: `"${projectName}" deleted successfully`,
-        duration: 4000
-      })    } else {
+      // Show inline deletion success message in the Project Library section
+      showDeleteSuccess(projectName)
+    } else {
       // Actual error occurred - remove the project from deleted list if it was added
       try {
         const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
@@ -596,6 +641,12 @@ onBeforeUnmount(() => {
   // Clear dashboard-specific notifications when leaving
   const notificationStore = useNotificationStore()
   notificationStore.clear()
+  
+  // Clear delete message timeout
+  if (deleteMessageTimeout) {
+    clearTimeout(deleteMessageTimeout)
+    deleteMessageTimeout = null
+  }
 })
 
 // Watch auth store authentication status
