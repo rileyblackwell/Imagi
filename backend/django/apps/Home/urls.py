@@ -4,6 +4,8 @@ from . import views
 app_name = 'home'
 
 urlpatterns = [
+    # Health check
+    path('api/v1/health/', views.health_check, name='health_check'),
     # Frontend redirects
     path('', views.landing_page, name='landing_page'),
     path('about/', views.about_page, name='about'),

@@ -40,15 +40,16 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, onMounted } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { 
+import {
   HeroSection,
   FeaturesSection,
   KeyFeaturesSection,
   StatsSection,
   CTASection
 } from '@/apps/home/components/organisms/sections'
+import { checkBackendHealth } from '@/apps/home/services/healthService'
 
 export default defineComponent({
   name: 'HomePage',
@@ -59,6 +60,16 @@ export default defineComponent({
     KeyFeaturesSection,
     StatsSection,
     CTASection
+  },
+  setup() {
+    onMounted(async () => {
+      try {
+        const health = await checkBackendHealth()
+        console.log(`Health check passed: ${health.status}, database: ${health.database}`)
+      } catch (error) {
+        console.error('Health check failed: unable to reach backend', error)
+      }
+    })
   }
 })
 </script>
