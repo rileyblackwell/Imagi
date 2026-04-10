@@ -4,6 +4,7 @@ import authRoutes from '@/apps/auth/router'
 
 // Placeholder routes for apps not yet implemented
 const placeholderRoutes = [
+  { path: '/products/imagi/projects', name: 'projects', redirect: '/' },
   { path: '/products/:pathMatch(.*)*', name: 'products', redirect: '/' },
   { path: '/payments/:pathMatch(.*)*', name: 'payments', redirect: '/' },
   { path: '/docs/:pathMatch(.*)*', name: 'docs', redirect: '/' },
