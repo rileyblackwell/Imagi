@@ -7,6 +7,6 @@ interface HealthCheckResponse {
 }
 
 export async function checkBackendHealth(): Promise<HealthCheckResponse> {
-  const response = await api.get<HealthCheckResponse>('/v1/health/')
+  const response = await api.get<HealthCheckResponse>('/v1/home/health/')
   return response.data
 }

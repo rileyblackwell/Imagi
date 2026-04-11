@@ -6,8 +6,8 @@ function getCookie(name: string): string | null {
   let cookieValue: string | null = null
   if (typeof document !== 'undefined' && document.cookie) {
     const cookies = document.cookie.split(';')
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim()
+    for (const rawCookie of cookies) {
+      const cookie = rawCookie.trim()
       if (cookie.substring(0, name.length + 1) === name + '=') {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
         break

@@ -49,7 +49,7 @@ export const useNotificationStore = defineStore('notifications', {
       if (index > -1) {
         // Clear timeout if it exists to prevent memory leaks
         const notification = this.notifications[index];
-        if (notification.timeoutId) {
+        if (notification?.timeoutId) {
           window.clearTimeout(notification.timeoutId);
         }
         

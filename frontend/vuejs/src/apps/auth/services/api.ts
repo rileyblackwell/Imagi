@@ -14,8 +14,8 @@ function getCookie(name: string): string | null {
   let cookieValue = null
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';')
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim()
+    for (const rawCookie of cookies) {
+      const cookie = rawCookie.trim()
       if (cookie.substring(0, name.length + 1) === (name + '=')) {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1))
         break
@@ -97,7 +97,7 @@ export const AuthAPI = {
       
       const response = await api.post(`${API_PATH}/signin/`, credentials, {
         headers: csrfToken !== 'bypass' ? { 'X-CSRFToken': csrfToken } : {},
-        timeout: 1000
+        timeout: 15000
       });
 
       if (!response.data) {
@@ -184,7 +184,7 @@ export const AuthAPI = {
       
       const response = await api.post(fullRequestUrl, registrationData, {
         headers,
-        timeout: 1000
+        timeout: 15000
       })
       
       return { 
@@ -228,8 +228,8 @@ export const AuthAPI = {
         }
         
         // If we have any error data, show it
-        if (Object.keys(errorData).length > 0) {
-          const firstKey = Object.keys(errorData)[0]
+        const firstKey = Object.keys(errorData)[0]
+        if (firstKey) {
           const firstError = errorData[firstKey]
           const errorMsg = Array.isArray(firstError) ? firstError[0] : firstError
           throw new Error(`${firstKey}: ${errorMsg}`)
@@ -283,16 +283,5 @@ export const AuthAPI = {
   async updateUser(userData: Partial<User>): Promise<{ data: User }> {
     const response = await api.patch(`${API_PATH}/user/`, userData)
     return response
-  },
-
-  async healthCheck(): Promise<{ data: { status: string; service: string; database: string } }> {
-    try {
-      const response = await api.get(`${API_PATH}/health/`, {
-        timeout: 5000
-      })
-      return response
-    } catch (error: any) {
-      throw error
-    }
   }
 }

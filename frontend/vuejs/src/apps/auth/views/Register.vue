@@ -178,13 +178,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form, Field } from 'vee-validate'
 import { useAuthStore } from '@/apps/auth/stores/index'
 import { formatAuthError } from '@/apps/auth/plugins/validation'
 import type { RegisterFormValues, PasswordRequirementsRef } from '@/apps/auth/types/form'
-import { AuthAPI } from '@/apps/auth/services/api'
 
 import { 
   PasswordInput,
@@ -203,16 +202,6 @@ const hasAcceptedTerms = ref(false)
 
 defineOptions({
   name: 'Register'
-})
-
-// Component lifecycle
-onMounted(async () => {
-  // Perform health check when component mounts
-  try {
-    await AuthAPI.healthCheck()
-  } catch (error) {
-    // Health check failed - silently handle
-  }
 })
 
 // Clear any auth errors when component is unmounted

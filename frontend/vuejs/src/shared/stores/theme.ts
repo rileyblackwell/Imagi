@@ -117,10 +117,10 @@ export const useThemeStore = defineStore('theme', {
 
     toggleTheme() {
       // Cycle through: system -> light -> dark -> system
-      const themes: Array<'light' | 'dark' | 'system'> = ['system', 'light', 'dark']
+      const themes = ['system', 'light', 'dark'] as const
       const currentIndex = themes.indexOf(this.currentTheme)
       const nextIndex = (currentIndex + 1) % themes.length
-      this.setTheme(themes[nextIndex])
+      this.setTheme(themes[nextIndex]!)
     },
 
     setFontSize(size: 'sm' | 'base' | 'lg' | 'xl') {
