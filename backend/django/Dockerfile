@@ -17,4 +17,9 @@ COPY backend/django/ .
 
 EXPOSE 8000
 
-CMD ["gunicorn", "imagi.wsgi:application", "--bind", "[::]:8000", "--workers", "3", "--timeout", "120"]
+# Shell form so $PORT expands at runtime (Railway assigns it dynamically).
+CMD python manage.py migrate --noinput && \
+    gunicorn imagi.wsgi:application \
+        --bind "[::]:${PORT:-8000}" \
+        --workers 3 \
+        --timeout 120
