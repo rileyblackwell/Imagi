@@ -1,0 +1,23 @@
+# Git
+.git/
+.gitignore
+
+# Docs
+**/*.md
+
+# Env files
+**/.env
+**/.env*
+
+# Python (backend)
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.egg-info/
+**/.venv/
+**/db.sqlite3
+
+# Node / Vue (frontend)
+**/node_modules/
+**/dist/
