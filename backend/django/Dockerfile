@@ -17,4 +17,4 @@ COPY backend/django/ .
 
 EXPOSE 8000
 
-CMD ["gunicorn", "imagi.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+CMD ["gunicorn", "imagi.wsgi:application", "--bind", "[::]:8000", "--workers", "3", "--timeout", "120"]
