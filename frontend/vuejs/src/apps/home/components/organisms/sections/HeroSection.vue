@@ -17,7 +17,7 @@
       <!-- CTA buttons -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
         <router-link
-          :to="{ name: 'login' }"
+          :to="startBuildingRoute"
           class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
         >
           <!-- Top edge highlight for 3D effect -->
@@ -58,10 +58,22 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent, computed } from 'vue'
+import { useAuthStore } from '@/shared/stores/auth'
 
 export default defineComponent({
-  name: 'HeroSection'
+  name: 'HeroSection',
+  setup() {
+    const authStore = useAuthStore()
+
+    const startBuildingRoute = computed(() => {
+      return authStore.isAuthenticated
+        ? { name: 'projects' }
+        : { name: 'login' }
+    })
+
+    return { startBuildingRoute }
+  }
 })
 </script>
 

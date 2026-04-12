@@ -77,7 +77,7 @@
                 <div>
                   <router-link 
                     v-if="!steps[activeStep].comingSoon"
-                    :to="steps[activeStep].ctaLink"
+                    :to="activeCtaLink"
                     class="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium transition-all duration-300 hover:scale-[1.02]"
                   >
                     {{ steps[activeStep].ctaText }}
@@ -207,11 +207,13 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, computed } from 'vue'
+import { useAuthStore } from '@/shared/stores/auth'
 
 export default defineComponent({
   name: 'ProductTourSection',
   setup() {
+    const authStore = useAuthStore()
     const activeStep = ref(0)
     
     const steps = [
@@ -260,9 +262,16 @@ export default defineComponent({
       }
     ]
     
+    const activeCtaLink = computed(() => {
+      const step = steps[activeStep.value]
+      if (step.comingSoon) return step.ctaLink
+      return authStore.isAuthenticated ? '/products/imagi/projects' : step.ctaLink
+    })
+
     return {
       activeStep,
-      steps
+      steps,
+      activeCtaLink
     }
   }
 })
