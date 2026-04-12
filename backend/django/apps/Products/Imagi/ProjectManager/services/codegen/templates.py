@@ -479,7 +479,6 @@ def vue_app_vue(project_name: str, project_description: str | None) -> str:
 
 def vue_router_index() -> str:
     return """import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
 
 // Auto-import all route modules from apps
 // Supports both TS and JS router modules if present
@@ -493,14 +492,7 @@ const routeModules = Object.values(modules)
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Basic home route for initial project load
-    {
-      path: '/',
-      name: 'home',
-      component: HomeView,
-      meta: { title: 'Home' }
-    },
-    // Inject all app routes discovered above
+    // App routes discovered via glob import (includes home at '/')
     ...routeModules,
     // 404 fallback
     {
@@ -873,81 +865,6 @@ export const useAuthStore = defineStore('global-auth', () => {
 """
 
 
-def vue_home_view(project_name: str, project_description: str | None) -> str:
-    safe_project_name = project_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-    safe_description = (project_description or '').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-    
-    # Build description paragraph only if description exists
-    description_html = ""
-    if safe_description:
-        description_html = (
-            "        <p class=\"text-xl text-gray-600 mb-12 max-w-2xl mx-auto\">\n"
-            "          " + safe_description + "\n"
-            "        </p>\n\n"
-        )
-    
-    content = (
-        "<template>\n"
-        "  <div class=\"min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100\">\n"
-        "    <!-- Header with Sign In button -->\n"
-        "    <header class=\"absolute top-0 right-0 p-6\">\n"
-        "      <router-link\n"
-        "        to=\"/auth/signin\"\n"
-        "        class=\"bg-white hover:bg-gray-50 text-gray-800 px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm border border-gray-200\"\n"
-        "      >\n"
-        "        Sign In\n"
-        "      </router-link>\n"
-        "    </header>\n\n"
-        "    <div class=\"container mx-auto px-4 py-24\">\n"
-        "      <div class=\"max-w-4xl mx-auto text-center\">\n"
-        "        <h1 class=\"text-5xl font-bold text-gray-900 mb-6\">\n"
-        "          Welcome to " + safe_project_name + "\n"
-        "        </h1>\n\n"
-        + description_html +
-        "        <div class=\"flex justify-center\">\n"
-        "          <button\n"
-        "            @click=\"testApiConnection\"\n"
-        "            :disabled=\"loading\"\n"
-        "            class=\"bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-lg font-medium transition-colors\"\n"
-        "          >\n"
-        "            {{ loading ? 'Testing...' : 'Test API Connection' }}\n"
-        "          </button>\n"
-        "        </div>\n\n"
-        "        <div v-if=\"apiStatus\" class=\"mt-6 p-4 rounded-lg max-w-md mx-auto\" :class=\"apiStatus.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'\">\n"
-        "          {{ apiStatus.message }}\n"
-        "        </div>\n"
-        "      </div>\n"
-        "    </div>\n"
-        "  </div>\n"
-        "</template>\n\n"
-        "<script setup>\n"
-        "import { ref } from 'vue'\n"
-        "import api from '@/services/api'\n\n"
-        "const loading = ref(false)\n"
-        "const apiStatus = ref(null)\n\n"
-        "async function testApiConnection() {\n"
-        "  loading.value = true\n"
-        "  apiStatus.value = null\n\n"
-        "  try {\n"
-        "    const response = await api.get('/v1/health/')\n"
-        "    apiStatus.value = {\n"
-        "      success: true,\n"
-        "      message: 'API connection successful! Backend is running.'\n"
-        "    }\n"
-        "  } catch (error) {\n"
-        "    apiStatus.value = {\n"
-        "      success: false,\n"
-        "      message: 'API connection failed. Make sure the Django backend is running on port 8000.'\n"
-        "    }\n"
-        "  } finally {\n"
-        "    loading.value = false\n"
-        "  }\n"
-        "}\n"
-        "</script>\n"
-    )
-    return content
-
-
 def vue_main_css() -> str:
     return """@tailwind base;
 @tailwind components;
@@ -1129,7 +1046,6 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
         'components/molecules',
         'components/organisms',
         'apps',
-        'views',
         'router',
         'stores',
         'services',
@@ -1179,10 +1095,6 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
     # services/api.ts (legacy location for backwards compatibility)
     with open(os.path.join(src_path, 'services', 'api.ts'), 'w') as f:
         f.write(vue_api_service())
-
-    # views/HomeView.vue
-    with open(os.path.join(src_path, 'views', 'HomeView.vue'), 'w') as f:
-        f.write(vue_home_view(project_name, project_description))
 
     # assets/css/main.css
     with open(os.path.join(src_path, 'assets', 'css', 'main.css'), 'w') as f:

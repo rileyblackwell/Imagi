@@ -37,6 +37,7 @@
               class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
             >
               <option value="chat">Chat</option>
+              <option value="agent">Agent</option>
             </select>
             
             <!-- Model Dropdown -->
@@ -128,11 +129,10 @@ function getItemKind(path: string): string {
 }
 
 const promptPlaceholder = computed(() => {
-  if (store.mode === 'chat') {
-    return 'What would you like to build today?'
-  } else {
-    return 'Describe what you want to build...'
+  if (store.mode === 'agent') {
+    return 'Ask me to edit files or chat about your project...'
   }
+  return 'What would you like to build today?'
 })
 
 // Methods

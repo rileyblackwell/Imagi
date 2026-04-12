@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings as django_settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
@@ -94,7 +95,7 @@ class Project(models.Model):
         # Generate project path if not set
         if not self.project_path:
             base_path = os.path.join(
-                os.getenv('PROJECTS_ROOT', '/tmp/projects'),
+                django_settings.PROJECTS_ROOT,
                 self.user.username,
                 self.slug
             )

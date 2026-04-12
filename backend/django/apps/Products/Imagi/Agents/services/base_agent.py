@@ -5,6 +5,7 @@ This module provides the main orchestrator agent for the Imagi workspace.
 It manages handoffs to specialized sub-agents based on the user's request.
 """
 
+import json
 import os
 import logging
 from typing import Optional, Dict, Any, List
@@ -63,6 +64,7 @@ class ImagiAgentService:
         """
         self.model = model
         self._chat_agent = None
+        self._coding_agent = None
         self._orchestrator_agent = None
         
         # Verify API key is available
@@ -72,6 +74,14 @@ class ImagiAgentService:
             # Set environment variable for the agents SDK
             os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
     
+    @property
+    def coding_agent(self) -> Agent:
+        """Lazy-load the coding agent."""
+        if self._coding_agent is None:
+            from .coding_agent import create_coding_agent
+            self._coding_agent = create_coding_agent(self.model)
+        return self._coding_agent
+
     @property
     def chat_agent(self) -> Agent:
         """Lazy-load the chat agent."""
@@ -297,7 +307,7 @@ Technology Stack:
                 context=context,
                 run_config=RunConfig(
                     workflow_name="imagi_chat",
-                    trace_metadata={"user_id": user.id}
+                    trace_metadata={"user_id": str(user.id)}
                 )
             )
             
@@ -315,6 +325,121 @@ Technology Stack:
             
         except Exception as e:
             logger.error(f"Error in process_chat: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {
+                "success": False,
+                "error": str(e),
+                "conversation_id": conversation.id if 'conversation' in locals() else None
+            }
+
+    def process_agent(
+        self,
+        user_input: str,
+        user,
+        model: Optional[str] = None,
+        project_id: Optional[int] = None,
+        current_file: Optional[Dict[str, Any]] = None,
+        conversation_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Process a message using the Coding Agent (agent mode).
+
+        The coding agent can both chat and edit project files using function tools.
+
+        Args:
+            user_input: The user's message
+            user: The Django user object
+            model: The AI model to use (defaults to self.model)
+            project_id: Project ID (required for agent mode)
+            current_file: Optional current file context
+            conversation_id: Optional existing conversation ID
+
+        Returns:
+            Dict containing the response, metadata, and list of changed files
+        """
+        try:
+            if not user_input:
+                return {"success": False, "error": "Message is required"}
+
+            if not project_id:
+                return {"success": False, "error": "Project ID is required for agent mode"}
+
+            model = model or self.model
+
+            # Get or create conversation
+            if conversation_id:
+                conversation = self.get_conversation(conversation_id, user)
+                if not conversation:
+                    conversation = self.create_conversation(user, model, project_id=project_id)
+            else:
+                conversation = self.create_conversation(user, model, project_id=project_id)
+
+            # Add user message to conversation
+            self.add_user_message(conversation, user_input)
+
+            # Get project info
+            project_info = self.get_project_info(project_id, user)
+
+            # Build context for the agent
+            context = AgentContext(
+                user_id=user.id,
+                project_id=project_id,
+                project_name=project_info["project_name"],
+                project_description=project_info["project_description"],
+                conversation_id=conversation.id,
+                current_file=current_file,
+                mode="agent"
+            )
+
+            # Build conversation history
+            conversation_history = self.build_conversation_history(conversation)
+            if conversation_history and conversation_history[-1]["role"] == "user":
+                conversation_history = conversation_history[:-1]
+
+            # Build input for the agent
+            input_messages = []
+            if conversation_history:
+                input_messages.extend(conversation_history)
+            input_messages.append({"role": "user", "content": user_input})
+
+            # Run the coding agent
+            result = Runner.run_sync(
+                self.coding_agent,
+                input=input_messages,
+                context=context,
+                run_config=RunConfig(
+                    workflow_name="imagi_agent",
+                    trace_metadata={"user_id": str(user.id)}
+                )
+            )
+
+            response_content = result.final_output or ""
+
+            # Extract files changed from tool call outputs
+            files_changed = []
+            for item in result.new_items:
+                if hasattr(item, 'type') and item.type == 'function_call_output':
+                    try:
+                        output = json.loads(item.output) if isinstance(item.output, str) else item.output
+                        if isinstance(output, dict) and output.get("success") and output.get("path"):
+                            files_changed.append(output["path"])
+                    except (json.JSONDecodeError, TypeError, AttributeError):
+                        pass
+
+            # Add assistant message to conversation
+            self.add_assistant_message(conversation, response_content)
+
+            return {
+                "success": True,
+                "response": response_content,
+                "conversation_id": conversation.id,
+                "files_changed": files_changed,
+                "single_message": True,
+            }
+
+        except Exception as e:
+            logger.error(f"Error in process_agent: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return {

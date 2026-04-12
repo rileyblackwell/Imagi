@@ -16,6 +16,9 @@ import traceback
 
 from ..services import ImagiAgentService, DEFAULT_MODEL
 
+# Re-export for URL imports
+__all__ = ['chat', 'agent', 'cors_preflight']
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -144,5 +147,81 @@ def chat(request):
         
     except Exception as e:
         logger.error(f"Error in chat API: {str(e)}")
+        logger.error(traceback.format_exc())
+        return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def agent(request):
+    """
+    Process a message using the Coding Agent (agent mode).
+
+    The coding agent can both chat and edit project files using function tools
+    from the OpenAI Agents SDK. It autonomously decides when to read/write files
+    versus just responding conversationally.
+    """
+    try:
+        message = request.data.get('message')
+        model = request.data.get('model', DEFAULT_MODEL)
+        conversation_id = request.data.get('conversation_id')
+        project_id = request.data.get('project_id')
+        current_file = request.data.get('current_file')
+
+        logger.info(f"Agent API request - Model: {model}, Project ID: {project_id}")
+
+        if not message:
+            return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
+
+        if not project_id:
+            return create_error_response('Project ID is required for agent mode', status.HTTP_400_BAD_REQUEST)
+
+        # Force GPT-5.2 for agent mode
+        if not model or model != DEFAULT_MODEL:
+            model = DEFAULT_MODEL
+
+        # Ensure project_id is an integer
+        try:
+            project_id = int(project_id)
+        except (ValueError, TypeError):
+            return create_error_response('Invalid project ID', status.HTTP_400_BAD_REQUEST)
+
+        # Ensure conversation_id is an integer if provided
+        if conversation_id:
+            try:
+                conversation_id = int(conversation_id)
+            except (ValueError, TypeError):
+                conversation_id = None
+
+        # Create agent service instance
+        agent_service = ImagiAgentService(model=model)
+
+        logger.info(f"Agent request: message length={len(message)}, model={model}, project_id={project_id}")
+
+        # Process the message with the coding agent
+        result = agent_service.process_agent(
+            user_input=message,
+            user=request.user,
+            model=model,
+            project_id=project_id,
+            current_file=current_file,
+            conversation_id=conversation_id,
+        )
+
+        if not result.get('success', False):
+            error_message = result.get('error', 'Error processing message')
+            return create_error_response(error_message, status.HTTP_400_BAD_REQUEST)
+
+        response_data = {
+            'conversation_id': result.get('conversation_id'),
+            'response': result.get('response', ''),
+            'files_changed': result.get('files_changed', []),
+            'single_message': result.get('single_message', True),
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error in agent API: {str(e)}")
         logger.error(traceback.format_exc())
         return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)

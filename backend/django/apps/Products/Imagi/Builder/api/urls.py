@@ -6,17 +6,21 @@ from django.urls import path
 
 from .views import (
     AIModelsView, CreateFileView, DeleteFileView,
-    FileContentView, 
-    PreviewView, 
+    FileContentView,
+    PreviewView,
     VersionControlHistoryView, VersionControlResetView,
     CreateAppView,
     ProjectDirectoriesView,
     ProjectLayoutView,
+    CreateDirectoryView,
+    DeleteDirectoryView,
 )
 
 urlpatterns = [
     # Builder workspace endpoints
     path('<int:project_id>/directories/', ProjectDirectoriesView.as_view(), name='api-project-directories'),
+    path('<int:project_id>/directories/create/', CreateDirectoryView.as_view(), name='api-create-directory'),
+    path('<int:project_id>/directories/<path:dir_path>/delete/', DeleteDirectoryView.as_view(), name='api-delete-directory'),
     path('<int:project_id>/preview/', PreviewView.as_view(), name='api-preview'),
     
     # File management endpoints

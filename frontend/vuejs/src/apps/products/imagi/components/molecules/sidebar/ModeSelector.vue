@@ -49,10 +49,10 @@
             
             <button
               class="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-all duration-200 group"
-              :class="{ 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white': modelValue === 'build' }"
-              @click="handleModeSelect('build')"
+              :class="{ 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white': modelValue === 'agent' }"
+              @click="handleModeSelect('agent')"
               role="option"
-              :aria-selected="modelValue === 'build'"
+              :aria-selected="modelValue === 'agent'"
             >
               <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-white/70">
                 <i class="fas fa-code text-[10px]"></i>
@@ -60,7 +60,7 @@
               <div class="flex items-center text-left flex-1">
                 <span class="text-xs font-medium text-gray-700 dark:text-white/70 group-hover:text-gray-900 dark:group-hover:text-white/90">Agent</span>
               </div>
-              <span v-if="modelValue === 'build'" class="text-gray-700 dark:text-white/70 w-3"><i class="fas fa-check text-[10px]"></i></span>
+              <span v-if="modelValue === 'agent'" class="text-gray-700 dark:text-white/70 w-3"><i class="fas fa-check text-[10px]"></i></span>
             </button>
           </div>
         </div>

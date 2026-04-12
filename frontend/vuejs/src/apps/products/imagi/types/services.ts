@@ -178,6 +178,16 @@ export interface ChatResponse {
 }
 
 /**
+ * Agent mode response interface (coding agent that can chat + edit files)
+ */
+export interface AgentResponse {
+  response: string;
+  conversation_id?: string;
+  files_changed?: string[];
+  single_message?: boolean;
+}
+
+/**
  * Generate stylesheet options
  */
 export interface GenerateStylesheetOptions {

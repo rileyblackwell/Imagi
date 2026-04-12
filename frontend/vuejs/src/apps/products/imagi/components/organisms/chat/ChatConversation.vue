@@ -63,7 +63,7 @@
                   <span></span>
                   <span></span>
                 </div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">{{ mode === 'chat' ? 'Thinking...' : 'Generating...' }}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ mode === 'agent' ? 'Working...' : 'Thinking...' }}</span>
               </div>
             </div>
           </div>

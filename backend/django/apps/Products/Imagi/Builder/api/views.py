@@ -25,6 +25,7 @@ from apps.Products.Imagi.ProjectManager.services.project_creation_service import
 from rest_framework.exceptions import NotFound
 from ..services.version_control_service import VersionControlService
 from ..services.create_app_service import CreateAppService
+from ..services.directory_service import DirectoryService
 
 logger = logging.getLogger(__name__)
 
@@ -386,6 +387,90 @@ class DeleteFileView(APIView):
             return Response(result, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Error deleting file: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+@method_decorator(never_cache, name='dispatch')
+class CreateDirectoryView(APIView):
+    """Create a new directory in a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def post(self, request, project_id):
+        try:
+            project = self.get_project(project_id)
+
+            if not project.project_path:
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            dir_path = request.data.get('path', '')
+            if not dir_path:
+                return Response(
+                    {'error': 'Directory path is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            directory_service = DirectoryService(project=project)
+            result = directory_service.create_directory(dir_path)
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Error creating directory: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+@method_decorator(never_cache, name='dispatch')
+class DeleteDirectoryView(APIView):
+    """Delete a directory from a project."""
+    permission_classes = [IsAuthenticated]
+
+    def get_project(self, project_id):
+        """Get a project by ID, ensuring user has access."""
+        try:
+            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
+        except PMProject.DoesNotExist:
+            raise NotFound('Project not found')
+
+    def delete(self, request, project_id, dir_path):
+        """Handle directory deletion via DELETE method."""
+        return self._delete_directory(request, project_id, dir_path)
+
+    def post(self, request, project_id, dir_path):
+        """Handle directory deletion via POST method."""
+        return self._delete_directory(request, project_id, dir_path)
+
+    def _delete_directory(self, request, project_id, dir_path):
+        """Common implementation for directory deletion."""
+        try:
+            project = self.get_project(project_id)
+
+            if not project.project_path:
+                return Response(
+                    {'error': 'Project path not found. The project may not be properly initialized.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            recursive = request.data.get('recursive', False)
+
+            directory_service = DirectoryService(project=project)
+            result = directory_service.delete_directory(dir_path, recursive=recursive)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error deleting directory: {str(e)}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

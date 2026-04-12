@@ -15,7 +15,7 @@
       <!-- Sidebar Content: Chat Interface -->
       <template #sidebar-content="{ collapsed }">
         <BuilderSidebarChat
-          :selected-app="selectedApp"
+          :selected-app="null"
           :on-prompt-submit="handlePrompt"
           :on-model-select="handleModelSelect"
           :on-mode-switch="handleModeSwitch"
@@ -24,9 +24,12 @@
         />
       </template>
       
-      <!-- Account balance display in navbar right -->
+      <!-- Preview button and account balance display in navbar right -->
       <template #navbar-right>
-        <AccountBalanceDisplay />
+        <div class="flex items-center gap-3">
+          <PreviewButton :project-id="projectId" />
+          <AccountBalanceDisplay />
+        </div>
       </template>
 
       <!-- Clean Main Content Area - Matching Homepage -->
@@ -34,72 +37,11 @@
         <!-- Enhanced Error State Display -->
         <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
         
-        <!-- Main Layout: Navigation -->
+        <!-- Main Layout -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
-          <!-- Navigation Area (scrollable) -->
-          <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
-            <!-- Navigation Views -->
-            <div class="flex-1 min-h-0 overflow-hidden">
-              <!-- Split Screen Layout: Apps List + Detail View -->
-              <div class="h-full p-4 sm:p-6 lg:p-8 flex gap-4">
-                <!-- Left Side: Apps List (1/3 width) -->
-                <div class="w-1/3 flex flex-col min-h-0">
-                  <div class="relative flex-1 min-h-0">
-                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm overflow-hidden flex flex-col transition-all duration-300">
-                      <AppsList
-                        :files="store.files || []"
-                        :preview-loading="isPreviewLoading"
-                        @select-app="handleSelectApp"
-                        @create-app="handleCreateAppFromGallery"
-                        @preview-app="handlePreview"
-                        class="flex-1 min-h-0"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right Side: App Detail View (2/3 width) -->
-                <div class="w-2/3 flex flex-col min-h-0">
-                  <div class="relative flex-1 min-h-0">
-                    <div class="relative h-full rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] shadow-sm overflow-hidden flex flex-col transition-all duration-300">
-                      <!-- App Detail View (when app selected) -->
-                      <AppDetailView
-                        v-if="selectedApp"
-                        :app="selectedApp"
-                        @back="handleBackToList"
-                        @select-file="handleFileSelectFromDetail"
-                        @create-file="handleFileCreate"
-                        @category-change="handleCategoryChange"
-                        class="flex-1 min-h-0"
-                      />
-                      
-                      <!-- Empty State (when no app selected) -->
-                      <div v-else class="flex-1 flex items-center justify-center p-8">
-                        <div class="text-center max-w-md">
-                          <div class="inline-flex items-center justify-center w-20 h-20 rounded-xl bg-gray-100 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] mb-6">
-                            <i class="fas fa-arrow-left text-gray-700 dark:text-white/70 text-3xl"></i>
-                          </div>
-                          <h3 class="text-2xl font-semibold text-gray-900 dark:text-white/90 mb-3">Select an App</h3>
-                          <p class="text-gray-600 dark:text-white/60 leading-relaxed">
-                            Choose an app from the left to view its pages, blocks, and other files. You can then edit them or create new ones.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </BuilderLayout>
-    <!-- New App Modal -->
-    <NewAppModal
-      v-model="showNewAppModal"
-      :submitting="isCreatingApp"
-      @submit="handleCreateAppSubmit"
-    />
   </div>
 </template>
 
@@ -112,7 +54,6 @@ import useChatMode from '../composables/useChatMode'
 import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
-import { PreviewService } from '../services/previewService'
 import { BuilderCreationService } from '../services/builderCreationService'
 import { VersionControlService } from '../services/versionControlService'
 import { RouterUpdateService } from '../services/routerUpdateService'
@@ -123,15 +64,12 @@ import { useNotification } from '@/shared/composables/useNotification'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/imagi/layouts'
-import { AccountBalanceDisplay } from '../components/molecules'
+import { AccountBalanceDisplay, PreviewButton } from '../components/molecules'
 
 // Atomic Components
 import { 
   WorkspaceError,
 } from '../components/organisms/workspace'
-import AppsList from '../components/organisms/workspace/AppsList.vue'
-import AppDetailView from '../components/organisms/workspace/AppDetailView.vue'
-import NewAppModal from '../components/organisms/workspace/NewAppModal.vue'
 import BuilderSidebarChat from '../components/organisms/sidebar/BuilderSidebarChat.vue'
 // Set component name
 defineOptions({ name: 'Workspace' })
@@ -149,10 +87,9 @@ const router = useRouter()
 const store = useAgentStore()
 const projectStore = useProjectStore()
 const projectId = ref<string>('')
-const { 
-  createFile, 
+const {
+  createFile,
   loadModels,
-  applyCode 
 } = useBuilderMode()
 const {} = useChatMode()
 
@@ -165,63 +102,6 @@ const fileTypes = {
   'html': 'HTML',
   'json': 'JSON',
   'md': 'Markdown'
-}
-
-// Simple creation flows for non-technical users via AppGallery
-// New App modal state
-const showNewAppModal = ref(false)
-const isCreatingApp = ref(false)
-
-// Preview loading state to prevent multiple tabs
-const isPreviewLoading = ref(false)
-
-// Open the styled New App modal
-async function handleCreateAppFromGallery() {
-  showNewAppModal.value = true
-}
-
-// Submit handler for New App modal
-async function handleCreateAppSubmit(payload: { name: string; description: string }) {
-  try {
-    if (!projectId.value) return
-    isCreatingApp.value = true
-
-    const result = await BuilderCreationService.createAppFromGallery(
-      projectId.value,
-      payload.name,
-      payload.description || ''
-    )
-
-    if (result.success) {
-      // Close modal and refresh files to show the new app
-      showNewAppModal.value = false
-      await loadProjectFiles(true)
-      const { showNotification } = useNotification()
-      showNotification({
-        type: 'success',
-        message: result.message || 'App created successfully',
-        duration: 3000
-      })
-    } else {
-      console.error('Failed to create app:', result.error)
-      const { showNotification } = useNotification()
-      showNotification({
-        type: 'error',
-        message: result.error || 'Failed to create app',
-        duration: 5000
-      })
-    }
-  } catch (e) {
-    console.error('Error creating app from gallery:', e)
-    const { showNotification } = useNotification()
-    showNotification({
-      type: 'error',
-      message: 'Unexpected error creating app',
-      duration: 5000
-    })
-  } finally {
-    isCreatingApp.value = false
-  }
 }
 
 // Version history state and actions
@@ -261,9 +141,6 @@ async function onVersionSelect() {
 }
 
 // Local state
-const showAppsInMain = ref(true)
-const selectedApp = ref<any>(null)
-const selectedCategory = ref<{ key: string; label: string } | null>(null)
 
 
 // Navigation items for sidebar
@@ -372,240 +249,56 @@ async function handlePrompt(promptText: string) {
       id: `user-${Date.now()}`
     })
     
-    // For build mode, file selection is required
-    if (store.mode === 'build' && !store.selectedFile) {
-      return
-    }
-    
     // Get user auth status before making request
     const isUserAuthenticated = await useAuthStore().validateAuth()
     if (!isUserAuthenticated) {
       return
     }
-    
-    if (store.mode === 'build') {
-      // Check for missing required values
-      if (!projectId.value) {
-        return
-      }
-      
-      if (!store.selectedFile) {
-        return
-      }
-      
-      // Determine file type for specialized handling
-      const fileExtension = store.selectedFile.path.split('.').pop()?.toLowerCase() || ''
-      const isCSS = fileExtension === 'css' || store.selectedFile.type === 'css'
-      const isHTML = fileExtension === 'html' || store.selectedFile.type === 'html'
-      
-      if (isCSS) {
-        try {
-          // For CSS files, use specialized stylesheet generator function
-          const response = await AgentService.generateStylesheet({
+
+    if (store.mode === 'agent') {
+      // Agent mode: the coding agent decides which files to read/edit via tools
+      try {
+        const response = await AgentService.processAgent(
+          projectId.value,
+          {
             prompt: promptText,
-            projectId: projectId.value,
-            filePath: store.selectedFile.path,
             model: store.selectedModelId,
-            onProgress: (progress) => {
-              // Update UI with progress - no notification needed
-            }
-          });
-          
-          // Ensure we got a valid response
-          if (response && (response.response || response.code)) {
-            // Get the content from either response or code field
-            const cssContent = response.response || response.code || '';
-            
-            if (!cssContent.trim()) {
-              store.addMessage({
-                role: 'assistant',
-                content: 'No stylesheet changes were generated. Please try a different prompt.',
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              });
-              return;
-            }
-            
-            // Apply the generated code
-            try {
-              await applyCode({
-                code: cssContent,
-                file: store.selectedFile,
-                projectId: projectId.value
-              });
-              
-              const simpleSummary = `Changes successfully applied to ${store.selectedFile.path}`;
-              
-              // Add assistant message to conversation
-              store.addMessage({
-                role: 'assistant',
-                content: simpleSummary,
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              });
-              
-              // Create a git commit for the CSS changes
-              createCommitFromPrompt(store.selectedFile.path, promptText);
-            } catch (applyError) {
-              console.error('Error applying stylesheet changes:', applyError);
-              store.addMessage({
-                role: 'assistant',
-                content: `Failed to apply stylesheet changes to ${store.selectedFile.path}: ${applyError instanceof Error ? applyError.message : 'Unknown error'}`,
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              });
-            }
-          } else {
-            store.addMessage({
-              role: 'assistant',
-              content: 'No stylesheet changes were generated. Please try a different prompt.',
-              timestamp: new Date().toISOString(),
-              id: `assistant-response-${Date.now()}`
-            });
+            file: store.selectedFile
           }
-        } catch (cssError) {
-          console.error('Error generating stylesheet:', cssError);
-          
+        )
+
+        // Add agent's text response as assistant message
+        if (response.response) {
           store.addMessage({
             role: 'assistant',
-            content: `Error generating stylesheet: ${cssError instanceof Error ? cssError.message : 'Unknown error'}`,
+            content: response.response,
             timestamp: new Date().toISOString(),
-            id: `system-error-${Date.now()}`
-          });
-        }
-      } else if (isHTML) {
-        try {
-          // Ensure the file path is correctly formatted for HTML files
-          let formattedPath = store.selectedFile.path;
-          if (!formattedPath.includes('/templates/') && !formattedPath.startsWith('templates/')) {
-            formattedPath = `templates/${formattedPath.replace(/^\//, '')}`;
-          }
-          
-          // Call the AI service to generate code - will use template endpoint in agentService
-          const response = await AgentService.generateCode(
-            projectId.value,
-            {
-              prompt: promptText,
-              model: store.selectedModelId,
-              mode: 'build',
-              file_path: formattedPath
-            }
-          )
-          
-          // Apply the generated code automatically if available
-          if (response && response.code) {
-            try {
-              await applyCode({
-                code: response.code,
-                file: store.selectedFile,
-                projectId: projectId.value
-              })
-              
-              const simpleSummary = `Changes successfully applied to ${store.selectedFile.path}`;
-              
-              store.addMessage({
-                role: 'assistant',
-                content: simpleSummary,
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              })
-              
-              // Create a git commit for the HTML changes
-              createCommitFromPrompt(store.selectedFile.path, promptText);
-            } catch (applyError) {
-              console.error('Error applying HTML template:', applyError)
-              
-              store.addMessage({
-                role: 'assistant',
-                content: `Failed to apply changes to ${store.selectedFile.path}: ${applyError instanceof Error ? applyError.message : 'Unknown error'}`,
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              })
-            }
-          } else {
-            store.addMessage({
-              role: 'assistant',
-              content: 'No HTML template was generated. Please try a different prompt.',
-              timestamp: new Date().toISOString(),
-              id: `assistant-response-${Date.now()}`
-            })
-          }
-        } catch (htmlError) {
-          console.error('Error generating HTML template:', htmlError)
-          
-          store.addMessage({
-            role: 'assistant',
-            content: `Error generating HTML template: ${htmlError instanceof Error ? htmlError.message : 'Unknown error'}`,
-            timestamp: new Date().toISOString(),
-            id: `system-error-${Date.now()}`
+            id: `assistant-response-${Date.now()}`
           })
         }
-      } else {
-        try {
-          // Call the AI service to generate code
-          const response = await AgentService.generateCode(
-            projectId.value,
-            {
-              prompt: promptText,
-              model: store.selectedModelId,
-              mode: 'build',
-              file_path: store.selectedFile.path
-            }
-          )
-          
-          // Apply the generated code automatically
-          if (response && response.code) {
+
+        // If files were changed, refresh them in the store and commit
+        if (response.files_changed && response.files_changed.length > 0) {
+          for (const changedPath of response.files_changed) {
             try {
-              // Apply the generated code automatically
-              await applyCode({
-                code: response.code,
-                file: store.selectedFile,
-                projectId: projectId.value
-              })
-              
-              // Add only a single success message instead of two
-              const simpleSummary = `Changes successfully applied to ${store.selectedFile.path}`;
-              
-              store.addMessage({
-                role: 'assistant',
-                content: simpleSummary,
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              })
-              
-              // Create a git commit for the applied changes
-              createCommitFromPrompt(store.selectedFile.path, promptText);
-            } catch (applyError) {
-              console.error('Error applying generated code:', applyError)
-              
-              // Just add a single error message
-              store.addMessage({
-                role: 'assistant',
-                content: `Failed to apply changes to ${store.selectedFile.path}: ${applyError instanceof Error ? applyError.message : 'Unknown error'}`,
-                timestamp: new Date().toISOString(),
-                id: `assistant-response-${Date.now()}`
-              })
+              const files = await FileService.getProjectFiles(projectId.value)
+              store.setFiles(files)
+            } catch (refreshError) {
+              console.warn('Error refreshing files after agent edit:', refreshError)
             }
-          } else {
-            // No code was generated, just show the response
-            store.addMessage({
-              role: 'assistant',
-              content: 'No code changes were generated. Please try a different prompt.',
-              timestamp: new Date().toISOString(),
-              id: `assistant-response-${Date.now()}`
-            })
+
+            // Create git commits for changed files
+            createCommitFromPrompt(changedPath, promptText)
           }
-        } catch (buildError) {
-          console.error('Error in build mode:', buildError)
-          
-          // Add error message to conversation
-          store.addMessage({
-            role: 'assistant',
-            content: `Error generating code: ${buildError instanceof Error ? buildError.message : 'Unknown error'}`,
-            timestamp: new Date().toISOString(),
-            id: `system-error-${Date.now()}`
-          })
         }
+      } catch (agentError) {
+        console.error('Error in agent mode:', agentError)
+        store.addMessage({
+          role: 'assistant',
+          content: `Error: ${agentError instanceof Error ? agentError.message : 'Unknown error'}`,
+          timestamp: new Date().toISOString(),
+          id: `system-error-${Date.now()}`
+        })
       }
     } else {
       try {
@@ -672,81 +365,28 @@ async function handleModelSelect(modelId: string) {
 
 async function handleModeSwitch(mode: BuilderMode) {
   const previousMode = store.mode
-  if (mode !== 'chat') {
-    store.setMode('chat')
-    return
-  }
-  
-  // Update the mode in the store
-  if (previousMode === 'chat') {
-    return
-  }
-  store.setMode('chat')
-  
-  // Only add system messages about mode changes if the new mode is chat mode
-  // This prevents system messages from appearing in build mode
+  if (mode === previousMode) return
+
+  store.setMode(mode)
+
   if (store.conversation.length > 0) {
-    // Add system message about mode change
-    // Use a special ID format that can be detected in the ChatConversation component
-    const modeChangeId = `system-mode-change-${Date.now()}`;
-    
+    const modeLabel = mode === 'agent' ? 'agent' : 'chat'
+    const modeChangeId = `system-mode-change-${Date.now()}`
+
     store.conversation.push({
       role: 'system',
-      content: `Switched to chat mode${store.selectedFile ? ` for file: ${store.selectedFile.path}` : ''}`,
+      content: `Switched to ${modeLabel} mode`,
       timestamp: new Date().toISOString(),
       id: modeChangeId
     })
-    
-    // Brief delay to allow UI to settle after mode change
-    await nextTick();
+
+    await nextTick()
   }
-}
-
-function handleSelectApp(app: any) {
-  selectedApp.value = app
-}
-
-function handleBackToList() {
-  selectedApp.value = null
-  selectedCategory.value = null
-  store.setSelectedFile(null)
-}
-
-function handleCategoryChange(category: { key: string; label: string } | null) {
-  selectedCategory.value = category
-}
-
-function handleBackToApps() {
-  selectedApp.value = null
-  selectedCategory.value = null
-  store.setSelectedFile(null)
-}
-
-function handleBackToApp() {
-  selectedCategory.value = null
-  store.setSelectedFile(null)
-}
-
-function handleBackToCategory() {
-  store.setSelectedFile(null)
-}
-
-function handleBackFromChat() {
-  store.setSelectedFile(null)
-}
-
-async function handleFileSelectFromDetail(file: ProjectFile) {
-  // Set the selected file in store (for context in chat input)
-  store.selectFile(file)
-  
-  // Force UI update
-  await nextTick()
 }
 
 async function handleFileSelect(file: ProjectFile) {
   // Ensure selected file is set
   store.selectFile(file)
-  showAppsInMain.value = false
 
   // Force UI update to reflect mode/selection changes
   await nextTick()
@@ -784,28 +424,6 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     console.debug('File created, refreshing file list from backend...')
     await loadProjectFiles(true)
 
-    // Stay in detail view if an app is selected
-    if (appMatch?.[1] && !selectedApp.value) {
-      // Find the app and show detail view
-      const appFiles = store.files?.filter((f: any) => 
-        (f.path || '').toLowerCase().includes(`/src/apps/${appMatch[1]}/`)
-      ) || []
-      if (appFiles.length > 0) {
-        // Build app object
-        const appKey = appMatch[1]
-        const appName = appKey.charAt(0).toUpperCase() + appKey.slice(1)
-        selectedApp.value = {
-          key: appKey,
-          name: appKey,
-          displayName: appName,
-          files: appFiles,
-          icon: 'fas fa-cube',
-          color: { bg: 'bg-violet-600/15', border: 'border-violet-400/30', text: 'text-violet-300' },
-          hint: 'App files'
-        }
-      }
-    }
-    
     await nextTick()
     
     // Automatically commit the file creation
@@ -856,61 +474,6 @@ async function handleFileDelete(file: ProjectFile) {
     )
   } catch (error) {
     console.error('Error deleting file:', error)
-  }
-}
-
-async function handlePreview() {
-  // CRITICAL: Set loading state IMMEDIATELY to prevent duplicate tabs
-  // This must be the very first check, before any other code runs
-  if (isPreviewLoading.value) {
-    console.debug('Preview already loading, ignoring duplicate request')
-    return
-  }
-  
-  // Set the flag synchronously BEFORE any async operations
-  isPreviewLoading.value = true
-  
-  const { showNotification } = useNotification()
-  
-  try {
-    if (!projectId.value) {
-      showNotification({
-        type: 'error',
-        message: 'No project selected for preview',
-        duration: 3000
-      })
-      return
-    }
-
-    const response = await PreviewService.generatePreview(projectId.value)
-    
-    if (response && response.previewUrl) {
-      // Open the preview URL in a new tab
-      window.open(response.previewUrl, '_blank')
-      showNotification({
-        type: 'success',
-        message: 'Preview opened in new tab',
-        duration: 3000
-      })
-    } else {
-      showNotification({
-        type: 'error',
-        message: 'Failed to start preview server',
-        duration: 4000
-      })
-    }
-  } catch (error) {
-    console.error('Error starting preview server:', error)
-    showNotification({
-      type: 'error',
-      message: `Preview failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      duration: 5000
-    })
-  } finally {
-    // Reset loading state after a short delay to prevent rapid re-clicks
-    setTimeout(() => {
-      isPreviewLoading.value = false
-    }, 1000)
   }
 }
 

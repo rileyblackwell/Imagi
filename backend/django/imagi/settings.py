@@ -210,4 +210,4 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 # Products / Imagi builder
 # Root directory where ProjectManager writes generated user projects.
-PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'oasis_projects'))
+PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'imagi_projects'))

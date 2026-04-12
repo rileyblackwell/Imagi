@@ -10,7 +10,7 @@
         ]"
       >
         <!-- Logo and Brand -->
-        <div class="flex-shrink-0 h-16 flex items-center justify-end px-4 border-b border-gray-200 dark:border-dark-800/70">
+        <div class="flex-shrink-0 h-16 flex items-center justify-end px-4">
           <!-- Collapse/Expand Button -->
           <button 
             @click="toggleSidebar"

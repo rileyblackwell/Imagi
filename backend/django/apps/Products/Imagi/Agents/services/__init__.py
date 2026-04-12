@@ -4,6 +4,7 @@ Agents services module - OpenAI Agents SDK.
 
 from .base_agent import ImagiAgentService, get_agent_service, AgentContext, DEFAULT_MODEL
 from .chat_agent import create_chat_agent, create_simple_chat_agent
+from .coding_agent import create_coding_agent
 
 
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     'DEFAULT_MODEL',
     'create_chat_agent',
     'create_simple_chat_agent',
+    'create_coding_agent',
 ]

@@ -1,9 +1,10 @@
 import api from '@/shared/services/api'
-import type { 
-  CodeGenerationResponse, 
-  AIModel, 
+import type {
+  CodeGenerationResponse,
+  AIModel,
   ChatPayload,
   ChatResponse,
+  AgentResponse,
   GenerateStylesheetOptions,
   CodeGenerationRequest,
   VersionControlResponse
@@ -282,6 +283,91 @@ export const AgentService = {
         response: errorDetails || this.formatError(error),
         messages: []
       };
+    }
+  },
+
+  async processAgent(projectId: string, data: {
+    prompt: string;
+    model: string;
+    file?: any;
+  }): Promise<AgentResponse> {
+    if (!data.prompt || !data.model) {
+      throw new Error('Prompt and model are required')
+    }
+
+    if (!projectId) {
+      throw new Error('Project ID is required for agent mode')
+    }
+
+    // Check rate limits before making request
+    await ModelsService.checkRateLimit(data.model)
+
+    // Validate prompt length against model context window
+    const config = ModelsService.getConfig({ id: data.model } as AIModel)
+    const estimatedTokens = ModelsService.estimateTokens(data.prompt)
+
+    if (estimatedTokens > config.maxTokens) {
+      throw new Error(`Prompt is too long for selected model. Please reduce length or choose a different model.`)
+    }
+
+    try {
+      // Get conversation ID from localStorage if exists
+      const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
+
+      // Prepare file info if provided
+      let currentFile = null
+      if (data.file) {
+        currentFile = {
+          path: data.file.path,
+          type: data.file.type || this.getFileType(data.file.path),
+          content: data.file.content || ''
+        }
+      }
+
+      const payload = {
+        message: data.prompt,
+        model: data.model,
+        project_id: String(projectId),
+        conversation_id: storedConversationId || undefined,
+        current_file: currentFile,
+      }
+
+      const response = await api.post('/v1/agents/agent/', payload, { timeout: AI_TIMEOUT })
+
+      // Store the conversation ID for future requests
+      if (response.data.conversation_id) {
+        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id)
+      }
+
+      // Log credits usage if provided
+      if (response.data.credits_used) {
+        const paymentsStore = getPaymentsStore()
+        if (paymentsStore) {
+          await paymentsStore.fetchBalance()
+        }
+      }
+
+      return {
+        response: response.data.response,
+        conversation_id: response.data.conversation_id,
+        files_changed: response.data.files_changed || [],
+        single_message: response.data.single_message || false,
+      }
+    } catch (error: any) {
+      console.error('Agent processing API error:', error)
+
+      let errorDetails = ''
+      if (error.response) {
+        console.error('Response error data:', error.response.data)
+        console.error('Response status:', error.response.status)
+        errorDetails = error.response.data?.error || error.response.data?.detail ||
+                      (typeof error.response.data === 'string' ? error.response.data : '')
+      }
+
+      return {
+        response: errorDetails || this.formatError(error),
+        files_changed: [],
+      }
     }
   },
 

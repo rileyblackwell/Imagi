@@ -17,7 +17,7 @@ class PreviewService:
     
     def __init__(self, project):
         self.project = project
-        self.frontend_port = 5173  # Vite dev server - use 5173 to avoid conflict with main project on 5174
+        self.frontend_port = 5174  # Vite dev server - use 5174 to avoid conflict with Imagi itself on 5173
         self.backend_port = 8080   # Django dev server - use 8080 to avoid conflict with main project on 8000
         
         # Ensure the PID file directory exists
@@ -191,8 +191,8 @@ class PreviewService:
             if not os.path.exists(node_modules):
                 logger.warning(f"node_modules not found in {frontend_path}, npm dependencies may not be installed")
             
-            # Find available port for frontend (avoiding conflict with main project on 5174)
-            self.frontend_port = self._find_available_port_excluding(5173, 5200, exclude_ports=[5174])
+            # Find available port for frontend (avoiding conflict with Imagi itself on 5173)
+            self.frontend_port = self._find_available_port_excluding(5174, 5200, exclude_ports=[5173])
             logger.info(f"Starting VueJS frontend on port {self.frontend_port}")
             
             # Set up environment for Vite

@@ -3,7 +3,7 @@ import type { EditorLanguage } from '@/shared/types/editor'
 import { v4 as uuidv4 } from 'uuid'
 
 // Editor / UI types
-export type BuilderMode = 'build' | 'chat'
+export type BuilderMode = 'agent' | 'chat'
 export type EditorMode = 'split' | 'editor' | 'preview'
 
 /**

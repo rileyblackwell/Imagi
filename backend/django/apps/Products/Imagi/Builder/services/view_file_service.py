@@ -219,6 +219,120 @@ class ViewFileService:
         # Sort files by path
         return sorted(files, key=lambda x: x['path'])
     
+    def list_all_project_files(self, project_id=None):
+        """List ALL project files across both frontend and backend stacks.
+
+        Unlike list_files() which only returns frontend files for the workspace
+        sidebar, this method returns every relevant file in the project.
+        Intended for use by the coding agent so it has full project visibility.
+        """
+        try:
+            project_path = self.get_project_path(project_id)
+            if not project_path or not os.path.exists(project_path):
+                logger.error(f"Project path does not exist: {project_path}")
+                return []
+
+            files = []
+            relevant_extensions = {
+                '.vue', '.ts', '.tsx', '.js', '.jsx', '.css', '.json',
+                '.html', '.py', '.md', '.txt',
+            }
+            skip_dirs = {
+                'node_modules', '__pycache__', '.git', 'dist', 'build',
+                'staticfiles', 'media', '.venv', 'venv',
+            }
+
+            for root, dirs, filenames in os.walk(project_path):
+                # Prune directories we never want to descend into
+                dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith('.')]
+
+                for filename in filenames:
+                    if filename.startswith('.'):
+                        continue
+                    ext = os.path.splitext(filename)[1].lower()
+                    if ext and ext not in relevant_extensions:
+                        continue
+
+                    full_path = os.path.join(root, filename)
+                    rel_path = os.path.relpath(full_path, project_path)
+
+                    stats = os.stat(full_path)
+                    files.append({
+                        'id': str(uuid.uuid4()),
+                        'name': filename,
+                        'path': rel_path,
+                        'type': self._get_file_type(rel_path),
+                        'size': stats.st_size,
+                        'lastModified': datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                    })
+
+            return sorted(files, key=lambda x: x['path'])
+        except Exception as e:
+            logger.error(f"Error listing all project files: {str(e)}")
+            raise
+
+    def get_directory_tree(self, project_id=None, max_depth=5):
+        """Return a compact directory-tree representation of the project.
+
+        Returns a nested dict suitable for JSON serialisation.  Example::
+
+            {
+              "frontend/vuejs/src/apps/home": {
+                "dirs": ["components", "router", "stores", "views"],
+                "files": ["index.ts"]
+              },
+              ...
+            }
+
+        Intended for use by the coding agent so it can discover where
+        directories like ``src/apps/home/views/`` exist without having to
+        read every individual file.
+        """
+        try:
+            project_path = self.get_project_path(project_id)
+            if not project_path or not os.path.exists(project_path):
+                return {}
+
+            skip_dirs = {
+                'node_modules', '__pycache__', '.git', 'dist', 'build',
+                'staticfiles', 'media', '.venv', 'venv',
+            }
+
+            tree = {}
+
+            for root, dirs, filenames in os.walk(project_path):
+                # Depth check
+                rel_root = os.path.relpath(root, project_path)
+                if rel_root == '.':
+                    rel_root = ''
+                depth = rel_root.count(os.sep) if rel_root else 0
+                if depth >= max_depth:
+                    dirs[:] = []
+                    continue
+
+                # Prune
+                dirs[:] = sorted(d for d in dirs if d not in skip_dirs and not d.startswith('.'))
+
+                visible_files = sorted(
+                    f for f in filenames
+                    if not f.startswith('.')
+                    and os.path.splitext(f)[1].lower() in {
+                        '.vue', '.ts', '.tsx', '.js', '.jsx', '.css',
+                        '.json', '.html', '.py', '.md', '.txt',
+                    }
+                )
+
+                key = rel_root if rel_root else '.'
+                tree[key] = {
+                    'dirs': list(dirs),
+                    'files': visible_files,
+                }
+
+            return tree
+        except Exception as e:
+            logger.error(f"Error building directory tree: {str(e)}")
+            raise
+
     def update_file(self, file_path, content, project_id=None, commit_message='Update file'):
         """Update the content of a file."""
         try:
