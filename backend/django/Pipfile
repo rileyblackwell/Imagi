@@ -7,6 +7,10 @@ name = "pypi"
 django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
+stripe = "*"
+openai-agents = "*"
+python-dotenv = "*"
+psutil = "*"
 
 [dev-packages]
 

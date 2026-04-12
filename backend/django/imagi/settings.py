@@ -58,6 +58,10 @@ INSTALLED_APPS = [
     # Local apps
     'apps.Home',
     'apps.Auth',
+    'apps.Payments',
+    'apps.Products.Imagi.Builder',
+    'apps.Products.Imagi.Agents',
+    'apps.Products.Imagi.ProjectManager',
 ]
 
 MIDDLEWARE = [
@@ -195,3 +199,15 @@ CSRF_TRUSTED_ORIGINS = os.environ.get(
 CSRF_COOKIE_HTTPONLY = False  # frontend reads it from document.cookie
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+
+
+# Stripe / Payments
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLIC_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+
+
+# Products / Imagi builder
+# Root directory where ProjectManager writes generated user projects.
+PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'oasis_projects'))

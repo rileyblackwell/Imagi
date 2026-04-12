@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import homeRoutes from '@/apps/home/router'
 import authRoutes from '@/apps/auth/router'
+import paymentsRoutes from '@/apps/payments/router'
+import productsImagiRoutes from '@/apps/products/imagi/router'
 
 // Placeholder routes for apps not yet implemented
 const placeholderRoutes = [
-  { path: '/products/:pathMatch(.*)*', name: 'products', redirect: '/' },
-  { path: '/payments/:pathMatch(.*)*', name: 'payments', redirect: '/' },
   { path: '/docs/:pathMatch(.*)*', name: 'docs', redirect: '/' },
 ]
 
@@ -14,6 +14,8 @@ const router = createRouter({
   routes: [
     ...homeRoutes,
     ...authRoutes,
+    ...paymentsRoutes,
+    ...productsImagiRoutes,
     ...placeholderRoutes,
   ],
   scrollBehavior(to, from, savedPosition) {

@@ -1,0 +1,1 @@
+default_app_config = 'apps.Products.Imagi.Agents.apps.AgentsConfig'
