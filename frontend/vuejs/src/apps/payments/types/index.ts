@@ -74,6 +74,7 @@ export interface PaymentIntentRequest {
 export interface PaymentData {
   amount?: number;
   plan_id?: string;
+  lookup_key?: string;
   success_url?: string;
   cancel_url?: string;
 }
@@ -100,6 +101,7 @@ export interface SessionResponse {
 export interface SessionStatus {
   status: 'complete' | 'pending';
   payment_status: string;
+  mode?: 'payment' | 'subscription';
   credits_added?: number;
 }
 

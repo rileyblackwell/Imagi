@@ -117,7 +117,7 @@
                 <DocsListItem icon="fas fa-check" color="blue" size="sm">Consider our subscription plans for regular users, which offer better value</DocsListItem>
               </ul>
               <router-link 
-                to="/payments/checkout" 
+                to="/payments/pricing"
                 class="group/btn mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-0.5"
               >
                 <i class="fas fa-coins text-sm"></i>

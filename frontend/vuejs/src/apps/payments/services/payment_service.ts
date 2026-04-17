@@ -184,15 +184,30 @@ class PaymentService implements IPaymentService {
   }
 
   /**
-   * Create a checkout session
+   * Create a checkout session (subscription or one-time payment)
    */
   async createCheckoutSession(data: PaymentData): Promise<SessionResponse> {
     try {
       const response = await api.post('/v1/payments/create-checkout-session/', {
         amount: data.amount,
+        lookup_key: data.lookup_key,
         plan_id: data.plan_id,
         success_url: data.success_url || window.location.origin + '/payments/success',
         cancel_url: data.cancel_url || window.location.origin + '/payments/cancel'
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error as Error)
+    }
+  }
+
+  /**
+   * Create a Stripe Billing Portal session for subscription management
+   */
+  async createPortalSession(returnUrl?: string): Promise<{ url: string }> {
+    try {
+      const response = await api.post('/v1/payments/create-portal-session/', {
+        return_url: returnUrl || window.location.origin + '/payments/pricing'
       })
       return response.data
     } catch (error) {

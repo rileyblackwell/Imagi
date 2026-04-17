@@ -1,11 +1,10 @@
 import type { RouteRecordRaw } from 'vue-router'
-import CheckoutView from '../views/CheckoutView.vue'
 import PricingView from '../views/PricingView.vue'
 
 export const routes: RouteRecordRaw[] = [
   {
     path: '/payments',
-    redirect: '/payments/checkout'
+    redirect: '/payments/pricing'
   },
   {
     path: '/payments/pricing',
@@ -18,12 +17,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/payments/checkout',
-    name: 'Checkout',
-    component: CheckoutView,
-    meta: {
-      requiresAuth: true,
-      title: 'Checkout - Imagi'
-    }
+    redirect: '/payments/pricing'
   },
   {
     path: '/payments/success',

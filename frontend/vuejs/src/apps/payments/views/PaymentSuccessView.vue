@@ -33,29 +33,48 @@
               <div class="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-check text-3xl text-emerald-600 dark:text-emerald-400"></i>
               </div>
-              <h1 class="text-4xl sm:text-5xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight">Payment Successful!</h1>
-              <p class="text-xl text-gray-500 dark:text-white/60">Thank you for your payment.</p>
+              <h1 class="text-4xl sm:text-5xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight">
+                {{ isSubscription ? 'Subscription Activated!' : 'Payment Successful!' }}
+              </h1>
+              <p class="text-xl text-gray-500 dark:text-white/60">
+                {{ isSubscription ? 'Your subscription is now active. Welcome aboard!' : 'Thank you for your payment.' }}
+              </p>
             </div>
-            
+
             <!-- Success Details Card -->
             <div class="rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 p-8 text-center">
-              <p class="text-lg text-emerald-900 dark:text-emerald-100 mb-3">
+              <p v-if="isSubscription" class="text-lg text-emerald-900 dark:text-emerald-100">
+                Your plan is now active. You can manage your subscription at any time.
+              </p>
+              <p v-else class="text-lg text-emerald-900 dark:text-emerald-100 mb-3">
                 We've added <span class="font-semibold text-2xl">{{ creditsAdded }}</span> credits to your account!
               </p>
-              <div class="mt-6 pt-6 border-t border-emerald-200 dark:border-emerald-800/30">
+              <div v-if="!isSubscription" class="mt-6 pt-6 border-t border-emerald-200 dark:border-emerald-800/30">
                 <p class="text-emerald-700 dark:text-emerald-300/80">Your new balance</p>
                 <p class="text-3xl font-semibold text-emerald-900 dark:text-emerald-100 mt-2">${{ balance.toLocaleString() }}</p>
               </div>
             </div>
-            
+
             <!-- Action Buttons -->
-            <div class="flex justify-center mt-12">
-              <router-link 
-                to="/payments/checkout" 
-                class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+              <button
+                v-if="isSubscription"
+                @click="manageSubscription"
+                :disabled="portalLoading"
+                class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg disabled:opacity-50"
               >
-                <i class="fas fa-arrow-left"></i>
-                <span>Back to Payments</span>
+                <i class="fas fa-cog"></i>
+                <span>{{ portalLoading ? 'Loading...' : 'Manage Subscription' }}</span>
+              </button>
+              <router-link
+                to="/products/imagi/projects"
+                class="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                :class="isSubscription
+                  ? 'bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white border border-gray-200 dark:border-white/[0.08]'
+                  : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'"
+              >
+                <i class="fas fa-rocket"></i>
+                <span>Start Building</span>
               </router-link>
             </div>
           </div>
@@ -77,7 +96,7 @@
             <!-- Action Buttons -->
             <div class="flex justify-center mt-12">
               <router-link 
-                to="/payments/checkout" 
+                to="/payments/pricing" 
                 class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
               >
                 <i class="fas fa-arrow-left"></i>
@@ -95,43 +114,68 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePaymentStore } from '../stores/payments'
+import PaymentService from '../services/payment_service'
 import PaymentLayout from '../layouts/PaymentLayout.vue'
 
-const paymentStore = usePaymentStore() // Single store instance
+const paymentStore = usePaymentStore()
+const paymentService = new PaymentService()
 const route = useRoute()
 
 // State
 const isLoading = ref(true)
 const error = ref('')
 const paymentProcessed = ref(false)
+const isSubscription = ref(false)
 const creditsAdded = ref(0)
 const balance = ref(0)
+const portalLoading = ref(false)
+
+const manageSubscription = async () => {
+  try {
+    portalLoading.value = true
+    const response = await paymentService.createPortalSession()
+    if (response.url) {
+      window.location.href = response.url
+    }
+  } catch (err: any) {
+    console.error('Error creating portal session:', err)
+  } finally {
+    portalLoading.value = false
+  }
+}
 
 // On mount, process the session if there's a session_id in the URL
 onMounted(async () => {
   try {
-    // Get session_id from URL
     const sessionId = route.query.session_id as string
-    
-    if (!sessionId) {
+    const success = route.query.success as string
+
+    if (!sessionId && !success) {
       isLoading.value = false
       return
     }
-    
-    // Get session status from API
-    const status = await paymentStore.getSessionStatus(sessionId)
-    
-    if (status.status === 'complete') {
+
+    if (sessionId) {
+      // Get session status from API
+      const status = await paymentStore.getSessionStatus(sessionId)
+
+      if (status.status === 'complete') {
+        paymentProcessed.value = true
+        creditsAdded.value = status.credits_added || 0
+
+        // Detect subscription vs one-time from the session mode
+        isSubscription.value = status.mode === 'subscription'
+
+        if (!isSubscription.value) {
+          await paymentStore.initializePayments()
+          balance.value = paymentStore.balance ?? 0
+        }
+      } else {
+        error.value = 'Your payment is still being processed. Please check back later.'
+      }
+    } else if (success === 'true') {
+      // Fallback: success=true without session_id
       paymentProcessed.value = true
-      creditsAdded.value = status.credits_added || 0
-      
-      // Initialize payment system with auto-refresh for accurate balance tracking
-      await paymentStore.initializePayments();
-      
-      // Set the balance using the current value from the payments store
-      balance.value = paymentStore.balance ?? 0;
-    } else {
-      error.value = 'Your payment is still being processed. Please check back later.'
     }
   } catch (err: any) {
     console.error('Error processing payment success:', err)

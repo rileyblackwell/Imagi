@@ -24,6 +24,11 @@ urlpatterns = [
     path('attach-payment-method/', views.attach_payment_method, name='api-attach-payment-method'),
     path('setup-customer/', views.setup_customer, name='api-setup-customer'),
     
+    # Checkout sessions
+    path('create-checkout-session/', views.create_checkout_session, name='api-create-checkout-session'),
+    path('session-status/', views.get_session_status, name='api-session-status'),
+    path('create-portal-session/', views.create_portal_session, name='api-create-portal-session'),
+
     # Stripe webhook (essential for payment events)
     path('webhook/', views.webhook, name='api-stripe-webhook'),
 ] 

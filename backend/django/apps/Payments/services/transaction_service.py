@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional
 from django.db.models import QuerySet
 from decimal import Decimal
 
-from ..models import Transaction, CreditPackage
+from ..models import Transaction, CreditPackage, CreditPlan
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ class TransactionService:
     """Service for managing payment transactions."""
     
     def create_purchase_transaction(self, user, amount: float, stripe_payment_intent_id: str = None,
+                                   stripe_checkout_session_id: str = None,
                                    description: str = None) -> Transaction:
         """
         Create a purchase transaction.
@@ -37,6 +38,7 @@ class TransactionService:
                 transaction_type='purchase',
                 status='pending',
                 stripe_payment_intent_id=stripe_payment_intent_id,
+                stripe_checkout_session_id=stripe_checkout_session_id,
                 description=transaction_description
             )
             
@@ -231,7 +233,39 @@ class TransactionService:
                 query['is_active'] = True
                 
             return list(CreditPackage.objects.filter(**query).order_by('amount'))
-            
+
         except Exception as e:
             logger.error(f"Error getting credit packages: {str(e)}")
-            return [] 
+            return []
+
+    def get_plan_by_id(self, plan_id) -> Optional[CreditPlan]:
+        """
+        Get a credit plan by ID.
+
+        Args:
+            plan_id: The plan ID
+
+        Returns:
+            The CreditPlan if found, None otherwise
+        """
+        try:
+            return CreditPlan.objects.filter(id=plan_id, is_active=True).first()
+        except Exception as e:
+            logger.error(f"Error getting plan by ID: {str(e)}")
+            return None
+
+    def get_transaction_by_checkout_session(self, session_id: str) -> Optional[Transaction]:
+        """
+        Get a transaction by Stripe Checkout Session ID.
+
+        Args:
+            session_id: The Stripe Checkout Session ID
+
+        Returns:
+            The transaction if found, None otherwise
+        """
+        try:
+            return Transaction.objects.filter(stripe_checkout_session_id=session_id).first()
+        except Exception as e:
+            logger.error(f"Error getting transaction by checkout session: {str(e)}")
+            return None

@@ -1,6 +1,6 @@
 <!-- Home navbar dropdown button component with custom gradients -->
 <template>
-  <div class="relative">
+  <div class="relative" @mouseenter="openDropdown" @mouseleave="startCloseTimer">
     <button
       :class="[
         gradientClass,
@@ -17,10 +17,6 @@
       <slot name="trigger">
         <span class="flex items-center gap-2 relative z-10">
           <slot></slot>
-          <i 
-            class="fas fa-chevron-down text-xs transition-all duration-300 ease-out" 
-            :class="{ 'transform rotate-180': isOpen }"
-          ></i>
         </span>
       </slot>
     </button>
@@ -36,7 +32,7 @@
     >
       <div
         v-show="isOpen"
-        class="absolute left-1/2 -translate-x-1/2 mt-3 w-24 origin-top z-50"
+        class="absolute left-1/2 -translate-x-1/2 pt-2 w-24 origin-top z-50"
       >
         <div class="rounded-xl bg-white border border-gray-200/50 shadow-xl backdrop-blur-xl overflow-hidden">
           <div class="py-1.5">
@@ -46,21 +42,6 @@
       </div>
     </transition>
 
-    <!-- Enhanced Overlay -->
-    <transition
-      enter-active-class="transition-opacity ease-out duration-200"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity ease-in duration-150"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="isOpen"
-        class="fixed inset-0 z-40 bg-gray-900/10 dark:bg-black/20 backdrop-blur-[2px]"
-        @click="closeDropdown"
-      ></div>
-    </transition>
   </div>
 </template>
 
@@ -147,6 +128,22 @@ export default defineComponent({
       ].join(' ');
     })
 
+    let closeTimer = null
+
+    const openDropdown = () => {
+      if (closeTimer) {
+        clearTimeout(closeTimer)
+        closeTimer = null
+      }
+      isOpen.value = true
+    }
+
+    const startCloseTimer = () => {
+      closeTimer = setTimeout(() => {
+        isOpen.value = false
+      }, 150)
+    }
+
     const toggleDropdown = () => {
       isOpen.value = !isOpen.value
     }
@@ -159,6 +156,8 @@ export default defineComponent({
       isOpen,
       gradientClass,
       buttonStyleClass,
+      openDropdown,
+      startCloseTimer,
       toggleDropdown,
       closeDropdown
     }

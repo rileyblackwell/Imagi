@@ -499,77 +499,132 @@ def attach_payment_method(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_checkout_session(request):
-    """Create a Stripe Checkout Session for purchasing credits."""
+    """Create a Stripe Checkout Session for subscriptions or one-time purchases."""
     try:
         amount = request.data.get('amount')
-        plan_id = request.data.get('plan_id')
+        lookup_key = request.data.get('lookup_key')
         success_url = request.data.get('success_url', f"{settings.FRONTEND_URL}/payments/success")
         cancel_url = request.data.get('cancel_url', f"{settings.FRONTEND_URL}/payments/cancel")
-        
-        if not amount and not plan_id:
+
+        if not amount and not lookup_key:
             return Response({
-                'error': 'Either amount or plan_id is required'
+                'error': 'Either amount or lookup_key is required'
             }, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Prepare line items and metadata
-        if plan_id:
-            plan = transaction_service.get_plan_by_id(plan_id)
-            if not plan:
+
+        # Determine mode and build line items
+        if lookup_key:
+            # Subscription flow: look up price by lookup_key (Stripe's recommended pattern)
+            prices = stripe.Price.list(
+                lookup_keys=[lookup_key],
+                expand=['data.product'],
+            )
+
+            if not prices.data:
                 return Response({
-                    'error': 'Plan not found'
+                    'error': f'No price found for lookup_key: {lookup_key}'
                 }, status=status.HTTP_404_NOT_FOUND)
-                
-            price_id = plan.stripe_price_id
-            credits = plan.credits
+
+            price_id = prices.data[0].id
+            mode = 'subscription'
+
+            line_items = [{'price': price_id, 'quantity': 1}]
+            metadata = {
+                'user_id': str(request.user.id),
+                'lookup_key': lookup_key,
+            }
+
+            # Ensure user has a Stripe customer (required for subscription mode)
+            customer_id = payment_method_service.get_stripe_customer_id(request.user)
+            if not customer_id:
+                customer = stripe_service.create_customer(
+                    email=request.user.email,
+                    name=f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
+                    metadata={'user_id': str(request.user.id)}
+                )
+                customer_id = customer.id
+                payment_method_service.set_stripe_customer_id(request.user, customer_id)
+
+            # Append session_id to success URL per Stripe pattern
+            success_url_with_session = f"{success_url}?success=true&session_id={{CHECKOUT_SESSION_ID}}"
+
+            checkout_session = stripe_service.create_checkout_session(
+                line_items=line_items,
+                metadata=metadata,
+                success_url=success_url_with_session,
+                cancel_url=cancel_url,
+                mode=mode,
+                customer=customer_id,
+            )
         else:
-            # Convert to float and validate
+            # On-demand one-time payment flow
             amount = float(amount)
             if amount < 5 or amount > 1000:
                 return Response({
                     'error': 'Amount must be between $5 and $1,000'
                 }, status=status.HTTP_400_BAD_REQUEST)
-                
-            # For one-time purchases without a plan, create the price on-the-fly
+
             credits = amount  # 1:1 ratio
             price = stripe_service.create_price(
                 unit_amount=int(amount * 100),
-                metadata={
-                    'credits': str(credits)
-                }
+                metadata={'credits': str(credits)}
             )
-            price_id = price.id
-            
-        # Create checkout session
-        metadata = {
-            'user_id': str(request.user.id),
-            'credits': str(credits)
-        }
-        
-        line_items = [
-            {
-                'price': price_id,
-                'quantity': 1,
+
+            line_items = [{'price': price.id, 'quantity': 1}]
+            metadata = {
+                'user_id': str(request.user.id),
+                'credits': str(credits),
             }
-        ]
-        
-        checkout_session = stripe_service.create_checkout_session(
-            line_items=line_items,
-            metadata=metadata,
-            success_url=success_url,
-            cancel_url=cancel_url
-        )
-        
+
+            success_url_with_session = f"{success_url}?success=true&session_id={{CHECKOUT_SESSION_ID}}"
+
+            # Optionally attach customer for on-demand too
+            customer_id = payment_method_service.get_stripe_customer_id(request.user)
+
+            checkout_session = stripe_service.create_checkout_session(
+                line_items=line_items,
+                metadata=metadata,
+                success_url=success_url_with_session,
+                cancel_url=cancel_url,
+                mode='payment',
+                customer=customer_id if customer_id else None,
+            )
+
         return Response({
             'session_id': checkout_session.id,
             'checkout_url': checkout_session.url
         })
-        
+
     except ValueError:
         return Response({
             'error': 'Invalid amount format'
         }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error creating checkout session: {str(e)}")
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_portal_session(request):
+    """Create a Stripe Billing Portal session for subscription management."""
+    try:
+        customer_id = payment_method_service.get_stripe_customer_id(request.user)
+        if not customer_id:
+            return Response({
+                'error': 'No Stripe customer found. Please subscribe to a plan first.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return_url = request.data.get('return_url', f"{settings.FRONTEND_URL}/payments/pricing")
+
+        portal_session = stripe_service.create_portal_session(customer_id, return_url)
+        return Response({
+            'url': portal_session.url
+        })
+
+    except Exception as e:
+        logger.error(f"Error creating portal session: {str(e)}")
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -590,11 +645,19 @@ def get_session_status(request):
         
         # Check if payment succeeded
         if session.payment_status == 'paid':
-            # Find or create the transaction
+            # Subscription sessions are handled by webhooks, just confirm success
+            if session.mode == 'subscription':
+                return Response({
+                    'status': 'complete',
+                    'payment_status': session.payment_status,
+                    'mode': session.mode,
+                    'credits_added': 0,
+                })
+
+            # One-time payment: find or create the transaction and add credits
             transaction = transaction_service.get_transaction_by_checkout_session(session_id)
-            
+
             if not transaction:
-                # Create transaction record
                 credits = float(session.metadata.get('credits', 0))
                 transaction = transaction_service.create_purchase_transaction(
                     request.user,
@@ -602,19 +665,19 @@ def get_session_status(request):
                     stripe_checkout_session_id=session_id,
                     description=f'Purchase of {credits} credits via Checkout'
                 )
-                
-                # Add credits to user's balance
                 credit_service.add_credits(request.user, credits, transaction)
-            
+
             return Response({
                 'status': 'complete',
                 'payment_status': session.payment_status,
+                'mode': session.mode,
                 'credits_added': float(transaction.amount)
             })
-            
+
         return Response({
             'status': 'pending',
-            'payment_status': session.payment_status
+            'payment_status': session.payment_status,
+            'mode': session.mode,
         })
         
     except stripe.error.StripeError as e:

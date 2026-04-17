@@ -172,6 +172,100 @@ class StripeService:
             logger.error(f"Error attaching payment method: {str(e)}")
             raise
     
+    def create_checkout_session(self, line_items: list, metadata: Dict[str, str],
+                                success_url: str, cancel_url: str,
+                                mode: str = 'payment', customer: Optional[str] = None) -> Any:
+        """
+        Create a Stripe Checkout Session.
+
+        Args:
+            line_items: List of line item dicts with price and quantity
+            metadata: Session metadata
+            success_url: URL to redirect on success
+            cancel_url: URL to redirect on cancel
+            mode: 'payment' for one-time, 'subscription' for recurring
+            customer: Stripe customer ID (required for subscription mode)
+        """
+        try:
+            params = {
+                'line_items': line_items,
+                'metadata': metadata,
+                'success_url': success_url,
+                'cancel_url': cancel_url,
+                'mode': mode,
+            }
+            if customer:
+                params['customer'] = customer
+
+            session = stripe.checkout.Session.create(**params)
+            return session
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error creating checkout session: {str(e)}")
+            raise
+
+    def create_price(self, unit_amount: int, metadata: Optional[Dict[str, str]] = None,
+                     currency: str = 'usd') -> Any:
+        """
+        Create a one-time Stripe Price on the fly (for on-demand purchases).
+
+        Args:
+            unit_amount: Price in cents
+            metadata: Additional metadata
+            currency: Currency code
+        """
+        try:
+            price = stripe.Price.create(
+                unit_amount=unit_amount,
+                currency=currency,
+                product_data={'name': 'Imagi Credits'},
+                metadata=metadata or {},
+            )
+            return price
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error creating price: {str(e)}")
+            raise
+
+    def get_session_status(self, session_id: str) -> Any:
+        """
+        Retrieve a Checkout Session by ID.
+
+        Args:
+            session_id: The Stripe Checkout Session ID
+        """
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            return session
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error retrieving session: {str(e)}")
+            raise
+
+    def list_plans(self) -> list:
+        """List active recurring prices."""
+        try:
+            prices = stripe.Price.list(active=True, type='recurring')
+            return prices.data
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error listing plans: {str(e)}")
+            raise
+
+    def create_portal_session(self, customer_id: str, return_url: str) -> Any:
+        """
+        Create a Stripe Billing Portal session for subscription management.
+
+        Args:
+            customer_id: The Stripe customer ID
+            return_url: URL to redirect after portal session
+        """
+        try:
+            portal_session = stripe.billing_portal.Session.create(
+                customer=customer_id,
+                return_url=return_url,
+            )
+            return portal_session
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error creating portal session: {str(e)}")
+            raise
+
     def verify_webhook_event(self, payload: bytes, signature: str, webhook_secret: str) -> Dict[str, Any]:
         """
         Verify a webhook event from Stripe.

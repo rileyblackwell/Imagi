@@ -16,7 +16,7 @@
           gradient-type="minimal"
           text-style
         >
-          Products
+          Product
           
           <template #menu>
             <router-link
@@ -30,25 +30,18 @@
           </template>
         </HomeNavbarDropdownButton>
 
-        <!-- Purchase Credits Button - Only shown when authenticated -->
+        <!-- Pricing Button - Only shown when authenticated -->
         <HomeNavbarButton
           v-if="isAuthenticated"
-          to="/payments/checkout"
+          to="/payments/pricing"
           variant="primary"
           size="base"
           gradient-type="minimal"
           text-style
         >
-          Purchase AI Credits
+          Pricing
         </HomeNavbarButton>
       </div>
-
-      <!-- Overlay for closing dropdown when clicking outside -->
-      <div
-        v-if="isProductsMenuOpen"
-        class="fixed inset-0 z-40"
-        @click="isProductsMenuOpen = false"
-      ></div>
     </template>
 
     <!-- Right side menu -->

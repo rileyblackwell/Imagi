@@ -9,8 +9,9 @@ export interface PaymentIntent {
 }
 
 export interface PaymentData {
-  amount: number
+  amount?: number
   plan_id?: string
+  lookup_key?: string
   currency?: string
 }
 
@@ -44,6 +45,7 @@ export interface SessionResponse {
 export interface SessionStatus {
   status: string
   payment_status?: string
+  mode?: 'payment' | 'subscription'
 }
 
 export interface ErrorMessages {

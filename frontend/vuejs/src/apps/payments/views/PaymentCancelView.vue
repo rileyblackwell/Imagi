@@ -36,7 +36,7 @@
           <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row gap-4 justify-center">
             <router-link 
-              to="/payments/checkout" 
+              to="/payments/pricing" 
               class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
             >
               <i class="fas fa-redo"></i>

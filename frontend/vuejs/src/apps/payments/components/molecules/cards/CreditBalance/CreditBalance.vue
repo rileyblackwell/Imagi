@@ -85,7 +85,7 @@ const refreshBalance = async () => {
 
 // Handle add credits event
 const handleAddCredits = () => {
-  router.push('/payments/checkout')
+  router.push('/payments/pricing')
 }
 
 // Define emits
