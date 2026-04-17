@@ -1,5 +1,5 @@
 <template>
-  <DashboardLayout :storage-key="storageKey" :navigation-items="navigationItems">
+  <DashboardLayout :storage-key="storageKey" :navigation-items="navigationItems" wide>
     <template #sidebar-content="{ isSidebarCollapsed }">
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed"></slot>
     </template>

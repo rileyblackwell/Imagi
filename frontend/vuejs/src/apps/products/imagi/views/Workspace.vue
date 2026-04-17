@@ -536,7 +536,7 @@ async function retryProjectLoad() {
     
     // Set default model if needed
     if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.2') 
+      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.4') 
         || store.availableModels[0];
       if (defaultModel) {
         store.setSelectedModelId(defaultModel.id);
@@ -695,7 +695,7 @@ onMounted(async () => {
         
         // Set default model if not already set
         if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.2') 
+          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.4') 
             || store.availableModels[0];
           if (defaultModel) {
             store.setSelectedModelId(defaultModel.id);

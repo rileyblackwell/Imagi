@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
 
 # Default model for agents
-DEFAULT_MODEL = "gpt-5.2"
+DEFAULT_MODEL = "gpt-5.4"
 
 
 @dataclass
@@ -60,7 +60,7 @@ class ImagiAgentService:
         Initialize the agent service.
         
         Args:
-            model: The OpenAI model to use (default: gpt-5.2)
+            model: The OpenAI model to use (default: gpt-5.4)
         """
         self.model = model
         self._chat_agent = None

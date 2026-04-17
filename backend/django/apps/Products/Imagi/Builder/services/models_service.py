@@ -12,15 +12,16 @@ logger = logging.getLogger(__name__)
 
 # Centralized Model Definitions
 MODELS = {
-    'gpt-5.2': {
-        'id': 'gpt-5.2',
-        'name': 'GPT 5.2',
+    'gpt-5.4': {
+        'id': 'gpt-5.4',
+        'name': 'GPT 5.4',
         'provider': 'openai',
         'type': 'openai',
-        'description': 'OpenAI | GPT 5.2 for chat and building assistance',
+        'description': 'OpenAI | GPT 5.4 for chat and building assistance',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
-        'costPerRequest': 0.04,
+        'input_price_per_m_tokens': 3,
+        'output_price_per_m_tokens': 15,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False
     }
@@ -31,13 +32,18 @@ PROVIDER_CHOICES = [
     ('openai', 'OpenAI'),
 ]
 
-# Generate MODEL_COSTS from the models for backwards compatibility
-MODEL_COSTS = {model_id: model_data['costPerRequest'] for model_id, model_data in MODELS.items()}
+# Generate MODEL_COSTS from the models (token-based pricing: per million tokens)
+MODEL_COSTS = {
+    model_id: {
+        'input': model_data['input_price_per_m_tokens'],
+        'output': model_data['output_price_per_m_tokens'],
+    }
+    for model_id, model_data in MODELS.items()
+}
 
-# Default model costs for unknown models based on common prefixes
+# Default model costs for unknown models (per million tokens)
 DEFAULT_MODEL_COSTS = {
-    'gpt-5.2': 0.04,
-    'gpt-5': 0.04
+    'gpt-5.4': {'input': 3, 'output': 15},
 }
 
 def get_model_choices() -> List[Tuple[str, str]]:
@@ -89,29 +95,25 @@ def model_supports_temperature(model_id: str) -> bool:
         return True
     return model.get('supports_temperature', True)
 
-def get_model_cost(model_id: str) -> float:
+def get_model_cost(model_id: str) -> Dict[str, float]:
     """
-    Get the cost for a specific model.
-    
+    Get the token-based cost for a specific model.
+
     Args:
         model_id: The model ID to get the cost for
-        
+
     Returns:
-        float: The cost of the model in dollars
+        dict: {'input': price_per_million_input_tokens, 'output': price_per_million_output_tokens}
     """
-    # Get the exact amount from MODEL_COSTS using the model ID directly
     amount = MODEL_COSTS.get(model_id)
-    
-    # If model not found in MODEL_COSTS, use pattern matching
+
     if amount is None:
         model_lower = model_id.lower()
-        
-        if model_lower == 'gpt-5.2' or model_lower.startswith('gpt-5'):
-            amount = 0.04
+        if model_lower.startswith('gpt-5'):
+            amount = {'input': 3, 'output': 15}
         else:
-            # Default fallback
-            amount = 0.04
-            
+            amount = {'input': 3, 'output': 15}
+
     return amount
 
 def get_available_models() -> list:
@@ -130,7 +132,7 @@ def get_default_model_id() -> str:
     Returns:
         str: The default model ID
     """
-    return 'gpt-5.2'
+    return 'gpt-5.4'
 
 def get_model_display_name(model_id: str) -> str:
     """

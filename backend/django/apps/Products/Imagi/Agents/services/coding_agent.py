@@ -22,7 +22,7 @@ from apps.Products.Imagi.Builder.services.directory_service import DirectoryServ
 logger = logging.getLogger(__name__)
 
 # Default model
-DEFAULT_MODEL = "gpt-5.2"
+DEFAULT_MODEL = "gpt-5.4"
 
 # Coding agent system instructions
 CODING_AGENT_INSTRUCTIONS = """You are Imagi, an expert AI coding assistant for building web applications. You can both chat with users AND directly edit files in their project.

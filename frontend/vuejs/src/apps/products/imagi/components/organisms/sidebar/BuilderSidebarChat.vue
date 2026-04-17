@@ -23,41 +23,47 @@
             @keydown.enter.shift.exact="() => {}"
             @input="autoResizeTextarea"
             :disabled="store.isProcessing"
-            rows="3"
+            rows="5"
             class="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/30 text-sm px-3 pr-12 py-3 pb-10 resize-none rounded-lg leading-relaxed"
-            style="min-height: 80px; max-height: 200px;"
+            style="min-height: 130px; max-height: 280px;"
           ></textarea>
           
           <!-- Mode and Model Dropdowns (Bottom Left inside input) -->
-          <div class="absolute left-2 bottom-2 flex items-center gap-2">
+          <div class="absolute left-2 bottom-2 flex items-center gap-1.5">
             <!-- Mode Dropdown -->
-            <select
-              :value="store.mode"
-              @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
-              class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
-            >
-              <option value="chat">Chat</option>
-              <option value="agent">Agent</option>
-            </select>
-            
-            <!-- Model Dropdown -->
-            <select
-              :value="store.selectedModelId"
-              @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
-              class="dropdown-select text-xs bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-lg px-3 py-1.5 pr-8 cursor-pointer appearance-none shadow-sm font-medium"
-            >
-              <option 
-                v-for="model in modelOptions" 
-                :key="model.id" 
-                :value="model.id"
+            <div class="dropdown-wrapper">
+              <i :class="['dropdown-icon fas', store.mode === 'agent' ? 'fa-robot' : 'fa-comment-dots']"></i>
+              <select
+                :value="store.mode"
+                @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
+                class="dropdown-select dropdown-select--with-icon text-xs"
               >
-                {{ model.name }}
-              </option>
-            </select>
+                <option value="chat">Chat</option>
+                <option value="agent">Agent</option>
+              </select>
+            </div>
+
+            <!-- Model Dropdown -->
+            <div class="dropdown-wrapper">
+              <i class="fas fa-microchip dropdown-icon"></i>
+              <select
+                :value="store.selectedModelId"
+                @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
+                class="dropdown-select dropdown-select--with-icon text-xs"
+              >
+                <option
+                  v-for="model in modelOptions"
+                  :key="model.id"
+                  :value="model.id"
+                >
+                  {{ model.name }}
+                </option>
+              </select>
+            </div>
           </div>
           
           <!-- Send Button -->
-          <div class="absolute right-2 bottom-2">
+          <div class="absolute right-3 bottom-3">
             <button
               @click="handlePrompt"
               :disabled="!prompt.trim() || store.isProcessing"
@@ -98,14 +104,14 @@ const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 
 const modelOptions = computed<AIModel[]>(() => {
-  const available = (store.availableModels || []).filter(model => model.id === 'gpt-5.2')
+  const available = (store.availableModels || []).filter(model => model.id === 'gpt-5.4')
   if (available.length > 0) {
     return available
   }
   return [
     {
-      id: 'gpt-5.2',
-      name: 'GPT 5.2',
+      id: 'gpt-5.4',
+      name: 'GPT 5.4',
       provider: 'openai'
     } as AIModel
   ]
@@ -176,7 +182,7 @@ function autoResizeTextarea() {
   if (!promptTextarea.value) return
   promptTextarea.value.style.height = 'auto'
   const scrollHeight = promptTextarea.value.scrollHeight
-  const maxHeight = 200
+  const maxHeight = 280
   promptTextarea.value.style.height = `${Math.min(scrollHeight, maxHeight)}px`
 }
 
@@ -188,7 +194,7 @@ async function handlePrompt() {
   
   // Reset textarea height
   if (promptTextarea.value) {
-    promptTextarea.value.style.height = '80px'
+    promptTextarea.value.style.height = '130px'
   }
   
   await props.onPromptSubmit(promptText)
@@ -209,64 +215,110 @@ async function handleModeSwitch(mode: BuilderMode) {
 </script>
 
 <style scoped>
-/* Dropdown Select Styling - Remove ALL visual effects */
+/* Dropdown wrapper provides room for leading icon */
+.dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropdown-icon {
+  position: absolute;
+  left: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6875rem;
+  color: rgba(107, 114, 128, 0.8);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.dark .dropdown-icon {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dropdown-wrapper:hover .dropdown-icon {
+  color: rgb(55, 65, 81);
+}
+
+.dark .dropdown-wrapper:hover .dropdown-icon {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Enhanced dropdown select */
 .dropdown-select {
-  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(107,114,128,0.7)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(107,114,128,0.8)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
   background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  background-size: 1em;
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-offset: 0 !important;
-  -webkit-tap-highlight-color: transparent !important;
-  transition: none !important;
+  background-position: right 0.55rem center;
+  background-size: 0.85em;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(209, 213, 219, 0.8);
+  color: rgb(55, 65, 81);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.18s ease;
+  outline: none;
+}
+
+.dropdown-select--with-icon {
+  padding-left: 1.65rem;
 }
 
 .dark .dropdown-select {
-  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(255,255,255,0.5)%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-  transition: none !important;
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(255,255,255,0.6)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Remove ALL outlines, focus rings, hover effects, and click effects */
-.dropdown-select:hover,
+.dropdown-select:hover {
+  background-color: rgba(255, 255, 255, 1);
+  border-color: rgba(156, 163, 175, 0.9);
+  color: rgb(17, 24, 39);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.dark .dropdown-select:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 .dropdown-select:focus,
-.dropdown-select:focus-visible,
-.dropdown-select:active,
-.dropdown-select:focus-within,
-.dropdown-select:active:hover {
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-  -webkit-box-shadow: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  border-color: rgb(229 231 235) !important;
-  background-color: rgb(249 250 251) !important;
-  transition: none !important;
+.dropdown-select:focus-visible {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  outline: none;
 }
 
-.dark .dropdown-select:hover,
 .dark .dropdown-select:focus,
-.dark .dropdown-select:focus-visible,
-.dark .dropdown-select:active,
-.dark .dropdown-select:focus-within,
-.dark .dropdown-select:active:hover {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  background-color: rgba(255, 255, 255, 0.03) !important;
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-color: transparent !important;
-  transition: none !important;
+.dark .dropdown-select:focus-visible {
+  border-color: rgba(129, 140, 248, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(129, 140, 248, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
+
 
 /* Style dropdown options to match the page */
 .dropdown-select option {

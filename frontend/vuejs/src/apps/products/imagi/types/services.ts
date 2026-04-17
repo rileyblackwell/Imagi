@@ -22,7 +22,8 @@ export interface AIModel {
   features?: ('chat' | 'code' | 'analysis')[];
   default?: boolean;
   description?: string;
-  costPerRequest?: number;
+  inputPricePerMTokens?: number;
+  outputPricePerMTokens?: number;
   capabilities?: string[];
   maxTokens?: number;
   type?: 'openai' | 'anthropic';
@@ -55,7 +56,7 @@ export interface UndoResponse {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'gpt-5.2': {
+  'gpt-5.4': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -69,16 +70,17 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
 // List of standard models
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gpt-5.2',
-    name: 'GPT 5.2',
+    id: 'gpt-5.4',
+    name: 'GPT 5.4',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | GPT 5.2 for chat and building assistance',
+    description: 'OpenAI | GPT 5.4 for chat and building assistance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
-    costPerRequest: 0.04,
+    inputPricePerMTokens: 3,
+    outputPricePerMTokens: 15,
     api_version: 'responses'
   }
 ];

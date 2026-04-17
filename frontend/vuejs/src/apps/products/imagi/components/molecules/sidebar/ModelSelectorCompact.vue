@@ -56,7 +56,7 @@
               
               <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 whitespace-nowrap text-violet-700 dark:text-violet-300/80">
-                  ${{ formatPrice(model.costPerRequest) }}
+                  {{ formatTokenPricing(model) }}
                 </span>
                 <span v-if="modelId === model.id" class="text-gray-700 dark:text-white/70 w-3"><i class="fas fa-check text-[10px]"></i></span>
               </div>
@@ -127,9 +127,13 @@ const handleModelSelect = async (modelId: string) => {
   }
 }
 
-const formatPrice = (price: number | undefined): string => {
-  if (price === undefined || price === null) return '0.00'
-  return price >= 0.01 ? price.toFixed(2) : price.toFixed(3)
+const formatTokenPricing = (model: AIModel | null | undefined): string => {
+  if (!model) return ''
+  const input = model.inputPricePerMTokens
+  const output = model.outputPricePerMTokens
+  if (input === undefined || output === undefined) return ''
+  const fmt = (n: number) => Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
+  return `${fmt(input)}/M in · ${fmt(output)}/M out`
 }
 
 const computeDropdownPlacement = () => {

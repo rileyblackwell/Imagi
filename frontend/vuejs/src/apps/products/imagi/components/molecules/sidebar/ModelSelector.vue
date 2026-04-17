@@ -26,7 +26,7 @@
           <!-- Compact Model Info -->
           <div class="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
             <span class="text-xs font-medium text-white/70 truncate">{{ selectedModel.name }}</span>
-            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300/80 shrink-0 whitespace-nowrap">${{ formatPrice(selectedModel.costPerRequest) }}</span>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300/80 shrink-0 whitespace-nowrap">{{ formatTokenPricing(selectedModel) }}</span>
           </div>
         </div>
         <div v-else class="flex items-center gap-2">
@@ -60,7 +60,7 @@
           <!-- Selected Model Info - compact -->
           <div class="flex items-center gap-2.5 text-left flex-1 min-w-0 overflow-hidden">
             <span class="text-sm font-medium text-white/70 group-hover:text-white/90 transition-colors truncate">{{ selectedModel.name }}</span>
-            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300/80 border border-violet-500/20 shrink-0 whitespace-nowrap">${{ formatPrice(selectedModel.costPerRequest) }}</span>
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300/80 border border-violet-500/20 shrink-0 whitespace-nowrap">{{ formatTokenPricing(selectedModel) }}</span>
           </div>
         </div>
         <div v-else class="relative flex items-center gap-2.5">
@@ -116,7 +116,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
               <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 whitespace-nowrap"
                 :class="modelId === model.id ? 'text-violet-300' : 'text-violet-300/80'">
-                ${{ formatPrice(model.costPerRequest) }}
+                {{ formatTokenPricing(model) }}
               </span>
               <span v-if="modelId === model.id" class="text-violet-400 w-3"><i class="fas fa-check text-[10px]"></i></span>
             </div>
@@ -173,7 +173,7 @@
               <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 whitespace-nowrap"
                   :class="modelId === model.id ? 'text-violet-300' : 'text-violet-300/80'">
-                  ${{ formatPrice(model.costPerRequest) }}
+                  {{ formatTokenPricing(model) }}
                 </span>
                 <span v-if="modelId === model.id" class="text-violet-400 w-3"><i class="fas fa-check text-[10px]"></i></span>
               </div>
@@ -320,10 +320,14 @@ const handleModelSelect = async (modelId: string) => {
 import { getModelTypeIcon, getModelTypeClass } from '@/apps/products/imagi/utils/modelIconUtils'
 
 
-// Format price for display
-const formatPrice = (price: number | undefined): string => {
-  if (price === undefined || price === null) return '0.00';
-  return price >= 0.01 ? price.toFixed(2) : price.toFixed(3);
+// Format token-based pricing for display (e.g. "$3/M in · $15/M out")
+const formatTokenPricing = (model: AIModel | null | undefined): string => {
+  if (!model) return ''
+  const input = model.inputPricePerMTokens
+  const output = model.outputPricePerMTokens
+  if (input === undefined || output === undefined) return ''
+  const fmt = (n: number) => Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`
+  return `${fmt(input)}/M in · ${fmt(output)}/M out`
 }
 
 // Fetch models from API on mount
