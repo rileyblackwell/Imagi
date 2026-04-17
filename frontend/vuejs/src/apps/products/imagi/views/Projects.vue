@@ -21,42 +21,37 @@
     />
     
     <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
+    <div class="bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500 min-h-screen">
       <!-- Subtle background matching home page -->
-      <div class="fixed inset-0 pointer-events-none">
+      <div class="absolute inset-0 pointer-events-none">
         <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
+        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
              style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
       </div>
 
-      <!-- Main Content -->
-      <main class="relative z-10">
-        <!-- Hero Section -->
-        <section class="relative py-20 sm:py-24 md:py-28 px-6 sm:px-8 lg:px-12">
-          <div class="max-w-4xl mx-auto text-center">
-            <!-- Page title -->
-            <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
-              Your Projects
-            </h1>
-            
-            <!-- Subtitle -->
-            <p class="text-lg sm:text-xl text-gray-700 dark:text-white/80 tracking-wide font-medium mb-6 max-w-2xl mx-auto transition-colors duration-300">
-              Create new web applications or continue working on existing projects. Build, test, and launch with AI-powered tools.
-            </p>
-          </div>
+      <!-- Main Content (pt-20 clears the fixed h-14 navbar) -->
+      <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-8 min-h-screen">
+        <!-- Compact Hero -->
+        <section class="flex-shrink-0 max-w-6xl mx-auto w-full text-center mb-6 md:mb-8">
+          <h1 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight transition-colors duration-300">
+            Your Projects
+          </h1>
+          <p class="text-base text-gray-700 dark:text-white/80 transition-colors duration-300">
+            Create new web applications or continue working on existing projects.
+          </p>
         </section>
 
         <!-- Authentication Error -->
-        <div v-if="showAuthError" class="px-6 sm:px-8 lg:px-12 pb-24">
-          <div class="max-w-2xl mx-auto">
+        <div v-if="showAuthError" class="flex-1 flex items-center justify-center">
+          <div class="max-w-2xl mx-auto w-full">
             <div class="relative p-10 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md text-center transition-colors duration-300">
               <div class="w-16 h-16 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-lock text-2xl text-gray-600 dark:text-gray-600"></i>
               </div>
               <h2 class="text-2xl font-semibold text-gray-900 dark:text-black mb-3 transition-colors duration-300">Authentication Required</h2>
               <p class="text-gray-600 dark:text-gray-700 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
-              <router-link 
-                to="/auth/signin" 
+              <router-link
+                to="/auth/signin"
                 class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
               >
                 <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
@@ -68,201 +63,195 @@
           </div>
         </div>
 
-        <!-- Main Project Sections -->
-        <div v-else class="px-6 sm:px-8 lg:px-12 pb-24">
-          <div class="max-w-6xl mx-auto">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              <!-- Create New Project Card -->
-              <div class="relative">
-                <div class="h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md transition-colors duration-300">
-                  
-                  <!-- Section header -->
-                  <div class="mb-6">
-                    <p class="text-sm font-medium text-gray-600 dark:text-gray-600 uppercase tracking-widest mb-3 transition-colors duration-300">New Project</p>
-                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-black mb-2 transition-colors duration-300">Create a Project</h2>
-                    <p class="text-gray-600 dark:text-gray-700 transition-colors duration-300">Start building a new web application with AI assistance.</p>
-                  </div>
-                  
-                  <!-- Create Form -->
-                  <div class="space-y-5">
-                    <!-- Project Name Input -->
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-700 mb-2 transition-colors duration-300">Project Name</label>
-                      <input
-                        v-model="newProjectName"
-                        type="text"
-                        placeholder="Enter project name..."
-                        class="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style="outline: none !important;"
-                        :disabled="isCreating"
-                      >
-                    </div>
-                    
-                    <!-- Project Description Input -->
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-700 mb-2 transition-colors duration-300">
-                        Description <span class="text-gray-400 dark:text-gray-500">(optional)</span>
-                      </label>
-                      <textarea
-                        v-model="newProjectDescription"
-                        placeholder="Brief description of your project..."
-                        class="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                        style="outline: none !important;"
-                        :disabled="isCreating"
-                        rows="3"
-                      ></textarea>
-                    </div>
-                    
-                    <!-- Create Button -->
-                    <div class="pt-2">
-                      <button
-                        @click="createProject"
-                        :disabled="!newProjectName?.trim() || isCreating"
-                        class="btn-3d group relative w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
-                        <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
-                        <template v-if="isCreating">
-                          <div class="relative w-5 h-5 border-2 border-white/30 border-t-white dark:border-gray-900/30 dark:border-t-gray-900 rounded-full animate-spin"></div>
-                          <span class="relative">Creating...</span>
-                        </template>
-                        <template v-else>
-                          <span class="relative">Create Project</span>
-                          <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                          </svg>
-                        </template>
-                      </button>
-                    </div>
-                  </div>
+        <!-- Main 2-column layout -->
+        <div v-else class="flex-1 min-h-0 max-w-6xl mx-auto w-full">
+          <div class="h-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Section A: Create a Project -->
+            <section class="min-h-0">
+              <div class="h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md transition-colors duration-300 flex flex-col">
+
+                <!-- Section header -->
+                <div class="mb-5 flex-shrink-0">
+                  <p class="text-sm font-medium text-gray-600 dark:text-gray-600 uppercase tracking-widest mb-2 transition-colors duration-300">New Project</p>
+                  <h2 class="text-2xl font-semibold text-gray-900 dark:text-black mb-2 transition-colors duration-300">Create a Project</h2>
+                  <p class="text-sm text-gray-600 dark:text-gray-700 transition-colors duration-300">Start building a new web application with AI assistance.</p>
                 </div>
-              </div>
 
-              <!-- Existing Projects Card -->
-              <div class="relative">
-                <div class="h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md transition-colors duration-300 flex flex-col">
-                  
-                  <!-- Section header -->
-                  <div class="mb-6">
-                    <p class="text-sm font-medium text-gray-600 dark:text-gray-600 uppercase tracking-widest mb-3 transition-colors duration-300">Your Projects</p>
-                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-black mb-2 transition-colors duration-300">Project Library</h2>
-                    <p class="text-gray-600 dark:text-gray-700 transition-colors duration-300">Continue working on your existing applications.</p>
-                  </div>
-
-                  <!-- Search Input -->
-                  <div class="mb-6">
-                    <div class="relative">
-                      <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"></i>
-                      <input
-                        v-model="searchQuery"
-                        type="text"
-                        placeholder="Search projects..."
-                        class="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300"
-                        style="outline: none !important;"
-                      >
-                    </div>
-                  </div>
-
-                  <!-- Inline Delete Success Notification -->
-                  <Transition
-                    enter-active-class="transition-all duration-300 ease-out"
-                    enter-from-class="opacity-0 -translate-y-2"
-                    enter-to-class="opacity-100 translate-y-0"
-                    leave-active-class="transition-all duration-200 ease-in"
-                    leave-from-class="opacity-100 translate-y-0"
-                    leave-to-class="opacity-0 -translate-y-2"
-                  >
-                    <div 
-                      v-if="deletedProjectMessage"
-                      class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3"
+                <!-- Create Form -->
+                <div class="flex-1 flex flex-col space-y-4 min-h-0">
+                  <!-- Project Name Input -->
+                  <div class="flex-shrink-0">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-700 mb-2 transition-colors duration-300">Project Name</label>
+                    <input
+                      v-model="newProjectName"
+                      type="text"
+                      placeholder="Enter project name..."
+                      class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="outline: none !important;"
+                      :disabled="isCreating"
                     >
-                      <div class="w-8 h-8 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-trash-alt text-red-600 text-sm"></i>
-                      </div>
-                      <p class="flex-1 text-sm font-medium text-gray-900">{{ deletedProjectMessage }}</p>
-                      <button
-                        @click="clearDeletedProjectMessage"
-                        class="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 transition-all duration-200"
-                        aria-label="Dismiss"
-                      >
-                        <i class="fas fa-times text-xs"></i>
-                      </button>
-                    </div>
-                  </Transition>
+                  </div>
 
-                  <!-- Content Section -->
-                  <div class="flex-1 flex flex-col overflow-hidden">
-                    <!-- Loading State -->
-                    <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <div class="w-6 h-6 border-2 border-gray-300 dark:border-gray-400 border-t-gray-600 dark:border-t-gray-600 rounded-full animate-spin"></div>
-                      </div>
-                      <p class="text-gray-600 dark:text-gray-600 text-sm transition-colors duration-300">Loading your projects...</p>
-                    </div>
+                  <!-- Project Description Input -->
+                  <div class="flex-1 flex flex-col min-h-0">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-700 mb-2 flex-shrink-0 transition-colors duration-300">
+                      Description <span class="text-gray-400 dark:text-gray-500">(optional)</span>
+                    </label>
+                    <textarea
+                      v-model="newProjectDescription"
+                      placeholder="Brief description of your project..."
+                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      style="outline: none !important;"
+                      :disabled="isCreating"
+                    ></textarea>
+                  </div>
 
-                    <!-- Error State -->
-                    <div v-else-if="error" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-red-50 dark:bg-red-50 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-exclamation-triangle text-red-500 dark:text-red-500 text-xl"></i>
-                      </div>
-                      <p class="text-gray-600 dark:text-gray-600 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
-                      <div class="flex gap-3">
-                        <button
-                          @click="retryFetch"
-                          class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-200 border border-gray-200 dark:border-gray-300 rounded-xl text-gray-900 dark:text-gray-900 font-medium transition-all duration-300"
-                        >
-                          <i class="fas fa-redo text-sm"></i>
-                          <span>Try Again</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- No Search Results -->
-                    <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-search text-gray-400 dark:text-gray-500 text-xl"></i>
-                      </div>
-                      <h3 class="text-lg font-medium text-gray-900 dark:text-black mb-1 transition-colors duration-300">No matching projects</h3>
-                      <p class="text-gray-600 dark:text-gray-600 text-center text-sm transition-colors duration-300">No projects found matching "{{ searchQuery }}"</p>
-                    </div>
-
-                    <!-- Empty State -->
-                    <div v-else-if="!projects.length" class="flex flex-col items-center justify-center py-12">
-                      <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-folder-open text-gray-400 dark:text-gray-500 text-xl"></i>
-                      </div>
-                      <h3 class="text-lg font-medium text-gray-900 dark:text-black mb-1 transition-colors duration-300">No projects yet</h3>
-                      <p class="text-gray-600 dark:text-gray-600 text-center mb-4 text-sm transition-colors duration-300">Create your first project to start building</p>
-                      <div class="flex items-center text-gray-500 dark:text-gray-600 text-sm">
-                        <i class="fas fa-arrow-left mr-2 animate-pulse"></i>
-                        <span>Get started with a new project</span>
-                      </div>
-                    </div>
-
-                    <!-- Projects Display -->
-                    <div v-else-if="displayedProjects.length > 0" class="flex-1 flex flex-col overflow-hidden">
-                      <!-- Project count -->
-                      <div class="mb-4">
-                        <span class="text-sm font-medium text-gray-600 dark:text-gray-600 transition-colors duration-300">
-                          {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
-                        </span>
-                      </div>
-                      
-                      <!-- Scrollable Project Cards -->
-                      <div class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                        <ProjectCard
-                          v-for="project in displayedProjects"
-                          :key="project.id"
-                          :project="project"
-                          @delete="confirmDelete"
-                        />
-                      </div>
-                    </div>
+                  <!-- Create Button -->
+                  <div class="flex-shrink-0 pt-1">
+                    <button
+                      @click="createProject"
+                      :disabled="!newProjectName?.trim() || isCreating"
+                      class="btn-3d group relative w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-base transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
+                      <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
+                      <template v-if="isCreating">
+                        <div class="relative w-5 h-5 border-2 border-white/30 border-t-white dark:border-gray-900/30 dark:border-t-gray-900 rounded-full animate-spin"></div>
+                        <span class="relative">Creating...</span>
+                      </template>
+                      <template v-else>
+                        <span class="relative">Create Project</span>
+                        <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </template>
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
+
+            <!-- Section B: Project Library -->
+            <section class="min-h-0">
+              <div class="h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md transition-colors duration-300 flex flex-col">
+
+                <!-- Section header -->
+                <div class="mb-5 flex-shrink-0">
+                  <p class="text-sm font-medium text-gray-600 dark:text-gray-600 uppercase tracking-widest mb-2 transition-colors duration-300">Your Projects</p>
+                  <div class="flex items-end justify-between gap-3 mb-2">
+                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-black transition-colors duration-300">Project Library</h2>
+                    <span
+                      v-if="!isLoading && !error && displayedProjects.length > 0"
+                      class="text-xs font-medium text-gray-500 dark:text-gray-600 pb-1 transition-colors duration-300"
+                    >
+                      {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
+                    </span>
+                  </div>
+                  <p class="text-sm text-gray-600 dark:text-gray-700 transition-colors duration-300">Continue working on your existing applications.</p>
+                </div>
+
+                <!-- Search Input -->
+                <div class="mb-4 flex-shrink-0">
+                  <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm"></i>
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      placeholder="Search projects..."
+                      class="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 text-sm transition-all duration-300"
+                      style="outline: none !important;"
+                    >
+                  </div>
+                </div>
+
+                <!-- Inline Delete Success Notification -->
+                <Transition
+                  enter-active-class="transition-all duration-300 ease-out"
+                  enter-from-class="opacity-0 -translate-y-2"
+                  enter-to-class="opacity-100 translate-y-0"
+                  leave-active-class="transition-all duration-200 ease-in"
+                  leave-from-class="opacity-100 translate-y-0"
+                  leave-to-class="opacity-0 -translate-y-2"
+                >
+                  <div
+                    v-if="deletedProjectMessage"
+                    class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3 flex-shrink-0"
+                  >
+                    <div class="w-8 h-8 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center flex-shrink-0">
+                      <i class="fas fa-trash-alt text-red-600 text-sm"></i>
+                    </div>
+                    <p class="flex-1 text-sm font-medium text-gray-900">{{ deletedProjectMessage }}</p>
+                    <button
+                      @click="clearDeletedProjectMessage"
+                      class="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 transition-all duration-200"
+                      aria-label="Dismiss"
+                    >
+                      <i class="fas fa-times text-xs"></i>
+                    </button>
+                  </div>
+                </Transition>
+
+                <!-- Content Section -->
+                <div class="flex-1 flex flex-col min-h-0">
+                  <!-- Loading State -->
+                  <div v-if="isLoading" class="flex-1 flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <div class="w-6 h-6 border-2 border-gray-300 dark:border-gray-400 border-t-gray-600 dark:border-t-gray-600 rounded-full animate-spin"></div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-600 text-sm transition-colors duration-300">Loading your projects...</p>
+                  </div>
+
+                  <!-- Error State -->
+                  <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 bg-red-50 dark:bg-red-50 rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-exclamation-triangle text-red-500 dark:text-red-500 text-xl"></i>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-600 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
+                    <button
+                      @click="retryFetch"
+                      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-200 border border-gray-200 dark:border-gray-300 rounded-xl text-gray-900 dark:text-gray-900 font-medium text-sm transition-all duration-300"
+                    >
+                      <i class="fas fa-redo text-sm"></i>
+                      <span>Try Again</span>
+                    </button>
+                  </div>
+
+                  <!-- No Search Results -->
+                  <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex-1 flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-search text-gray-400 dark:text-gray-500 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-black mb-1 transition-colors duration-300">No matching projects</h3>
+                    <p class="text-gray-600 dark:text-gray-600 text-center text-sm transition-colors duration-300">No projects found matching "{{ searchQuery }}"</p>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-else-if="!projects.length" class="flex-1 flex flex-col items-center justify-center">
+                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-folder-open text-gray-400 dark:text-gray-500 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-black mb-1 transition-colors duration-300">No projects yet</h3>
+                    <p class="text-gray-600 dark:text-gray-600 text-center mb-4 text-sm transition-colors duration-300">Create your first project to start building</p>
+                    <div class="flex items-center text-gray-500 dark:text-gray-600 text-sm">
+                      <i class="fas fa-arrow-left mr-2 animate-pulse"></i>
+                      <span>Use the form to get started</span>
+                    </div>
+                  </div>
+
+                  <!-- Scrollable Project List -->
+                  <div v-else-if="displayedProjects.length > 0" class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar min-h-0">
+                    <ProjectCard
+                      v-for="project in displayedProjects"
+                      :key="project.id"
+                      :project="project"
+                      @delete="confirmDelete"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
           </div>
         </div>
       </main>

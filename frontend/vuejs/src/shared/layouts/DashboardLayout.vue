@@ -6,7 +6,7 @@
       <aside 
         class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 shadow-xl" 
         :class="[
-          isSidebarCollapsed ? 'w-16 bg-white dark:bg-[#0a0a0a]' : 'w-[24rem] bg-white dark:bg-dark-950/95 backdrop-blur-md'
+          isSidebarCollapsed ? 'w-16 bg-white dark:bg-[#0a0a0a]' : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md'
         ]"
       >
         <!-- Logo and Brand -->
@@ -71,12 +71,12 @@
       <!-- Main content -->
       <div 
         class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out" 
-        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-[24rem]']"
+        :class="[isSidebarCollapsed ? 'ml-16' : 'ml-72']"
       >
         <!-- Navbar -->
         <BaseNavbar 
           class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm" 
-          :class="[isSidebarCollapsed ? 'left-16' : 'left-[24rem]']"
+          :class="[isSidebarCollapsed ? 'left-16' : 'left-72']"
         >
           <template #left>
             <!-- Navbar left section -->

@@ -411,7 +411,7 @@ async function handleFileCreate(data: { name: string; type: string; content?: st
     const fileTypeLabel = isView ? 'View' : isComponent ? 'Component' : 'File'
 
     // If a view was created under an app, auto-register it in that app's router
-    const viewInAppRegex = /(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/[^\/]+\/views\/[^\/]+\.vue$/i
+    const viewInAppRegex = /(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/[^/]+\/views\/[^/]+\.vue$/i
     if (pathForMatch && viewInAppRegex.test(pathForMatch)) {
       try {
         await RouterUpdateService.addViewRoute(projectId.value, pathForMatch)

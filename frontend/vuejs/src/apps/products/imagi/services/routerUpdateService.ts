@@ -40,7 +40,7 @@ function injectImport(content: string, importLine: string): string {
 }
 
 function injectRouteRecord(content: string, routeRecord: string, routeName: string): string {
-  if (content.includes(`name: '${routeName}'`) || content.includes(`name: \"${routeName}\"`)) {
+  if (content.includes(`name: '${routeName}'`) || content.includes(`name: "${routeName}"`)) {
     return content
   }
   const startIdx = content.indexOf('const routes')
@@ -65,7 +65,7 @@ export const RouterUpdateService = {
     // Support both root-level and frontend-prefixed paths:
     // - src/apps/<app>/views/<ViewName>.vue
     // - frontend/vuejs/src/apps/<app>/views/<ViewName>.vue
-    const match = viewFilePath.match(/(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/([^\/]+)\/views\/([^\/]+\.vue)$/i)
+    const match = viewFilePath.match(/(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/([^/]+)\/views\/([^/]+\.vue)$/i)
     if (!match) return
     const appName = match[1]
     const viewFileName = match[2]
