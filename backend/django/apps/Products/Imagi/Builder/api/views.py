@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.conf import settings
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 
@@ -232,26 +233,32 @@ class PreviewView(APIView):
             raise NotFound('Project not found')
 
     def get(self, request, project_id):
+        # Preview spawns local Django + Vite dev servers; only viable when DEBUG is on.
+        if not settings.DEBUG:
+            return Response({
+                'success': False,
+                'error': 'Preview server is not available in production.'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         try:
             project = self.get_project(project_id)
-            
+
             preview_service = PreviewService(project)
             result = preview_service.start_preview()
-            
-            # Ensure the response includes preview_url field
+
             response_data = {
                 'success': result.get('success', False),
                 'preview_url': result.get('preview_url'),
                 'message': result.get('message', 'Preview server operation completed')
             }
-            
+
             return Response(response_data)
         except Exception as e:
             logger.error(f"Error starting preview server: {str(e)}")
             return Response({
                 'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'error': 'Preview server failed to start.'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     
     def delete(self, request, project_id):
         try:

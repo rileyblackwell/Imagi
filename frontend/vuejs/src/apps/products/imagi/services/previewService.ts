@@ -16,7 +16,10 @@ export const PreviewService = {
       return {
         previewUrl: response.data.preview_url
       };
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.response?.status === 503) {
+        throw new Error('Preview server failed to start.');
+      }
       throw new Error(`Failed to generate preview: ${this.formatError(error)}`);
     }
   },

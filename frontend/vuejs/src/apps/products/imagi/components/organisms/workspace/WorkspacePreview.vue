@@ -301,10 +301,12 @@ async function loadPreview() {
       syncSelectionFromCurrent()
       iframeKey.value++
     } else {
-      error.value = 'Failed to start preview server.'
+      error.value = 'Preview server failed to start.'
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to start preview server.'
+    // Keep the failure local to this component — never call store.setError, or
+    // the workspace-level error path can navigate the user back to /projects.
+    error.value = e instanceof Error ? e.message : 'Preview server failed to start.'
   } finally {
     isLoading.value = false
   }
