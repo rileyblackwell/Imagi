@@ -15,13 +15,19 @@
           Agents
         </span>
       </div>
-      <button
-        class="flex items-center justify-center w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-gray-700 dark:text-white/80 transition-colors"
-        title="New instance"
-        @click="handleCreate"
-      >
-        <i class="fas fa-plus text-xs"></i>
-      </button>
+      <div class="relative group">
+        <button
+          class="flex items-center justify-center w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-gray-700 dark:text-white/80 transition-colors"
+          @click="handleCreate"
+        >
+          <i class="fas fa-plus text-xs"></i>
+        </button>
+        <div
+          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-gray-900 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-gray-900 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        >
+          New agent instance
+        </div>
+      </div>
     </div>
 
     <!-- Instances list -->

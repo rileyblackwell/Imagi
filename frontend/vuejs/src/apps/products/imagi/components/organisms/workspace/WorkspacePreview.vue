@@ -49,61 +49,63 @@
             <i class="fas fa-home text-sm"></i>
           </button>
 
-          <!-- App selector -->
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <div class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-white/50 shrink-0">
-              <i class="fas fa-cube text-sm"></i>
-              <span>App</span>
-            </div>
-            <div class="relative flex-1 min-w-[8rem]">
-              <select
-                v-model="selectedApp"
-                @change="onAppChange"
-                :disabled="apps.length === 0"
-                class="w-full appearance-none rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/[0.06] focus:border-gray-400 dark:focus:border-white/20 outline-none py-2 pl-3 pr-9 text-sm font-medium text-gray-900 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option v-if="apps.length === 0" value="">No apps yet</option>
-                <option
-                  v-for="app in apps"
-                  :key="app.name"
-                  :value="app.name"
-                >
-                  {{ app.title }}
-                </option>
-              </select>
+          <!-- Combined App / Page selector -->
+          <div class="relative flex-1 min-w-[12rem]" ref="menuRoot">
+            <button
+              type="button"
+              @click="menuOpen = !menuOpen"
+              :disabled="apps.length === 0"
+              class="w-full flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/[0.06] focus:border-gray-400 dark:focus:border-white/20 outline-none py-2 pl-3 pr-9 text-sm font-medium text-gray-900 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i class="fas fa-cube text-xs text-gray-500 dark:text-white/50 shrink-0"></i>
+              <span class="truncate flex-1 text-left">{{ triggerLabel }}</span>
               <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-white/40 pointer-events-none"></i>
-            </div>
-          </div>
+            </button>
 
-          <!-- Page selector -->
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <div class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-white/50 shrink-0">
-              <i class="fas fa-file-alt text-sm"></i>
-              <span>Page</span>
-            </div>
-            <div class="relative flex-1 min-w-[8rem]">
-              <select
-                v-model="selectedPath"
-                @change="onPageSelect"
-                :disabled="pagesForSelectedApp.length === 0"
-                class="w-full appearance-none rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-gray-50 dark:hover:bg-white/[0.06] focus:border-gray-400 dark:focus:border-white/20 outline-none py-2 pl-3 pr-9 text-sm font-medium text-gray-900 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            <div
+              v-if="menuOpen && apps.length > 0"
+              class="absolute z-20 mt-1 left-0 min-w-[14rem] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-lg py-1"
+            >
+              <div
+                v-for="app in apps"
+                :key="app.name"
+                class="relative"
+                @mouseenter="onAppEnter(app.name)"
+                @mouseleave="onAppLeave(app.name)"
               >
-                <option v-if="pagesForSelectedApp.length === 0" value="">No pages yet</option>
-                <option
-                  v-for="page in pagesForSelectedApp"
-                  :key="page.path"
-                  :value="page.path"
+                <button
+                  type="button"
+                  @click="hoveredApp = hoveredApp === app.name ? '' : app.name"
+                  class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-gray-900 dark:text-white/90 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                 >
-                  {{ page.title }}
-                </option>
-                <option
-                  v-if="!isPathInSelectedApp && currentPath"
-                  :value="currentPath"
+                  <span class="flex items-center gap-2 truncate">
+                    <i class="fas fa-cube text-xs text-gray-500 dark:text-white/50"></i>
+                    {{ app.title }}
+                  </span>
+                  <i class="fas fa-chevron-right text-[10px] text-gray-400 dark:text-white/40"></i>
+                </button>
+
+                <div
+                  v-if="hoveredApp === app.name && app.pages.length"
+                  class="absolute top-0 left-full ml-1 min-w-[14rem] rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-lg py-1"
+                  @mouseenter="onAppEnter(app.name)"
+                  @mouseleave="onAppLeave(app.name)"
                 >
-                  Current — {{ currentPath }}
-                </option>
-              </select>
-              <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-white/40 pointer-events-none"></i>
+                  <button
+                    v-for="page in app.pages"
+                    :key="page.path"
+                    type="button"
+                    @click="onSelectPage(page.path)"
+                    :class="['w-full flex items-center gap-2 px-3 py-2 text-sm text-left',
+                             page.path === currentPath
+                               ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white'
+                               : 'text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.05]']"
+                  >
+                    <i class="fas fa-file-alt text-xs text-gray-500 dark:text-white/50"></i>
+                    <span class="truncate">{{ page.title }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -121,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { PreviewService } from '../../../services/previewService'
 import { useAgentStore } from '../../../stores/agentStore'
 import type { ProjectFile } from '../../../types/components'
@@ -139,6 +141,10 @@ const iframeKey = ref(0)
 const currentPath = ref('/')
 const selectedApp = ref('')
 const selectedPath = ref('/')
+const menuOpen = ref(false)
+const hoveredApp = ref('')
+const menuRoot = ref<HTMLElement | null>(null)
+let leaveTimer: number | null = null
 
 const baseOrigin = computed(() => {
   if (!previewUrl.value) return ''
@@ -198,6 +204,8 @@ const apps = computed<AppEntry[]>(() => {
     const slug = toKebabCase(base)
     const path = appName === 'home' && slug === 'home' ? '/' : `/${appName}/${slug}`
 
+    if (path === '/payments/payments') continue
+
     let app = appMap.get(appName)
     if (!app) {
       app = { name: appName, title: humanize(appName), pages: [] }
@@ -254,16 +262,44 @@ function navigateTo(path: string) {
   }
 }
 
-function onAppChange() {
-  const app = apps.value.find(a => a.name === selectedApp.value)
-  if (app && app.pages.length > 0) {
-    navigateTo(app.pages[0]!.path)
+function onSelectPage(path: string) {
+  navigateTo(path)
+  menuOpen.value = false
+  hoveredApp.value = ''
+}
+
+function onAppEnter(name: string) {
+  if (leaveTimer) {
+    window.clearTimeout(leaveTimer)
+    leaveTimer = null
+  }
+  hoveredApp.value = name
+}
+
+function onAppLeave(name: string) {
+  if (leaveTimer) window.clearTimeout(leaveTimer)
+  leaveTimer = window.setTimeout(() => {
+    if (hoveredApp.value === name) hoveredApp.value = ''
+    leaveTimer = null
+  }, 120)
+}
+
+function onDocClick(e: MouseEvent) {
+  if (!menuOpen.value) return
+  if (menuRoot.value && !menuRoot.value.contains(e.target as Node)) {
+    menuOpen.value = false
+    hoveredApp.value = ''
   }
 }
 
-function onPageSelect() {
-  navigateTo(selectedPath.value)
-}
+const triggerLabel = computed(() => {
+  const app = apps.value.find(a => a.name === selectedApp.value)
+  const page = pagesForSelectedApp.value.find(p => p.path === currentPath.value)
+  if (app && page) return `${app.title} / ${page.title}`
+  if (app) return app.title
+  if (apps.value.length === 0) return 'No apps yet'
+  return 'Select page'
+})
 
 function goHome() {
   navigateTo('/')
@@ -320,7 +356,15 @@ function reload() {
   }
 }
 
-onMounted(loadPreview)
+onMounted(() => {
+  loadPreview()
+  document.addEventListener('mousedown', onDocClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', onDocClick)
+  if (leaveTimer) window.clearTimeout(leaveTimer)
+})
 
 watch(
   () => props.projectId,
