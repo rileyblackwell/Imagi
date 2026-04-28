@@ -4,15 +4,10 @@
     <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-white/[0.08]">
       <div class="relative group">
         <button
-          :class="[
-            'flex items-center justify-center w-7 h-7 rounded-md border transition-colors',
-            isManagerOpen
-              ? 'border-indigo-400/60 bg-indigo-50/70 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-400/40 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/15'
-              : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.06]'
-          ]"
+          class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
           @click="$emit('toggleManager')"
         >
-          <i :class="['fas text-[11px]', isManagerOpen ? 'fa-angles-left' : 'fa-angles-right']"></i>
+          <i :class="['fas text-sm transition-transform duration-300', isManagerOpen ? 'fa-chevron-left' : 'fa-chevron-right']"></i>
         </button>
         <div
           class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-gray-900 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-gray-900 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
@@ -23,17 +18,6 @@
       <div class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white/80 truncate">
         {{ activeInstance?.title || 'New instance' }}
       </div>
-      <span
-        v-if="activeInstance"
-        :class="[
-          'text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider',
-          activeInstance.mode === 'agent'
-            ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300'
-            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300'
-        ]"
-      >
-        {{ activeInstance.mode }}
-      </span>
     </div>
 
     <!-- Conversation Area (scrollable) -->

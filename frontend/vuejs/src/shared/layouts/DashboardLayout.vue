@@ -31,7 +31,7 @@
         </div>
         
         <!-- Navigation -->
-        <nav class="flex-shrink-0 py-6">
+        <nav v-if="navigationItems.length" class="flex-shrink-0 py-6">
           <div class="px-3 space-y-1">
             <router-link
               v-for="item in navigationItems"
