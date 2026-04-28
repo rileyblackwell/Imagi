@@ -1,5 +1,10 @@
 <template>
-  <DashboardLayout :storage-key="storageKey" :navigation-items="navigationItems" wide>
+  <DashboardLayout
+    :storage-key="storageKey"
+    :navigation-items="navigationItems"
+    :wide="!extraWide"
+    :extra-wide="extraWide"
+  >
     <template #sidebar-content="{ isSidebarCollapsed }">
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed"></slot>
     </template>
@@ -38,6 +43,10 @@ defineProps({
   navigationItems: {
     type: Array as () => NavigationItem[],
     default: () => []
+  },
+  extraWide: {
+    type: Boolean,
+    default: false
   }
 })
 </script>

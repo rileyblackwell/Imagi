@@ -1,15 +1,40 @@
 <template>
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/[0.08] transition-colors duration-300">
+    <!-- Header: manager toggle + instance title -->
+    <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+      <button
+        class="flex items-center justify-center w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.05] dark:hover:bg-white/[0.1] text-gray-700 dark:text-white/80 transition-colors"
+        :title="isManagerOpen ? 'Hide agent manager' : 'Show agent manager'"
+        @click="$emit('toggleManager')"
+      >
+        <i :class="['fas text-[11px]', isManagerOpen ? 'fa-angles-left' : 'fa-angles-right']"></i>
+      </button>
+      <div class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white/80 truncate">
+        {{ activeInstance?.title || 'New instance' }}
+      </div>
+      <span
+        v-if="activeInstance"
+        :class="[
+          'text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider',
+          activeInstance.mode === 'agent'
+            ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300'
+            : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300'
+        ]"
+      >
+        {{ activeInstance.mode }}
+      </span>
+    </div>
+
     <!-- Conversation Area (scrollable) -->
     <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
       <ChatConversation
-        :messages="ensureValidMessages(store.conversation || [])"
-        :is-processing="store.isProcessing"
+        :messages="ensureValidMessages(activeInstance?.conversation || [])"
+        :is-processing="!!activeInstance?.isProcessing"
         @use-example="handleExamplePrompt"
         class="flex-1"
       />
     </div>
-    
+
     <!-- Chat Input Section (fixed at bottom) -->
     <div class="shrink-0 border-t border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div class="p-4 space-y-3">
@@ -22,19 +47,20 @@
             @keydown.enter.exact.prevent="handlePrompt"
             @keydown.enter.shift.exact="() => {}"
             @input="autoResizeTextarea"
-            :disabled="store.isProcessing"
+            :disabled="!activeInstance || activeInstance.isProcessing"
             rows="5"
             class="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/30 text-sm px-3 pr-12 py-3 pb-10 resize-none rounded-lg leading-relaxed"
             style="min-height: 130px; max-height: 280px;"
           ></textarea>
-          
+
           <!-- Mode and Model Dropdowns (Bottom Left inside input) -->
           <div class="absolute left-2 bottom-2 flex items-center gap-1.5">
             <!-- Mode Dropdown -->
             <div class="dropdown-wrapper">
-              <i :class="['dropdown-icon fas', store.mode === 'agent' ? 'fa-robot' : 'fa-comment-dots']"></i>
+              <i :class="['dropdown-icon fas', activeInstance?.mode === 'agent' ? 'fa-robot' : 'fa-comment-dots']"></i>
               <select
-                :value="store.mode"
+                :value="activeInstance?.mode ?? 'chat'"
+                :disabled="!activeInstance"
                 @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
                 class="dropdown-select dropdown-select--with-icon text-xs"
               >
@@ -47,7 +73,8 @@
             <div class="dropdown-wrapper">
               <i class="fas fa-microchip dropdown-icon"></i>
               <select
-                :value="store.selectedModelId"
+                :value="activeInstance?.selectedModelId ?? ''"
+                :disabled="!activeInstance"
                 @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
                 class="dropdown-select dropdown-select--with-icon text-xs"
               >
@@ -61,18 +88,18 @@
               </select>
             </div>
           </div>
-          
+
           <!-- Send Button -->
           <div class="absolute right-3 bottom-3">
             <button
               @click="handlePrompt"
-              :disabled="!prompt.trim() || store.isProcessing"
+              :disabled="!prompt.trim() || !activeInstance || activeInstance.isProcessing"
               class="btn-3d flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
-              :class="prompt.trim() && !store.isProcessing
+              :class="prompt.trim() && activeInstance && !activeInstance.isProcessing
                 ? 'bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 border border-gray-700/50 dark:border-gray-300/50 shadow-lg hover:shadow-xl'
                 : 'bg-gradient-to-b from-gray-200 via-gray-100 to-gray-50 dark:from-white/[0.08] dark:via-white/[0.05] dark:to-white/[0.03] text-gray-400 dark:text-white/40 cursor-not-allowed border border-gray-300/70 dark:border-white/[0.12] shadow-sm'"
             >
-              <i v-if="store.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
+              <i v-if="activeInstance?.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
               <i v-else class="fas fa-arrow-up text-sm"></i>
             </button>
           </div>
@@ -86,7 +113,7 @@
 import { ref, computed } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { ChatConversation } from '../../organisms/chat'
-import type { ProjectFile, BuilderMode } from '../../../types/components'
+import type { BuilderMode } from '../../../types/components'
 import type { AIMessage, AIModel } from '../../../types/index'
 
 // Props
@@ -97,21 +124,27 @@ const props = defineProps<{
   onModeSwitch: (mode: BuilderMode) => Promise<void>
   onExamplePrompt: (example: string) => void
   isCollapsed?: boolean
+  isManagerOpen?: boolean
+}>()
+
+defineEmits<{
+  (e: 'toggleManager'): void
 }>()
 
 const store = useAgentStore()
+const activeInstance = computed(() => store.activeInstance)
 const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 
 const modelOptions = computed<AIModel[]>(() => {
-  const available = (store.availableModels || []).filter(model => model.id === 'gpt-5.4')
+  const available = (store.availableModels || []).filter(model => model.id === 'gpt-5.5')
   if (available.length > 0) {
     return available
   }
   return [
     {
-      id: 'gpt-5.4',
-      name: 'GPT 5.4',
+      id: 'gpt-5.5',
+      name: 'GPT 5.5',
       provider: 'openai'
     } as AIModel
   ]
@@ -135,7 +168,7 @@ function getItemKind(path: string): string {
 }
 
 const promptPlaceholder = computed(() => {
-  if (store.mode === 'agent') {
+  if (activeInstance.value?.mode === 'agent') {
     return 'Ask me to edit files or chat about your project...'
   }
   return 'What would you like to build today?'
@@ -187,7 +220,7 @@ function autoResizeTextarea() {
 }
 
 async function handlePrompt() {
-  if (!prompt.value.trim() || store.isProcessing) return
+  if (!prompt.value.trim() || !activeInstance.value || activeInstance.value.isProcessing) return
   
   const promptText = prompt.value
   prompt.value = '' // Clear immediately

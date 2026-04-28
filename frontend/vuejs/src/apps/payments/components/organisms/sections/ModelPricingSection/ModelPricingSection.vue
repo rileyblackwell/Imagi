@@ -81,26 +81,12 @@ const props = defineProps({
         outputPrice: 15,
         description: 'Anthropic\'s advanced model for nuanced tasks'
       },
-      { 
-        id: 'codex-5.2', 
-        name: 'Codex 5.2', 
-        inputPrice: 2,
-        outputPrice: 15,
-        description: 'Specialized model for code generation and analysis'
-      },
-      { 
-        id: 'gpt-5.2', 
-        name: 'GPT-5.2', 
-        inputPrice: 2,
-        outputPrice: 15,
-        description: 'OpenAI\'s next-generation model for complex tasks'
-      },
       {
-        id: 'gpt-5.2-nano',
-        name: 'GPT-5.2 Nano',
-        inputPrice: 1,
-        outputPrice: 2,
-        description: 'Lightweight GPT-5.2 for fast, low-cost tasks'
+        id: 'gpt-5.5',
+        name: 'GPT 5.5',
+        inputPrice: 3,
+        outputPrice: 15,
+        description: 'OpenAI | GPT 5.5 for chat and building assistance'
       }
     ]
   },

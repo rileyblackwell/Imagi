@@ -8,26 +8,35 @@
 -->
 <template>
   <div class="relative">
-    <BuilderLayout 
+    <BuilderLayout
       storage-key="builderWorkspaceSidebarCollapsed"
       :navigation-items="navigationItems"
+      :extra-wide="isManagerOpen"
     >
-      <!-- Sidebar Content: Chat Interface -->
+      <!-- Sidebar Content: Agent Manager + Active Instance Chat -->
       <template #sidebar-content="{ collapsed }">
-        <BuilderSidebarChat
-          :selected-app="null"
-          :on-prompt-submit="handlePrompt"
-          :on-model-select="handleModelSelect"
-          :on-mode-switch="handleModeSwitch"
-          :on-example-prompt="handleExamplePrompt"
-          :is-collapsed="collapsed"
-        />
+        <div v-if="!collapsed" class="flex h-full">
+          <AgentManagerPanel
+            v-if="isManagerOpen"
+            class="w-64 shrink-0"
+          />
+          <BuilderSidebarChat
+            class="flex-1 min-w-0"
+            :selected-app="null"
+            :on-prompt-submit="handlePrompt"
+            :on-model-select="handleModelSelect"
+            :on-mode-switch="handleModeSwitch"
+            :on-example-prompt="handleExamplePrompt"
+            :is-collapsed="false"
+            :is-manager-open="isManagerOpen"
+            @toggle-manager="toggleManager"
+          />
+        </div>
       </template>
       
-      <!-- Preview button and account balance display in navbar right -->
+      <!-- Account balance display in navbar right -->
       <template #navbar-right>
         <div class="flex items-center gap-3">
-          <PreviewButton :project-id="projectId" />
           <AccountBalanceDisplay />
         </div>
       </template>
@@ -36,9 +45,10 @@
       <div class="flex flex-col h-screen max-h-screen w-full overflow-x-hidden overflow-y-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500">
         <!-- Enhanced Error State Display -->
         <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
-        
-        <!-- Main Layout -->
+
+        <!-- Main Layout - embedded preview server -->
         <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
+          <WorkspacePreview v-if="projectId" :project-id="projectId" class="flex-1 min-h-0" />
         </div>
       </div>
     </BuilderLayout>
@@ -64,13 +74,15 @@ import { useNotification } from '@/shared/composables/useNotification'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/products/imagi/layouts'
-import { AccountBalanceDisplay, PreviewButton } from '../components/molecules'
+import { AccountBalanceDisplay } from '../components/molecules'
 
 // Atomic Components
-import { 
+import {
   WorkspaceError,
+  WorkspacePreview,
 } from '../components/organisms/workspace'
 import BuilderSidebarChat from '../components/organisms/sidebar/BuilderSidebarChat.vue'
+import AgentManagerPanel from '../components/organisms/sidebar/AgentManagerPanel.vue'
 // Set component name
 defineOptions({ name: 'Workspace' })
 
@@ -102,6 +114,18 @@ const fileTypes = {
   'html': 'HTML',
   'json': 'JSON',
   'md': 'Markdown'
+}
+
+// Agent manager open/closed (persisted)
+const MANAGER_STORAGE_KEY = 'builderAgentManagerOpen'
+const isManagerOpen = ref<boolean>(
+  (typeof localStorage !== 'undefined' && localStorage.getItem(MANAGER_STORAGE_KEY)) !== 'false'
+)
+function toggleManager() {
+  isManagerOpen.value = !isManagerOpen.value
+  try {
+    localStorage.setItem(MANAGER_STORAGE_KEY, String(isManagerOpen.value))
+  } catch {}
 }
 
 // Version history state and actions
@@ -188,10 +212,8 @@ async function handleVersionReset(version: Record<string, any>) {
   try {
     console.debug('Version reset to:', version)
     await loadProjectFiles(true)
-    // Optionally clear selected file to avoid stale content
-    if (typeof store.setSelectedFile === 'function') {
-      store.setSelectedFile(null)
-    }
+    const instance = store.activeInstance
+    if (instance) store.setInstanceFile(instance.id, null)
   } catch (e) {
     console.error('Error handling version reset:', e)
   }
@@ -219,57 +241,56 @@ function createCommitFromPrompt(filePath: string, prompt: string) {
 
 async function handlePrompt(promptText: string) {
   if (!promptText.trim()) return
-  
+
+  const instance = store.activeInstance
+  if (!instance) return
+  if (!instance.selectedModelId) return
+  if (!projectId.value) return
+
+  const instanceId = instance.id
+  const conversationIdBefore = instance.conversationId
+
   try {
-    if (!store.selectedModelId) {
-      return
-    }
-    
     const timestamp = new Date().toISOString()
-    
-    // Get payments store for updating balance
+
+    // Mark pending transaction for fresh balance data
     const balanceStore = useBalanceStore()
-    
-    // Mark that a transaction is about to happen to ensure fresh balance data
     balanceStore.beginTransaction()
-    
-    // Check if we have a project ID
-    if (!projectId.value) {
-      return
-    }
-    
-    // Set processing flag TRUE at the start
-    store.setProcessing(true)
-    
-    // Add the user message to the conversation immediately
-    store.addMessage({
+
+    store.setInstanceProcessing(instanceId, true)
+
+    // Add the user message to this instance's conversation immediately
+    store.addMessageToInstance(instanceId, {
       role: 'user',
       content: promptText,
-      timestamp: timestamp,
+      timestamp,
       id: `user-${Date.now()}`
     })
-    
-    // Get user auth status before making request
-    const isUserAuthenticated = await useAuthStore().validateAuth()
-    if (!isUserAuthenticated) {
-      return
+
+    // Auto-title from first user prompt (mirror backend behaviour for UI snappiness)
+    if (!instance.title) {
+      const firstLine = promptText.trim().split('\n')[0] || ''
+      void store.renameInstance(instanceId, firstLine.slice(0, 80))
     }
 
-    if (store.mode === 'agent') {
-      // Agent mode: the coding agent decides which files to read/edit via tools
-      try {
-        const response = await AgentService.processAgent(
-          projectId.value,
-          {
-            prompt: promptText,
-            model: store.selectedModelId,
-            file: store.selectedFile
-          }
-        )
+    const isUserAuthenticated = await useAuthStore().validateAuth()
+    if (!isUserAuthenticated) return
 
-        // Add agent's text response as assistant message
+    if (instance.mode === 'agent') {
+      try {
+        const response = await AgentService.processAgent(projectId.value, {
+          prompt: promptText,
+          model: instance.selectedModelId,
+          file: instance.selectedFile,
+          conversationId: conversationIdBefore ?? undefined
+        })
+
+        if ((response as any).conversation_id && !instance.conversationId) {
+          store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
+        }
+
         if (response.response) {
-          store.addMessage({
+          store.addMessageToInstance(instanceId, {
             role: 'assistant',
             content: response.response,
             timestamp: new Date().toISOString(),
@@ -277,7 +298,6 @@ async function handlePrompt(promptText: string) {
           })
         }
 
-        // If files were changed, refresh them in the store and commit
         if (response.files_changed && response.files_changed.length > 0) {
           for (const changedPath of response.files_changed) {
             try {
@@ -286,14 +306,12 @@ async function handlePrompt(promptText: string) {
             } catch (refreshError) {
               console.warn('Error refreshing files after agent edit:', refreshError)
             }
-
-            // Create git commits for changed files
             createCommitFromPrompt(changedPath, promptText)
           }
         }
       } catch (agentError) {
         console.error('Error in agent mode:', agentError)
-        store.addMessage({
+        store.addMessageToInstance(instanceId, {
           role: 'assistant',
           content: `Error: ${agentError instanceof Error ? agentError.message : 'Unknown error'}`,
           timestamp: new Date().toISOString(),
@@ -301,57 +319,45 @@ async function handlePrompt(promptText: string) {
         })
       }
     } else {
-      try {
-        // Call the AI service
-        const response = await AgentService.processChat(
-          projectId.value,
-          {
-            prompt: promptText,
-            model: store.selectedModelId,
-            mode: 'chat',
-            file: store.selectedFile
-          }
-        )
-        
-        // Add the real response message directly (dedupe against last assistant message)
-        const normalize = (txt: string | undefined) => (txt || '').trim().replace(/\s+/g, ' ')
-        const newContent = normalize(response.response)
-        const lastAssistant = [...store.conversation].slice().reverse().find(m => m.role === 'assistant')
-        const lastContent = normalize(lastAssistant?.content)
-        if (!lastAssistant || newContent !== lastContent) {
-          store.addMessage({
-            role: 'assistant',
-            content: response.response,
-            timestamp: new Date().toISOString(),
-            id: `assistant-response-${Date.now()}`
-            // No code field to prevent displaying code in the UI
-          })
-        } else {
-          console.info('Skipped duplicate assistant message (frontend dedupe)')
-        }
-      } catch (chatError) {
-        throw chatError
+      const response = await AgentService.processChat(projectId.value, {
+        prompt: promptText,
+        model: instance.selectedModelId,
+        mode: 'chat',
+        file: instance.selectedFile,
+        conversationId: conversationIdBefore ?? undefined
+      })
+
+      if ((response as any).conversation_id && !instance.conversationId) {
+        store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
+      }
+
+      const normalize = (txt: string | undefined) => (txt || '').trim().replace(/\s+/g, ' ')
+      const newContent = normalize(response.response)
+      const currentConvo = store.instances.find(i => i.id === instanceId)?.conversation ?? []
+      const lastAssistant = [...currentConvo].reverse().find(m => m.role === 'assistant')
+      const lastContent = normalize(lastAssistant?.content)
+      if (!lastAssistant || newContent !== lastContent) {
+        store.addMessageToInstance(instanceId, {
+          role: 'assistant',
+          content: response.response,
+          timestamp: new Date().toISOString(),
+          id: `assistant-response-${Date.now()}`
+        })
       }
     }
-    
-    // Update balance exactly once after AI operation completes
+
     try {
-      // Get fresh store to avoid stale references
-      const balanceStore = useBalanceStore();
-      
-      // Wait a short delay to ensure backend transaction has completed
       setTimeout(() => {
-        balanceStore.fetchBalance(false, true)
-          .catch(err => console.warn('Error updating balance after AI operation:', err));
-      }, 1000);
+        useBalanceStore().fetchBalance(false, true)
+          .catch(err => console.warn('Error updating balance after AI operation:', err))
+      }, 1000)
     } catch (err) {
-      console.warn('Error setting up balance update:', err);
+      console.warn('Error setting up balance update:', err)
     }
   } catch (error) {
     console.error('Error processing prompt:', error)
   } finally {
-    // Ensure processing flag is set to FALSE when everything is complete
-    store.setProcessing(false)
+    store.setInstanceProcessing(instanceId, false)
   }
 }
 
@@ -360,35 +366,33 @@ function handleExamplePrompt(exampleText: string) {
 }
 
 async function handleModelSelect(modelId: string) {
-  store.setSelectedModelId(modelId)
+  const instance = store.activeInstance
+  if (!instance) return
+  store.setInstanceModel(instance.id, modelId)
 }
 
 async function handleModeSwitch(mode: BuilderMode) {
-  const previousMode = store.mode
-  if (mode === previousMode) return
+  const instance = store.activeInstance
+  if (!instance) return
+  if (instance.mode === mode) return
 
-  store.setMode(mode)
+  store.setInstanceMode(instance.id, mode)
 
-  if (store.conversation.length > 0) {
-    const modeLabel = mode === 'agent' ? 'agent' : 'chat'
-    const modeChangeId = `system-mode-change-${Date.now()}`
-
-    store.conversation.push({
+  if (instance.conversation.length > 0) {
+    store.addMessageToInstance(instance.id, {
       role: 'system',
-      content: `Switched to ${modeLabel} mode`,
+      content: `Switched to ${mode === 'agent' ? 'agent' : 'chat'} mode`,
       timestamp: new Date().toISOString(),
-      id: modeChangeId
+      id: `system-mode-change-${Date.now()}`
     })
-
     await nextTick()
   }
 }
 
 async function handleFileSelect(file: ProjectFile) {
-  // Ensure selected file is set
-  store.selectFile(file)
-
-  // Force UI update to reflect mode/selection changes
+  // Ensure selected file is set on the active instance
+  const instance = store.activeInstance
+  if (instance) store.setInstanceFile(instance.id, file)
   await nextTick()
 }
 
@@ -461,9 +465,11 @@ async function handleFileDelete(file: ProjectFile) {
     console.debug('File deleted, refreshing file list from backend...')
     await loadProjectFiles(true)
     
-    // If the deleted file was selected, clear selection
-    if (store.selectedFile && store.selectedFile.path === file.path) {
-      store.setSelectedFile(null)
+    // If the deleted file was selected in any instance, clear that selection
+    for (const inst of store.instances) {
+      if (inst.selectedFile && inst.selectedFile.path === file.path) {
+        store.setInstanceFile(inst.id, null)
+      }
     }
     
     // Automatically commit the file deletion
@@ -534,18 +540,15 @@ async function retryProjectLoad() {
     // Refresh version history after retry
     await loadVersionHistory()
     
-    // Set default model if needed
-    if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.4') 
+    await store.loadInstances(projectId.value)
+
+    const active = store.activeInstance
+    if (active && !active.selectedModelId && store.availableModels && store.availableModels.length > 0) {
+      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.5')
         || store.availableModels[0];
       if (defaultModel) {
-        store.setSelectedModelId(defaultModel.id);
+        store.setInstanceModel(active.id, defaultModel.id)
       }
-    }
-    
-    // Ensure chat-only mode for now
-    if (store.mode !== 'chat') {
-      store.setMode('chat');
     }
   } catch (error: any) {
     console.error('Error retrying project load:', error)
@@ -687,24 +690,22 @@ onMounted(async () => {
         await ensureDefaultApps()
         // Load version history for header dropdown
         await loadVersionHistory()
-        
+
+        // Load agent instances for this project (creates a starter instance if none)
+        await executeOnce('loadInstances', () => store.loadInstances(projectId.value))
+
         // Only fetch balance once at startup, with no auto-refresh
-        // Make sure it doesn't block the UI
         executeOnce('fetchBalance', () => paymentsStore.fetchBalance(false, false))
           .catch(err => console.error('Error fetching balance:', err));
-        
-        // Set default model if not already set
-        if (!store.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.4') 
+
+        // Ensure active instance has a model selected
+        const active = store.activeInstance
+        if (active && !active.selectedModelId && store.availableModels && store.availableModels.length > 0) {
+          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.5')
             || store.availableModels[0];
           if (defaultModel) {
-            store.setSelectedModelId(defaultModel.id);
+            store.setInstanceModel(active.id, defaultModel.id)
           }
-        }
-        
-        // Ensure chat-only mode for now
-        if (store.mode !== 'chat') {
-          store.setMode('chat');
         }
       } else {
         console.error('Failed to load project or set project ID');
@@ -828,9 +829,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  // Clean up resources
-  store.clearConversation()
-  store.setSelectedFile(null)
+  // Conversations are persisted server-side; no local cleanup needed.
+  store.setError(null)
 })
 </script>
 

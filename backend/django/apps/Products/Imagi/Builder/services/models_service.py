@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 
 # Centralized Model Definitions
 MODELS = {
-    'gpt-5.4': {
-        'id': 'gpt-5.4',
-        'name': 'GPT 5.4',
+    'gpt-5.5': {
+        'id': 'gpt-5.5',
+        'name': 'GPT 5.5',
         'provider': 'openai',
         'type': 'openai',
-        'description': 'OpenAI | GPT 5.4 for chat and building assistance',
+        'description': 'OpenAI | GPT 5.5 for chat and building assistance',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
         'input_price_per_m_tokens': 3,
@@ -43,7 +43,7 @@ MODEL_COSTS = {
 
 # Default model costs for unknown models (per million tokens)
 DEFAULT_MODEL_COSTS = {
-    'gpt-5.4': {'input': 3, 'output': 15},
+    'gpt-5.5': {'input': 3, 'output': 15},
 }
 
 def get_model_choices() -> List[Tuple[str, str]]:
@@ -132,7 +132,7 @@ def get_default_model_id() -> str:
     Returns:
         str: The default model ID
     """
-    return 'gpt-5.4'
+    return 'gpt-5.5'
 
 def get_model_display_name(model_id: str) -> str:
     """

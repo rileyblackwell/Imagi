@@ -7,13 +7,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+MODE_CHOICES = (
+    ('chat', 'Chat'),
+    ('agent', 'Agent'),
+)
+
+
 class AgentConversation(models.Model):
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="agent_conversations")
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     model_name = models.CharField(max_length=50, choices=get_model_choices())
     provider = models.CharField(max_length=20, choices=get_provider_choices(), default=get_default_provider())
     project_id = models.IntegerField(null=True, blank=True)  # Store reference to ProjectManager's Project ID
-    
+    title = models.CharField(max_length=120, blank=True, default='')
+    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='chat')
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
     def __str__(self):
         return f"Agent Conversation {self.id} - {self.user.username} using {self.model_name} ({self.provider})"
     

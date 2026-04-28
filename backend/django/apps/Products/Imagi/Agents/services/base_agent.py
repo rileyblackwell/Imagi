@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
 
 # Default model for agents
-DEFAULT_MODEL = "gpt-5.4"
+DEFAULT_MODEL = "gpt-5.5"
 
 
 @dataclass
@@ -60,7 +60,7 @@ class ImagiAgentService:
         Initialize the agent service.
         
         Args:
-            model: The OpenAI model to use (default: gpt-5.4)
+            model: The OpenAI model to use (default: gpt-5.5)
         """
         self.model = model
         self._chat_agent = None
@@ -158,15 +158,19 @@ Technology Stack:
         user,
         model: str,
         system_prompt: Optional[str] = None,
-        project_id: Optional[int] = None
+        project_id: Optional[int] = None,
+        mode: str = "chat",
+        title: str = "",
     ) -> AgentConversation:
         """Create a new conversation."""
         from .chat_agent import CHAT_AGENT_INSTRUCTIONS
-        
+
         conversation = AgentConversation.objects.create(
             user=user,
             model_name=model,
-            project_id=project_id
+            project_id=project_id,
+            mode=mode,
+            title=title,
         )
         
         prompt_content = system_prompt or CHAT_AGENT_INSTRUCTIONS
@@ -179,11 +183,17 @@ Technology Stack:
     
     def add_user_message(self, conversation: AgentConversation, content: str) -> AgentMessage:
         """Add a user message to the conversation."""
-        return AgentMessage.objects.create(
+        message = AgentMessage.objects.create(
             conversation=conversation,
             role="user",
             content=content
         )
+        if not conversation.title:
+            conversation.title = (content or "").strip().splitlines()[0][:80]
+            conversation.save(update_fields=["title", "updated_at"])
+        else:
+            conversation.save(update_fields=["updated_at"])
+        return message
     
     def add_assistant_message(self, conversation: AgentConversation, content: str) -> AgentMessage:
         """Add an assistant message to the conversation."""

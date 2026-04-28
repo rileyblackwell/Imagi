@@ -56,7 +56,7 @@ export interface UndoResponse {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'gpt-5.4': {
+  'gpt-5.5': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -70,13 +70,13 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
 // List of standard models
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gpt-5.4',
-    name: 'GPT 5.4',
+    id: 'gpt-5.5',
+    name: 'GPT 5.5',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | GPT 5.4 for chat and building assistance',
+    description: 'OpenAI | GPT 5.5 for chat and building assistance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     inputPricePerMTokens: 3,
@@ -112,6 +112,34 @@ export interface APIResponse<T> {
   data: T;
   message?: string;
   error?: string;
+}
+
+// Conversation / agent instance types
+export interface ConversationDto {
+  id: number;
+  title: string;
+  mode: 'chat' | 'agent';
+  model_name: string;
+  project_id: number | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  last_message_preview: string;
+}
+
+export interface AgentInstance {
+  id: string;                      // local UUID
+  conversationId: number | null;   // backend AgentConversation id
+  title: string;
+  mode: 'chat' | 'agent';
+  selectedModelId: string | null;
+  selectedFile: any | null;
+  conversation: AIMessage[];
+  isProcessing: boolean;
+  archivedAt: string | null;
+  updatedAt: string;
+  lastMessagePreview: string;
+  messagesLoaded: boolean;
 }
 
 // AI-specific response types

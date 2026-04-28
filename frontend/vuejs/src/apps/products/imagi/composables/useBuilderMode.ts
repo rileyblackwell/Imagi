@@ -45,7 +45,8 @@ export function useBuilderMode() {
       throw new Error('AI Model must be selected')
     }
 
-    store.$patch({ isProcessing: true, error: null })
+    store.$patch({ error: null })
+    store.setProcessing(true)
 
     try {
       // Set processing state
@@ -246,7 +247,7 @@ export function useBuilderMode() {
     }
 
     try {
-      store.$patch({ isProcessing: true })
+      store.setProcessing(true)
       // TODO: Implement undoAction in AgentService or update logic here
       // const result = await AgentService.undoAction(store.projectId, filePath)
       const result = null;
@@ -266,7 +267,7 @@ export function useBuilderMode() {
       store.$patch({ error })
       throw err
     } finally {
-      store.$patch({ isProcessing: false })
+      store.setProcessing(false)
     }
   }
 

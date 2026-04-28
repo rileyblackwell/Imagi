@@ -14,10 +14,18 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 import traceback
 
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+
+from ..models import AgentConversation, AgentMessage
 from ..services import ImagiAgentService, DEFAULT_MODEL
 
 # Re-export for URL imports
-__all__ = ['chat', 'agent', 'cors_preflight']
+__all__ = [
+    'chat', 'agent', 'cors_preflight',
+    'conversations_list_create', 'conversation_detail',
+    'conversation_messages',
+]
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -81,7 +89,7 @@ def chat(request):
     """
     Chat with an AI agent using the OpenAI Agents SDK.
     
-    This endpoint accepts a prompt and generates a response using GPT-5.2.
+    This endpoint accepts a prompt and generates a response using GPT 5.5.
     The conversation is threaded if a conversation_id is provided.
     """
     try:
@@ -98,7 +106,7 @@ def chat(request):
         if not message:
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
         
-        # Force GPT-5.2 for chat mode
+        # Force GPT 5.5 for chat mode
         if not model or model != DEFAULT_MODEL:
             model = DEFAULT_MODEL
         
@@ -176,7 +184,7 @@ def agent(request):
         if not project_id:
             return create_error_response('Project ID is required for agent mode', status.HTTP_400_BAD_REQUEST)
 
-        # Force GPT-5.2 for agent mode
+        # Force GPT 5.5 for agent mode
         if not model or model != DEFAULT_MODEL:
             model = DEFAULT_MODEL
 
@@ -225,3 +233,129 @@ def agent(request):
         logger.error(f"Error in agent API: {str(e)}")
         logger.error(traceback.format_exc())
         return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ---------------------------------------------------------------------------
+# Conversation (agent instance) CRUD
+# ---------------------------------------------------------------------------
+
+def _serialize_conversation(conversation):
+    last_message = conversation.messages.order_by('-created_at').first()
+    preview = ''
+    if last_message and last_message.content:
+        preview = last_message.content.strip().splitlines()[0][:140]
+    return {
+        'id': conversation.id,
+        'title': conversation.title or '',
+        'mode': conversation.mode,
+        'model_name': conversation.model_name,
+        'project_id': conversation.project_id,
+        'archived_at': conversation.archived_at.isoformat() if conversation.archived_at else None,
+        'created_at': conversation.created_at.isoformat(),
+        'updated_at': conversation.updated_at.isoformat(),
+        'last_message_preview': preview,
+    }
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def conversations_list_create(request):
+    """List conversations for a project, or create a new one."""
+    if request.method == 'GET':
+        project_id = request.query_params.get('project_id')
+        qs = AgentConversation.objects.filter(user=request.user)
+        if project_id:
+            try:
+                qs = qs.filter(project_id=int(project_id))
+            except (ValueError, TypeError):
+                return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
+        data = [_serialize_conversation(c) for c in qs.order_by('-updated_at')]
+        return Response(data, status=status.HTTP_200_OK)
+
+    # POST -> create
+    try:
+        project_id = request.data.get('project_id')
+        mode = request.data.get('mode') or 'chat'
+        model_name = request.data.get('model_name') or DEFAULT_MODEL
+        title = (request.data.get('title') or '').strip()[:120]
+
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except (ValueError, TypeError):
+                return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
+
+        if mode not in ('chat', 'agent'):
+            mode = 'chat'
+
+        agent_service = ImagiAgentService(model=model_name)
+        conversation = agent_service.create_conversation(
+            user=request.user,
+            model=model_name,
+            project_id=project_id,
+            mode=mode,
+            title=title,
+        )
+        return Response(_serialize_conversation(conversation), status=status.HTTP_201_CREATED)
+    except Exception as e:
+        logger.error(f"Error creating conversation: {str(e)}")
+        logger.error(traceback.format_exc())
+        return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def conversation_detail(request, conversation_id):
+    """Retrieve, update, or delete a single conversation."""
+    conversation = get_object_or_404(
+        AgentConversation, id=conversation_id, user=request.user
+    )
+
+    if request.method == 'GET':
+        return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
+
+    if request.method == 'DELETE':
+        conversation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # PATCH
+    updated_fields = []
+    if 'title' in request.data:
+        conversation.title = (request.data.get('title') or '').strip()[:120]
+        updated_fields.append('title')
+    if 'mode' in request.data:
+        new_mode = request.data.get('mode')
+        if new_mode in ('chat', 'agent'):
+            conversation.mode = new_mode
+            updated_fields.append('mode')
+    if 'model_name' in request.data:
+        conversation.model_name = request.data.get('model_name') or conversation.model_name
+        updated_fields.append('model_name')
+    if 'archived' in request.data:
+        archived = bool(request.data.get('archived'))
+        conversation.archived_at = timezone.now() if archived else None
+        updated_fields.append('archived_at')
+
+    if updated_fields:
+        conversation.save(update_fields=updated_fields + ['updated_at'])
+
+    return Response(_serialize_conversation(conversation), status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def conversation_messages(request, conversation_id):
+    """Return messages for a conversation."""
+    conversation = get_object_or_404(
+        AgentConversation, id=conversation_id, user=request.user
+    )
+    messages = [
+        {
+            'id': m.id,
+            'role': m.role,
+            'content': m.content,
+            'timestamp': m.created_at.isoformat(),
+        }
+        for m in conversation.messages.order_by('created_at')
+    ]
+    return Response(messages, status=status.HTTP_200_OK)

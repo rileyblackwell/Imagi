@@ -7,7 +7,8 @@ import type {
   AgentResponse,
   GenerateStylesheetOptions,
   CodeGenerationRequest,
-  VersionControlResponse
+  VersionControlResponse,
+  ConversationDto
 } from '../types/services'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { FileService } from '@/apps/products/imagi/services/fileService'
@@ -183,6 +184,7 @@ export const AgentService = {
     mode?: string;
     is_build_mode?: boolean;
     file?: any;
+    conversationId?: number | string | null;
   }): Promise<ChatResponse> {
     if (!data.prompt || !data.model) {
       throw new Error('Prompt and model are required')
@@ -204,9 +206,6 @@ export const AgentService = {
     }
     
     try {
-      // Get conversation ID from localStorage if exists
-      const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
-      
       // Get project files
       const files: Array<any> = [];
       try {
@@ -214,7 +213,7 @@ export const AgentService = {
       } catch (fileError) {
         // Continue even if we can't get project files
       }
-      
+
       // Prepare file info if provided
       let currentFile = null;
       if (data.file) {
@@ -224,15 +223,15 @@ export const AgentService = {
           content: data.file.content || ''
         }
       }
-      
+
       // Prepare request payload
       const payload = {
         message: data.prompt,
         model: data.model,
         project_id: String(projectId),
-        conversation_id: storedConversationId || undefined,
-        mode: 'chat', // Always set to chat mode for chat processing
-        is_build_mode: false, // Explicitly set to false for chat mode
+        conversation_id: data.conversationId ?? undefined,
+        mode: 'chat',
+        is_build_mode: false,
         file: currentFile,
         project_files: files.map(file => ({
           path: file.path,
@@ -240,14 +239,9 @@ export const AgentService = {
           content: file.content || ''
         }))
       }
-      
+
       // API call
       const response = await api.post('/v1/agents/chat/', payload, { timeout: AI_TIMEOUT })
-      
-      // Store the conversation ID for future requests
-      if (response.data.conversation_id) {
-        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id);
-      }
       
       // Log credits usage if provided
       if (response.data.credits_used) {
@@ -290,6 +284,7 @@ export const AgentService = {
     prompt: string;
     model: string;
     file?: any;
+    conversationId?: number | string | null;
   }): Promise<AgentResponse> {
     if (!data.prompt || !data.model) {
       throw new Error('Prompt and model are required')
@@ -311,9 +306,6 @@ export const AgentService = {
     }
 
     try {
-      // Get conversation ID from localStorage if exists
-      const storedConversationId = localStorage.getItem(`agent_conversation_${projectId}`)
-
       // Prepare file info if provided
       let currentFile = null
       if (data.file) {
@@ -328,16 +320,11 @@ export const AgentService = {
         message: data.prompt,
         model: data.model,
         project_id: String(projectId),
-        conversation_id: storedConversationId || undefined,
+        conversation_id: data.conversationId ?? undefined,
         current_file: currentFile,
       }
 
       const response = await api.post('/v1/agents/agent/', payload, { timeout: AI_TIMEOUT })
-
-      // Store the conversation ID for future requests
-      if (response.data.conversation_id) {
-        localStorage.setItem(`agent_conversation_${projectId}`, response.data.conversation_id)
-      }
 
       // Log credits usage if provided
       if (response.data.credits_used) {
@@ -575,8 +562,8 @@ export const AgentService = {
       throw new Error('Prompt, project ID, and file path are required');
     }
     
-    // Use the provided model or default to GPT 5.4
-    const modelId = model || 'gpt-5.4';
+    // Use the provided model or default to GPT 5.5
+    const modelId = model || 'gpt-5.5';
     
     try {
       // Get conversation ID if available
@@ -703,6 +690,60 @@ export const AgentService = {
       default:
         return extension || 'unknown';
     }
+  },
+
+  // ------------------------------------------------------------
+  // Conversation (agent instance) CRUD
+  // ------------------------------------------------------------
+
+  async listConversations(projectId: string | number): Promise<ConversationDto[]> {
+    const response = await api.get('/v1/agents/conversations/', {
+      params: { project_id: String(projectId) }
+    })
+    return response.data as ConversationDto[]
+  },
+
+  async createConversation(projectId: string | number, data: {
+    mode?: 'chat' | 'agent'
+    modelName?: string
+    title?: string
+  } = {}): Promise<ConversationDto> {
+    const response = await api.post('/v1/agents/conversations/', {
+      project_id: Number(projectId),
+      mode: data.mode ?? 'chat',
+      model_name: data.modelName,
+      title: data.title ?? ''
+    })
+    return response.data as ConversationDto
+  },
+
+  async updateConversation(conversationId: number, patch: {
+    title?: string
+    mode?: 'chat' | 'agent'
+    model_name?: string
+    archived?: boolean
+  }): Promise<ConversationDto> {
+    const response = await api.patch(
+      `/v1/agents/conversations/${conversationId}/`,
+      patch
+    )
+    return response.data as ConversationDto
+  },
+
+  async deleteConversation(conversationId: number): Promise<void> {
+    await api.delete(`/v1/agents/conversations/${conversationId}/`)
+  },
+
+  async getConversationMessages(conversationId: number): Promise<Array<{
+    id: number
+    role: 'user' | 'assistant' | 'system'
+    content: string
+    timestamp: string
+  }>> {
+    const response = await api.get(
+      `/v1/agents/conversations/${conversationId}/messages/`
+    )
+    return response.data
   }
 };
 

@@ -438,8 +438,8 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: 'signin',
-        name: 'login',
-        component: () => import('../views/Login.vue'),
+        name: 'signin',
+        component: () => import('../views/Signin.vue'),
         meta: {
           requiresAuth: false,
           title: 'Welcome Back',
@@ -550,14 +550,14 @@ export default routes
     files.append({
         'name': 'frontend/vuejs/src/apps/auth/views/index.ts',
         'type': 'typescript',
-        'content': '''export { default as Login } from './Login.vue'
+        'content': '''export { default as Signin } from './Signin.vue'
 export { default as Register } from './Register.vue'
 '''
     })
     
     # Login View - matching Imagi design
     files.append({
-        'name': 'frontend/vuejs/src/apps/auth/views/Login.vue',
+        'name': 'frontend/vuejs/src/apps/auth/views/Signin.vue',
         'type': 'vue',
         'content': '''<template>
   <div class="space-y-6">

@@ -14,7 +14,7 @@ from agents import Agent, RunContextWrapper
 logger = logging.getLogger(__name__)
 
 # Default model
-DEFAULT_MODEL = "gpt-5.4"
+DEFAULT_MODEL = "gpt-5.5"
 
 # Chat agent system instructions
 CHAT_AGENT_INSTRUCTIONS = """You are an expert web designer and developer called Imagi, a powerful AI platform for building web applications. You assist users with understanding their project code, explaining concepts, and providing guidance on web development using Django, Vue.js, and modern frontend technologies.

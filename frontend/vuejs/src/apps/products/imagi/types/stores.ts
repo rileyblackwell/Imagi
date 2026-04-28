@@ -1,21 +1,19 @@
 // Types used in stores
 import type { BuilderMode, ProjectFile } from './components'
-import type { AIModel, AIMessage } from './services'
+import type { AIModel, AIMessage, AgentInstance } from './services'
 
 /**
  * Agent store state interface
  */
 export interface AgentState {
   projectId: string | null;
-  mode: BuilderMode;
-  selectedModelId: string | null;
   availableModels: AIModel[];
-  conversation: AIMessage[];
-  selectedFile: ProjectFile | null;
+  instances: AgentInstance[];
+  activeInstanceId: string | null;
   files: ProjectFile[];
   unsavedChanges: boolean;
-  isProcessing: boolean;
   error: string | null;
+  instancesLoading: boolean;
 }
 
 /**
