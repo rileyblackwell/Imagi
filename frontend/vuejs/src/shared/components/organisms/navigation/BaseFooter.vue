@@ -1,5 +1,5 @@
 <template>
-  <footer class="relative bg-white dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-white/10 transition-colors duration-300">
+  <footer class="crisp-footer relative bg-white dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-white/[0.12] transition-colors duration-300">
     <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
       
       <!-- Main footer content -->
@@ -93,7 +93,7 @@
       </div>
 
       <!-- Bottom bar -->
-      <div class="py-6 border-t border-gray-200 dark:border-white/10 transition-colors duration-300">
+      <div class="py-6 border-t border-gray-200 dark:border-white/[0.12] transition-colors duration-300">
         <div class="flex items-center justify-between">
           <p class="text-gray-500 dark:text-white/50 text-sm transition-colors duration-300">
             &copy; {{ currentYear }} Imagi. All rights reserved.
@@ -112,3 +112,12 @@ import { ThemeToggle } from '@/shared/components/atoms'
 
 const currentYear = computed(() => new Date().getFullYear())
 </script>
+
+<style scoped>
+/* Crisp, sharp text rendering for the footer */
+.crisp-footer {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+</style>

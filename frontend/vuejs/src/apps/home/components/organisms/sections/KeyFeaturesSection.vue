@@ -30,7 +30,7 @@
           class="relative"
         >
           <!-- Card with solid background -->
-          <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
+          <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
             
             <!-- Title -->
             <h3 class="relative text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5 text-center">
@@ -114,5 +114,12 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Styles removed - cards now use simple shadows */
+/* Crisp, sharply-defined cards: hairline edge + tight layered shadow */
+.crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
 </style>

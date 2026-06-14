@@ -19,7 +19,7 @@
         <div 
           v-for="(stat, index) in stats" 
           :key="index"
-          class="relative text-center p-10 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md"
+          class="relative text-center p-10 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300"
         >
           <p class="relative text-lg text-gray-600 dark:text-black mb-3 transition-colors duration-300">{{ stat.label }}</p>
           <div class="relative text-5xl md:text-6xl font-semibold text-gray-900 dark:text-black transition-colors duration-300">
@@ -33,7 +33,7 @@
         <div 
           v-for="(metric, index) in metrics" 
           :key="index"
-          class="relative p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md"
+          class="relative p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300"
         >
           <!-- Icon and Title (side by side) -->
           <div class="relative flex items-center gap-3 mb-4">
@@ -101,5 +101,12 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Styles removed - cards now use simple shadows */
+/* Crisp, sharply-defined cards: hairline edge + tight layered shadow */
+.crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
 </style>
