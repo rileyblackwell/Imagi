@@ -1,7 +1,7 @@
 <!-- About Page - Clean Apple/Cursor-inspired design matching Home -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
+    <div class="home-page min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
       <!-- Minimal background -->
       <div class="fixed inset-0 pointer-events-none">
         <!-- Subtle gradient -->
@@ -52,7 +52,7 @@
             <!-- Mission cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div v-for="(card, index) in missionCards" :key="index" class="relative">
-                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
+                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
                   <!-- Content -->
                   <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5">
                     {{ card.title }}
@@ -88,7 +88,7 @@
             <!-- Features grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div v-for="(feature, index) in features" :key="index" class="relative">
-                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
+                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
                   <!-- Content -->
                   <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5 text-center">
                     {{ feature.title }}
@@ -124,7 +124,7 @@
             <!-- User types grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-for="(userType, index) in userTypes" :key="index" class="relative">
-                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 transition-colors duration-300 shadow-md">
+                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
                   <!-- Content -->
                   <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5">
                     {{ userType.title }}
@@ -229,6 +229,30 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Crisp, sharp text rendering across the page */
+.home-page {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.home-page :deep(h1),
+.home-page :deep(h2),
+.home-page :deep(h3) {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
+/* Crisp, sharply-defined cards: hairline edge + tight layered shadow */
+.crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
 /* Minimal scrollbar matching Home page */
 :deep(::-webkit-scrollbar) {
   width: 8px;

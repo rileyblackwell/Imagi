@@ -1,5 +1,5 @@
 <template>
-  <nav class="fixed w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200/80 dark:border-white/5 transition-colors duration-300">
+  <nav class="crisp-nav fixed w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200/80 dark:border-white/[0.08] transition-colors duration-300">
     <div class="relative max-w-7xl mx-auto pl-6 pr-6 sm:pl-8 sm:pr-8 lg:pl-12 lg:pr-12">
       <div class="relative flex items-center h-14">
         <!-- Left section -->
@@ -31,6 +31,18 @@ import { ImagiLogo } from '@/shared/components/molecules'
 </script>
 
 <style scoped>
+/* Crisp, sharp text rendering + hairline separator that stays 1px at any DPI */
+.crisp-nav {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  box-shadow: 0 1px 0 0 rgba(15, 23, 42, 0.02);
+}
+
+:global(.dark) .crisp-nav {
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
 nav {
   width: 100%;
   overflow: visible;

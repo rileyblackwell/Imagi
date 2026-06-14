@@ -1,7 +1,7 @@
 <!-- Home landing page - Clean Apple/Cursor-inspired design -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
+    <div class="home-page min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
       <!-- Enhanced minimal background with subtle noise texture effect -->
       <div class="fixed inset-0 pointer-events-none">
         <!-- Subtle gradient - very minimal -->
@@ -75,6 +75,21 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* Crisp, sharp text rendering across the landing page */
+.home-page {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.home-page :deep(h1),
+.home-page :deep(h2),
+.home-page :deep(h3) {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
 /* Refined minimal scrollbar */
 :deep(::-webkit-scrollbar) {
   width: 8px;
