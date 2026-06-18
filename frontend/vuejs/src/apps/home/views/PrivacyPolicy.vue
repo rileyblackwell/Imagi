@@ -1,44 +1,46 @@
-<!-- Privacy Policy Page - Clean minimal design matching Home -->
+<!-- Privacy Policy Page - Clean Apple/Cursor-inspired design matching Home & About -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Enhanced minimal background with subtle noise texture effect -->
+    <div class="home-page min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
+      <!-- Minimal background -->
       <div class="fixed inset-0 pointer-events-none">
-        <!-- Subtle gradient - very minimal -->
+        <!-- Subtle gradient -->
         <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-        
-        <!-- Very subtle grid pattern for texture (dark mode only) -->
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
+
+        <!-- Very subtle grid pattern -->
+        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
              style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
       </div>
 
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative pt-32 sm:pt-40 md:pt-48 pb-16 sm:pb-20 md:pb-24 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
+            <!-- Eyebrow -->
+            <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Legal</p>
+
             <!-- Hero title -->
             <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
               Privacy Policy
             </h1>
-              
+
             <!-- Description -->
             <p class="text-lg sm:text-xl text-gray-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed mb-6 transition-colors duration-300">
               We are committed to protecting your privacy and ensuring the security of your personal information.
             </p>
-            
+
             <p class="text-base text-gray-500 dark:text-white/50 transition-colors duration-300">
-              Last updated: July 15, 2023
+              Last updated: June 18, 2026
             </p>
           </div>
         </section>
 
         <!-- Content Sections -->
-        <section v-for="(section, index) in sections" :key="index" 
+        <section v-for="(section, index) in sections" :key="index"
                  :class="[
-                   'relative px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden',
-                   index === sections.length - 1 ? 'pt-6 md:pt-8 pb-24 md:pb-32' : 
-                   index === 0 ? 'pt-6 md:pt-8 pb-2 md:pb-3' : 'pt-2 md:pt-3 pb-6 md:pb-8'
+                   'relative py-20 md:py-24 px-6 sm:px-8 lg:px-12 transition-colors duration-500 overflow-hidden',
+                   index % 2 === 0 ? 'bg-white dark:bg-[#0a0a0a]' : 'bg-gray-100 dark:bg-[#0d0d0d]'
                  ]">
           <!-- Subtle ambient background -->
           <div class="absolute inset-0 pointer-events-none">
@@ -47,19 +49,23 @@
 
           <div class="relative max-w-3xl mx-auto">
             <!-- Section header -->
-            <div class="mb-12">
-              <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
-                {{ section.badge }}
+            <div class="mb-10">
+              <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">
+                {{ parseBadge(section.badge).eyebrow }}
+              </p>
+              <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight transition-colors duration-300">
+                {{ parseBadge(section.badge).title }}
               </h2>
-              <p v-if="section.description" class="text-lg text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300 mb-8">
+              <p v-if="section.description" class="text-lg text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300">
                 {{ section.description }}
               </p>
             </div>
-            
-            <!-- Content as paragraphs -->
-            <div v-if="section.items" class="space-y-8">
-              <div v-for="(item, itemIndex) in section.items" :key="itemIndex">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-3">
+
+            <!-- Content as cards -->
+            <div v-if="section.items" class="space-y-4">
+              <div v-for="(item, itemIndex) in section.items" :key="itemIndex"
+                   class="relative p-6 sm:p-8 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200/80 dark:border-white/10 crisp-card transition-colors duration-300">
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-3">
                   {{ item.title }}
                 </h3>
                 <p class="text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300">
@@ -69,6 +75,22 @@
             </div>
           </div>
         </section>
+
+        <!-- CTA Section -->
+        <CTASection
+          icon="fas fa-rocket"
+          title="Ready to Start Building?"
+          highlightedText="No Coding Required!"
+          description="Your data stays private and secure. Just describe your idea, and let Imagi do the rest."
+          highlightedStat=""
+          descriptionSuffix=""
+          primaryButtonText="Start Building"
+          primaryButtonTo="/products/imagi/projects"
+          :showSecondaryButton="true"
+          secondaryButtonText="Terms of Service"
+          secondaryButtonTo="/terms"
+          secondaryButtonIcon="fas fa-file-contract"
+        />
       </main>
     </div>
   </DefaultLayout>
@@ -77,13 +99,27 @@
 <script>
 import { defineComponent } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
+import { CTASection } from '@/apps/home/components/organisms/sections'
 
 export default defineComponent({
   name: 'PrivacyPolicy',
   components: {
-    DefaultLayout
+    DefaultLayout,
+    CTASection
   },
   setup() {
+    // Split a badge like "1. Introduction" into an eyebrow label and a title.
+    const parseBadge = (badge) => {
+      const match = badge.match(/^(\d+)\.\s*(.+)$/)
+      if (match) {
+        return {
+          eyebrow: `Section ${match[1].padStart(2, '0')}`,
+          title: match[2]
+        }
+      }
+      return { eyebrow: 'Additional Terms', title: badge }
+    }
+
     const sections = [
       {
         badge: '1. Introduction',
@@ -256,13 +292,38 @@ export default defineComponent({
     ]
     
     return {
-      sections
+      sections,
+      parseBadge
     }
   }
 })
 </script>
 
 <style scoped>
+/* Crisp, sharp text rendering across the page */
+.home-page {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.home-page :deep(h1),
+.home-page :deep(h2),
+.home-page :deep(h3) {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+}
+
+/* Crisp, sharply-defined cards: hairline edge + tight layered shadow */
+.crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
 /* Refined minimal scrollbar */
 :deep(::-webkit-scrollbar) {
   width: 8px;
