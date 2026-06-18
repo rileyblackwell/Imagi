@@ -1,6 +1,6 @@
 <template>
   <nav class="crisp-nav fixed w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-gray-200/80 dark:border-white/[0.08] transition-colors duration-300">
-    <div class="relative max-w-7xl mx-auto pl-6 pr-6 sm:pl-8 sm:pr-8 lg:pl-12 lg:pr-12">
+    <div class="relative px-6 sm:px-8 lg:px-12" :class="fluid ? 'w-full' : 'max-w-7xl mx-auto'">
       <div class="relative flex items-center h-14">
         <!-- Left section -->
         <div class="flex items-center z-10">
@@ -28,6 +28,18 @@
 
 <script setup lang="ts">
 import { ImagiLogo } from '@/shared/components/molecules'
+
+defineProps({
+  /**
+   * When true, the navbar spans the full viewport width with edge padding,
+   * keeping the logo and actions in the true corners at every screen size.
+   * When false (default), content is capped at max-w-7xl and centered.
+   */
+  fluid: {
+    type: Boolean,
+    default: false
+  }
+})
 </script>
 
 <style scoped>
