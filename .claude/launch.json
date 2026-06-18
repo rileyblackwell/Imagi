@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend-vite",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "frontend/vuejs",
+      "port": 5173
+    },
+    {
+      "name": "backend-django",
+      "runtimeExecutable": "pipenv",
+      "runtimeArgs": ["run", "python", "manage.py", "runserver"],
+      "cwd": "backend/django",
+      "port": 8000
+    }
+  ]
+}
