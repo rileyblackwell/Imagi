@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/dev-setup.sh symlink; nohup bash .claude/hooks/dev-setup.sh all > .claude/.dev-setup.log 2>&1 &",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -13,6 +13,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Claude Code dev-setup artifacts
+.claude/.locks/
+.claude/.dev-setup.log
+
 # IDE
 .vscode/*
 !.vscode/extensions.json
