@@ -3,15 +3,15 @@
   "configurations": [
     {
       "name": "frontend-vite",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh frontend; npm run dev"],
       "cwd": "frontend/vuejs",
       "port": 5173
     },
     {
       "name": "backend-django",
-      "runtimeExecutable": "pipenv",
-      "runtimeArgs": ["run", "python", "manage.py", "runserver"],
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh backend; pipenv run python manage.py runserver"],
       "cwd": "backend/django",
       "port": 8000
     }
