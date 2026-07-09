@@ -2,15 +2,6 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="home-page min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Enhanced minimal background with subtle noise texture effect -->
-      <div class="fixed inset-0 pointer-events-none">
-        <!-- Subtle gradient - very minimal -->
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-        
-        <!-- Very subtle grid pattern for texture (dark mode only) -->
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-      </div>
 
       <!-- Main Content -->
       <main class="relative z-10">

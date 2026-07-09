@@ -48,6 +48,11 @@
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300">
               {{ metric.title }}
             </h3>
+
+            <!-- Description -->
+            <p class="relative text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300 text-center">
+              {{ metric.description }}
+            </p>
           </div>
 
           <!-- Description -->
@@ -55,6 +60,7 @@
             {{ metric.description }}
           </p>
         </div>
+
       </div>
     </div>
   </section>

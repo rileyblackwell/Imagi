@@ -108,7 +108,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 3D Printed Button Effect */
+/* Soft 3D button effect - tight, layered, crisp. Blue-tinted shadows to suit the light baby-blue fill. */
 .btn-3d {
   transform: translateZ(0);
   box-shadow:
