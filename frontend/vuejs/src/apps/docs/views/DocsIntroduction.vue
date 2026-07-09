@@ -9,10 +9,10 @@
 
       <!-- What is Imagi -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           What is Imagi?
         </h2>
-        <div class="space-y-4 text-gray-700 dark:text-white/70 text-lg leading-relaxed transition-colors duration-300">
+        <div class="space-y-4 text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed transition-colors duration-300">
           <p>
             Imagi is a suite of AI tools that empowers non-technical developers to build web applications.
             It gives you three simple tools that work together: design visually, chat with AI to plan and write code,
@@ -27,7 +27,7 @@
 
       <!-- Who is it for -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-8 tracking-tight transition-colors duration-300">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-8 tracking-tight transition-colors duration-300">
           Who is it for?
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -45,10 +45,10 @@
 
       <!-- How Does Imagi Work -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           How Does Imagi Work?
         </h2>
-        <p class="text-gray-700 dark:text-white/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
           Imagi combines three powerful tools into one seamless platform, each designed to accelerate different parts
           of your application development process:
         </p>
@@ -70,10 +70,10 @@
 
       <!-- Why Choose Imagi -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           Why Choose Imagi?
         </h2>
-        <p class="text-gray-700 dark:text-white/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
           Imagi is built on the principle that building software should be accessible to everyone, not just
           experienced engineers. Here's what sets us apart:
         </p>
@@ -99,10 +99,10 @@
 
       <!-- Learn More Section -->
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           Learn More
         </h2>
-        <p class="text-gray-700 dark:text-white/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
           Ready to dive deeper? Explore these guides to learn more about using Imagi:
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

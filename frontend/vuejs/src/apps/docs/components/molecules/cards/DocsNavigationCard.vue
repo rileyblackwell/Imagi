@@ -1,19 +1,19 @@
 <template>
   <router-link
     :to="to"
-    class="group relative block p-8 rounded-2xl border border-gray-200 dark:border-gray-300 bg-white dark:bg-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+    class="crisp-card group relative block h-full p-8 rounded-2xl border border-blue-200/70 bg-white transition-all duration-300 hover:-translate-y-0.5"
   >
     <div class="flex items-start gap-4">
       <div class="flex-1">
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-black mb-2 transition-colors duration-300">
+        <h3 class="text-xl font-semibold text-blue-950 mb-2 transition-colors duration-300">
           {{ title }}
         </h3>
-        <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300">
+        <p class="text-blue-950/70 leading-relaxed transition-colors duration-300">
           {{ description }}
         </p>
       </div>
       <svg
-        class="w-5 h-5 text-gray-500 dark:text-gray-600 transition-transform duration-300 group-hover:translate-x-1 flex-shrink-0 mt-1"
+        class="w-5 h-5 text-blue-500 transition-transform duration-300 group-hover:translate-x-1 flex-shrink-0 mt-1"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

@@ -2,62 +2,51 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="home-page min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Minimal background -->
-      <div class="fixed inset-0 pointer-events-none">
-        <!-- Subtle gradient -->
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-        
-        <!-- Very subtle grid pattern -->
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-      </div>
 
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
-            
+
             <!-- Hero title -->
-            <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
+            <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.025em] leading-[1.08] text-balance transition-colors duration-300">
               Web development for everyone
             </h1>
-            
+
             <!-- Description -->
-            <p class="text-lg sm:text-xl text-gray-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed transition-colors duration-300">
+            <p class="text-lg sm:text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
               Imagi provides a set of AI tools to non-technical users, creating a quick and easy experience to build and deploy web applications. We handle all the technical complexity behind the scenes, so you can focus on bringing your ideas to life through a clean visual interface.
             </p>
           </div>
         </section>
 
         <!-- Mission Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-100 dark:bg-[#0d0d0d] transition-colors duration-500 overflow-hidden">
-          <!-- Subtle ambient background -->
-          <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-          </div>
-
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-blue-50 dark:bg-blue-400/[0.16] border-t border-blue-200/60 dark:border-blue-500/[0.12] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-6xl mx-auto">
             <!-- Section header -->
             <div class="text-center mb-16 md:mb-20">
-              <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Our Mission</p>
-              <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/30 bg-orange-50/80 dark:bg-orange-600 text-xs font-semibold text-orange-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Our Mission</p>
+              <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
                 Removing barriers between ideas and reality
               </h2>
-              <p class="text-xl text-gray-500 dark:text-white/60 max-w-3xl mx-auto transition-colors duration-300">
+              <p class="text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
                 Our mission is to democratize web development by providing powerful AI tools that handle all the technical complexity, empowering anyone to create professional web applications without needing to write a single line of code.
               </p>
             </div>
-                
+
             <!-- Mission cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div v-for="(card, index) in missionCards" :key="index" class="relative">
-                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
+                <div
+                  class="relative h-full p-8 rounded-2xl border crisp-card transition-colors duration-300"
+                  :class="index % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'"
+                >
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5">
+                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 transition-colors duration-300 mb-5">
                     {{ card.title }}
                   </h3>
-                  <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300">
+                  <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300">
                     {{ card.description }}
                   </p>
                 </div>
@@ -67,33 +56,31 @@
         </section>
 
         <!-- What We Do Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
-          <!-- Subtle ambient background -->
-          <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-          </div>
-
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 border-t border-orange-200/60 dark:border-orange-500/[0.12] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-6xl mx-auto">
             <!-- Section header -->
             <div class="text-center mb-16 md:mb-20">
-              <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">What We Do</p>
-              <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-xs font-semibold text-blue-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">What We Do</p>
+              <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
                 A complete AI-powered development platform
               </h2>
-              <p class="text-xl text-gray-500 dark:text-white/60 max-w-3xl mx-auto transition-colors duration-300">
+              <p class="text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
                 Imagi combines intelligent AI agents with intuitive visual tools to give you everything you need to design, build, and deploy web applications—all without touching code.
               </p>
             </div>
-                      
+
             <!-- Features grid -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div v-for="(feature, index) in features" :key="index" class="relative">
-                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
+                <div
+                  class="relative h-full p-8 rounded-2xl border crisp-card transition-colors duration-300"
+                  :class="index % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'"
+                >
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5 text-center">
+                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 transition-colors duration-300 mb-5 text-center">
                     {{ feature.title }}
                   </h3>
-                  <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300 text-center">
+                  <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300 text-center">
                     {{ feature.description }}
                   </p>
                 </div>
@@ -103,33 +90,31 @@
         </section>
 
         <!-- Who We Serve Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-gray-100 dark:bg-[#0d0d0d] transition-colors duration-500 overflow-hidden">
-          <!-- Subtle ambient background -->
-          <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-          </div>
-
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-blue-50 dark:bg-blue-400/[0.16] border-t border-blue-200/60 dark:border-blue-500/[0.12] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-6xl mx-auto">
             <!-- Section header -->
             <div class="text-center mb-16 md:mb-20">
-              <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Who We Serve</p>
-              <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/30 bg-orange-50/80 dark:bg-orange-600 text-xs font-semibold text-orange-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Who We Serve</p>
+              <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
                 Built for creators, entrepreneurs, and innovators
               </h2>
-              <p class="text-xl text-gray-500 dark:text-white/60 max-w-3xl mx-auto transition-colors duration-300">
+              <p class="text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
                 Whether you're validating a startup idea, prototyping for your company, or building a personal project, Imagi gives you the tools to turn your vision into reality.
               </p>
             </div>
-                      
+
             <!-- User types grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div v-for="(userType, index) in userTypes" :key="index" class="relative">
-                <div class="relative h-full p-8 rounded-2xl bg-white dark:bg-white border border-gray-200/80 dark:border-gray-300 crisp-card transition-colors duration-300">
+                <div
+                  class="relative h-full p-8 rounded-2xl border crisp-card transition-colors duration-300"
+                  :class="index % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'"
+                >
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold text-gray-900 dark:text-black transition-colors duration-300 mb-5">
+                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 transition-colors duration-300 mb-5">
                     {{ userType.title }}
                   </h3>
-                  <p class="text-gray-600 dark:text-black leading-relaxed transition-colors duration-300">
+                  <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300">
                     {{ userType.description }}
                   </p>
                 </div>

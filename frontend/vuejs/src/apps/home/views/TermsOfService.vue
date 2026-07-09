@@ -2,35 +2,26 @@
 <template>
   <DefaultLayout :isHomeNav="true">
     <div class="home-page min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Minimal background -->
-      <div class="fixed inset-0 pointer-events-none">
-        <!-- Subtle gradient -->
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-
-        <!-- Very subtle grid pattern -->
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-      </div>
 
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
-            <!-- Eyebrow -->
-            <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">Legal</p>
+            <!-- Eyebrow pill -->
+            <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-xs font-semibold text-blue-700 dark:text-white uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Legal</p>
 
             <!-- Hero title -->
-            <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
+            <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.025em] leading-[1.08] text-balance transition-colors duration-300">
               Terms of Service
             </h1>
 
             <!-- Description -->
-            <p class="text-lg sm:text-xl text-gray-600 dark:text-white/70 max-w-3xl mx-auto leading-relaxed mb-6 transition-colors duration-300">
+            <p class="text-lg sm:text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty mb-6 transition-colors duration-300">
               Please read these terms carefully before using our services. By accessing our platform, you agree to be bound by these terms.
             </p>
 
-            <p class="text-base text-gray-500 dark:text-white/50 transition-colors duration-300">
+            <p class="text-base text-blue-950/50 dark:text-blue-100/50 transition-colors duration-300">
               Last updated: June 18, 2026
             </p>
           </div>
@@ -39,24 +30,26 @@
         <!-- Content Sections -->
         <section v-for="(section, index) in sections" :key="index"
                  :class="[
-                   'relative py-20 md:py-24 px-6 sm:px-8 lg:px-12 transition-colors duration-500 overflow-hidden',
-                   index % 2 === 0 ? 'bg-white dark:bg-[#0a0a0a]' : 'bg-gray-100 dark:bg-[#0d0d0d]'
+                   'relative py-20 md:py-24 px-6 sm:px-8 lg:px-12 border-t transition-colors duration-500 overflow-hidden',
+                   index % 2 === 0
+                     ? 'bg-blue-50 dark:bg-blue-400/[0.16] border-blue-200/60 dark:border-blue-500/[0.12]'
+                     : 'bg-orange-50 dark:bg-orange-600 border-orange-200/60 dark:border-orange-500/[0.12]'
                  ]">
-          <!-- Subtle ambient background -->
-          <div class="absolute inset-0 pointer-events-none">
-            <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-          </div>
-
           <div class="relative max-w-3xl mx-auto">
             <!-- Section header -->
             <div class="mb-10">
-              <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">
+              <p
+                class="inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs font-semibold uppercase tracking-[0.18em] mb-5 transition-colors duration-300"
+                :class="index % 2 === 0
+                  ? 'border-orange-200/70 dark:border-orange-400/30 bg-orange-50/80 dark:bg-orange-600 text-orange-700 dark:text-white'
+                  : 'border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-blue-700 dark:text-white'"
+              >
                 {{ parseBadge(section.badge).eyebrow }}
               </p>
-              <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-4 tracking-tight transition-colors duration-300">
+              <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-4 tracking-tight text-balance transition-colors duration-300">
                 {{ parseBadge(section.badge).title }}
               </h2>
-              <p v-if="section.description" class="text-lg text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300">
+              <p v-if="section.description" class="text-lg text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
                 {{ section.description }}
               </p>
             </div>
@@ -64,11 +57,12 @@
             <!-- Content as cards -->
             <div v-if="section.items" class="space-y-4">
               <div v-for="(item, itemIndex) in section.items" :key="itemIndex"
-                   class="relative p-6 sm:p-8 rounded-2xl bg-white dark:bg-white/[0.02] border border-gray-200/80 dark:border-white/10 crisp-card transition-colors duration-300">
-                <h3 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white transition-colors duration-300 mb-3">
+                   class="relative p-6 sm:p-8 rounded-2xl border crisp-card transition-colors duration-300"
+                   :class="itemIndex % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'">
+                <h3 class="text-lg sm:text-xl font-semibold text-blue-950 transition-colors duration-300 mb-3">
                   {{ item.title }}
                 </h3>
-                <p class="text-gray-600 dark:text-white/70 leading-relaxed transition-colors duration-300">
+                <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300">
                   {{ item.text }}
                 </p>
               </div>

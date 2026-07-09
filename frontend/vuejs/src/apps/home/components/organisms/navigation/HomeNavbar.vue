@@ -49,24 +49,29 @@
       <!-- Auth Buttons -->
       <div class="flex items-center space-x-3">
         <template v-if="isAuthenticated">
-          <HomeNavbarButton
+          <button
+            type="button"
             @click="handleLogout"
-            variant="primary"
-            size="base"
-            gradient-type="minimal"
+            class="btn-3d btn-accent group relative inline-flex items-center justify-center min-w-[100px] px-6 py-2.5 text-blue-950 rounded-full font-medium text-sm overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           >
-            Sign Out
-          </HomeNavbarButton>
+            <!-- Top edge highlight for 3D effect -->
+            <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
+            <!-- Bottom edge shadow for depth -->
+            <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
+            <span class="relative">Sign Out</span>
+          </button>
         </template>
         <template v-else>
-          <HomeNavbarButton
+          <router-link
             to="/auth/signin"
-            variant="primary"
-            size="base"
-            gradient-type="minimal"
+            class="btn-3d btn-accent group relative inline-flex items-center justify-center min-w-[100px] px-6 py-2.5 text-blue-950 rounded-full font-medium text-sm overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           >
-            Sign In
-          </HomeNavbarButton>
+            <!-- Top edge highlight for 3D effect -->
+            <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
+            <!-- Bottom edge shadow for depth -->
+            <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
+            <span class="relative">Sign In</span>
+          </router-link>
         </template>
       </div>
     </template>
@@ -145,5 +150,31 @@ export default defineComponent({
 /* Add transition for dropdown chevron */
 .fa-chevron-down {
   transition: transform 0.2s ease-in-out;
+}
+
+/* Soft 3D button effect matching the hero "Start Building" button - blue-tinted shadows for the baby-blue fill. */
+.btn-3d {
+  transform: translateY(0) translateZ(0);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.14),
+    0 4px 10px -2px rgba(30, 58, 138, 0.16),
+    0 10px 20px -6px rgba(30, 58, 138, 0.18),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+}
+
+.btn-3d:active {
+  transform: translateY(0) translateZ(0);
+  transition-duration: 0.1s;
+}
+
+/* Soft baby-blue gradient fill */
+.btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+.dark .btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
 }
 </style>

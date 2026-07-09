@@ -7,14 +7,16 @@
           :key="item.to"
           :to="item.to"
           :class="[
-            'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-black',
-            isActive(item.to) ? 'bg-gray-100 dark:bg-dark-800/70' : ''
+            'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
+            isActive(item.to)
+              ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300'
+              : 'text-blue-950/70 dark:text-white/70 hover:bg-blue-50/70 dark:hover:bg-white/[0.04] hover:text-blue-950 dark:hover:text-white'
           ]"
         >
           <i
             :class="[
               item.icon,
-              'text-lg text-black',
+              'text-lg',
               isSidebarCollapsed ? '' : 'mr-3'
             ]"
           ></i>
@@ -23,12 +25,10 @@
       </div>
     </template>
 
-    <!-- Minimal background with subtle texture (matching homepage) -->
+    <!-- Minimal background with a subtle baby-blue wash (matching homepage) -->
     <div class="fixed inset-0 pointer-events-none z-0">
       <div class="absolute inset-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-500"></div>
-      <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-      <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
-           style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
+      <div class="absolute inset-x-0 top-0 h-[480px] bg-gradient-to-b from-blue-50/70 via-white to-white dark:from-blue-400/[0.06] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
     </div>
 
     <div class="min-h-screen relative overflow-hidden">
@@ -57,6 +57,20 @@ const isActive = (path) => route.path === path
 <style scoped>
 .docs-content :deep(a) {
   text-decoration: none;
+}
+
+/* Crisp, sharply-defined cards matching the home page */
+.docs-content :deep(.crisp-card) {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
+/* Alternating blue / orange accent borders for cards in a grid, echoing the home page */
+.docs-content :deep(.grid > .crisp-card:nth-child(2n)) {
+  border-color: rgba(254, 215, 170, 0.7);
 }
 </style>
 
