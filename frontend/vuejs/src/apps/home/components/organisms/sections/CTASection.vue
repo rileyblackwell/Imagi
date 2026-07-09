@@ -1,6 +1,6 @@
 <!-- CTA Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 border-t border-orange-200/60 dark:border-orange-500/[0.12] transition-colors duration-500 overflow-hidden">
+  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-[#16120e] border-t border-orange-200/60 dark:border-orange-400/[0.14] transition-colors duration-500 overflow-hidden">
 
     <div class="relative max-w-4xl mx-auto text-center">
 
@@ -17,7 +17,7 @@
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <router-link
           :to="getAuthenticatedRedirect"
-          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 dark:border-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e]"
         >
           <!-- Top edge highlight for 3D effect -->
           <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
@@ -32,7 +32,7 @@
         <router-link 
           v-if="showSecondaryButton"
           :to="secondaryButtonTo"
-          class="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent text-orange-700 dark:text-orange-300 rounded-full font-medium text-lg overflow-hidden border-2 border-orange-500/60 dark:border-orange-400/50 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+          class="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-transparent text-orange-700 dark:text-orange-300 rounded-full font-medium text-lg overflow-hidden border-2 border-orange-500/60 dark:border-orange-400/50 hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e]"
         >
           <span class="relative">{{ secondaryButtonText }}</span>
         </router-link>
@@ -120,5 +120,15 @@ export default defineComponent({
 
 .dark .btn-accent {
   background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
+.dark .btn-3d {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
 }
 </style>

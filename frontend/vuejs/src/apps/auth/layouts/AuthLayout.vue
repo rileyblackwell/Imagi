@@ -20,7 +20,7 @@
           <div class="w-full max-w-[520px] mx-auto">
             <!-- Clean card with subtle shadow -->
             <div class="relative animate-fade-in">
-              <div class="relative rounded-2xl border border-blue-200/70 dark:border-blue-500/[0.12] bg-white dark:bg-[#0d0d0d] crisp-card dark:shadow-none backdrop-blur-xl overflow-hidden transition-all duration-300">
+              <div class="relative rounded-2xl border border-blue-200/70 dark:border-blue-300/[0.16] bg-white dark:bg-white/[0.05] crisp-card backdrop-blur-xl overflow-hidden transition-all duration-300">
                 <!-- Card content -->
                 <div class="relative z-10 p-8 sm:p-10">
                   <!-- Logo and Title Section -->
@@ -70,6 +70,14 @@ const route = useRoute()
     0 1px 2px rgba(15, 23, 42, 0.06),
     0 4px 10px -2px rgba(15, 23, 42, 0.07),
     0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
+:root.dark .crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
 /* Fade transition */

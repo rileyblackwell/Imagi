@@ -10,11 +10,10 @@
 
 <script setup lang="ts">
 import { useThemeStore } from '@/shared/stores/theme'
-import { onMounted } from 'vue'
 
 const themeStore = useThemeStore()
 
-onMounted(() => {
-  themeStore.initializeTheme()
-})
+// Initialize synchronously (before mount) so the store takes over from the
+// pre-paint inline script in index.html without a repaint in between.
+themeStore.initializeTheme()
 </script>

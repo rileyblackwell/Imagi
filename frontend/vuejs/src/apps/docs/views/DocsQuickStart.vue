@@ -12,10 +12,10 @@
           Navigate to the Builder Dashboard to get started. Click the "New Project" button to create your first project.
           Give it a name and description that reflects what you want to build.
         </p>
-        <div class="w-full h-px bg-blue-200/70 mb-6"></div>
+        <div class="w-full h-px bg-blue-200/70 dark:bg-blue-300/[0.16] mb-6"></div>
         <router-link
           to="/products/imagi/projects"
-          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-white/60"
+          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-white/60 dark:border-white/30"
         >
           <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
           <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
@@ -40,27 +40,27 @@
         <ul class="space-y-3 mb-6">
           <li class="flex items-start gap-3">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Describe the <strong class="font-semibold text-blue-950">purpose</strong> and functionality you need</span>
+            <span class="text-lg leading-relaxed">Describe the <strong class="font-semibold text-blue-950 dark:text-white">purpose</strong> and functionality you need</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Specify key <strong class="font-semibold text-blue-950">features</strong> and user interactions</span>
+            <span class="text-lg leading-relaxed">Specify key <strong class="font-semibold text-blue-950 dark:text-white">features</strong> and user interactions</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Mention any <strong class="font-semibold text-blue-950">data models</strong> or structure requirements</span>
+            <span class="text-lg leading-relaxed">Mention any <strong class="font-semibold text-blue-950 dark:text-white">data models</strong> or structure requirements</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Share <strong class="font-semibold text-blue-950">design preferences</strong> or style inspiration</span>
+            <span class="text-lg leading-relaxed">Share <strong class="font-semibold text-blue-950 dark:text-white">design preferences</strong> or style inspiration</span>
           </li>
         </ul>
 
-        <div class="bg-blue-50/70 border border-blue-200/70 rounded-xl p-6 transition-colors duration-300">
-          <h4 class="text-blue-950 mt-0 mb-3 text-lg font-semibold">
+        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-blue-200/70 dark:border-blue-300/[0.16] rounded-xl p-6 transition-colors duration-300">
+          <h4 class="text-blue-950 dark:text-white mt-0 mb-3 text-lg font-semibold">
             Example Prompt
           </h4>
-          <p class="text-lg text-blue-950/70 mb-0 leading-relaxed">
+          <p class="text-lg text-blue-950/70 dark:text-blue-100/70 mb-0 leading-relaxed">
             "I need a task management application with user authentication. Users should be able to create projects,
             add tasks to projects, and mark tasks as complete. Each task should have a title, description, due date,
             and priority level. The app should have a dashboard showing task statistics and upcoming deadlines.
@@ -87,7 +87,7 @@
           </li>
           <li class="flex items-start gap-3">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Click the <strong class="font-semibold text-blue-950">"Deploy"</strong> button in your project dashboard</span>
+            <span class="text-lg leading-relaxed">Click the <strong class="font-semibold text-blue-950 dark:text-white">"Deploy"</strong> button in your project dashboard</span>
           </li>
           <li class="flex items-start gap-3">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
@@ -145,5 +145,15 @@ import { DocsPageHeader, DocsStepCard, DocsNavigationCard } from '../components'
 /* Soft baby-blue gradient fill */
 .btn-accent {
   background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
+.dark .btn-3d {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
 }
 </style>

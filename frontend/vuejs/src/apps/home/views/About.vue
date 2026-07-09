@@ -6,7 +6,7 @@
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
+        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-[#16120e] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
 
             <!-- Hero title -->
@@ -22,11 +22,11 @@
         </section>
 
         <!-- Mission Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-blue-50 dark:bg-blue-400/[0.16] border-t border-blue-200/60 dark:border-blue-500/[0.12] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-blue-50 dark:bg-[#0e141f] border-t border-blue-200/60 dark:border-blue-400/[0.14] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-6xl mx-auto">
             <!-- Section header -->
             <div class="text-center mb-16 md:mb-20">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/30 bg-orange-50/80 dark:bg-orange-600 text-xs font-semibold text-orange-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Our Mission</p>
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Our Mission</p>
               <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
                 Removing barriers between ideas and reality
               </h2>
@@ -40,13 +40,13 @@
               <div v-for="(card, index) in missionCards" :key="index" class="relative">
                 <div
                   class="relative h-full p-8 rounded-2xl border crisp-card transition-colors duration-300"
-                  :class="index % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'"
+                  :class="index % 2 === 1 ? 'bg-white dark:bg-white/[0.05] border-orange-200/70 dark:border-orange-300/[0.16]' : 'bg-white dark:bg-white/[0.05] border-blue-200/70 dark:border-blue-300/[0.16]'"
                 >
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 transition-colors duration-300 mb-5">
+                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300 mb-5">
                     {{ card.title }}
                   </h3>
-                  <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300">
+                  <p class="text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
                     {{ card.description }}
                   </p>
                 </div>
@@ -56,11 +56,11 @@
         </section>
 
         <!-- What We Do Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 border-t border-orange-200/60 dark:border-orange-500/[0.12] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-[#16120e] border-t border-orange-200/60 dark:border-orange-400/[0.14] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-6xl mx-auto">
             <!-- Section header -->
             <div class="text-center mb-16 md:mb-20">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-xs font-semibold text-blue-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">What We Do</p>
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">What We Do</p>
               <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
                 A complete AI-powered development platform
               </h2>
@@ -74,13 +74,13 @@
               <div v-for="(feature, index) in features" :key="index" class="relative">
                 <div
                   class="relative h-full p-8 rounded-2xl border crisp-card transition-colors duration-300"
-                  :class="index % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'"
+                  :class="index % 2 === 1 ? 'bg-white dark:bg-white/[0.05] border-orange-200/70 dark:border-orange-300/[0.16]' : 'bg-white dark:bg-white/[0.05] border-blue-200/70 dark:border-blue-300/[0.16]'"
                 >
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 transition-colors duration-300 mb-5 text-center">
+                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300 mb-5 text-center">
                     {{ feature.title }}
                   </h3>
-                  <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300 text-center">
+                  <p class="text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300 text-center">
                     {{ feature.description }}
                   </p>
                 </div>
@@ -90,11 +90,11 @@
         </section>
 
         <!-- Who We Serve Section -->
-        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-blue-50 dark:bg-blue-400/[0.16] border-t border-blue-200/60 dark:border-blue-500/[0.12] transition-colors duration-500 overflow-hidden">
+        <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-blue-50 dark:bg-[#0e141f] border-t border-blue-200/60 dark:border-blue-400/[0.14] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-6xl mx-auto">
             <!-- Section header -->
             <div class="text-center mb-16 md:mb-20">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/30 bg-orange-50/80 dark:bg-orange-600 text-xs font-semibold text-orange-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Who We Serve</p>
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Who We Serve</p>
               <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
                 Built for creators, entrepreneurs, and innovators
               </h2>
@@ -108,13 +108,13 @@
               <div v-for="(userType, index) in userTypes" :key="index" class="relative">
                 <div
                   class="relative h-full p-8 rounded-2xl border crisp-card transition-colors duration-300"
-                  :class="index % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'"
+                  :class="index % 2 === 1 ? 'bg-white dark:bg-white/[0.05] border-orange-200/70 dark:border-orange-300/[0.16]' : 'bg-white dark:bg-white/[0.05] border-blue-200/70 dark:border-blue-300/[0.16]'"
                 >
                   <!-- Content -->
-                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 transition-colors duration-300 mb-5">
+                  <h3 class="text-xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300 mb-5">
                     {{ userType.title }}
                   </h3>
-                  <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300">
+                  <p class="text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
                     {{ userType.description }}
                   </p>
                 </div>
@@ -236,6 +236,14 @@ export default defineComponent({
     0 1px 2px rgba(15, 23, 42, 0.06),
     0 4px 10px -2px rgba(15, 23, 42, 0.07),
     0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
+.dark .crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
 /* Minimal scrollbar matching Home page */

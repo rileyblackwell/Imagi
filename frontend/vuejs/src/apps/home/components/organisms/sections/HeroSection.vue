@@ -1,6 +1,6 @@
 <!-- Hero Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
+  <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-[#16120e] transition-colors duration-500 overflow-hidden">
 
     <div class="relative max-w-4xl mx-auto text-center">
 
@@ -18,7 +18,7 @@
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
         <router-link
           :to="startBuildingRoute"
-          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 dark:border-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e]"
         >
           <!-- Top edge highlight for 3D effect -->
           <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
@@ -36,12 +36,12 @@
         <span
           v-for="(prop, index) in valueProps"
           :key="index"
-          class="value-pill flex items-center gap-2 px-3.5 py-2 rounded-full bg-white dark:bg-white border border-gray-200/90 dark:border-white/20 transition-all duration-300 whitespace-nowrap"
+          class="value-pill flex items-center gap-2 px-3.5 py-2 rounded-full bg-white dark:bg-white/[0.07] border border-gray-200/90 dark:border-white/[0.14] transition-all duration-300 whitespace-nowrap"
         >
-          <span class="w-4 h-4 rounded-full bg-orange-100 ring-1 ring-orange-200/80 flex items-center justify-center transition-all duration-300">
-            <i class="fas fa-check text-[9px] text-orange-600"></i>
+          <span class="w-4 h-4 rounded-full bg-orange-100 dark:bg-orange-400/[0.16] ring-1 ring-orange-200/80 dark:ring-orange-400/30 flex items-center justify-center transition-all duration-300">
+            <i class="fas fa-check text-[9px] text-orange-600 dark:text-orange-300"></i>
           </span>
-          <span class="text-gray-800 dark:text-gray-900 font-medium">{{ prop }}</span>
+          <span class="text-gray-800 dark:text-blue-100/85 font-medium">{{ prop }}</span>
         </span>
       </div>
 
@@ -102,10 +102,26 @@ export default defineComponent({
   background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
 }
 
+/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
+.dark .btn-3d {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
+}
+
 /* Hairline-edged pills with a whisper of depth */
 .value-pill {
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.05),
     0 2px 6px -2px rgba(15, 23, 42, 0.06);
+}
+
+.dark .value-pill {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 2px 6px -2px rgba(0, 0, 0, 0.35);
 }
 </style>

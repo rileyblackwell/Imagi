@@ -1,6 +1,6 @@
 <template>
   <div class="mb-12 md:mb-16 text-center">
-    <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-xs font-semibold text-blue-700 dark:text-white uppercase tracking-[0.18em] mb-5 transition-colors duration-300">
+    <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">
       {{ badgeText }}
     </p>
     <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-[-0.025em] text-blue-950 dark:text-white mb-6 leading-[1.08] text-balance transition-colors duration-300">

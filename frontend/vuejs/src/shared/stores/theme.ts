@@ -110,7 +110,10 @@ export const useThemeStore = defineStore('theme', {
         html.classList.add('light')
         html.classList.remove('dark')
       }
-      
+
+      // Keep native UI (scrollbars, form controls) in sync with the theme
+      html.style.colorScheme = this.effectiveTheme
+
       // Set data attribute for reference
       html.setAttribute('data-theme', this.currentTheme)
     },

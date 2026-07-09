@@ -177,4 +177,14 @@ export default defineComponent({
 .dark .btn-accent {
   background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
 }
+
+/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
+.dark .btn-3d {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
+}
 </style>
