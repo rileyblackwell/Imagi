@@ -1,6 +1,6 @@
 <!-- Hero Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
+  <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-700 transition-colors duration-500 overflow-hidden">
 
     <div class="relative max-w-4xl mx-auto text-center">
 
@@ -10,7 +10,7 @@
       </h1>
 
       <!-- Subtitle -->
-      <p class="text-lg sm:text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty mb-10 max-w-3xl mx-auto transition-colors duration-300">
+      <p class="text-lg sm:text-xl text-blue-950/70 dark:text-orange-50 leading-relaxed text-pretty mb-10 max-w-3xl mx-auto transition-colors duration-300">
         Imagi is a suite of AI tools that empowers non-technical developers to build web applications. Design visually, chat with AI, and launch to the web—fast, affordable, and approachable.
       </p>
 

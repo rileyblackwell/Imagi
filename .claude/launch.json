@@ -6,7 +6,8 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bash ../../.claude/hooks/dev-setup.sh frontend; npm run dev"],
       "cwd": "frontend/vuejs",
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "backend-django",

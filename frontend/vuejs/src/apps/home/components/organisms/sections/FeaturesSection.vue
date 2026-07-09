@@ -1,6 +1,6 @@
 <!-- Features Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 border-t border-orange-200/60 dark:border-orange-500/[0.12] transition-colors duration-500 overflow-hidden">
+  <section class="relative py-24 md:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-700 border-t border-orange-200/60 dark:border-orange-500/[0.12] transition-colors duration-500 overflow-hidden">
 
     <div class="relative max-w-6xl mx-auto">
 
@@ -10,7 +10,7 @@
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
           Your product-building partner
         </h2>
-        <p class="text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty max-w-2xl mx-auto transition-colors duration-300">
+        <p class="text-xl text-blue-950/70 dark:text-orange-50 leading-relaxed text-pretty max-w-2xl mx-auto transition-colors duration-300">
           Three simple tools that work together to help you build, test, and launch web applications.
         </p>
       </div>
