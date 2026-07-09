@@ -1,6 +1,6 @@
 <!-- CTA Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-[#16120e] border-t border-orange-200/60 dark:border-orange-400/[0.14] transition-colors duration-500 overflow-hidden">
+  <section class="relative py-24 sm:py-32 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-700 border-t border-orange-200/60 dark:border-orange-500/[0.12] transition-colors duration-500 overflow-hidden">
 
     <div class="relative max-w-4xl mx-auto text-center">
 
@@ -9,7 +9,7 @@
         {{ title }}
       </h2>
 
-      <p class="text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty mb-10 max-w-2xl mx-auto transition-colors duration-300">
+      <p class="text-xl text-blue-950/70 dark:text-orange-50 leading-relaxed text-pretty mb-10 max-w-2xl mx-auto transition-colors duration-300">
         {{ description }}
       </p>
       
