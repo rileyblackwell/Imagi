@@ -6,7 +6,7 @@
            text-blue-950
            rounded-full
            font-medium
-           border border-white/60
+           border border-white/60 dark:border-white/30
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]
            transition-all duration-300
            disabled:opacity-50 disabled:cursor-not-allowed
@@ -74,5 +74,15 @@ defineProps({
 
 .dark .btn-accent {
   background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
+.dark .btn-3d {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
 }
 </style>

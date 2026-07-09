@@ -23,26 +23,26 @@
           <li class="flex items-start gap-4">
             <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">1</div>
             <div class="text-lg leading-relaxed">
-              <strong class="text-blue-950 font-semibold">Click the "New Project" button</strong> on your dashboard homepage or from the projects list.
+              <strong class="text-blue-950 dark:text-white font-semibold">Click the "New Project" button</strong> on your dashboard homepage or from the projects list.
             </div>
           </li>
           <li class="flex items-start gap-4">
             <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">2</div>
             <div class="text-lg leading-relaxed">
-              <strong class="text-blue-950 font-semibold">Enter a project name</strong> — choose something descriptive that reflects the purpose of your application.
+              <strong class="text-blue-950 dark:text-white font-semibold">Enter a project name</strong> — choose something descriptive that reflects the purpose of your application.
             </div>
           </li>
           <li class="flex items-start gap-4">
             <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">3</div>
             <div class="text-lg leading-relaxed">
-              <strong class="text-blue-950 font-semibold">Select a project template</strong> (optional) — start from scratch or choose from pre-configured templates.
+              <strong class="text-blue-950 dark:text-white font-semibold">Select a project template</strong> (optional) — start from scratch or choose from pre-configured templates.
             </div>
           </li>
         </ol>
 
-        <div class="bg-blue-50/70 border border-blue-200/70 rounded-xl p-6 transition-colors duration-300">
-          <h4 class="text-blue-950 mt-0 mb-3 text-lg font-semibold">Pro Tip</h4>
-          <p class="text-lg text-blue-950/70 mb-0 leading-relaxed">
+        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-blue-200/70 dark:border-blue-300/[0.16] rounded-xl p-6 transition-colors duration-300">
+          <h4 class="text-blue-950 dark:text-white mt-0 mb-3 text-lg font-semibold">Pro Tip</h4>
+          <p class="text-lg text-blue-950/70 dark:text-blue-100/70 mb-0 leading-relaxed">
             Starting with a template can save time, but creating from scratch gives you more control over the architecture.
             Choose based on your specific needs and timeline.
           </p>

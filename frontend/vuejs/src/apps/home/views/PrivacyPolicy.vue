@@ -6,10 +6,10 @@
       <!-- Main Content -->
       <main class="relative z-10">
         <!-- Hero Section -->
-        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
+        <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-[#16120e] transition-colors duration-500 overflow-hidden">
           <div class="relative max-w-4xl mx-auto text-center">
             <!-- Eyebrow pill -->
-            <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-xs font-semibold text-blue-700 dark:text-white uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Legal</p>
+            <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-6 transition-colors duration-300">Legal</p>
 
             <!-- Hero title -->
             <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.025em] leading-[1.08] text-balance transition-colors duration-300">
@@ -32,8 +32,8 @@
                  :class="[
                    'relative py-20 md:py-24 px-6 sm:px-8 lg:px-12 border-t transition-colors duration-500 overflow-hidden',
                    index % 2 === 0
-                     ? 'bg-blue-50 dark:bg-blue-400/[0.16] border-blue-200/60 dark:border-blue-500/[0.12]'
-                     : 'bg-orange-50 dark:bg-orange-600 border-orange-200/60 dark:border-orange-500/[0.12]'
+                     ? 'bg-blue-50 dark:bg-[#0e141f] border-blue-200/60 dark:border-blue-400/[0.14]'
+                     : 'bg-orange-50 dark:bg-[#16120e] border-orange-200/60 dark:border-orange-400/[0.14]'
                  ]">
           <div class="relative max-w-3xl mx-auto">
             <!-- Section header -->
@@ -41,8 +41,8 @@
               <p
                 class="inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs font-semibold uppercase tracking-[0.18em] mb-5 transition-colors duration-300"
                 :class="index % 2 === 0
-                  ? 'border-orange-200/70 dark:border-orange-400/30 bg-orange-50/80 dark:bg-orange-600 text-orange-700 dark:text-white'
-                  : 'border-blue-200/70 dark:border-blue-400/30 bg-blue-50/80 dark:bg-blue-600 text-blue-700 dark:text-white'"
+                  ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
+                  : 'border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300'"
               >
                 {{ parseBadge(section.badge).eyebrow }}
               </p>
@@ -58,11 +58,11 @@
             <div v-if="section.items" class="space-y-4">
               <div v-for="(item, itemIndex) in section.items" :key="itemIndex"
                    class="relative p-6 sm:p-8 rounded-2xl border crisp-card transition-colors duration-300"
-                   :class="itemIndex % 2 === 1 ? 'bg-white border-orange-200/70' : 'bg-white border-blue-200/70'">
-                <h3 class="text-lg sm:text-xl font-semibold text-blue-950 transition-colors duration-300 mb-3">
+                   :class="itemIndex % 2 === 1 ? 'bg-white dark:bg-white/[0.05] border-orange-200/70 dark:border-orange-300/[0.16]' : 'bg-white dark:bg-white/[0.05] border-blue-200/70 dark:border-blue-300/[0.16]'">
+                <h3 class="text-lg sm:text-xl font-semibold text-blue-950 dark:text-white transition-colors duration-300 mb-3">
                   {{ item.title }}
                 </h3>
-                <p class="text-blue-950/70 leading-relaxed text-pretty transition-colors duration-300">
+                <p class="text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
                   {{ item.text }}
                 </p>
               </div>
@@ -316,6 +316,14 @@ export default defineComponent({
     0 1px 2px rgba(15, 23, 42, 0.06),
     0 4px 10px -2px rgba(15, 23, 42, 0.07),
     0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
+.dark .crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
 /* Refined minimal scrollbar */

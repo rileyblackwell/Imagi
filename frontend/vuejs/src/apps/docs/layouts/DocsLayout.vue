@@ -68,9 +68,21 @@ const isActive = (path) => route.path === path
     0 12px 28px -10px rgba(15, 23, 42, 0.10);
 }
 
+:root.dark .docs-content :deep(.crisp-card) {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+}
+
 /* Alternating blue / orange accent borders for cards in a grid, echoing the home page */
 .docs-content :deep(.grid > .crisp-card:nth-child(2n)) {
   border-color: rgba(254, 215, 170, 0.7);
+}
+
+:root.dark .docs-content :deep(.grid > .crisp-card:nth-child(2n)) {
+  border-color: rgba(253, 186, 116, 0.16);
 }
 </style>
 
