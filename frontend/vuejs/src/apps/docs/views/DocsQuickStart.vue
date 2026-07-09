@@ -12,13 +12,13 @@
           Navigate to the Builder Dashboard to get started. Click the "New Project" button to create your first project.
           Give it a name and description that reflects what you want to build.
         </p>
-        <div class="w-full h-px bg-gray-200 dark:bg-gray-300 mb-6"></div>
+        <div class="w-full h-px bg-blue-200/70 mb-6"></div>
         <router-link
           to="/products/imagi/projects"
-          class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 text-white rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50"
+          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-white/60"
         >
-          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></span>
-          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent"></span>
+          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
+          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
           <span class="relative">Create New Project</span>
           <svg
             class="relative w-5 h-5 ml-1 transition-transform duration-300 group-hover:translate-x-1"
@@ -39,28 +39,28 @@
 
         <ul class="space-y-3 mb-6">
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Describe the <strong class="font-semibold text-gray-900 dark:text-black">purpose</strong> and functionality you need</span>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <span class="text-lg leading-relaxed">Describe the <strong class="font-semibold text-blue-950">purpose</strong> and functionality you need</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Specify key <strong class="font-semibold text-gray-900 dark:text-black">features</strong> and user interactions</span>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <span class="text-lg leading-relaxed">Specify key <strong class="font-semibold text-blue-950">features</strong> and user interactions</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Mention any <strong class="font-semibold text-gray-900 dark:text-black">data models</strong> or structure requirements</span>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <span class="text-lg leading-relaxed">Mention any <strong class="font-semibold text-blue-950">data models</strong> or structure requirements</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Share <strong class="font-semibold text-gray-900 dark:text-black">design preferences</strong> or style inspiration</span>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <span class="text-lg leading-relaxed">Share <strong class="font-semibold text-blue-950">design preferences</strong> or style inspiration</span>
           </li>
         </ul>
 
-        <div class="bg-gray-50 dark:bg-gray-100 border border-gray-200 dark:border-gray-300 rounded-xl p-6 transition-colors duration-300">
-          <h4 class="text-gray-900 dark:text-black mt-0 mb-3 text-lg font-semibold">
+        <div class="bg-blue-50/70 border border-blue-200/70 rounded-xl p-6 transition-colors duration-300">
+          <h4 class="text-blue-950 mt-0 mb-3 text-lg font-semibold">
             Example Prompt
           </h4>
-          <p class="text-lg mb-0 leading-relaxed">
+          <p class="text-lg text-blue-950/70 mb-0 leading-relaxed">
             "I need a task management application with user authentication. Users should be able to create projects,
             add tasks to projects, and mark tasks as complete. Each task should have a title, description, due date,
             and priority level. The app should have a dashboard showing task statistics and upcoming deadlines.
@@ -82,19 +82,19 @@
 
         <ul class="space-y-3 mb-6">
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
             <span class="text-lg leading-relaxed">Review your application to ensure everything works as expected</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
-            <span class="text-lg leading-relaxed">Click the <strong class="font-semibold text-gray-900 dark:text-black">"Deploy"</strong> button in your project dashboard</span>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <span class="text-lg leading-relaxed">Click the <strong class="font-semibold text-blue-950">"Deploy"</strong> button in your project dashboard</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
             <span class="text-lg leading-relaxed">Your app will be built and deployed to a live URL automatically</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-black mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
             <span class="text-lg leading-relaxed">Share your URL with users and start gathering feedback</span>
           </li>
         </ul>
@@ -106,10 +106,10 @@
       </DocsStepCard>
 
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
           Next Steps
         </h2>
-        <p class="text-gray-700 dark:text-white/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
+        <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
           Now that you've completed the quick start, continue learning with these guides:
         </p>
         <div class="grid grid-cols-1 gap-6">
@@ -130,15 +130,20 @@ import { DocsPageHeader, DocsStepCard, DocsNavigationCard } from '../components'
 </script>
 
 <style scoped>
+/* Soft 3D button effect - tight, layered, crisp. Blue-tinted shadows to suit the baby-blue fill. */
 .btn-3d {
   transform: translateZ(0);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
   box-shadow:
-    0 2px 3px -1px rgba(0, 0, 0, 0.4),
-    0 6px 12px -3px rgba(0, 0, 0, 0.35),
-    0 16px 32px -8px rgba(0, 0, 0, 0.3),
-    0 24px 48px -12px rgba(0, 0, 0, 0.2),
-    0 3px 0 -1px rgba(0, 0, 0, 0.5),
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+    0 1px 2px rgba(30, 58, 138, 0.14),
+    0 4px 10px -2px rgba(30, 58, 138, 0.16),
+    0 10px 20px -6px rgba(30, 58, 138, 0.18),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+}
+
+/* Soft baby-blue gradient fill */
+.btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
 }
 </style>
