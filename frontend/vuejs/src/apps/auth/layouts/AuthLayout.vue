@@ -2,11 +2,11 @@
 <template>
   <DefaultLayout>
     <!-- Clean full-screen layout matching Home page design -->
-    <div class="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] relative overflow-hidden transition-colors duration-500">
-      <!-- Minimal background with subtle texture - matching Home page -->
+    <div class="min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
+      <!-- Minimal background with subtle baby-blue wash - matching Home/About/Docs -->
       <div class="fixed inset-0 pointer-events-none">
-        <!-- Subtle gradient - very minimal -->
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-gray-50 to-gray-50 dark:from-[#0f0f0f] dark:via-[#0f0f0f] dark:to-[#0f0f0f] transition-colors duration-500"></div>
+        <!-- Soft baby-blue gradient fade from the top -->
+        <div class="absolute inset-x-0 top-0 h-[480px] bg-gradient-to-b from-blue-50/70 via-white to-white dark:from-blue-400/[0.06] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
         
         <!-- Very subtle grid pattern for texture (dark mode only) -->
         <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]" 
@@ -20,7 +20,7 @@
           <div class="w-full max-w-[520px] mx-auto">
             <!-- Clean card with subtle shadow -->
             <div class="relative animate-fade-in">
-              <div class="relative rounded-2xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#0a0a0f]/50 shadow-sm dark:shadow-none backdrop-blur-xl overflow-hidden transition-all duration-300">
+              <div class="relative rounded-2xl border border-blue-200/70 dark:border-blue-500/[0.12] bg-white dark:bg-[#0d0d0d] crisp-card dark:shadow-none backdrop-blur-xl overflow-hidden transition-all duration-300">
                 <!-- Card content -->
                 <div class="relative z-10 p-8 sm:p-10">
                   <!-- Logo and Title Section -->
@@ -30,10 +30,10 @@
                     </div>
                     
                     <!-- Title -->
-                    <h2 class="text-xl sm:text-2xl font-medium tracking-tight mb-3 leading-[1.2] text-black dark:text-white transition-colors duration-300">
+                    <h2 class="text-xl sm:text-2xl font-semibold tracking-tight mb-3 leading-[1.2] text-blue-950 dark:text-white transition-colors duration-300">
                       {{ route.meta.title }}
                     </h2>
-                    <p class="text-base text-gray-500 dark:text-white/80 leading-relaxed transition-colors duration-300">
+                    <p class="text-base text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty transition-colors duration-300">
                       {{ route.meta.subtitle }}
                     </p>
                   </div>
@@ -63,6 +63,15 @@ const route = useRoute()
 </script>
 
 <style scoped>
+/* Crisp, sharply-defined card: hairline edge + tight layered shadow (matches marketing pages) */
+.crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
 /* Fade transition */
 .fade-enter-active,
 .fade-leave-active {

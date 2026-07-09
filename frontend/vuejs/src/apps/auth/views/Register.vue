@@ -62,10 +62,10 @@
               :hasError="!!errorMessage && formSubmitCount > 0"
             />
             <!-- Password requirements with premium glass styling -->
-            <div class="mt-4 p-4 rounded-xl 
-                        border border-black/[0.08] dark:border-white/[0.08] 
-                        bg-black/[0.02] dark:bg-white/[0.02] 
-                        backdrop-blur-sm 
+            <div class="mt-4 p-4 rounded-xl
+                        border border-blue-200/70 dark:border-white/[0.08]
+                        bg-blue-50/50 dark:bg-white/[0.02]
+                        backdrop-blur-sm
                         transition-all duration-300">
               <PasswordRequirements 
                 :password="value || ''"
@@ -101,12 +101,12 @@
       <!-- Bottom section -->
       <div class="space-y-5 pt-2">
         <!-- Terms checkbox with premium styling -->
-        <div class="p-4 rounded-xl 
-                    border border-black/[0.08] dark:border-white/[0.08] 
-                    bg-black/[0.02] dark:bg-white/[0.02] 
-                    backdrop-blur-sm 
-                    hover:bg-black/[0.04] dark:hover:bg-white/[0.04] 
-                    hover:border-black/[0.12] dark:hover:border-white/[0.12] 
+        <div class="p-4 rounded-xl
+                    border border-blue-200/70 dark:border-white/[0.08]
+                    bg-blue-50/50 dark:bg-white/[0.02]
+                    backdrop-blur-sm
+                    hover:bg-blue-50 dark:hover:bg-white/[0.04]
+                    hover:border-blue-300/70 dark:hover:border-white/[0.12]
                     transition-all duration-300">
           <Field name="agreeToTerms" :rules="{ required: { allowFalse: false } }" :validateOnBlur="false" v-slot="{ errorMessage }">
             <FormCheckbox 
@@ -114,12 +114,12 @@
               :disabled="authStore.loading || isSubmitting"
               :showError="false"
             >
-              I agree to the 
-              <router-link to="/terms" class="text-black dark:text-white hover:text-black/70 dark:hover:text-white/70 transition-colors duration-300 font-medium">
+              I agree to the
+              <router-link to="/terms" class="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors duration-300 font-medium">
                 Terms of Service
               </router-link>
               and
-              <router-link to="/privacy" class="text-black dark:text-white hover:text-black/70 dark:hover:text-white/70 transition-colors duration-300 font-medium">
+              <router-link to="/privacy" class="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors duration-300 font-medium">
                 Privacy Policy
               </router-link>
             </FormCheckbox>
@@ -132,13 +132,13 @@
 
         <!-- Error message with premium styling -->
         <transition name="fade-up">
-          <div v-if="serverError" 
-               class="p-4 rounded-xl border border-red-500/20 bg-red-500/10 backdrop-blur-sm">
+          <div v-if="serverError"
+               class="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-exclamation-triangle text-red-400 text-sm"></i>
+              <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 flex items-center justify-center flex-shrink-0 transition-colors duration-300">
+                <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-sm transition-colors duration-300"></i>
               </div>
-              <p class="text-sm font-medium text-red-400 whitespace-pre-line">{{ serverError }}</p>
+              <p class="text-sm font-medium text-red-600 dark:text-red-400 whitespace-pre-line transition-colors duration-300">{{ serverError }}</p>
             </div>
           </div>
         </transition>
@@ -159,17 +159,17 @@
     <!-- Separator -->
     <div class="relative py-4">
       <div class="relative flex items-center justify-center">
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-black/[0.08] dark:via-white/[0.08] to-transparent"></div>
-        <div class="mx-4 text-xs text-gray-400 dark:text-white uppercase tracking-wider transition-colors duration-300">or</div>
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-black/[0.08] dark:via-white/[0.08] to-transparent"></div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200/70 dark:via-white/[0.08] to-transparent"></div>
+        <div class="mx-4 text-xs text-blue-950/40 dark:text-blue-100/40 uppercase tracking-wider transition-colors duration-300">or</div>
+        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200/70 dark:via-white/[0.08] to-transparent"></div>
       </div>
     </div>
 
     <!-- Auth Links -->
     <div class="text-center">
-      <p class="text-black dark:text-white text-sm transition-colors duration-300">
+      <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">
         Already have an account?
-        <router-link to="/auth/signin" class="text-black dark:text-white hover:text-gray-600 dark:hover:text-white/70 font-medium transition-colors duration-200 ml-1">
+        <router-link to="/auth/signin" class="text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 font-medium transition-colors duration-200 ml-1">
           Sign in
         </router-link>
       </p>

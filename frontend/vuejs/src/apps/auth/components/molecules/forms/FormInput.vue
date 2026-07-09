@@ -3,7 +3,7 @@
     <label class="relative block group">
       <span class="sr-only">{{ label }}</span>
       <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10">
-        <i :class="[icon, 'text-black dark:text-white transition-colors duration-200']"></i>
+        <i :class="[icon, 'text-blue-950/40 dark:text-blue-100/40 transition-colors duration-200']"></i>
       </span>
       <input
         :value="modelValue"
@@ -14,17 +14,17 @@
         :type="inputType"
         :disabled="disabled"
         :placeholder="placeholder"
-        class="w-full py-4 pl-12 pr-4 rounded-xl 
-               text-black dark:text-white 
-               placeholder-gray-400 dark:placeholder-white/30 
+        class="w-full py-4 pl-12 pr-4 rounded-xl
+               text-blue-950 dark:text-white
+               placeholder-blue-950/40 dark:placeholder-white/30
                outline-none focus:outline-none
-               disabled:opacity-50 disabled:cursor-not-allowed 
+               disabled:opacity-50 disabled:cursor-not-allowed
                transition-all duration-200
-               border bg-gray-50 dark:bg-white/[0.03] backdrop-blur-sm
+               border bg-blue-50/50 dark:bg-white/[0.03] backdrop-blur-sm
                focus:ring-0"
-        :class="{ 
-          'border-red-500/50 bg-red-50 dark:bg-red-500/5': hasError, 
-          'border-gray-200 dark:border-white/[0.08]': !hasError
+        :class="{
+          'border-red-500/50 bg-red-50 dark:bg-red-500/5': hasError,
+          'border-blue-200/70 dark:border-white/[0.08]': !hasError
         }"
       >
     </label>
@@ -127,10 +127,10 @@ input::-moz-focus-inner {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: black;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(249, 250, 251, 1) inset;
+  -webkit-text-fill-color: #172554;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(239, 246, 255, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
-  border-color: rgb(229, 231, 235) !important;
+  border-color: rgb(191, 219, 254) !important;
 }
 
 /* Autofill styling for dark mode */
