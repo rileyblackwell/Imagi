@@ -1,16 +1,16 @@
 <!-- Hero Section - Clean Apple/Cursor-inspired design -->
 <template>
-  <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
-    
+  <section class="relative py-32 sm:py-40 md:py-48 px-6 sm:px-8 lg:px-12 bg-orange-50 dark:bg-orange-600 transition-colors duration-500 overflow-hidden">
+
     <div class="relative max-w-4xl mx-auto text-center">
-      
+
       <!-- Hero title -->
-      <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight leading-[1.1] transition-colors duration-300">
+      <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold mb-6 tracking-[-0.025em] leading-[1.08] text-balance text-blue-950 dark:text-white">
         Turn ideas into web apps
       </h1>
 
       <!-- Subtitle -->
-      <p class="text-lg sm:text-xl text-gray-700 dark:text-white/80 tracking-wide font-medium mb-10 max-w-3xl mx-auto transition-colors duration-300">
+      <p class="text-lg sm:text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty mb-10 max-w-3xl mx-auto transition-colors duration-300">
         Imagi is a suite of AI tools that empowers non-technical developers to build web applications. Design visually, chat with AI, and launch to the web—fast, affordable, and approachable.
       </p>
 
@@ -18,12 +18,12 @@
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
         <router-link
           :to="startBuildingRoute"
-          class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
+          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
         >
           <!-- Top edge highlight for 3D effect -->
-          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
+          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
           <!-- Bottom edge shadow for depth -->
-          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
+          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
           <span class="relative">Start Building</span>
           <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -33,23 +33,15 @@
 
       <!-- Value props - centered and minimal -->
       <div class="flex flex-wrap items-center justify-center gap-3 text-xs transition-colors duration-300">
-        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 whitespace-nowrap">
-          <div class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
-            <i class="fas fa-check text-[9px] text-emerald-600 dark:text-emerald-600"></i>
-          </div>
-          <span class="text-gray-900 dark:text-gray-900 font-medium">Prototype and validate ideas quickly</span>
-        </span>
-        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 whitespace-nowrap">
-          <div class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
-            <i class="fas fa-check text-[9px] text-emerald-600 dark:text-emerald-600"></i>
-          </div>
-          <span class="text-gray-900 dark:text-gray-900 font-medium">No coding experience required</span>
-        </span>
-        <span class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-gray-100 dark:bg-white transition-all duration-300 whitespace-nowrap">
-          <div class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-100 flex items-center justify-center transition-all duration-300">
-            <i class="fas fa-check text-[9px] text-emerald-600 dark:text-emerald-600"></i>
-          </div>
-          <span class="text-gray-900 dark:text-gray-900 font-medium">Deploy to the web in minutes</span>
+        <span
+          v-for="(prop, index) in valueProps"
+          :key="index"
+          class="value-pill flex items-center gap-2 px-3.5 py-2 rounded-full bg-white dark:bg-white border border-gray-200/90 dark:border-white/20 transition-all duration-300 whitespace-nowrap"
+        >
+          <span class="w-4 h-4 rounded-full bg-orange-100 ring-1 ring-orange-200/80 flex items-center justify-center transition-all duration-300">
+            <i class="fas fa-check text-[9px] text-orange-600"></i>
+          </span>
+          <span class="text-gray-800 dark:text-gray-900 font-medium">{{ prop }}</span>
         </span>
       </div>
 
@@ -72,43 +64,66 @@ export default defineComponent({
         : { name: 'login' }
     })
 
-    return { startBuildingRoute }
+    const valueProps = [
+      'Prototype and validate ideas quickly',
+      'No coding experience required',
+      'Deploy to the web in minutes'
+    ]
+
+    return { startBuildingRoute, valueProps }
   }
 })
 </script>
 
 <style scoped>
-/* 3D Printed Button Effect */
+/* Soft 3D button effect - tight, layered, crisp. Blue-tinted shadows to suit the light baby-blue fill. */
 .btn-3d {
-  transform: translateZ(0);
-  box-shadow: 
-    /* Tight shadow for immediate depth */
-    0 2px 3px -1px rgba(0, 0, 0, 0.4),
-    /* Medium shadow for body lift */
-    0 6px 12px -3px rgba(0, 0, 0, 0.35),
-    /* Large diffuse shadow */
-    0 16px 32px -8px rgba(0, 0, 0, 0.3),
-    0 24px 48px -12px rgba(0, 0, 0, 0.2),
-    /* Bottom edge thickness */
-    0 3px 0 -1px rgba(0, 0, 0, 0.5),
-    /* Inset highlights */
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+  transform: translateY(0) translateZ(0);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.14),
+    0 4px 10px -2px rgba(30, 58, 138, 0.16),
+    0 10px 20px -6px rgba(30, 58, 138, 0.18),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
 }
 
-.dark .btn-3d {
-  box-shadow: 
-    /* Tight shadow for immediate depth */
-    0 2px 3px -1px rgba(0, 0, 0, 0.1),
-    /* Medium shadow for body lift */
-    0 6px 12px -3px rgba(0, 0, 0, 0.1),
-    /* Large diffuse shadow */
-    0 16px 32px -8px rgba(0, 0, 0, 0.1),
-    0 24px 48px -12px rgba(0, 0, 0, 0.08),
-    /* Bottom edge thickness */
-    0 3px 0 -1px rgba(0, 0, 0, 0.15),
-    /* Inset highlights */
-    inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
+.btn-3d:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow:
+    0 2px 4px rgba(30, 58, 138, 0.16),
+    0 6px 16px -2px rgba(56, 132, 246, 0.28),
+    0 16px 32px -8px rgba(56, 132, 246, 0.26),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.1);
+}
+
+.btn-3d:active {
+  transform: translateY(0) translateZ(0);
+  transition-duration: 0.1s;
+}
+
+/* Soft baby-blue gradient fill, brighter on hover */
+.btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+.btn-accent:hover {
+  background: linear-gradient(155deg, #eaf6ff 0%, #c9e6fb 55%, #aed7f6 100%);
+}
+
+.dark .btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+.dark .btn-accent:hover {
+  background: linear-gradient(155deg, #eaf6ff 0%, #c9e6fb 55%, #aed7f6 100%);
+}
+
+/* Hairline-edged pills with a whisper of depth */
+.value-pill {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 2px 6px -2px rgba(15, 23, 42, 0.06);
 }
 </style>
