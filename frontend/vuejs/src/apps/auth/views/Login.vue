@@ -62,17 +62,8 @@
       </div>
     </Form>
 
-    <!-- Separator -->
-    <div class="relative py-4">
-      <div class="relative flex items-center justify-center">
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200/70 dark:via-white/[0.08] to-transparent transition-colors duration-300"></div>
-        <div class="mx-4 text-xs text-blue-950/40 dark:text-blue-100/40 uppercase tracking-wider transition-colors duration-300">or</div>
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-blue-200/70 dark:via-white/[0.08] to-transparent transition-colors duration-300"></div>
-      </div>
-    </div>
-
     <!-- Auth Links -->
-    <div class="text-center">
+    <div class="text-center pt-2">
       <AuthLinks />
     </div>
   </div>
