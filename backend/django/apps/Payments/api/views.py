@@ -6,7 +6,7 @@ import stripe
 import logging
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.conf import settings
@@ -642,7 +642,16 @@ def get_session_status(request):
             
         # Retrieve session from Stripe
         session = stripe_service.get_session_status(session_id)
-        
+
+        # Enforce object-level ownership: the session must belong to the caller.
+        # Without this, any authenticated user who obtains another user's
+        # session_id (it is exposed in the success-page URL) could claim that
+        # user's purchased credits to their own balance.
+        if session.metadata.get('user_id') != str(request.user.id):
+            return Response({
+                'error': 'Session not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         # Check if payment succeeded
         if session.payment_status == 'paid':
             # Subscription sessions are handled by webhooks, just confirm success
@@ -750,8 +759,16 @@ def verify_webhook(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def webhook(request):
-    """Handle Stripe webhooks."""
+    """Handle Stripe webhooks.
+
+    Authenticated by Stripe's signature (verify_webhook_event) rather than a
+    logged-in session, so it must bypass the DRF default IsAuthenticated —
+    otherwise Stripe's unauthenticated POST is rejected and the webhook never
+    runs (which would leave the ownership-checked, idempotent crediting path
+    dead and force all crediting through the synchronous session-status call).
+    """
     try:
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')

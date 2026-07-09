@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from urllib.parse import urlparse
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,11 +26,23 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-=t%ber3f=v$=ldar^nf_=rap!t#%f6d0#+r!94ig5%g6ohjn&c')
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
+# Fail closed: default to False so a misconfigured/unset env never exposes
+# debug pages or stack traces in production.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# No hardcoded fallback: a publicly-known key would allow session-cookie /
+# signed-token forgery. Require it in production; allow an ephemeral
+# dev-only key strictly when DEBUG is on so local commands still work.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-dev-only-key-do-not-use-in-production'
+    else:
+        raise ImproperlyConfigured(
+            'DJANGO_SECRET_KEY environment variable must be set when DEBUG is False.'
+        )
 
 ALLOWED_HOSTS = [
     h.strip()
