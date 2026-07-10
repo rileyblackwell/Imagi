@@ -37,7 +37,7 @@
             Your Projects
           </h1>
           <p class="text-base text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">
-            Create new web applications or continue working on existing projects.
+            Start a new business or keep building and running an existing one.
           </p>
         </section>
 
@@ -75,7 +75,7 @@
                 <div class="mb-5 flex-shrink-0">
                   <p class="inline-flex items-center px-3 py-1 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
                   <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
-                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start building a new web application with AI assistance.</p>
+                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start a new business — build your product, then sell, market, and run it.</p>
                 </div>
 
                 <!-- Create Form -->
@@ -408,10 +408,10 @@ async function createProject() {
       idType: typeof newProject.id
     })
     
-    // Navigate immediately to the workspace for the newly created project
-    router.push({ 
-      name: 'builder-workspace', 
-      params: { projectName: toSlug(newProject.name) } 
+    // Navigate immediately to the project hub for the newly created project
+    router.push({
+      name: 'project-hub',
+      params: { projectName: toSlug(newProject.name) }
     })
     
   } catch (error: any) {

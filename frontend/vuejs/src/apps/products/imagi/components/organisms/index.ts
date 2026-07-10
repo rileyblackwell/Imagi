@@ -2,4 +2,5 @@
 export * from "./chat";
 export * from "./workspace";
 export * from "./projects";
-export * from "./modals"; 
+export * from "./modals";
+export * from "./hub";
