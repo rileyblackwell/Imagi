@@ -103,6 +103,18 @@ class BuilderAPITests(APITestCase):
         self.assertEqual(resp.data['path'], relative_path)
         self.assertTrue(os.path.exists(os.path.join(self.project_root, relative_path)))
 
+    def test_create_file_accepts_form_encoded_data(self):
+        # Regression: form posts arrive as an immutable QueryDict; the view must
+        # copy it before deriving name/type instead of raising (which surfaced
+        # as a 500). Note the default (non-json) client format is multipart.
+        relative_path = 'frontend/vuejs/src/apps/blog/views/Form.vue'
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': relative_path, 'content': 'form body'},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(os.path.exists(os.path.join(self.project_root, relative_path)))
+
     def test_create_file_requires_path_or_name(self):
         resp = self.client.post(
             reverse('api-create-file', args=[self.project.id]),
@@ -110,7 +122,7 @@ class BuilderAPITests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_create_file_on_other_users_project_is_rejected(self):
+    def test_create_file_on_other_users_project_returns_404(self):
         other = User.objects.create_user(username='intruder', password='testpass123')
         other_root = tempfile.mkdtemp(prefix='builder_other_')
         self.addCleanup(lambda: shutil.rmtree(other_root, ignore_errors=True))
@@ -122,10 +134,22 @@ class BuilderAPITests(APITestCase):
             reverse('api-create-file', args=[other_project.id]),
             {'path': relative_path, 'content': 'x'}, format='json',
         )
-        # The project is owned by another user, so the request must not succeed
-        # and no file may be written into their project directory.
-        self.assertGreaterEqual(resp.status_code, 400)
+        # Another user's project is not visible, so the caller gets a clean 404
+        # (not a 500), and nothing is written into their directory.
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(os.path.exists(os.path.join(other_root, relative_path)))
+
+    def test_file_content_of_other_users_project_returns_404(self):
+        other = User.objects.create_user(username='snoop', password='testpass123')
+        other_root = tempfile.mkdtemp(prefix='builder_snoop_')
+        self.addCleanup(lambda: shutil.rmtree(other_root, ignore_errors=True))
+        other_project = PMProject.objects.create(
+            user=other, name="Snoop Project", project_path=other_root
+        )
+        resp = self.client.get(
+            reverse('api-file-content', args=[other_project.id, 'a/b.vue'])
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_file_content_round_trip(self):
         relative_path = 'frontend/vuejs/src/apps/blog/views/Home.vue'
