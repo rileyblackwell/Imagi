@@ -2,9 +2,16 @@
 Agents services module - OpenAI Agents SDK.
 """
 
-from .base_agent import ImagiAgentService, get_agent_service, AgentContext, DEFAULT_MODEL
+from .base_agent import (
+    ImagiAgentService,
+    get_agent_service,
+    AgentContext,
+    DEFAULT_MODEL,
+    compact_history,
+    extract_run_metadata,
+)
 from .chat_agent import create_chat_agent, create_simple_chat_agent
-from .coding_agent import create_coding_agent
+from .coding_agent import create_coding_agent, load_project_memory
 
 
 __all__ = [
@@ -12,7 +19,10 @@ __all__ = [
     'get_agent_service',
     'AgentContext',
     'DEFAULT_MODEL',
+    'compact_history',
+    'extract_run_metadata',
     'create_chat_agent',
     'create_simple_chat_agent',
     'create_coding_agent',
+    'load_project_memory',
 ]

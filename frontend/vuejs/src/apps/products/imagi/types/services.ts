@@ -275,12 +275,24 @@ export interface ChatResponse {
 }
 
 /**
+ * One step of the agent's working plan, maintained via its update_plan tool
+ */
+export interface AgentPlanStep {
+  step: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+/**
  * Agent mode response interface (coding agent that can chat + edit files)
  */
 export interface AgentResponse {
   response: string;
   conversation_id?: string;
   files_changed?: string[];
+  /** Names of the tools the agent called during the run, in order */
+  tool_calls?: string[];
+  /** The agent's working plan for multi-step tasks */
+  plan?: AgentPlanStep[];
   single_message?: boolean;
 }
 
