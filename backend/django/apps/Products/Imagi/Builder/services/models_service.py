@@ -11,17 +11,47 @@ from typing import List, Tuple, Dict, Any
 logger = logging.getLogger(__name__)
 
 # Centralized Model Definitions
+# The GPT 5.6 suite: three tiers users can choose from when building.
+#   Sol   - flagship, most capable (default)
+#   Terra - balanced, general-purpose
+#   Luna  - light, fast and economical
 MODELS = {
-    'gpt-5.5': {
-        'id': 'gpt-5.5',
-        'name': 'GPT 5.5',
+    'gpt-5.6-sol': {
+        'id': 'gpt-5.6-sol',
+        'name': 'GPT 5.6 Sol',
         'provider': 'openai',
         'type': 'openai',
-        'description': 'OpenAI | GPT 5.5 for chat and building assistance',
+        'description': 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks',
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 128000,
+        'input_price_per_m_tokens': 6,
+        'output_price_per_m_tokens': 30,
+        'api_version': 'responses',  # Uses OpenAI Responses API
+        'supports_temperature': False
+    },
+    'gpt-5.6-terra': {
+        'id': 'gpt-5.6-terra',
+        'name': 'GPT 5.6 Terra',
+        'provider': 'openai',
+        'type': 'openai',
+        'description': 'OpenAI | GPT 5.6 Terra — balanced model for everyday chat and building assistance',
         'capabilities': ['code_generation', 'chat', 'analysis'],
         'maxTokens': 128000,
         'input_price_per_m_tokens': 3,
         'output_price_per_m_tokens': 15,
+        'api_version': 'responses',  # Uses OpenAI Responses API
+        'supports_temperature': False
+    },
+    'gpt-5.6-luna': {
+        'id': 'gpt-5.6-luna',
+        'name': 'GPT 5.6 Luna',
+        'provider': 'openai',
+        'type': 'openai',
+        'description': 'OpenAI | GPT 5.6 Luna — light, fast and economical model for quick tasks',
+        'capabilities': ['code_generation', 'chat', 'analysis'],
+        'maxTokens': 128000,
+        'input_price_per_m_tokens': 1,
+        'output_price_per_m_tokens': 5,
         'api_version': 'responses',  # Uses OpenAI Responses API
         'supports_temperature': False
     }
@@ -43,7 +73,9 @@ MODEL_COSTS = {
 
 # Default model costs for unknown models (per million tokens)
 DEFAULT_MODEL_COSTS = {
-    'gpt-5.5': {'input': 3, 'output': 15},
+    'gpt-5.6-sol': {'input': 6, 'output': 30},
+    'gpt-5.6-terra': {'input': 3, 'output': 15},
+    'gpt-5.6-luna': {'input': 1, 'output': 5},
 }
 
 def get_model_choices() -> List[Tuple[str, str]]:
@@ -108,11 +140,8 @@ def get_model_cost(model_id: str) -> Dict[str, float]:
     amount = MODEL_COSTS.get(model_id)
 
     if amount is None:
-        model_lower = model_id.lower()
-        if model_lower.startswith('gpt-5'):
-            amount = {'input': 3, 'output': 15}
-        else:
-            amount = {'input': 3, 'output': 15}
+        # Fall back to the balanced (Terra) tier pricing for unknown GPT 5.6 ids
+        amount = {'input': 3, 'output': 15}
 
     return amount
 
@@ -132,7 +161,7 @@ def get_default_model_id() -> str:
     Returns:
         str: The default model ID
     """
-    return 'gpt-5.5'
+    return 'gpt-5.6-sol'
 
 def get_model_display_name(model_id: str) -> str:
     """

@@ -5,7 +5,7 @@ import type { BuilderMode, ProjectFile } from '../types/components'
 import { FileService } from '../services/fileService'
 import { AgentService } from '../services/agentService'
 
-const DEFAULT_MODEL_ID = 'gpt-5.5'
+const DEFAULT_MODEL_ID = 'gpt-5.6-sol'
 
 function newLocalId(): string {
   return `inst-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`

@@ -132,16 +132,14 @@ const prompt = ref('')
 const promptTextarea = ref<HTMLTextAreaElement | null>(null)
 
 const modelOptions = computed<AIModel[]>(() => {
-  const available = (store.availableModels || []).filter(model => model.id === 'gpt-5.5')
+  const available = (store.availableModels || []).filter(model => model.id.startsWith('gpt-5.6'))
   if (available.length > 0) {
     return available
   }
   return [
-    {
-      id: 'gpt-5.5',
-      name: 'GPT 5.5',
-      provider: 'openai'
-    } as AIModel
+    { id: 'gpt-5.6-sol', name: 'GPT 5.6 Sol', provider: 'openai' } as AIModel,
+    { id: 'gpt-5.6-terra', name: 'GPT 5.6 Terra', provider: 'openai' } as AIModel,
+    { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', provider: 'openai' } as AIModel
   ]
 })
 

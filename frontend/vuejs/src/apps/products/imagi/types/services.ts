@@ -56,7 +56,25 @@ export interface UndoResponse {
  * Map of model configurations by model ID
  */
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
-  'gpt-5.5': {
+  'gpt-5.6-sol': {
+    maxTokens: 128000,
+    rateLimits: {
+      tokensPerMinute: 60000,
+      requestsPerMinute: 250
+    },
+    contextWindow: 128000,
+    capabilities: ['code_generation', 'chat', 'analysis']
+  },
+  'gpt-5.6-terra': {
+    maxTokens: 128000,
+    rateLimits: {
+      tokensPerMinute: 60000,
+      requestsPerMinute: 250
+    },
+    contextWindow: 128000,
+    capabilities: ['code_generation', 'chat', 'analysis']
+  },
+  'gpt-5.6-luna': {
     maxTokens: 128000,
     rateLimits: {
       tokensPerMinute: 60000,
@@ -67,20 +85,48 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   }
 };
 
-// List of standard models
+// List of standard models — the GPT 5.6 suite (Sol, Terra, Luna)
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gpt-5.5',
-    name: 'GPT 5.5',
+    id: 'gpt-5.6-sol',
+    name: 'GPT 5.6 Sol',
     provider: 'openai',
     type: 'openai',
     context_window: 128000,
     features: ['chat', 'code', 'analysis'],
-    description: 'OpenAI | GPT 5.5 for chat and building assistance',
+    description: 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 128000,
+    inputPricePerMTokens: 6,
+    outputPricePerMTokens: 30,
+    api_version: 'responses'
+  },
+  {
+    id: 'gpt-5.6-terra',
+    name: 'GPT 5.6 Terra',
+    provider: 'openai',
+    type: 'openai',
+    context_window: 128000,
+    features: ['chat', 'code', 'analysis'],
+    description: 'OpenAI | GPT 5.6 Terra — balanced model for everyday chat and building assistance',
     capabilities: ['code_generation', 'chat', 'analysis'],
     maxTokens: 128000,
     inputPricePerMTokens: 3,
     outputPricePerMTokens: 15,
+    api_version: 'responses'
+  },
+  {
+    id: 'gpt-5.6-luna',
+    name: 'GPT 5.6 Luna',
+    provider: 'openai',
+    type: 'openai',
+    context_window: 128000,
+    features: ['chat', 'code', 'analysis'],
+    description: 'OpenAI | GPT 5.6 Luna — light, fast and economical model for quick tasks',
+    capabilities: ['code_generation', 'chat', 'analysis'],
+    maxTokens: 128000,
+    inputPricePerMTokens: 1,
+    outputPricePerMTokens: 5,
     api_version: 'responses'
   }
 ];

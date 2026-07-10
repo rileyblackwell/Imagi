@@ -82,11 +82,25 @@ const props = defineProps({
         description: 'Anthropic\'s advanced model for nuanced tasks'
       },
       {
-        id: 'gpt-5.5',
-        name: 'GPT 5.5',
+        id: 'gpt-5.6-sol',
+        name: 'GPT 5.6 Sol',
+        inputPrice: 6,
+        outputPrice: 30,
+        description: 'OpenAI | GPT 5.6 Sol — flagship model for the most demanding building tasks'
+      },
+      {
+        id: 'gpt-5.6-terra',
+        name: 'GPT 5.6 Terra',
         inputPrice: 3,
         outputPrice: 15,
-        description: 'OpenAI | GPT 5.5 for chat and building assistance'
+        description: 'OpenAI | GPT 5.6 Terra — balanced model for everyday chat and building assistance'
+      },
+      {
+        id: 'gpt-5.6-luna',
+        name: 'GPT 5.6 Luna',
+        inputPrice: 1,
+        outputPrice: 5,
+        description: 'OpenAI | GPT 5.6 Luna — light, fast and economical model for quick tasks'
       }
     ]
   },

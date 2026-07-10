@@ -544,7 +544,7 @@ async function retryProjectLoad() {
 
     const active = store.activeInstance
     if (active && !active.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.5')
+      const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.6-sol')
         || store.availableModels[0];
       if (defaultModel) {
         store.setInstanceModel(active.id, defaultModel.id)
@@ -701,7 +701,7 @@ onMounted(async () => {
         // Ensure active instance has a model selected
         const active = store.activeInstance
         if (active && !active.selectedModelId && store.availableModels && store.availableModels.length > 0) {
-          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.5')
+          const defaultModel = store.availableModels.find(m => m.id === 'gpt-5.6-sol')
             || store.availableModels[0];
           if (defaultModel) {
             store.setInstanceModel(active.id, defaultModel.id)
