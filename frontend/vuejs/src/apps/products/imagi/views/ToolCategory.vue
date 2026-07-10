@@ -1,9 +1,10 @@
 <!--
   ToolCategory.vue - Generic "coming soon" template for a business tool.
 
-  Drives the Sell / Market / Operate pages from utils/businessTools.ts. It shows
-  the category's purpose and a preview of the planned capabilities. No specific
-  tool is implemented yet — this is intentionally a template shell.
+  Drives the coming-soon pages (Sell / Operate) from utils/businessTools.ts.
+  It shows the category's purpose and a preview of the planned capabilities.
+  Tools with their own workspace (Build, Market) register static routes that
+  take precedence over this view's :category param.
 
   Route: /products/imagi/project/:projectName/:category
 -->

@@ -11,6 +11,8 @@ stripe = "*"
 openai-agents = "*"
 python-dotenv = "*"
 psutil = "*"
+requests = "*"
+cryptography = "*"
 
 [dev-packages]
 
