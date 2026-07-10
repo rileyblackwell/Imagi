@@ -1,7 +1,7 @@
 <template>
   <router-link
     v-if="project"
-    :to="{ name: 'builder-workspace', params: { projectName: toSlug(project.name) }}"
+    :to="{ name: 'project-hub', params: { projectName: toSlug(project.name) }}"
     class="crisp-card group relative block px-5 py-3 rounded-2xl bg-white dark:bg-white/[0.05] border border-blue-200/70 dark:border-blue-300/[0.16] hover:border-blue-300 dark:hover:border-blue-300/30 transition-colors duration-300"
     :title="`Open ${project.name}`"
   >
@@ -23,7 +23,7 @@
         {{ project.description }}
       </p>
       <div class="flex items-center justify-center gap-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200 mt-2.5 pt-2.5 border-t border-blue-200/60 dark:border-white/[0.1]">
-        <span>Open workspace</span>
+        <span>Open project</span>
         <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform duration-200"></i>
       </div>
     </div>
