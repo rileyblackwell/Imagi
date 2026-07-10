@@ -21,10 +21,9 @@
     />
     
     <DefaultLayout :isHomeNav="true">
-    <div class="bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500 min-h-screen">
+    <div class="bg-orange-50 dark:bg-[#16120e] relative transition-colors duration-500 min-h-screen overflow-hidden">
       <!-- Subtle background matching home page -->
       <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
         <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
              style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
       </div>
@@ -33,10 +32,11 @@
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-8 min-h-screen">
         <!-- Compact Hero -->
         <section class="flex-shrink-0 max-w-6xl mx-auto w-full text-center mb-6 md:mb-8">
-          <h1 class="text-3xl sm:text-4xl font-semibold text-gray-900 dark:text-white mb-2 tracking-tight transition-colors duration-300">
+          <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-4 transition-colors duration-300">Workspace</p>
+          <h1 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-2 tracking-tight transition-colors duration-300">
             Your Projects
           </h1>
-          <p class="text-base text-gray-700 dark:text-white/80 transition-colors duration-300">
+          <p class="text-base text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">
             Create new web applications or continue working on existing projects.
           </p>
         </section>
@@ -44,18 +44,18 @@
         <!-- Authentication Error -->
         <div v-if="showAuthError" class="flex-1 flex items-center justify-center">
           <div class="max-w-2xl mx-auto w-full">
-            <div class="relative p-10 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md text-center transition-colors duration-300">
-              <div class="w-16 h-16 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-lock text-2xl text-gray-600 dark:text-gray-600"></i>
+            <div class="crisp-card relative p-10 rounded-2xl bg-white dark:bg-white/[0.05] border border-blue-200/70 dark:border-blue-300/[0.16] text-center transition-colors duration-300">
+              <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-lock text-2xl text-blue-700 dark:text-blue-300"></i>
               </div>
-              <h2 class="text-2xl font-semibold text-gray-900 dark:text-black mb-3 transition-colors duration-300">Authentication Required</h2>
-              <p class="text-gray-600 dark:text-gray-700 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
+              <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-3 transition-colors duration-300">Authentication Required</h2>
+              <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
               <router-link
                 to="/auth/signin"
-                class="btn-3d group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50"
+                class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 dark:border-white/30"
               >
-                <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
-                <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
+                <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
+                <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
                 <i class="fas fa-sign-in-alt relative"></i>
                 <span class="relative">Log In</span>
               </router-link>
@@ -69,25 +69,25 @@
 
             <!-- Section A: Create a Project -->
             <section class="min-h-0">
-              <div class="h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md transition-colors duration-300 flex flex-col">
+              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white/[0.05] border border-blue-200/70 dark:border-blue-300/[0.16] transition-colors duration-300 flex flex-col">
 
                 <!-- Section header -->
                 <div class="mb-5 flex-shrink-0">
-                  <p class="text-sm font-medium text-gray-600 dark:text-gray-600 uppercase tracking-widest mb-2 transition-colors duration-300">New Project</p>
-                  <h2 class="text-2xl font-semibold text-gray-900 dark:text-black mb-2 transition-colors duration-300">Create a Project</h2>
-                  <p class="text-sm text-gray-600 dark:text-gray-700 transition-colors duration-300">Start building a new web application with AI assistance.</p>
+                  <p class="inline-flex items-center px-3 py-1 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
+                  <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
+                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start building a new web application with AI assistance.</p>
                 </div>
 
                 <!-- Create Form -->
                 <div class="flex-1 flex flex-col space-y-4 min-h-0">
                   <!-- Project Name Input -->
                   <div class="flex-shrink-0">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-700 mb-2 transition-colors duration-300">Project Name</label>
+                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 transition-colors duration-300">Project Name</label>
                     <input
                       v-model="newProjectName"
                       type="text"
                       placeholder="Enter project name..."
-                      class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       style="outline: none !important;"
                       :disabled="isCreating"
                     >
@@ -95,13 +95,13 @@
 
                   <!-- Project Description Input -->
                   <div class="flex-1 flex flex-col min-h-0">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-700 mb-2 flex-shrink-0 transition-colors duration-300">
-                      Description <span class="text-gray-400 dark:text-gray-500">(optional)</span>
+                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 flex-shrink-0 transition-colors duration-300">
+                      Description <span class="text-blue-950/40 dark:text-white/40">(optional)</span>
                     </label>
                     <textarea
                       v-model="newProjectDescription"
                       placeholder="Brief description of your project..."
-                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 transition-all duration-300 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                       style="outline: none !important;"
                       :disabled="isCreating"
                     ></textarea>
@@ -112,12 +112,12 @@
                     <button
                       @click="createProject"
                       :disabled="!newProjectName?.trim() || isCreating"
-                      class="btn-3d group relative w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 rounded-full font-medium text-base transition-all duration-300 overflow-hidden border border-gray-700/50 dark:border-gray-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="btn-3d btn-accent group relative w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 text-blue-950 rounded-full font-medium text-base overflow-hidden border border-white/60 dark:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent dark:via-white/60"></span>
-                      <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-black/30 to-transparent dark:via-black/10"></span>
+                      <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
+                      <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
                       <template v-if="isCreating">
-                        <div class="relative w-5 h-5 border-2 border-white/30 border-t-white dark:border-gray-900/30 dark:border-t-gray-900 rounded-full animate-spin"></div>
+                        <div class="relative w-5 h-5 border-2 border-blue-950/30 border-t-blue-950 rounded-full animate-spin"></div>
                         <span class="relative">Creating...</span>
                       </template>
                       <template v-else>
@@ -134,32 +134,32 @@
 
             <!-- Section B: Project Library -->
             <section class="min-h-0">
-              <div class="h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white border border-gray-200 dark:border-gray-300 shadow-md transition-colors duration-300 flex flex-col">
+              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white/[0.05] border border-orange-200/70 dark:border-orange-300/[0.16] transition-colors duration-300 flex flex-col">
 
                 <!-- Section header -->
                 <div class="mb-5 flex-shrink-0">
-                  <p class="text-sm font-medium text-gray-600 dark:text-gray-600 uppercase tracking-widest mb-2 transition-colors duration-300">Your Projects</p>
+                  <p class="inline-flex items-center px-3 py-1 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">Your Projects</p>
                   <div class="flex items-end justify-between gap-3 mb-2">
-                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-black transition-colors duration-300">Project Library</h2>
+                    <h2 class="text-2xl font-semibold text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
                     <span
                       v-if="!isLoading && !error && displayedProjects.length > 0"
-                      class="text-xs font-medium text-gray-500 dark:text-gray-600 pb-1 transition-colors duration-300"
+                      class="text-xs font-medium text-blue-950/50 dark:text-blue-100/50 pb-1 transition-colors duration-300"
                     >
                       {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
                     </span>
                   </div>
-                  <p class="text-sm text-gray-600 dark:text-gray-700 transition-colors duration-300">Continue working on your existing applications.</p>
+                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Continue working on your existing applications.</p>
                 </div>
 
                 <!-- Search Input -->
                 <div class="mb-4 flex-shrink-0">
                   <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm"></i>
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-blue-950/40 dark:text-white/40 text-sm"></i>
                     <input
                       v-model="searchQuery"
                       type="text"
                       placeholder="Search projects..."
-                      class="w-full pl-11 pr-4 py-2.5 bg-gray-50 dark:bg-gray-50 border border-gray-200 dark:border-gray-300 focus:border-gray-400 dark:focus:border-gray-500 rounded-xl text-gray-900 dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 text-sm transition-all duration-300"
+                      class="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 text-sm transition-all duration-300"
                       style="outline: none !important;"
                     >
                   </div>
@@ -176,15 +176,15 @@
                 >
                   <div
                     v-if="deletedProjectMessage"
-                    class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3 flex-shrink-0"
+                    class="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/30 flex items-center gap-3 flex-shrink-0"
                   >
-                    <div class="w-8 h-8 rounded-lg bg-red-100 border border-red-200 flex items-center justify-center flex-shrink-0">
-                      <i class="fas fa-trash-alt text-red-600 text-sm"></i>
+                    <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-400/30 flex items-center justify-center flex-shrink-0">
+                      <i class="fas fa-trash-alt text-red-600 dark:text-red-300 text-sm"></i>
                     </div>
-                    <p class="flex-1 text-sm font-medium text-gray-900">{{ deletedProjectMessage }}</p>
+                    <p class="flex-1 text-sm font-medium text-blue-950 dark:text-red-100">{{ deletedProjectMessage }}</p>
                     <button
                       @click="clearDeletedProjectMessage"
-                      class="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-100 transition-all duration-200"
+                      class="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 dark:text-red-300/70 hover:text-red-600 dark:hover:text-red-200 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all duration-200"
                       aria-label="Dismiss"
                     >
                       <i class="fas fa-times text-xs"></i>
@@ -196,21 +196,21 @@
                 <div class="flex-1 flex flex-col min-h-0">
                   <!-- Loading State -->
                   <div v-if="isLoading" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <div class="w-6 h-6 border-2 border-gray-300 dark:border-gray-400 border-t-gray-600 dark:border-t-gray-600 rounded-full animate-spin"></div>
+                    <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
+                      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-600 text-sm transition-colors duration-300">Loading your projects...</p>
+                    <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading your projects...</p>
                   </div>
 
                   <!-- Error State -->
                   <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-red-50 dark:bg-red-50 rounded-full flex items-center justify-center mb-4">
-                      <i class="fas fa-exclamation-triangle text-red-500 dark:text-red-500 text-xl"></i>
+                    <div class="w-12 h-12 bg-red-50 dark:bg-red-500/10 border border-red-200/60 dark:border-red-400/30 rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-exclamation-triangle text-red-500 dark:text-red-300 text-xl"></i>
                     </div>
-                    <p class="text-gray-600 dark:text-gray-600 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
+                    <p class="text-blue-950/70 dark:text-blue-100/70 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
                     <button
                       @click="retryFetch"
-                      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-100 hover:bg-gray-200 dark:hover:bg-gray-200 border border-gray-200 dark:border-gray-300 rounded-xl text-gray-900 dark:text-gray-900 font-medium text-sm transition-all duration-300"
+                      class="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/[0.06] hover:bg-blue-50 dark:hover:bg-white/[0.1] border border-blue-200/70 dark:border-white/[0.12] rounded-xl text-blue-950 dark:text-white font-medium text-sm transition-all duration-300"
                     >
                       <i class="fas fa-redo text-sm"></i>
                       <span>Try Again</span>
@@ -219,21 +219,21 @@
 
                   <!-- No Search Results -->
                   <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <i class="fas fa-search text-gray-400 dark:text-gray-500 text-xl"></i>
+                    <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-search text-blue-950/40 dark:text-white/40 text-xl"></i>
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-black mb-1 transition-colors duration-300">No matching projects</h3>
-                    <p class="text-gray-600 dark:text-gray-600 text-center text-sm transition-colors duration-300">No projects found matching "{{ searchQuery }}"</p>
+                    <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No matching projects</h3>
+                    <p class="text-blue-950/70 dark:text-blue-100/70 text-center text-sm transition-colors duration-300">No projects found matching "{{ searchQuery }}"</p>
                   </div>
 
                   <!-- Empty State -->
                   <div v-else-if="!projects.length" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-gray-100 dark:bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <i class="fas fa-folder-open text-gray-400 dark:text-gray-500 text-xl"></i>
+                    <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
+                      <i class="fas fa-folder-open text-blue-950/40 dark:text-white/40 text-xl"></i>
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-black mb-1 transition-colors duration-300">No projects yet</h3>
-                    <p class="text-gray-600 dark:text-gray-600 text-center mb-4 text-sm transition-colors duration-300">Create your first project to start building</p>
-                    <div class="flex items-center text-gray-500 dark:text-gray-600 text-sm">
+                    <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No projects yet</h3>
+                    <p class="text-blue-950/70 dark:text-blue-100/70 text-center mb-4 text-sm transition-colors duration-300">Create your first project to start building</p>
+                    <div class="flex items-center text-blue-950/50 dark:text-blue-100/50 text-sm">
                       <i class="fas fa-arrow-left mr-2 animate-pulse"></i>
                       <span>Use the form to get started</span>
                     </div>
@@ -690,27 +690,68 @@ input:focus, textarea:focus {
   background: rgba(0, 0, 0, 0.2);
 }
 
-/* 3D Printed Button Effect - matching homepage */
-.btn-3d {
-  transform: translateZ(0);
-  box-shadow: 
-    0 2px 3px -1px rgba(0, 0, 0, 0.4),
-    0 6px 12px -3px rgba(0, 0, 0, 0.35),
-    0 16px 32px -8px rgba(0, 0, 0, 0.3),
-    0 24px 48px -12px rgba(0, 0, 0, 0.2),
-    0 3px 0 -1px rgba(0, 0, 0, 0.5),
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Crisp, sharply-defined cards matching Home/About - hairline edge + tight layered shadow */
+.crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
+.dark .crisp-card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
+}
+
+/* Soft 3D button effect matching the hero "Start Building" button - blue-tinted shadows for the baby-blue fill. */
+.btn-3d {
+  transform: translateY(0) translateZ(0);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.14),
+    0 4px 10px -2px rgba(30, 58, 138, 0.16),
+    0 10px 20px -6px rgba(30, 58, 138, 0.18),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+}
+
+.btn-3d:active {
+  transform: translateY(0) translateZ(0);
+  transition-duration: 0.1s;
+}
+
+/* Soft baby-blue gradient fill */
+.btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+.dark .btn-accent {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+}
+
+/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
 .dark .btn-3d {
-  box-shadow: 
-    0 2px 3px -1px rgba(0, 0, 0, 0.1),
-    0 6px 12px -3px rgba(0, 0, 0, 0.1),
-    0 16px 32px -8px rgba(0, 0, 0, 0.1),
-    0 24px 48px -12px rgba(0, 0, 0, 0.08),
-    0 3px 0 -1px rgba(0, 0, 0, 0.15),
-    inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
 }
 </style>

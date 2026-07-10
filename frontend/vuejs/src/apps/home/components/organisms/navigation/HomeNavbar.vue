@@ -3,7 +3,7 @@
   <BaseNavbar fluid>
     <!-- Logo override -->
     <template #logo>
-      <span class="text-xl font-bold text-black dark:text-white tracking-tight transition-colors duration-300">Imagi</span>
+      <span class="text-xl font-bold text-blue-950 dark:text-white tracking-tight transition-colors duration-300">Imagi</span>
     </template>
 
     <!-- Center menu -->
