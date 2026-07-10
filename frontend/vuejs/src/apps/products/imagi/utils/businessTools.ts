@@ -53,8 +53,9 @@ export interface BusinessTool {
 }
 
 /**
- * The four pillars of the Imagi workspace. "Build" is live today (the AI app
- * builder); the rest are general templates that will be filled in later.
+ * The four pillars of the Imagi workspace. "Build" (the AI app builder) and
+ * "Market" (Twilio-powered campaigns, inbox, and audience) are live today;
+ * the rest are general templates that will be filled in later.
  */
 export const businessTools: BusinessTool[] = [
   {
@@ -97,15 +98,15 @@ export const businessTools: BusinessTool[] = [
     name: 'Market',
     tagline: 'Grow your audience',
     description:
-      'Reach and engage your customers with campaigns, email, social, and content tools — plus the analytics to see what is working.',
+      'Reach and engage your customers over text and voice, powered by Twilio — send campaigns, hold two-way conversations, and track delivery in one workspace.',
     icon: 'fa-bullhorn',
     accent: 'violet',
-    status: 'coming-soon',
-    routeName: 'project-tool',
+    status: 'available',
+    routeName: 'marketing-overview',
     features: [
-      { icon: 'fa-envelope-open-text', name: 'Email campaigns', description: 'Design and send email to your audience.' },
-      { icon: 'fa-hashtag', name: 'Social & content', description: 'Plan and publish across channels.' },
-      { icon: 'fa-chart-line', name: 'Marketing analytics', description: 'Measure reach, traffic, and conversion.' },
+      { icon: 'fa-comment-sms', name: 'SMS campaigns', description: 'Send personalized text blasts, now or scheduled.' },
+      { icon: 'fa-phone-volume', name: 'Voice broadcasts', description: 'Call your audience with a spoken message.' },
+      { icon: 'fa-inbox', name: 'Two-way inbox', description: 'Read and reply to customer texts in one thread.' },
     ],
   },
   {

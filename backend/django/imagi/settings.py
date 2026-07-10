@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'apps.Home',
     'apps.Auth',
     'apps.Payments',
+    'apps.Marketing',
     'apps.Products.Imagi.Builder',
     'apps.Products.Imagi.Agents',
     'apps.Products.Imagi.ProjectManager',
@@ -228,3 +229,19 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 # Products / Imagi builder
 # Root directory where ProjectManager writes generated user projects.
 PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'imagi_projects'))
+
+
+# Marketing / Twilio
+# Public base URL Twilio uses for webhooks (delivery status callbacks and
+# inbound messages), e.g. https://api.example.com — no trailing slash needed.
+# Falls back to the Railway public domain when deployed there. When empty,
+# campaigns still send, but delivery statuses only update via the manual
+# "sync" action and inbound messages can't be received.
+MARKETING_WEBHOOK_BASE_URL = os.environ.get('MARKETING_WEBHOOK_BASE_URL', '')
+if not MARKETING_WEBHOOK_BASE_URL and os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
+    MARKETING_WEBHOOK_BASE_URL = f"https://{os.environ['RAILWAY_PUBLIC_DOMAIN']}"
+
+# Safety cap on recipients per campaign send (synchronous dispatch loop).
+MARKETING_MAX_CAMPAIGN_RECIPIENTS = int(
+    os.environ.get('MARKETING_MAX_CAMPAIGN_RECIPIENTS', '500')
+)

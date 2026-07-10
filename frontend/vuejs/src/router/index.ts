@@ -3,6 +3,7 @@ import homeRoutes from '@/apps/home/router'
 import authRoutes from '@/apps/auth/router'
 import paymentsRoutes from '@/apps/payments/router'
 import productsImagiRoutes from '@/apps/products/imagi/router'
+import marketingRoutes from '@/apps/marketing/router'
 import docsRoutes from '@/apps/docs/router'
 
 const router = createRouter({
@@ -12,6 +13,7 @@ const router = createRouter({
     ...authRoutes,
     ...paymentsRoutes,
     ...productsImagiRoutes,
+    ...marketingRoutes,
     ...docsRoutes,
   ],
   scrollBehavior(to, from, savedPosition) {
