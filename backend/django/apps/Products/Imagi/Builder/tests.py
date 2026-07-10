@@ -1,258 +1,154 @@
-from django.test import TestCase, Client
-from django.contrib.auth.models import User
-from django.urls import reverse
-from .models import Conversation, Page, Message
-from apps.Products.Imagi.ProjectManager.models import Project as PMProject
-from apps.Products.Imagi.Builder.services.create_file_service import CreateFileService
+"""
+Tests for the Builder app.
+
+Covers the Builder models, the CreateFileService, and the current Builder DRF
+API (file creation/content, the models endpoint, auth gating and project
+ownership).
+
+Note: the previous server-rendered view/service tests (`builder:landing_page`,
+`process_builder_mode_input`, ...) were removed. Those exercised a legacy
+template UI and pre-SDK agent helpers that no longer exist — the workspace is
+now a Vue SPA talking to the DRF API exercised below.
+"""
+
 import os
 import shutil
 import tempfile
 
+from django.contrib.auth.models import User
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APITestCase
+
+from apps.Products.Imagi.ProjectManager.models import Project as PMProject
+from apps.Products.Imagi.Builder.models import Conversation, Page, Message
+from apps.Products.Imagi.Builder.services.create_file_service import CreateFileService
+
+
 class BuilderModelTests(TestCase):
     def setUp(self):
-        # Create a test user
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
+        self.user = User.objects.create_user(username='testuser', password='testpass123')
 
-        # Create a project
         self.project_root = tempfile.mkdtemp(prefix='builder_model_')
         self.project = PMProject.objects.create(
-            user=self.user,
-            name="Test Project",
-            project_path=self.project_root
+            user=self.user, name="Test Project", project_path=self.project_root
         )
         self.addCleanup(lambda: shutil.rmtree(self.project_root, ignore_errors=True))
 
-        # Create a conversation
         self.conversation = Conversation.objects.create(
-            user=self.user,
-            project_id=self.project.id
+            user=self.user, project_id=self.project.id
         )
-        
-        # Create a page
         self.page = Page.objects.create(
-            conversation=self.conversation,
-            filename="index.html"
+            conversation=self.conversation, filename="index.html"
         )
 
     def test_project_creation(self):
-        """Test project model creation and string representation"""
         self.assertEqual(str(self.project), "Test Project (testuser)")
         self.assertEqual(self.project.slug, "test-project")
 
     def test_conversation_creation(self):
-        """Test conversation model creation and string representation"""
-        expected_str = f"Conversation {self.conversation.id} for testuser - Project ID: {self.project.id}"
+        expected_str = (
+            f"Conversation {self.conversation.id} for testuser "
+            f"- Project ID: {self.project.id}"
+        )
         self.assertEqual(str(self.conversation), expected_str)
 
     def test_page_creation(self):
-        """Test page model creation and string representation"""
         expected_str = f"Page index.html in Conversation {self.conversation.id}"
         self.assertEqual(str(self.page), expected_str)
 
     def test_message_creation(self):
-        """Test message model creation and string representation"""
         message = Message.objects.create(
-            conversation=self.conversation,
-            page=self.page,
-            role='user',
-            content='Test message'
+            conversation=self.conversation, page=self.page,
+            role='user', content='Test message',
         )
-        expected_str = "User message for index.html"
-        self.assertEqual(str(message), expected_str)
+        self.assertEqual(str(message), "User message for index.html")
 
-class BuilderViewTests(TestCase):
+
+class BuilderAPITests(APITestCase):
+    """The current Builder REST API (replaces the legacy view tests)."""
+
     def setUp(self):
-        # Create test user and log them in
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
-        self.client = Client()
-        self.client.login(username='testuser', password='testpass123')
+        self.user = User.objects.create_user(username='builder', password='testpass123')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
 
-        self.project_root = tempfile.mkdtemp(prefix='builder_view_')
+        self.project_root = tempfile.mkdtemp(prefix='builder_api_')
         self.project = PMProject.objects.create(
-            user=self.user,
-            name="Test Project",
-            project_path=self.project_root
+            user=self.user, name="API Project", project_path=self.project_root
         )
+        self.addCleanup(lambda: shutil.rmtree(self.project_root, ignore_errors=True))
 
-    def tearDown(self):
-        shutil.rmtree(self.project_root, ignore_errors=True)
+    def test_models_endpoint_requires_auth(self):
+        self.client.credentials()  # drop auth
+        resp = self.client.get(reverse('api-ai-models'))
+        self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_landing_page_view(self):
-        """Test the landing page view"""
-        response = self.client.get(reverse('builder:landing_page'))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'builder/builder_landing_page.html')
-        self.assertIn('projects', response.context)
+    def test_models_endpoint_returns_models(self):
+        resp = self.client.get(reverse('api-ai-models'))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn('models', resp.data)
+        self.assertGreater(len(resp.data['models']), 0)
 
-    def test_create_project_view(self):
-        """Test project creation"""
-        response = self.client.post(
-            reverse('builder:create_project'),
-            {'project_name': 'New Test Project'}
+    def test_create_file_writes_to_disk(self):
+        relative_path = 'frontend/vuejs/src/apps/blog/views/About.vue'
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': relative_path, 'content': 'hello world'},
+            format='json',
         )
-        self.assertEqual(response.status_code, 302)  # Redirect after creation
-        self.assertTrue(PMProject.objects.filter(name='New Test Project').exists())
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data['path'], relative_path)
+        self.assertTrue(os.path.exists(os.path.join(self.project_root, relative_path)))
 
-    def test_delete_project_view(self):
-        """Test project deletion"""
-        response = self.client.post(
-            reverse('builder:delete_project', args=[self.project.id])
+    def test_create_file_requires_path_or_name(self):
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'content': 'x'}, format='json',
         )
-        self.assertEqual(response.status_code, 302)  # Redirect after deletion
-        self.assertFalse(PMProject.objects.filter(id=self.project.id).exists())
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_project_workspace_view(self):
-        """Test the project workspace view"""
-        response = self.client.get(
-            reverse('builder:project_workspace', 
-                   args=[self.project.slug])
+    def test_create_file_on_other_users_project_is_rejected(self):
+        other = User.objects.create_user(username='intruder', password='testpass123')
+        other_root = tempfile.mkdtemp(prefix='builder_other_')
+        self.addCleanup(lambda: shutil.rmtree(other_root, ignore_errors=True))
+        other_project = PMProject.objects.create(
+            user=other, name="Their Project", project_path=other_root
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'builder/oasis_builder.html')
+        relative_path = 'frontend/vuejs/src/x.vue'
+        resp = self.client.post(
+            reverse('api-create-file', args=[other_project.id]),
+            {'path': relative_path, 'content': 'x'}, format='json',
+        )
+        # The project is owned by another user, so the request must not succeed
+        # and no file may be written into their project directory.
+        self.assertGreaterEqual(resp.status_code, 400)
+        self.assertFalse(os.path.exists(os.path.join(other_root, relative_path)))
 
-class BuilderServiceTests(TestCase):
-    def setUp(self):
-        # Create test user
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
+    def test_file_content_round_trip(self):
+        relative_path = 'frontend/vuejs/src/apps/blog/views/Home.vue'
+        self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': relative_path, 'content': 'the content'},
+            format='json',
         )
-
-        self.project_root = tempfile.mkdtemp(prefix='builder_service_')
-        self.project = PMProject.objects.create(
-            user=self.user,
-            name="Test Project",
-            project_path=self.project_root
+        resp = self.client.get(
+            reverse('api-file-content', args=[self.project.id, relative_path])
         )
-
-        # Create conversation and page
-        self.conversation = Conversation.objects.create(
-            user=self.user,
-            project_id=self.project.id
-        )
-        
-        self.page = Page.objects.create(
-            conversation=self.conversation,
-            filename="index.html"
-        )
-
-    def tearDown(self):
-        shutil.rmtree(self.project_root, ignore_errors=True)
-
-    def test_process_builder_mode_input(self):
-        """Test the builder mode input processing"""
-        from apps.Products.Imagi.Agents.services import process_builder_mode_input
-        
-        # Create necessary directories
-        os.makedirs(os.path.join(self.project_root, "templates"), exist_ok=True)
-        os.makedirs(os.path.join(self.project_root, "static/css"), exist_ok=True)
-        
-        response = process_builder_mode_input(
-            user_input="Create a simple landing page",
-            model="gpt-5.6-sol",
-            file_name="index.html",
-            user=self.user
-        )
-        
-        self.assertIn('success', response)
-        if response['success']:
-            self.assertIn('response', response)
-
-    def test_undo_last_action(self):
-        """Test the undo last action functionality"""
-        from apps.Products.Imagi.Agents.services import undo_last_action_service
-        
-        # Create test messages
-        Message.objects.create(
-            conversation=self.conversation,
-            page=self.page,
-            role='assistant',
-            content='First version'
-        )
-        
-        Message.objects.create(
-            conversation=self.conversation,
-            page=self.page,
-            role='assistant',
-            content='Second version'
-        )
-        
-        content, message, status_code = undo_last_action_service(
-            self.user,
-            "index.html"
-        )
-        
-        self.assertEqual(status_code, 200)
-        self.assertEqual(Message.objects.filter(
-            conversation=self.conversation,
-            page=self.page
-        ).count(), 1)
-
-class BuilderIntegrationTests(TestCase):
-    def setUp(self):
-        # Set up test user and client
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
-        self.client = Client()
-        self.client.login(username='testuser', password='testpass123')
-
-    def test_project_lifecycle(self):
-        """Test the complete lifecycle of a project"""
-        # 1. Create project
-        response = self.client.post(
-            reverse('builder:create_project'),
-            {'project_name': 'Lifecycle Test Project'}
-        )
-        self.assertEqual(response.status_code, 302)
-        
-        project = PMProject.objects.get(name='Lifecycle Test Project')
-        
-        # 2. Access project workspace
-        response = self.client.get(
-            reverse('builder:project_workspace', 
-                   args=[project.slug])
-        )
-        self.assertEqual(response.status_code, 200)
-        
-        # 3. Generate content
-        response = self.client.post(
-            reverse('builder:process_input'),
-            {
-                'user_input': 'Create a simple landing page',
-                'model': 'gpt-5.6-sol',
-                'file': 'index.html',
-                'mode': 'build'
-            }
-        )
-        self.assertEqual(response.status_code, 200)
-        
-        # 4. Delete project
-        response = self.client.post(
-            reverse('builder:delete_project', args=[project.id])
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertFalse(PMProject.objects.filter(id=project.id).exists())
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['content'], 'the content')
 
 
 class CreateFileServiceTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username='fileserviceuser',
-            password='testpass123'
+            username='fileserviceuser', password='testpass123'
         )
         self.project_root = tempfile.mkdtemp(prefix='imagi_file_service_')
         self.project = PMProject.objects.create(
-            user=self.user,
-            name='File Service Project',
-            project_path=self.project_root
+            user=self.user, name='File Service Project', project_path=self.project_root
         )
         self.service = CreateFileService(project=self.project)
 
