@@ -13,6 +13,17 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 
 from agents import Agent, Runner, handoff, RunConfig
+
+try:  # ModelSettings location can vary across SDK versions
+    from agents import ModelSettings
+except ImportError:  # pragma: no cover - defensive fallback
+    ModelSettings = None
+
+try:  # Reasoning config for the OpenAI Responses API
+    from openai.types.shared import Reasoning
+except ImportError:  # pragma: no cover - defensive fallback
+    Reasoning = None
+
 from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from django.conf import settings
@@ -31,6 +42,24 @@ OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None
 
 # Default model for agents
 DEFAULT_MODEL = "gpt-5.6-sol"
+
+
+def build_model_settings(reasoning_effort: Optional[str] = None):
+    """
+    Build ModelSettings for an agent, applying a reasoning effort level when one
+    is provided (and supported by the installed SDK).
+
+    Returns None when ModelSettings is unavailable, so callers can omit the
+    argument entirely and fall back to SDK defaults.
+    """
+    if ModelSettings is None:
+        return None
+    if reasoning_effort and Reasoning is not None:
+        try:
+            return ModelSettings(reasoning=Reasoning(effort=reasoning_effort))
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not apply reasoning effort '{reasoning_effort}': {e}")
+    return ModelSettings()
 
 
 @dataclass
@@ -55,14 +84,17 @@ class ImagiAgentService:
     - Integration with Django models
     """
     
-    def __init__(self, model: str = DEFAULT_MODEL):
+    def __init__(self, model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None):
         """
         Initialize the agent service.
-        
+
         Args:
             model: The OpenAI model to use (default: gpt-5.6-sol)
+            reasoning_effort: How much reasoning the model should use
+                ('low', 'medium', 'high'). None uses the model default.
         """
         self.model = model
+        self.reasoning_effort = reasoning_effort
         self._chat_agent = None
         self._coding_agent = None
         self._orchestrator_agent = None
@@ -74,12 +106,20 @@ class ImagiAgentService:
             # Set environment variable for the agents SDK
             os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
     
+    def _apply_reasoning_effort(self, reasoning_effort: Optional[str]) -> None:
+        """Update the reasoning effort, invalidating cached agents if it changed."""
+        if reasoning_effort is not None and reasoning_effort != self.reasoning_effort:
+            self.reasoning_effort = reasoning_effort
+            self._chat_agent = None
+            self._coding_agent = None
+            self._orchestrator_agent = None
+
     @property
     def coding_agent(self) -> Agent:
         """Lazy-load the coding agent."""
         if self._coding_agent is None:
             from .coding_agent import create_coding_agent
-            self._coding_agent = create_coding_agent(self.model)
+            self._coding_agent = create_coding_agent(self.model, self.reasoning_effort)
         return self._coding_agent
 
     @property
@@ -87,7 +127,7 @@ class ImagiAgentService:
         """Lazy-load the chat agent."""
         if self._chat_agent is None:
             from .chat_agent import create_chat_agent
-            self._chat_agent = create_chat_agent(self.model)
+            self._chat_agent = create_chat_agent(self.model, self.reasoning_effort)
         return self._chat_agent
     
     @property
@@ -128,17 +168,24 @@ Technology Stack:
 - HTTP client: Axios
 """
         
+        from apps.Products.Imagi.Builder.services.models_service import get_backend_model_id
+        backend_model = get_backend_model_id(self.model)
+        kwargs = {}
+        settings = build_model_settings(self.reasoning_effort)
+        if settings is not None:
+            kwargs['model_settings'] = settings
         return Agent[AgentContext](
             name="Imagi Orchestrator",
             instructions=instructions,
-            model=self.model,
+            model=backend_model,
             handoffs=[
                 handoff(
                     agent=self.chat_agent,
                     tool_description="Hand off to the chat agent for general conversations, "
                                      "questions, explanations, and guidance about web development."
                 )
-            ]
+            ],
+            **kwargs
         )
     
     # -------------------------------------------------------------------------
@@ -252,10 +299,11 @@ Technology Stack:
         project_id: Optional[int] = None,
         current_file: Optional[Dict[str, Any]] = None,
         conversation_id: Optional[int] = None,
+        reasoning_effort: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process a chat message using the OpenAI Agents SDK.
-        
+
         Args:
             user_input: The user's message
             user: The Django user object
@@ -263,7 +311,8 @@ Technology Stack:
             project_id: Optional project ID
             current_file: Optional current file context
             conversation_id: Optional existing conversation ID
-            
+            reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
+
         Returns:
             Dict containing the response and metadata
         """
@@ -271,8 +320,9 @@ Technology Stack:
             # Validate input
             if not user_input:
                 return {"success": False, "error": "Message is required"}
-            
+
             model = model or self.model
+            self._apply_reasoning_effort(reasoning_effort)
             
             # Get or create conversation
             if conversation_id:
@@ -351,6 +401,7 @@ Technology Stack:
         project_id: Optional[int] = None,
         current_file: Optional[Dict[str, Any]] = None,
         conversation_id: Optional[int] = None,
+        reasoning_effort: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process a message using the Coding Agent (agent mode).
@@ -364,6 +415,7 @@ Technology Stack:
             project_id: Project ID (required for agent mode)
             current_file: Optional current file context
             conversation_id: Optional existing conversation ID
+            reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
 
         Returns:
             Dict containing the response, metadata, and list of changed files
@@ -376,6 +428,7 @@ Technology Stack:
                 return {"success": False, "error": "Project ID is required for agent mode"}
 
             model = model or self.model
+            self._apply_reasoning_effort(reasoning_effort)
 
             # Get or create conversation
             if conversation_id:

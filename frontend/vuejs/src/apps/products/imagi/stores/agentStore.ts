@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { AIModel, AIMessage, AgentInstance, ConversationDto } from '../types/services'
+import type { AIModel, AIMessage, AgentInstance, ConversationDto, ReasoningEffort } from '../types/services'
+import { DEFAULT_REASONING_EFFORT } from '../types/services'
 import type { AgentState } from '../types/stores'
 import type { BuilderMode, ProjectFile } from '../types/components'
 import { FileService } from '../services/fileService'
@@ -18,6 +19,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     title: dto.title || '',
     mode: dto.mode,
     selectedModelId: dto.model_name || fallbackModelId,
+    selectedEffort: DEFAULT_REASONING_EFFORT,
     selectedFile: null,
     conversation: [],
     isProcessing: false,
@@ -262,6 +264,14 @@ export const useAgentStore = defineStore('agent', {
         AgentService.updateConversation(instance.conversationId, { model_name: modelId })
           .catch(e => console.error('Failed to persist model:', e))
       }
+    },
+
+    // Reasoning effort is a per-request tuning knob kept in client state only
+    // (there is no backend field to persist it to).
+    setInstanceEffort(instanceId: string, effort: ReasoningEffort) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.selectedEffort = effort
     },
 
     setInstanceFile(instanceId: string, file: ProjectFile | null) {
