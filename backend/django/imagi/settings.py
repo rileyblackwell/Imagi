@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'apps.Auth',
     'apps.Payments',
     'apps.Marketing',
+    'apps.Sell',
     'apps.Products.Imagi.Builder',
     'apps.Products.Imagi.Agents',
     'apps.Products.Imagi.ProjectManager',
@@ -247,3 +248,12 @@ if not MARKETING_WEBHOOK_BASE_URL and os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
 MARKETING_MAX_CAMPAIGN_RECIPIENTS = int(
     os.environ.get('MARKETING_MAX_CAMPAIGN_RECIPIENTS', '500')
 )
+
+
+# Sell / Stripe (per-project storefront checkout)
+# Public base URL Stripe uses for the per-project webhook endpoint, shown in
+# Sell settings so users can register it in their Stripe dashboard. Falls
+# back to the Marketing base (same host serves both). When empty, orders
+# still record — payment status updates via the manual "sync" action or the
+# success-page poll instead of webhooks.
+SELL_WEBHOOK_BASE_URL = os.environ.get('SELL_WEBHOOK_BASE_URL', MARKETING_WEBHOOK_BASE_URL)
