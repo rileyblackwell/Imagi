@@ -14,6 +14,7 @@ now a Vue SPA talking to the DRF API exercised below.
 import os
 import shutil
 import tempfile
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -150,6 +151,22 @@ class BuilderAPITests(APITestCase):
             reverse('api-file-content', args=[other_project.id, 'a/b.vue'])
         )
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    @patch('apps.Products.Imagi.Builder.api.views.CreateFileService')
+    def test_unexpected_service_error_returns_safe_500(self, mock_service_cls):
+        # An unexpected service failure must surface as a generic 500 handled by
+        # the central exception handler — not a leaked internal error string.
+        mock_service_cls.return_value.create_file.side_effect = Exception(
+            'sensitive detail: /srv/secret/path'
+        )
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': 'frontend/vuejs/src/x.vue', 'content': 'y'},
+            format='json',
+        )
+        self.assertEqual(resp.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertIn('error', resp.data)
+        self.assertNotIn('sensitive detail', str(resp.data))
 
     def test_file_content_round_trip(self):
         relative_path = 'frontend/vuejs/src/apps/blog/views/Home.vue'
