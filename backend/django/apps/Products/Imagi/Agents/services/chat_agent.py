@@ -10,6 +10,12 @@ from typing import Optional
 
 from agents import Agent, RunContextWrapper
 
+from apps.Products.Imagi.Builder.services.models_service import (
+    get_backend_model_id,
+    resolve_reasoning_effort,
+)
+from .base_agent import build_model_settings
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -105,41 +111,57 @@ def get_dynamic_chat_instructions(context: RunContextWrapper, agent: Agent) -> s
     return instructions
 
 
-def create_chat_agent(model: str = DEFAULT_MODEL) -> Agent:
+def create_chat_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None) -> Agent:
     """
     Create a chat agent for natural language conversations.
-    
+
     Args:
-        model: The OpenAI model to use
-        
+        model: The public suite model id (mapped to the real OpenAI model)
+        reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
+
     Returns:
         Agent: The configured chat agent
     """
+    backend_model = get_backend_model_id(model)
+    effort = resolve_reasoning_effort(model, reasoning_effort)
+    kwargs = {}
+    settings = build_model_settings(effort)
+    if settings is not None:
+        kwargs['model_settings'] = settings
     return Agent(
         name="Chat Agent",
         instructions=get_dynamic_chat_instructions,
-        model=model,
+        model=backend_model,
         handoff_description="A helpful assistant for chatting about web development, "
-                           "answering questions, and providing guidance."
+                           "answering questions, and providing guidance.",
+        **kwargs
     )
 
 
-def create_simple_chat_agent(model: str = DEFAULT_MODEL) -> Agent:
+def create_simple_chat_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None) -> Agent:
     """
     Create a simple chat agent with static instructions.
-    
+
     Use this when you don't have context to pass to the agent.
-    
+
     Args:
-        model: The OpenAI model to use
-        
+        model: The public suite model id (mapped to the real OpenAI model)
+        reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
+
     Returns:
         Agent: The configured chat agent
     """
+    backend_model = get_backend_model_id(model)
+    effort = resolve_reasoning_effort(model, reasoning_effort)
+    kwargs = {}
+    settings = build_model_settings(effort)
+    if settings is not None:
+        kwargs['model_settings'] = settings
     return Agent(
         name="Chat Agent",
         instructions=CHAT_AGENT_INSTRUCTIONS,
-        model=model,
+        model=backend_model,
         handoff_description="A helpful assistant for chatting about web development, "
-                           "answering questions, and providing guidance."
+                           "answering questions, and providing guidance.",
+        **kwargs
     )

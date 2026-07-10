@@ -110,38 +110,39 @@ def chat(request):
         # Extract request data
         message = request.data.get('message')
         model = request.data.get('model', DEFAULT_MODEL)
+        reasoning_effort = request.data.get('reasoning_effort')
         conversation_id = request.data.get('conversation_id')
         project_id = request.data.get('project_id')
         current_file = request.data.get('current_file')
-        
+
         logger.info(f"Chat API request - Model: {model}, Project ID: {project_id}")
-        
+
         # Validate required fields
         if not message:
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
-        
+
         # Use the selected GPT 5.6 suite model (falls back to default if invalid)
         model = resolve_model(model)
-        
+
         # Ensure project_id is an integer if provided
         if project_id:
             try:
                 project_id = int(project_id)
             except (ValueError, TypeError):
                 project_id = None
-        
+
         # Ensure conversation_id is an integer if provided
         if conversation_id:
             try:
                 conversation_id = int(conversation_id)
             except (ValueError, TypeError):
                 conversation_id = None
-        
+
         # Create agent service instance
-        agent_service = ImagiAgentService(model=model)
-        
-        logger.info(f"Chat request: message length={len(message)}, model={model}, project_id={project_id}")
-        
+        agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
+
+        logger.info(f"Chat request: message length={len(message)}, model={model}, effort={reasoning_effort}, project_id={project_id}")
+
         # Process the chat message
         result = agent_service.process_chat(
             user_input=message,
@@ -150,6 +151,7 @@ def chat(request):
             project_id=project_id,
             current_file=current_file,
             conversation_id=conversation_id,
+            reasoning_effort=reasoning_effort,
         )
         
         # Check for success
@@ -185,6 +187,7 @@ def agent(request):
     try:
         message = request.data.get('message')
         model = request.data.get('model', DEFAULT_MODEL)
+        reasoning_effort = request.data.get('reasoning_effort')
         conversation_id = request.data.get('conversation_id')
         project_id = request.data.get('project_id')
         current_file = request.data.get('current_file')
@@ -214,9 +217,9 @@ def agent(request):
                 conversation_id = None
 
         # Create agent service instance
-        agent_service = ImagiAgentService(model=model)
+        agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
 
-        logger.info(f"Agent request: message length={len(message)}, model={model}, project_id={project_id}")
+        logger.info(f"Agent request: message length={len(message)}, model={model}, effort={reasoning_effort}, project_id={project_id}")
 
         # Process the message with the coding agent
         result = agent_service.process_agent(
@@ -226,6 +229,7 @@ def agent(request):
             project_id=project_id,
             current_file=current_file,
             conversation_id=conversation_id,
+            reasoning_effort=reasoning_effort,
         )
 
         if not result.get('success', False):

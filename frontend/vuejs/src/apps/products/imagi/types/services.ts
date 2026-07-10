@@ -131,6 +131,24 @@ export const AI_MODELS: AIModel[] = [
   }
 ];
 
+/**
+ * Reasoning effort levels — how much reasoning the model uses per request.
+ */
+export type ReasoningEffort = 'low' | 'medium' | 'high';
+
+export interface ReasoningEffortOption {
+  id: ReasoningEffort;
+  name: string;
+}
+
+export const REASONING_EFFORTS: ReasoningEffortOption[] = [
+  { id: 'low', name: 'Low' },
+  { id: 'medium', name: 'Medium' },
+  { id: 'high', name: 'High' },
+];
+
+export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
+
 // Types for API responses
 export interface APIErrorResponse {
   error?: string;
@@ -179,6 +197,7 @@ export interface AgentInstance {
   title: string;
   mode: 'chat' | 'agent';
   selectedModelId: string | null;
+  selectedEffort: ReasoningEffort;
   selectedFile: any | null;
   conversation: AIMessage[];
   isProcessing: boolean;
@@ -213,6 +232,7 @@ export interface AIGenerationResponse {
 export interface ChatPayload {
   message: string;
   model: string;
+  reasoning_effort?: ReasoningEffort;
   project_id: string;
   conversation_id?: string;
   mode?: string;
@@ -226,6 +246,7 @@ export interface ChatPayload {
 export interface ChatProcessingPayload {
   message: string;
   model: string;
+  reasoning_effort?: ReasoningEffort;
   project_id: string;
   conversation_id?: string;
   mode: string;

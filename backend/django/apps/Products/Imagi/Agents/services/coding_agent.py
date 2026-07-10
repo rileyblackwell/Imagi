@@ -17,6 +17,11 @@ from apps.Products.Imagi.Builder.services.view_file_service import ViewFileServi
 from apps.Products.Imagi.Builder.services.create_file_service import CreateFileService
 from apps.Products.Imagi.Builder.services.delete_file_service import DeleteFileService
 from apps.Products.Imagi.Builder.services.directory_service import DirectoryService
+from apps.Products.Imagi.Builder.services.models_service import (
+    get_backend_model_id,
+    resolve_reasoning_effort,
+)
+from .base_agent import build_model_settings
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -366,21 +371,29 @@ def get_dynamic_coding_instructions(context: RunContextWrapper, agent: Agent) ->
     return instructions
 
 
-def create_coding_agent(model: str = DEFAULT_MODEL) -> Agent:
+def create_coding_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None) -> Agent:
     """
     Create a coding agent that can chat and edit project files.
 
     Args:
-        model: The OpenAI model to use
+        model: The public suite model id (mapped to the real OpenAI model)
+        reasoning_effort: How much reasoning to use ('low', 'medium', 'high')
 
     Returns:
         Agent: The configured coding agent with file tools
     """
+    backend_model = get_backend_model_id(model)
+    effort = resolve_reasoning_effort(model, reasoning_effort)
+    kwargs = {}
+    settings = build_model_settings(effort)
+    if settings is not None:
+        kwargs['model_settings'] = settings
     return Agent(
         name="Coding Agent",
         instructions=get_dynamic_coding_instructions,
-        model=model,
+        model=backend_model,
         tools=[get_project_tree, list_project_files, read_file, update_file, create_file, delete_file, create_directory, delete_directory],
         handoff_description="A coding assistant that can chat about web development "
-                           "and directly edit files in the user's project."
+                           "and directly edit files in the user's project.",
+        **kwargs
     )

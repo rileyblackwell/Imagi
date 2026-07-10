@@ -181,6 +181,7 @@ export const AgentService = {
   async processChat(projectId: string, data: {
     prompt: string;
     model: string;
+    reasoningEffort?: string;
     mode?: string;
     is_build_mode?: boolean;
     file?: any;
@@ -228,6 +229,7 @@ export const AgentService = {
       const payload = {
         message: data.prompt,
         model: data.model,
+        reasoning_effort: data.reasoningEffort,
         project_id: String(projectId),
         conversation_id: data.conversationId ?? undefined,
         mode: 'chat',
@@ -283,6 +285,7 @@ export const AgentService = {
   async processAgent(projectId: string, data: {
     prompt: string;
     model: string;
+    reasoningEffort?: string;
     file?: any;
     conversationId?: number | string | null;
   }): Promise<AgentResponse> {
@@ -319,6 +322,7 @@ export const AgentService = {
       const payload = {
         message: data.prompt,
         model: data.model,
+        reasoning_effort: data.reasoningEffort,
         project_id: String(projectId),
         conversation_id: data.conversationId ?? undefined,
         current_file: currentFile,

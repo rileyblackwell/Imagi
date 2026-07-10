@@ -25,6 +25,7 @@
             :selected-app="null"
             :on-prompt-submit="handlePrompt"
             :on-model-select="handleModelSelect"
+            :on-effort-select="handleEffortSelect"
             :on-mode-switch="handleModeSwitch"
             :on-example-prompt="handleExamplePrompt"
             :is-collapsed="false"
@@ -89,6 +90,7 @@ defineOptions({ name: 'Workspace' })
 // Types
 import type { ProjectFile, BuilderMode } from '../types/components'
 import type { AIMessage } from '../types/index'
+import type { ReasoningEffort } from '../types/services'
 import { matchesSlug, toSlug } from '../utils/slug'
 
 // Ensure all services use the shared API client with proper timeout configurations
@@ -281,6 +283,7 @@ async function handlePrompt(promptText: string) {
         const response = await AgentService.processAgent(projectId.value, {
           prompt: promptText,
           model: instance.selectedModelId,
+          reasoningEffort: instance.selectedEffort,
           file: instance.selectedFile,
           conversationId: conversationIdBefore ?? undefined
         })
@@ -322,6 +325,7 @@ async function handlePrompt(promptText: string) {
       const response = await AgentService.processChat(projectId.value, {
         prompt: promptText,
         model: instance.selectedModelId,
+        reasoningEffort: instance.selectedEffort,
         mode: 'chat',
         file: instance.selectedFile,
         conversationId: conversationIdBefore ?? undefined
@@ -369,6 +373,12 @@ async function handleModelSelect(modelId: string) {
   const instance = store.activeInstance
   if (!instance) return
   store.setInstanceModel(instance.id, modelId)
+}
+
+async function handleEffortSelect(effort: ReasoningEffort) {
+  const instance = store.activeInstance
+  if (!instance) return
+  store.setInstanceEffort(instance.id, effort)
 }
 
 async function handleModeSwitch(mode: BuilderMode) {

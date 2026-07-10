@@ -32,9 +32,9 @@
 
     <!-- Chat Input Section (fixed at bottom) -->
     <div class="shrink-0 border-t border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-      <div class="p-4 space-y-3">
-        <!-- Text Input Area -->
-        <div class="relative">
+      <div class="p-4">
+        <!-- Input shell: textarea on top, controls toolbar below -->
+        <div class="chat-input-shell rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06]">
           <textarea
             ref="promptTextarea"
             v-model="prompt"
@@ -43,53 +43,76 @@
             @keydown.enter.shift.exact="() => {}"
             @input="autoResizeTextarea"
             :disabled="!activeInstance || activeInstance.isProcessing"
-            rows="5"
-            class="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/30 text-sm px-3 pr-12 py-3 pb-10 resize-none rounded-lg leading-relaxed"
-            style="min-height: 130px; max-height: 280px;"
+            rows="4"
+            class="chat-textarea w-full bg-transparent text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/30 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
+            style="min-height: 92px; max-height: 240px;"
           ></textarea>
 
-          <!-- Mode and Model Dropdowns (Bottom Left inside input) -->
-          <div class="absolute left-2 bottom-2 flex items-center gap-1.5">
-            <!-- Mode Dropdown -->
-            <div class="dropdown-wrapper">
-              <i :class="['dropdown-icon fas', activeInstance?.mode === 'agent' ? 'fa-robot' : 'fa-comment-dots']"></i>
-              <select
-                :value="activeInstance?.mode ?? 'chat'"
-                :disabled="!activeInstance"
-                @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
-                class="dropdown-select dropdown-select--with-icon text-xs"
-              >
-                <option value="chat">Chat</option>
-                <option value="agent">Agent</option>
-              </select>
-            </div>
-
-            <!-- Model Dropdown -->
-            <div class="dropdown-wrapper">
-              <i class="fas fa-microchip dropdown-icon"></i>
-              <select
-                :value="activeInstance?.selectedModelId ?? ''"
-                :disabled="!activeInstance"
-                @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
-                class="dropdown-select dropdown-select--with-icon text-xs"
-              >
-                <option
-                  v-for="model in modelOptions"
-                  :key="model.id"
-                  :value="model.id"
+          <!-- Controls toolbar: dropdowns wrap on the left, send stays pinned right -->
+          <div class="flex items-end justify-between gap-2 px-2 pb-2 pt-1">
+            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+              <!-- Mode Dropdown -->
+              <div class="dropdown-wrapper" title="Mode">
+                <i :class="['dropdown-icon fas', activeInstance?.mode === 'agent' ? 'fa-robot' : 'fa-comment-dots']"></i>
+                <select
+                  :value="activeInstance?.mode ?? 'chat'"
+                  :disabled="!activeInstance"
+                  aria-label="Conversation mode"
+                  @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
+                  class="dropdown-select dropdown-select--with-icon text-xs"
                 >
-                  {{ model.name }}
-                </option>
-              </select>
-            </div>
-          </div>
+                  <option value="chat">Chat</option>
+                  <option value="agent">Agent</option>
+                </select>
+              </div>
 
-          <!-- Send Button -->
-          <div class="absolute right-3 bottom-3">
+              <!-- Model Dropdown -->
+              <div class="dropdown-wrapper" title="Model">
+                <i class="fas fa-microchip dropdown-icon"></i>
+                <select
+                  :value="activeInstance?.selectedModelId ?? ''"
+                  :disabled="!activeInstance"
+                  aria-label="Model"
+                  @change="handleModelSelect(($event.target as HTMLSelectElement).value)"
+                  class="dropdown-select dropdown-select--with-icon text-xs"
+                >
+                  <option
+                    v-for="model in modelOptions"
+                    :key="model.id"
+                    :value="model.id"
+                  >
+                    {{ model.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Reasoning Effort Dropdown -->
+              <div class="dropdown-wrapper" title="How much reasoning the model uses">
+                <i class="fas fa-brain dropdown-icon"></i>
+                <select
+                  :value="activeInstance?.selectedEffort ?? 'medium'"
+                  :disabled="!activeInstance"
+                  aria-label="Reasoning effort"
+                  @change="handleEffortSelect(($event.target as HTMLSelectElement).value as ReasoningEffort)"
+                  class="dropdown-select dropdown-select--with-icon text-xs"
+                >
+                  <option
+                    v-for="effort in effortOptions"
+                    :key="effort.id"
+                    :value="effort.id"
+                  >
+                    {{ effort.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Send Button -->
             <button
               @click="handlePrompt"
               :disabled="!prompt.trim() || !activeInstance || activeInstance.isProcessing"
-              class="btn-3d flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
+              aria-label="Send message"
+              class="btn-3d flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
               :class="prompt.trim() && activeInstance && !activeInstance.isProcessing
                 ? 'bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 border border-gray-700/50 dark:border-gray-300/50 shadow-lg hover:shadow-xl'
                 : 'bg-gradient-to-b from-gray-200 via-gray-100 to-gray-50 dark:from-white/[0.08] dark:via-white/[0.05] dark:to-white/[0.03] text-gray-400 dark:text-white/40 cursor-not-allowed border border-gray-300/70 dark:border-white/[0.12] shadow-sm'"
@@ -110,12 +133,15 @@ import { useAgentStore } from '../../../stores/agentStore'
 import { ChatConversation } from '../../organisms/chat'
 import type { BuilderMode } from '../../../types/components'
 import type { AIMessage, AIModel } from '../../../types/index'
+import type { ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
+import { REASONING_EFFORTS } from '../../../types/services'
 
 // Props
 const props = defineProps<{
   selectedApp: any
   onPromptSubmit: (prompt: string) => Promise<void>
   onModelSelect: (modelId: string) => Promise<void>
+  onEffortSelect: (effort: ReasoningEffort) => Promise<void>
   onModeSwitch: (mode: BuilderMode) => Promise<void>
   onExamplePrompt: (example: string) => void
   isCollapsed?: boolean
@@ -142,6 +168,8 @@ const modelOptions = computed<AIModel[]>(() => {
     { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', provider: 'openai' } as AIModel
   ]
 })
+
+const effortOptions = computed<ReasoningEffortOption[]>(() => REASONING_EFFORTS)
 
 // Helper to get friendly display name from file path
 function getDisplayName(path: string): string {
@@ -208,7 +236,7 @@ function autoResizeTextarea() {
   if (!promptTextarea.value) return
   promptTextarea.value.style.height = 'auto'
   const scrollHeight = promptTextarea.value.scrollHeight
-  const maxHeight = 280
+  const maxHeight = 240
   promptTextarea.value.style.height = `${Math.min(scrollHeight, maxHeight)}px`
 }
 
@@ -220,7 +248,7 @@ async function handlePrompt() {
   
   // Reset textarea height
   if (promptTextarea.value) {
-    promptTextarea.value.style.height = '130px'
+    promptTextarea.value.style.height = '92px'
   }
   
   await props.onPromptSubmit(promptText)
@@ -235,12 +263,31 @@ async function handleModelSelect(modelId: string) {
   await props.onModelSelect(modelId)
 }
 
+async function handleEffortSelect(effort: ReasoningEffort) {
+  await props.onEffortSelect(effort)
+}
+
 async function handleModeSwitch(mode: BuilderMode) {
   await props.onModeSwitch(mode)
 }
 </script>
 
 <style scoped>
+/* Input shell wraps the textarea + controls toolbar as one field */
+.chat-input-shell {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chat-input-shell:focus-within {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.dark .chat-input-shell:focus-within {
+  border-color: rgba(129, 140, 248, 0.5);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
+}
+
 /* Dropdown wrapper provides room for leading icon */
 .dropdown-wrapper {
   position: relative;
@@ -283,7 +330,7 @@ async function handleModeSwitch(mode: BuilderMode) {
   color: rgb(55, 65, 81);
   font-weight: 600;
   letter-spacing: 0.01em;
-  padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+  padding: 0.3rem 1.5rem 0.3rem 0.6rem;
   border-radius: 0.5rem;
   cursor: pointer;
   appearance: none;
@@ -297,7 +344,7 @@ async function handleModeSwitch(mode: BuilderMode) {
 }
 
 .dropdown-select--with-icon {
-  padding-left: 1.65rem;
+  padding-left: 1.5rem;
 }
 
 .dark .dropdown-select {
@@ -369,7 +416,7 @@ async function handleModeSwitch(mode: BuilderMode) {
   box-shadow: none !important;
 }
 
-/* Remove ALL focus rings and outlines from textarea */
+/* Textarea sits inside the input shell, which owns the border/focus ring */
 textarea,
 textarea:hover,
 textarea:focus,
@@ -383,16 +430,8 @@ textarea:active {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
-  border-color: rgb(229 231 235) !important;
+  border: none !important;
   transition: none !important;
-}
-
-.dark textarea,
-.dark textarea:hover,
-.dark textarea:focus,
-.dark textarea:focus-visible,
-.dark textarea:active {
-  border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* 3D Printed Button Effect - matching homepage */
