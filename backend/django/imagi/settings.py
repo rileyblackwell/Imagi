@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'apps.Payments',
     'apps.Marketing',
     'apps.Sell',
+    'apps.Operate',
     'apps.Products.Imagi.Builder',
     'apps.Products.Imagi.Agents',
     'apps.Products.Imagi.ProjectManager',
