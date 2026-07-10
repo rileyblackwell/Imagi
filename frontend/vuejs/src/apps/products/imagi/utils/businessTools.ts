@@ -53,10 +53,10 @@ export interface BusinessTool {
 }
 
 /**
- * The four pillars of the Imagi workspace. "Build" (the AI app builder),
- * "Sell" (Stripe-powered products, checkout, orders, and customers), and
- * "Market" (Twilio-powered campaigns, inbox, and audience) are live today;
- * the rest are general templates that will be filled in later.
+ * The four pillars of the Imagi workspace, all live today: "Build" (the AI
+ * app builder), "Sell" (Stripe-powered products, checkout, orders, and
+ * customers), "Market" (Twilio-powered campaigns, inbox, and audience), and
+ * "Operate" (the central hub for finances, invoices, and tasks).
  */
 export const businessTools: BusinessTool[] = [
   {
@@ -119,12 +119,12 @@ export const businessTools: BusinessTool[] = [
       'Manage the day-to-day of your business — finance, invoicing, and operations — with dashboards that give you a clear view of how things are going.',
     icon: 'fa-briefcase',
     accent: 'amber',
-    status: 'coming-soon',
-    routeName: 'project-tool',
+    status: 'available',
+    routeName: 'operate-dashboard',
     features: [
-      { icon: 'fa-file-invoice-dollar', name: 'Finance & invoicing', description: 'Track revenue, expenses, and invoices.' },
-      { icon: 'fa-gauge-high', name: 'Operations dashboard', description: 'Monitor the health of your business.' },
-      { icon: 'fa-users-gear', name: 'Team & workflows', description: 'Organize people and recurring work.' },
+      { icon: 'fa-gauge-high', name: 'Business dashboard', description: 'Cash flow, invoices, and activity across every module.' },
+      { icon: 'fa-file-invoice-dollar', name: 'Finance & invoicing', description: 'Track income and expenses, bill customers, and get paid.' },
+      { icon: 'fa-list-check', name: 'Operational tasks', description: 'Keep the day-to-day work organized and on time.' },
     ],
   },
 ]

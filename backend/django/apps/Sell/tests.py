@@ -445,7 +445,7 @@ class WebhookTests(SellAPITestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, Order.STATUS_CANCELED)
 
-    def test_refund_marks_paid_order_refunded(self):
+    def test_full_refund_marks_paid_order_refunded(self):
         order = self.make_order(
             status=Order.STATUS_PAID, stripe_payment_intent_id='pi_test_1'
         )
@@ -453,10 +453,47 @@ class WebhookTests(SellAPITestCase):
             'id': 'ch_test_1',
             'object': 'charge',
             'payment_intent': 'pi_test_1',
+            'refunded': True,
+            'amount_refunded': 500,
         })
         self.assertEqual(response.status_code, 200)
         order.refresh_from_db()
         self.assertEqual(order.status, Order.STATUS_REFUNDED)
+
+    def test_partial_refund_keeps_order_paid(self):
+        # Stripe fires charge.refunded for partial refunds too, with
+        # refunded=false; the order must keep counting toward revenue.
+        order = self.make_order(
+            status=Order.STATUS_PAID, stripe_payment_intent_id='pi_test_1'
+        )
+        response = self.post_event('charge.refunded', {
+            'id': 'ch_test_1',
+            'object': 'charge',
+            'payment_intent': 'pi_test_1',
+            'refunded': False,
+            'amount_refunded': 100,
+        })
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_PAID)
+
+    def test_mixed_case_checkout_email_reuses_existing_customer(self):
+        Customer.objects.create(
+            project=self.project, email='ada@example.com', name='Ada Lovelace'
+        )
+        order = self.make_order()
+        response = self.post_event(
+            'checkout.session.completed',
+            self.make_session_payload(
+                order,
+                customer_details={'email': 'Ada@Example.COM', 'name': 'Ada Lovelace'},
+            ),
+        )
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.customer_email, 'ada@example.com')
+        self.assertEqual(self.project.sell_customers.count(), 1)
+        self.assertEqual(order.customer_id, self.project.sell_customers.get().id)
 
     def test_rejects_bad_signature(self):
         order = self.make_order()

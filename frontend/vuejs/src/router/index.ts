@@ -5,6 +5,7 @@ import paymentsRoutes from '@/apps/payments/router'
 import productsImagiRoutes from '@/apps/products/imagi/router'
 import marketingRoutes from '@/apps/marketing/router'
 import sellRoutes from '@/apps/sell/router'
+import operateRoutes from '@/apps/operate/router'
 import docsRoutes from '@/apps/docs/router'
 
 const router = createRouter({
@@ -16,6 +17,7 @@ const router = createRouter({
     ...productsImagiRoutes,
     ...marketingRoutes,
     ...sellRoutes,
+    ...operateRoutes,
     ...docsRoutes,
   ],
   scrollBehavior(to, from, savedPosition) {

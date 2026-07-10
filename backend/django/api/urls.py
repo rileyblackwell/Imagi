@@ -6,6 +6,7 @@ urlpatterns = [
     path('payments/', include('apps.Payments.api.urls')),
     path('marketing/', include('apps.Marketing.api.urls')),
     path('sell/', include('apps.Sell.api.urls')),
+    path('operate/', include('apps.Operate.api.urls')),
     path('project-manager/', include('apps.Products.Imagi.ProjectManager.api.urls')),
     path('builder/', include('apps.Products.Imagi.Builder.api.urls')),
     path('agents/', include('apps.Products.Imagi.Agents.api.urls')),

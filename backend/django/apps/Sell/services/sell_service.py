@@ -112,6 +112,7 @@ class SellService:
         caller — so a tampered request can't change what gets charged.
         """
         client = self._client()
+        customer_email = (customer_email or '').strip().lower()
 
         if not isinstance(items, list) or not items:
             raise SellServiceError('Provide a non-empty "items" list.')
@@ -218,7 +219,11 @@ class SellService:
                 payment_intent if isinstance(payment_intent, str)
                 else (payment_intent or {}).get('id', '')
             )
-            order.customer_email = details.get('email') or order.customer_email
+            # Lowercase to match manually-entered CRM emails, which the
+            # serializer normalizes the same way — otherwise a mixed-case
+            # checkout email creates a duplicate Customer row.
+            checkout_email = (details.get('email') or '').strip().lower()
+            order.customer_email = checkout_email or order.customer_email
             order.customer_name = details.get('name') or ''
             amount_total = session.get('amount_total')
             if amount_total is not None:
@@ -294,6 +299,11 @@ class SellService:
             return self.apply_session(order, obj)
 
         if event_type == 'charge.refunded':
+            # Stripe fires charge.refunded for partial refunds too; the
+            # charge's `refunded` flag is only true when the full amount came
+            # back. Only a full refund should drop the order from revenue.
+            if not obj.get('refunded'):
+                return False
             payment_intent = obj.get('payment_intent') or ''
             if not payment_intent:
                 return False
