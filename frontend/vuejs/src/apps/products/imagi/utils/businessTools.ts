@@ -53,7 +53,8 @@ export interface BusinessTool {
 }
 
 /**
- * The four pillars of the Imagi workspace. "Build" (the AI app builder) and
+ * The four pillars of the Imagi workspace. "Build" (the AI app builder),
+ * "Sell" (Stripe-powered products, checkout, orders, and customers), and
  * "Market" (Twilio-powered campaigns, inbox, and audience) are live today;
  * the rest are general templates that will be filled in later.
  */
@@ -84,10 +85,10 @@ export const businessTools: BusinessTool[] = [
       'Everything you need to sell your product or service — storefronts, checkout, orders, and customer relationships, all connected to the app you build.',
     icon: 'fa-hand-holding-dollar',
     accent: 'emerald',
-    status: 'coming-soon',
-    routeName: 'project-tool',
+    status: 'available',
+    routeName: 'sell-overview',
     features: [
-      { icon: 'fa-cart-shopping', name: 'Storefront & checkout', description: 'Sell products and take payments.' },
+      { icon: 'fa-cart-shopping', name: 'Storefront & checkout', description: 'Sell products and take payments with Stripe.' },
       { icon: 'fa-receipt', name: 'Orders', description: 'Track and fulfill customer orders.' },
       { icon: 'fa-address-book', name: 'CRM', description: 'Manage leads and customer relationships.' },
     ],
