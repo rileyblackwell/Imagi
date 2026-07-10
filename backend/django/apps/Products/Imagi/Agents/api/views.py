@@ -240,6 +240,8 @@ def agent(request):
             'conversation_id': result.get('conversation_id'),
             'response': result.get('response', ''),
             'files_changed': result.get('files_changed', []),
+            'tool_calls': result.get('tool_calls', []),
+            'plan': result.get('plan', []),
             'single_message': result.get('single_message', True),
         }
 

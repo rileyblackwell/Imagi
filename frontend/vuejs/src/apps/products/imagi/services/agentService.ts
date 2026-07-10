@@ -342,6 +342,8 @@ export const AgentService = {
         response: response.data.response,
         conversation_id: response.data.conversation_id,
         files_changed: response.data.files_changed || [],
+        tool_calls: response.data.tool_calls || [],
+        plan: response.data.plan || [],
         single_message: response.data.single_message || false,
       }
     } catch (error: any) {
@@ -358,6 +360,8 @@ export const AgentService = {
       return {
         response: errorDetails || this.formatError(error),
         files_changed: [],
+        tool_calls: [],
+        plan: [],
       }
     }
   },
