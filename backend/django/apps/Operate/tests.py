@@ -181,6 +181,29 @@ class InvoiceTests(OperateAPITestCase):
         response = self.create_invoice_via_api()
         self.assertEqual(response.data['invoice']['number'], 'INV-0002')
 
+    def test_numbering_survives_deletion(self):
+        first = self.create_invoice_via_api().data['invoice']
+        second = self.create_invoice_via_api().data['invoice']
+        self.assertEqual([first['number'], second['number']], ['INV-0001', 'INV-0002'])
+
+        # Deleting an earlier invoice must not make the next number collide
+        # with a survivor.
+        response = self.client.delete(f"{self.base}/invoices/{first['id']}/")
+        self.assertEqual(response.status_code, 204)
+        third = self.create_invoice_via_api()
+        self.assertEqual(third.status_code, 201)
+        self.assertEqual(third.data['invoice']['number'], 'INV-0003')
+
+    def test_round_quantities_stay_in_plain_notation(self):
+        # Decimal normalize() would render 10 as '1E+1'.
+        response = self.create_invoice_via_api(line_items=[
+            {'description': 'Bulk beans', 'quantity': 10, 'unit_price': '5.00'},
+        ])
+        self.assertEqual(response.status_code, 201)
+        item = response.data['invoice']['line_items'][0]
+        self.assertEqual(item['quantity'], '10')
+        self.assertEqual(Decimal(response.data['invoice']['total']), Decimal('50.00'))
+
     def test_line_items_are_validated(self):
         response = self.create_invoice_via_api(line_items=[
             {'description': '', 'quantity': 1, 'unit_price': '10.00'},
@@ -380,7 +403,7 @@ class DashboardTests(OperateAPITestCase):
         self.add_transaction(kind='income', category='sales', amount='100.00')
         response = self.client.get(f'{self.base}/dashboard/')
         series = response.data['cashflow']
-        self.assertGreaterEqual(len(series), 6)
+        self.assertEqual(len(series), 6)
         current = series[-1]
         self.assertEqual(current['month'], timezone.localdate().strftime('%Y-%m'))
         self.assertEqual(current['income'], 100.0)

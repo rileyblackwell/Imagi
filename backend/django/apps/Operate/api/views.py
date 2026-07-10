@@ -76,7 +76,12 @@ class ProjectScopedView(APIView):
 def cashflow_series(project, months=CASHFLOW_MONTHS):
     """Income/expense totals per calendar month for the last `months` months."""
     today = timezone.localdate()
-    start = (today.replace(day=1) - datetime.timedelta(days=(months - 1) * 31)).replace(day=1)
+    year, month = today.year, today.month
+    for _ in range(months - 1):
+        month -= 1
+        if month == 0:
+            year, month = year - 1, 12
+    start = datetime.date(year, month, 1)
     rows = (
         project.operate_transactions
         .filter(occurred_on__gte=start)

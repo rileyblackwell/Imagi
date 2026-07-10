@@ -78,10 +78,13 @@ class LineItemsField(serializers.ListField):
                 raise serializers.ValidationError(
                     f'Line item {index + 1} price cannot be negative.'
                 )
+            # Plain decimal strings so JSON round-trips without float drift.
+            # No normalize(): it renders multiples of ten in scientific
+            # notation ('1E+1'); trim trailing zeros from fixed notation.
+            quantity_str = f"{quantity.quantize(Decimal('0.01')):f}".rstrip('0').rstrip('.')
             cleaned.append({
                 'description': description[:255],
-                # Stored as strings so JSON round-trips without float drift.
-                'quantity': str(quantity.quantize(Decimal('0.01')).normalize()),
+                'quantity': quantity_str,
                 'unit_price': str(unit_price.quantize(Decimal('0.01'))),
             })
         return cleaned

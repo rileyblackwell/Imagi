@@ -166,8 +166,15 @@ class Invoice(models.Model):
 
     @classmethod
     def next_number(cls, project) -> str:
-        count = cls.objects.filter(project=project).count()
-        return f"INV-{count + 1:04d}"
+        # Derive from the highest existing suffix, not the row count — a
+        # count-based number collides with survivors after any deletion.
+        highest = 0
+        numbers = cls.objects.filter(project=project).values_list('number', flat=True)
+        for number in numbers:
+            suffix = number.rsplit('-', 1)[-1]
+            if suffix.isdigit():
+                highest = max(highest, int(suffix))
+        return f"INV-{highest + 1:04d}"
 
     @property
     def is_editable(self) -> bool:
