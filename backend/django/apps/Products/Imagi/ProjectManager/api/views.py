@@ -1,12 +1,16 @@
+import logging
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, APIException
 from rest_framework.views import APIView
 from ..services import ProjectCreationService, ProjectManagementService
 from .serializers import (
-    ProjectSerializer, 
+    ProjectSerializer,
     ProjectCreateSerializer
 )
+
+logger = logging.getLogger(__name__)
 
 class ProjectListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -24,20 +28,21 @@ class ProjectCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        project = None
         try:
             project = serializer.save()  # Don't pass user here, handle it in serializer
             service = ProjectCreationService(request.user)
             service.create_project(project)
-            
+
             response_serializer = ProjectSerializer(project)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
+        except Exception:
+            # Roll back the half-created project, then let the central exception
+            # handler return a safe 500 instead of leaking the raw error string.
             if project:
                 project.delete()
-            return Response(
-                {'error': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.exception("Error creating project")
+            raise
         
 class ProjectDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -82,8 +87,6 @@ class ProjectInitializeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, pk):
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info(f"Initialize request received for project {pk}")
         
         try:
@@ -96,11 +99,9 @@ class ProjectInitializeView(APIView):
                 try:
                     os.makedirs(settings.PROJECTS_ROOT, exist_ok=True)
                     logger.info(f"Created PROJECTS_ROOT directory: {settings.PROJECTS_ROOT}")
-                except Exception as root_err:
-                    logger.error(f"Failed to create PROJECTS_ROOT directory: {str(root_err)}")
-                    return Response({
-                        'error': f"Failed to create projects directory: {str(root_err)}",
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except Exception:
+                    logger.exception("Failed to create PROJECTS_ROOT directory")
+                    raise
             
             service = ProjectCreationService(request.user)
             management_service = ProjectManagementService(request.user)
@@ -155,15 +156,9 @@ class ProjectInitializeView(APIView):
                     project.project_path = project_path
                     project.save()
                     logger.info(f"Assigned default project path: {project_path}")
-                except Exception as path_err:
-                    logger.error(f"Failed to assign default project path: {str(path_err)}")
-                    import traceback
-                    logger.error(f"Stack trace: {traceback.format_exc()}")
-                    return Response({
-                        'error': f"Project has no valid path: {str(path_err)}",
-                        'project_id': project.id,
-                        'name': project.name
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except Exception:
+                    logger.exception("Failed to assign default project path")
+                    raise
             
             # Initialize the project
             try:
@@ -196,22 +191,18 @@ class ProjectInitializeView(APIView):
                             'project_id': project.id,
                             'name': project.name
                         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            except Exception as e:
-                logger.error(f"Failed to initialize project {project.name} (ID: {project.id}): {str(e)}")
-                import traceback
-                logger.error(f"Stack trace: {traceback.format_exc()}")
-                return Response({
-                    'error': str(e),
-                    'project_id': project.id,
-                    'name': project.name
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as outer_e:
-            logger.error(f"Unhandled exception in project initialization: {str(outer_e)}")
-            import traceback
-            logger.error(f"Stack trace: {traceback.format_exc()}")
-            return Response({
-                'error': f"Server error: {str(outer_e)}"
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception:
+                logger.exception(
+                    "Failed to initialize project %s (ID: %s)", project.name, project.id
+                )
+                raise
+        except APIException:
+            # NotFound (missing/other-user project) and friends must keep their
+            # proper status instead of being masked as a 500.
+            raise
+        except Exception:
+            logger.exception("Unhandled exception in project initialization")
+            raise
 
 class ProjectStatusView(APIView):
     """

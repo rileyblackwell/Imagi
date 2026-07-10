@@ -23,7 +23,7 @@ from ..services.preview_service import PreviewService
 from apps.Products.Imagi.ProjectManager.models import Project as PMProject
 from apps.Products.Imagi.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Products.Imagi.ProjectManager.services.project_creation_service import ProjectCreationService
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, APIException
 from ..services.version_control_service import VersionControlService
 from ..services.create_app_service import CreateAppService
 from ..services.directory_service import DirectoryService
@@ -53,9 +53,11 @@ class ProjectDirectoriesView(APIView):
             view_file_service = ViewFileService(project=project)
             files = view_file_service.list_files()
             return Response(files)
-        except Exception as e:
-            logger.error(f"Error listing project files: {str(e)}")
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error listing project files")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class ProjectListCreateView(generics.ListCreateAPIView):
@@ -71,8 +73,10 @@ class ProjectListCreateView(generics.ListCreateAPIView):
             project_creation_service = ProjectCreationService(self.request.user)
             project = project_creation_service.create_project(serializer.validated_data['name'])
             serializer.save(user=self.request.user, project=project)
-        except Exception as e:
-            logger.error(f"Error creating project: {str(e)}")
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error creating project")
             raise
 
 @method_decorator(never_cache, name='dispatch')
@@ -133,12 +137,11 @@ class GenerateCodeView(APIView):
             response = models_service.generate_code(project, prompt, model, file_content)
             
             return Response(response)
-        except Exception as e:
-            logger.error(f"Error generating code: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error generating code")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class AIModelsView(APIView):
@@ -170,12 +173,11 @@ class FileContentView(APIView):
             view_file_service = ViewFileService(project=project)
             content = view_file_service.get_file_content(file_path)
             return Response({'content': content})
-        except Exception as e:
-            logger.error(f"Error getting file content: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error getting file content")
+            raise
             
     def post(self, request, project_id, file_path):
         """Create or update file content."""
@@ -211,12 +213,11 @@ class FileContentView(APIView):
             file_data = view_file_service.update_file(file_path, content)
             
             return Response(file_data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error creating/updating file content: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error creating/updating file content")
+            raise
 
 # Removed old process_input view - use Agents API instead
 
@@ -253,6 +254,8 @@ class PreviewView(APIView):
             }
 
             return Response(response_data)
+        except APIException:
+            raise
         except Exception as e:
             logger.error(f"Error starting preview server: {str(e)}")
             return Response({
@@ -268,12 +271,11 @@ class PreviewView(APIView):
             result = preview_service.stop_preview()
             
             return Response(result)
-        except Exception as e:
-            logger.error(f"Error stopping preview server: {str(e)}")
-            return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error stopping preview server")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class CreateFileView(APIView):
@@ -300,8 +302,11 @@ class CreateFileView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
                 
-            # Validate request data
-            file_data = request.data
+            # Copy request data before mutating: a form-encoded request
+            # yields an immutable QueryDict, so assigning name/type below
+            # would raise. .copy() returns a mutable copy for both JSON and
+            # form payloads.
+            file_data = request.data.copy()
             
             if not file_data.get('path') and not file_data.get('name'):
                 return Response(
@@ -347,12 +352,11 @@ class CreateFileView(APIView):
             # Automatic view/URL creation removed - implement via OpenAI Agents SDK if needed
             
             return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error creating file: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error creating file")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class DeleteFileView(APIView):
@@ -392,12 +396,11 @@ class DeleteFileView(APIView):
             delete_file_service = DeleteFileService(project=project)
             result = delete_file_service.delete_file(file_path)
             return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error deleting file: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error deleting file")
+            raise
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -432,12 +435,11 @@ class CreateDirectoryView(APIView):
             directory_service = DirectoryService(project=project)
             result = directory_service.create_directory(dir_path)
             return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error creating directory: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error creating directory")
+            raise
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -476,12 +478,11 @@ class DeleteDirectoryView(APIView):
             directory_service = DirectoryService(project=project)
             result = directory_service.delete_directory(dir_path, recursive=recursive)
             return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f"Error deleting directory: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error deleting directory")
+            raise
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -534,12 +535,11 @@ class FileUndoView(APIView):
                     view_file_service.update_file(file_path, result['content'])
             
             return Response(result)
-        except Exception as e:
-            logger.error(f"Error undoing file changes: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error undoing file changes")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class AnalyzeTemplateView(APIView):
@@ -573,12 +573,11 @@ class AnalyzeTemplateView(APIView):
             
             return Response(response_data)
             
-        except Exception as e:
-            logger.error(f"Error analyzing template: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error analyzing template")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class VersionControlHistoryView(APIView):
@@ -613,12 +612,11 @@ class VersionControlHistoryView(APIView):
                     'error': result.get('message', 'Failed to get version history')
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
-        except Exception as e:
-            logger.error(f"Error getting version history: {str(e)}")
-            return Response({
-                'success': False,
-                'error': f"Error getting version history: {str(e)}"
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error getting version history")
+            raise
     
     def post(self, request, project_id):
         """Create a new version (commit)."""
@@ -648,12 +646,11 @@ class VersionControlHistoryView(APIView):
                     'error': result.get('message', 'Failed to create version')
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
-        except Exception as e:
-            logger.error(f"Error creating version: {str(e)}")
-            return Response({
-                'success': False,
-                'error': f"Error creating version: {str(e)}"
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error creating version")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class VersionControlResetView(APIView):
@@ -699,12 +696,11 @@ class VersionControlResetView(APIView):
                     'error': result.get('message', 'Failed to reset project')
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
-        except Exception as e:
-            logger.error(f"Error resetting project: {str(e)}")
-            return Response({
-                'success': False,
-                'error': f"Error resetting project: {str(e)}"
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error resetting project")
+            raise
 
 @method_decorator(never_cache, name='dispatch')
 class CreateAppView(APIView):
@@ -753,12 +749,11 @@ class CreateAppView(APIView):
             else:
                 return Response(result, status=status.HTTP_400_BAD_REQUEST)
                 
-        except Exception as e:
-            logger.error(f"Error creating app: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error creating app")
+            raise
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -801,12 +796,11 @@ class ProjectLayoutView(APIView):
                     'updated_at': None
                 })
                 
-        except Exception as e:
-            logger.error(f"Error loading project layout: {str(e)}")
-            return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error loading project layout")
+            raise
 
     def post(self, request, project_id):
         """Save layout positions and connections."""
@@ -838,12 +832,11 @@ class ProjectLayoutView(APIView):
                 'updated_at': layout.updated_at.isoformat()
             })
                 
-        except Exception as e:
-            logger.error(f"Error saving project layout: {str(e)}")
-            return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error saving project layout")
+            raise
 
     def delete(self, request, project_id):
         """Delete saved layout (reset to default)."""
@@ -864,9 +857,8 @@ class ProjectLayoutView(APIView):
                 'message': f'Layout reset successfully (deleted {deleted_count} record(s))'
             })
                 
-        except Exception as e:
-            logger.error(f"Error resetting project layout: {str(e)}")
-            return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except APIException:
+            raise
+        except Exception:
+            logger.exception("Error resetting project layout")
+            raise
