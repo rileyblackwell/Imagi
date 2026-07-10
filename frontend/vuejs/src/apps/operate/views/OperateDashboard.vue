@@ -130,25 +130,35 @@
       <section class="p-6" :class="ui.card">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-blue-950 dark:text-white">Across your business</h2>
-          <router-link
-            :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
-            class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
-          >
-            Open Market
-          </router-link>
+          <div class="flex items-center gap-4">
+            <router-link
+              :to="{ name: 'sell-overview', params: { projectName: route.params.projectName } }"
+              class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
+            >
+              Open Sell
+            </router-link>
+            <router-link
+              :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
+              class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
+            >
+              Open Market
+            </router-link>
+          </div>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="stat in pulseCards" :key="stat.label" class="p-4 rounded-xl border border-blue-200/60 dark:border-white/[0.08]">
             <div class="flex items-center gap-2 mb-1.5">
-              <i :class="['fas', stat.icon]" class="text-xs text-violet-600 dark:text-violet-300"></i>
+              <i :class="['fas', stat.icon, stat.iconClass]" class="text-xs"></i>
               <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
             </div>
             <p class="text-xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
             <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-0.5">{{ stat.caption }}</p>
           </div>
         </div>
-        <p v-if="!dashboard.marketing.configured" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-3">
-          Connect Twilio in the Market workspace to start reaching customers — activity will show up here.
+        <p v-if="!dashboard.sell.configured || !dashboard.marketing.configured" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-3">
+          <template v-if="!dashboard.sell.configured">Connect Stripe in the Sell workspace to start taking payments.</template>
+          <template v-if="!dashboard.sell.configured && !dashboard.marketing.configured"> · </template>
+          <template v-if="!dashboard.marketing.configured">Connect Twilio in the Market workspace to start reaching customers.</template>
         </p>
       </section>
     </template>
@@ -208,35 +218,56 @@ const statCards = computed(() => {
   ]
 })
 
+const SELL_ICON = 'text-emerald-600 dark:text-emerald-300'
+const MARKET_ICON = 'text-violet-600 dark:text-violet-300'
+
 const pulseCards = computed(() => {
   const data = dashboard.value
   if (!data) return []
   return [
     {
+      label: 'Sales revenue',
+      icon: 'fa-hand-holding-dollar',
+      iconClass: SELL_ICON,
+      value: formatMoney(data.sell.revenue_30d, data.sell.currency),
+      caption: 'Stripe, last 30 days',
+    },
+    {
+      label: 'Orders',
+      icon: 'fa-receipt',
+      iconClass: SELL_ICON,
+      value: data.sell.orders_paid_30d.toLocaleString(),
+      caption: data.sell.orders_pending
+        ? `${data.sell.orders_pending} awaiting payment`
+        : 'paid, last 30 days',
+    },
+    {
+      label: 'Customers',
+      icon: 'fa-user-group',
+      iconClass: SELL_ICON,
+      value: data.sell.customers_total.toLocaleString(),
+      caption: `${data.sell.products_active} active product${data.sell.products_active === 1 ? '' : 's'}`,
+    },
+    {
       label: 'Audience',
       icon: 'fa-address-book',
+      iconClass: MARKET_ICON,
       value: data.marketing.contacts_total.toLocaleString(),
       caption: `${data.marketing.contacts_subscribed.toLocaleString()} subscribed`,
     },
     {
       label: 'Messages',
       icon: 'fa-paper-plane',
+      iconClass: MARKET_ICON,
       value: data.marketing.messages_sent_30d.toLocaleString(),
       caption: 'sent, last 30 days',
     },
     {
       label: 'Replies',
       icon: 'fa-reply',
+      iconClass: MARKET_ICON,
       value: data.marketing.replies_30d.toLocaleString(),
       caption: `${data.marketing.campaigns_active} active campaign${data.marketing.campaigns_active === 1 ? '' : 's'}`,
-    },
-    {
-      label: 'Open tasks',
-      icon: 'fa-list-check',
-      value: data.tasks.open_count.toLocaleString(),
-      caption: data.tasks.overdue_count
-        ? `${data.tasks.overdue_count} overdue`
-        : `${data.tasks.due_soon_count} due this week`,
     },
   ]
 })

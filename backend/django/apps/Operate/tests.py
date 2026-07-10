@@ -353,9 +353,28 @@ class DashboardTests(OperateAPITestCase):
         # Cross-module pulse and hub lists are present.
         self.assertIn('marketing', response.data)
         self.assertFalse(response.data['marketing']['configured'])
+        self.assertIn('sell', response.data)
+        self.assertFalse(response.data['sell']['configured'])
+        self.assertEqual(response.data['sell']['revenue_30d'], 0.0)
         self.assertEqual(len(response.data['recent_transactions']), 3)
         self.assertEqual(len(response.data['open_invoices']), 1)
         self.assertEqual(len(response.data['upcoming_tasks']), 1)
+
+    def test_sell_pulse_counts_paid_orders(self):
+        from apps.Sell.models import Order
+
+        Order.objects.create(
+            project=self.project,
+            status=Order.STATUS_PAID,
+            amount_total_cents=12550,
+            paid_at=timezone.now() - datetime.timedelta(days=3),
+        )
+        Order.objects.create(project=self.project, status=Order.STATUS_PENDING)
+        response = self.client.get(f'{self.base}/dashboard/')
+        sell = response.data['sell']
+        self.assertEqual(sell['orders_paid_30d'], 1)
+        self.assertEqual(sell['orders_pending'], 1)
+        self.assertEqual(sell['revenue_30d'], 125.5)
 
     def test_cashflow_series_shape(self):
         self.add_transaction(kind='income', category='sales', amount='100.00')

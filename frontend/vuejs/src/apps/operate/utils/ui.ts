@@ -29,12 +29,12 @@ export const ui = {
 }
 
 /** Format a number or DRF decimal string as currency, e.g. "$1,250.50". */
-export function formatMoney(value: number | string | null | undefined): string {
+export function formatMoney(value: number | string | null | undefined, currency = 'usd'): string {
   const amount = typeof value === 'string' ? Number.parseFloat(value) : (value ?? 0)
   if (!Number.isFinite(amount)) return '—'
   return amount.toLocaleString(undefined, {
     style: 'currency',
-    currency: 'USD',
+    currency: currency.toUpperCase(),
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })

@@ -23,6 +23,7 @@ from rest_framework.views import APIView
 
 from apps.Marketing.models import Campaign, Contact, MarketingSettings, Message
 from apps.Products.Imagi.ProjectManager.models import Project
+from apps.Sell.models import Order, SellSettings
 
 from ..models import Invoice, OperationsTask, Transaction
 from .serializers import (
@@ -131,6 +132,25 @@ def marketing_pulse(project) -> dict:
     }
 
 
+def sell_pulse(project) -> dict:
+    """Snapshot of the Sell module for the cross-module section."""
+    settings_obj = SellSettings.objects.filter(project=project).first()
+    since = timezone.now() - datetime.timedelta(days=30)
+    orders = project.sell_orders.all()
+    paid_30d = orders.filter(status__in=Order.PAID_STATUSES, paid_at__gte=since).aggregate(
+        revenue_cents=Sum('amount_total_cents'), count=Count('id')
+    )
+    return {
+        'configured': bool(settings_obj and settings_obj.is_configured),
+        'currency': settings_obj.currency if settings_obj else 'usd',
+        'products_active': project.sell_products.filter(is_active=True).count(),
+        'customers_total': project.sell_customers.count(),
+        'orders_pending': orders.filter(status=Order.STATUS_PENDING).count(),
+        'orders_paid_30d': paid_30d['count'] or 0,
+        'revenue_30d': round((paid_30d['revenue_cents'] or 0) / 100.0, 2),
+    }
+
+
 class DashboardView(ProjectScopedView):
     """Aggregated stats for the Operate hub."""
 
@@ -194,6 +214,7 @@ class DashboardView(ProjectScopedView):
                 ).count(),
             },
             'marketing': marketing_pulse(project),
+            'sell': sell_pulse(project),
             'recent_transactions': TransactionSerializer(
                 transactions.select_related('invoice')[:5], many=True
             ).data,

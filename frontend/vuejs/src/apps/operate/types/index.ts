@@ -175,6 +175,16 @@ export interface DashboardPayload {
     messages_sent_30d: number
     replies_30d: number
   }
+  sell: {
+    configured: boolean
+    /** Lowercase ISO currency code from the Sell settings, e.g. "usd". */
+    currency: string
+    products_active: number
+    customers_total: number
+    orders_pending: number
+    orders_paid_30d: number
+    revenue_30d: number
+  }
   recent_transactions: Transaction[]
   open_invoices: Invoice[]
   upcoming_tasks: OperationsTask[]
