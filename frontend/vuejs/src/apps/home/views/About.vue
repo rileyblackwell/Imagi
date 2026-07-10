@@ -11,12 +11,12 @@
 
             <!-- Hero title -->
             <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.025em] leading-[1.08] text-balance transition-colors duration-300">
-              Web development for everyone
+              Build and run a business
             </h1>
 
             <!-- Description -->
             <p class="text-lg sm:text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
-              Imagi provides a set of AI tools to non-technical users, creating a quick and easy experience to build and deploy web applications. We handle all the technical complexity behind the scenes, so you can focus on bringing your ideas to life through a clean visual interface.
+              Imagi is an all-in-one platform for building and running a business. Create your web application with AI-powered tools, then run and grow it with everything you need for marketing, sales, and finance. We handle the technical complexity, so you can focus on your customers.
             </p>
           </div>
         </section>
@@ -28,10 +28,10 @@
             <div class="text-center mb-16 md:mb-20">
               <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Our Mission</p>
               <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
-                Removing barriers between ideas and reality
+                Making entrepreneurship accessible to everyone
               </h2>
               <p class="text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
-                Our mission is to democratize web development by providing powerful AI tools that handle all the technical complexity, empowering anyone to create professional web applications without needing to write a single line of code.
+                Our mission is to make starting and running a business accessible to everyone. We give you AI-powered tools to build your product and the marketing, sales, and finance tools to run it—so you can go from idea to thriving business without a technical team.
               </p>
             </div>
 
@@ -62,10 +62,10 @@
             <div class="text-center mb-16 md:mb-20">
               <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">What We Do</p>
               <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
-                A complete AI-powered development platform
+                One platform to build and run it all
               </h2>
               <p class="text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
-                Imagi combines intelligent AI agents with intuitive visual tools to give you everything you need to design, build, and deploy web applications—all without touching code.
+                Imagi combines AI-powered app building with the everyday tools you need to operate—marketing, sales, and finance—so you can launch your product and run your business without stitching together a dozen services.
               </p>
             </div>
 
@@ -99,7 +99,7 @@
                 Built for creators, entrepreneurs, and innovators
               </h2>
               <p class="text-xl text-blue-950/70 dark:text-blue-100/70 max-w-3xl mx-auto leading-relaxed text-pretty transition-colors duration-300">
-                Whether you're validating a startup idea, prototyping for your company, or building a personal project, Imagi gives you the tools to turn your vision into reality.
+                Whether you're launching a startup, running a small business, or growing a side project, Imagi gives you the tools to build your product and run every part of your business.
               </p>
             </div>
 
@@ -126,9 +126,9 @@
         <!-- CTA Section -->
         <CTASection 
           icon="fas fa-rocket"
-          title="Ready to Build Your App?"
+          title="Ready to Start Your Business?"
           highlightedText="No Coding Required!"
-          description="Start building your own web application today. Just describe your idea, and let Imagi do the rest."
+          description="Build your web app and run your business—marketing, sales, and finance—all in one place. Just bring your idea, and let Imagi do the rest."
           highlightedStat=""
           descriptionSuffix=""
           primaryButtonText="Start Building"
@@ -157,50 +157,50 @@ export default defineComponent({
   setup() {
     const missionCards = [
       {
-        title: 'Built for Non-Technical Users',
-        description: 'Imagi is designed specifically for creators, entrepreneurs, and business owners who have great ideas but lack coding skills. We provide tools that speak your language, not programmer jargon.'
+        title: 'Built for Entrepreneurs',
+        description: 'Imagi is designed for creators, entrepreneurs, and business owners who have great ideas but lack a technical team. We provide tools that speak your language, not programmer jargon.'
+      },
+      {
+        title: 'Build and Run in One Place',
+        description: 'From building your product to marketing it, closing sales, and managing finances—everything lives in one platform. No more juggling a dozen disconnected tools to run your business.'
       },
       {
         title: 'AI Handles the Complexity',
-        description: 'Our advanced AI agents understand what you want to build and handle all the technical details—from database design to API creation to frontend interfaces. You focus on your vision, we handle the implementation.'
-      },
-      {
-        title: 'Quick and Easy Experience',
-        description: 'Build and deploy complete web applications in minutes, not months. Our streamlined workflow removes the traditional barriers of hiring developers, managing infrastructure, and learning complex frameworks.'
+        description: 'Our AI agents handle the technical details of building your app, and built-in tools take care of the operational heavy lifting. You focus on your vision and your customers; we handle the implementation.'
       }
     ]
     
     const features = [
       {
-        title: 'Visual Builder Interface',
-        description: 'Design your application using our clean, intuitive visual interface. Build pages, components, and layouts by simply describing what you want or using drag-and-drop tools—no coding required.'
+        title: 'AI App Builder',
+        description: 'Build your web application by chatting with AI agents and using an intuitive visual interface. Describe what you want in plain English, then deploy to the web with a single click—no coding required.'
       },
       {
-        title: 'AI Agents',
-        description: 'Chat with intelligent AI agents that understand your requirements and build your application collaboratively. Describe what you want in plain English, iterate on features through conversation, and watch as the AI generates complete, production-ready code for you.'
+        title: 'Marketing & Sales',
+        description: 'Reach customers and grow revenue with built-in tools for email and social campaigns, landing pages, lead management, and a sales pipeline—so you can turn visitors into paying customers.'
       },
       {
-        title: 'Deployment',
-        description: 'Deploy your application to the web with a single click. We handle all the complexity—hosting, SSL certificates, domains, and infrastructure management—so you can focus on your users, not server configuration.'
+        title: 'Finance & Operations',
+        description: 'Run the day-to-day of your business with tools for invoicing, billing, and revenue and expense tracking, plus dashboards that show the health of your business at a glance.'
       }
     ]
     
     const userTypes = [
       {
         title: 'Startup Founders',
-        description: 'Validate your product ideas quickly without hiring a development team. Build working prototypes, test them with real users, and iterate based on feedback—all before making major technical investments.'
+        description: 'Go from idea to a running business without hiring a team. Build your product, launch it, and start finding customers and generating revenue—all before making major investments.'
+      },
+      {
+        title: 'Small Business Owners',
+        description: 'Get your business online and manage marketing, sales, and finances in one place. Replace a patchwork of subscriptions with a single platform built to run the whole operation.'
       },
       {
         title: 'Business Teams',
-        description: 'Empower non-technical employees to prototype internal tools and customer-facing applications. Accelerate innovation within your organization by removing the bottleneck of developer availability.'
+        description: 'Empower your team to launch products and run operations without waiting on engineering. Accelerate growth by removing the bottleneck of developer availability.'
       },
       {
-        title: 'Technical Professionals',
-        description: 'Speed up your development workflow with AI-powered tools that handle boilerplate code and infrastructure. Focus on the unique aspects of your project while Imagi manages the repetitive tasks.'
-      },
-      {
-        title: 'Hobbyists & Creators',
-        description: 'Bring your personal projects to life without spending months learning to code. Whether it\'s a portfolio site, a tool for your community, or a creative experiment, Imagi makes it accessible.'
+        title: 'Creators & Side Hustlers',
+        description: 'Turn a project or passion into a real business. Build the app, market it, take payments, and track the money—without spending months learning to code or run a company.'
       }
     ]
     

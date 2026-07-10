@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Imagi is a monorepo with a Django REST backend and Vue 3 SPA frontend, both containerized with Docker.
+Imagi is an all-in-one platform for building and running a business. Users build their business by creating a web application with AI-powered tools, then run and grow that business with built-in tools for marketing, sales, finance, and more. The product is a monorepo with a Django REST backend and Vue 3 SPA frontend, both containerized with Docker.
 
 ## Architecture
 

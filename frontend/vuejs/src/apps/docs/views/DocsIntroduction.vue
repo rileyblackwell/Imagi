@@ -4,7 +4,7 @@
       <DocsPageHeader
         badge-text="DOCUMENTATION"
         title="Welcome to Imagi"
-        description="The AI-powered web application generator that turns your ideas into functional code."
+        description="The all-in-one platform to build and run your business."
       />
 
       <!-- What is Imagi -->
@@ -14,13 +14,14 @@
         </h2>
         <div class="space-y-4 text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed transition-colors duration-300">
           <p>
-            Imagi is a suite of AI tools that empowers non-technical developers to build web applications.
-            It gives you three simple tools that work together: design visually, chat with AI to plan and write code,
+            Imagi is an all-in-one platform for building and running a business. First, you build your
+            web application with AI-powered tools: design visually, chat with AI to plan and write code,
             and launch to the web—all designed to be fast, affordable, and approachable.
           </p>
           <p>
-            Whether you're prototyping a startup idea or validating a concept within your company, Imagi helps you
-            turn ideas into working applications without requiring extensive coding experience.
+            Then you run your business with built-in tools for marketing, sales, and finance. Whether you're
+            launching a startup or growing a small business, Imagi takes you from idea to a running business
+            without requiring a technical team.
           </p>
         </div>
       </section>
@@ -31,14 +32,14 @@
           Who is it for?
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <DocsCard title="Non-Technical Startup Founders">
-            Quickly prototype and validate your startup ideas without needing to write code or hire developers upfront.
+          <DocsCard title="Startup Founders">
+            Go from idea to a running business without hiring a team—build your product, then find customers and grow revenue.
           </DocsCard>
-          <DocsCard title="Technical Startup Founders">
-            An easy-to-use platform for rapidly building and iterating on MVPs, so you can focus on validation instead of setup.
+          <DocsCard title="Small Business Owners">
+            Get your business online and manage marketing, sales, and finances in one place instead of juggling separate tools.
           </DocsCard>
-          <DocsCard title="Non-Technical Employees">
-            Prototype ideas within your company to test concepts and demonstrate value before committing major resources.
+          <DocsCard title="Creators & Side Hustlers">
+            Turn a project or passion into a real business—build the app, market it, take payments, and track the money.
           </DocsCard>
         </div>
       </section>
@@ -49,21 +50,25 @@
           How Does Imagi Work?
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
-          Imagi combines three powerful tools into one seamless platform, each designed to accelerate different parts
-          of your application development process:
+          Imagi brings everything you need to build and run a business into one seamless platform. You start by
+          building your web app, then use built-in tools to operate and grow your business:
         </p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <DocsCard title="AI-Powered Chat Agent">
-            Describe what you want to build in plain English. The AI agent helps you plan your application,
-            writes code collaboratively with you, and answers questions along the way.
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <DocsCard title="Build Your Web App">
+            Describe what you want in plain English and design visually. The AI agent plans and writes your
+            application collaboratively, then deploys it to the web with a single click—no coding or server setup required.
           </DocsCard>
-          <DocsCard title="Visual Builder">
-            Design your application's interface through a simple graphical interface. No need to understand
-            complex frameworks or write UI code from scratch—just arrange, customize, and shape your vision visually.
+          <DocsCard title="Market Your Business">
+            Reach customers and grow your audience with tools for email and social campaigns, landing pages,
+            and SEO—so people can find and try your product.
           </DocsCard>
-          <DocsCard title="One-Click Deployment">
-            When you're ready to share your work, deploy your application to the web with a single click.
-            No server configuration, no complex setup—just launch and share your URL.
+          <DocsCard title="Sell to Customers">
+            Turn visitors into paying customers. Manage leads, track your sales pipeline, and take payments
+            with tools built right into your business.
+          </DocsCard>
+          <DocsCard title="Manage Your Finances">
+            Stay on top of the numbers with invoicing, billing, and revenue and expense tracking, plus
+            dashboards that show the health of your business at a glance.
           </DocsCard>
         </div>
       </section>
@@ -74,25 +79,25 @@
           Why Choose Imagi?
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">
-          Imagi is built on the principle that building software should be accessible to everyone, not just
-          experienced engineers. Here's what sets us apart:
+          Imagi is built on the principle that starting and running a business should be accessible to everyone,
+          not just those with technical teams and big budgets. Here's what sets us apart:
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <DocsCard title="Speed Without Sacrifice">
-            Build and iterate quickly without creating technical debt. Every application Imagi generates
-            uses clean, maintainable code that professional developers can easily understand and extend.
+          <DocsCard title="Everything in One Place">
+            Build your product and run marketing, sales, and finance from a single platform. No more stitching
+            together a dozen separate subscriptions to keep your business running.
           </DocsCard>
           <DocsCard title="Affordable & Transparent">
-            Get started for a fraction of the cost of hiring developers. No hidden fees, no vendor lock-in—
-            just straightforward pricing that scales with your needs.
+            Get started for a fraction of the cost of hiring developers or a full software stack. No hidden fees,
+            no vendor lock-in—just straightforward pricing that scales with your needs.
           </DocsCard>
-          <DocsCard title="Purpose-Built for Prototyping">
-            Unlike generic code generators, Imagi is designed specifically for rapid prototyping and early
-            validation. Every feature focuses on helping you test ideas and gain traction quickly.
+          <DocsCard title="Built to Move Fast">
+            Go from idea to a live product and paying customers quickly. Every feature is designed to help you
+            launch, find traction, and grow without technical roadblocks.
           </DocsCard>
           <DocsCard title="Room to Grow">
-            When your project scales beyond a prototype, hand it off to engineering teams with confidence.
-            Imagi generates standard Vue.js and Django code that any developer can work with.
+            As your business scales, your app grows with you. Imagi generates standard Vue.js and Django code
+            that any developer can pick up and extend when you're ready.
           </DocsCard>
         </div>
       </section>
