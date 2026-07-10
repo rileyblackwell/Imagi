@@ -562,8 +562,8 @@ export const AgentService = {
       throw new Error('Prompt, project ID, and file path are required');
     }
     
-    // Use the provided model or default to GPT 5.5
-    const modelId = model || 'gpt-5.5';
+    // Use the provided model or default to GPT 5.6 Sol
+    const modelId = model || 'gpt-5.6-sol';
     
     try {
       // Get conversation ID if available

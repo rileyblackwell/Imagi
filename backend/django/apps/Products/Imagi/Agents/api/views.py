@@ -19,6 +19,19 @@ from django.shortcuts import get_object_or_404
 
 from ..models import AgentConversation, AgentMessage
 from ..services import ImagiAgentService, DEFAULT_MODEL
+from apps.Products.Imagi.Builder.services.models_service import get_model_by_id
+
+
+def resolve_model(model):
+    """
+    Resolve a requested model id to a valid GPT 5.6 suite model.
+
+    Any of the available suite models (Sol, Terra, Luna) is accepted; anything
+    unrecognized falls back to the default model.
+    """
+    if model and get_model_by_id(model):
+        return model
+    return DEFAULT_MODEL
 
 # Re-export for URL imports
 __all__ = [
@@ -89,7 +102,8 @@ def chat(request):
     """
     Chat with an AI agent using the OpenAI Agents SDK.
     
-    This endpoint accepts a prompt and generates a response using GPT 5.5.
+    This endpoint accepts a prompt and generates a response using the selected
+    GPT 5.6 suite model (Sol, Terra, or Luna).
     The conversation is threaded if a conversation_id is provided.
     """
     try:
@@ -106,9 +120,8 @@ def chat(request):
         if not message:
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
         
-        # Force GPT 5.5 for chat mode
-        if not model or model != DEFAULT_MODEL:
-            model = DEFAULT_MODEL
+        # Use the selected GPT 5.6 suite model (falls back to default if invalid)
+        model = resolve_model(model)
         
         # Ensure project_id is an integer if provided
         if project_id:
@@ -184,9 +197,8 @@ def agent(request):
         if not project_id:
             return create_error_response('Project ID is required for agent mode', status.HTTP_400_BAD_REQUEST)
 
-        # Force GPT 5.5 for agent mode
-        if not model or model != DEFAULT_MODEL:
-            model = DEFAULT_MODEL
+        # Use the selected GPT 5.6 suite model (falls back to default if invalid)
+        model = resolve_model(model)
 
         # Ensure project_id is an integer
         try:
