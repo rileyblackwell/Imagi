@@ -6,12 +6,12 @@
 
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
-        <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Key Features</p>
+        <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Step 2 · Run</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
-          Built for everyone
+          Run your business
         </h2>
         <p class="text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty max-w-2xl mx-auto transition-colors duration-300">
-          Everything you need to turn ideas into working web applications, without the complexity.
+          Once your app is live, grow it with built-in tools for marketing, sales, and finance—all in one place.
         </p>
       </div>
 
@@ -78,33 +78,33 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          title: 'User-Friendly Interface',
-          description: 'Built for non-technical users. No coding knowledge required—just describe what you want and watch it come to life.',
-          icon: 'fas fa-user-check',
+          title: 'Marketing',
+          description: 'Reach customers and grow your audience. Launch campaigns, build a presence, and drive traffic to your app—no marketing team required.',
+          icon: 'fas fa-bullhorn',
           highlights: [
-            'Intuitive visual builder',
-            'Plain English instructions',
-            'No technical jargon'
+            'Email & social campaigns',
+            'Landing pages & SEO',
+            'Audience insights'
           ]
         },
         {
-          title: 'AI-Powered Agent',
-          description: 'An intelligent assistant that understands your vision and helps build your application collaboratively through conversation.',
-          icon: 'fas fa-wand-magic-sparkles',
+          title: 'Sales',
+          description: 'Turn visitors into paying customers. Manage leads, track your pipeline, and close deals with tools built right into your business.',
+          icon: 'fas fa-handshake',
           highlights: [
-            'Chat-based development',
-            'Instant code generation',
-            'Smart suggestions'
+            'Lead & contact management',
+            'Pipeline tracking',
+            'Payments & checkout'
           ]
         },
         {
-          title: 'Managed Deployment',
-          description: 'We handle all the technical complexity of deploying your web app. Just click deploy and share your link with the world.',
-          icon: 'fas fa-rocket',
+          title: 'Finance',
+          description: 'Stay on top of the numbers. Track revenue and expenses, send invoices, and understand the health of your business at a glance.',
+          icon: 'fas fa-chart-line',
           highlights: [
-            'One-click deployment',
-            'Automatic hosting',
-            'SSL & scaling included'
+            'Revenue & expense tracking',
+            'Invoicing & billing',
+            'Financial dashboards'
           ]
         }
       ]

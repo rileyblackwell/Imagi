@@ -6,12 +6,12 @@
 
       <!-- Hero title -->
       <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold mb-6 tracking-[-0.025em] leading-[1.08] text-balance text-blue-950 dark:text-white">
-        Turn ideas into web apps
+        Build and run your business
       </h1>
 
       <!-- Subtitle -->
       <p class="text-lg sm:text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty mb-10 max-w-3xl mx-auto transition-colors duration-300">
-        Imagi is a suite of AI tools that empowers non-technical developers to build web applications. Design visually, chat with AI, and launch to the web—fast, affordable, and approachable.
+        Imagi is the all-in-one platform to launch and grow a business. Build your web application with AI tools, then run everything—marketing, sales, and finance—in one place. Fast, affordable, and approachable.
       </p>
 
       <!-- CTA buttons -->
@@ -65,9 +65,9 @@ export default defineComponent({
     })
 
     const valueProps = [
-      'Prototype and validate ideas quickly',
-      'No coding experience required',
-      'Deploy to the web in minutes'
+      'Build your web app with AI',
+      'Run marketing, sales & finance',
+      'No coding experience required'
     ]
 
     return { startBuildingRoute, valueProps }

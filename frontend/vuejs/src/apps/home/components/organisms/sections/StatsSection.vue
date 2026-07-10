@@ -7,10 +7,10 @@
       <div class="text-center mb-16">
         <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Why Imagi</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
-          Fast, affordable, approachable
+          Everything your business needs, in one place
         </h2>
         <p class="text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty max-w-2xl mx-auto transition-colors duration-300">
-          Your practical partner for building web applications. We handle the technical complexity while you focus on your ideas.
+          Your practical partner for building and running a business. We handle the technical complexity while you focus on your customers.
         </p>
       </div>
 
@@ -93,18 +93,18 @@ export default defineComponent({
       default: () => [
         {
           icon: 'fas fa-seedling',
-          title: 'Ideal for Startup Founders',
-          description: 'No coding experience needed. Quickly get up and running to prototype and validate your ideas with real users.'
+          title: 'Ideal for Founders',
+          description: 'Go from idea to a running business without a technical co-founder. Build your app, then find customers and grow revenue—all in one platform.'
+        },
+        {
+          icon: 'fas fa-store',
+          title: 'Ideal for Small Businesses',
+          description: 'Get your business online and manage marketing, sales, and finances in one place—no need to stitch together a dozen separate tools.'
         },
         {
           icon: 'fas fa-users',
-          title: 'Ideal for Non-Technical Teams',
-          description: 'Empower your team to rapidly prototype and test ideas without waiting for engineering resources.'
-        },
-        {
-          icon: 'fas fa-code',
-          title: 'Ideal for Technical Teams',
-          description: 'A quick, easy interface to get something up and running and test it out.'
+          title: 'Ideal for Teams',
+          description: 'Give your whole team the tools to launch products and run operations quickly, without waiting on engineering resources.'
         }
       ]
     }

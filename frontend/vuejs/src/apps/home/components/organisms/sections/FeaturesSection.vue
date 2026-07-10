@@ -6,12 +6,12 @@
 
       <!-- Section header -->
       <div class="text-center mb-16 md:mb-20">
-        <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">How it works</p>
+        <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Step 1 · Build</p>
         <h2 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight text-balance transition-colors duration-300">
-          Your product-building partner
+          Build your web app
         </h2>
         <p class="text-xl text-blue-950/70 dark:text-blue-100/70 leading-relaxed text-pretty max-w-2xl mx-auto transition-colors duration-300">
-          Three simple tools that work together to help you build, test, and launch web applications.
+          Every business starts with a product. Design visually, chat with AI, and launch your web application—the foundation of your business.
         </p>
       </div>
 

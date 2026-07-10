@@ -18,9 +18,9 @@
         <KeyFeaturesSection />
         
         <!-- CTA Section -->
-        <CTASection 
-          title="Start building today" 
-          description="Turn your ideas into web applications. Prototype quickly, test with real users, and build momentum."
+        <CTASection
+          title="Start your business today"
+          description="Build your web app with AI, then run it with tools for marketing, sales, and finance. Everything you need to launch and grow, in one place."
           primaryButtonText="Get Started"
           primaryButtonTo="/products/imagi/projects"
           :showSecondaryButton="false"

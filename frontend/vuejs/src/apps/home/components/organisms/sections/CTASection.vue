@@ -54,7 +54,7 @@ export default defineComponent({
     },
     description: {
       type: String,
-      default: 'Transform your ideas into production-ready web applications. Start building for free today.'
+      default: 'Build your web app and run your business—marketing, sales, and finance—all in one place. Start for free today.'
     },
     primaryButtonText: {
       type: String,
