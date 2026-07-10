@@ -39,12 +39,9 @@ class CreditBalanceView(APIView):
             return Response({
                 'balance': balance
             })
-        except Exception as e:
-            logger.error(f"Error fetching balance: {str(e)}")
-            return Response(
-                {'error': 'Failed to fetch balance'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except Exception:
+            logger.exception("Error fetching balance")
+            raise
 
 class CreditPackagesView(APIView):
     """Get available credit packages."""
@@ -57,12 +54,9 @@ class CreditPackagesView(APIView):
             return Response({
                 'packages': serializer.data
             })
-        except Exception as e:
-            logger.error(f"Error fetching packages: {str(e)}")
-            return Response(
-                {'error': 'Failed to fetch packages'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except Exception:
+            logger.exception("Error fetching packages")
+            raise
 
 class PaymentHistoryView(generics.ListAPIView):
     """List user's payment history."""
@@ -154,11 +148,9 @@ def create_payment_intent(request):
         return Response({
             'error': 'Invalid amount format'
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error creating payment intent: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error creating payment intent")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -211,11 +203,9 @@ def process_payment(request):
         return Response({
             'error': e.user_message
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error processing payment: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error processing payment")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -260,11 +250,9 @@ def confirm_payment(request):
             'new_balance': result['new_balance']
         })
         
-    except Exception as e:
-        logger.error(f"Error confirming payment: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error confirming payment")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -311,11 +299,9 @@ def verify_payment(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error verifying payment: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error verifying payment")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -333,11 +319,9 @@ def check_credits(request):
         
         return Response(result)
         
-    except Exception as e:
-        logger.error(f"Error checking credits: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error checking credits")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -371,11 +355,9 @@ def deduct_credits(request):
             'new_balance': result['new_balance']
         })
         
-    except Exception as e:
-        logger.error(f"Error deducting credits: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error deducting credits")
+        raise
 
 class PaymentMethodsView(APIView):
     """Get user's saved payment methods."""
@@ -394,12 +376,9 @@ class PaymentMethodsView(APIView):
             
             return Response(payment_methods)
                 
-        except Exception as e:
-            logger.error(f"Error fetching payment methods: {str(e)}")
-            return Response(
-                {'error': 'Failed to fetch payment methods'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except Exception:
+            logger.exception("Error fetching payment methods")
+            raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -436,11 +415,9 @@ def setup_customer(request):
             'customer_id': customer.id
         })
         
-    except Exception as e:
-        logger.error(f"Error setting up customer: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error setting up customer")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -490,11 +467,9 @@ def attach_payment_method(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error attaching payment method: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error attaching payment method")
+        raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -598,11 +573,9 @@ def create_checkout_session(request):
         return Response({
             'error': 'Invalid amount format'
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error creating checkout session: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error creating checkout session")
+        raise
 
 
 @api_view(['POST'])
@@ -623,11 +596,9 @@ def create_portal_session(request):
             'url': portal_session.url
         })
 
-    except Exception as e:
-        logger.error(f"Error creating portal session: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error creating portal session")
+        raise
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -693,11 +664,9 @@ def get_session_status(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error checking session status: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error checking session status")
+        raise
 
 class PlansView(generics.ListAPIView):
     """List available subscription plans."""
@@ -722,12 +691,9 @@ class PlansView(generics.ListAPIView):
                 
             return Response(formatted_plans)
             
-        except Exception as e:
-            logger.error(f"Error fetching plans: {str(e)}")
-            return Response(
-                {'error': 'Failed to fetch plans'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        except Exception:
+            logger.exception("Error fetching plans")
+            raise
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -752,11 +718,9 @@ def verify_webhook(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        logger.error(f"Error verifying webhook: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("Error verifying webhook")
+        raise
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -796,12 +760,9 @@ def webhook(request):
         # Return success response
         return Response({'status': 'success'})
         
-    except Exception as e:
-        logger.error(f"Webhook error: {str(e)}")
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    except Exception:
+        logger.exception("Webhook error")
+        raise
 
 def handle_payment_intent_succeeded(payment_intent):
     """Handle a successful payment intent."""

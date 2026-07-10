@@ -176,6 +176,33 @@ class ProjectManagerAPITests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @patch(
+        'apps.Products.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
+    )
+    def test_create_failure_rolls_back_and_returns_safe_500(self, mock_create):
+        # A failure during file generation must roll back the half-created
+        # project and return a generic 500 (no leaked internal error string).
+        mock_create.side_effect = Exception('secret path /srv/imagi/secret')
+        resp = self.client.post(
+            reverse('project_manager:project-create'),
+            {'name': 'Rollback Me', 'description': ''},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertNotIn('secret path', str(resp.data))
+        self.assertFalse(
+            Project.objects.filter(
+                user=self.user, name='Rollback Me', is_active=True
+            ).exists()
+        )
+
+    def test_initialize_missing_project_returns_404(self):
+        # get_project() raises NotFound; it must surface as a 404, not be
+        # swallowed into a 500 by the view's outer exception handler.
+        resp = self.client.post(
+            reverse('project_manager:project-initialize', args=[99999])
+        )
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_detail_retrieve_own_project(self):
         project = Project.objects.create(user=self.user, name='Detail App')
         resp = self.client.get(
