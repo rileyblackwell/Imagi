@@ -2,45 +2,61 @@
   <router-link
     v-if="project"
     :to="{ name: 'project-hub', params: { projectName: toSlug(project.name) }}"
-    class="crisp-card group relative block px-5 py-3 rounded-2xl bg-white dark:bg-white/[0.05] border border-blue-200/70 dark:border-blue-300/[0.16] hover:border-blue-300 dark:hover:border-blue-300/30 transition-colors duration-300"
+    class="crisp-card group relative block px-5 py-4 rounded-2xl bg-white dark:bg-white/[0.05] border transition-colors duration-300"
+    :class="isOrange
+      ? 'border-orange-200/70 dark:border-orange-300/[0.16] hover:border-orange-300 dark:hover:border-orange-300/30'
+      : 'border-blue-200/70 dark:border-blue-300/[0.16] hover:border-blue-300 dark:hover:border-blue-300/30'"
     :title="`Open ${project.name}`"
   >
-    <!-- Delete button -->
-    <button
-      @click.stop.prevent="confirmDelete"
-      class="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/30 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all duration-200 z-10"
-      aria-label="Delete project"
-    >
-      <i class="fas fa-trash-alt text-xs"></i>
-    </button>
+    <div class="flex items-center gap-3 sm:gap-4">
+      <!-- Name + description -->
+      <div class="flex-1 min-w-0">
+        <h3 class="text-base font-semibold tracking-tight text-blue-950 dark:text-white truncate leading-tight transition-colors duration-300">
+          {{ project.name }}
+        </h3>
+        <p v-if="project.description" class="text-xs text-blue-950/70 dark:text-blue-100/70 truncate leading-snug mt-1 transition-colors duration-300">
+          {{ project.description }}
+        </p>
+      </div>
 
-    <!-- Name + description + CTA -->
-    <div class="min-w-0 pr-12">
-      <h3 class="text-base font-semibold text-blue-950 dark:text-white truncate leading-tight text-center transition-colors duration-300">
-        {{ project.name }}
-      </h3>
-      <p v-if="project.description" class="text-xs text-blue-950/70 dark:text-blue-100/70 truncate leading-snug mt-1.5 text-center transition-colors duration-300">
-        {{ project.description }}
-      </p>
-      <div class="flex items-center justify-center gap-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200 mt-2.5 pt-2.5 border-t border-blue-200/60 dark:border-white/[0.1]">
-        <span>Open project</span>
-        <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform duration-200"></i>
+      <!-- Delete + open arrow -->
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button
+          @click.stop.prevent="confirmDelete"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200"
+          aria-label="Delete project"
+        >
+          <i class="fas fa-trash-alt text-xs"></i>
+        </button>
+        <svg
+          class="hidden sm:block w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+          :class="isOrange ? 'text-orange-500 dark:text-orange-300' : 'text-blue-500 dark:text-blue-300'"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+        </svg>
       </div>
     </div>
   </router-link>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Project } from '../../../types/components'
 import { toSlug } from '../../../utils/slug'
 
 const props = defineProps<{
   project?: Project;
+  accent?: 'blue' | 'orange';
 }>();
 
 const emit = defineEmits<{
   (e: 'delete', project: Project): void;
 }>();
+
+const isOrange = computed(() => props.accent === 'orange')
 
 function confirmDelete() {
   if (props.project) {
