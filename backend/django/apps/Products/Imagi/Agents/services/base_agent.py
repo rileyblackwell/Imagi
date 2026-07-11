@@ -261,7 +261,11 @@ Technology Stack:
 - HTTP client: Axios
 """
 
-        from apps.Products.Imagi.Builder.services.models_service import get_backend_model_id
+        from apps.Products.Imagi.Builder.services.models_service import (
+            get_backend_model_id,
+            get_model_identity_instructions,
+        )
+        instructions += "\n\n" + get_model_identity_instructions(self.model)
         backend_model = get_backend_model_id(self.model)
         kwargs = {}
         settings = build_model_settings(self.reasoning_effort)

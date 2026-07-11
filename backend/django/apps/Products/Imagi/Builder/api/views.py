@@ -18,7 +18,7 @@ from .serializers import (
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
-from ..services.models_service import ModelsService
+from ..services.models_service import ModelsService, get_default_model_id, get_model_by_id
 from ..services.preview_service import PreviewService
 from apps.Products.Imagi.ProjectManager.models import Project as PMProject
 from apps.Products.Imagi.ProjectManager.services.project_management_service import ProjectManagementService
@@ -112,7 +112,9 @@ class GenerateCodeView(APIView):
             
             # Get request data
             prompt = request.data.get('prompt', '')
-            model = request.data.get('model', 'gpt-4')
+            model = request.data.get('model') or get_default_model_id()
+            if not get_model_by_id(model):
+                model = get_default_model_id()
             file_path = request.data.get('file_path', None)
             
             if not prompt:

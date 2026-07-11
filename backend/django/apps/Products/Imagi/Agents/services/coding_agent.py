@@ -16,6 +16,7 @@ from agents import Agent, RunContextWrapper
 
 from apps.Products.Imagi.Builder.services.models_service import (
     get_backend_model_id,
+    get_model_identity_instructions,
     resolve_reasoning_effort,
 )
 from .base_agent import build_model_settings
@@ -167,13 +168,18 @@ def create_coding_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[s
     """
     backend_model = get_backend_model_id(model)
     effort = resolve_reasoning_effort(model, reasoning_effort)
+    identity = get_model_identity_instructions(model)
+
+    def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
+        return get_dynamic_coding_instructions(context, agent) + "\n\n" + identity
+
     kwargs = {}
     settings = build_model_settings(effort)
     if settings is not None:
         kwargs['model_settings'] = settings
     return Agent(
         name="Coding Agent",
-        instructions=get_dynamic_coding_instructions,
+        instructions=instructions_with_identity,
         model=backend_model,
         tools=list(CODING_AGENT_TOOLS),
         handoff_description="A coding assistant that can chat about web development "

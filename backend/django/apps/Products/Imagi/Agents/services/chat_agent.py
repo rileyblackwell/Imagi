@@ -12,6 +12,7 @@ from agents import Agent, RunContextWrapper
 
 from apps.Products.Imagi.Builder.services.models_service import (
     get_backend_model_id,
+    get_model_identity_instructions,
     resolve_reasoning_effort,
 )
 from .base_agent import build_model_settings
@@ -124,13 +125,18 @@ def create_chat_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[str
     """
     backend_model = get_backend_model_id(model)
     effort = resolve_reasoning_effort(model, reasoning_effort)
+    identity = get_model_identity_instructions(model)
+
+    def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
+        return get_dynamic_chat_instructions(context, agent) + "\n\n" + identity
+
     kwargs = {}
     settings = build_model_settings(effort)
     if settings is not None:
         kwargs['model_settings'] = settings
     return Agent(
         name="Chat Agent",
-        instructions=get_dynamic_chat_instructions,
+        instructions=instructions_with_identity,
         model=backend_model,
         handoff_description="A helpful assistant for chatting about web development, "
                            "answering questions, and providing guidance.",
@@ -159,7 +165,7 @@ def create_simple_chat_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optio
         kwargs['model_settings'] = settings
     return Agent(
         name="Chat Agent",
-        instructions=CHAT_AGENT_INSTRUCTIONS,
+        instructions=CHAT_AGENT_INSTRUCTIONS + "\n\n" + get_model_identity_instructions(model),
         model=backend_model,
         handoff_description="A helpful assistant for chatting about web development, "
                            "answering questions, and providing guidance.",
