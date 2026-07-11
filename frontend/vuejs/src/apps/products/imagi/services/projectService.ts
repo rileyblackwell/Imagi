@@ -284,6 +284,20 @@ export const ProjectService = {
   },
 
   /**
+   * Fetch a project's status, including the generation_status that tracks
+   * the initial AI build ('pending' | 'generating' | 'completed' | 'failed')
+   */
+  async getProjectStatus(projectId: string): Promise<{
+    id: number
+    name: string
+    is_initialized: boolean
+    generation_status: 'pending' | 'generating' | 'completed' | 'failed'
+  }> {
+    const response = await api.get(`/v1/project-manager/projects/${projectId}/status/`)
+    return response.data
+  },
+
+  /**
    * Format an error object or string into a readable message
    * 
    * @param error - The error to format

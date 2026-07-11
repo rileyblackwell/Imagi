@@ -26,7 +26,15 @@
         <i :class="['fas', tool.icon, accent.iconText]" class="text-xl"></i>
       </div>
       <span
-        v-if="tool.status === 'available'"
+        v-if="isBuilding"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300"
+        :class="accent.badge"
+      >
+        <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+        AI building
+      </span>
+      <span
+        v-else-if="tool.status === 'available'"
         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300"
         :class="accent.badge"
       >
@@ -47,7 +55,7 @@
         {{ tool.name }}
       </h3>
       <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-snug transition-colors duration-300">
-        {{ tool.tagline }}
+        {{ isBuilding ? 'Imagi is building the first version of your app from your business description…' : tool.tagline }}
       </p>
     </div>
 
@@ -70,9 +78,13 @@ import { accentClasses, type BusinessTool } from '../../../utils/businessTools'
 const props = defineProps<{
   tool: BusinessTool
   projectSlug: string
+  /** The project's generation_status; drives the Build card's "AI building" state. */
+  buildStatus?: 'pending' | 'generating' | 'completed' | 'failed' | null
 }>()
 
 const accent = computed(() => accentClasses[props.tool.accent])
+
+const isBuilding = computed(() => props.tool.id === 'build' && props.buildStatus === 'generating')
 
 const target = computed<RouteLocationRaw>(() => {
   // "Build" points at the real workspace; everything else uses the generic
