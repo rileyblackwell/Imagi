@@ -1,1 +1,0 @@
-default_app_config = 'apps.Products.Imagi.Builder.apps.BuilderConfig'

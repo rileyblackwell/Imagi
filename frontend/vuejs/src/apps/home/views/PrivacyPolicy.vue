@@ -79,7 +79,7 @@
           highlightedStat=""
           descriptionSuffix=""
           primaryButtonText="Start Building"
-          primaryButtonTo="/products/imagi/projects"
+          primaryButtonTo="/imagi/projects"
           :showSecondaryButton="true"
           secondaryButtonText="Terms of Service"
           secondaryButtonTo="/terms"

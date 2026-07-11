@@ -22,7 +22,7 @@
           title="Start your business today"
           description="Build your web app with AI, then run it with tools for marketing, sales, and finance. Everything you need to launch and grow, in one place."
           primaryButtonText="Get Started"
-          primaryButtonTo="/products/imagi/projects"
+          primaryButtonTo="/imagi/projects"
           :showSecondaryButton="false"
         />
       </main>

@@ -14,7 +14,7 @@
         </p>
         <div class="w-full h-px bg-blue-200/70 dark:bg-blue-300/[0.16] mb-6"></div>
         <router-link
-          to="/products/imagi/projects"
+          to="/imagi/projects"
           class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-white/60 dark:border-white/30"
         >
           <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>

@@ -265,7 +265,7 @@ export default defineComponent({
     const activeCtaLink = computed(() => {
       const step = steps[activeStep.value]
       if (step.comingSoon) return step.ctaLink
-      return authStore.isAuthenticated ? '/products/imagi/projects' : step.ctaLink
+      return authStore.isAuthenticated ? '/imagi/projects' : step.ctaLink
     })
 
     return {

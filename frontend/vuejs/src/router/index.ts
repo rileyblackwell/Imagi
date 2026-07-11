@@ -2,10 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import homeRoutes from '@/apps/home/router'
 import authRoutes from '@/apps/auth/router'
 import paymentsRoutes from '@/apps/payments/router'
-import productsImagiRoutes from '@/apps/products/imagi/router'
-import marketingRoutes from '@/apps/marketing/router'
-import sellRoutes from '@/apps/sell/router'
-import operateRoutes from '@/apps/operate/router'
+import buildRoutes from '@/apps/imagi/build/router'
+import marketingRoutes from '@/apps/imagi/marketing/router'
+import sellRoutes from '@/apps/imagi/sell/router'
+import operateRoutes from '@/apps/imagi/operate/router'
 import docsRoutes from '@/apps/docs/router'
 
 const router = createRouter({
@@ -14,7 +14,7 @@ const router = createRouter({
     ...homeRoutes,
     ...authRoutes,
     ...paymentsRoutes,
-    ...productsImagiRoutes,
+    ...buildRoutes,
     ...marketingRoutes,
     ...sellRoutes,
     ...operateRoutes,
