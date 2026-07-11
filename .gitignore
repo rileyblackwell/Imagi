@@ -29,6 +29,9 @@ __pycache__/
 *.so
 *.egg-info/
 build/
+# ...but the Imagi "build" product is source, not a build artifact — keep it tracked.
+!backend/django/apps/Imagi/Build/
+!frontend/vuejs/src/apps/imagi/build/
 .venv/
 venv/
 
@@ -37,7 +40,7 @@ backend/django/db.sqlite3
 backend/django/db.sqlite3-journal
 backend/django/media/
 backend/django/staticfiles/
-backend/django/imagi_projects/
+backend/django/apps/Imagi/imagi_projects/
 
 # Node / Vue
 frontend/vuejs/node_modules/

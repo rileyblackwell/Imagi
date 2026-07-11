@@ -62,7 +62,7 @@ export default defineComponent({
     },
     primaryButtonTo: {
       type: [String, Object],
-      default: '/products/imagi/projects'
+      default: '/imagi/projects'
     },
     showSecondaryButton: {
       type: Boolean,
@@ -83,7 +83,7 @@ export default defineComponent({
     
     const getAuthenticatedRedirect = computed(() => {
       return isAuthenticated.value 
-        ? (typeof props.primaryButtonTo === 'string' ? props.primaryButtonTo : '/products/imagi/projects')
+        ? (typeof props.primaryButtonTo === 'string' ? props.primaryButtonTo : '/imagi/projects')
         : '/auth/signin'
     })
     

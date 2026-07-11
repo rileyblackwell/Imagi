@@ -67,7 +67,7 @@
                 <span>{{ portalLoading ? 'Loading...' : 'Manage Subscription' }}</span>
               </button>
               <router-link
-                to="/products/imagi/projects"
+                to="/imagi/projects"
                 class="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg"
                 :class="isSubscription
                   ? 'bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white border border-gray-200 dark:border-white/[0.08]'
