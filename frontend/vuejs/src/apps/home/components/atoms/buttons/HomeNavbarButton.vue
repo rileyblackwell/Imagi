@@ -65,7 +65,7 @@ export default defineComponent({
     const gradientClass = computed(() => {
       // Text style - plain text on navbar (no button appearance)
       if (props.textStyle && props.gradientType === 'minimal') {
-        return '!bg-transparent !text-gray-900 dark:!text-white hover:!opacity-70';
+        return '!bg-transparent !text-blue-950 dark:!text-white hover:!opacity-70';
       }
       
       // Minimal style - clean Apple/Cursor-inspired button design

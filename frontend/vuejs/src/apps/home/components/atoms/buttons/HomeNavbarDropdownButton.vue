@@ -32,12 +32,10 @@
     >
       <div
         v-show="isOpen"
-        class="absolute left-1/2 -translate-x-1/2 pt-2 w-24 origin-top z-50"
+        class="absolute left-1/2 -translate-x-1/2 pt-3 w-max origin-top z-50"
       >
-        <div class="rounded-xl bg-white border border-gray-200/50 shadow-xl backdrop-blur-xl overflow-hidden">
-          <div class="py-1.5">
-            <slot name="menu"></slot>
-          </div>
+        <div class="dropdown-panel rounded-2xl bg-white/95 dark:bg-[#0f1420]/95 border border-blue-200/60 dark:border-blue-400/[0.14] backdrop-blur-xl overflow-hidden p-1.5 transition-colors duration-300">
+          <slot name="menu"></slot>
         </div>
       </div>
     </transition>
@@ -75,7 +73,7 @@ export default defineComponent({
     const gradientClass = computed(() => {
       // Text style - plain text on navbar (no button appearance)
       if (props.textStyle && props.gradientType === 'minimal') {
-        return 'text-gray-900 dark:text-white hover:opacity-70';
+        return 'text-blue-950 dark:text-white hover:opacity-70';
       }
       
       // Minimal style - clean button design
@@ -163,4 +161,23 @@ export default defineComponent({
     }
   }
 })
-</script> 
+</script>
+
+<style scoped>
+/* Layered soft shadow matching the home page cards (.crisp-card) */
+.dropdown-panel {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
+}
+
+.dark .dropdown-panel {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 16px 32px -12px rgba(0, 0, 0, 0.6);
+}
+</style>
