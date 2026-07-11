@@ -73,7 +73,7 @@
 
                 <!-- Section header -->
                 <div class="mb-5 flex-shrink-0">
-                  <p class="inline-flex items-center px-3 py-1 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
+                  <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
                   <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
                   <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start a new business — describe it, and Imagi builds the first version of your app.</p>
                 </div>
@@ -141,12 +141,12 @@
 
                 <!-- Section header -->
                 <div class="mb-5 flex-shrink-0">
-                  <p class="inline-flex items-center px-3 py-1 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">Your Projects</p>
+                  <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">Your Projects</p>
                   <div class="flex items-end justify-between gap-3 mb-2">
                     <h2 class="text-2xl font-semibold text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
                     <span
                       v-if="!isLoading && !error && displayedProjects.length > 0"
-                      class="text-xs font-medium text-blue-950/50 dark:text-blue-100/50 pb-1 transition-colors duration-300"
+                      class="inline-flex items-center px-2.5 py-1 mb-0.5 rounded-full border border-blue-200/60 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-xs font-medium text-blue-950/60 dark:text-blue-100/60 transition-colors duration-300"
                     >
                       {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
                     </span>
@@ -199,7 +199,7 @@
                 <div class="flex-1 flex flex-col min-h-0">
                   <!-- Loading State -->
                   <div v-if="isLoading" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] flex items-center justify-center mb-4">
                       <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
                     </div>
                     <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading your projects...</p>
@@ -207,7 +207,7 @@
 
                   <!-- Error State -->
                   <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-red-50 dark:bg-red-500/10 border border-red-200/60 dark:border-red-400/30 rounded-full flex items-center justify-center mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-500/10 ring-1 ring-red-900/[0.08] dark:ring-red-400/30 flex items-center justify-center mb-4">
                       <i class="fas fa-exclamation-triangle text-red-500 dark:text-red-300 text-xl"></i>
                     </div>
                     <p class="text-blue-950/70 dark:text-blue-100/70 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
@@ -222,8 +222,8 @@
 
                   <!-- No Search Results -->
                   <div v-else-if="searchQuery?.trim() && displayedProjects.length === 0 && projects.length > 0" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
-                      <i class="fas fa-search text-blue-950/40 dark:text-white/40 text-xl"></i>
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] flex items-center justify-center mb-4">
+                      <i class="fas fa-search text-blue-600 dark:text-blue-300 text-lg"></i>
                     </div>
                     <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No matching projects</h3>
                     <p class="text-blue-950/70 dark:text-blue-100/70 text-center text-sm transition-colors duration-300">No projects found matching "{{ searchQuery }}"</p>
@@ -231,8 +231,8 @@
 
                   <!-- Empty State -->
                   <div v-else-if="!projects.length" class="flex-1 flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
-                      <i class="fas fa-folder-open text-blue-950/40 dark:text-white/40 text-xl"></i>
+                    <div class="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-400/[0.14] ring-1 ring-orange-900/[0.08] dark:ring-orange-300/[0.18] flex items-center justify-center mb-4">
+                      <i class="fas fa-folder-open text-orange-600 dark:text-orange-300 text-lg"></i>
                     </div>
                     <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No projects yet</h3>
                     <p class="text-blue-950/70 dark:text-blue-100/70 text-center mb-4 text-sm transition-colors duration-300">Create your first project to start building</p>
@@ -243,11 +243,12 @@
                   </div>
 
                   <!-- Scrollable Project List -->
-                  <div v-else-if="displayedProjects.length > 0" class="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar min-h-0">
+                  <div v-else-if="displayedProjects.length > 0" class="flex-1 overflow-y-auto pr-2 pl-0.5 pt-1 pb-2 space-y-3 custom-scrollbar min-h-0">
                     <ProjectCard
-                      v-for="project in displayedProjects"
+                      v-for="(project, index) in displayedProjects"
                       :key="project.id"
                       :project="project"
+                      :accent="index % 2 === 1 ? 'orange' : 'blue'"
                       @delete="confirmDelete"
                     />
                   </div>
