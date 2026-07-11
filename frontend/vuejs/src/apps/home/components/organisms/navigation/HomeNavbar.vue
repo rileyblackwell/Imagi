@@ -21,11 +21,14 @@
           <template #menu>
             <router-link
               :to="{ name: 'builder' }"
-              class="flex items-center justify-center px-3 py-2.5 text-sm font-semibold text-black rounded-lg mx-1 my-0.5 group"
+              class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-200 hover:bg-blue-50 dark:hover:bg-blue-400/10"
               @click="isProductsMenuOpen = false"
             >
-              <span class="tracking-wide">Imagi</span>
-              <i class="fas fa-arrow-right text-xs ml-2 transition-transform duration-200 group-hover:translate-x-1"></i>
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold tracking-tight text-blue-950 dark:text-white">Imagi</span>
+                <span class="block text-xs text-blue-950/60 dark:text-blue-100/60">Build and run your business</span>
+              </span>
+              <i class="fas fa-arrow-right text-xs text-blue-950/40 dark:text-blue-100/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-blue-600 dark:group-hover:text-blue-300"></i>
             </router-link>
           </template>
         </HomeNavbarDropdownButton>
