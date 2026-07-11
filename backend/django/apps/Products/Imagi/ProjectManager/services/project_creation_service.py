@@ -483,10 +483,13 @@ class ProjectCreationService:
             if not manage_py_found:
                 logger.warning(f"manage.py not found in project structure, using project root: {inner_project_dir}")
             
-            # Mark the project as initialized
+            # Mark the project as initialized. The generation_status field is
+            # owned by the initial AI build once one has started ('generating'
+            # -> 'completed'/'failed'), so only claim it when still pending.
             project.is_initialized = True
             project.updated_at = timezone.now()
-            project.generation_status = 'completed'
+            if project.generation_status == 'pending':
+                project.generation_status = 'completed'
             project.save()
             
             logger.info(f"Project {project.name} (ID: {project.id}) successfully initialized")

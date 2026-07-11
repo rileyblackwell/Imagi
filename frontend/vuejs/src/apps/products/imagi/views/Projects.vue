@@ -75,32 +75,35 @@
                 <div class="mb-5 flex-shrink-0">
                   <p class="inline-flex items-center px-3 py-1 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
                   <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
-                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start a new business — build your product, then sell, market, and run it.</p>
+                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start a new business — describe it, and Imagi builds the first version of your app.</p>
                 </div>
 
                 <!-- Create Form -->
                 <div class="flex-1 flex flex-col space-y-4 min-h-0">
-                  <!-- Project Name Input -->
+                  <!-- Business Name Input -->
                   <div class="flex-shrink-0">
-                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 transition-colors duration-300">Project Name</label>
+                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 transition-colors duration-300">Business Name</label>
                     <input
                       v-model="newProjectName"
                       type="text"
-                      placeholder="Enter project name..."
+                      placeholder="Enter your business name..."
                       class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                       style="outline: none !important;"
                       :disabled="isCreating"
                     >
                   </div>
 
-                  <!-- Project Description Input -->
+                  <!-- Business Description Input -->
                   <div class="flex-1 flex flex-col min-h-0">
-                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 flex-shrink-0 transition-colors duration-300">
-                      Description <span class="text-blue-950/40 dark:text-white/40">(optional)</span>
+                    <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-1 flex-shrink-0 transition-colors duration-300">
+                      Business Description
                     </label>
+                    <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mb-2 flex-shrink-0 transition-colors duration-300">
+                      Imagi's AI uses this to build the first version of your app.
+                    </p>
                     <textarea
                       v-model="newProjectDescription"
-                      placeholder="Brief description of your project..."
+                      placeholder="What does your business do? Who are its customers? What does the market look like, and how will you sell?"
                       class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 transition-all duration-300 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                       style="outline: none !important;"
                       :disabled="isCreating"
@@ -111,7 +114,7 @@
                   <div class="flex-shrink-0 pt-1">
                     <button
                       @click="createProject"
-                      :disabled="!newProjectName?.trim() || isCreating"
+                      :disabled="!canCreate || isCreating"
                       class="btn-3d btn-accent group relative w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 text-blue-950 rounded-full font-medium text-base overflow-hidden border border-white/60 dark:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
@@ -288,6 +291,15 @@ const { confirm } = confirmModal
 const newProjectName = ref('')
 const newProjectDescription = ref('')
 const isCreating = ref(false)
+
+// The description seeds the initial AI build, so require enough signal to
+// work with. Keep in sync with MIN_DESCRIPTION_LENGTH on the backend
+// (ProjectManager/api/serializers.py).
+const MIN_DESCRIPTION_LENGTH = 20
+const canCreate = computed(() =>
+  Boolean(newProjectName.value.trim()) &&
+  newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH
+)
 const isInitializing = ref(true)
 const deletedProjectMessage = ref('')
 let deleteMessageTimeout: ReturnType<typeof setTimeout> | null = null
@@ -377,15 +389,24 @@ async function createProject() {
     return
   }
   
-  // Validate project name
+  // Validate business name
   if (!newProjectName.value.trim()) {
     showNotification({
-      message: 'Project name cannot be empty',
+      message: 'Business name cannot be empty',
       type: 'error'
     })
     return
   }
-  
+
+  // Validate business description — it seeds the initial AI build
+  if (newProjectDescription.value.trim().length < MIN_DESCRIPTION_LENGTH) {
+    showNotification({
+      message: 'Please describe your business — what it does, who its customers are, and how it will sell. Imagi uses this to build the first version of your app.',
+      type: 'error'
+    })
+    return
+  }
+
   isCreating.value = true
   
   try {

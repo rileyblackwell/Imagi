@@ -27,6 +27,13 @@ from apps.Products.Imagi.ProjectManager.services.project_management_service impo
 
 User = get_user_model()
 
+# A business description long enough to pass the create serializer's
+# MIN_DESCRIPTION_LENGTH validation (the description seeds the initial AI build).
+VALID_DESCRIPTION = (
+    'A subscription coffee roastery for remote workers. Customers are '
+    'home-office professionals; we sell direct online with monthly plans.'
+)
+
 # A throwaway PROJECTS_ROOT so the services' os.makedirs() calls never touch
 # the real repository. Created once for the module, removed at teardown.
 _TMP_PROJECTS_ROOT = tempfile.mkdtemp(prefix='imagi_pm_tests_')
@@ -94,10 +101,36 @@ class ProjectCreateSerializerTests(APITestCase):
 
         request = type('R', (), {'user': self.user})()
         serializer = ProjectCreateSerializer(
-            data={'name': 'Existing Project'}, context={'request': request}
+            data={'name': 'Existing Project', 'description': VALID_DESCRIPTION},
+            context={'request': request},
         )
         self.assertFalse(serializer.is_valid())
         self.assertIn('name', serializer.errors)
+
+    def test_missing_description_rejected(self):
+        from apps.Products.Imagi.ProjectManager.api.serializers import (
+            ProjectCreateSerializer,
+        )
+
+        request = type('R', (), {'user': self.user})()
+        serializer = ProjectCreateSerializer(
+            data={'name': 'No Description'}, context={'request': request}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('description', serializer.errors)
+
+    def test_short_description_rejected(self):
+        from apps.Products.Imagi.ProjectManager.api.serializers import (
+            ProjectCreateSerializer,
+        )
+
+        request = type('R', (), {'user': self.user})()
+        serializer = ProjectCreateSerializer(
+            data={'name': 'Short Description', 'description': 'too short'},
+            context={'request': request},
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('description', serializer.errors)
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
@@ -153,28 +186,55 @@ class ProjectManagerAPITests(APITestCase):
         names = [p['name'] for p in resp.data['results']]
         self.assertEqual(names, ['Mine One'])
 
+    @patch('apps.Products.Imagi.ProjectManager.api.views.start_initial_build')
     @patch(
         'apps.Products.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
     )
-    def test_create_project(self, mock_create):
+    def test_create_project(self, mock_create, mock_build):
         mock_create.side_effect = lambda project: project
         resp = self.client.post(
             reverse('project_manager:project-create'),
-            {'name': 'Brand New App', 'description': 'hello'},
+            {'name': 'Brand New App', 'description': VALID_DESCRIPTION},
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         self.assertEqual(resp.data['name'], 'Brand New App')
-        self.assertTrue(
-            Project.objects.filter(user=self.user, name='Brand New App').exists()
-        )
+        project = Project.objects.get(user=self.user, name='Brand New App')
+        self.assertEqual(project.description, VALID_DESCRIPTION)
         mock_create.assert_called_once()
+        # Creation must hand the new project off to the initial AI build.
+        mock_build.assert_called_once()
+        self.assertEqual(mock_build.call_args.args[0].pk, project.pk)
+        self.assertEqual(mock_build.call_args.args[1], self.user)
+
+    @patch(
+        'apps.Products.Imagi.ProjectManager.api.views.start_initial_build',
+        side_effect=RuntimeError('agent unavailable'),
+    )
+    @patch(
+        'apps.Products.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
+    )
+    def test_create_succeeds_when_initial_build_kickoff_fails(self, mock_create, mock_build):
+        mock_create.side_effect = lambda project: project
+        resp = self.client.post(
+            reverse('project_manager:project-create'),
+            {'name': 'Resilient App', 'description': VALID_DESCRIPTION},
+        )
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
     def test_create_duplicate_name_returns_400(self):
         Project.objects.create(user=self.user, name='Taken Name')
         resp = self.client.post(
-            reverse('project_manager:project-create'), {'name': 'Taken Name'}
+            reverse('project_manager:project-create'),
+            {'name': 'Taken Name', 'description': VALID_DESCRIPTION},
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_without_description_returns_400(self):
+        resp = self.client.post(
+            reverse('project_manager:project-create'), {'name': 'No Description'}
+        )
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('description', resp.data)
 
     @patch(
         'apps.Products.Imagi.ProjectManager.api.views.ProjectCreationService.create_project'
@@ -185,7 +245,7 @@ class ProjectManagerAPITests(APITestCase):
         mock_create.side_effect = Exception('secret path /srv/imagi/secret')
         resp = self.client.post(
             reverse('project_manager:project-create'),
-            {'name': 'Rollback Me', 'description': ''},
+            {'name': 'Rollback Me', 'description': VALID_DESCRIPTION},
         )
         self.assertEqual(resp.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
         self.assertNotIn('secret path', str(resp.data))
@@ -262,3 +322,80 @@ class ProjectManagerAPITests(APITestCase):
         self.assertTrue(resp.data['success'])
         project.refresh_from_db()
         self.assertTrue(project.is_initialized)
+
+
+@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
+class InitialBuildServiceTests(TestCase):
+    """Tests for the initial AI build kicked off at project creation."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='owner', password='pw123456')
+        self.project = Project.objects.create(
+            user=self.user, name='Beanline', description=VALID_DESCRIPTION
+        )
+
+    def test_skips_without_api_key(self):
+        from apps.Products.Imagi.ProjectManager.services import initial_build_service
+
+        with patch(
+            'apps.Products.Imagi.Agents.services.base_agent.OPENAI_API_KEY', None
+        ):
+            started = initial_build_service.start_initial_build(self.project, self.user)
+        self.assertFalse(started)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'pending')
+
+    def test_marks_generating_and_spawns_thread(self):
+        from apps.Products.Imagi.ProjectManager.services import initial_build_service
+
+        with patch(
+            'apps.Products.Imagi.Agents.services.base_agent.OPENAI_API_KEY', 'test-key'
+        ), patch.object(initial_build_service.threading, 'Thread') as mock_thread:
+            started = initial_build_service.start_initial_build(self.project, self.user)
+        self.assertTrue(started)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'generating')
+        mock_thread.assert_called_once()
+        mock_thread.return_value.start.assert_called_once()
+
+    def _run_with_agent_result(self, result):
+        from unittest.mock import Mock
+        from apps.Products.Imagi.ProjectManager.services import initial_build_service
+
+        fake_service = Mock()
+        fake_service.model = 'gpt-5.6-sol'
+        fake_service.create_conversation.return_value = Mock(id=42)
+        fake_service.process_agent.return_value = result
+
+        with patch(
+            'apps.Products.Imagi.Agents.services.base_agent.ImagiAgentService',
+            return_value=fake_service,
+        ):
+            initial_build_service._run_initial_build(self.project.pk, self.user.pk)
+        return fake_service
+
+    def test_run_success_marks_completed_and_prompts_with_business_details(self):
+        fake_service = self._run_with_agent_result(
+            {'success': True, 'files_changed': ['frontend/vuejs/src/apps/home/views/Home.vue']}
+        )
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'completed')
+        self.assertIsNotNone(self.project.last_generated_at)
+
+        # The prompt must carry the business name and description into the agent.
+        prompt = fake_service.process_agent.call_args.kwargs['user_input']
+        self.assertIn('Beanline', prompt)
+        self.assertIn('coffee roastery', prompt)
+        fake_service.create_conversation.assert_called_once_with(
+            self.user,
+            'gpt-5.6-sol',
+            project_id=self.project.pk,
+            mode='agent',
+            title='Initial build',
+        )
+
+    def test_run_failure_marks_failed(self):
+        self._run_with_agent_result({'success': False, 'error': 'model error'})
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.generation_status, 'failed')

@@ -4,7 +4,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, APIException
 from rest_framework.views import APIView
-from ..services import ProjectCreationService, ProjectManagementService
+from ..services import ProjectCreationService, ProjectManagementService, start_initial_build
 from .serializers import (
     ProjectSerializer,
     ProjectCreateSerializer
@@ -33,6 +33,14 @@ class ProjectCreateView(generics.CreateAPIView):
             project = serializer.save()  # Don't pass user here, handle it in serializer
             service = ProjectCreationService(request.user)
             service.create_project(project)
+
+            # Hand the business name + description to the coding agent as the
+            # first build prompt. Runs in the background; creation succeeds
+            # even if the build can't start.
+            try:
+                start_initial_build(project, request.user)
+            except Exception:
+                logger.exception("Failed to start initial AI build for project %s", project.id)
 
             response_serializer = ProjectSerializer(project)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
