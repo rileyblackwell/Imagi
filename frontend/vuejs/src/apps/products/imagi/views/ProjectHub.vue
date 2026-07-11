@@ -77,6 +77,7 @@
                   :key="tool.id"
                   :tool="tool"
                   :project-slug="projectSlug"
+                  :build-status="buildStatus"
                 />
               </div>
             </section>
@@ -88,9 +89,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
 import { useProjectStore } from '../stores/projectStore'
+import { ProjectService } from '../services/projectService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { ToolCategoryCard } from '../components/organisms/hub'
 import { businessTools } from '../utils/businessTools'
@@ -135,4 +137,56 @@ onMounted(loadProject)
 
 // Reload if the route param changes (navigating between projects).
 watch(() => props.projectName, loadProject)
+
+// --- Initial AI build status ---
+// Right after creation the backend runs the coding agent against the business
+// description in the background. Poll the status endpoint while that build is
+// in progress so the Build card can show it, and stop as soon as it settles.
+const BUILD_STATUS_POLL_MS = 5000
+const buildStatus = ref<'pending' | 'generating' | 'completed' | 'failed' | null>(null)
+let buildStatusTimer: ReturnType<typeof setInterval> | null = null
+
+function stopBuildStatusPolling() {
+  if (buildStatusTimer) {
+    clearInterval(buildStatusTimer)
+    buildStatusTimer = null
+  }
+}
+
+async function refreshBuildStatus() {
+  const projectId = project.value?.id
+  if (!projectId) return
+  try {
+    const status = await ProjectService.getProjectStatus(String(projectId))
+    buildStatus.value = status.generation_status
+    if (status.generation_status !== 'generating') {
+      stopBuildStatusPolling()
+    }
+  } catch (error) {
+    console.debug('Failed to fetch build status:', error)
+    stopBuildStatusPolling()
+  }
+}
+
+function startBuildStatusPolling() {
+  stopBuildStatusPolling()
+  refreshBuildStatus()
+  buildStatusTimer = setInterval(refreshBuildStatus, BUILD_STATUS_POLL_MS)
+}
+
+// (Re)start polling whenever the hub resolves a project.
+watch(
+  () => project.value?.id,
+  (projectId) => {
+    buildStatus.value = null
+    if (projectId) {
+      startBuildStatusPolling()
+    } else {
+      stopBuildStatusPolling()
+    }
+  },
+  { immediate: true }
+)
+
+onBeforeUnmount(stopBuildStatusPolling)
 </script>
