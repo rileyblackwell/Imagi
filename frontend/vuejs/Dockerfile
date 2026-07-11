@@ -14,6 +14,8 @@ FROM nginx:stable-alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY frontend/vuejs/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/vuejs/docker-entrypoint.d/10-set-resolver.sh /docker-entrypoint.d/10-set-resolver.sh
+RUN chmod +x /docker-entrypoint.d/10-set-resolver.sh
 
 EXPOSE 80
 
