@@ -125,6 +125,62 @@ class ProjectCreationService:
 
     # Legacy methods removed - now using _create_django_backend for proper dual-stack structure
 
+    def ensure_scaffold(self, project):
+        """Recreate missing scaffold files for an existing dual-stack project.
+
+        Generated projects are not tracked by Imagi's own git repository, so a
+        project directory can lose its runnable skeleton (package.json, vite
+        config, manage.py, settings, ...) while the database record and the
+        per-app files survive. This repairs the skeleton in place without
+        touching app code under src/apps or backend/django/apps.
+
+        Returns a list of the parts that were repaired (empty if nothing was
+        missing).
+        """
+        project_path = project.project_path
+        if not project_path or not os.path.exists(project_path):
+            raise ValueError(f"Project path does not exist: {project_path}")
+
+        frontend_path = os.path.join(project_path, 'frontend', 'vuejs')
+        backend_path = os.path.join(project_path, 'backend', 'django')
+        repaired = []
+
+        # Frontend: package.json is the marker for the whole Vite scaffold.
+        if not os.path.exists(os.path.join(frontend_path, 'package.json')):
+            logger.info(f"Repairing missing frontend scaffold at: {frontend_path}")
+            os.makedirs(frontend_path, exist_ok=True)
+            tpl.create_vuejs_frontend_files(frontend_path, project.name, project.description)
+            repaired.append('frontend scaffold')
+
+        # Backend: manage.py is the marker for the Django scaffold.
+        if not os.path.exists(os.path.join(backend_path, 'manage.py')):
+            logger.info(f"Repairing missing backend scaffold at: {backend_path}")
+            os.makedirs(os.path.join(backend_path, 'apps'), exist_ok=True)
+            unique_name = self._sanitize_project_name(
+                os.path.basename(os.path.normpath(project_path))
+            )
+            self._create_django_backend(backend_path, unique_name, project.name, project.description)
+            self._cleanup_root_django_dirs(project_path)
+            self._register_existing_backend_apps(project)
+            repaired.append('backend scaffold')
+
+        if repaired and not os.path.exists(os.path.join(project_path, 'README.md')):
+            self._create_root_project_files(project_path, project.name, project.description)
+
+        return repaired
+
+    def _register_existing_backend_apps(self, project):
+        """Re-register surviving backend apps in a freshly recreated settings.py."""
+        apps_dir = os.path.join(project.project_path, 'backend', 'django', 'apps')
+        if not os.path.isdir(apps_dir):
+            return
+
+        app_service = CreateAppService(user=self.user, project=project)
+        for entry in sorted(os.listdir(apps_dir)):
+            if entry.startswith(('.', '__')) or not os.path.isdir(os.path.join(apps_dir, entry)):
+                continue
+            app_service._register_backend_app(project.project_path, entry)
+
     def _create_vuejs_frontend(self, frontend_path, project_name, project_description):
         """Create VueJS frontend by delegating to templates module and install deps."""
         logger.info(f"Creating VueJS frontend at: {frontend_path}")
@@ -384,13 +440,18 @@ class ProjectCreationService:
         static_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
         settings_content = re.sub(static_url_pattern, static_replacement, settings_content)
         
-        # Add CORS and REST Framework settings
-        if "# Default primary key field type" in settings_content:
+        # Add CORS and REST Framework settings. Django's default settings.py
+        # layout changes between versions (the anchor comment below is gone in
+        # Django 6), so fall back to appending at the end of the file.
+        if 'CORS_ALLOW' not in settings_content:
             additional_settings = tpl.django_additional_settings()
-            settings_content = settings_content.replace(
-                "# Default primary key field type",
-                additional_settings + "\n# Default primary key field type"
-            )
+            if "# Default primary key field type" in settings_content:
+                settings_content = settings_content.replace(
+                    "# Default primary key field type",
+                    additional_settings + "\n# Default primary key field type"
+                )
+            else:
+                settings_content = settings_content.rstrip() + "\n" + additional_settings
         
         with open(settings_path, 'w') as f:
             f.write(settings_content)
@@ -402,21 +463,32 @@ class ProjectCreationService:
         with open(urls_path, 'r') as f:
             urls_content = f.read()
         
-        # Add include import and TemplateView
-        if 'include' not in urls_content:
+        # Extend the django.urls import line. Check the import statement
+        # itself, not the whole file: the default docstring already mentions
+        # include(), which used to defeat a whole-file check and leave the
+        # generated urls.py crashing with NameError on boot.
+        def _extend_urls_import(match):
+            imported = match.group(1)
+            if 'include' in [name.strip() for name in imported.split(',')]:
+                return match.group(0)
+            return f"from django.urls import {imported}, include"
+
+        urls_content = re.sub(
+            r"^from django\.urls import (.+)$",
+            _extend_urls_import,
+            urls_content,
+            count=1,
+            flags=re.MULTILINE,
+        )
+
+        if 'from django.views.generic import TemplateView' not in urls_content:
             urls_content = urls_content.replace(
-                'from django.urls import path',
-                'from django.urls import path, include'
+                'from django.contrib import admin',
+                'from django.contrib import admin\nfrom django.views.generic import TemplateView'
             )
-        
-        if 'TemplateView' not in urls_content:
-            urls_content = urls_content.replace(
-                'from django.urls import path, include',
-                'from django.urls import path, include\nfrom django.views.generic import TemplateView'
-            )
-        
+
         # Add home page and API URLs
-        if 'api/' not in urls_content:
+        if "path('api/'" not in urls_content:
             urls_content = urls_content.replace(
                 'urlpatterns = [',
                 'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),\n    path(\'api/\', include(\'api.urls\')),'

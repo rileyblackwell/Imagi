@@ -76,20 +76,24 @@ def vite_config() -> str:
         "  ],\n"
         "  server: {\n"
         "    // No need to set base here; handled globally above\n"
-        "    port: 5173,\n"
-        "    strictPort: true, // This will fail if port 5173 is not available\n"
+        "    // 5174 keeps generated apps clear of the main Imagi dev server on 5173;\n"
+        "    // the Imagi preview runner overrides this with an explicit --port flag.\n"
+        "    port: 5174,\n"
+        "    strictPort: false, // Fall through to the next free port instead of failing\n"
         "    hmr: {\n"
         "      overlay: false, // Disable the HMR error overlay to prevent URI errors from breaking the UI\n"
         "    },\n"
         "    proxy: {\n"
-        "      // Proxy all API requests to the Django backend\n"
-        "      // This allows consistent API calls using relative URLs in both development and production\n"
+        "      // Proxy all API requests to this app's own Django backend.\n"
+        "      // The Imagi preview runner sets VITE_BACKEND_URL to the port it started\n"
+        "      // the backend on; the fallback matches start-dev.sh (8080, not the main\n"
+        "      // Imagi backend on 8000).\n"
         "      '/api': {\n"
-        "        target: process.env.VITE_BACKEND_URL || 'http://localhost:8000',\n"
+        "        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',\n"
         "        changeOrigin: true,\n"
         "        secure: false,\n"
         "        configure: (proxy, _options) => {\n"
-        "          const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8000';\n\n"
+        "          const backendUrl = process.env.VITE_BACKEND_URL || 'http://localhost:8080';\n\n"
         "          proxy.on('proxyReq', (proxyReq, req, _res) => {\n"
         "            // Log request info when debugging\n"
         "            if (process.env.NODE_ENV !== 'production') {\n"
@@ -174,12 +178,16 @@ def tailwind_config() -> str:
 def django_additional_settings() -> str:
     """Django CORS and DRF settings snippet to append to settings.py."""
     return (
-        """
+        r"""
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
+# The dev server port is assigned dynamically (5174+), so accept any localhost port
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://(localhost|127\.0\.0\.1):\d+$",
 ]
 
 # REST Framework settings
@@ -1139,20 +1147,23 @@ def start_dev_sh() -> str:
         "    echo \"📦 Installing frontend dependencies...\"\n"
         "    cd frontend/vuejs && npm install && cd ../..\n"
         "fi\n\n"
+        "# Ports 8080/5174 keep this app clear of the main Imagi dev servers (8000/5173)\n"
+        "BACKEND_PORT=\"${BACKEND_PORT:-8080}\"\n"
+        "FRONTEND_PORT=\"${FRONTEND_PORT:-5174}\"\n\n"
         "# Start Django backend\n"
-        "echo \"🐍 Starting Django backend on port 8000...\"\n"
-        "cd backend/django && python manage.py runserver &\n"
+        "echo \"🐍 Starting Django backend on port $BACKEND_PORT...\"\n"
+        "cd backend/django && python manage.py runserver \"127.0.0.1:$BACKEND_PORT\" &\n"
         "DJANGO_PID=$!\n\n"
         "# Wait a moment for Django to start\n"
         "sleep 3\n\n"
         "# Start Vue frontend  \n"
-        "echo \"⚡ Starting Vue frontend on port 5173...\"\n"
-        "cd frontend/vuejs && npm run dev &\n"
+        "echo \"⚡ Starting Vue frontend on port $FRONTEND_PORT...\"\n"
+        "cd frontend/vuejs && VITE_BACKEND_URL=\"http://localhost:$BACKEND_PORT\" npm run dev -- --port \"$FRONTEND_PORT\" &\n"
         "VUE_PID=$!\n\n"
         "echo \"\"\n"
         "echo \"✅ Development servers started!\"\n"
-        "echo \"🌐 Frontend: http://localhost:5173\"\n"
-        "echo \"🔧 Backend API: http://localhost:8000\"\n"
+        "echo \"🌐 Frontend: http://localhost:$FRONTEND_PORT\"\n"
+        "echo \"🔧 Backend API: http://localhost:$BACKEND_PORT\"\n"
         "echo \"📱 Press Ctrl+C to stop both servers\"\n\n"
         "# Wait for background processes\n"
         "wait\n"
@@ -1198,6 +1209,7 @@ def django_project_views() -> str:
 
 def django_base_template(project_name: str) -> str:
     return (
+        f"{{% load static %}}\n"
         f"<!DOCTYPE html>\n"
         f"<html lang=\"en\">\n"
         f"<head>\n"
@@ -1233,7 +1245,7 @@ def django_index_template(project_name: str, project_description: str | None) ->
         + safe_project_name
         + "</h1>\n"
         + description_content
-        + "\n    <p>This is your Django backend API. The frontend is served separately on port 5173.</p>\n"
+        + "\n    <p>This is your Django backend API. The frontend dev server runs separately (port 5174 by default).</p>\n"
         "    <div class=\"cta-button\">\n"
         "        <a href=\"/admin/\">Go to Admin</a>\n"
         "        <a href=\"/api/\">Browse API</a>\n"

@@ -392,11 +392,23 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
         return files
 
     # ... (rest of the code remains the same)
+    # App labels Django's contrib apps already claim. Registering e.g.
+    # 'apps.auth' (default label: 'auth') alongside django.contrib.auth makes
+    # the generated project unbootable with "Application labels aren't unique".
+    RESERVED_APP_LABELS = {'admin', 'auth', 'contenttypes', 'sessions', 'messages', 'staticfiles'}
+
     def _register_backend_app(self, project_path: str, app_name: str) -> None:
         """Ensure the backend Django app is added to INSTALLED_APPS and URLs.
         Skips if a capitalized variant already exists (e.g., 'apps.Home').
         """
         try:
+            if app_name.lower() in self.RESERVED_APP_LABELS:
+                logger.warning(
+                    f"Skipping INSTALLED_APPS registration for 'apps.{app_name}': "
+                    f"its default label conflicts with a Django contrib app"
+                )
+                return
+
             # Discover the actual Django project directory (contains settings.py and urls.py)
             backend_root = os.path.join(project_path, 'backend', 'django')
             project_dir = None

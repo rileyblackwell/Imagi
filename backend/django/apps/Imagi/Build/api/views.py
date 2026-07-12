@@ -272,9 +272,11 @@ class PreviewView(APIView):
             raise
         except Exception as e:
             logger.error(f"Error starting preview server: {str(e)}")
+            # Preview is a DEBUG-only feature, so the real reason is safe to
+            # surface and saves a trip to the server logs.
             return Response({
                 'success': False,
-                'error': 'Preview server failed to start.'
+                'error': f'Preview server failed to start: {str(e)}'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     
     def delete(self, request, project_id):

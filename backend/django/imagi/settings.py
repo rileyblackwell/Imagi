@@ -230,8 +230,11 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 
 # Products / Imagi builder
-# Root directory where ProjectManager writes generated user projects.
-PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'apps' / 'Imagi' / 'Build' / 'imagi_projects'))
+# Root directory where ProjectManager writes generated user projects. Lives
+# outside the repository so git operations (clean, fresh clones, worktrees)
+# can never wipe user projects; the old in-repo default was gitignored and
+# projects silently disappeared with it.
+PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', os.path.expanduser('~/.imagi/projects'))
 
 
 # Marketing / Twilio
