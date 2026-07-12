@@ -16,7 +16,11 @@
         ]"
       >
         <!-- Logo and Brand -->
-        <div class="flex-shrink-0 h-16 flex items-center justify-end px-4">
+        <div
+          v-if="!compactTop || isSidebarCollapsed"
+          class="flex-shrink-0 flex items-center justify-end"
+          :class="compactTop ? 'h-10 px-2' : 'h-16 px-4'"
+        >
           <!-- Collapse/Expand Button -->
           <button 
             @click="toggleSidebar"
@@ -64,7 +68,7 @@
 
         <!-- Custom Sidebar Content -->
         <div class="flex-1 overflow-hidden" :class="{ 'opacity-0 pointer-events-none': isSidebarCollapsed }">
-          <slot name="sidebar-content" :isSidebarCollapsed="isSidebarCollapsed"></slot>
+          <slot name="sidebar-content" :isSidebarCollapsed="isSidebarCollapsed" :toggleSidebar="toggleSidebar"></slot>
         </div>
 
         <!-- Bottom Actions -->
@@ -133,10 +137,12 @@ const props = defineProps<{
   storageKey?: string
   wide?: boolean
   extraWide?: boolean
+  compactTop?: boolean
 }>()
 
 const wide = computed(() => !!props.wide)
 const extraWide = computed(() => !!props.extraWide)
+const compactTop = computed(() => !!props.compactTop)
 
 const route = useRoute()
 const router = useRouter()

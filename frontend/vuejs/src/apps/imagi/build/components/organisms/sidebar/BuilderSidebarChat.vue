@@ -2,21 +2,34 @@
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/[0.08] transition-colors duration-300">
     <!-- Header: manager toggle + instance title -->
     <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-white/[0.08]">
-      <div class="relative group">
+      <div v-if="!isManagerOpen" class="relative group">
         <button
           class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
           @click="$emit('toggleManager')"
         >
-          <i :class="['fas text-sm transition-transform duration-300', isManagerOpen ? 'fa-chevron-left' : 'fa-chevron-right']"></i>
+          <i class="fas fa-chevron-right text-sm"></i>
         </button>
         <div
           class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-gray-900 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-gray-900 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
         >
-          {{ isManagerOpen ? 'Hide agent manager' : 'Show agent manager' }}
+          Show agent manager
         </div>
       </div>
       <div class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white/80 truncate">
         {{ activeInstance?.title || 'New instance' }}
+      </div>
+      <div v-if="onCollapseSidebar" class="relative group shrink-0">
+        <button
+          class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+          @click="onCollapseSidebar()"
+        >
+          <i class="fas fa-chevron-left text-sm"></i>
+        </button>
+        <div
+          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-gray-900 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-gray-900 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        >
+          Collapse sidebar
+        </div>
       </div>
     </div>
 
@@ -31,8 +44,8 @@
     </div>
 
     <!-- Chat Input Section (fixed at bottom) -->
-    <div class="shrink-0 border-t border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-      <div class="p-4">
+    <div class="shrink-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+      <div class="px-2 pt-1 pb-3">
         <!-- Input shell: textarea on top, controls toolbar below -->
         <div class="chat-input-shell rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06]">
           <textarea
@@ -48,9 +61,9 @@
             style="min-height: 92px; max-height: 240px;"
           ></textarea>
 
-          <!-- Controls toolbar: dropdowns wrap on the left, send stays pinned right -->
-          <div class="flex items-end justify-between gap-2 px-2 pb-2 pt-1">
-            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+          <!-- Controls toolbar: model + reasoning side by side on the left, send pinned right -->
+          <div class="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+            <div class="flex flex-nowrap items-center gap-1.5 min-w-0">
               <!-- Model Dropdown -->
               <div class="dropdown-wrapper" title="Model">
                 <i class="fas fa-microchip dropdown-icon"></i>
@@ -127,6 +140,7 @@ const props = defineProps<{
   onModelSelect: (modelId: string) => Promise<void>
   onEffortSelect: (effort: ReasoningEffort) => Promise<void>
   onExamplePrompt: (example: string) => void
+  onCollapseSidebar?: () => void
   isCollapsed?: boolean
   isManagerOpen?: boolean
 }>()
@@ -307,6 +321,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   padding: 0.3rem 1.5rem 0.3rem 0.6rem;
   border-radius: 0.5rem;
   cursor: pointer;
+  text-overflow: ellipsis;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;

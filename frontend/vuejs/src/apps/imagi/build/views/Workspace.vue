@@ -13,11 +13,12 @@
       :extra-wide="isManagerOpen"
     >
       <!-- Sidebar Content: Agent Manager + Active Instance Chat -->
-      <template #sidebar-content="{ collapsed }">
+      <template #sidebar-content="{ collapsed, toggleSidebar }">
         <div v-if="!collapsed" class="flex h-full">
           <AgentManagerPanel
             v-if="isManagerOpen"
-            class="w-64 shrink-0"
+            class="w-56 shrink-0"
+            @collapse="toggleManager"
           />
           <BuilderSidebarChat
             class="flex-1 min-w-0"
@@ -26,6 +27,7 @@
             :on-model-select="handleModelSelect"
             :on-effort-select="handleEffortSelect"
             :on-example-prompt="handleExamplePrompt"
+            :on-collapse-sidebar="toggleSidebar"
             :is-collapsed="false"
             :is-manager-open="isManagerOpen"
             @toggle-manager="toggleManager"

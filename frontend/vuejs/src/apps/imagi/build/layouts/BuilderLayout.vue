@@ -4,9 +4,10 @@
     :navigation-items="navigationItems"
     :wide="!extraWide"
     :extra-wide="extraWide"
+    compact-top
   >
-    <template #sidebar-content="{ isSidebarCollapsed }">
-      <slot name="sidebar-content" :collapsed="isSidebarCollapsed"></slot>
+    <template #sidebar-content="{ isSidebarCollapsed, toggleSidebar }">
+      <slot name="sidebar-content" :collapsed="isSidebarCollapsed" :toggle-sidebar="toggleSidebar"></slot>
     </template>
     
     <!-- Pass through any navbar-right content from parent -->
