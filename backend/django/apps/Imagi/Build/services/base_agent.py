@@ -301,6 +301,17 @@ class ImagiAgentService:
             project_info["project_name"] = project.name
             project_info["project_description"] = getattr(project, 'description', None)
             project_info["project_path"] = getattr(project, 'project_path', None)
+
+            # Make sure the working copy exists on disk before the agent's
+            # file tools run: on a production instance (or a fresh dev
+            # environment) the files live in the database and must be
+            # materialized first.
+            try:
+                from .project_files_service import ensure_working_copy
+                if ensure_working_copy(project):
+                    logger.info(f"Hydrated working copy for project {project.id} from database")
+            except Exception as e:
+                logger.warning(f"Could not ensure working copy for project {project_id}: {e}")
         except Exception as e:
             logger.warning(f"Could not get project info: {e}")
 

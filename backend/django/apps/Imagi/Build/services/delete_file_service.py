@@ -65,26 +65,19 @@ class DeleteFileService:
             # Delete the physical file
             os.remove(full_path)
             
-            # Delete any database records associated with this file
+            # Delete the database copy of this file
             project = self.project
             if not project_id and not project:
                 # If no project is specified, we can't delete DB records
                 logger.warning(f"No project specified when deleting file {file_path}, skipping DB cleanup")
             else:
-                # If there are any DB models tracking files, delete those records here
                 try:
-                    from apps.Imagi.Build.models import ProjectFile
                     if project_id and not project:
-                        from apps.Imagi.ProjectManager.models import Project
-                        project = Project.objects.get(id=project_id)
-                    
-                    # Delete any ProjectFile records for this file
-                    ProjectFile.objects.filter(
-                        project=project, 
-                        path=file_path
-                    ).delete()
-                    
-                    logger.info(f"Deleted database records for file {file_path}")
+                        project = self.get_project(project_id)
+
+                    from .project_files_service import remove_file
+                    remove_file(project, file_path)
+                    logger.info(f"Deleted database copy of file {file_path}")
                 except Exception as db_error:
                     # Log but don't fail if DB cleanup has issues
                     logger.error(f"Error cleaning up database records for file {file_path}: {str(db_error)}")

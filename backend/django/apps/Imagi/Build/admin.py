@@ -5,6 +5,7 @@ from .models import (
     Conversation,
     Message,
     Page,
+    ProjectFile,
     ProjectLayout,
     SystemPrompt,
 )
@@ -14,6 +15,13 @@ admin.site.register(Conversation)
 admin.site.register(Message)
 admin.site.register(Page)
 admin.site.register(ProjectLayout)
+
+
+@admin.register(ProjectFile)
+class ProjectFileAdmin(admin.ModelAdmin):
+    list_display = ('id', 'project', 'path', 'file_type', 'size', 'updated_at')
+    list_filter = ('file_type',)
+    search_fields = ('path', 'project__name')
 
 
 # Agent models

@@ -62,6 +62,15 @@ class ProjectDirectoriesView(APIView):
     def get(self, request, project_id):
         try:
             project = self.get_project(project_id)
+
+            # Materialize the working copy from the database if this
+            # environment doesn't have the project files on disk yet.
+            try:
+                from ..services.project_files_service import ensure_working_copy
+                ensure_working_copy(project)
+            except Exception as hydrate_err:
+                logger.warning(f"Could not ensure working copy before listing files: {hydrate_err}")
+
             view_file_service = ViewFileService(project=project)
             files = view_file_service.list_files()
             return Response(files)
@@ -257,6 +266,14 @@ class PreviewView(APIView):
 
         try:
             project = self.get_project(project_id)
+
+            # Materialize the working copy from the database if this
+            # environment doesn't have the project files on disk yet.
+            try:
+                from ..services.project_files_service import ensure_working_copy
+                ensure_working_copy(project)
+            except Exception as hydrate_err:
+                logger.warning(f"Could not ensure working copy before preview: {hydrate_err}")
 
             preview_service = PreviewService(project)
             result = preview_service.start_preview()

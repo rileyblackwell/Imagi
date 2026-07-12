@@ -28,11 +28,19 @@ class ViewFileService:
         """Get a project by ID when initialized with user."""
         if not self.user:
             raise ValidationError("ViewFileService initialized without user")
-            
+
         try:
             return Project.objects.get(id=project_id, user=self.user, is_active=True)
         except Project.DoesNotExist:
             raise NotFound('Project not found')
+
+    def _resolve_project(self, project_id=None):
+        """Return the Project object this service is operating on."""
+        if self.project:
+            return self.project
+        if project_id:
+            return self.get_project(project_id)
+        return None
     
     def get_project_path(self, project_id=None):
         """Get the project path for the current project or specified project ID."""
@@ -345,7 +353,13 @@ class ViewFileService:
             # Write content to file with UTF-8 encoding
             with open(full_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            
+
+            # Write through to the database copy of the project
+            project = self._resolve_project(project_id)
+            if project:
+                from .project_files_service import record_file
+                record_file(project, file_path, content=content)
+
             # Get file stats
             stats = os.stat(full_path)
             
@@ -394,14 +408,25 @@ class ViewFileService:
             raise
     
     def get_file_content(self, file_path, project_id=None):
-        """Get the content of a file."""
+        """Get the content of a file.
+
+        Reads from the working copy on disk; when the file is missing there
+        (e.g. a production instance whose working copy was never
+        materialized), falls back to the database copy.
+        """
         try:
             project_path = self.get_project_path(project_id)
             full_path = os.path.join(project_path, file_path)
-            
+
             if not os.path.exists(full_path) or not os.path.isfile(full_path):
+                project = self._resolve_project(project_id)
+                if project:
+                    from .project_files_service import get_db_content
+                    content = get_db_content(project, file_path)
+                    if content is not None:
+                        return content
                 raise NotFound(f"File not found: {file_path}")
-            
+
             with open(full_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception as e:
