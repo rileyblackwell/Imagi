@@ -26,8 +26,15 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
-    return { top: 0 }
+    return { left: 0, top: 0 }
   }
 })
+
+// The router owns scroll restoration (scrollBehavior above). Left on 'auto',
+// Safari also restores scroll natively on back/forward — racing the SPA render
+// and landing pages on stale offsets with the top of the page cut off.
+if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual'
+}
 
 export default router

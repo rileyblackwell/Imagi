@@ -1,0 +1,67 @@
+/*
+ * Global document styles.
+ *
+ * The window/body is the single scroll container for the whole app — no layout
+ * component may introduce a full-page nested scroller (see BaseLayout.vue).
+ * These rules replace the scrollbar/focus utilities that used to live on the
+ * old BaseLayout `overflow-auto` wrapper.
+ */
+
+html {
+  /* Prevent iOS Safari from inflating text when the toolbar state changes. */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Firefox-only thin scrollbars. Chrome 121+ also understands scrollbar-width
+   and, when set, ignores the ::-webkit-scrollbar styling below — so only
+   apply it where the webkit pseudo-elements don't exist. */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+  }
+}
+
+/* Thin, unobtrusive scrollbars (WebKit browsers). */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4; /* gray-300 */
+  border-radius: 0.25rem;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af; /* gray-400 */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #262626; /* dark-700 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #404040; /* dark-600 */
+}
+
+/* Consistent keyboard-focus outline across the app. */
+:focus-visible {
+  outline: 2px solid #3b82f6; /* primary-500 */
+  outline-offset: 2px;
+}
+
+/*
+ * On iOS/iPadOS Safari 100vh is the LARGE viewport (toolbar hidden), so
+ * `min-h-screen` sections overflow and jump while the toolbar collapses.
+ * Prefer the dynamic viewport unit where supported so full-height sections
+ * track the visible viewport instead.
+ */
+@supports (min-height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
