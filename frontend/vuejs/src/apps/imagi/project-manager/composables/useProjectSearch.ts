@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import type { ComputedRef } from 'vue';
-import type { Project } from '../types/components';
+import type { Project } from '@/apps/imagi/build/types/components';
 
 interface UseProjectSearchOptions {
   includeDescription?: boolean;

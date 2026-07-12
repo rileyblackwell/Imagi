@@ -91,13 +91,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { DefaultLayout } from '@/shared/layouts'
-import { useProjectStore } from '../stores/projectStore'
-import { ProjectService } from '../services/projectService'
+import { useProjectStore } from '@/apps/imagi/build/stores/projectStore'
+import { ProjectService } from '@/apps/imagi/build/services/projectService'
 import { useAuthStore } from '@/shared/stores/auth'
 import { ToolCategoryCard } from '../components/organisms/hub'
 import { businessTools } from '../utils/businessTools'
-import { matchesSlug } from '../utils/slug'
-import type { Project } from '../types/components'
+import { matchesSlug } from '@/apps/imagi/build/utils/slug'
+import type { Project } from '@/apps/imagi/build/types/components'
 
 const props = defineProps<{
   projectName: string

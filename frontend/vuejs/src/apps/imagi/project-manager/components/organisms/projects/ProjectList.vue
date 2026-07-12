@@ -130,8 +130,8 @@
 import { computed } from 'vue'
 import ProjectCard from '../../molecules/cards/ProjectCard.vue'
 import { GradientButton } from '@/shared/components/atoms'
-import type { Project } from '../../../types/components'
-import type { ProjectListProps } from '../../../types/components'
+import type { Project } from '@/apps/imagi/build/types/components'
+import type { ProjectListProps } from '@/apps/imagi/build/types/components'
 
 const props = defineProps<ProjectListProps>()
 

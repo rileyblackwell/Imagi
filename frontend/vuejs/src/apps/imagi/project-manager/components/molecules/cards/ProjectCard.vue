@@ -44,8 +44,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Project } from '../../../types/components'
-import { toSlug } from '../../../utils/slug'
+import type { Project } from '@/apps/imagi/build/types/components'
+import { toSlug } from '@/apps/imagi/build/utils/slug'
 
 const props = defineProps<{
   project?: Project;
