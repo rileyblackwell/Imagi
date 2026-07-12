@@ -1,32 +1,32 @@
 <template>
-  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-white/[0.08] transition-colors duration-300">
+  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-100 dark:border-white/[0.08] transition-colors duration-300">
     <!-- Header: manager toggle + instance title -->
-    <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-white/[0.08]">
+    <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
       <div v-if="!isManagerOpen" class="relative group">
         <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
           @click="$emit('toggleManager')"
         >
           <i class="fas fa-chevron-right text-sm"></i>
         </button>
         <div
-          class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-gray-900 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-gray-900 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          class="pointer-events-none absolute left-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
         >
           Show agent manager
         </div>
       </div>
-      <div class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white/80 truncate">
+      <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-white/80 truncate">
         {{ activeInstance?.title || 'New instance' }}
       </div>
       <div v-if="onCollapseSidebar" class="relative group shrink-0">
         <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
           @click="onCollapseSidebar()"
         >
           <i class="fas fa-chevron-left text-sm"></i>
         </button>
         <div
-          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-gray-900 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-gray-900 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          class="pointer-events-none absolute right-0 top-full mt-1.5 z-50 whitespace-nowrap rounded-md bg-blue-950 dark:bg-white/95 px-2 py-1 text-[11px] font-medium text-white dark:text-blue-950 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150"
         >
           Collapse sidebar
         </div>
@@ -47,7 +47,7 @@
     <div class="shrink-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div class="px-2 pt-1 pb-3">
         <!-- Input shell: textarea on top, controls toolbar below -->
-        <div class="chat-input-shell rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06]">
+        <div class="chat-input-shell rounded-xl bg-blue-50/50 dark:bg-white/[0.03] border border-blue-200/70 dark:border-white/[0.08]">
           <textarea
             ref="promptTextarea"
             v-model="prompt"
@@ -57,7 +57,7 @@
             @input="autoResizeTextarea"
             :disabled="!activeInstance || activeInstance.isProcessing"
             rows="4"
-            class="chat-textarea w-full bg-transparent text-gray-900 dark:text-white/90 placeholder-gray-400 dark:placeholder-white/30 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
+            class="chat-textarea w-full bg-transparent text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-white/30 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
             style="min-height: 92px; max-height: 240px;"
           ></textarea>
 
@@ -110,10 +110,10 @@
               @click="handlePrompt"
               :disabled="!prompt.trim() || !activeInstance || activeInstance.isProcessing"
               aria-label="Send message"
-              class="btn-3d flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
+              class="btn-send flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
               :class="prompt.trim() && activeInstance && !activeInstance.isProcessing
-                ? 'bg-gradient-to-b from-gray-800 via-gray-900 to-gray-950 dark:from-white dark:via-gray-50 dark:to-gray-100 text-white dark:text-gray-900 border border-gray-700/50 dark:border-gray-300/50 shadow-lg hover:shadow-xl'
-                : 'bg-gradient-to-b from-gray-200 via-gray-100 to-gray-50 dark:from-white/[0.08] dark:via-white/[0.05] dark:to-white/[0.03] text-gray-400 dark:text-white/40 cursor-not-allowed border border-gray-300/70 dark:border-white/[0.12] shadow-sm'"
+                ? 'btn-send--active text-blue-950 border border-white/60 dark:border-white/30 shadow-lg hover:shadow-xl'
+                : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
             >
               <i v-if="activeInstance?.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
               <i v-else class="fas fa-arrow-up text-sm"></i>
@@ -267,13 +267,13 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 }
 
 .chat-input-shell:focus-within {
-  border-color: rgba(99, 102, 241, 0.55);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .dark .chat-input-shell:focus-within {
-  border-color: rgba(129, 140, 248, 0.5);
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
+  border-color: rgba(147, 197, 253, 0.5);
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.18);
 }
 
 /* Dropdown wrapper provides room for leading icon */
@@ -314,8 +314,8 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   background-position: right 0.55rem center;
   background-size: 0.85em;
   background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(209, 213, 219, 0.8);
-  color: rgb(55, 65, 81);
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  color: rgb(23, 37, 84);
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 0.3rem 1.5rem 0.3rem 0.6rem;
@@ -347,11 +347,11 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 }
 
 .dropdown-select:hover {
-  background-color: rgba(255, 255, 255, 1);
-  border-color: rgba(156, 163, 175, 0.9);
-  color: rgb(17, 24, 39);
+  background-color: rgba(239, 246, 255, 1);
+  border-color: rgba(147, 197, 253, 0.95);
+  color: rgb(23, 37, 84);
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(30, 58, 138, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -366,18 +366,18 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 
 .dropdown-select:focus,
 .dropdown-select:focus-visible {
-  border-color: rgba(99, 102, 241, 0.55);
+  border-color: rgba(59, 130, 246, 0.55);
   box-shadow:
-    0 0 0 3px rgba(99, 102, 241, 0.15),
+    0 0 0 3px rgba(59, 130, 246, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
   outline: none;
 }
 
 .dark .dropdown-select:focus,
 .dark .dropdown-select:focus-visible {
-  border-color: rgba(129, 140, 248, 0.5);
+  border-color: rgba(147, 197, 253, 0.5);
   box-shadow:
-    0 0 0 3px rgba(129, 140, 248, 0.18),
+    0 0 0 3px rgba(147, 197, 253, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
@@ -423,38 +423,28 @@ textarea:active {
   transition: none !important;
 }
 
-/* 3D Printed Button Effect - matching homepage */
-.btn-3d {
-  transform: translateZ(0);
-  box-shadow: 
-    /* Tight shadow for immediate depth */
-    0 2px 3px -1px rgba(0, 0, 0, 0.4),
-    /* Medium shadow for body lift */
-    0 6px 12px -3px rgba(0, 0, 0, 0.35),
-    /* Large diffuse shadow */
-    0 16px 32px -8px rgba(0, 0, 0, 0.3),
-    0 24px 48px -12px rgba(0, 0, 0, 0.2),
-    /* Bottom edge thickness */
-    0 3px 0 -1px rgba(0, 0, 0, 0.5),
-    /* Inset highlights */
-    inset 0 2px 4px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3);
+/* Baby-blue send button - matching the site's primary "Start Building" button */
+.btn-send {
+  transform: translateY(0) translateZ(0);
 }
 
-.dark .btn-3d {
-  box-shadow: 
-    /* Tight shadow for immediate depth */
-    0 2px 3px -1px rgba(0, 0, 0, 0.1),
-    /* Medium shadow for body lift */
-    0 6px 12px -3px rgba(0, 0, 0, 0.1),
-    /* Large diffuse shadow */
-    0 16px 32px -8px rgba(0, 0, 0, 0.1),
-    0 24px 48px -12px rgba(0, 0, 0, 0.08),
-    /* Bottom edge thickness */
-    0 3px 0 -1px rgba(0, 0, 0, 0.15),
-    /* Inset highlights */
-    inset 0 3px 6px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -4px 8px -2px rgba(0, 0, 0, 0.08);
+.btn-send--active {
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.14),
+    0 4px 10px -2px rgba(30, 58, 138, 0.16),
+    0 10px 20px -6px rgba(30, 58, 138, 0.18),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+}
+
+.dark .btn-send--active {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 10px 20px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
 }
 
 /* Refined minimal scrollbar - matching homepage */

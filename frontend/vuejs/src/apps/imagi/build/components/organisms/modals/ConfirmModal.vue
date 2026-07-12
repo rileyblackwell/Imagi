@@ -37,7 +37,7 @@
               <!-- Close button -->
               <button
                 type="button"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all flex-shrink-0"
+                class="text-blue-950/40 hover:text-blue-950/70 p-1 rounded-lg hover:bg-blue-50 transition-all flex-shrink-0"
                 @click="handleCancel"
                 aria-label="Close"
               >
@@ -47,7 +47,7 @@
           </div>
 
           <!-- Footer / Actions -->
-          <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-end gap-3">
+          <div class="px-6 py-4 bg-blue-50/60 flex items-center justify-end gap-3">
             <button
               type="button"
               class="px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200"
@@ -134,7 +134,7 @@ const modalClasses = computed(() => {
     case 'success':
       return `${baseClasses} border-green-200 dark:border-green-300`
     default:
-      return `${baseClasses} border-gray-200 dark:border-gray-300`
+      return `${baseClasses} border-blue-200 dark:border-blue-300`
   }
 })
 
@@ -147,7 +147,7 @@ const headerClasses = computed(() => {
     case 'success':
       return 'border-green-100 dark:border-green-200/50 bg-green-50/50 dark:bg-green-50/30'
     default:
-      return 'border-gray-100 dark:border-gray-200/50 bg-gray-50/50 dark:bg-gray-50/30'
+      return 'border-blue-100 dark:border-blue-200/50 bg-blue-50/50 dark:bg-blue-50/30'
   }
 })
 
@@ -160,7 +160,7 @@ const iconContainerClasses = computed(() => {
     case 'success':
       return 'bg-green-100 dark:bg-green-100 border border-green-200 dark:border-green-300'
     default:
-      return 'bg-gray-100 dark:bg-gray-100 border border-gray-200 dark:border-gray-300'
+      return 'bg-blue-100 dark:bg-blue-100 border border-blue-200 dark:border-blue-300'
   }
 })
 
@@ -173,20 +173,20 @@ const iconClasses = computed(() => {
     case 'success':
       return 'fas fa-check-circle text-green-600 dark:text-green-600'
     default:
-      return 'fas fa-info-circle text-gray-600 dark:text-gray-600'
+      return 'fas fa-info-circle text-blue-600 dark:text-blue-600'
   }
 })
 
 const titleClasses = computed(() => {
-  return 'text-gray-900 dark:text-gray-900'
+  return 'text-blue-950 dark:text-blue-950'
 })
 
 const messageClasses = computed(() => {
-  return 'text-gray-700 dark:text-gray-700'
+  return 'text-blue-950/70 dark:text-blue-950/70'
 })
 
 const cancelButtonClasses = computed(() => {
-  return 'bg-white dark:bg-white border-gray-200 dark:border-gray-300 text-gray-700 dark:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+  return 'bg-white dark:bg-white border-blue-200 dark:border-blue-200 text-blue-950/70 dark:text-blue-950/70 hover:bg-blue-50 dark:hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed'
 })
 
 const confirmButtonClasses = computed(() => {
@@ -198,7 +198,7 @@ const confirmButtonClasses = computed(() => {
     case 'success':
       return 'bg-green-600 dark:bg-green-600 border-green-700 dark:border-green-700 text-white hover:bg-green-700 dark:hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
     default:
-      return 'bg-gray-900 dark:bg-gray-900 border-gray-900 dark:border-gray-900 text-white hover:bg-gray-800 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed'
+      return 'bg-blue-600 dark:bg-blue-600 border-blue-700 dark:border-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
   }
 })
 

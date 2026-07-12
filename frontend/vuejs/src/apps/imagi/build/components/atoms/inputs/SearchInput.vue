@@ -11,7 +11,7 @@
         :class="inputClass"
         :placeholder="placeholder"
       >
-      <i v-if="!isProject" class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      <i v-if="!isProject" class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-blue-950/40 dark:text-white/40"></i>
     </div>
   </div>
 </template>
@@ -34,8 +34,8 @@ const wrapperClass = computed(() => isProject.value ? 'relative group flex-1 max
 
 const inputClass = computed(() =>
   isProject.value
-    ? 'relative z-10 w-full pl-11 pr-4 py-3 bg-white/[0.03] border border-white/[0.08] focus:border-violet-400/50 hover:border-white/[0.12] rounded-xl text-white/90 placeholder-white/30 transition-all duration-300 backdrop-blur-sm hover:bg-white/[0.05] focus:bg-white/[0.05] focus:shadow-lg focus:shadow-violet-500/20 outline-none'
-    : 'w-full px-4 py-2 pl-10 bg-white/[0.03] border border-white/[0.08] focus:border-violet-400/50 rounded-xl text-white/90 placeholder-white/30 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 outline-none'
+    ? 'relative z-10 w-full pl-11 pr-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 hover:border-blue-300 dark:hover:border-white/[0.18] rounded-xl text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-white/30 transition-all duration-300 backdrop-blur-sm hover:bg-blue-50/50 dark:hover:bg-white/[0.05] focus:bg-white dark:focus:bg-white/[0.05] focus:shadow-lg focus:shadow-blue-500/20 outline-none'
+    : 'w-full px-4 py-2 pl-10 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-white/30 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 outline-none'
 )
 
 defineEmits(['update:modelValue']);
