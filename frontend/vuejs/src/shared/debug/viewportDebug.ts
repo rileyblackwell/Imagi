@@ -36,11 +36,34 @@ export function initViewportDebug(): void {
   btn.textContent = '⤒ force top'
   btn.style.cssText =
     'pointer-events:auto;margin-top:6px;font:inherit;color:#0a0a0a;background:#7CFC9A;border:0;border-radius:6px;padding:4px 8px'
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
+    const settle = () => new Promise((r) => setTimeout(r, 250))
+    const atTop = () => window.scrollY === 0
+
     window.scrollTo(0, 0)
-    setTimeout(() => {
-      btn.textContent = window.scrollY === 0 ? '⤒ force top — ok' : `⤒ force top — stuck at ${Math.round(window.scrollY)}`
-    }, 350)
+    await settle()
+    if (atTop()) {
+      btn.textContent = '⤒ force top — ok'
+      return
+    }
+    // Strategy 1: rebuild scroll geometry via overflow toggle on <html>
+    const de = document.documentElement
+    de.style.overflow = 'hidden'
+    await new Promise(requestAnimationFrame)
+    de.style.overflow = ''
+    window.scrollTo(0, 0)
+    await settle()
+    if (atTop()) {
+      btn.textContent = '⤒ healed via overflow'
+      return
+    }
+    // Strategy 2: perturb document height to force geometry recompute
+    document.body.style.minHeight = `${document.body.scrollHeight + 2}px`
+    await new Promise(requestAnimationFrame)
+    document.body.style.minHeight = ''
+    window.scrollTo(0, 0)
+    await settle()
+    btn.textContent = atTop() ? '⤒ healed via height' : `⤒ still stuck at ${Math.round(window.scrollY)}`
   })
   box.appendChild(el)
   box.appendChild(btn)
