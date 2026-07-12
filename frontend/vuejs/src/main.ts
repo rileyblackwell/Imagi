@@ -72,3 +72,16 @@ app.component('font-awesome-icon', FontAwesomeIcon)
 
 // Mount app
 app.mount('#app')
+
+// iOS/iPadOS WebKit can restore a page (back-swipe bfcache) with stale
+// compositing/viewport state — content renders clipped or offset until the
+// engine re-composites (the same glitch a tab switch clears). Nudging the
+// scroll position on restore forces that re-composite immediately.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    requestAnimationFrame(() => {
+      window.scrollTo(window.scrollX, window.scrollY + 1)
+      window.scrollTo(window.scrollX, Math.max(0, window.scrollY - 1))
+    })
+  }
+})
