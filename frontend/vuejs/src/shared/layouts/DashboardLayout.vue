@@ -80,10 +80,8 @@
         :class="[isSidebarCollapsed ? 'ml-16' : (extraWide ? 'ml-[36rem]' : (wide ? 'ml-80' : 'ml-72'))]"
       >
         <!-- Navbar -->
-        <!-- !fixed/!mb-0 override BaseNavbar's sticky -mb-14 default: this bar is
-             offset by the sidebar via left-*, which needs viewport positioning. -->
         <BaseNavbar
-          class="!fixed !mb-0 top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm"
+          class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm"
           :class="[isSidebarCollapsed ? 'left-16' : (extraWide ? 'left-[36rem]' : (wide ? 'left-80' : 'left-72'))]"
         >
           <template #left>

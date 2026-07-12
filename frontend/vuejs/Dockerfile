@@ -8,8 +8,6 @@ RUN npm ci
 
 COPY frontend/vuejs/ .
 RUN npm run build-only
-# Deploy identification: exposes the build time at /version.txt
-RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > dist/version.txt
 
 ## Production stage
 FROM nginx:stable-alpine
