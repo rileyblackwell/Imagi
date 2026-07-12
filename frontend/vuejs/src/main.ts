@@ -82,15 +82,9 @@ document.documentElement.dataset.build = __BUILD_TIME__
 // On-device diagnostics for the iPad render glitch — enable with ?debug=1.
 initViewportDebug()
 
-// iOS/iPadOS WebKit can restore a page (back-swipe bfcache) with stale
-// compositing/viewport state — content renders clipped or offset until the
-// engine re-composites (the same glitch a tab switch clears). Nudging the
-// scroll position on restore forces that re-composite immediately.
-window.addEventListener('pageshow', (event) => {
-  if (event.persisted) {
-    requestAnimationFrame(() => {
-      window.scrollTo(window.scrollX, window.scrollY + 1)
-      window.scrollTo(window.scrollX, Math.max(0, window.scrollY - 1))
-    })
-  }
-})
+// NOTE: no scroll "nudges" on pageshow/tab-restore — deliberately. A
+// programmatic scroll issued while iPad Chrome is mid tab-restore or mid
+// toolbar animation is a prime suspect for wedging the browser's native
+// scroll inset (scroll floor stuck at the toolbar height, ~132px, page top
+// unreachable until the tab is re-activated). Page JS cannot undo that
+// state once wedged, so nothing here may scroll during restore transitions.
