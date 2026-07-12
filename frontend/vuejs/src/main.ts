@@ -11,6 +11,9 @@ import config from '@/shared/config'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
+// Global document styles (single window scroller, scrollbars, focus, dvh fixes).
+// Must come after Tailwind so its .min-h-screen dvh override wins the cascade.
+import '@/assets/main.css'
 
 // Import Font Awesome icons
 import {
