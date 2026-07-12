@@ -3,6 +3,7 @@ import homeRoutes from '@/apps/home/router'
 import authRoutes from '@/apps/auth/router'
 import paymentsRoutes from '@/apps/payments/router'
 import buildRoutes from '@/apps/imagi/build/router'
+import projectManagerRoutes from '@/apps/imagi/project-manager/router'
 import marketingRoutes from '@/apps/imagi/marketing/router'
 import sellRoutes from '@/apps/imagi/sell/router'
 import operateRoutes from '@/apps/imagi/operate/router'
@@ -15,6 +16,7 @@ const router = createRouter({
     ...authRoutes,
     ...paymentsRoutes,
     ...buildRoutes,
+    ...projectManagerRoutes,
     ...marketingRoutes,
     ...sellRoutes,
     ...operateRoutes,

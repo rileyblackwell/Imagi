@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
-from apps.Imagi.Build.ProjectManager.models import Project
+from apps.Imagi.ProjectManager.models import Project
 
 from .models import Invoice, OperationsTask, Transaction
 

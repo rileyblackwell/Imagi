@@ -76,12 +76,11 @@ INSTALLED_APPS = [
     'apps.Home',
     'apps.Auth',
     'apps.Payments',
+    'apps.Imagi.ProjectManager',
     'apps.Imagi.Marketing',
     'apps.Imagi.Sell',
     'apps.Imagi.Operate',
-    'apps.Imagi.Build.Builder',
-    'apps.Imagi.Build.Agents',
-    'apps.Imagi.Build.ProjectManager',
+    'apps.Imagi.Build',
 ]
 
 MIDDLEWARE = [
@@ -232,7 +231,7 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 # Products / Imagi builder
 # Root directory where ProjectManager writes generated user projects.
-PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'apps' / 'Imagi' / 'imagi_projects'))
+PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', str(BASE_DIR / 'apps' / 'Imagi' / 'Build' / 'imagi_projects'))
 
 
 # Marketing / Twilio

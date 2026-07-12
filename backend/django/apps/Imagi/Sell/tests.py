@@ -14,7 +14,7 @@ import stripe as stripe_sdk
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient, APITestCase
 
-from apps.Imagi.Build.ProjectManager.models import Project
+from apps.Imagi.ProjectManager.models import Project
 
 from .models import (
     Customer,
