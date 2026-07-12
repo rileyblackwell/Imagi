@@ -32,18 +32,6 @@ export interface AIModel {
 }
 
 /**
- * Response from code generation API
- */
-export interface CodeGenerationResponse {
-  success: boolean;
-  code?: string;
-  response: string;
-  messages: any[];
-  error?: string;
-  single_message?: boolean;
-}
-
-/**
  * Undo Response
  */
 export interface UndoResponse {
@@ -182,7 +170,6 @@ export interface APIResponse<T> {
 export interface ConversationDto {
   id: number;
   title: string;
-  mode: 'chat' | 'agent';
   model_name: string;
   project_id: number | null;
   archived_at: string | null;
@@ -195,7 +182,6 @@ export interface AgentInstance {
   id: string;                      // local UUID
   conversationId: number | null;   // backend AgentConversation id
   title: string;
-  mode: 'chat' | 'agent';
   selectedModelId: string | null;
   selectedEffort: ReasoningEffort;
   selectedFile: any | null;
@@ -227,54 +213,6 @@ export interface AIGenerationResponse {
 }
 
 /**
- * Chat payload for agent service
- */
-export interface ChatPayload {
-  message: string;
-  model: string;
-  reasoning_effort?: ReasoningEffort;
-  project_id: string;
-  conversation_id?: string;
-  mode?: string;
-  is_build_mode?: boolean;
-  current_file?: any;
-}
-
-/**
- * Chat Processing Payload with additional file properties
- */
-export interface ChatProcessingPayload {
-  message: string;
-  model: string;
-  reasoning_effort?: ReasoningEffort;
-  project_id: string;
-  conversation_id?: string;
-  mode: string;
-  is_build_mode?: boolean;
-  stream?: boolean;
-  current_file?: {
-    path: string;
-    type: string;
-    content: string;
-  };
-  project_files?: Array<{
-    path: string;
-    type: string;
-    content: string;
-  }>;
-}
-
-/**
- * Chat response interface
- */
-export interface ChatResponse {
-  response: string;
-  messages: any[];
-  conversation_id?: string;
-  single_message?: boolean;
-}
-
-/**
  * One step of the agent's working plan, maintained via its update_plan tool
  */
 export interface AgentPlanStep {
@@ -283,7 +221,7 @@ export interface AgentPlanStep {
 }
 
 /**
- * Agent mode response interface (coding agent that can chat + edit files)
+ * Response from the Imagi agent (a single agent that chats + edits files)
  */
 export interface AgentResponse {
   response: string;
@@ -294,28 +232,6 @@ export interface AgentResponse {
   /** The agent's working plan for multi-step tasks */
   plan?: AgentPlanStep[];
   single_message?: boolean;
-}
-
-/**
- * Generate stylesheet options
- */
-export interface GenerateStylesheetOptions {
-  prompt: string;
-  projectId: string;
-  filePath: string;
-  model?: string;
-  conversationId?: string;
-  onProgress?: (progress: { status: string; percent: number }) => void;
-}
-
-/**
- * Code generation request data
- */
-export interface CodeGenerationRequest {
-  prompt: string;
-  mode: string;
-  model: string | null;
-  file_path?: string;
 }
 
 // Add the VersionControlResponse interface
