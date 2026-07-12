@@ -11,7 +11,6 @@
   >
     <!-- Title row -->
     <div class="flex items-start gap-2">
-      <i class="fas fa-robot text-purple-500 dark:text-purple-400 text-[10px] mt-0.5 shrink-0"></i>
       <div class="flex-1 min-w-0">
         <input
           v-if="isEditing"
@@ -30,15 +29,7 @@
         >
           {{ instance.title || 'Untitled instance' }}
         </div>
-        <div
-          class="text-[11px] text-gray-500 dark:text-white/50 mt-0.5 line-clamp-2 leading-snug"
-          :title="instance.lastMessagePreview"
-        >
-          {{ instance.lastMessagePreview || 'No messages yet' }}
-        </div>
-        <div class="flex items-center gap-1.5 mt-1.5 text-[10px] text-gray-400 dark:text-white/40">
-          <span>{{ instance.selectedModelId || '—' }}</span>
-          <span aria-hidden="true">·</span>
+        <div class="flex items-center gap-1.5 mt-1 text-[10px] text-gray-400 dark:text-white/40">
           <span>{{ relativeTime(instance.updatedAt) }}</span>
           <span v-if="instance.isProcessing" class="ml-1 flex items-center gap-1 text-indigo-500 dark:text-indigo-300">
             <i class="fas fa-circle-notch fa-spin text-[9px]"></i>
@@ -48,47 +39,45 @@
       </div>
 
       <!-- Actions -->
-      <div
-        class="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-0.5"
-        @click.stop
-      >
+      <div ref="menuRef" class="relative shrink-0" @click.stop>
         <button
-          class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-white/[0.08] text-gray-500 dark:text-white/60"
-          title="Rename"
-          @click.stop="startRename"
+          :class="[
+            'w-6 h-6 flex items-center justify-center rounded transition-opacity hover:bg-gray-200 dark:hover:bg-white/[0.08] text-gray-500 dark:text-white/60',
+            menuOpen ? 'opacity-100 bg-gray-200 dark:bg-white/[0.08]' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+          ]"
+          title="Options"
+          @click.stop="toggleMenu"
         >
-          <i class="fas fa-pen text-[9px]"></i>
+          <i class="fas fa-ellipsis-h text-[10px]"></i>
         </button>
-        <button
-          v-if="!isArchived"
-          class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-white/[0.08] text-gray-500 dark:text-white/60"
-          title="Archive"
-          @click.stop="emit('archive')"
+        <div
+          v-if="menuOpen"
+          class="absolute right-0 top-full mt-1 z-50 min-w-[130px] rounded-md border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#161616] shadow-lg py-1"
         >
-          <i class="fas fa-archive text-[9px]"></i>
-        </button>
-        <button
-          v-else
-          class="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-white/[0.08] text-gray-500 dark:text-white/60"
-          title="Unarchive"
-          @click.stop="emit('unarchive')"
-        >
-          <i class="fas fa-box-open text-[9px]"></i>
-        </button>
-        <button
-          class="w-6 h-6 flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-500/20 text-gray-500 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400"
-          title="Delete"
-          @click.stop="emit('delete')"
-        >
-          <i class="fas fa-trash text-[9px]"></i>
-        </button>
+          <button class="menu-item" @click.stop="onRename">
+            <i class="fas fa-pen menu-item-icon"></i>
+            <span>Rename</span>
+          </button>
+          <button v-if="!isArchived" class="menu-item" @click.stop="onArchive">
+            <i class="fas fa-archive menu-item-icon"></i>
+            <span>Archive</span>
+          </button>
+          <button v-else class="menu-item" @click.stop="onUnarchive">
+            <i class="fas fa-box-open menu-item-icon"></i>
+            <span>Unarchive</span>
+          </button>
+          <button class="menu-item menu-item--danger" @click.stop="onDelete">
+            <i class="fas fa-trash menu-item-icon"></i>
+            <span>Delete</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import type { AgentInstance } from '../../../types/services'
 
 const props = defineProps<{
@@ -108,6 +97,46 @@ const emit = defineEmits<{
 const isEditing = ref(false)
 const draftTitle = ref('')
 const titleInput = ref<HTMLInputElement | null>(null)
+
+const menuOpen = ref(false)
+const menuRef = ref<HTMLElement | null>(null)
+
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+}
+
+function closeMenu() {
+  menuOpen.value = false
+}
+
+function onRename() {
+  closeMenu()
+  startRename()
+}
+
+function onArchive() {
+  closeMenu()
+  emit('archive')
+}
+
+function onUnarchive() {
+  closeMenu()
+  emit('unarchive')
+}
+
+function onDelete() {
+  closeMenu()
+  emit('delete')
+}
+
+function handleDocumentClick(event: MouseEvent) {
+  if (menuOpen.value && menuRef.value && !menuRef.value.contains(event.target as Node)) {
+    closeMenu()
+  }
+}
+
+onMounted(() => document.addEventListener('mousedown', handleDocumentClick))
+onBeforeUnmount(() => document.removeEventListener('mousedown', handleDocumentClick))
 
 async function startRename() {
   draftTitle.value = props.instance.title || ''
@@ -136,20 +165,69 @@ function relativeTime(iso: string): string {
   const diff = Date.now() - date.getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return 'now'
-  if (mins < 60) return `${mins}m`
+  if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h`
+  if (hrs < 24) return `${hrs}h ago`
   const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d`
+  if (days < 7) return `${days}d ago`
   return date.toLocaleDateString()
 }
 </script>
 
 <style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: left;
+  color: rgb(55, 65, 81);
+  transition: background-color 0.15s ease;
+}
+
+.menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .menu-item {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dark .menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.menu-item--danger {
+  color: rgb(220, 38, 38);
+}
+
+.dark .menu-item--danger {
+  color: rgb(248, 113, 113);
+}
+
+.menu-item--danger:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.dark .menu-item--danger:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.menu-item-icon {
+  width: 0.875rem;
+  font-size: 0.625rem;
+  text-align: center;
+  color: rgba(107, 114, 128, 0.9);
+}
+
+.menu-item--danger .menu-item-icon {
+  color: inherit;
+}
+
+.dark .menu-item-icon {
+  color: rgba(255, 255, 255, 0.45);
 }
 </style>
