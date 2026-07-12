@@ -7,7 +7,7 @@ urlpatterns = [
     path('marketing/', include('apps.Imagi.Marketing.api.urls')),
     path('sell/', include('apps.Imagi.Sell.api.urls')),
     path('operate/', include('apps.Imagi.Operate.api.urls')),
-    path('project-manager/', include('apps.Imagi.Build.ProjectManager.api.urls')),
-    path('builder/', include('apps.Imagi.Build.Builder.api.urls')),
-    path('agents/', include('apps.Imagi.Build.Agents.api.urls')),
+    path('project-manager/', include('apps.Imagi.ProjectManager.api.urls')),
+    # Build mounts both its public prefixes: builder/ and agents/
+    path('', include('apps.Imagi.Build.api.urls')),
 ]

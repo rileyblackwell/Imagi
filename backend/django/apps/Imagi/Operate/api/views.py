@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.Imagi.Marketing.models import Campaign, Contact, MarketingSettings, Message
-from apps.Imagi.Build.ProjectManager.models import Project
+from apps.Imagi.ProjectManager.models import Project
 from apps.Imagi.Sell.models import Order, SellSettings
 
 from ..models import Invoice, OperationsTask, Transaction

@@ -40,7 +40,7 @@ backend/django/db.sqlite3
 backend/django/db.sqlite3-journal
 backend/django/media/
 backend/django/staticfiles/
-backend/django/apps/Imagi/imagi_projects/
+backend/django/apps/Imagi/Build/imagi_projects/
 
 # Node / Vue
 frontend/vuejs/node_modules/
