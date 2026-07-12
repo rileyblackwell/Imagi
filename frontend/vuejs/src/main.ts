@@ -8,6 +8,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { validationPlugin } from '@/apps/auth/plugins/validation'
 import config from '@/shared/config'
+import { initViewportDebug } from '@/shared/debug/viewportDebug'
 
 // Import Tailwind styles
 import 'tailwindcss/tailwind.css'
@@ -77,6 +78,9 @@ app.mount('#app')
 // via the console or `document.documentElement.dataset.build`.
 console.info(`Imagi build: ${__BUILD_TIME__}`)
 document.documentElement.dataset.build = __BUILD_TIME__
+
+// On-device diagnostics for the iPad render glitch — enable with ?debug=1.
+initViewportDebug()
 
 // iOS/iPadOS WebKit can restore a page (back-swipe bfcache) with stale
 // compositing/viewport state — content renders clipped or offset until the
