@@ -77,13 +77,10 @@ html {
 }
 
 /*
- * On iOS/iPadOS Safari 100vh is the LARGE viewport (toolbar hidden), so
- * `min-h-screen` sections overflow and jump while the toolbar collapses.
- * Prefer the dynamic viewport unit where supported so full-height sections
- * track the visible viewport instead.
+ * Deliberately NO dvh override for min-h-screen. 100dvh resizes every
+ * min-h-screen element WHILE the user scrolls (the iOS toolbar collapse
+ * changes the dynamic viewport), and that mid-scroll document-height pulsing
+ * corrupts WebKit's scroll bounds on iPad — the page gets stuck ~130px from
+ * the top until the engine rebuilds its geometry (e.g. on a tab switch).
+ * The static 100vh behind Tailwind's min-h-screen is stable during scroll.
  */
-@supports (min-height: 100dvh) {
-  .min-h-screen {
-    min-height: 100dvh;
-  }
-}
