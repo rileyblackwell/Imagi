@@ -24,58 +24,33 @@ const router = createRouter({
   ],
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
-      lastNavRestoredPosition = true
       return savedPosition
     }
-    lastNavRestoredPosition = false
     return { left: 0, top: 0 }
   }
 })
 
-// Set by scrollBehavior; read by the toolbar-inset guard below so it never
-// fights a legitimate back/forward position restore.
-let lastNavRestoredPosition = false
-
-// The router owns scroll restoration (scrollBehavior above). Left on 'auto',
-// Safari also restores scroll natively on back/forward — racing the SPA render
-// and landing pages on stale offsets with the top of the page cut off.
+// SCROLL HANDLING POLICY — keep it minimal and standard.
+//
+// iPad Chrome (WebKit) can wedge its NATIVE scroll inset: the scroll floor
+// gets stuck at the toolbar height (~132px) and the page top becomes
+// unreachable — for touch AND programmatic scrolling alike — until the tab
+// is re-activated. On-device probing proved page JS cannot heal that state
+// (overflow/height/geometry rebuilds all fail), so the only page-level lever
+// is avoiding the trigger: interfering with the browser's own scroll
+// management around loads, tab restores, and toolbar animations.
+//
+// vue-router silently sets history.scrollRestoration = 'manual' whenever
+// scrollBehavior is defined. Set it back to 'auto' so the BROWSER owns
+// scroll restoration on load/tab-restore/back-forward — the phases where the
+// native inset wedges. scrollBehavior still applies its positions after
+// render (last write wins), so in-app navigation behavior is unchanged.
+//
+// Also deliberately absent: pageshow/visibility scroll "nudges" and
+// post-navigation scroll verification/retries. The single scrollBehavior
+// scroll above is the only programmatic scroll in the app.
 if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
-  window.history.scrollRestoration = 'manual'
-}
-
-// iPadOS WebKit "stale toolbar inset" guard. When the browser's collapsible
-// toolbar animates during a navigation, WebKit sometimes keeps a phantom
-// scroll inset equal to the toolbar height (~130px): every scroll — touch and
-// programmatic alike — clamps to that floor, so the top of the page becomes
-// unreachable until the engine rebuilds its scroll geometry (a tab switch
-// does this, and so does toggling overflow on the root element).
-// After each to-top navigation, verify the top was actually reached; if the
-// engine clamped us and the user hasn't scrolled on their own, rebuild and
-// retry once.
-if (typeof window !== 'undefined') {
-  let userScrolled = false
-  const markUserScroll = () => {
-    userScrolled = true
-  }
-  window.addEventListener('touchstart', markUserScroll, { passive: true })
-  window.addEventListener('wheel', markUserScroll, { passive: true })
-
-  router.afterEach((to, from) => {
-    if (from.name === undefined) return // initial load, nothing to verify
-    userScrolled = false
-    setTimeout(() => {
-      // Only heal a small non-zero offset the user didn't create — that is
-      // the phantom-inset signature, never a legitimate resting position.
-      if (lastNavRestoredPosition || userScrolled) return
-      if (window.scrollY === 0 || window.scrollY > 200) return
-      const de = document.documentElement
-      de.style.overflow = 'hidden'
-      requestAnimationFrame(() => {
-        de.style.overflow = ''
-        window.scrollTo(0, 0)
-      })
-    }, 350)
-  })
+  window.history.scrollRestoration = 'auto'
 }
 
 export default router

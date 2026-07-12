@@ -63,7 +63,32 @@ export function initViewportDebug(): void {
     document.body.style.minHeight = ''
     window.scrollTo(0, 0)
     await settle()
-    btn.textContent = atTop() ? '⤒ healed via height' : `⤒ still stuck at ${Math.round(window.scrollY)}`
+    if (atTop()) {
+      btn.textContent = '⤒ healed via height'
+      return
+    }
+    // Strategy 3: iOS-style body scroll lock toggle (position:fixed detaches
+    // scrolling at a different level than overflow on the root)
+    const bs = document.body.style
+    bs.position = 'fixed'
+    bs.top = '0'
+    bs.left = '0'
+    bs.right = '0'
+    await new Promise(requestAnimationFrame)
+    bs.position = ''
+    bs.top = ''
+    bs.left = ''
+    bs.right = ''
+    window.scrollTo(0, 0)
+    await settle()
+    if (atTop()) {
+      btn.textContent = '⤒ healed via body-lock'
+      return
+    }
+    // Strategy 4: scrollIntoView may take a different native scroll path
+    document.querySelector('nav')?.scrollIntoView({ block: 'start' })
+    await settle()
+    btn.textContent = atTop() ? '⤒ healed via sIV' : `⤒ still stuck at ${Math.round(window.scrollY)}`
   })
   box.appendChild(el)
   box.appendChild(btn)
@@ -102,4 +127,24 @@ export function initViewportDebug(): void {
   document.addEventListener('visibilitychange', schedule)
   setInterval(schedule, 1000)
   render()
+
+  // Wedge-at-load detector: on a FRESH navigation (not reload/back-forward,
+  // where the browser legitimately restores a position), the page must rest
+  // at the top. If it rests at a small offset without any user input and a
+  // scroll-to-top cannot clear it, the native inset is wedged — flag it.
+  let touched = false
+  window.addEventListener('touchstart', () => { touched = true }, { passive: true, once: true })
+  const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type
+  if (navType === 'navigate') {
+    setTimeout(() => {
+      if (touched || window.scrollY === 0 || window.scrollY > 200) return
+      window.scrollTo(0, 0)
+      setTimeout(() => {
+        if (!touched && window.scrollY > 0) {
+          box.style.background = 'rgba(120,0,0,0.88)'
+          el.textContent = `⚠ WEDGED AT LOAD (floor ${Math.round(window.scrollY)})\n` + el.textContent
+        }
+      }, 300)
+    }, 1500)
+  }
 }
