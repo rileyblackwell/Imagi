@@ -73,10 +73,4 @@ nav {
   position: relative;
   z-index: 10;
 }
-
-@supports (backdrop-filter: blur(20px)) {
-  nav {
-    backdrop-filter: blur(20px);
-  }
-}
 </style>

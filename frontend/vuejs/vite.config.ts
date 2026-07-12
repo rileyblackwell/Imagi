@@ -6,6 +6,11 @@ export default defineConfig({
   plugins: [
     vue(),
   ],
+  define: {
+    // Build timestamp, surfaced via console + <html data-build> so a deployed
+    // bundle can be identified from any device (see also /version.txt).
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   server: {
     // Honor a harness/CI-assigned PORT, else default to 5173.
     // strictPort is false so Vite auto-increments (5174, 5175, …) when the
