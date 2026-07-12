@@ -55,6 +55,28 @@ html {
 }
 
 /*
+ * iOS/iPadOS WebKit (every browser on iPad/iPhone, Chrome included) has
+ * long-standing compositing bugs with backdrop-filter on pinned bars: the
+ * page intermittently renders from stale tiles at a wrong viewport offset —
+ * content looks squished/clipped under the navbar until the engine
+ * re-composites (e.g. after a tab switch). `-webkit-touch-callout` only
+ * exists on iOS WebKit, so this @supports gate targets exactly those
+ * devices: drop the blur there and compensate with a near-opaque background.
+ * Desktop browsers keep the blurred translucent bar.
+ */
+@supports (-webkit-touch-callout: none) {
+  .crisp-nav {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: rgba(255, 255, 255, 0.97);
+  }
+
+  .dark .crisp-nav {
+    background-color: rgba(10, 10, 10, 0.97);
+  }
+}
+
+/*
  * On iOS/iPadOS Safari 100vh is the LARGE viewport (toolbar hidden), so
  * `min-h-screen` sections overflow and jump while the toolbar collapses.
  * Prefer the dynamic viewport unit where supported so full-height sections

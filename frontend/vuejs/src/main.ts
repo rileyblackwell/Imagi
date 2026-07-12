@@ -73,6 +73,11 @@ app.component('font-awesome-icon', FontAwesomeIcon)
 // Mount app
 app.mount('#app')
 
+// Deploy identification: check the running bundle's build time from any device
+// via the console or `document.documentElement.dataset.build`.
+console.info(`Imagi build: ${__BUILD_TIME__}`)
+document.documentElement.dataset.build = __BUILD_TIME__
+
 // iOS/iPadOS WebKit can restore a page (back-swipe bfcache) with stale
 // compositing/viewport state — content renders clipped or offset until the
 // engine re-composites (the same glitch a tab switch clears). Nudging the
