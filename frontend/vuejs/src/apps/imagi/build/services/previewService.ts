@@ -18,7 +18,8 @@ export const PreviewService = {
       };
     } catch (error: any) {
       if (error?.response?.status === 503) {
-        throw new Error('Preview server failed to start.');
+        // The backend includes the actual failure reason in dev
+        throw new Error(error.response?.data?.error || 'Preview server failed to start.');
       }
       throw new Error(`Failed to generate preview: ${this.formatError(error)}`);
     }
