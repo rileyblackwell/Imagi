@@ -19,16 +19,32 @@ export function initViewportDebug(): void {
   if (flag === '0') localStorage.removeItem('imagi-debug')
   if (localStorage.getItem('imagi-debug') !== '1') return
 
-  const el = document.createElement('div')
-  el.id = 'imagi-debug'
-  el.style.cssText = [
+  const box = document.createElement('div')
+  box.id = 'imagi-debug'
+  box.style.cssText = [
     'position:fixed', 'left:8px', 'bottom:8px', 'z-index:2147483647',
     'font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace',
     'background:rgba(0,0,0,0.82)', 'color:#7CFC9A', 'padding:8px 10px',
     'border-radius:8px', 'pointer-events:none', 'white-space:pre',
     'max-width:92vw', 'overflow:hidden',
   ].join(';')
-  document.body.appendChild(el)
+  const el = document.createElement('div')
+  // "force top" probe: reports whether programmatic scrolling can beat a
+  // stuck scroll floor (gesture scrolling and JS scrolling can differ when
+  // WebKit's scroll bounds are corrupted).
+  const btn = document.createElement('button')
+  btn.textContent = '⤒ force top'
+  btn.style.cssText =
+    'pointer-events:auto;margin-top:6px;font:inherit;color:#0a0a0a;background:#7CFC9A;border:0;border-radius:6px;padding:4px 8px'
+  btn.addEventListener('click', () => {
+    window.scrollTo(0, 0)
+    setTimeout(() => {
+      btn.textContent = window.scrollY === 0 ? '⤒ force top — ok' : `⤒ force top — stuck at ${Math.round(window.scrollY)}`
+    }, 350)
+  })
+  box.appendChild(el)
+  box.appendChild(btn)
+  document.body.appendChild(box)
 
   const fmt = (n: number | undefined) => (n === undefined ? '?' : Math.round(n * 10) / 10)
 
