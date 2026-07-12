@@ -53,7 +53,15 @@ class ProjectCreationService:
                 logger.info(f"Default apps ensure result: {default_result}")
             except Exception as app_err:
                 logger.warning(f"Failed to ensure default apps: {app_err}")
-            
+
+            # Store the database copy of every scaffolded file, so the
+            # project can be served (and rebuilt on disk) from the database.
+            try:
+                from apps.Imagi.Build.services.project_files_service import import_project_from_disk
+                import_project_from_disk(project)
+            except Exception as sync_err:
+                logger.warning(f"Failed to sync new project files to database: {sync_err}")
+
             return project
         except Exception as e:
             logger.error(f"Error creating project: {str(e)}")

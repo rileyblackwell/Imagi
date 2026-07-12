@@ -114,6 +114,39 @@ class ProjectLayout(models.Model):
         return f"Layout for Project {self.project_id} - User {self.user.username}"
 
 
+class ProjectFile(models.Model):
+    """Database copy of a single file in a user's project.
+
+    The database is the durable store for project files: production serves
+    and edits files from these rows, while development additionally keeps a
+    local working copy on disk (under PROJECTS_ROOT) that mirrors them.
+    Every file mutation — agent tools, builder API endpoints, app
+    scaffolding — writes through to both places via
+    services.project_files_service.
+    """
+    project = models.ForeignKey(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='files',
+    )
+    path = models.CharField(max_length=500)  # project-relative, POSIX separators
+    content = models.TextField(blank=True, default='')
+    file_type = models.CharField(max_length=20, blank=True, default='')
+    size = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'Build_projectfile'
+        unique_together = ['project', 'path']
+        indexes = [
+            models.Index(fields=['project', 'path']),
+        ]
+
+    def __str__(self):
+        return f"{self.path} (project {self.project_id})"
+
+
 # ---------------------------------------------------------------------------
 # Agent models (formerly the Agents sub-app)
 # ---------------------------------------------------------------------------

@@ -121,6 +121,15 @@ class DirectoryService:
                 # os.rmdir only removes empty directories
                 os.rmdir(full_path)
 
+            # Delete the database copies of every file under this directory
+            try:
+                project = self.project or (self.get_project(project_id) if project_id else None)
+                if project:
+                    from .project_files_service import remove_directory
+                    remove_directory(project, dir_path)
+            except Exception as db_error:
+                logger.error(f"Error cleaning up database records for directory {dir_path}: {str(db_error)}")
+
             logger.info(f"Successfully deleted directory: {dir_path}")
             return {
                 'success': True,

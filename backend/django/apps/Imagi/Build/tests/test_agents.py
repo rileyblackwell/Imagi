@@ -12,7 +12,8 @@ import shutil
 import tempfile
 from types import SimpleNamespace
 
-from django.test import SimpleTestCase
+from django.contrib.auth.models import User
+from django.test import SimpleTestCase, TestCase
 
 from apps.Imagi.Build.services.base_agent import (
     AgentContext,
@@ -109,7 +110,30 @@ class ReadFileTests(ToolTestBase):
             read_file_impl(self.project, 'frontend/vuejs/src/Nope.vue')
 
 
-class EditFileTests(ToolTestBase):
+class EditFileTests(TestCase):
+    """Edit tests need the database: edit_file_impl writes through to the
+    ProjectFile copy, so they run against a real Project row."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp(prefix='agents_tools_')
+        self.addCleanup(lambda: shutil.rmtree(self.root, ignore_errors=True))
+        self.user = User.objects.create_user(username='edituser', password='testpass123')
+
+        from apps.Imagi.ProjectManager.models import Project as PMProject
+        self.project = PMProject.objects.create(
+            user=self.user, name="Edit Tools Project", project_path=self.root
+        )
+
+        self._write('frontend/vuejs/src/App.vue', '<template>\n  <div>App</div>\n</template>\n')
+        self._write('backend/django/manage.py', "#!/usr/bin/env python\nprint('manage')\n")
+
+    def _write(self, rel_path, content):
+        full = os.path.join(self.root, rel_path)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return full
+
     def test_edit_replaces_unique_string(self):
         result = edit_file_impl(
             self.project,

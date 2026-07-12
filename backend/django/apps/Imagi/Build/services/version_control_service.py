@@ -300,7 +300,15 @@ class VersionControlService:
             
             if reset_result.returncode != 0:
                 return {'success': False, 'message': f"Error resetting to commit {commit_hash}: {reset_result.stderr}"}
-            
+
+            # The reset rewrote the working copy wholesale — bring the
+            # database copy of the project files back in sync with disk.
+            try:
+                from .project_files_service import import_project_from_disk
+                import_project_from_disk(project)
+            except Exception as sync_error:
+                logger.error(f"Project reset succeeded but database re-sync failed: {sync_error}")
+
             return {'success': True, 'message': f'Successfully reset project to version {commit_hash}'}
             
         except Exception as e:
