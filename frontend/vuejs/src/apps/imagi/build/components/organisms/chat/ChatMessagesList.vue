@@ -17,24 +17,24 @@
       >
         <!-- User Message -->
         <div v-if="message.role === 'user'">
-          <div class="message-label text-gray-500 dark:text-gray-400">You</div>
-          <div class="message-content text-gray-900 dark:text-white">
+          <div class="message-label text-blue-950/50 dark:text-blue-100/50">You</div>
+          <div class="message-content text-blue-950 dark:text-white">
             <p class="whitespace-pre-wrap text-sm leading-relaxed">{{ message.content }}</p>
           </div>
         </div>
         
         <!-- Assistant Message -->
         <div v-else>
-          <div class="message-label text-gray-500 dark:text-gray-400">Imagi</div>
-          <div class="message-content text-gray-900 dark:text-white">
+          <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
+          <div class="message-content text-blue-950 dark:text-white">
             <p class="whitespace-pre-wrap text-sm leading-relaxed">{{ message.content }}</p>
-            
+
             <!-- Code Block if exists -->
-            <div 
-              v-if="message.code" 
-              class="mt-3 p-3 bg-gray-100 dark:bg-gray-900 rounded-md overflow-x-auto"
+            <div
+              v-if="message.code"
+              class="mt-3 p-3 bg-blue-50 dark:bg-slate-900/80 border border-blue-200/70 dark:border-white/10 rounded-md overflow-x-auto"
             >
-              <pre class="text-sm text-gray-800 dark:text-gray-300"><code>{{ message.code }}</code></pre>
+              <pre class="text-sm text-blue-950/90 dark:text-blue-100/80"><code>{{ message.code }}</code></pre>
             </div>
           </div>
         </div>
@@ -43,7 +43,7 @@
     
     <!-- Loading Indicator -->
     <div v-if="isLoading" class="message-block message-assistant">
-      <div class="message-label text-gray-500 dark:text-gray-400">Imagi</div>
+      <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
       <div class="message-content">
         <div class="typing-indicator">
           <span></span>
@@ -93,15 +93,15 @@ onUpdated(() => {
 }
 
 .dark .message-user {
-  background-color: #000000;
+  background-color: #0a0a0a;
 }
 
 .message-assistant {
-  background-color: #f8fafc;
+  background-color: #f2f7ff;
 }
 
 .dark .message-assistant {
-  background-color: #1a1a1a;
+  background-color: #101722;
 }
 
 .message-label {
@@ -138,14 +138,14 @@ onUpdated(() => {
 .typing-indicator span {
   height: 5px;
   width: 5px;
-  background: #9ca3af;
+  background: #60a5fa;
   display: block;
   border-radius: 50%;
   animation: typing 1.4s infinite ease-in-out both;
 }
 
 .dark .typing-indicator span {
-  background: #6b7280;
+  background: #93c5fd;
 }
 
 .typing-indicator span:nth-child(1) {

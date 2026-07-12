@@ -3,8 +3,8 @@
     :class="[
       'group relative rounded-lg border px-2.5 py-2 cursor-pointer transition-all duration-200',
       isActive
-        ? 'border-indigo-400 dark:border-indigo-500/60 bg-indigo-50/70 dark:bg-indigo-500/[0.08] shadow-sm'
-        : 'border-gray-200 dark:border-white/[0.06] bg-gray-50/50 hover:bg-gray-100 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]',
+        ? 'border-blue-300 dark:border-blue-400/50 bg-blue-50/80 dark:bg-blue-400/[0.08] shadow-sm'
+        : 'border-blue-100 dark:border-white/[0.06] bg-blue-50/40 hover:bg-blue-50 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]',
       isArchived ? 'opacity-75' : ''
     ]"
     @click="emit('select')"
@@ -17,7 +17,7 @@
           ref="titleInput"
           v-model="draftTitle"
           type="text"
-          class="w-full bg-transparent text-xs font-semibold text-gray-900 dark:text-white/90 border-b border-indigo-400 outline-none"
+          class="w-full bg-transparent text-xs font-semibold text-blue-950 dark:text-white/90 border-b border-blue-400 outline-none"
           @click.stop
           @keydown.enter.prevent="commitRename"
           @keydown.escape="cancelRename"
@@ -25,13 +25,13 @@
         />
         <div
           v-else
-          class="text-xs font-semibold text-gray-900 dark:text-white/90 truncate"
+          class="text-xs font-semibold text-blue-950 dark:text-white/90 truncate"
         >
           {{ instance.title || 'Untitled instance' }}
         </div>
-        <div class="flex items-center gap-1.5 mt-1 text-[10px] text-gray-400 dark:text-white/40">
+        <div class="flex items-center gap-1.5 mt-1 text-[10px] text-blue-950/40 dark:text-white/40">
           <span>{{ relativeTime(instance.updatedAt) }}</span>
-          <span v-if="instance.isProcessing" class="ml-1 flex items-center gap-1 text-indigo-500 dark:text-indigo-300">
+          <span v-if="instance.isProcessing" class="ml-1 flex items-center gap-1 text-blue-600 dark:text-blue-300">
             <i class="fas fa-circle-notch fa-spin text-[9px]"></i>
             <span>running</span>
           </span>
@@ -42,8 +42,8 @@
       <div ref="menuRef" class="relative shrink-0" @click.stop>
         <button
           :class="[
-            'w-6 h-6 flex items-center justify-center rounded transition-opacity hover:bg-gray-200 dark:hover:bg-white/[0.08] text-gray-500 dark:text-white/60',
-            menuOpen ? 'opacity-100 bg-gray-200 dark:bg-white/[0.08]' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+            'w-6 h-6 flex items-center justify-center rounded transition-opacity hover:bg-blue-100 dark:hover:bg-white/[0.08] text-blue-950/50 dark:text-white/60',
+            menuOpen ? 'opacity-100 bg-blue-100 dark:bg-white/[0.08]' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
           ]"
           title="Options"
           @click.stop="toggleMenu"
@@ -52,7 +52,7 @@
         </button>
         <div
           v-if="menuOpen"
-          class="absolute right-0 top-full mt-1 z-50 min-w-[130px] rounded-md border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#161616] shadow-lg py-1"
+          class="absolute right-0 top-full mt-1 z-50 min-w-[130px] rounded-md border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#161616] shadow-lg py-1"
         >
           <button class="menu-item" @click.stop="onRename">
             <i class="fas fa-pen menu-item-icon"></i>
@@ -184,12 +184,12 @@ function relativeTime(iso: string): string {
   font-size: 0.6875rem;
   font-weight: 500;
   text-align: left;
-  color: rgb(55, 65, 81);
+  color: rgb(23, 37, 84);
   transition: background-color 0.15s ease;
 }
 
 .menu-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(59, 130, 246, 0.08);
 }
 
 .dark .menu-item {
@@ -220,7 +220,7 @@ function relativeTime(iso: string): string {
   width: 0.875rem;
   font-size: 0.625rem;
   text-align: center;
-  color: rgba(107, 114, 128, 0.9);
+  color: rgba(37, 99, 235, 0.75);
 }
 
 .menu-item--danger .menu-item-icon {

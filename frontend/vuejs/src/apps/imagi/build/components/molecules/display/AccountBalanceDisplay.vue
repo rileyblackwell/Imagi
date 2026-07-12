@@ -139,10 +139,10 @@ onBeforeUnmount(() => {
 
 .text-wrap { display: flex; flex-direction: column; gap: 0.125rem; min-width: 5.5rem; }
 .label-row { display: flex; align-items: center; gap: 0.3rem; }
-.label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0, 0, 0, 0.5); font-weight: 600; }
+.label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(23, 37, 84, 0.55); font-weight: 600; }
 .value-row { display: flex; align-items: center; gap: 0.25rem; }
 .value {
-  color: rgba(0, 0, 0, 0.9);
+  color: rgb(23, 37, 84);
   font-weight: 700;
   font-size: 1rem;
   line-height: 1;

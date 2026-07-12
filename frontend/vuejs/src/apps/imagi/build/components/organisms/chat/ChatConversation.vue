@@ -15,8 +15,8 @@
               class="message-block message-user"
               :class="{ 'animate-message-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <div class="message-label text-gray-500 dark:text-gray-400">You</div>
-              <div class="message-content text-gray-900 dark:text-white">
+              <div class="message-label text-blue-950/50 dark:text-blue-100/50">You</div>
+              <div class="message-content text-blue-950 dark:text-white">
                 <p class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ message.content }}</p>
               </div>
             </div>
@@ -26,7 +26,7 @@
               class="message-block message-assistant"
               :class="{ 'animate-message-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <div class="message-label text-gray-500 dark:text-gray-400">Imagi</div>
+              <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
               <div class="message-content">
                 <div 
                   class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm"
@@ -41,7 +41,7 @@
               class="flex justify-center my-4" 
               :class="{ 'animate-fade-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <span class="text-xs text-gray-400 dark:text-gray-500 px-3 py-1">{{ message.content }}</span>
+              <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
             </div>
             
             <!-- Other message types -->
@@ -49,13 +49,13 @@
               class="flex justify-center my-4" 
               :class="{ 'animate-message-in': message.isNew }" 
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <span class="text-xs text-gray-400 dark:text-gray-500 px-3 py-1">{{ message.content }}</span>
+              <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
             </div>
           </template>
           
           <!-- "AI is typing" indicator -->
           <div v-if="props.isProcessing" class="message-block message-assistant animate-fade-in">
-            <div class="message-label text-gray-500 dark:text-gray-400">Imagi</div>
+            <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
             <div class="message-content">
               <div class="flex items-center gap-3">
                 <div class="typing-indicator">
@@ -63,7 +63,7 @@
                   <span></span>
                   <span></span>
                 </div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Working...</span>
+                <span class="text-sm text-blue-950/50 dark:text-blue-100/50">Working...</span>
               </div>
             </div>
           </div>
@@ -249,15 +249,15 @@ const copyToClipboard = (code: string) => {
 }
 
 .dark .message-user {
-  background-color: #000000;
+  background-color: #0a0a0a;
 }
 
 .message-assistant {
-  background-color: #f8fafc;
+  background-color: #f2f7ff;
 }
 
 .dark .message-assistant {
-  background-color: #1a1a1a;
+  background-color: #101722;
 }
 
 .message-label {
@@ -277,16 +277,16 @@ const copyToClipboard = (code: string) => {
 .prose {
   font-size: 0.875rem;
   line-height: 1.6;
-  color: theme('colors.gray.900');
+  color: theme('colors.blue.950');
 }
 
 .dark .prose {
-  color: theme('colors.gray.100');
+  color: rgba(219, 234, 254, 0.85);
 }
 
 .prose pre {
-  background: theme('colors.gray.100');
-  border: 1px solid theme('colors.gray.200');
+  background: theme('colors.blue.50');
+  border: 1px solid rgba(191, 219, 254, 0.7);
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 1rem 0;
@@ -299,18 +299,18 @@ const copyToClipboard = (code: string) => {
 }
 
 .prose code {
-  color: theme('colors.gray.800');
-  background: theme('colors.gray.100');
+  color: theme('colors.orange.700');
+  background: theme('colors.orange.50');
   padding: 0.125rem 0.375rem;
   border-radius: 0.375rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  border: 1px solid theme('colors.gray.200');
+  border: 1px solid rgba(254, 215, 170, 0.7);
 }
 
 .dark .prose code {
-  color: theme('colors.amber.300');
-  background: rgba(31, 41, 55, 0.7);
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: theme('colors.orange.300');
+  background: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.2);
 }
 
 .prose p {
@@ -325,11 +325,11 @@ const copyToClipboard = (code: string) => {
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   font-weight: 600;
-  color: theme('colors.gray.900');
+  color: theme('colors.blue.950');
 }
 
 .dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 {
-  color: theme('colors.gray.100');
+  color: theme('colors.white');
 }
 
 .prose ul, .prose ol {
@@ -410,14 +410,14 @@ const copyToClipboard = (code: string) => {
 .typing-indicator span {
   height: 5px;
   width: 5px;
-  background: theme('colors.gray.400');
+  background: theme('colors.blue.400');
   display: block;
   border-radius: 50%;
   animation: typing 1.4s infinite ease-in-out both;
 }
 
 .dark .typing-indicator span {
-  background: theme('colors.gray.500');
+  background: theme('colors.blue.300');
 }
 
 .typing-indicator span:nth-child(1) {
@@ -450,14 +450,14 @@ const copyToClipboard = (code: string) => {
 .prose-invert h4,
 .prose-invert h5,
 .prose-invert h6 {
-  color: theme('colors.gray.100');
+  color: theme('colors.white');
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
 .prose-invert p {
-  color: theme('colors.gray.300');
+  color: rgba(219, 234, 254, 0.8);
   line-height: 1.6;
   margin-bottom: 0.75rem;
 }
@@ -472,17 +472,17 @@ const copyToClipboard = (code: string) => {
 }
 
 .prose-invert code {
-  color: theme('colors.amber.300');
-  background-color: rgba(31, 41, 55, 0.7);
+  color: theme('colors.orange.300');
+  background-color: rgba(251, 146, 60, 0.1);
   padding: 0.2rem 0.4rem;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 146, 60, 0.2);
 }
 
 .prose-invert blockquote {
-  color: theme('colors.gray.400');
-  border-left-color: theme('colors.gray.600');
+  color: rgba(191, 219, 254, 0.7);
+  border-left-color: rgba(59, 130, 246, 0.5);
   border-left-width: 4px;
   padding-left: 1rem;
   font-style: italic;
@@ -491,7 +491,7 @@ const copyToClipboard = (code: string) => {
 
 .prose-invert ul,
 .prose-invert ol {
-  color: theme('colors.gray.300');
+  color: rgba(219, 234, 254, 0.8);
   margin-left: 1.5rem;
   margin-bottom: 1rem;
 }
@@ -502,13 +502,13 @@ const copyToClipboard = (code: string) => {
 }
 
 .prose-invert a {
-  color: theme('colors.gray.400');
+  color: theme('colors.blue.300');
   text-decoration: underline;
-  text-decoration-color: rgba(156, 163, 175, 0.4);
+  text-decoration-color: rgba(147, 197, 253, 0.4);
 }
 
 .prose-invert a:hover {
-  color: theme('colors.gray.300');
-  text-decoration-color: rgba(209, 213, 219, 0.6);
+  color: theme('colors.blue.200');
+  text-decoration-color: rgba(191, 219, 254, 0.6);
 }
 </style> 
