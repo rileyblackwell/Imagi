@@ -2,9 +2,9 @@
 API views for the Build app.
 
 Contains the builder workspace endpoints (files, directories, preview,
-version control, app creation, layout) and the agent endpoints (chat,
-agent mode, conversation CRUD), merged from the former Builder and
-Agents sub-apps.
+version control, app creation, layout) and the agent endpoints (the
+Imagi agent plus conversation CRUD), merged from the former Builder
+and Agents sub-apps.
 """
 
 import json
@@ -879,7 +879,7 @@ class ProjectLayoutView(APIView):
 
 
 # ---------------------------------------------------------------------------
-# Agent endpoints (chat, agent mode, conversation CRUD)
+# Agent endpoints (the Imagi agent, conversation CRUD)
 # ---------------------------------------------------------------------------
 
 def resolve_model(model):
@@ -949,91 +949,13 @@ def cors_preflight(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def chat(request):
-    """
-    Chat with an AI agent using the OpenAI Agents SDK.
-    
-    This endpoint accepts a prompt and generates a response using the selected
-    GPT 5.6 suite model (Sol, Terra, or Luna).
-    The conversation is threaded if a conversation_id is provided.
-    """
-    try:
-        # Extract request data
-        message = request.data.get('message')
-        model = request.data.get('model', DEFAULT_MODEL)
-        reasoning_effort = request.data.get('reasoning_effort')
-        conversation_id = request.data.get('conversation_id')
-        project_id = request.data.get('project_id')
-        current_file = request.data.get('current_file')
-
-        logger.info(f"Chat API request - Model: {model}, Project ID: {project_id}")
-
-        # Validate required fields
-        if not message:
-            return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
-
-        # Use the selected GPT 5.6 suite model (falls back to default if invalid)
-        model = resolve_model(model)
-
-        # Ensure project_id is an integer if provided
-        if project_id:
-            try:
-                project_id = int(project_id)
-            except (ValueError, TypeError):
-                project_id = None
-
-        # Ensure conversation_id is an integer if provided
-        if conversation_id:
-            try:
-                conversation_id = int(conversation_id)
-            except (ValueError, TypeError):
-                conversation_id = None
-
-        # Create agent service instance
-        agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
-
-        logger.info(f"Chat request: message length={len(message)}, model={model}, effort={reasoning_effort}, project_id={project_id}")
-
-        # Process the chat message
-        result = agent_service.process_chat(
-            user_input=message,
-            user=request.user,
-            model=model,
-            project_id=project_id,
-            current_file=current_file,
-            conversation_id=conversation_id,
-            reasoning_effort=reasoning_effort,
-        )
-        
-        # Check for success
-        if not result.get('success', False):
-            error_message = result.get('error', 'Error processing message')
-            return create_error_response(error_message, status.HTTP_400_BAD_REQUEST)
-        
-        # Format the response
-        response_data = {
-            'conversation_id': result.get('conversation_id'),
-            'response': result.get('response', ''),
-            'single_message': result.get('single_message', True),
-        }
-        
-        return Response(response_data, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        logger.error(f"Error in chat API: {str(e)}")
-        logger.error(traceback.format_exc())
-        return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def agent(request):
     """
-    Process a message using the Coding Agent (agent mode).
+    Process a message with the Imagi agent.
 
-    The coding agent can both chat and edit project files using function tools
-    from the OpenAI Agents SDK. It autonomously decides when to read/write files
-    versus just responding conversationally.
+    The single Imagi agent both chats and edits project files using function
+    tools from the OpenAI Agents SDK. It autonomously decides when to
+    read/write files versus just responding conversationally.
     """
     try:
         message = request.data.get('message')
@@ -1049,7 +971,7 @@ def agent(request):
             return create_error_response('Message is required', status.HTTP_400_BAD_REQUEST)
 
         if not project_id:
-            return create_error_response('Project ID is required for agent mode', status.HTTP_400_BAD_REQUEST)
+            return create_error_response('Project ID is required', status.HTTP_400_BAD_REQUEST)
 
         # Use the selected GPT 5.6 suite model (falls back to default if invalid)
         model = resolve_model(model)
@@ -1072,8 +994,8 @@ def agent(request):
 
         logger.info(f"Agent request: message length={len(message)}, model={model}, effort={reasoning_effort}, project_id={project_id}")
 
-        # Process the message with the coding agent
-        result = agent_service.process_agent(
+        # Process the message with the Imagi agent
+        result = agent_service.process(
             user_input=message,
             user=request.user,
             model=model,
@@ -1116,7 +1038,6 @@ def _serialize_conversation(conversation):
     return {
         'id': conversation.id,
         'title': conversation.title or '',
-        'mode': conversation.mode,
         'model_name': conversation.model_name,
         'project_id': conversation.project_id,
         'archived_at': conversation.archived_at.isoformat() if conversation.archived_at else None,
@@ -1144,7 +1065,6 @@ def conversations_list_create(request):
     # POST -> create
     try:
         project_id = request.data.get('project_id')
-        mode = request.data.get('mode') or 'chat'
         model_name = request.data.get('model_name') or DEFAULT_MODEL
         title = (request.data.get('title') or '').strip()[:120]
 
@@ -1154,15 +1074,11 @@ def conversations_list_create(request):
             except (ValueError, TypeError):
                 return create_error_response('Invalid project_id', status.HTTP_400_BAD_REQUEST)
 
-        if mode not in ('chat', 'agent'):
-            mode = 'chat'
-
         agent_service = ImagiAgentService(model=model_name)
         conversation = agent_service.create_conversation(
             user=request.user,
             model=model_name,
             project_id=project_id,
-            mode=mode,
             title=title,
         )
         return Response(_serialize_conversation(conversation), status=status.HTTP_201_CREATED)
@@ -1192,11 +1108,6 @@ def conversation_detail(request, conversation_id):
     if 'title' in request.data:
         conversation.title = (request.data.get('title') or '').strip()[:120]
         updated_fields.append('title')
-    if 'mode' in request.data:
-        new_mode = request.data.get('mode')
-        if new_mode in ('chat', 'agent'):
-            conversation.mode = new_mode
-            updated_fields.append('mode')
     if 'model_name' in request.data:
         conversation.model_name = request.data.get('model_name') or conversation.model_name
         updated_fields.append('model_name')

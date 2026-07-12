@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 # Get model IDs and names from centralized model definitions
 _model_choices = [(model_id, model_data['name']) for model_id, model_data in MODELS.items()]
 
+# A single unified agent handles all conversations now. 'chat' remains a
+# valid stored value for conversations created before the modes were merged.
 MODE_CHOICES = (
     ('chat', 'Chat'),
     ('agent', 'Agent'),
@@ -124,7 +126,7 @@ class AgentConversation(models.Model):
     provider = models.CharField(max_length=20, choices=get_provider_choices(), default=get_default_provider())
     project_id = models.IntegerField(null=True, blank=True)  # Store reference to ProjectManager's Project ID
     title = models.CharField(max_length=120, blank=True, default='')
-    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='chat')
+    mode = models.CharField(max_length=10, choices=MODE_CHOICES, default='agent')
     archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

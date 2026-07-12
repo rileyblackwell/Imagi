@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { AIModel, AIMessage, AgentInstance, ConversationDto, ReasoningEffort } from '../types/services'
 import { DEFAULT_REASONING_EFFORT } from '../types/services'
 import type { AgentState } from '../types/stores'
-import type { BuilderMode, ProjectFile } from '../types/components'
+import type { ProjectFile } from '../types/components'
 import { FileService } from '../services/fileService'
 import { AgentService } from '../services/agentService'
 
@@ -17,7 +17,6 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     id: newLocalId(),
     conversationId: dto.id,
     title: dto.title || '',
-    mode: dto.mode,
     selectedModelId: dto.model_name || fallbackModelId,
     selectedEffort: DEFAULT_REASONING_EFFORT,
     selectedFile: null,
@@ -62,9 +61,6 @@ export const useAgentStore = defineStore('agent', {
     },
 
     // Back-compat getters delegating to active instance
-    mode(): BuilderMode {
-      return (this.activeInstance?.mode ?? 'chat') as BuilderMode
-    },
     selectedModelId(): string | null {
       return this.activeInstance?.selectedModelId ?? null
     },
@@ -145,13 +141,12 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    async createInstance(opts: { mode?: BuilderMode; modelId?: string } = {}) {
+    async createInstance(opts: { modelId?: string } = {}) {
       if (!this.projectId) return null
       const fallbackModel = opts.modelId
         || this.availableModels[0]?.id
         || DEFAULT_MODEL_ID
       const dto = await AgentService.createConversation(this.projectId, {
-        mode: opts.mode ?? 'chat',
         modelName: fallbackModel,
       })
       const instance = dtoToInstance(dto, fallbackModel)
@@ -245,17 +240,6 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    setInstanceMode(instanceId: string, mode: BuilderMode) {
-      const instance = this._findInstance(instanceId)
-      if (!instance) return
-      if (instance.mode === mode) return
-      instance.mode = mode
-      if (instance.conversationId) {
-        AgentService.updateConversation(instance.conversationId, { mode })
-          .catch(e => console.error('Failed to persist mode:', e))
-      }
-    },
-
     setInstanceModel(instanceId: string, modelId: string) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
@@ -345,10 +329,6 @@ export const useAgentStore = defineStore('agent', {
     },
 
     // --- Legacy shims (for any callers still using the singleton API) ---
-    setMode(mode: BuilderMode) {
-      if (this.activeInstanceId) this.setInstanceMode(this.activeInstanceId, mode)
-    },
-
     setSelectedModelId(modelId: string) {
       if (this.activeInstanceId) this.setInstanceModel(this.activeInstanceId, modelId)
     },

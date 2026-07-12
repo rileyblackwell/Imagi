@@ -51,21 +51,6 @@
           <!-- Controls toolbar: dropdowns wrap on the left, send stays pinned right -->
           <div class="flex items-end justify-between gap-2 px-2 pb-2 pt-1">
             <div class="flex flex-wrap items-center gap-1.5 min-w-0">
-              <!-- Mode Dropdown -->
-              <div class="dropdown-wrapper" title="Mode">
-                <i :class="['dropdown-icon fas', activeInstance?.mode === 'agent' ? 'fa-robot' : 'fa-comment-dots']"></i>
-                <select
-                  :value="activeInstance?.mode ?? 'chat'"
-                  :disabled="!activeInstance"
-                  aria-label="Conversation mode"
-                  @change="handleModeSwitch(($event.target as HTMLSelectElement).value as BuilderMode)"
-                  class="dropdown-select dropdown-select--with-icon text-xs"
-                >
-                  <option value="chat">Chat</option>
-                  <option value="agent">Agent</option>
-                </select>
-              </div>
-
               <!-- Model Dropdown -->
               <div class="dropdown-wrapper" title="Model">
                 <i class="fas fa-microchip dropdown-icon"></i>
@@ -131,7 +116,6 @@
 import { ref, computed } from 'vue'
 import { useAgentStore } from '../../../stores/agentStore'
 import { ChatConversation } from '../../organisms/chat'
-import type { BuilderMode } from '../../../types/components'
 import type { AIMessage, AIModel } from '../../../types/index'
 import type { ReasoningEffort, ReasoningEffortOption } from '../../../types/services'
 import { REASONING_EFFORTS } from '../../../types/services'
@@ -142,7 +126,6 @@ const props = defineProps<{
   onPromptSubmit: (prompt: string) => Promise<void>
   onModelSelect: (modelId: string) => Promise<void>
   onEffortSelect: (effort: ReasoningEffort) => Promise<void>
-  onModeSwitch: (mode: BuilderMode) => Promise<void>
   onExamplePrompt: (example: string) => void
   isCollapsed?: boolean
   isManagerOpen?: boolean
@@ -188,12 +171,7 @@ function getItemKind(path: string): string {
   return 'item'
 }
 
-const promptPlaceholder = computed(() => {
-  if (activeInstance.value?.mode === 'agent') {
-    return 'Ask me to edit files or chat about your project...'
-  }
-  return 'What would you like to build today?'
-})
+const promptPlaceholder = computed(() => 'Ask me to build, edit, or explain anything in your project...')
 
 // Methods
 function ensureValidMessages(messages: any[]): AIMessage[] {
@@ -265,10 +243,6 @@ async function handleModelSelect(modelId: string) {
 
 async function handleEffortSelect(effort: ReasoningEffort) {
   await props.onEffortSelect(effort)
-}
-
-async function handleModeSwitch(mode: BuilderMode) {
-  await props.onModeSwitch(mode)
 }
 </script>
 

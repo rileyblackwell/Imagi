@@ -1,10 +1,9 @@
 <!--
   Workspace.vue - Project Editing Interface
-  
+
   This component is responsible for:
   1. Loading an existing project's files and data
-  2. Supporting chat mode for AI interaction
-  3. Editing project files through AI assistance
+  2. Chatting with the Imagi agent, which edits project files directly
 -->
 <template>
   <div class="relative">
@@ -26,7 +25,6 @@
             :on-prompt-submit="handlePrompt"
             :on-model-select="handleModelSelect"
             :on-effort-select="handleEffortSelect"
-            :on-mode-switch="handleModeSwitch"
             :on-example-prompt="handleExamplePrompt"
             :is-collapsed="false"
             :is-manager-open="isManagerOpen"
@@ -61,7 +59,6 @@ import { ref, onMounted, computed, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
-import useChatMode from '../composables/useChatMode'
 import { useProjectStore } from '../stores/projectStore'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
@@ -88,7 +85,7 @@ import AgentManagerPanel from '../components/organisms/sidebar/AgentManagerPanel
 defineOptions({ name: 'Workspace' })
 
 // Types
-import type { ProjectFile, BuilderMode } from '../types/components'
+import type { ProjectFile } from '../types/components'
 import type { AIMessage } from '../types/index'
 import type { ReasoningEffort } from '../types/services'
 import { matchesSlug, toSlug } from '../utils/slug'
@@ -105,7 +102,6 @@ const {
   createFile,
   loadModels,
 } = useBuilderMode()
-const {} = useChatMode()
 
 // Constants
 const fileTypes = {
@@ -278,55 +274,11 @@ async function handlePrompt(promptText: string) {
     const isUserAuthenticated = await useAuthStore().validateAuth()
     if (!isUserAuthenticated) return
 
-    if (instance.mode === 'agent') {
-      try {
-        const response = await AgentService.processAgent(projectId.value, {
-          prompt: promptText,
-          model: instance.selectedModelId,
-          reasoningEffort: instance.selectedEffort,
-          file: instance.selectedFile,
-          conversationId: conversationIdBefore ?? undefined
-        })
-
-        if ((response as any).conversation_id && !instance.conversationId) {
-          store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
-        }
-
-        if (response.response) {
-          store.addMessageToInstance(instanceId, {
-            role: 'assistant',
-            content: response.response,
-            timestamp: new Date().toISOString(),
-            id: `assistant-response-${Date.now()}`
-          })
-        }
-
-        if (response.files_changed && response.files_changed.length > 0) {
-          for (const changedPath of response.files_changed) {
-            try {
-              const files = await FileService.getProjectFiles(projectId.value)
-              store.setFiles(files)
-            } catch (refreshError) {
-              console.warn('Error refreshing files after agent edit:', refreshError)
-            }
-            createCommitFromPrompt(changedPath, promptText)
-          }
-        }
-      } catch (agentError) {
-        console.error('Error in agent mode:', agentError)
-        store.addMessageToInstance(instanceId, {
-          role: 'assistant',
-          content: `Error: ${agentError instanceof Error ? agentError.message : 'Unknown error'}`,
-          timestamp: new Date().toISOString(),
-          id: `system-error-${Date.now()}`
-        })
-      }
-    } else {
-      const response = await AgentService.processChat(projectId.value, {
+    try {
+      const response = await AgentService.processAgent(projectId.value, {
         prompt: promptText,
         model: instance.selectedModelId,
         reasoningEffort: instance.selectedEffort,
-        mode: 'chat',
         file: instance.selectedFile,
         conversationId: conversationIdBefore ?? undefined
       })
@@ -335,12 +287,7 @@ async function handlePrompt(promptText: string) {
         store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
       }
 
-      const normalize = (txt: string | undefined) => (txt || '').trim().replace(/\s+/g, ' ')
-      const newContent = normalize(response.response)
-      const currentConvo = store.instances.find(i => i.id === instanceId)?.conversation ?? []
-      const lastAssistant = [...currentConvo].reverse().find(m => m.role === 'assistant')
-      const lastContent = normalize(lastAssistant?.content)
-      if (!lastAssistant || newContent !== lastContent) {
+      if (response.response) {
         store.addMessageToInstance(instanceId, {
           role: 'assistant',
           content: response.response,
@@ -348,6 +295,26 @@ async function handlePrompt(promptText: string) {
           id: `assistant-response-${Date.now()}`
         })
       }
+
+      if (response.files_changed && response.files_changed.length > 0) {
+        for (const changedPath of response.files_changed) {
+          try {
+            const files = await FileService.getProjectFiles(projectId.value)
+            store.setFiles(files)
+          } catch (refreshError) {
+            console.warn('Error refreshing files after agent edit:', refreshError)
+          }
+          createCommitFromPrompt(changedPath, promptText)
+        }
+      }
+    } catch (agentError) {
+      console.error('Error processing agent request:', agentError)
+      store.addMessageToInstance(instanceId, {
+        role: 'assistant',
+        content: `Error: ${agentError instanceof Error ? agentError.message : 'Unknown error'}`,
+        timestamp: new Date().toISOString(),
+        id: `system-error-${Date.now()}`
+      })
     }
 
     try {
@@ -379,24 +346,6 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   const instance = store.activeInstance
   if (!instance) return
   store.setInstanceEffort(instance.id, effort)
-}
-
-async function handleModeSwitch(mode: BuilderMode) {
-  const instance = store.activeInstance
-  if (!instance) return
-  if (instance.mode === mode) return
-
-  store.setInstanceMode(instance.id, mode)
-
-  if (instance.conversation.length > 0) {
-    store.addMessageToInstance(instance.id, {
-      role: 'system',
-      content: `Switched to ${mode === 'agent' ? 'agent' : 'chat'} mode`,
-      timestamp: new Date().toISOString(),
-      id: `system-mode-change-${Date.now()}`
-    })
-    await nextTick()
-  }
 }
 
 async function handleFileSelect(file: ProjectFile) {

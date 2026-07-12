@@ -11,14 +11,7 @@
   >
     <!-- Title row -->
     <div class="flex items-start gap-2">
-      <i
-        :class="[
-          'text-[10px] mt-0.5 shrink-0',
-          instance.mode === 'agent'
-            ? 'fas fa-robot text-purple-500 dark:text-purple-400'
-            : 'fas fa-comment-dots text-indigo-500 dark:text-indigo-400'
-        ]"
-      ></i>
+      <i class="fas fa-robot text-purple-500 dark:text-purple-400 text-[10px] mt-0.5 shrink-0"></i>
       <div class="flex-1 min-w-0">
         <input
           v-if="isEditing"

@@ -22,7 +22,6 @@ from .views import (
     CreateDirectoryView,
     DeleteDirectoryView,
     # Agent views
-    chat,
     agent,
     conversations_list_create,
     conversation_detail,
@@ -56,7 +55,6 @@ builder_patterns = [
 ]
 
 agents_patterns = [
-    path('chat/', chat, name='chat'),
     path('agent/', agent, name='agent'),
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),

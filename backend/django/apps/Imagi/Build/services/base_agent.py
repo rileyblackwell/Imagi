@@ -14,7 +14,7 @@ from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
 
-from agents import Agent, Runner, handoff, RunConfig
+from agents import Agent, Runner, RunConfig
 
 try:  # ModelSettings location can vary across SDK versions
     from agents import ModelSettings
@@ -25,8 +25,6 @@ try:  # Reasoning config for the OpenAI Responses API
     from openai.types.shared import Reasoning
 except ImportError:  # pragma: no cover - defensive fallback
     Reasoning = None
-
-from agents.extensions.handoff_prompt import RECOMMENDED_PROMPT_PREFIX
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -45,10 +43,9 @@ OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None
 # Default model for agents
 DEFAULT_MODEL = "gpt-5.6-sol"
 
-# Upper bound on agent-loop iterations for a single request. Chat mode has no
-# tools so it resolves in one turn; agent mode gets room for plan → search →
-# read → edit → verify cycles without letting a confused run spin forever.
-MAX_CHAT_TURNS = 6
+# Upper bound on agent-loop iterations for a single request: room for
+# plan → search → read → edit → verify cycles without letting a confused
+# run spin forever.
 MAX_AGENT_TURNS = 30
 
 # Character budget for conversation history sent to the model. When exceeded,
@@ -162,19 +159,17 @@ class AgentContext:
     project_path: Optional[str] = None
     conversation_id: Optional[int] = None
     current_file: Optional[Dict[str, Any]] = None
-    mode: str = "chat"
     # Working plan maintained by the agent via the update_plan tool
     plan: List[Dict[str, str]] = field(default_factory=list)
 
 
 class ImagiAgentService:
     """
-    Main agent service for the Imagi workspace using OpenAI Agents SDK.
+    Agent service for the Imagi workspace using OpenAI Agents SDK.
 
-    This service handles:
-    - Agent orchestration and handoffs
-    - Conversation persistence
-    - Integration with Django models
+    A single agent (the Imagi agent) handles everything — conversation and
+    file editing alike. This service owns conversation persistence, context
+    construction, and the run loop around that agent.
     """
 
     def __init__(self, model: str = DEFAULT_MODEL, reasoning_effort: Optional[str] = None):
@@ -188,9 +183,7 @@ class ImagiAgentService:
         """
         self.model = model
         self.reasoning_effort = reasoning_effort
-        self._chat_agent = None
-        self._coding_agent = None
-        self._orchestrator_agent = None
+        self._agent = None
 
         # Verify API key is available
         if not OPENAI_API_KEY:
@@ -200,90 +193,18 @@ class ImagiAgentService:
             os.environ['OPENAI_API_KEY'] = OPENAI_API_KEY
 
     def _apply_reasoning_effort(self, reasoning_effort: Optional[str]) -> None:
-        """Update the reasoning effort, invalidating cached agents if it changed."""
+        """Update the reasoning effort, invalidating the cached agent if it changed."""
         if reasoning_effort is not None and reasoning_effort != self.reasoning_effort:
             self.reasoning_effort = reasoning_effort
-            self._chat_agent = None
-            self._coding_agent = None
-            self._orchestrator_agent = None
+            self._agent = None
 
     @property
-    def coding_agent(self) -> Agent:
-        """Lazy-load the coding agent."""
-        if self._coding_agent is None:
+    def agent(self) -> Agent:
+        """Lazy-load the Imagi agent."""
+        if self._agent is None:
             from .coding_agent import create_coding_agent
-            self._coding_agent = create_coding_agent(self.model, self.reasoning_effort)
-        return self._coding_agent
-
-    @property
-    def chat_agent(self) -> Agent:
-        """Lazy-load the chat agent."""
-        if self._chat_agent is None:
-            from .chat_agent import create_chat_agent
-            self._chat_agent = create_chat_agent(self.model, self.reasoning_effort)
-        return self._chat_agent
-
-    @property
-    def orchestrator_agent(self) -> Agent:
-        """
-        Get or create the main orchestrator agent.
-
-        The orchestrator can hand off to specialized sub-agents.
-        """
-        if self._orchestrator_agent is None:
-            self._orchestrator_agent = self._create_orchestrator_agent()
-        return self._orchestrator_agent
-
-    def _create_orchestrator_agent(self) -> Agent:
-        """Create the main orchestrator agent with handoffs."""
-        instructions = f"""{RECOMMENDED_PROMPT_PREFIX}
-
-You are Imagi, an AI-powered web development assistant. You help users build,
-understand, and improve their web applications.
-
-Your capabilities include:
-1. **Chat Mode**: Have natural conversations about web development, explain concepts,
-   answer questions, and provide guidance on best practices.
-2. **Build Mode** (coming soon): Generate and modify code for Vue.js components,
-   Django templates, and other web development artifacts.
-
-Current Behavior:
-- When the user wants to chat, discuss code, or ask questions, use the chat agent.
-- Be helpful, concise, and provide practical advice.
-- Remember that users may have varying levels of technical expertise.
-
-Technology Stack:
-- Backend: Django with REST framework
-- Frontend: Vue.js 3 with Composition API
-- Styling: TailwindCSS
-- Build tools: Vite
-- State management: Pinia
-- HTTP client: Axios
-"""
-
-        from apps.Imagi.Build.services.models_service import (
-            get_backend_model_id,
-            get_model_identity_instructions,
-        )
-        instructions += "\n\n" + get_model_identity_instructions(self.model)
-        backend_model = get_backend_model_id(self.model)
-        kwargs = {}
-        settings = build_model_settings(self.reasoning_effort)
-        if settings is not None:
-            kwargs['model_settings'] = settings
-        return Agent[AgentContext](
-            name="Imagi Orchestrator",
-            instructions=instructions,
-            model=backend_model,
-            handoffs=[
-                handoff(
-                    agent=self.chat_agent,
-                    tool_description="Hand off to the chat agent for general conversations, "
-                                     "questions, explanations, and guidance about web development."
-                )
-            ],
-            **kwargs
-        )
+            self._agent = create_coding_agent(self.model, self.reasoning_effort)
+        return self._agent
 
     # -------------------------------------------------------------------------
     # Conversation Management
@@ -303,21 +224,20 @@ Technology Stack:
         model: str,
         system_prompt: Optional[str] = None,
         project_id: Optional[int] = None,
-        mode: str = "chat",
         title: str = "",
     ) -> AgentConversation:
         """Create a new conversation."""
-        from .chat_agent import CHAT_AGENT_INSTRUCTIONS
+        from .coding_agent import CODING_AGENT_INSTRUCTIONS
 
         conversation = AgentConversation.objects.create(
             user=user,
             model_name=model,
             project_id=project_id,
-            mode=mode,
+            mode="agent",
             title=title,
         )
 
-        prompt_content = system_prompt or CHAT_AGENT_INSTRUCTIONS
+        prompt_content = system_prompt or CODING_AGENT_INSTRUCTIONS
         SystemPrompt.objects.create(
             conversation=conversation,
             content=prompt_content
@@ -390,12 +310,8 @@ Technology Stack:
     # Main Processing
     # -------------------------------------------------------------------------
 
-    def _run(
+    def process(
         self,
-        agent: Agent,
-        mode: str,
-        workflow_name: str,
-        max_turns: int,
         user_input: str,
         user,
         model: Optional[str] = None,
@@ -404,8 +320,17 @@ Technology Stack:
         conversation_id: Optional[int] = None,
         reasoning_effort: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Shared harness core: persist the message, build context and history,
-        run the agent, and persist + return the structured result."""
+        """
+        Process a message with the Imagi agent.
+
+        The agent both chats and edits project files, deciding on its own when
+        to use tools. Persists the message, builds context and (compacted)
+        history, runs the agent, and returns the response plus run metadata:
+        the files it changed, the tools it called, and its working plan.
+        """
+        if not project_id:
+            return {"success": False, "error": "Project ID is required"}
+
         conversation = None
         try:
             if not user_input:
@@ -419,7 +344,7 @@ Technology Stack:
                 conversation = self.get_conversation(conversation_id, user)
             if conversation is None:
                 conversation = self.create_conversation(
-                    user, model, project_id=project_id, mode=mode
+                    user, model, project_id=project_id
                 )
 
             # Add user message to conversation
@@ -437,7 +362,6 @@ Technology Stack:
                 project_path=project_info["project_path"],
                 conversation_id=conversation.id,
                 current_file=current_file,
-                mode=mode,
             )
 
             # Build (compacted) conversation history, excluding the message we
@@ -451,12 +375,12 @@ Technology Stack:
             input_messages.append({"role": "user", "content": user_input})
 
             result = Runner.run_sync(
-                agent,
+                self.agent,
                 input=input_messages,
                 context=context,
-                max_turns=max_turns,
+                max_turns=MAX_AGENT_TURNS,
                 run_config=RunConfig(
-                    workflow_name=workflow_name,
+                    workflow_name="imagi_agent",
                     trace_metadata={"user_id": str(user.id)}
                 )
             )
@@ -478,7 +402,7 @@ Technology Stack:
             }
 
         except Exception as e:
-            logger.error(f"Error in {workflow_name}: {str(e)}")
+            logger.error(f"Error in imagi_agent run: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
             return {
@@ -486,69 +410,6 @@ Technology Stack:
                 "error": str(e),
                 "conversation_id": conversation.id if conversation else None,
             }
-
-    def process_chat(
-        self,
-        user_input: str,
-        user,
-        model: Optional[str] = None,
-        project_id: Optional[int] = None,
-        current_file: Optional[Dict[str, Any]] = None,
-        conversation_id: Optional[int] = None,
-        reasoning_effort: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Process a chat message using the chat agent (no file tools).
-
-        Returns a dict containing the response and metadata.
-        """
-        return self._run(
-            agent=self.chat_agent,
-            mode="chat",
-            workflow_name="imagi_chat",
-            max_turns=MAX_CHAT_TURNS,
-            user_input=user_input,
-            user=user,
-            model=model,
-            project_id=project_id,
-            current_file=current_file,
-            conversation_id=conversation_id,
-            reasoning_effort=reasoning_effort,
-        )
-
-    def process_agent(
-        self,
-        user_input: str,
-        user,
-        model: Optional[str] = None,
-        project_id: Optional[int] = None,
-        current_file: Optional[Dict[str, Any]] = None,
-        conversation_id: Optional[int] = None,
-        reasoning_effort: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Process a message using the Coding Agent (agent mode).
-
-        The coding agent can both chat and edit project files using function
-        tools. Returns the response plus run metadata: the files it changed,
-        the tools it called, and its working plan.
-        """
-        if not project_id:
-            return {"success": False, "error": "Project ID is required for agent mode"}
-
-        return self._run(
-            agent=self.coding_agent,
-            mode="agent",
-            workflow_name="imagi_agent",
-            max_turns=MAX_AGENT_TURNS,
-            user_input=user_input,
-            user=user,
-            model=model,
-            project_id=project_id,
-            current_file=current_file,
-            conversation_id=conversation_id,
-            reasoning_effort=reasoning_effort,
-        )
 
 
 # Singleton instance
