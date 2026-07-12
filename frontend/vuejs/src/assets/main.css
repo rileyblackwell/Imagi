@@ -10,7 +10,15 @@
 html {
   /* Prevent iOS Safari from inflating text when the toolbar state changes. */
   -webkit-text-size-adjust: 100%;
-  scrollbar-width: thin;
+}
+
+/* Firefox-only thin scrollbars. Chrome 121+ also understands scrollbar-width
+   and, when set, ignores the ::-webkit-scrollbar styling below — so only
+   apply it where the webkit pseudo-elements don't exist. */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+  }
 }
 
 /* Thin, unobtrusive scrollbars (WebKit browsers). */
