@@ -8,7 +8,12 @@ ensuring that model information (IDs, names, costs, etc.) is maintained in a sin
 import logging
 from typing import List, Tuple, Dict, Any
 
+from django.conf import settings
+
 logger = logging.getLogger(__name__)
+
+# Platform defaults for every user's project (see IMAGI_BUILDER in imagi/settings.py)
+_BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
 
 # Centralized Model Definitions
 # The GPT 5.6 suite: three tiers users can choose from when building.
@@ -76,7 +81,7 @@ REASONING_EFFORT_CHOICES = [
     ('high', 'High'),
 ]
 REASONING_EFFORT_IDS = [effort_id for effort_id, _ in REASONING_EFFORT_CHOICES]
-DEFAULT_REASONING_EFFORT = 'medium'
+DEFAULT_REASONING_EFFORT = _BUILDER_SETTINGS.get('DEFAULT_REASONING_EFFORT', 'medium')
 
 # Provider Choices
 PROVIDER_CHOICES = [
@@ -178,11 +183,12 @@ def get_available_models() -> list:
 def get_default_model_id() -> str:
     """
     Get the default model ID to use when none is specified.
-    
+
     Returns:
         str: The default model ID
     """
-    return 'gpt-5.6-sol'
+    default = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-sol')
+    return default if default in MODELS else 'gpt-5.6-sol'
 
 def get_model_display_name(model_id: str) -> str:
     """

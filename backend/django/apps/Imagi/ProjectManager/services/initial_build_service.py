@@ -88,11 +88,10 @@ def _run_initial_build(project_id: int, user_id: int) -> None:
             user,
             service.model,
             project_id=project_id,
-            mode='agent',
             title='Initial build',
         )
 
-        result = service.process_agent(
+        result = service.process(
             user_input=build_initial_prompt(project.name, project.description),
             user=user,
             project_id=project_id,

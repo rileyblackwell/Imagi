@@ -40,13 +40,17 @@ logger = logging.getLogger(__name__)
 # Get API key
 OPENAI_API_KEY = os.getenv('OPENAI_KEY') or getattr(settings, 'OPENAI_KEY', None)
 
+# Platform defaults for every user's project (see IMAGI_BUILDER in
+# imagi/settings.py); fallbacks keep tests and scripts working without it.
+_BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
+
 # Default model for agents
-DEFAULT_MODEL = "gpt-5.6-sol"
+DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-sol')
 
 # Upper bound on agent-loop iterations for a single request: room for
 # plan → search → read → edit → verify cycles without letting a confused
 # run spin forever.
-MAX_AGENT_TURNS = 30
+MAX_AGENT_TURNS = _BUILDER_SETTINGS.get('MAX_AGENT_TURNS', 30)
 
 # Character budget for conversation history sent to the model. When exceeded,
 # older messages are compacted into a short summary (auto-compaction, like

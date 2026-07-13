@@ -361,11 +361,14 @@ class InitialBuildServiceTests(TestCase):
     def _run_with_agent_result(self, result):
         from unittest.mock import Mock
         from apps.Imagi.ProjectManager.services import initial_build_service
+        from apps.Imagi.Build.services.base_agent import ImagiAgentService
 
-        fake_service = Mock()
+        # spec= the real class so this test fails if the service API drifts
+        # (a bare Mock once hid a rename that broke every initial build).
+        fake_service = Mock(spec=ImagiAgentService)
         fake_service.model = 'gpt-5.6-sol'
         fake_service.create_conversation.return_value = Mock(id=42)
-        fake_service.process_agent.return_value = result
+        fake_service.process.return_value = result
 
         with patch(
             'apps.Imagi.Build.services.base_agent.ImagiAgentService',
@@ -384,14 +387,13 @@ class InitialBuildServiceTests(TestCase):
         self.assertIsNotNone(self.project.last_generated_at)
 
         # The prompt must carry the business name and description into the agent.
-        prompt = fake_service.process_agent.call_args.kwargs['user_input']
+        prompt = fake_service.process.call_args.kwargs['user_input']
         self.assertIn('Beanline', prompt)
         self.assertIn('coffee roastery', prompt)
         fake_service.create_conversation.assert_called_once_with(
             self.user,
             'gpt-5.6-sol',
             project_id=self.project.pk,
-            mode='agent',
             title='Initial build',
         )
 
