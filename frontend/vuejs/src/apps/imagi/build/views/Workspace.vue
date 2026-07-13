@@ -35,18 +35,6 @@
         </div>
       </template>
       
-      <!-- Back to projects arrow in navbar left -->
-      <template #navbar-left>
-        <router-link
-          :to="{ name: 'projects' }"
-          class="group ml-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white hover:border-blue-300 dark:hover:border-white/25 transition-colors duration-300"
-          title="Back to projects"
-        >
-          <i class="fas fa-arrow-left text-xs transition-transform duration-200 group-hover:-translate-x-0.5"></i>
-          <span class="hidden sm:inline">Projects</span>
-        </router-link>
-      </template>
-
       <!-- Account balance display in navbar right -->
       <template #navbar-right>
         <div class="flex items-center gap-3">
