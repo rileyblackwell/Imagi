@@ -34,15 +34,7 @@
         AI building
       </span>
       <span
-        v-else-if="tool.status === 'available'"
-        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300"
-        :class="accent.badge"
-      >
-        <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-        Ready
-      </span>
-      <span
-        v-else
+        v-else-if="tool.status !== 'available'"
         class="inline-flex items-center px-2.5 py-1 rounded-full border border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-white/50 transition-colors duration-300"
       >
         Coming soon
