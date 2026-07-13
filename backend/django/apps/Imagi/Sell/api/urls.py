@@ -17,6 +17,12 @@ urlpatterns = [
     path('projects/<int:project_id>/overview/',
          views.OverviewView.as_view(), name='api-sell-overview'),
 
+    # Prebuilt payment pages (dropped into the user's generated project)
+    path('projects/<int:project_id>/templates/',
+         views.PaymentTemplateListView.as_view(), name='api-sell-templates'),
+    path('projects/<int:project_id>/templates/<str:key>/install/',
+         views.PaymentTemplateInstallView.as_view(), name='api-sell-template-install'),
+
     # Catalog
     path('projects/<int:project_id>/products/',
          views.ProductListCreateView.as_view(), name='api-sell-products'),

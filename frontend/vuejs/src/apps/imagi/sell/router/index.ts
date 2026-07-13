@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 import SellWorkspace from '../views/SellWorkspace.vue'
 import SellOverview from '../views/SellOverview.vue'
+import SellPayments from '../views/SellPayments.vue'
 import SellProducts from '../views/SellProducts.vue'
 import SellOrders from '../views/SellOrders.vue'
 import SellCustomers from '../views/SellCustomers.vue'
@@ -32,6 +33,12 @@ const routes: RouteRecordRaw[] = [
         name: 'sell-overview',
         component: SellOverview,
         meta: { requiresAuth: true, title: 'Sell Overview' }
+      },
+      {
+        path: 'payments',
+        name: 'sell-payments',
+        component: SellPayments,
+        meta: { requiresAuth: true, title: 'Payment pages' }
       },
       {
         path: 'products',

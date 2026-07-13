@@ -291,3 +291,12 @@ MARKETING_MAX_CAMPAIGN_RECIPIENTS = int(
 # still record — payment status updates via the manual "sync" action or the
 # success-page poll instead of webhooks.
 SELL_WEBHOOK_BASE_URL = os.environ.get('SELL_WEBHOOK_BASE_URL', MARKETING_WEBHOOK_BASE_URL)
+
+# Public base URL of this backend that the prebuilt payment pages (dropped
+# into generated user projects by the Sell workspace) call for their
+# storefront API. Baked into the generated code at install time. Falls back
+# to the webhook base, then to the local dev server.
+SELL_STOREFRONT_API_BASE = os.environ.get(
+    'SELL_STOREFRONT_API_BASE',
+    SELL_WEBHOOK_BASE_URL or 'http://localhost:8000',
+)

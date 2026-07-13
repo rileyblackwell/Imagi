@@ -7,11 +7,15 @@ signatures, and order lifecycle.
 import hashlib
 import hmac
 import json
+import os
+import shutil
+import tempfile
 import time
 from unittest.mock import patch
 
 import stripe as stripe_sdk
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from rest_framework.test import APIClient, APITestCase
 
 from apps.Imagi.ProjectManager.models import Project
@@ -64,12 +68,14 @@ class SellAPITestCase(APITestCase):
         settings_obj.save()
         return settings_obj
 
-    def add_product(self, name='Latte', price_cents=500, is_active=True):
+    def add_product(self, name='Latte', price_cents=500, is_active=True,
+                    billing_interval='one_time'):
         return Product.objects.create(
             project=self.project,
             name=name,
             price_cents=price_cents,
             is_active=is_active,
+            billing_interval=billing_interval,
         )
 
     def make_session_payload(self, order, **overrides):
@@ -365,6 +371,50 @@ class CheckoutTests(SellAPITestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(self.project.sell_orders.count(), 0)
+
+    def test_recurring_product_switches_to_subscription_mode(self, MockStripe):
+        create = self.mock_session(MockStripe)
+        plan = self.add_product('Pro plan', 900, billing_interval='month')
+
+        response = self.public_client.post(self.checkout_url, {
+            'items': [{'product_id': plan.id}],
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.content)
+
+        _, kwargs = create.call_args
+        self.assertEqual(kwargs['mode'], 'subscription')
+        self.assertEqual(
+            kwargs['line_items'][0]['price_data']['recurring'],
+            {'interval': 'month'},
+        )
+
+    def test_one_time_cart_stays_in_payment_mode(self, MockStripe):
+        create = self.mock_session(MockStripe)
+        latte = self.add_product('Latte', 500)
+
+        response = self.public_client.post(self.checkout_url, {
+            'items': [{'product_id': latte.id}],
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        _, kwargs = create.call_args
+        self.assertEqual(kwargs['mode'], 'payment')
+        self.assertNotIn('recurring', kwargs['line_items'][0]['price_data'])
+
+    def test_mixed_cart_uses_subscription_mode(self, MockStripe):
+        # Stripe allows one-time items alongside a subscription, but not
+        # recurring prices in payment mode.
+        create = self.mock_session(MockStripe)
+        latte = self.add_product('Latte', 500)
+        plan = self.add_product('Pro plan', 900, billing_interval='month')
+
+        response = self.public_client.post(self.checkout_url, {
+            'items': [{'product_id': latte.id}, {'product_id': plan.id}],
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        _, kwargs = create.call_args
+        self.assertEqual(kwargs['mode'], 'subscription')
 
     def test_payment_link_endpoint_for_owner(self, MockStripe):
         self.mock_session(MockStripe, session_id='cs_test_link')
@@ -663,3 +713,108 @@ class OverviewAPITests(SellAPITestCase):
         self.assertEqual(stats['orders_paid_30d'], 1)
         self.assertEqual(stats['revenue_cents_30d'], 1500)
         self.assertEqual(len(response.json()['recent_orders']), 2)
+
+
+class PaymentTemplateTests(APITestCase):
+    """The prebuilt payment pages the Sell workspace installs into projects."""
+
+    def setUp(self):
+        self.projects_root = tempfile.mkdtemp(prefix='imagi-test-projects-')
+        self.addCleanup(shutil.rmtree, self.projects_root, ignore_errors=True)
+        self.settings_override = override_settings(PROJECTS_ROOT=self.projects_root)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
+
+        self.user = User.objects.create_user(username='owner', password='pass12345')
+        self.project = Project.objects.create(name='Bloom Coffee', user=self.user)
+        os.makedirs(self.project.project_path, exist_ok=True)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.base = f'/api/v1/sell/projects/{self.project.id}'
+
+    def test_list_templates(self):
+        response = self.client.get(f'{self.base}/templates/')
+        self.assertEqual(response.status_code, 200)
+        templates = response.json()['templates']
+        keys = {t['key'] for t in templates}
+        self.assertEqual(keys, {'checkout', 'subscriptions'})
+        for template in templates:
+            self.assertFalse(template['installed'])
+            self.assertTrue(template['route'].startswith('/'))
+
+    def test_install_checkout_template_writes_project_files(self):
+        from apps.Imagi.Build.models import ProjectFile
+
+        response = self.client.post(f'{self.base}/templates/checkout/install/')
+        self.assertEqual(response.status_code, 201, response.content)
+        payload = response.json()
+        self.assertTrue(payload['installed'])
+        self.assertEqual(payload['route'], '/store')
+
+        # Files exist on disk (the working copy the preview server runs)...
+        store_view = os.path.join(
+            self.project.project_path,
+            'frontend', 'vuejs', 'src', 'apps', 'store', 'views', 'StoreView.vue',
+        )
+        self.assertTrue(os.path.exists(store_view))
+
+        # ...and in the database copy the platform serves projects from.
+        service_row = ProjectFile.objects.get(
+            project=self.project,
+            path='frontend/vuejs/src/apps/store/services/storefront.ts',
+        )
+        # The generated client is keyed to this project and holds no secrets.
+        self.assertIn(f'IMAGI_PROJECT_ID = {self.project.id}', service_row.content)
+        self.assertNotIn('sk_', service_row.content)
+        # Stripe's redirect placeholder must survive code generation intact.
+        self.assertIn('session_id={CHECKOUT_SESSION_ID}', service_row.content)
+
+        # The gallery now reports it as installed.
+        self.assertTrue(
+            next(t for t in payload['templates'] if t['key'] == 'checkout')['installed']
+        )
+
+    def test_install_subscriptions_template(self):
+        response = self.client.post(f'{self.base}/templates/subscriptions/install/')
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(response.json()['route'], '/pricing')
+        pricing_router = os.path.join(
+            self.project.project_path,
+            'frontend', 'vuejs', 'src', 'apps', 'pricing', 'router', 'index.ts',
+        )
+        self.assertTrue(os.path.exists(pricing_router))
+
+    def test_install_unknown_template_is_rejected(self):
+        response = self.client.post(f'{self.base}/templates/nope/install/')
+        self.assertEqual(response.status_code, 400)
+
+    def test_install_requires_project_ownership(self):
+        intruder = User.objects.create_user(username='intruder', password='pass12345')
+        self.client.force_authenticate(user=intruder)
+        response = self.client.post(f'{self.base}/templates/checkout/install/')
+        self.assertEqual(response.status_code, 404)
+
+
+class StorefrontCorsTests(SellAPITestCase):
+    """Generated apps run on their own origins and call the storefront API."""
+
+    def test_storefront_allows_cross_origin_requests(self):
+        self.add_product()
+        public_client = APIClient()
+        response = public_client.get(
+            f'/api/v1/sell/storefront/{self.project.id}/products/',
+            HTTP_ORIGIN='https://bloom-coffee.example.com',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get('Access-Control-Allow-Origin'),
+            'https://bloom-coffee.example.com',
+        )
+
+    def test_owner_endpoints_keep_the_origin_allowlist(self):
+        response = self.client.get(
+            f'{self.base}/settings/',
+            HTTP_ORIGIN='https://bloom-coffee.example.com',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.headers.get('Access-Control-Allow-Origin'))

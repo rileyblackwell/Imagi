@@ -121,7 +121,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'description', 'price_cents', 'image_url',
-            'is_active', 'created_at', 'updated_at',
+            'billing_interval', 'is_active', 'created_at', 'updated_at',
         ]
         read_only_fields = ['created_at', 'updated_at']
 
@@ -142,7 +142,7 @@ class PublicProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'price_cents', 'image_url']
+        fields = ['id', 'name', 'description', 'price_cents', 'image_url', 'billing_interval']
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

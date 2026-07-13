@@ -28,9 +28,34 @@
       ></textarea>
     </div>
 
+    <div>
+      <label :class="ui.label">How customers pay</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          v-for="option in billingOptions"
+          :key="option.value"
+          type="button"
+          class="px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors duration-150"
+          :class="form.billing_interval === option.value
+            ? 'border-emerald-400 dark:border-emerald-400/60 bg-emerald-50 dark:bg-emerald-400/10 text-emerald-800 dark:text-emerald-200'
+            : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.06] text-blue-950/70 dark:text-blue-100/70 hover:border-blue-300 dark:hover:border-white/25'"
+          @click="form.billing_interval = option.value"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+      <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1.5">
+        {{ form.billing_interval === 'one_time'
+          ? 'Charged once at checkout.'
+          : 'Stripe bills the customer automatically each ' + (form.billing_interval === 'month' ? 'month' : 'year') + '.' }}
+      </p>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
       <div>
-        <label :class="ui.label" for="product-price">Price ({{ currency.toUpperCase() }})</label>
+        <label :class="ui.label" for="product-price">
+          Price ({{ currency.toUpperCase() }}){{ form.billing_interval === 'month' ? ' per month' : form.billing_interval === 'year' ? ' per year' : '' }}
+        </label>
         <input
           id="product-price"
           v-model="priceInput"
@@ -77,7 +102,7 @@
 import { reactive, ref } from 'vue'
 import { extractError } from '../services/sellService'
 import { useSellStore } from '../stores/sell'
-import type { Product } from '../types'
+import type { BillingInterval, Product } from '../types'
 import { ui } from '../utils/ui'
 
 const props = defineProps<{
@@ -92,10 +117,17 @@ const emit = defineEmits<{
 
 const store = useSellStore()
 
+const billingOptions: Array<{ value: BillingInterval; label: string }> = [
+  { value: 'one_time', label: 'One-time' },
+  { value: 'month', label: 'Monthly' },
+  { value: 'year', label: 'Yearly' },
+]
+
 const form = reactive({
   name: props.product?.name ?? '',
   description: props.product?.description ?? '',
   image_url: props.product?.image_url ?? '',
+  billing_interval: (props.product?.billing_interval ?? 'one_time') as BillingInterval,
   is_active: props.product?.is_active ?? true,
 })
 
@@ -114,6 +146,7 @@ async function submit() {
       name: form.name.trim(),
       description: form.description.trim(),
       image_url: form.image_url.trim(),
+      billing_interval: form.billing_interval,
       is_active: form.is_active,
       price_cents: Math.round(parseFloat(priceInput.value || '0') * 100),
     }
