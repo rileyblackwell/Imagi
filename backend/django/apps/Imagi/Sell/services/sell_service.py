@@ -148,15 +148,25 @@ class SellService:
                 product_data['description'] = product.description[:500]
             if product.image_url:
                 product_data['images'] = [product.image_url]
+            price_data = {
+                'currency': currency,
+                'unit_amount': product.price_cents,
+                'product_data': product_data,
+            }
+            if product.is_recurring:
+                price_data['recurring'] = {'interval': product.billing_interval}
             line_items.append({
                 'quantity': quantity,
-                'price_data': {
-                    'currency': currency,
-                    'unit_amount': product.price_cents,
-                    'product_data': product_data,
-                },
+                'price_data': price_data,
             })
 
+        # Any recurring item switches the whole session to subscription mode
+        # (Stripe allows one-time items alongside a subscription, but not the
+        # reverse: recurring prices are invalid in payment mode).
+        mode = (
+            'subscription' if any(product.is_recurring for product, _ in resolved)
+            else 'payment'
+        )
         amount_total = sum(product.price_cents * quantity for product, quantity in resolved)
 
         with transaction.atomic():
@@ -188,6 +198,7 @@ class SellService:
                     'imagi_order_id': str(order.id),
                 },
                 customer_email=customer_email,
+                mode=mode,
             )
         except StripeClientError as exc:
             # The session never existed, so neither did the checkout attempt.

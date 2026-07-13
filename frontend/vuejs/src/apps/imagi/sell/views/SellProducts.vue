@@ -44,17 +44,26 @@
             <div class="min-w-0">
               <p class="text-sm font-semibold text-blue-950 dark:text-white truncate">{{ product.name }}</p>
               <p class="text-sm text-blue-950/60 dark:text-blue-100/60 tabular-nums">
-                {{ formatMoney(product.price_cents, store.currency) }}
+                {{ formatMoney(product.price_cents, store.currency) }}<span v-if="product.billing_interval === 'month'"> / month</span><span v-else-if="product.billing_interval === 'year'"> / year</span>
               </p>
             </div>
-            <span
-              class="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap"
-              :class="product.is_active
-                ? 'border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                : 'border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-blue-950/60 dark:text-white/60'"
-            >
-              {{ product.is_active ? 'Active' : 'Hidden' }}
-            </span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span
+                v-if="product.billing_interval !== 'one_time'"
+                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-blue-200/80 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap text-blue-700 dark:text-blue-300"
+              >
+                <i class="fas fa-arrows-rotate text-[9px]"></i>
+                Subscription
+              </span>
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap"
+                :class="product.is_active
+                  ? 'border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  : 'border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-blue-950/60 dark:text-white/60'"
+              >
+                {{ product.is_active ? 'Active' : 'Hidden' }}
+              </span>
+            </div>
           </div>
           <p v-if="product.description" class="text-xs text-blue-950/50 dark:text-blue-100/50 mt-1 line-clamp-2">{{ product.description }}</p>
           <div class="flex flex-wrap items-center gap-2 mt-3">

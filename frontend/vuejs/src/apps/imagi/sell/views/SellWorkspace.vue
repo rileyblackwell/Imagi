@@ -143,6 +143,7 @@ interface Tab { name: string; label: string; icon: string; children?: string[] }
 
 const tabs: Tab[] = [
   { name: 'sell-overview', label: 'Overview', icon: 'fa-chart-line' },
+  { name: 'sell-payments', label: 'Payments', icon: 'fa-credit-card' },
   { name: 'sell-products', label: 'Products', icon: 'fa-box-open' },
   { name: 'sell-orders', label: 'Orders', icon: 'fa-receipt' },
   { name: 'sell-customers', label: 'Customers', icon: 'fa-address-book' },

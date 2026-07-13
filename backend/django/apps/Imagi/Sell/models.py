@@ -112,6 +112,15 @@ class SellSettings(models.Model):
 class Product(models.Model):
     """Something a project's business sells — one line in the catalog."""
 
+    BILLING_ONE_TIME = 'one_time'
+    BILLING_MONTH = 'month'
+    BILLING_YEAR = 'year'
+    BILLING_CHOICES = [
+        (BILLING_ONE_TIME, 'One-time purchase'),
+        (BILLING_MONTH, 'Monthly subscription'),
+        (BILLING_YEAR, 'Yearly subscription'),
+    ]
+
     project = models.ForeignKey(
         'ProjectManager.Project',
         on_delete=models.CASCADE,
@@ -126,6 +135,13 @@ class Product(models.Model):
         help_text='Price in the smallest currency unit, e.g. cents',
     )
     image_url = models.URLField(max_length=500, blank=True, default='')
+    # One-time purchase, or the cadence Stripe bills at when this product is
+    # a subscription (checkout switches to subscription mode).
+    billing_interval = models.CharField(
+        max_length=10,
+        choices=BILLING_CHOICES,
+        default=BILLING_ONE_TIME,
+    )
     is_active = models.BooleanField(
         default=True,
         help_text='Only active products can be bought',
@@ -141,6 +157,10 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.project.name})"
+
+    @property
+    def is_recurring(self) -> bool:
+        return self.billing_interval != self.BILLING_ONE_TIME
 
 
 class Customer(models.Model):

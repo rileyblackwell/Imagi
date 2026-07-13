@@ -25,7 +25,34 @@ from rest_framework.test import APITestCase
 
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from apps.Imagi.Build.models import Conversation, Page, Message
+from apps.Imagi.Build.services.create_app_service import CreateAppService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
+from apps.Imagi.Build.services.codegen.prebuilt_apps import PREBUILT_MAP
+
+
+class DefaultAppsTests(TestCase):
+    """The default scaffold must not include the legacy payments app —
+    payment pages come from the Sell workspace's prebuilt templates."""
+
+    def test_payments_is_not_a_prebuilt_app(self):
+        self.assertNotIn('payments', PREBUILT_MAP)
+        self.assertEqual(set(PREBUILT_MAP), {'home', 'auth'})
+
+    def test_ensure_default_apps_skips_payments(self):
+        user = User.objects.create_user(username='founder', password='testpass123')
+        project_root = tempfile.mkdtemp(prefix='builder_default_apps_')
+        self.addCleanup(lambda: shutil.rmtree(project_root, ignore_errors=True))
+        project = PMProject.objects.create(
+            user=user, name='Fresh Project', project_path=project_root
+        )
+
+        result = CreateAppService(user=user).ensure_default_apps(project_id=str(project.id))
+        self.assertTrue(result['success'])
+
+        apps_dir = os.path.join(project_root, 'frontend', 'vuejs', 'src', 'apps')
+        self.assertTrue(os.path.isdir(os.path.join(apps_dir, 'home')))
+        self.assertTrue(os.path.isdir(os.path.join(apps_dir, 'auth')))
+        self.assertFalse(os.path.isdir(os.path.join(apps_dir, 'payments')))
 
 
 class BuilderModelTests(TestCase):

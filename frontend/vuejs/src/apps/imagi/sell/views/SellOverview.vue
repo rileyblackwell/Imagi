@@ -36,6 +36,21 @@
           <i class="fas fa-address-book text-xs"></i>
           Customers
         </router-link>
+        <router-link :to="{ name: 'sell-payments', params: { projectName: route.params.projectName } }" :class="ui.secondaryBtn">
+          <i class="fas fa-credit-card text-xs"></i>
+          Add payments to your app
+        </router-link>
+        <a
+          v-if="overview.stats.configured"
+          href="https://dashboard.stripe.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          :class="ui.secondaryBtn"
+        >
+          <i class="fab fa-stripe-s text-xs"></i>
+          Open Stripe dashboard
+          <i class="fas fa-arrow-up-right-from-square text-[10px] opacity-60"></i>
+        </a>
       </section>
 
       <!-- Recent orders -->

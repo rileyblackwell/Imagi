@@ -1,7 +1,9 @@
 """
 Service for creating Vue.js applications with proper structure.
-Also supports generating prebuilt default apps (home, auth, payments)
-for both frontend and backend via codegen templates.
+Also supports generating prebuilt default apps (home, auth) for both
+frontend and backend via codegen templates. Payment pages are not a
+default app — the Sell workspace installs them on demand as prebuilt,
+Stripe-hosted checkout pages.
 """
 
 import logging
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Apps scaffolded into every new project (see IMAGI_BUILDER in imagi/settings.py)
 DEFAULT_APPS = list(
-    getattr(settings, 'IMAGI_BUILDER', {}).get('DEFAULT_APPS', ['home', 'auth', 'payments'])
+    getattr(settings, 'IMAGI_BUILDER', {}).get('DEFAULT_APPS', ['home', 'auth'])
 )
 
 class CreateAppService:
@@ -115,8 +117,8 @@ class CreateAppService:
     
     def ensure_default_apps(self, project_id: str = None) -> Dict[str, Any]:
         """
-        Ensure default apps (home, auth, payments) exist in the project.
-        
+        Ensure default apps (home, auth) exist in the project.
+
         Args:
             project_id: Project ID if not initialized with project
             
