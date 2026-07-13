@@ -33,12 +33,6 @@
         <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
         AI building
       </span>
-      <span
-        v-else-if="tool.status !== 'available'"
-        class="inline-flex items-center px-2.5 py-1 rounded-full border border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-white/50 transition-colors duration-300"
-      >
-        Coming soon
-      </span>
     </div>
 
     <!-- Name + tagline -->

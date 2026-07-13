@@ -10,7 +10,10 @@
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed" :toggle-sidebar="toggleSidebar"></slot>
     </template>
     
-    <!-- Pass through any navbar-right content from parent -->
+    <!-- Pass through any navbar content from parent -->
+    <template #navbar-left>
+      <slot name="navbar-left"></slot>
+    </template>
     <template #navbar-center>
       <slot name="navbar-center"></slot>
     </template>
