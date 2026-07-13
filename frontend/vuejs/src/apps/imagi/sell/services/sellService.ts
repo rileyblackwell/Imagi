@@ -11,10 +11,12 @@ import type {
   Order,
   OverviewPayload,
   PaymentLinkResult,
+  PaymentTemplate,
   Product,
   ProductPayload,
   SellSettings,
   SellSettingsPayload,
+  TemplateInstallResult,
   VerifyResult,
 } from '../types'
 
@@ -60,6 +62,17 @@ export const SellService = {
   // -- Overview -------------------------------------------------------------
   async getOverview(projectId: number): Promise<OverviewPayload> {
     const { data } = await api.get(`${base(projectId)}/overview/`)
+    return data
+  },
+
+  // -- Payment templates (prebuilt pages for the user's app) ------------------
+  async listTemplates(projectId: number): Promise<PaymentTemplate[]> {
+    const { data } = await api.get(`${base(projectId)}/templates/`)
+    return data.templates
+  },
+
+  async installTemplate(projectId: number, key: string): Promise<TemplateInstallResult> {
+    const { data } = await api.post(`${base(projectId)}/templates/${key}/install/`)
     return data
   },
 

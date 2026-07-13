@@ -35,12 +35,15 @@ export interface VerifyResult {
   settings: SellSettings
 }
 
+export type BillingInterval = 'one_time' | 'month' | 'year'
+
 export interface Product {
   id: number
   name: string
   description: string
   price_cents: number
   image_url: string
+  billing_interval: BillingInterval
   is_active: boolean
   created_at: string
   updated_at: string
@@ -51,7 +54,34 @@ export interface ProductPayload {
   description?: string
   price_cents?: number
   image_url?: string
+  billing_interval?: BillingInterval
   is_active?: boolean
+}
+
+/** A prebuilt payment page users can drop into their generated project. */
+export interface PaymentTemplate {
+  key: string
+  name: string
+  tagline: string
+  description: string
+  /** Font Awesome icon name, e.g. 'fa-cart-shopping'. */
+  icon: string
+  /** Route the page gets in the user's app, e.g. '/store'. */
+  route: string
+  /** Where the files land inside the project. */
+  app_dir: string
+  features: string[]
+  installed: boolean
+}
+
+export interface TemplateInstallResult {
+  installed: boolean
+  key: string
+  name: string
+  route: string
+  app_dir: string
+  files_created: string[]
+  templates: PaymentTemplate[]
 }
 
 export type OrderStatus = 'pending' | 'paid' | 'fulfilled' | 'canceled' | 'refunded'

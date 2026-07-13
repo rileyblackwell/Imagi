@@ -15,10 +15,12 @@ import type {
   Order,
   OverviewPayload,
   PaymentLinkResult,
+  PaymentTemplate,
   Product,
   ProductPayload,
   SellSettings,
   SellSettingsPayload,
+  TemplateInstallResult,
   VerifyResult,
 } from '../types'
 
@@ -28,6 +30,8 @@ interface SellState {
   settingsLoading: boolean
   overview: OverviewPayload | null
   overviewLoading: boolean
+  templates: PaymentTemplate[]
+  templatesLoading: boolean
   products: Product[]
   productsTotal: number
   productsLoading: boolean
@@ -46,6 +50,8 @@ export const useSellStore = defineStore('sell', {
     settingsLoading: false,
     overview: null,
     overviewLoading: false,
+    templates: [],
+    templatesLoading: false,
     products: [],
     productsTotal: 0,
     productsLoading: false,
@@ -113,6 +119,25 @@ export const useSellStore = defineStore('sell', {
       } finally {
         this.overviewLoading = false
       }
+    },
+
+    // -- Payment templates ----------------------------------------------------
+    async fetchTemplates(): Promise<PaymentTemplate[]> {
+      const projectId = this.requireProject()
+      this.templatesLoading = true
+      try {
+        this.templates = await SellService.listTemplates(projectId)
+        return this.templates
+      } finally {
+        this.templatesLoading = false
+      }
+    },
+
+    async installTemplate(key: string): Promise<TemplateInstallResult> {
+      const projectId = this.requireProject()
+      const result = await SellService.installTemplate(projectId, key)
+      this.templates = result.templates
+      return result
     },
 
     // -- Products -----------------------------------------------------------

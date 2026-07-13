@@ -54,10 +54,13 @@ class StripeClient:
 
     def create_checkout_session(self, line_items: list, success_url: str,
                                 cancel_url: str, metadata: dict,
-                                customer_email: str = ''):
-        """Create a hosted Stripe Checkout session for a one-time payment."""
+                                customer_email: str = '', mode: str = 'payment'):
+        """
+        Create a hosted Stripe Checkout session. `mode` is 'payment' for
+        one-time carts or 'subscription' when any line item recurs.
+        """
         params = {
-            'mode': 'payment',
+            'mode': mode,
             'line_items': line_items,
             'success_url': success_url,
             'cancel_url': cancel_url,

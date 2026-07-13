@@ -25,6 +25,7 @@ from rest_framework.views import APIView
 from apps.Imagi.ProjectManager.models import Project
 
 from ..models import Customer, Order, Product, SellSettings
+from ..services.payment_templates import install_template, list_templates
 from ..services.sell_service import SellService, SellServiceError
 from ..services.stripe_client import construct_webhook_event
 from .serializers import (
@@ -144,6 +145,41 @@ class OverviewView(ProjectScopedView):
             },
             'recent_orders': OrderSerializer(recent_orders, many=True).data,
         })
+
+
+# -- Payment templates (prebuilt pages dropped into the user's project) ------------
+
+
+class PaymentTemplateListView(ProjectScopedView):
+    """The gallery of prebuilt payment pages, with installed state."""
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        return Response({'templates': list_templates(project)})
+
+
+class PaymentTemplateInstallView(ProjectScopedView):
+    """Write a prebuilt payment page into the user's generated project."""
+
+    def post(self, request, project_id, key):
+        project = self.get_project()
+        try:
+            result = install_template(project, key)
+        except SellServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception(
+                f'Failed to install payment template {key!r} into project {project.id}'
+            )
+            return Response(
+                {'error': 'Could not add the template to your project. Try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        return Response({
+            'installed': True,
+            **result,
+            'templates': list_templates(project),
+        }, status=status.HTTP_201_CREATED)
 
 
 # -- Products ---------------------------------------------------------------------
