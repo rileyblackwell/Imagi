@@ -4,6 +4,7 @@ import MarketingOverview from '../views/MarketingOverview.vue'
 import MarketingCampaigns from '../views/MarketingCampaigns.vue'
 import MarketingCampaignDetail from '../views/MarketingCampaignDetail.vue'
 import MarketingAudience from '../views/MarketingAudience.vue'
+import MarketingAds from '../views/MarketingAds.vue'
 import MarketingInbox from '../views/MarketingInbox.vue'
 import MarketingSettings from '../views/MarketingSettings.vue'
 
@@ -46,6 +47,12 @@ const routes: RouteRecordRaw[] = [
         name: 'marketing-audience',
         component: MarketingAudience,
         meta: { requiresAuth: true, title: 'Audience' }
+      },
+      {
+        path: 'ads',
+        name: 'marketing-ads',
+        component: MarketingAds,
+        meta: { requiresAuth: true, title: 'Ads' }
       },
       {
         path: 'inbox',

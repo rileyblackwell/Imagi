@@ -6,7 +6,7 @@ import re
 
 from rest_framework import serializers
 
-from ..models import Campaign, Contact, MarketingSettings, Message
+from ..models import AdCampaign, AdConnection, Campaign, Contact, MarketingSettings, Message
 from ..services.campaign_service import inbound_webhook_url, status_callback_url
 
 # Twilio hard limit for a single (concatenated) SMS body.
@@ -206,6 +206,53 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def get_contact_name(self, obj) -> str:
         return obj.contact.display_name if obj.contact else obj.from_number
+
+
+class AdConnectionSerializer(serializers.ModelSerializer):
+    """
+    An ad platform connection. Credentials are write-only via the views;
+    clients only ever see WHICH keys are stored, never their values.
+    """
+
+    credentials_set = serializers.SerializerMethodField()
+    is_configured = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = AdConnection
+        fields = [
+            'provider', 'account_id', 'account_name', 'currency',
+            'credentials_set', 'is_configured',
+            'last_verified_at', 'last_synced_at',
+        ]
+
+    def get_credentials_set(self, obj) -> list:
+        return sorted(obj.credentials.keys())
+
+
+class AdCampaignSerializer(serializers.ModelSerializer):
+    ctr = serializers.SerializerMethodField()
+    cpc = serializers.SerializerMethodField()
+    manager_url = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = AdCampaign
+        fields = [
+            'id', 'provider', 'external_id', 'name', 'status', 'provider_status',
+            'objective', 'daily_budget', 'currency', 'impressions', 'clicks',
+            'spend', 'conversions', 'ctr', 'cpc', 'manager_url', 'last_synced_at',
+        ]
+
+    def get_ctr(self, obj):
+        """Click-through rate as a percentage, or None without impressions."""
+        if not obj.impressions:
+            return None
+        return round(obj.clicks / obj.impressions * 100, 2)
+
+    def get_cpc(self, obj):
+        """Average cost per click, or None without clicks."""
+        if not obj.clicks or obj.spend is None:
+            return None
+        return round(float(obj.spend) / obj.clicks, 2)
 
 
 class ConversationSerializer(serializers.ModelSerializer):

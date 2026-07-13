@@ -6,10 +6,17 @@ Everything here is scoped to a ProjectManager Project: each user project
 and message history. Twilio is the delivery layer — SMS/MMS campaigns and
 two-way texting via Programmable Messaging, voice broadcasts via
 Programmable Voice.
+
+The advertising side connects the project's own Google Ads and Meta Ads
+accounts: AdConnection stores the (encrypted) API credentials per provider,
+and AdCampaign is a local, periodically synced mirror of the campaigns and
+their performance so the workspace can show one unified ads dashboard and
+push pause/resume back to the platform.
 """
 
 import base64
 import hashlib
+import json
 import logging
 
 from django.conf import settings
@@ -318,3 +325,158 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.get_direction_display()} {self.channel} to {self.to_number} [{self.status}]"
+
+
+class AdConnection(models.Model):
+    """
+    A project's link to one advertising platform (Google Ads or Meta Ads).
+
+    Credentials differ per provider, so they live in an encrypted JSON blob
+    (`credentials` property) rather than one column per secret:
+      - meta:   {"access_token": ...}
+      - google: {"developer_token": ..., "client_id": ..., "client_secret": ...,
+                 "refresh_token": ..., "login_customer_id": ...(optional)}
+    `account_id` is the Meta ad account ID / Google Ads customer ID
+    (digits only, no "act_" prefix or dashes).
+    """
+
+    PROVIDER_GOOGLE = 'google'
+    PROVIDER_META = 'meta'
+    PROVIDER_CHOICES = [
+        (PROVIDER_GOOGLE, 'Google Ads'),
+        (PROVIDER_META, 'Meta Ads'),
+    ]
+
+    # Credential keys each provider requires before we can call its API.
+    REQUIRED_CREDENTIALS = {
+        PROVIDER_GOOGLE: ('developer_token', 'client_id', 'client_secret', 'refresh_token'),
+        PROVIDER_META: ('access_token',),
+    }
+
+    project = models.ForeignKey(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='ad_connections',
+    )
+    provider = models.CharField(max_length=10, choices=PROVIDER_CHOICES)
+    credentials_encrypted = models.TextField(blank=True, default='')
+    account_id = models.CharField(
+        max_length=32,
+        blank=True,
+        default='',
+        help_text='Meta ad account ID or Google Ads customer ID, digits only',
+    )
+    account_name = models.CharField(max_length=255, blank=True, default='')
+    currency = models.CharField(max_length=8, blank=True, default='')
+    last_verified_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'provider'],
+                name='unique_ad_connection_provider_per_project',
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_provider_display()} connection for {self.project.name}"
+
+    @property
+    def credentials(self) -> dict:
+        raw = decrypt_secret(self.credentials_encrypted)
+        if not raw:
+            return {}
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    @credentials.setter
+    def credentials(self, value: dict):
+        value = {k: v for k, v in (value or {}).items() if v}
+        self.credentials_encrypted = encrypt_secret(json.dumps(value)) if value else ''
+
+    @property
+    def is_configured(self) -> bool:
+        """True when every required credential and the account ID are present."""
+        if not self.account_id:
+            return False
+        stored = self.credentials
+        return all(stored.get(key) for key in self.REQUIRED_CREDENTIALS[self.provider])
+
+
+class AdCampaign(models.Model):
+    """
+    A locally mirrored ad campaign from a connected platform.
+
+    Rows are created and refreshed by AdsService.sync(): campaign metadata
+    plus lifetime performance totals. `status` is normalized across providers
+    for filtering and badges; `provider_status` keeps the platform's raw value.
+    """
+
+    STATUS_ACTIVE = 'active'
+    STATUS_PAUSED = 'paused'
+    STATUS_ENDED = 'ended'
+    STATUS_OTHER = 'other'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Active'),
+        (STATUS_PAUSED, 'Paused'),
+        (STATUS_ENDED, 'Ended'),
+        (STATUS_OTHER, 'Other'),
+    ]
+
+    project = models.ForeignKey(
+        'ProjectManager.Project',
+        on_delete=models.CASCADE,
+        related_name='ad_campaigns',
+    )
+    provider = models.CharField(max_length=10, choices=AdConnection.PROVIDER_CHOICES)
+    external_id = models.CharField(max_length=64)
+    account_id = models.CharField(max_length=32, blank=True, default='')
+    name = models.CharField(max_length=255)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_OTHER)
+    provider_status = models.CharField(max_length=50, blank=True, default='')
+    objective = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text='Meta objective or Google advertising channel type',
+    )
+    daily_budget = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=8, blank=True, default='')
+    impressions = models.BigIntegerField(default=0)
+    clicks = models.BigIntegerField(default=0)
+    spend = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    conversions = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-spend', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'provider', 'external_id'],
+                name='unique_ad_campaign_per_project_provider',
+            )
+        ]
+        indexes = [
+            models.Index(fields=['project', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_provider_display()}) [{self.get_status_display()}]"
+
+    @property
+    def manager_url(self) -> str:
+        """Deep link to the campaign in the platform's own ads manager."""
+        if self.provider == AdConnection.PROVIDER_META:
+            base = 'https://adsmanager.facebook.com/adsmanager/manage/campaigns'
+            if self.account_id:
+                return f'{base}?act={self.account_id}&selected_campaign_ids={self.external_id}'
+            return base
+        return 'https://ads.google.com/aw/campaigns'

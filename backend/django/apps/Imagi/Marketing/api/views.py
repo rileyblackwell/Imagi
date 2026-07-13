@@ -25,7 +25,16 @@ from rest_framework.views import APIView
 
 from apps.Imagi.ProjectManager.models import Project
 
-from ..models import Campaign, Contact, MarketingSettings, Message, phone_validator
+from ..models import (
+    AdCampaign,
+    AdConnection,
+    Campaign,
+    Contact,
+    MarketingSettings,
+    Message,
+    phone_validator,
+)
+from ..services.ads_service import AdsService, AdsServiceError, ads_summary
 from ..services.campaign_service import (
     CampaignService,
     CampaignServiceError,
@@ -33,6 +42,8 @@ from ..services.campaign_service import (
 )
 from ..services.twilio_client import validate_webhook_signature
 from .serializers import (
+    AdCampaignSerializer,
+    AdConnectionSerializer,
     CampaignSerializer,
     ContactSerializer,
     ConversationSerializer,
@@ -171,6 +182,7 @@ class OverviewView(ProjectScopedView):
                     direction=Message.DIRECTION_INBOUND, created_at__gte=since
                 ).count(),
             },
+            'ads': ads_summary(project),
             'recent_campaigns': CampaignSerializer(recent_campaigns, many=True).data,
             'recent_inbound': MessageSerializer(recent_inbound, many=True).data,
         })
@@ -569,6 +581,145 @@ class CampaignSyncView(ProjectScopedView):
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         campaign = campaigns_with_stats(project).get(id=campaign.id)
         return Response({**result, 'campaign': CampaignSerializer(campaign).data})
+
+
+# -- Ads (Google Ads / Meta Ads) -----------------------------------------------------------
+
+
+# Credential fields each provider's connection form may submit. Anything else
+# in the request body is ignored, and blank values keep what's stored.
+AD_CREDENTIAL_FIELDS = {
+    AdConnection.PROVIDER_META: ('access_token',),
+    AdConnection.PROVIDER_GOOGLE: (
+        'developer_token', 'client_id', 'client_secret', 'refresh_token',
+        'login_customer_id',
+    ),
+}
+
+
+class AdProviderScopedView(ProjectScopedView):
+    """Base for views addressing one ad provider from the URL."""
+
+    def get_provider(self) -> str:
+        provider = self.kwargs.get('provider', '')
+        if provider not in dict(AdConnection.PROVIDER_CHOICES):
+            raise NotFound('Unknown ad provider')
+        return provider
+
+
+class AdConnectionListView(ProjectScopedView):
+    """Connection state for every ad provider, plus the ads summary."""
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        service = AdsService(project)
+        connections = [
+            service.get_connection(provider)
+            for provider, _ in AdConnection.PROVIDER_CHOICES
+        ]
+        return Response({
+            'connections': AdConnectionSerializer(connections, many=True).data,
+            'summary': ads_summary(project),
+        })
+
+
+class AdConnectionDetailView(AdProviderScopedView):
+    """Save credentials for one provider, or disconnect it."""
+
+    def put(self, request, project_id, provider):
+        project = self.get_project()
+        provider = self.get_provider()
+        credentials = {
+            field: str(request.data.get(field, '') or '')
+            for field in AD_CREDENTIAL_FIELDS[provider]
+        }
+        connection = AdsService(project).save_credentials(
+            provider,
+            account_id=str(request.data.get('account_id', '') or ''),
+            credentials=credentials,
+        )
+        return Response({'connection': AdConnectionSerializer(connection).data})
+
+    def delete(self, request, project_id, provider):
+        project = self.get_project()
+        AdsService(project).disconnect(self.get_provider())
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdConnectionVerifyView(AdProviderScopedView):
+    """Test the stored credentials against the ad platform."""
+
+    def post(self, request, project_id, provider):
+        project = self.get_project()
+        try:
+            connection = AdsService(project).verify(self.get_provider())
+        except AdsServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'verified': True,
+            'connection': AdConnectionSerializer(connection).data,
+        })
+
+
+class AdCampaignListView(ProjectScopedView):
+    """The mirrored ad campaigns across providers, with aggregate stats."""
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        campaigns = project.ad_campaigns.all()
+        provider = request.query_params.get('provider', '').strip()
+        if provider:
+            campaigns = campaigns.filter(provider=provider)
+        status_filter = request.query_params.get('status', '').strip()
+        if status_filter:
+            campaigns = campaigns.filter(status=status_filter)
+        page, total = paginate(request, campaigns, default_limit=100)
+        return Response({
+            'campaigns': AdCampaignSerializer(page, many=True).data,
+            'total': total,
+            'summary': ads_summary(project),
+        })
+
+
+class AdsSyncView(ProjectScopedView):
+    """Pull fresh campaigns + metrics from every connected platform."""
+
+    def post(self, request, project_id):
+        project = self.get_project()
+        try:
+            result = AdsService(project).sync_all()
+        except AdsServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        campaigns = project.ad_campaigns.all()[:200]
+        return Response({
+            **result,
+            'campaigns': AdCampaignSerializer(campaigns, many=True).data,
+            'summary': ads_summary(project),
+        })
+
+
+class AdCampaignStatusView(ProjectScopedView):
+    """Pause or resume one campaign on its platform."""
+
+    def post(self, request, project_id, pk):
+        project = self.get_project()
+        try:
+            campaign = project.ad_campaigns.get(id=pk)
+        except AdCampaign.DoesNotExist:
+            raise NotFound('Ad campaign not found')
+        action = str(request.data.get('action', '') or '').strip()
+        if action not in ('pause', 'resume'):
+            return Response(
+                {'error': 'action must be "pause" or "resume".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            campaign = AdsService(project).set_campaign_active(
+                campaign, active=(action == 'resume')
+            )
+        except AdsServiceError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'campaign': AdCampaignSerializer(campaign).data})
 
 
 # -- Twilio webhooks ---------------------------------------------------------------------

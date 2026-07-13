@@ -5,6 +5,12 @@
 
 import api from '@/shared/services/api'
 import type {
+  AdCampaign,
+  AdConnection,
+  AdConnectionPayload,
+  AdProvider,
+  AdsSummary,
+  AdsSyncResult,
   Campaign,
   CampaignPayload,
   Contact,
@@ -165,6 +171,55 @@ export const MarketingService = {
   async sendDirectMessage(projectId: number, contactId: number, body: string): Promise<Message> {
     const { data } = await api.post(`${base(projectId)}/contacts/${contactId}/messages/`, { body })
     return data.message
+  },
+
+  // -- Ads (Google Ads / Meta Ads) -------------------------------------------
+  async getAdConnections(projectId: number): Promise<{ connections: AdConnection[]; summary: AdsSummary }> {
+    const { data } = await api.get(`${base(projectId)}/ads/connections/`)
+    return data
+  },
+
+  async saveAdConnection(
+    projectId: number,
+    provider: AdProvider,
+    payload: AdConnectionPayload
+  ): Promise<AdConnection> {
+    const { data } = await api.put(`${base(projectId)}/ads/connections/${provider}/`, payload)
+    return data.connection
+  },
+
+  async verifyAdConnection(
+    projectId: number,
+    provider: AdProvider
+  ): Promise<{ verified: boolean; connection: AdConnection }> {
+    const { data } = await api.post(`${base(projectId)}/ads/connections/${provider}/verify/`)
+    return data
+  },
+
+  async disconnectAdProvider(projectId: number, provider: AdProvider): Promise<void> {
+    await api.delete(`${base(projectId)}/ads/connections/${provider}/`)
+  },
+
+  async listAdCampaigns(
+    projectId: number,
+    params: { provider?: string; status?: string; limit?: number; offset?: number } = {}
+  ): Promise<{ campaigns: AdCampaign[]; total: number; summary: AdsSummary }> {
+    const { data } = await api.get(`${base(projectId)}/ads/campaigns/`, { params })
+    return data
+  },
+
+  async syncAds(projectId: number): Promise<AdsSyncResult> {
+    const { data } = await api.post(`${base(projectId)}/ads/sync/`)
+    return data
+  },
+
+  async setAdCampaignStatus(
+    projectId: number,
+    adCampaignId: number,
+    action: 'pause' | 'resume'
+  ): Promise<AdCampaign> {
+    const { data } = await api.post(`${base(projectId)}/ads/campaigns/${adCampaignId}/status/`, { action })
+    return data.campaign
   },
 }
 

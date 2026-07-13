@@ -163,6 +163,78 @@ export interface OverviewStats {
 
 export interface OverviewPayload {
   stats: OverviewStats
+  ads: AdsSummary
   recent_campaigns: Campaign[]
   recent_inbound: Message[]
+}
+
+// -- Ads (Google Ads / Meta Ads) ---------------------------------------------
+
+export type AdProvider = 'google' | 'meta'
+export type AdCampaignStatus = 'active' | 'paused' | 'ended' | 'other'
+
+export interface AdConnection {
+  provider: AdProvider
+  account_id: string
+  account_name: string
+  currency: string
+  /** Names of the credential keys stored server-side (values never leave the server). */
+  credentials_set: string[]
+  is_configured: boolean
+  last_verified_at: string | null
+  last_synced_at: string | null
+}
+
+/** Write-only credential payload; blank fields keep the stored values. */
+export interface AdConnectionPayload {
+  account_id?: string
+  // Meta
+  access_token?: string
+  // Google
+  developer_token?: string
+  client_id?: string
+  client_secret?: string
+  refresh_token?: string
+  login_customer_id?: string
+}
+
+export interface AdCampaign {
+  id: number
+  provider: AdProvider
+  external_id: string
+  name: string
+  status: AdCampaignStatus
+  provider_status: string
+  objective: string
+  daily_budget: string | null
+  currency: string
+  impressions: number
+  clicks: number
+  spend: string
+  conversions: string | null
+  /** Click-through rate in percent; null without impressions. */
+  ctr: number | null
+  /** Average cost per click; null without clicks. */
+  cpc: number | null
+  manager_url: string
+  last_synced_at: string | null
+}
+
+export interface AdsSummary {
+  connected_providers: AdProvider[]
+  campaigns_total: number
+  campaigns_active: number
+  impressions: number
+  clicks: number
+  spend: string
+  /** Shared account currency, or '' when connected accounts differ. */
+  currency: string
+  last_synced_at: string | null
+}
+
+export interface AdsSyncResult {
+  results: Partial<Record<AdProvider, { synced: number; removed: number }>>
+  errors: Partial<Record<AdProvider, string>>
+  campaigns: AdCampaign[]
+  summary: AdsSummary
 }

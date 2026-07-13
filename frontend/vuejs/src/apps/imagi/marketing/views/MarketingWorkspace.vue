@@ -61,7 +61,7 @@
                   <span :class="ui.sectionBadge">{{ project.name }}</span>
                 </div>
                 <p class="text-base text-blue-950/70 dark:text-blue-100/70 max-w-2xl transition-colors duration-300">
-                  Reach your customers over text and voice — campaigns, two-way conversations, and your audience in one place, powered by Twilio.
+                  Reach customers and drive sales — text and voice campaigns powered by Twilio, plus your Google and Meta ad campaigns, all in one place.
                 </p>
               </div>
             </section>
@@ -145,6 +145,7 @@ const tabs: Tab[] = [
   { name: 'marketing-overview', label: 'Overview', icon: 'fa-chart-line' },
   { name: 'marketing-campaigns', label: 'Campaigns', icon: 'fa-paper-plane', children: ['marketing-campaign-detail'] },
   { name: 'marketing-audience', label: 'Audience', icon: 'fa-address-book' },
+  { name: 'marketing-ads', label: 'Ads', icon: 'fa-rectangle-ad' },
   { name: 'marketing-inbox', label: 'Inbox', icon: 'fa-inbox' },
   { name: 'marketing-settings', label: 'Settings', icon: 'fa-gear' },
 ]
