@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def build_initial_prompt(name: str, description: str) -> str:
     """Compose the first build prompt from the business name and description."""
-    return f"""You are performing the very first build of a brand-new project the user just created on Imagi. Nothing custom has been built yet — the project contains only Imagi's default scaffold (home, auth, and payments apps).
+    return f"""You are performing the very first build of a brand-new project the user just created on Imagi. Nothing custom has been built yet — the project contains only Imagi's default scaffold (home and auth apps).
 
 Business name: {name}
 
@@ -36,7 +36,7 @@ Using this description, build the first version of the business's web applicatio
 2. Update titles, headings, and placeholder copy that still reference the scaffold so they reflect the business.
 3. If the description clearly calls for one or two more simple pages (for example an About or Pricing page), create them and wire up their routes.
 
-Keep the scope tight: this is a strong starting point, not a finished product. Do not touch the auth or payments apps beyond copy tweaks, and do not invent features the description doesn't support. When you finish, briefly summarize what you built — the founder will read it as the first message in their workspace."""
+Keep the scope tight: this is a strong starting point, not a finished product. Do not touch the auth app beyond copy tweaks, and do not invent features the description doesn't support. Do not build any payment or checkout functionality even if the description mentions selling — the founder adds secure, prebuilt payment pages later from their Sell workspace. When you finish, briefly summarize what you built — the founder will read it as the first message in their workspace."""
 
 
 def start_initial_build(project, user) -> bool:

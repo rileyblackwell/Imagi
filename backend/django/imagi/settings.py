@@ -248,8 +248,10 @@ IMAGI_BUILDER = {
     'MAX_AGENT_TURNS': 30,
     # Attach OpenAI's hosted web-search tool to the agent.
     'ENABLE_WEB_SEARCH': True,
-    # Apps scaffolded into every new project.
-    'DEFAULT_APPS': ['home', 'auth', 'payments'],
+    # Apps scaffolded into every new project. Payment pages are deliberately
+    # not scaffolded — the Sell workspace installs prebuilt, Stripe-hosted
+    # checkout pages on demand (apps.Imagi.Sell.services.payment_templates).
+    'DEFAULT_APPS': ['home', 'auth'],
 }
 
 # Root directory where ProjectManager writes the working copy of generated
