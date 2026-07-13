@@ -47,6 +47,20 @@ urlpatterns = [
     path('projects/<int:project_id>/conversations/',
          views.ConversationListView.as_view(), name='api-marketing-conversations'),
 
+    # Ads (Google Ads / Meta Ads)
+    path('projects/<int:project_id>/ads/connections/',
+         views.AdConnectionListView.as_view(), name='api-marketing-ad-connections'),
+    path('projects/<int:project_id>/ads/connections/<str:provider>/',
+         views.AdConnectionDetailView.as_view(), name='api-marketing-ad-connection-detail'),
+    path('projects/<int:project_id>/ads/connections/<str:provider>/verify/',
+         views.AdConnectionVerifyView.as_view(), name='api-marketing-ad-connection-verify'),
+    path('projects/<int:project_id>/ads/campaigns/',
+         views.AdCampaignListView.as_view(), name='api-marketing-ad-campaigns'),
+    path('projects/<int:project_id>/ads/campaigns/<int:pk>/status/',
+         views.AdCampaignStatusView.as_view(), name='api-marketing-ad-campaign-status'),
+    path('projects/<int:project_id>/ads/sync/',
+         views.AdsSyncView.as_view(), name='api-marketing-ads-sync'),
+
     # Twilio callbacks (signature-authenticated, no user session)
     path('webhooks/<int:project_id>/status/',
          views.TwilioStatusWebhookView.as_view(), name='api-marketing-webhook-status'),

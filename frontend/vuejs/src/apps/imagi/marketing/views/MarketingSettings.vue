@@ -1,8 +1,10 @@
 <!--
-  MarketingSettings.vue - Connect the project's Twilio account: credentials,
-  sender number, messaging service, voice, webhook URLs, and a connection test.
+  MarketingSettings.vue - Connect the project's marketing accounts: the Twilio
+  account for messaging (credentials, sender number, webhooks, connection test)
+  and the Google Ads / Meta Ads accounts for the ads dashboard.
 -->
 <template>
+  <div>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
     <!-- Credentials form -->
     <section class="lg:col-span-2 p-6" :class="ui.card">
@@ -214,15 +216,33 @@
       </section>
     </div>
   </div>
+
+  <!-- Ad platforms -->
+  <div class="mt-10">
+    <h2 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 transition-colors duration-300">Ad platforms</h2>
+    <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
+      Connect your ad accounts to watch campaign performance and pause or resume campaigns from the
+      <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" class="text-violet-700 dark:text-violet-300 hover:underline">Ads tab</router-link>.
+      Credentials are stored encrypted, and Imagi never creates or edits ads without you.
+    </p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <AdConnectionCard provider="google" />
+      <AdConnectionCard provider="meta" />
+    </div>
+  </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import AdConnectionCard from '../components/AdConnectionCard.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'
 import type { VerifyResult } from '../types'
 import { ui } from '../utils/ui'
 
+const route = useRoute()
 const store = useMarketingStore()
 
 const settings = computed(() => store.settings)
@@ -316,5 +336,12 @@ onMounted(async () => {
     }
   }
   syncFormFromSettings()
+  if (!store.adConnections.length) {
+    try {
+      await store.fetchAdConnections()
+    } catch (error) {
+      console.error('Failed to load ad connections:', error)
+    }
+  }
 })
 </script>

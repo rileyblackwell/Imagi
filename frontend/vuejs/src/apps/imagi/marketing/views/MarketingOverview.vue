@@ -38,6 +38,35 @@
         </router-link>
       </section>
 
+      <!-- Advertising snapshot -->
+      <section v-if="ads" class="p-6 mb-8" :class="ui.card">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <h2 class="text-base font-semibold text-blue-950 dark:text-white">Advertising</h2>
+            <span class="flex items-center gap-2 text-blue-950/40 dark:text-white/40 text-xs">
+              <i v-if="ads.connected_providers.includes('google')" class="fab fa-google" title="Google Ads connected"></i>
+              <i v-if="ads.connected_providers.includes('meta')" class="fab fa-meta" title="Meta Ads connected"></i>
+            </span>
+          </div>
+          <router-link
+            :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }"
+            class="text-sm font-medium text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-violet-200 transition-colors duration-200"
+          >
+            Open ads dashboard
+          </router-link>
+        </div>
+        <div v-if="ads.connected_providers.length" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div v-for="stat in adStatCards" :key="stat.label">
+            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50 mb-1">{{ stat.label }}</p>
+            <p class="text-xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
+          </div>
+        </div>
+        <p v-else class="text-sm text-blue-950/60 dark:text-blue-100/60">
+          Run ads on Google and Meta? Connect your ad accounts to watch spend and results here —
+          <router-link :to="{ name: 'marketing-settings', params: { projectName: route.params.projectName } }" class="text-violet-700 dark:text-violet-300 hover:underline">connect in settings</router-link>.
+        </p>
+      </section>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Recent campaigns -->
         <section class="p-6" :class="ui.card">
@@ -125,13 +154,24 @@ import { useRoute } from 'vue-router'
 import StatusBadge from '../components/StatusBadge.vue'
 import { extractError } from '../services/marketingService'
 import { useMarketingStore } from '../stores/marketing'
-import { formatDateTime, ui } from '../utils/ui'
+import { formatCompactNumber, formatCurrency, formatDateTime, ui } from '../utils/ui'
 
 const route = useRoute()
 const store = useMarketingStore()
 const loadError = ref('')
 
 const overview = computed(() => store.overview)
+const ads = computed(() => overview.value?.ads ?? null)
+
+const adStatCards = computed(() => {
+  if (!ads.value) return []
+  return [
+    { label: 'Ad spend', value: formatCurrency(ads.value.spend, ads.value.currency) },
+    { label: 'Impressions', value: formatCompactNumber(ads.value.impressions) },
+    { label: 'Clicks', value: formatCompactNumber(ads.value.clicks) },
+    { label: 'Active campaigns', value: `${ads.value.campaigns_active} of ${ads.value.campaigns_total}` },
+  ]
+})
 
 const statCards = computed(() => {
   const stats = overview.value?.stats

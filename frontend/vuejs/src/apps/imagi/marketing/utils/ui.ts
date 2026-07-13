@@ -28,6 +28,48 @@ export const ui = {
   successBox: 'p-3.5 rounded-xl border border-emerald-200/80 dark:border-emerald-400/25 bg-emerald-50/80 dark:bg-emerald-500/10 text-sm text-emerald-700 dark:text-emerald-300',
 }
 
+/** Display metadata for the supported ad platforms. */
+export const AD_PROVIDERS = {
+  google: {
+    label: 'Google Ads',
+    icon: 'fab fa-google',
+    managerUrl: 'https://ads.google.com/aw/campaigns',
+    consoleLabel: 'Google Ads',
+  },
+  meta: {
+    label: 'Meta Ads',
+    icon: 'fab fa-meta',
+    managerUrl: 'https://adsmanager.facebook.com',
+    consoleLabel: 'Meta Ads Manager',
+  },
+} as const
+
+/** Format a count for stat tiles, e.g. 12400 -> "12.4K". */
+export function formatCompactNumber(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—'
+  return Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+}
+
+/** Format a money amount in the account currency, e.g. "$1,234.56". */
+export function formatCurrency(
+  value: string | number | null | undefined,
+  currency: string | null | undefined
+): string {
+  if (value === null || value === undefined || value === '') return '—'
+  const amount = typeof value === 'number' ? value : parseFloat(value)
+  if (Number.isNaN(amount)) return '—'
+  try {
+    return Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currency || 'USD',
+      maximumFractionDigits: 2,
+    }).format(amount)
+  } catch {
+    // Unknown currency code from the platform — show it verbatim.
+    return `${amount.toLocaleString()} ${currency}`
+  }
+}
+
 /** Format an ISO timestamp for display, e.g. "Jul 10, 3:42 PM". */
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'

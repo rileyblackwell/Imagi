@@ -18,11 +18,12 @@ const props = defineProps<{
   status: string
 }>()
 
-// Campaign/consent statuses + raw Twilio message/call statuses, by tone.
-const GREEN = new Set(['sent', 'delivered', 'read', 'completed', 'received', 'subscribed'])
+// Campaign/consent statuses, raw Twilio message/call statuses, and normalized
+// ad campaign statuses, by tone.
+const GREEN = new Set(['sent', 'delivered', 'read', 'completed', 'received', 'subscribed', 'active'])
 const RED = new Set(['failed', 'undelivered', 'busy', 'no-answer'])
 const BLUE = new Set(['scheduled', 'accepted'])
-const AMBER = new Set(['sending', 'queued', 'initiated', 'ringing', 'in-progress'])
+const AMBER = new Set(['sending', 'queued', 'initiated', 'ringing', 'in-progress', 'paused'])
 
 const pulse = computed(() => props.status === 'sending' || props.status === 'in-progress')
 

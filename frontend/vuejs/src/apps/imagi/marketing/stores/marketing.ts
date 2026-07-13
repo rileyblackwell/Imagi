@@ -10,6 +10,12 @@
 import { defineStore } from 'pinia'
 import MarketingService from '../services/marketingService'
 import type {
+  AdCampaign,
+  AdConnection,
+  AdConnectionPayload,
+  AdProvider,
+  AdsSummary,
+  AdsSyncResult,
   Campaign,
   CampaignPayload,
   Contact,
@@ -40,6 +46,12 @@ interface MarketingState {
   campaignsLoading: boolean
   conversations: Conversation[]
   conversationsLoading: boolean
+  adConnections: AdConnection[]
+  adsSummary: AdsSummary | null
+  adCampaigns: AdCampaign[]
+  adCampaignsTotal: number
+  adCampaignsLoading: boolean
+  adsSyncing: boolean
 }
 
 export const useMarketingStore = defineStore('marketing', {
@@ -58,10 +70,17 @@ export const useMarketingStore = defineStore('marketing', {
     campaignsLoading: false,
     conversations: [],
     conversationsLoading: false,
+    adConnections: [],
+    adsSummary: null,
+    adCampaigns: [],
+    adCampaignsTotal: 0,
+    adCampaignsLoading: false,
+    adsSyncing: false,
   }),
 
   getters: {
     isConfigured: (state) => Boolean(state.settings?.is_configured),
+    hasAdsConnected: (state) => state.adConnections.some(c => c.is_configured),
   },
 
   actions: {
@@ -221,6 +240,71 @@ export const useMarketingStore = defineStore('marketing', {
 
     async sendDirectMessage(contactId: number, body: string): Promise<Message> {
       return MarketingService.sendDirectMessage(this.requireProject(), contactId, body)
+    },
+
+    // -- Ads ------------------------------------------------------------------
+    async fetchAdConnections() {
+      const { connections, summary } = await MarketingService.getAdConnections(this.requireProject())
+      this.adConnections = connections
+      this.adsSummary = summary
+    },
+
+    upsertAdConnection(connection: AdConnection) {
+      const index = this.adConnections.findIndex(c => c.provider === connection.provider)
+      if (index !== -1) this.adConnections[index] = connection
+      else this.adConnections.push(connection)
+    },
+
+    async saveAdConnection(provider: AdProvider, payload: AdConnectionPayload): Promise<AdConnection> {
+      const connection = await MarketingService.saveAdConnection(this.requireProject(), provider, payload)
+      this.upsertAdConnection(connection)
+      return connection
+    },
+
+    async verifyAdConnection(provider: AdProvider) {
+      const result = await MarketingService.verifyAdConnection(this.requireProject(), provider)
+      this.upsertAdConnection(result.connection)
+      return result
+    },
+
+    async disconnectAdProvider(provider: AdProvider): Promise<void> {
+      await MarketingService.disconnectAdProvider(this.requireProject(), provider)
+      this.adCampaigns = this.adCampaigns.filter(c => c.provider !== provider)
+      await this.fetchAdConnections()
+    },
+
+    async fetchAdCampaigns(params: { provider?: string; status?: string; limit?: number; offset?: number } = {}) {
+      const projectId = this.requireProject()
+      this.adCampaignsLoading = true
+      try {
+        const { campaigns, total, summary } = await MarketingService.listAdCampaigns(projectId, params)
+        this.adCampaigns = campaigns
+        this.adCampaignsTotal = total
+        this.adsSummary = summary
+      } finally {
+        this.adCampaignsLoading = false
+      }
+    },
+
+    async syncAds(): Promise<AdsSyncResult> {
+      const projectId = this.requireProject()
+      this.adsSyncing = true
+      try {
+        const result = await MarketingService.syncAds(projectId)
+        this.adCampaigns = result.campaigns
+        this.adCampaignsTotal = result.campaigns.length
+        this.adsSummary = result.summary
+        return result
+      } finally {
+        this.adsSyncing = false
+      }
+    },
+
+    async setAdCampaignStatus(adCampaignId: number, action: 'pause' | 'resume'): Promise<AdCampaign> {
+      const campaign = await MarketingService.setAdCampaignStatus(this.requireProject(), adCampaignId, action)
+      const index = this.adCampaigns.findIndex(c => c.id === adCampaignId)
+      if (index !== -1) this.adCampaigns[index] = campaign
+      return campaign
     },
   },
 })
