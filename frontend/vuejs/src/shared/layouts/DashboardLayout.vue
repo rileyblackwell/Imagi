@@ -89,7 +89,8 @@
           :class="[isSidebarCollapsed ? 'left-16' : (extraWide ? 'left-[36rem]' : (wide ? 'left-80' : 'left-72'))]"
         >
           <template #left>
-            <!-- Navbar left section -->
+            <!-- Pass through a navbar-left slot for content beside the logo -->
+            <slot name="navbar-left"></slot>
           </template>
           <template #center>
             <!-- Pass through a navbar-center slot for centered content -->
