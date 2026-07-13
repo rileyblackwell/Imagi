@@ -230,11 +230,42 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 
 # Products / Imagi builder
-# Root directory where ProjectManager writes generated user projects. Lives
-# outside the repository so git operations (clean, fresh clones, worktrees)
-# can never wipe user projects; the old in-repo default was gitignored and
-# projects silently disappeared with it.
-PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', os.path.expanduser('~/.imagi/projects'))
+#
+# Hardcoded platform defaults applied to every user's project. Imagi is built
+# for nontechnical users, so none of this is exposed in the product today —
+# every project starts from the same defaults. If we later add a settings
+# surface where users can adjust some of these, it should read/override this
+# block rather than replace it. Code reads the block via
+# getattr(settings, 'IMAGI_BUILDER', {}) with matching fallbacks, so tests
+# and scripts work without it.
+IMAGI_BUILDER = {
+    # Public suite model id the agent runs on (see Build/services/models_service.py
+    # for the mapping to real OpenAI model ids).
+    'DEFAULT_MODEL': 'gpt-5.6-sol',
+    # Reasoning effort used when a request doesn't specify one.
+    'DEFAULT_REASONING_EFFORT': 'medium',
+    # Upper bound on agent-loop iterations for a single request.
+    'MAX_AGENT_TURNS': 30,
+    # Attach OpenAI's hosted web-search tool to the agent.
+    'ENABLE_WEB_SEARCH': True,
+    # Apps scaffolded into every new project.
+    'DEFAULT_APPS': ['home', 'auth', 'payments'],
+}
+
+# Root directory where ProjectManager writes the working copy of generated
+# user projects. The database (Build.ProjectFile rows) is the durable store
+# and the working copy can always be rehydrated from it, so this directory is
+# disposable:
+#  - In development it lives inside the Build module so generated projects are
+#    easy to browse while testing the agent (the path is gitignored).
+#  - In production it lives outside the repository so git operations (clean,
+#    fresh clones, worktrees) never touch it.
+_DEFAULT_PROJECTS_ROOT = (
+    str(BASE_DIR / 'apps' / 'Imagi' / 'Build' / 'imagi_projects')
+    if DEBUG
+    else os.path.expanduser('~/.imagi/projects')
+)
+PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', _DEFAULT_PROJECTS_ROOT)
 
 
 # Marketing / Twilio

@@ -12,7 +12,14 @@ import logging
 import os
 from typing import Optional
 
+from django.conf import settings
+
 from agents import Agent, RunContextWrapper
+
+try:  # Hosted web-search tool (available on the OpenAI Responses API)
+    from agents import WebSearchTool
+except ImportError:  # pragma: no cover - defensive fallback
+    WebSearchTool = None
 
 from apps.Imagi.Build.services.models_service import (
     get_backend_model_id,
@@ -25,8 +32,11 @@ from .tools import CODING_AGENT_TOOLS
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Platform defaults (see IMAGI_BUILDER in imagi/settings.py)
+_BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
+
 # Default model
-DEFAULT_MODEL = "gpt-5.6-sol"
+DEFAULT_MODEL = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-sol')
 
 # Project memory files, in priority order (Codex reads AGENTS.md,
 # Claude Code reads CLAUDE.md). Only the first one found is loaded.
@@ -51,6 +61,10 @@ Project layout (every Imagi project is a dual-stack monorepo):
 
 Technology stack: Django + REST framework, Vue 3 (Composition API + TypeScript), TailwindCSS, Pinia, Vite, Axios.
 """
+
+# Appended to the instructions only when the hosted web-search tool is attached.
+WEB_SEARCH_INSTRUCTIONS = """
+Web search: you can search the web. Use it when a task needs current outside information — real-world facts about the user's business or industry, up-to-date library or API usage — not for things you already know or that live in the project itself."""
 
 
 def load_project_memory(project_path: Optional[str]) -> Optional[str]:
@@ -129,17 +143,28 @@ def create_coding_agent(model: str = DEFAULT_MODEL, reasoning_effort: Optional[s
     effort = resolve_reasoning_effort(model, reasoning_effort)
     identity = get_model_identity_instructions(model)
 
+    tools = list(CODING_AGENT_TOOLS)
+    web_search_enabled = (
+        WebSearchTool is not None
+        and _BUILDER_SETTINGS.get('ENABLE_WEB_SEARCH', True)
+    )
+    if web_search_enabled:
+        tools.append(WebSearchTool())
+
     def instructions_with_identity(context: RunContextWrapper, agent: Agent) -> str:
-        return get_dynamic_coding_instructions(context, agent) + "\n\n" + identity
+        instructions = get_dynamic_coding_instructions(context, agent)
+        if web_search_enabled:
+            instructions += "\n" + WEB_SEARCH_INSTRUCTIONS
+        return instructions + "\n\n" + identity
 
     kwargs = {}
-    settings = build_model_settings(effort)
-    if settings is not None:
-        kwargs['model_settings'] = settings
+    model_settings = build_model_settings(effort)
+    if model_settings is not None:
+        kwargs['model_settings'] = model_settings
     return Agent(
         name="Imagi",
         instructions=instructions_with_identity,
         model=backend_model,
-        tools=list(CODING_AGENT_TOOLS),
+        tools=tools,
         **kwargs
     )
