@@ -30,7 +30,7 @@ export class BuilderCreationService {
   }
 
   /**
-   * Ensure default apps exist (home, auth, payments)
+   * Ensure default apps exist (home, auth)
    */
   static async ensureDefaultApps(
     projectId: string

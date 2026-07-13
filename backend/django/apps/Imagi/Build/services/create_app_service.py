@@ -1,7 +1,9 @@
 """
 Service for creating Vue.js applications with proper structure.
-Also supports generating prebuilt default apps (home, auth, payments)
-for both frontend and backend via codegen templates.
+Also supports generating prebuilt default apps (home, auth) for both
+frontend and backend via codegen templates. Payment pages are not a
+default app — the Sell workspace installs them on demand as prebuilt,
+Stripe-hosted checkout pages.
 """
 
 import logging
@@ -66,7 +68,7 @@ class CreateAppService:
             app_welcome = app_description.strip() if app_description and app_description.strip() else f'Welcome to the {app_name} app.'
 
             # If this is a default app, use prebuilt codegen (includes backend + frontend)
-            default_apps = {"home", "auth", "payments"}
+            default_apps = {"home", "auth"}
             if app_name in default_apps:
                 files_to_create = generate_prebuilt_app_files(app_name, app_description)
                 # Fallback to generic if codegen returns nothing for some reason
@@ -110,8 +112,8 @@ class CreateAppService:
     
     def ensure_default_apps(self, project_id: str = None) -> Dict[str, Any]:
         """
-        Ensure default apps (home, auth, payments) exist in the project.
-        
+        Ensure default apps (home, auth) exist in the project.
+
         Args:
             project_id: Project ID if not initialized with project
             
@@ -137,7 +139,7 @@ class CreateAppService:
             def has_backend(app: str) -> bool:
                 return os.path.isdir(os.path.join(backend_apps_dir, app))
 
-            required_apps = ['home', 'auth', 'payments']
+            required_apps = ['home', 'auth']
             # Track existing status
             existing_frontend = [app for app in required_apps if has_frontend(app)]
             existing_backend = [app for app in required_apps if has_backend(app)]

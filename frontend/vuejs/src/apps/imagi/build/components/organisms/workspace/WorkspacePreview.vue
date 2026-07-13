@@ -201,10 +201,17 @@ const apps = computed<AppEntry[]>(() => {
     const appName = match[1]!
     const viewName = match[2]!
     const base = viewName.endsWith('View') ? viewName.slice(0, -4) : viewName
-    const slug = toKebabCase(base)
-    const path = appName === 'home' && slug === 'home' ? '/' : `/${appName}/${slug}`
 
-    if (path === '/payments/payments') continue
+    // Stripe return pages (from the Sell payment templates) only make
+    // sense mid-checkout; don't offer them as navigable pages.
+    if (base === 'CheckoutReturn') continue
+
+    const slug = toKebabCase(base)
+    // HomeView in home -> '/', StoreView in store -> '/store' (an app's
+    // namesake view is routed at the app root, not /<app>/<app>).
+    const path = appName === 'home' && slug === 'home'
+      ? '/'
+      : slug === appName ? `/${appName}` : `/${appName}/${slug}`
 
     let app = appMap.get(appName)
     if (!app) {

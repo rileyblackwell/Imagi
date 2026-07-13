@@ -46,7 +46,7 @@ class ProjectCreationService:
             
             logger.info(f"Project successfully created at: {project_path}")
             
-            # Ensure default apps (home, auth, payments) are created
+            # Ensure default apps (home, auth) are created
             try:
                 create_app_service = CreateAppService(user=self.user)
                 default_result = create_app_service.ensure_default_apps(project_id=str(project.id))
