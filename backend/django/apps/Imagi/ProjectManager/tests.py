@@ -8,6 +8,7 @@ performed by ProjectCreationService is mocked out so the suite stays fast and
 does not pollute the repository or depend on npm/Django scaffolding.
 """
 
+import os
 import shutil
 import tempfile
 from unittest.mock import patch
@@ -152,7 +153,7 @@ class ProjectManagementServiceTests(TestCase):
         theirs = Project.objects.create(user=self.other, name='Theirs')
         self.assertIsNone(self.service.get_project(theirs.id))
 
-    @patch.object(ProjectManagementService, '_stop_project_server_and_cleanup_pid')
+    @patch.object(ProjectManagementService, '_stop_project_server_and_cleanup_files')
     @patch.object(ProjectManagementService, '_delete_project_directory')
     def test_delete_project_hard_deletes_row(self, mock_dir, mock_pid):
         project = Project.objects.create(user=self.user, name='To Delete')
@@ -160,6 +161,49 @@ class ProjectManagementServiceTests(TestCase):
         result = self.service.delete_project(project)
         self.assertTrue(result['success'])
         self.assertFalse(Project.objects.filter(id=pid).exists())
+
+    @patch.object(ProjectManagementService, '_delete_project_directory')
+    def test_delete_project_removes_preview_sidecar_files(self, mock_dir):
+        # PreviewService writes these next to the project directory, so they
+        # survive the rmtree and have to be removed explicitly.
+        project = Project.objects.create(user=self.user, name='Saturn')
+        # A PID no live process holds: cleanup should skip the kill but still
+        # remove the file.
+        contents = {
+            '_backend.log': 'Starting development server...',
+            '_frontend.log': 'VITE ready in 300 ms',
+            '_preview_ports.json': '{"frontend_port": 5174, "backend_port": 8080}',
+            '_backend.pid': '999999',
+            '_frontend.pid': '999999',
+        }
+        sidecars = []
+        for suffix, body in contents.items():
+            path = os.path.join(self.service.base_directory, f'Saturn{suffix}')
+            with open(path, 'w') as f:
+                f.write(body)
+            sidecars.append(path)
+
+        self.service.delete_project(project)
+
+        for path in sidecars:
+            self.assertFalse(os.path.exists(path), f'{path} was left behind')
+
+    @patch.object(ProjectManagementService, '_delete_project_directory')
+    def test_delete_project_removes_legacy_named_sidecar_files(self, mock_dir):
+        # Older releases wrote these under a sanitized spelling of the name.
+        project = Project.objects.create(user=self.user, name='My App')
+        legacy = [
+            os.path.join(self.service.base_directory, name)
+            for name in ('My_App_server.pid', 'My_App_backend.log')
+        ]
+        for path in legacy:
+            with open(path, 'w') as f:
+                f.write('999999')
+
+        self.service.delete_project(project)
+
+        for path in legacy:
+            self.assertFalse(os.path.exists(path), f'{path} was left behind')
 
 
 @override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
@@ -278,7 +322,7 @@ class ProjectManagerAPITests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
 
-    @patch.object(ProjectManagementService, '_stop_project_server_and_cleanup_pid')
+    @patch.object(ProjectManagementService, '_stop_project_server_and_cleanup_files')
     @patch.object(ProjectManagementService, '_delete_project_directory')
     def test_delete_project_endpoint(self, mock_dir, mock_pid):
         project = Project.objects.create(user=self.user, name='Delete Me')

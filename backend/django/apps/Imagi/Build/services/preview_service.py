@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 # npm install for a freshly scaffolded frontend can legitimately take minutes
 NPM_INSTALL_TIMEOUT = 600
 
+# The per-project files this service keeps beside the project directory, by
+# filename suffix. They are named after project.name, not the timestamped
+# directory, so deleting the directory does not remove them.
+PID_SUFFIXES = ('_frontend.pid', '_backend.pid', '_server.pid')  # _server.pid predates dual-stack
+LOG_SUFFIXES = ('_frontend.log', '_backend.log')
+PORTS_SUFFIX = '_preview_ports.json'
+
 
 class PreviewService:
     """Service for project preview operations with dual-stack support."""
@@ -27,18 +34,18 @@ class PreviewService:
         self.backend_port = 8080   # Django dev server - use 8080 to avoid conflict with main project on 8000
 
         # Ensure the PID file directory exists
-        pid_dir = os.path.join(settings.PROJECTS_ROOT, str(project.user.id))
-        os.makedirs(pid_dir, exist_ok=True)
+        self.pid_dir = os.path.join(settings.PROJECTS_ROOT, str(project.user.id))
+        os.makedirs(self.pid_dir, exist_ok=True)
 
-        self.frontend_pid_file = os.path.join(pid_dir, f"{project.name}_frontend.pid")
-        self.backend_pid_file = os.path.join(pid_dir, f"{project.name}_backend.pid")
+        self.frontend_pid_file = os.path.join(self.pid_dir, f"{project.name}_frontend.pid")
+        self.backend_pid_file = os.path.join(self.pid_dir, f"{project.name}_backend.pid")
         # Records the ports the servers were actually started on, so stopping
         # only ever touches those ports (never someone else's dev server).
-        self.ports_file = os.path.join(pid_dir, f"{project.name}_preview_ports.json")
+        self.ports_file = os.path.join(self.pid_dir, f"{project.name}{PORTS_SUFFIX}")
         # Dev server output goes to log files: piping to subprocess.PIPE without
         # draining would freeze the servers once the pipe buffer fills.
-        self.frontend_log_file = os.path.join(pid_dir, f"{project.name}_frontend.log")
-        self.backend_log_file = os.path.join(pid_dir, f"{project.name}_backend.log")
+        self.frontend_log_file = os.path.join(self.pid_dir, f"{project.name}_frontend.log")
+        self.backend_log_file = os.path.join(self.pid_dir, f"{project.name}_backend.log")
 
     def start_preview(self):
         """Start both frontend and backend development servers."""
@@ -327,12 +334,17 @@ class PreviewService:
             logger.warning(f"Could not save preview port state: {e}")
 
     def _load_port_state(self):
-        """Return the recorded ports of a running preview, or None."""
+        """Return the recorded ports of a running preview, or None.
+
+        The file can be stale or truncated from an earlier crash, so anything
+        that is not a well-formed mapping is treated as absent.
+        """
         try:
             with open(self.ports_file, 'r') as f:
-                return json.load(f)
+                state = json.load(f)
         except (OSError, ValueError):
             return None
+        return state if isinstance(state, dict) else None
 
     def _start_legacy_preview(self):
         """Start preview for legacy single Django projects."""
@@ -471,6 +483,41 @@ class PreviewService:
             logger.error(f"Error stopping preview servers: {str(e)}")
             raise
 
+    def cleanup_project_files(self, name_variants=None):
+        """Stop the servers and remove every file this service wrote for the project.
+
+        For deleting a project, where stop_preview() is not enough: it leaves the
+        logs behind (deliberately, so a stopped server's output stays readable)
+        and only knows the project's current name. Older releases wrote these
+        files under sanitized spellings of the name, so callers can pass
+        name_variants to sweep those too.
+        """
+        try:
+            self.stop_preview()
+        except Exception as e:
+            # Best effort: a project must still be deletable when its dev
+            # servers are already gone or unkillable.
+            logger.warning(f"Error stopping preview while cleaning up {self.project.name}: {e}")
+
+        for name in name_variants or [self.project.name]:
+            for suffix in PID_SUFFIXES:
+                # stop_preview already cleared the current-name PID files; this
+                # catches legacy and renamed leftovers, killing what they name.
+                try:
+                    self._kill_from_pid_file(os.path.join(self.pid_dir, f"{name}{suffix}"))
+                except Exception as e:
+                    logger.warning(f"Error stopping process from {name}{suffix}: {e}")
+
+            for suffix in LOG_SUFFIXES + (PORTS_SUFFIX,):
+                path = os.path.join(self.pid_dir, f"{name}{suffix}")
+                if not os.path.exists(path):
+                    continue
+                try:
+                    os.remove(path)
+                    logger.info(f"Deleted project file: {path}")
+                except OSError as e:
+                    logger.warning(f"Failed to delete project file {path}: {e}")
+
     def _stop_vuejs_frontend(self, port=None):
         """Stop VueJS frontend server."""
         try:
@@ -494,7 +541,7 @@ class PreviewService:
             return False
 
     def _kill_from_pid_file(self, pid_file):
-        """Kill the recorded process (and its children), removing the PID file."""
+        """Stop the recorded process (and its children), removing the PID file."""
         if not os.path.exists(pid_file):
             return False
 
@@ -508,17 +555,34 @@ class PreviewService:
         if pid:
             try:
                 process = psutil.Process(pid)
-                # Kill all child processes first
-                children = process.children(recursive=True)
-                for child in children:
-                    child.kill()
-                process.kill()
+                # Children first, so a dying parent cannot orphan them.
+                for proc in process.children(recursive=True) + [process]:
+                    self._stop_process(proc)
                 stopped = True
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
 
-        os.remove(pid_file)
+        try:
+            os.remove(pid_file)
+        except OSError as e:
+            logger.warning(f"Failed to delete PID file {pid_file}: {e}")
         return stopped
+
+    @staticmethod
+    def _stop_process(proc):
+        """Ask a process to exit, escalating to SIGKILL if it ignores that."""
+        try:
+            proc.terminate()
+            proc.wait(timeout=3)
+        except psutil.TimeoutExpired:
+            try:
+                proc.kill()
+            except psutil.NoSuchProcess:
+                pass
+        except psutil.NoSuchProcess:
+            pass
+        except psutil.AccessDenied:
+            logger.warning(f"Access denied stopping process {proc.pid}")
 
     def _kill_by_port(self, port):
         """Kill any process still listening on the given port."""
