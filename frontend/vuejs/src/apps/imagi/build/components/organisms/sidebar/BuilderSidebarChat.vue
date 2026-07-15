@@ -38,6 +38,7 @@
       <ChatConversation
         :messages="ensureValidMessages(activeInstance?.conversation || [])"
         :is-processing="!!activeInstance?.isProcessing"
+        :status-text="activeInstance?.statusText || ''"
         @use-example="handleExamplePrompt"
         class="flex-1"
       />

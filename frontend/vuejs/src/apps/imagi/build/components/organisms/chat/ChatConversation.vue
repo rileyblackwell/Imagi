@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col relative z-10 transition-colors duration-300" :class="{'mode-transition': disableAllAnimations}">
     <!-- Messages Container -->
-    <div ref="messagesContainer" class="flex-grow overflow-y-auto px-4 py-6">
+    <div ref="messagesContainer" class="flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
       <!-- Empty state -->
       <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-6 py-4 text-center min-h-0">
         <!-- Empty state with no content -->
@@ -53,8 +53,9 @@
             </div>
           </template>
           
-          <!-- "AI is typing" indicator -->
-          <div v-if="props.isProcessing" class="message-block message-assistant animate-fade-in">
+          <!-- Agent activity indicator. Hidden while the reply itself is
+               streaming in — the growing message already shows progress. -->
+          <div v-if="showActivityIndicator" class="message-block message-assistant animate-fade-in">
             <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
             <div class="message-content">
               <div class="flex items-center gap-3">
@@ -63,7 +64,7 @@
                   <span></span>
                   <span></span>
                 </div>
-                <span class="text-sm text-blue-950/50 dark:text-blue-100/50">Working...</span>
+                <span class="text-sm text-blue-950/50 dark:text-blue-100/50">{{ props.statusText || 'Working…' }}</span>
               </div>
             </div>
           </div>
@@ -88,7 +89,22 @@ interface ProcessedMessage extends AIMessage {
 const props = defineProps<{
   messages: AIMessage[]
   isProcessing?: boolean
+  /** What the agent is doing right now; empty while its reply is streaming. */
+  statusText?: string
 }>()
+
+/**
+ * Show the activity indicator while the agent works, except when the reply is
+ * actively streaming (last message is the assistant's, growing in place) and
+ * nothing else is going on — then the indicator would just dangle beneath it.
+ * A tool call mid-run sets statusText again, which brings the indicator back.
+ */
+const showActivityIndicator = computed(() => {
+  if (!props.isProcessing) return false
+  if (props.statusText) return true
+  const last = props.messages[props.messages.length - 1]
+  return !(last?.role === 'assistant' && (last.content || '').trim().length > 0)
+})
 
 const emit = defineEmits<{
   (e: 'apply-code', code: string): void
@@ -271,6 +287,11 @@ const copyToClipboard = (code: string) => {
 .message-content {
   font-size: 0.875rem;
   line-height: 1.6;
+  /* Long unbroken strings (paths, URLs) wrap instead of widening the chat
+     and dragging in a horizontal scrollbar. Code blocks keep their own
+     overflow-x so they scroll within their box, not the page. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 /* Prose styling */
@@ -311,6 +332,14 @@ const copyToClipboard = (code: string) => {
   color: theme('colors.orange.300');
   background: rgba(251, 146, 60, 0.1);
   border: 1px solid rgba(251, 146, 60, 0.2);
+}
+
+/* Wide tables scroll within their own box; the container clips overflow, so
+   without this their far columns would be cut off with no way to reach them. */
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .prose p {

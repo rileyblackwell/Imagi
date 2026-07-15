@@ -22,6 +22,7 @@ function dtoToInstance(dto: ConversationDto, fallbackModelId: string | null): Ag
     selectedFile: null,
     conversation: [],
     isProcessing: false,
+    statusText: '',
     archivedAt: dto.archived_at,
     updatedAt: dto.updated_at,
     lastMessagePreview: dto.last_message_preview || '',
@@ -268,6 +269,18 @@ export const useAgentStore = defineStore('agent', {
       const instance = this._findInstance(instanceId)
       if (!instance) return
       instance.isProcessing = value
+      if (!value) instance.statusText = ''
+    },
+
+    /**
+     * Describe what the running agent is doing ("Thinking…", "Editing project
+     * files…"). Cleared while reply text is streaming, so the status line and
+     * the growing message never show together.
+     */
+    setInstanceStatus(instanceId: string, text: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      instance.statusText = text
     },
 
     addMessageToInstance(instanceId: string, message: AIMessage) {

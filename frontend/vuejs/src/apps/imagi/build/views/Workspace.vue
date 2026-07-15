@@ -239,6 +239,19 @@ function createCommitFromPrompt(filePath: string, prompt: string) {
   );
 }
 
+/** Turn an agent tool name into a status line the user can read. */
+function describeAgentTool(name: string): string {
+  if (name === 'update_plan') return 'Planning…'
+  if (name === 'web_search' || name === 'web_search_call') return 'Searching the web…'
+  if (['get_project_tree', 'list_project_files', 'glob_files', 'grep_files', 'read_file'].includes(name)) {
+    return 'Reading project files…'
+  }
+  if (['edit_file', 'update_file', 'create_file', 'delete_file', 'create_directory', 'delete_directory'].includes(name)) {
+    return 'Editing project files…'
+  }
+  return 'Working…'
+}
+
 async function handlePrompt(promptText: string) {
   if (!promptText.trim()) return
 
@@ -282,6 +295,7 @@ async function handlePrompt(promptText: string) {
     let messageStarted = false
 
     try {
+      store.setInstanceStatus(instanceId, 'Thinking…')
       const response = await AgentService.streamAgent(
         projectId.value,
         {
@@ -309,8 +323,13 @@ async function handlePrompt(promptText: string) {
                 id: streamingMessageId
               })
             }
+            // The reply is streaming; the status line would just sit under it.
+            store.setInstanceStatus(instanceId, '')
             streamedText += text
             store.setMessageContent(instanceId, streamingMessageId, streamedText)
+          },
+          onToolCall: (name) => {
+            store.setInstanceStatus(instanceId, describeAgentTool(name))
           },
         }
       )
@@ -365,6 +384,14 @@ async function handlePrompt(promptText: string) {
     }
   } catch (error) {
     console.error('Error processing prompt:', error)
+    // Failures outside the agent call (store errors, setup bugs) must still
+    // surface in the chat — a console-only error reads as "nothing happened".
+    store.addMessageToInstance(instanceId, {
+      role: 'assistant',
+      content: `Error: ${error instanceof Error ? error.message : 'Something went wrong processing your request.'}`,
+      timestamp: new Date().toISOString(),
+      id: `system-error-${Date.now()}`
+    })
   } finally {
     store.setInstanceProcessing(instanceId, false)
   }
