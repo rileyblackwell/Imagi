@@ -7,6 +7,7 @@ from ..models import Project
 
 logger = logging.getLogger(__name__)
 
+
 class ProjectManagementService:
     def __init__(self, user):
         self.user = user
@@ -38,8 +39,9 @@ class ProjectManagementService:
             project_path = project.project_path
             project_id = project.id
             
-            # Stop any running preview server and delete PID file
-            self._stop_project_server_and_cleanup_pid(project_name)
+            # Stop any running preview servers and delete the PID, log and
+            # preview-port files that live outside the project directory
+            self._stop_project_server_and_cleanup_files(project)
             
             # Delete project files using path (preferred) or name as fallback
             if project_path and os.path.exists(project_path):
@@ -182,97 +184,47 @@ class ProjectManagementService:
                     # Use the robust deletion method
                     self._delete_project_directory(project_path)
 
-    def _stop_project_server_and_cleanup_pid(self, project_name):
-        """Stop any running dev servers and delete PID files for the project.
-        
-        Handles both dual-stack PreviewService naming and legacy naming:
-        - Dual-stack: {project.name}_frontend.pid, {project.name}_backend.pid
-        - Legacy:     {project.name}_server.pid (plus sanitized fallbacks)
+    def _project_name_variants(self, project_name):
+        """Every name a project's sidecar files may have been written under.
+
+        PreviewService uses project.name verbatim, but older code sanitized it
+        first, so both spellings can exist on disk.
+        """
+        variants = [
+            project_name,
+            project_name.lower().replace(' ', '_'),
+            project_name.replace(' ', '-'),
+        ]
+        try:
+            from .project_creation_service import ProjectCreationService
+            creation_service = ProjectCreationService(self.user)
+            variants.append(creation_service._sanitize_project_name(project_name))
+        except Exception:
+            # If sanitization fails, continue with available names
+            pass
+
+        # Deduplicate while preserving order
+        seen = set()
+        return [v for v in variants if v and not (v in seen or seen.add(v))]
+
+    def _stop_project_server_and_cleanup_files(self, project):
+        """Stop the project's dev servers and delete the files they left behind.
+
+        PreviewService owns those processes and files, so it does the work; this
+        only supplies the older spellings of the project name to sweep. A stale
+        ports file is worse than clutter: a later project reusing this name would
+        read it and kill whatever now holds those ports.
         """
         try:
-            pid_files_to_check = []
-            # Primary dual-stack PID files used by PreviewService
-            pid_files_to_check.append(os.path.join(self.base_directory, f"{project_name}_frontend.pid"))
-            pid_files_to_check.append(os.path.join(self.base_directory, f"{project_name}_backend.pid"))
-            # Legacy single PID file
-            pid_files_to_check.append(os.path.join(self.base_directory, f"{project_name}_server.pid"))
+            # Imported here because PreviewService imports this package back.
+            from apps.Imagi.Build.services.preview_service import PreviewService
 
-            # Add sanitized fallback names
-            try:
-                from .project_creation_service import ProjectCreationService
-                creation_service = ProjectCreationService(self.user)
-                sanitized_name = creation_service._sanitize_project_name(project_name)
-                pid_files_to_check.extend([
-                    os.path.join(self.base_directory, f"{sanitized_name}_frontend.pid"),
-                    os.path.join(self.base_directory, f"{sanitized_name}_backend.pid"),
-                    os.path.join(self.base_directory, f"{sanitized_name}_server.pid"),
-                    os.path.join(self.base_directory, f"{project_name.lower().replace(' ', '_')}_server.pid"),
-                    os.path.join(self.base_directory, f"{project_name.replace(' ', '-')}_server.pid"),
-                ])
-            except Exception:
-                # If sanitization fails, continue with available names
-                pass
-
-            # Deduplicate while preserving order
-            seen = set()
-            pid_files_to_check = [p for p in pid_files_to_check if not (p in seen or seen.add(p))]
-
-            # Iterate through all candidate PID files
-            for pid_path in pid_files_to_check:
-                if not os.path.exists(pid_path):
-                    continue
-                try:
-                    pid = None
-                    try:
-                        with open(pid_path, 'r') as f:
-                            pid = int(f.read().strip())
-                    except Exception as e:
-                        logger.debug(f"Could not read PID from {pid_path}: {e}")
-
-                    if pid is not None:
-                        try:
-                            import psutil
-                            process = psutil.Process(pid)
-                            # Terminate children first
-                            for child in process.children(recursive=True):
-                                try:
-                                    child.terminate()
-                                    child.wait(timeout=3)
-                                except (psutil.TimeoutExpired, psutil.NoSuchProcess):
-                                    try:
-                                        child.kill()
-                                    except psutil.NoSuchProcess:
-                                        pass
-                            # Terminate main process
-                            try:
-                                process.terminate()
-                                process.wait(timeout=3)
-                            except (psutil.TimeoutExpired, psutil.NoSuchProcess):
-                                try:
-                                    process.kill()
-                                except psutil.NoSuchProcess:
-                                    pass
-                            logger.info(f"Stopped process {pid} from PID file {pid_path}")
-                        except ImportError:
-                            logger.warning("psutil not available; cannot gracefully stop process. Removing PID file only.")
-                        except psutil.AccessDenied:
-                            logger.warning(f"Access denied stopping process {pid} from {pid_path}")
-                        except psutil.NoSuchProcess:
-                            logger.debug(f"Process {pid} from {pid_path} was already stopped")
-                    # Remove PID file regardless
-                    try:
-                        os.remove(pid_path)
-                        logger.info(f"Deleted PID file: {pid_path}")
-                    except Exception as e:
-                        logger.warning(f"Failed to delete PID file {pid_path}: {e}")
-                except Exception as e:
-                    logger.warning(f"Error handling PID file {pid_path}: {e}")
-
-            # If we reach here, we've attempted all candidates
-            return
+            PreviewService(project).cleanup_project_files(
+                name_variants=self._project_name_variants(project.name)
+            )
         except Exception as e:
-            logger.warning(f"Error during server stop and PID cleanup for project '{project_name}': {str(e)}")
-            # Don't raise the exception as PID file cleanup is not critical for project deletion
+            logger.warning(f"Error during server stop and file cleanup for project '{project.name}': {str(e)}")
+            # Don't raise: this cleanup is not critical for project deletion
 
     
     
