@@ -11,12 +11,17 @@ import os
 import shutil
 import tempfile
 from types import SimpleNamespace
+from unittest.mock import PropertyMock, patch
 
+from asgiref.sync import async_to_sync
 from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
+from rest_framework.authtoken.models import Token
 
 from apps.Imagi.Build.services.base_agent import (
     AgentContext,
+    ImagiAgentService,
     compact_history,
     extract_run_metadata,
 )
@@ -301,6 +306,162 @@ class ExtractRunMetadataTests(SimpleTestCase):
     def test_handles_empty_result(self):
         metadata = extract_run_metadata(SimpleNamespace(new_items=[]))
         self.assertEqual(metadata, {'tool_calls': [], 'files_changed': []})
+
+
+class _FakeStreamedRun:
+    """Stands in for the SDK's RunResultStreaming."""
+
+    def __init__(self, events, final_output='All done.', new_items=None):
+        self._events = events
+        self.final_output = final_output
+        self.new_items = new_items or []
+
+    async def stream_events(self):
+        for event in self._events:
+            yield event
+
+
+def _delta_event(text):
+    return SimpleNamespace(
+        type='raw_response_event',
+        data=SimpleNamespace(type='response.output_text.delta', delta=text),
+    )
+
+
+def _tool_call_event(name):
+    return SimpleNamespace(
+        type='run_item_stream_event',
+        item=SimpleNamespace(type='tool_call_item', raw_item=SimpleNamespace(name=name)),
+    )
+
+
+class ProcessStreamTests(TestCase):
+    """The streaming run: event order, persistence, and failure handling."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='streamer', password='pw123456')
+        self.service = ImagiAgentService()
+
+        conversation = SimpleNamespace(id=7)
+        self.context = AgentContext(user_id=self.user.id, project_id=1)
+        self.persisted = []
+
+        self.service._prepare_run = lambda **kwargs: (
+            conversation, self.context, [{'role': 'user', 'content': kwargs['user_input']}]
+        )
+        self.service.add_assistant_message = lambda conv, content: self.persisted.append(content)
+
+    async def _collect(self, **overrides):
+        kwargs = {'user_input': 'build me a page', 'user': self.user, 'project_id': 1}
+        kwargs.update(overrides)
+        return [event async for event in self.service.process_stream(**kwargs)]
+
+    def _run(self, fake_run, **overrides):
+        with patch.object(type(self.service), 'agent', new_callable=PropertyMock) as mock_agent, \
+                patch('apps.Imagi.Build.services.base_agent.Runner') as mock_runner:
+            mock_agent.return_value = SimpleNamespace()
+            mock_runner.run_streamed.return_value = fake_run
+            return async_to_sync(self._collect)(**overrides)
+
+    def test_streams_deltas_then_done(self):
+        events = self._run(_FakeStreamedRun([_delta_event('Hel'), _delta_event('lo')]))
+
+        self.assertEqual(events[0], {'type': 'start', 'conversation_id': 7})
+        self.assertEqual(
+            [e['text'] for e in events if e['type'] == 'delta'], ['Hel', 'lo']
+        )
+        done = events[-1]
+        self.assertEqual(done['type'], 'done')
+        self.assertTrue(done['success'])
+        self.assertEqual(done['response'], 'All done.')
+        self.assertEqual(done['conversation_id'], 7)
+        # The reply is persisted exactly once, from the run's final output.
+        self.assertEqual(self.persisted, ['All done.'])
+
+    def test_reports_tool_calls_and_plan(self):
+        self.context.plan = [{'step': 'write the page', 'status': 'done'}]
+        events = self._run(_FakeStreamedRun([
+            _tool_call_event('read_file'), _tool_call_event('update_plan'),
+        ]))
+
+        self.assertEqual(
+            [e['name'] for e in events if e['type'] == 'tool_call'],
+            ['read_file', 'update_plan'],
+        )
+        # A plan event follows update_plan so the UI can redraw it mid-run.
+        plans = [e for e in events if e['type'] == 'plan']
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(plans[0]['plan'], [{'step': 'write the page', 'status': 'done'}])
+
+    def test_falls_back_to_streamed_text_when_final_output_missing(self):
+        events = self._run(
+            _FakeStreamedRun([_delta_event('partial ')], final_output=None)
+        )
+        self.assertEqual(events[-1]['response'], 'partial ')
+        self.assertEqual(self.persisted, ['partial '])
+
+    def test_requires_message_and_project(self):
+        self.assertEqual(
+            self._run(_FakeStreamedRun([]), user_input='')[0],
+            {'type': 'error', 'error': 'Message is required'},
+        )
+        self.assertEqual(
+            self._run(_FakeStreamedRun([]), project_id=None)[0],
+            {'type': 'error', 'error': 'Project ID is required'},
+        )
+
+    def test_mid_run_failure_persists_partial_reply(self):
+        # The agent may already have edited files before blowing up, so the
+        # text it produced must not be silently dropped.
+        class Exploding(_FakeStreamedRun):
+            async def stream_events(self):
+                yield _delta_event('I started ')
+                raise RuntimeError('model exploded')
+
+        events = self._run(Exploding([]))
+
+        self.assertEqual(events[-1]['type'], 'error')
+        self.assertIn('model exploded', events[-1]['error'])
+        self.assertEqual(self.persisted, ['I started'])
+
+
+class AgentStreamEndpointTests(TestCase):
+    """Auth on the SSE endpoint, which cannot use DRF's sync-only decorators."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='api', password='pw123456')
+        self.url = reverse('agent_stream')
+
+    def test_rejects_unauthenticated_request(self):
+        resp = self.client.post(
+            self.url, data='{"message": "hi", "project_id": 1}',
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_rejects_session_auth_without_token(self):
+        # csrf_exempt + cookie auth would let any origin drive an agent run,
+        # so a session alone must not authenticate this endpoint.
+        self.client.force_login(self.user)
+        resp = self.client.post(
+            self.url, data='{"message": "hi", "project_id": 1}',
+            content_type='application/json',
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_rejects_get(self):
+        token = Token.objects.create(user=self.user)
+        resp = self.client.get(self.url, HTTP_AUTHORIZATION=f'Token {token.key}')
+        self.assertEqual(resp.status_code, 405)
+
+    def test_validates_body(self):
+        token = Token.objects.create(user=self.user)
+        resp = self.client.post(
+            self.url, data='{"project_id": 1}', content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {token.key}',
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('Message is required', resp.json()['error'])
 
 
 class ProjectMemoryTests(SimpleTestCase):

@@ -23,6 +23,7 @@ from .views import (
     DeleteDirectoryView,
     # Agent views
     agent,
+    agent_stream,
     conversations_list_create,
     conversation_detail,
     conversation_messages,
@@ -56,6 +57,7 @@ builder_patterns = [
 
 agents_patterns = [
     path('agent/', agent, name='agent'),
+    path('agent/stream/', agent_stream, name='agent_stream'),
     path('conversations/', conversations_list_create, name='conversations_list_create'),
     path('conversations/<int:conversation_id>/', conversation_detail, name='conversation_detail'),
     path('conversations/<int:conversation_id>/messages/', conversation_messages, name='conversation_messages'),

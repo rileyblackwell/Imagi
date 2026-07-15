@@ -1,7 +1,8 @@
-import api from '@/shared/services/api'
+import api, { getAuthToken } from '@/shared/services/api'
 import type {
   AIModel,
   AgentResponse,
+  AgentPlanStep,
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
@@ -23,7 +24,164 @@ function getPaymentsStore() {
  * processAgent; the rest of the service covers conversation CRUD and
  * version control.
  */
+/** Events the agent stream emits, in the order a run produces them. */
+export interface AgentStreamHandlers {
+  onStart?: (conversationId: number) => void
+  /** A chunk of the agent's reply. Chunks concatenate into the final text. */
+  onDelta?: (text: string) => void
+  onToolCall?: (name: string) => void
+  onPlan?: (plan: AgentPlanStep[]) => void
+}
+
 export const AgentService = {
+  /**
+   * Run the agent, surfacing output as it arrives.
+   *
+   * Uses fetch rather than the shared axios client because axios is built on
+   * XHR, which cannot expose a response body before it completes. Resolves
+   * with the same shape as processAgent once the run finishes.
+   */
+  async streamAgent(
+    projectId: string,
+    data: {
+      prompt: string;
+      model: string;
+      reasoningEffort?: string;
+      file?: any;
+      conversationId?: number | string | null;
+    },
+    handlers: AgentStreamHandlers = {},
+    signal?: AbortSignal,
+  ): Promise<AgentResponse> {
+    if (!data.prompt || !data.model) {
+      throw new Error('Prompt and model are required')
+    }
+    if (!projectId) {
+      throw new Error('Project ID is required')
+    }
+
+    await ModelsService.checkRateLimit(data.model)
+
+    const config = ModelsService.getConfig({ id: data.model } as AIModel)
+    if (ModelsService.estimateTokens(data.prompt) > config.maxTokens) {
+      throw new Error(`Prompt is too long for selected model. Please reduce length or choose a different model.`)
+    }
+
+    let currentFile = null
+    if (data.file) {
+      currentFile = {
+        path: data.file.path,
+        type: data.file.type || this.getFileType(data.file.path),
+        content: data.file.content || ''
+      }
+    }
+
+    const token = getAuthToken()
+    const response = await fetch('/api/v1/agents/agent/stream/', {
+      method: 'POST',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        ...(token ? { Authorization: `Token ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        message: data.prompt,
+        model: data.model,
+        reasoning_effort: data.reasoningEffort,
+        project_id: String(projectId),
+        conversation_id: data.conversationId ?? undefined,
+        current_file: currentFile,
+      }),
+    })
+
+    if (!response.ok || !response.body) {
+      // Errors before the stream opens are plain JSON, not SSE.
+      let detail = ''
+      try {
+        detail = (await response.json())?.error || ''
+      } catch { /* non-JSON body */ }
+      throw new Error(detail || `Agent request failed (${response.status})`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let done: AgentResponse | null = null
+    let streamError = ''
+    const text: string[] = []
+    const toolCalls: string[] = []
+    let plan: AgentPlanStep[] = []
+    let conversationId: number | undefined
+
+    const handleEvent = (event: any) => {
+      switch (event.type) {
+        case 'start':
+          conversationId = event.conversation_id
+          handlers.onStart?.(event.conversation_id)
+          break
+        case 'delta':
+          text.push(event.text)
+          handlers.onDelta?.(event.text)
+          break
+        case 'tool_call':
+          toolCalls.push(event.name)
+          handlers.onToolCall?.(event.name)
+          break
+        case 'plan':
+          plan = event.plan || []
+          handlers.onPlan?.(plan)
+          break
+        case 'done':
+          done = {
+            response: event.response ?? text.join(''),
+            conversation_id: event.conversation_id,
+            files_changed: event.files_changed || [],
+            tool_calls: event.tool_calls || toolCalls,
+            plan: event.plan || plan,
+            single_message: event.single_message ?? true,
+          }
+          break
+        case 'error':
+          streamError = event.error || 'Agent run failed'
+          break
+      }
+    }
+
+    while (true) {
+      const { value, done: finished } = await reader.read()
+      if (finished) break
+      buffer += decoder.decode(value, { stream: true })
+
+      // SSE frames are separated by a blank line; the last chunk may be partial.
+      const frames = buffer.split('\n\n')
+      buffer = frames.pop() ?? ''
+      for (const frame of frames) {
+        const line = frame.split('\n').find(l => l.startsWith('data: '))
+        if (!line) continue
+        try {
+          handleEvent(JSON.parse(line.slice(6)))
+        } catch {
+          console.warn('Skipping malformed agent stream frame')
+        }
+      }
+    }
+
+    if (streamError) throw new Error(streamError)
+    if (done) return done
+
+    // Stream ended without a terminal event (server died, connection dropped).
+    // Keep whatever text arrived rather than discarding a partial reply.
+    return {
+      response: text.join(''),
+      conversation_id: conversationId as any,
+      files_changed: [],
+      tool_calls: toolCalls,
+      plan,
+      single_message: true,
+    }
+  },
+
   async processAgent(projectId: string, data: {
     prompt: string;
     model: string;

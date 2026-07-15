@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from dotenv import load_dotenv
 
 from agents import Agent, Runner, RunConfig
+from asgiref.sync import sync_to_async
 
 try:  # ModelSettings location can vary across SDK versions
     from agents import ModelSettings
@@ -325,6 +326,179 @@ class ImagiAgentService:
     # Main Processing
     # -------------------------------------------------------------------------
 
+    def _run_config(self, user) -> RunConfig:
+        return RunConfig(
+            workflow_name="imagi_agent",
+            trace_metadata={"user_id": str(user.id)},
+        )
+
+    def _prepare_run(
+        self,
+        user_input: str,
+        user,
+        model: Optional[str] = None,
+        project_id: Optional[int] = None,
+        current_file: Optional[Dict[str, Any]] = None,
+        conversation_id: Optional[int] = None,
+        reasoning_effort: Optional[str] = None,
+    ):
+        """Resolve the conversation, context and input messages for a run.
+
+        Shared by the blocking and streaming paths. Every database access for a
+        run happens here, so the streaming path can perform it in one hop off
+        the event loop.
+        """
+        model = model or self.model
+        self._apply_reasoning_effort(reasoning_effort)
+
+        # Get or create conversation
+        conversation = None
+        if conversation_id:
+            conversation = self.get_conversation(conversation_id, user)
+        if conversation is None:
+            conversation = self.create_conversation(user, model, project_id=project_id)
+
+        # Add user message to conversation
+        self.add_user_message(conversation, user_input)
+
+        # Get project info
+        project_info = self.get_project_info(project_id, user)
+
+        context = AgentContext(
+            user_id=user.id,
+            project_id=project_id,
+            project_name=project_info["project_name"],
+            project_description=project_info["project_description"],
+            project_path=project_info["project_path"],
+            conversation_id=conversation.id,
+            current_file=current_file,
+        )
+
+        # Build (compacted) conversation history, excluding the message we
+        # just persisted — it is appended as the current input below.
+        conversation_history = self.build_conversation_history(conversation)
+        if conversation_history and conversation_history[-1]["role"] == "user" \
+                and conversation_history[-1]["content"] == user_input:
+            conversation_history = conversation_history[:-1]
+
+        input_messages = list(conversation_history)
+        input_messages.append({"role": "user", "content": user_input})
+
+        return conversation, context, input_messages
+
+    async def process_stream(
+        self,
+        user_input: str,
+        user,
+        model: Optional[str] = None,
+        project_id: Optional[int] = None,
+        current_file: Optional[Dict[str, Any]] = None,
+        conversation_id: Optional[int] = None,
+        reasoning_effort: Optional[str] = None,
+    ):
+        """Run the agent, yielding events as they happen.
+
+        Same work as process(), but surfaced incrementally so the workspace can
+        show text and tool activity while the run is still going. Yields dicts
+        shaped {"type": ..., ...}; the terminal "done" event carries the same
+        payload process() returns, so both paths agree on the contract.
+
+        The assistant's reply is persisted even if the client disconnects
+        mid-run: the agent has already edited files by then, so dropping the
+        message would leave the conversation out of step with the project.
+        """
+        conversation = None
+        text_parts: List[str] = []
+        persisted = False
+
+        try:
+            if not project_id:
+                yield {"type": "error", "error": "Project ID is required"}
+                return
+            if not user_input:
+                yield {"type": "error", "error": "Message is required"}
+                return
+
+            conversation, context, input_messages = await sync_to_async(self._prepare_run)(
+                user_input=user_input,
+                user=user,
+                model=model,
+                project_id=project_id,
+                current_file=current_file,
+                conversation_id=conversation_id,
+                reasoning_effort=reasoning_effort,
+            )
+
+            yield {"type": "start", "conversation_id": conversation.id}
+
+            # run_streamed returns immediately; the run advances as events are
+            # consumed. Sync function tools are dispatched to worker threads by
+            # the SDK, so their ORM writes stay off this event loop.
+            result = Runner.run_streamed(
+                self.agent,
+                input=input_messages,
+                context=context,
+                max_turns=MAX_AGENT_TURNS,
+                run_config=self._run_config(user),
+            )
+
+            async for event in result.stream_events():
+                if event.type == "raw_response_event":
+                    data = getattr(event, 'data', None)
+                    if getattr(data, 'type', '') == 'response.output_text.delta':
+                        delta = getattr(data, 'delta', '')
+                        if delta:
+                            text_parts.append(delta)
+                            yield {"type": "delta", "text": delta}
+
+                elif event.type == "run_item_stream_event":
+                    item = getattr(event, 'item', None)
+                    if getattr(item, 'type', '') == 'tool_call_item':
+                        name = getattr(getattr(item, 'raw_item', None), 'name', None)
+                        if name:
+                            yield {"type": "tool_call", "name": name}
+                            # The plan lives on the context and is rewritten in
+                            # place, so re-send it whenever it may have changed.
+                            if name == 'update_plan':
+                                yield {"type": "plan", "plan": list(context.plan)}
+
+            response_content = result.final_output or "".join(text_parts)
+            metadata = extract_run_metadata(result)
+
+            await sync_to_async(self.add_assistant_message)(conversation, response_content)
+            persisted = True
+
+            yield {
+                "type": "done",
+                "success": True,
+                "response": response_content,
+                "conversation_id": conversation.id,
+                "files_changed": metadata["files_changed"],
+                "tool_calls": metadata["tool_calls"],
+                "plan": list(context.plan),
+                "single_message": True,
+            }
+
+        except Exception as e:
+            logger.error(f"Error in imagi_agent stream: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            yield {
+                "type": "error",
+                "error": str(e),
+                "conversation_id": conversation.id if conversation else None,
+            }
+        finally:
+            # Covers client disconnect (GeneratorExit) and mid-run failure:
+            # keep whatever the agent already said rather than losing it.
+            if conversation is not None and not persisted:
+                partial = "".join(text_parts).strip()
+                if partial:
+                    try:
+                        await sync_to_async(self.add_assistant_message)(conversation, partial)
+                    except Exception as e:  # pragma: no cover - best effort
+                        logger.warning(f"Could not persist partial agent reply: {e}")
+
     def process(
         self,
         user_input: str,
@@ -351,53 +525,22 @@ class ImagiAgentService:
             if not user_input:
                 return {"success": False, "error": "Message is required"}
 
-            model = model or self.model
-            self._apply_reasoning_effort(reasoning_effort)
-
-            # Get or create conversation
-            if conversation_id:
-                conversation = self.get_conversation(conversation_id, user)
-            if conversation is None:
-                conversation = self.create_conversation(
-                    user, model, project_id=project_id
-                )
-
-            # Add user message to conversation
-            self.add_user_message(conversation, user_input)
-
-            # Get project info
-            project_info = self.get_project_info(project_id, user)
-
-            # Build context for the agent
-            context = AgentContext(
-                user_id=user.id,
+            conversation, context, input_messages = self._prepare_run(
+                user_input=user_input,
+                user=user,
+                model=model,
                 project_id=project_id,
-                project_name=project_info["project_name"],
-                project_description=project_info["project_description"],
-                project_path=project_info["project_path"],
-                conversation_id=conversation.id,
                 current_file=current_file,
+                conversation_id=conversation_id,
+                reasoning_effort=reasoning_effort,
             )
-
-            # Build (compacted) conversation history, excluding the message we
-            # just persisted — it is appended as the current input below.
-            conversation_history = self.build_conversation_history(conversation)
-            if conversation_history and conversation_history[-1]["role"] == "user" \
-                    and conversation_history[-1]["content"] == user_input:
-                conversation_history = conversation_history[:-1]
-
-            input_messages = list(conversation_history)
-            input_messages.append({"role": "user", "content": user_input})
 
             result = Runner.run_sync(
                 self.agent,
                 input=input_messages,
                 context=context,
                 max_turns=MAX_AGENT_TURNS,
-                run_config=RunConfig(
-                    workflow_name="imagi_agent",
-                    trace_metadata={"user_id": str(user.id)}
-                )
+                run_config=self._run_config(user),
             )
 
             response_content = result.final_output or ""

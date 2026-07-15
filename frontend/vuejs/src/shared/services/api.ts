@@ -33,28 +33,39 @@ const api: AxiosInstance = axios.create({
 })
 
 
+/**
+ * Read the stored auth token, honouring its expiry.
+ *
+ * Exported because requests that stream bypass axios (and so the interceptor
+ * below) and have to build the same Authorization header themselves.
+ */
+export function getAuthToken(): string | null {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw)
+      const token = typeof parsed === 'string' ? parsed : parsed?.value
+      const expires = parsed?.expires
+      if (expires && Date.now() > Number(expires)) return null
+      return token || null
+    } catch {
+      return raw
+    }
+  } catch (_) {
+    return null
+  }
+}
+
 // Request interceptor
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     // Attach Authorization header from localStorage
     try {
       if (!config.headers['Authorization']) {
-        const raw = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-        if (raw) {
-          let token: string | null = null
-          try {
-            const parsed = JSON.parse(raw)
-            token = typeof parsed === 'string' ? parsed : parsed?.value
-            const expires = parsed?.expires
-            if (expires && Date.now() > Number(expires)) {
-              token = null
-            }
-          } catch {
-            token = raw
-          }
-          if (token) {
-            config.headers['Authorization'] = `Token ${token}`
-          }
+        const token = getAuthToken()
+        if (token) {
+          config.headers['Authorization'] = `Token ${token}`
         }
       }
     } catch (_) {}
