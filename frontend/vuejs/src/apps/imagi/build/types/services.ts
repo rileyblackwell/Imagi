@@ -187,6 +187,9 @@ export interface AgentInstance {
   selectedFile: any | null;
   conversation: AIMessage[];
   isProcessing: boolean;
+  /** What the running agent is doing right now ("Thinking…", "Editing project
+   *  files…"). Transient — empty while text is streaming or when idle. */
+  statusText: string;
   archivedAt: string | null;
   updatedAt: string;
   lastMessagePreview: string;
