@@ -7,47 +7,47 @@
 <template>
   <router-link
     :to="target"
-    class="crisp-card group relative flex flex-col h-full p-6 rounded-2xl bg-white dark:bg-white/[0.05] border transition-colors duration-300"
+    class="crisp-card group relative flex flex-col items-center text-center h-full px-6 pt-8 pb-6 rounded-2xl bg-white dark:bg-white/[0.05] border transition-all duration-300 hover:-translate-y-1"
     :class="accent.cardBorder"
     :title="tool.name"
   >
     <!-- Soft accent glow on hover -->
     <div
-      class="pointer-events-none absolute -top-px -right-px w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 bg-gradient-to-br to-transparent transition-opacity duration-500"
+      class="pointer-events-none absolute -top-px inset-x-0 mx-auto w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 bg-gradient-to-b to-transparent transition-opacity duration-500"
       :class="accent.glow"
     ></div>
 
-    <!-- Icon + status -->
-    <div class="relative flex items-start justify-between mb-4">
-      <div
-        class="w-12 h-12 rounded-xl flex items-center justify-center border transition-colors duration-300"
-        :class="[accent.iconWrap]"
-      >
-        <i :class="['fas', tool.icon, accent.iconText]" class="text-xl"></i>
-      </div>
-      <span
-        v-if="isBuilding"
-        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300"
-        :class="accent.badge"
-      >
-        <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
-        AI building
-      </span>
+    <!-- Status -->
+    <span
+      v-if="isBuilding"
+      class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300"
+      :class="accent.badge"
+    >
+      <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+      AI building
+    </span>
+
+    <!-- Icon -->
+    <div
+      class="relative w-14 h-14 rounded-2xl flex items-center justify-center border mb-5 transition-transform duration-300 group-hover:scale-105"
+      :class="[accent.iconWrap]"
+    >
+      <i :class="['fas', tool.icon, accent.iconText]" class="text-xl"></i>
     </div>
 
     <!-- Name + tagline -->
     <div class="relative flex-1">
-      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1 transition-colors duration-300">
+      <h3 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 tracking-tight transition-colors duration-300">
         {{ tool.name }}
       </h3>
-      <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-snug transition-colors duration-300">
+      <p class="text-sm text-blue-950/70 dark:text-blue-100/70 leading-relaxed transition-colors duration-300">
         {{ isBuilding ? 'Imagi is building the first version of your app from your business description…' : tool.tagline }}
       </p>
     </div>
 
     <!-- CTA -->
     <div
-      class="relative flex items-center gap-1.5 text-sm font-medium mt-5 pt-4 border-t border-blue-200/60 dark:border-white/[0.1] transition-colors duration-300"
+      class="relative flex items-center justify-center gap-1.5 w-full text-sm font-medium mt-6 pt-4 border-t border-blue-200/60 dark:border-white/[0.1] transition-colors duration-300"
       :class="accent.link"
     >
       <span>{{ tool.status === 'available' ? 'Open workspace' : 'Preview' }}</span>
@@ -95,11 +95,27 @@ const target = computed<RouteLocationRaw>(() => {
     0 12px 28px -10px rgba(15, 23, 42, 0.10);
 }
 
+.crisp-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.07),
+    0 8px 18px -4px rgba(15, 23, 42, 0.09),
+    0 20px 40px -12px rgba(15, 23, 42, 0.14);
+}
+
 :global(.dark) .crisp-card {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.5),
     0 4px 10px -2px rgba(0, 0, 0, 0.45),
     0 12px 28px -10px rgba(0, 0, 0, 0.55);
+}
+
+:global(.dark) .crisp-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.07),
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 8px 18px -4px rgba(0, 0, 0, 0.5),
+    0 20px 40px -12px rgba(0, 0, 0, 0.6);
 }
 </style>

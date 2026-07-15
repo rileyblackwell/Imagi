@@ -59,19 +59,20 @@
           <!-- Hub -->
           <template v-else>
             <!-- Project header -->
-            <section class="mb-8 md:mb-10">
-              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-4 transition-colors duration-300">Project workspace</p>
-              <h1 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-2 tracking-tight transition-colors duration-300">
+            <section class="flex flex-col items-center text-center mb-10 md:mb-14">
+              <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-5 transition-colors duration-300">Project workspace</p>
+              <h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold text-blue-950 dark:text-white mb-3 tracking-tight transition-colors duration-300">
                 {{ project.name }}
               </h1>
-              <p class="text-base text-blue-950/70 dark:text-blue-100/70 max-w-2xl transition-colors duration-300">
+              <p class="text-base sm:text-lg text-blue-950/70 dark:text-blue-100/70 max-w-2xl leading-relaxed transition-colors duration-300">
                 {{ project.description || 'Build your product and run your business — all in one place. Choose a workspace to get started.' }}
               </p>
+              <div class="mt-7 h-px w-16 bg-gradient-to-r from-transparent via-blue-300/60 dark:via-blue-300/25 to-transparent"></div>
             </section>
 
             <!-- Category grid -->
             <section>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
                 <ToolCategoryCard
                   v-for="tool in businessTools"
                   :key="tool.id"
