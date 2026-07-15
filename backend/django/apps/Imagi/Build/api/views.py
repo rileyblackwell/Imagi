@@ -15,7 +15,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from asgiref.sync import sync_to_async
 from django.conf import settings
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -1043,6 +1045,106 @@ def agent(request):
         logger.error(f"Error in agent API: {str(e)}")
         logger.error(traceback.format_exc())
         return create_error_response(str(e), status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def _sse(event: dict) -> str:
+    """Frame one event as an SSE message."""
+    return f"data: {json.dumps(event)}\n\n"
+
+
+async def _authenticate_stream_request(request):
+    """Resolve the user for a streaming request from its auth token, or None.
+
+    DRF's decorators are sync-only, so this endpoint authenticates by hand.
+    Token only, deliberately: this view is csrf_exempt (DRF's CSRF handling
+    comes with SessionAuthentication, which it cannot use), and honouring the
+    session cookie without a CSRF check would let any origin drive an agent run
+    against the victim's project. An Authorization header is not sent
+    cross-origin by default, so requiring one closes that off. The frontend
+    always authenticates by token.
+    """
+    from rest_framework.authentication import TokenAuthentication
+    from rest_framework.exceptions import AuthenticationFailed
+
+    if not request.META.get('HTTP_AUTHORIZATION'):
+        return None
+    try:
+        result = await sync_to_async(TokenAuthentication().authenticate)(request)
+    except AuthenticationFailed:
+        return None
+    return result[0] if result else None
+
+
+@csrf_exempt
+async def agent_stream(request):
+    """Stream an agent run as Server-Sent Events.
+
+    Same work as the blocking `agent` endpoint, but the client sees text and
+    tool activity as they happen instead of waiting for the whole run. The
+    terminal "done" event carries the payload `agent` would have returned.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    user = await _authenticate_stream_request(request)
+    if user is None:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body'}, status=400)
+
+    message = payload.get('message')
+    project_id = payload.get('project_id')
+
+    if not message:
+        return JsonResponse({'error': 'Message is required'}, status=400)
+    if not project_id:
+        return JsonResponse({'error': 'Project ID is required'}, status=400)
+    try:
+        project_id = int(project_id)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid project ID'}, status=400)
+
+    conversation_id = payload.get('conversation_id')
+    if conversation_id:
+        try:
+            conversation_id = int(conversation_id)
+        except (ValueError, TypeError):
+            conversation_id = None
+
+    model = resolve_model(payload.get('model', DEFAULT_MODEL))
+    reasoning_effort = payload.get('reasoning_effort')
+
+    agent_service = ImagiAgentService(model=model, reasoning_effort=reasoning_effort)
+
+    async def event_stream():
+        try:
+            async for event in agent_service.process_stream(
+                user_input=message,
+                user=user,
+                model=model,
+                project_id=project_id,
+                current_file=payload.get('current_file'),
+                conversation_id=conversation_id,
+                reasoning_effort=reasoning_effort,
+            ):
+                yield _sse(event)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.error(f"Error in agent stream: {e}")
+            logger.error(traceback.format_exc())
+            yield _sse({"type": "error", "error": str(e)})
+
+    response = StreamingHttpResponse(
+        event_stream(),
+        content_type='text/event-stream',
+    )
+    response['Cache-Control'] = 'no-cache'
+    # Tell nginx not to buffer this response; without it the whole stream is
+    # held back and delivered at once, which defeats the point.
+    response['X-Accel-Buffering'] = 'no'
+    return response
 
 
 # ---------------------------------------------------------------------------

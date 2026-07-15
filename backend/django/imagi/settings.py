@@ -112,6 +112,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'imagi.wsgi.application'
+# Served over ASGI in production: the agent streams its run over SSE, which
+# needs async request handling to avoid tying up a worker per run.
+ASGI_APPLICATION = 'imagi.asgi.application'
 
 
 # Database

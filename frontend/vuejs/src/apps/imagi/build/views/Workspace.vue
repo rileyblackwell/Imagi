@@ -276,26 +276,62 @@ async function handlePrompt(promptText: string) {
     const isUserAuthenticated = await useAuthStore().validateAuth()
     if (!isUserAuthenticated) return
 
+    // The assistant message is created empty and filled in as chunks arrive.
+    const streamingMessageId = `assistant-response-${Date.now()}`
+    let streamedText = ''
+    let messageStarted = false
+
     try {
-      const response = await AgentService.processAgent(projectId.value, {
-        prompt: promptText,
-        model: instance.selectedModelId,
-        reasoningEffort: instance.selectedEffort,
-        file: instance.selectedFile,
-        conversationId: conversationIdBefore ?? undefined
-      })
+      const response = await AgentService.streamAgent(
+        projectId.value,
+        {
+          prompt: promptText,
+          model: instance.selectedModelId,
+          reasoningEffort: instance.selectedEffort,
+          file: instance.selectedFile,
+          conversationId: conversationIdBefore ?? undefined
+        },
+        {
+          onStart: (conversationId) => {
+            if (conversationId && !instance.conversationId) {
+              store.updateInstanceConversationId(instanceId, conversationId)
+            }
+          },
+          onDelta: (text) => {
+            // Defer creating the message until there is something to show, so
+            // a tools-only turn does not leave an empty bubble behind.
+            if (!messageStarted) {
+              messageStarted = true
+              store.addMessageToInstance(instanceId, {
+                role: 'assistant',
+                content: '',
+                timestamp: new Date().toISOString(),
+                id: streamingMessageId
+              })
+            }
+            streamedText += text
+            store.setMessageContent(instanceId, streamingMessageId, streamedText)
+          },
+        }
+      )
 
       if ((response as any).conversation_id && !instance.conversationId) {
         store.updateInstanceConversationId(instanceId, (response as any).conversation_id)
       }
 
-      if (response.response) {
-        store.addMessageToInstance(instanceId, {
-          role: 'assistant',
-          content: response.response,
-          timestamp: new Date().toISOString(),
-          id: `assistant-response-${Date.now()}`
-        })
+      // Reconcile with the run's authoritative final text: deltas can miss
+      // content the model emitted without streaming it.
+      if (response.response && response.response !== streamedText) {
+        if (messageStarted) {
+          store.setMessageContent(instanceId, streamingMessageId, response.response)
+        } else {
+          store.addMessageToInstance(instanceId, {
+            role: 'assistant',
+            content: response.response,
+            timestamp: new Date().toISOString(),
+            id: streamingMessageId
+          })
+        }
       }
 
       if (response.files_changed && response.files_changed.length > 0) {

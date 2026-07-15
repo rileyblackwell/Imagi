@@ -284,6 +284,23 @@ export const useAgentStore = defineStore('agent', {
       instance.lastMessagePreview = (validMessage.content || '').split('\n')[0]?.slice(0, 140) || ''
     },
 
+    /**
+     * Replace the content of a message already in the conversation.
+     *
+     * Used while streaming: the assistant's message is added empty and then
+     * rewritten as each chunk arrives, so the reply appears to type itself
+     * rather than landing all at once when the run ends.
+     */
+    setMessageContent(instanceId: string, messageId: string, content: string) {
+      const instance = this._findInstance(instanceId)
+      if (!instance) return
+      const message = instance.conversation.find(m => m.id === messageId)
+      if (!message) return
+      message.content = content
+      instance.updatedAt = new Date().toISOString()
+      instance.lastMessagePreview = content.split('\n')[0]?.slice(0, 140) || ''
+    },
+
     updateInstanceConversationId(instanceId: string, conversationId: number) {
       const instance = this._findInstance(instanceId)
       if (!instance) return
