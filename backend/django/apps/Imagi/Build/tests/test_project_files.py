@@ -24,7 +24,7 @@ from apps.Imagi.Build.services.create_file_service import CreateFileService
 from apps.Imagi.Build.services.delete_file_service import DeleteFileService
 from apps.Imagi.Build.services.directory_service import DirectoryService
 from apps.Imagi.Build.services.view_file_service import ViewFileService
-from apps.Imagi.Build.services.tools import edit_file_impl
+from apps.Imagi.Build.services.tools import _sync_db_mirror, edit_file_impl
 
 
 class ProjectFilesTestCase(TestCase):
@@ -111,6 +111,40 @@ class WriteThroughTests(ProjectFilesTestCase):
         )
         self.assertIsNone(row)
         self.assertEqual(self.project.files.count(), 0)
+
+
+class SyncDbMirrorTests(ProjectFilesTestCase):
+    """Disk is the source of truth: a mirror inconsistency after a successful
+    disk operation is repaired in place, never surfaced as a tool failure."""
+
+    def test_repairs_missing_row_after_disk_write(self):
+        self._write_disk_file('frontend/vuejs/src/New.vue', '<template/>')
+
+        _sync_db_mirror(self.project, 'frontend/vuejs/src/New.vue', should_exist=True)
+
+        self.assertEqual(self._db_content('frontend/vuejs/src/New.vue'), '<template/>')
+
+    def test_removes_stale_row_after_disk_delete(self):
+        ProjectFile.objects.create(
+            project=self.project, path='frontend/vuejs/src/Old.vue', content='stale'
+        )
+
+        _sync_db_mirror(self.project, 'frontend/vuejs/src/Old.vue', should_exist=False)
+
+        self.assertIsNone(self._db_content('frontend/vuejs/src/Old.vue'))
+
+    def test_ignores_non_syncable_paths(self):
+        _sync_db_mirror(self.project, 'frontend/vuejs/src/logo.png', should_exist=True)
+        self.assertEqual(self.project.files.count(), 0)
+
+    def test_oversized_file_never_errors(self):
+        # Files past the DB size cap stay disk-only; the sync must not raise.
+        big = 'x' * (project_files_service.MAX_SYNCED_FILE_BYTES + 1)
+        self._write_disk_file('frontend/vuejs/src/big.txt', big)
+
+        _sync_db_mirror(self.project, 'frontend/vuejs/src/big.txt', should_exist=True)
+
+        self.assertIsNone(self._db_content('frontend/vuejs/src/big.txt'))
 
 
 class BulkSyncTests(ProjectFilesTestCase):

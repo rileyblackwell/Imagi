@@ -1,22 +1,26 @@
 """
 Project file repository: keeps the database copy of a user's project files
-in sync with the local working copy on disk.
+in sync with the working copy on disk.
 
 Design
 ------
-- The database (ProjectFile rows) is the durable store. In production the
-  platform pulls project files from the database.
-- The local directory at ``project.project_path`` (under PROJECTS_ROOT) is
-  the working copy: the agent's tools, the preview server, and git version
-  control all operate on it. In development it doubles as a browsable copy
-  of the user's project.
-- Every mutation writes through to both: the file services and agent tools
-  call ``record_file`` / ``remove_file`` / ``remove_directory`` after
-  touching disk.
-- ``hydrate_project`` materializes the working copy from the database
-  (production cold starts, fresh dev checkouts); ``import_project_from_disk``
-  does the reverse (backfilling existing projects, or re-syncing after a
-  git reset rewrites the working copy).
+- The directory at ``project.project_path`` (under PROJECTS_ROOT) is the
+  SOURCE OF TRUTH. Everything runs from disk in both development and
+  production: the agent's tools, the preview server, and git version
+  control all operate on these files directly.
+- The database (ProjectFile rows) is a mirror of the disk copy, kept for
+  development/debugging — it makes a user's project files browsable from
+  the Build module — and as a backup for rehydrating a working copy that
+  has gone missing (e.g. a redeployed production host with an empty
+  PROJECTS_ROOT). When disk and database disagree, disk wins.
+- Every mutation touches disk first, then writes through to the mirror:
+  the file services and agent tools call ``record_file`` / ``remove_file``
+  / ``remove_directory`` after touching disk.
+- ``import_project_from_disk`` refreshes the mirror from disk (backfills,
+  or re-syncs after a git reset rewrites the working copy);
+  ``hydrate_project`` goes the other way, and is only used to restore a
+  missing working copy — it never overwrites files already on disk unless
+  explicitly asked.
 """
 
 import logging

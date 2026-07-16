@@ -144,24 +144,28 @@ def _error_result(message: str) -> str:
     })
 
 
-def _db_copy_error(project, file_path: str, should_exist: bool):
-    """Verify the database copy of a file matches expectations.
+def _sync_db_mirror(project, file_path: str, should_exist: bool) -> None:
+    """Keep the database copy of a file in step with the disk operation
+    that just ran.
 
-    Returns an error message when the DB copy is out of step with the disk
-    operation that just ran, or None when everything is consistent. Paths
-    that are never synced to the database (binaries etc.) always pass.
+    Disk is the source of truth — the database rows are a browsable mirror
+    kept for debugging (and for rehydrating a lost working copy) — so a
+    mirror inconsistency must never fail a tool call that already succeeded
+    on disk. This repairs the mirror in place and logs when it cannot.
     """
     from apps.Imagi.Build.services import project_files_service
 
     if not project_files_service.is_syncable_path(file_path):
-        return None
+        return
 
-    exists = project_files_service.get_db_content(project, file_path) is not None
-    if should_exist and not exists:
-        return f"File was written to disk but its database copy is missing: {file_path}"
-    if not should_exist and exists:
-        return f"File was deleted from disk but its database copy still exists: {file_path}"
-    return None
+    try:
+        exists = project_files_service.get_db_content(project, file_path) is not None
+        if should_exist and not exists:
+            project_files_service.record_file(project, file_path)
+        elif not should_exist and exists:
+            project_files_service.remove_file(project, file_path)
+    except Exception as e:
+        logger.warning(f"Could not sync database mirror for {file_path}: {e}")
 
 
 def _get_project(ctx):
@@ -513,11 +517,7 @@ def edit_file(
     try:
         project = _get_project(ctx.context)
         result = edit_file_impl(project, file_path, old_string, new_string, replace_all)
-
-        db_error = _db_copy_error(project, result["path"], should_exist=True)
-        if db_error:
-            return _error_result(db_error)
-
+        _sync_db_mirror(project, result["path"], should_exist=True)
         return json.dumps(result)
     except Exception as e:
         logger.error(f"Error editing file {file_path}: {e}")
@@ -542,10 +542,7 @@ def update_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
         if not os.path.isfile(full_path):
             return _error_result(f"update_file appeared to succeed but file not found at {file_path}")
 
-        db_error = _db_copy_error(project, file_path, should_exist=True)
-        if db_error:
-            return _error_result(db_error)
-
+        _sync_db_mirror(project, file_path, should_exist=True)
         return json.dumps({"success": True, "path": file_path, "message": result.get("message", "File updated successfully")})
     except Exception as e:
         logger.error(f"Error updating file {file_path}: {e}")
@@ -573,10 +570,7 @@ def create_file(ctx: RunContextWrapper, file_path: str, content: str) -> str:
             return _error_result(f"create_file appeared to succeed but file not found at {file_path}")
 
         actual_path = result.get("path", file_path)
-        db_error = _db_copy_error(project, actual_path, should_exist=True)
-        if db_error:
-            return _error_result(db_error)
-
+        _sync_db_mirror(project, actual_path, should_exist=True)
         return json.dumps({"success": True, "path": actual_path, "message": f"File created at {actual_path}"})
     except Exception as e:
         logger.error(f"Error creating file {file_path}: {e}")
@@ -600,10 +594,7 @@ def delete_file(ctx: RunContextWrapper, file_path: str) -> str:
         if os.path.isfile(full_path):
             return _error_result(f"delete_file appeared to succeed but file still exists at {file_path}")
 
-        db_error = _db_copy_error(project, file_path, should_exist=False)
-        if db_error:
-            return _error_result(db_error)
-
+        _sync_db_mirror(project, file_path, should_exist=False)
         return json.dumps({"success": True, "path": file_path, "message": "File deleted successfully"})
     except Exception as e:
         logger.error(f"Error deleting file {file_path}: {e}")

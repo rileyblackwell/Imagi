@@ -1033,6 +1033,7 @@ export { default as PasswordRequirements } from './messages/PasswordRequirements
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import type { PropType } from 'vue'
 
 const isVisible = ref(false)
 const togglePassword = () => { isVisible.value = !isVisible.value }
@@ -1047,8 +1048,8 @@ defineProps({
   id: { type: String, default: () => `password-${Math.random().toString(36).substr(2, 9)}` },
   hasError: { type: Boolean, default: false },
   name: { type: String, default: 'password' },
-  onBlur: { type: Function, default: () => {} },
-  onChange: { type: Function, default: () => {} }
+  onBlur: { type: Function as PropType<(e: FocusEvent) => void>, default: () => {} },
+  onChange: { type: Function as PropType<(e: Event) => void>, default: () => {} }
 })
 
 defineEmits(['update:modelValue'])
@@ -1089,8 +1090,10 @@ input, input:focus { outline: none !important; box-shadow: none !important; }
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue'
+
 defineProps({
-  type: { type: String, default: 'button' },
+  type: { type: String as PropType<'button' | 'submit' | 'reset'>, default: 'button' },
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   loadingText: { type: String, default: 'Loading...' }
@@ -1173,6 +1176,8 @@ defineProps({
 </template>
 
 <script setup lang="ts">
+import type { PropType } from 'vue'
+
 defineProps({
   modelValue: { type: String, default: '' },
   name: { type: String, required: true },
@@ -1182,8 +1187,8 @@ defineProps({
   disabled: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   hasError: { type: Boolean, default: false },
-  onBlur: { type: Function, default: () => {} },
-  onChange: { type: Function, default: () => {} }
+  onBlur: { type: Function as PropType<(e: FocusEvent) => void>, default: () => {} },
+  onChange: { type: Function as PropType<(e: Event) => void>, default: () => {} }
 })
 
 defineEmits(['update:modelValue'])
@@ -1299,6 +1304,43 @@ defineExpose({ isValid })
 class AuthConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.auth'
+    # Explicit label: the default ('auth') collides with django.contrib.auth
+    label = 'user_auth'
+'''
+    })
+
+    files.append({
+        'name': 'backend/django/apps/auth/migrations/__init__.py',
+        'type': 'python',
+        'content': ''
+    })
+
+    files.append({
+        'name': 'backend/django/apps/auth/migrations/0001_initial.py',
+        'type': 'python',
+        'content': '''import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Profile',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('balance', models.DecimalField(decimal_places=2, default=0.0, max_digits=10)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+    ]
 '''
     })
     
@@ -1411,7 +1453,7 @@ class LoginSerializer(serializers.Serializer):
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model, login, logout
 from django.middleware.csrf import get_token
@@ -1477,6 +1519,20 @@ class UserView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+class InitView(APIView):
+    """Session/token bootstrap for the SPA: reports whether the caller is
+    signed in, mirroring Imagi's own auth init endpoint."""
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        if request.user and request.user.is_authenticated:
+            return Response({
+                'isAuthenticated': True,
+                'user': UserSerializer(request.user).data,
+            })
+        return Response({'isAuthenticated': False, 'user': None})
+
 class HealthCheckView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -1500,6 +1556,7 @@ urlpatterns = [
     path('signin/', views.LoginView.as_view(), name='signin'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('register/', views.RegisterView.as_view(), name='register'),
+    path('init/', views.InitView.as_view(), name='init'),
     path('user/', views.UserView.as_view(), name='user'),
 ]
 '''

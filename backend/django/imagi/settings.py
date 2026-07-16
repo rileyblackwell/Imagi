@@ -257,10 +257,11 @@ IMAGI_BUILDER = {
     'DEFAULT_APPS': ['home', 'auth'],
 }
 
-# Root directory where ProjectManager writes the working copy of generated
-# user projects. The database (Build.ProjectFile rows) is the durable store
-# and the working copy can always be rehydrated from it, so this directory is
-# disposable:
+# Root directory where ProjectManager writes generated user projects. This
+# working copy on disk is the source of truth — projects run from it in both
+# development and production. The database (Build.ProjectFile rows) keeps a
+# mirror of these files for debugging (browsable from the Build module) and
+# as a backup from which a missing working copy can be rehydrated.
 #  - In development it lives inside the Build module so generated projects are
 #    easy to browse while testing the agent (the path is gitignored).
 #  - In production it lives outside the repository so git operations (clean,

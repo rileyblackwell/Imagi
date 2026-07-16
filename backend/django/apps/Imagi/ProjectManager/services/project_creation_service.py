@@ -424,7 +424,7 @@ class ProjectCreationService:
         installed_apps_match = re.search(installed_apps_pattern, settings_content, re.DOTALL)
         if installed_apps_match:
             current_apps = installed_apps_match.group(1)
-            updated_apps = current_apps + "    'rest_framework',\n    'corsheaders',\n"
+            updated_apps = current_apps + "    'rest_framework',\n    'rest_framework.authtoken',\n    'corsheaders',\n"
             settings_content = settings_content.replace(current_apps, updated_apps)
         
         # Add CORS middleware

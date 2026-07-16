@@ -38,6 +38,45 @@ class DefaultAppsTests(TestCase):
         self.assertNotIn('payments', PREBUILT_MAP)
         self.assertEqual(set(PREBUILT_MAP), {'home', 'auth'})
 
+    def test_prebuilt_auth_backend_is_registrable_and_migratable(self):
+        """The auth app must declare a non-conflicting label (its default,
+        'auth', collides with django.contrib.auth) and ship migrations so
+        `manage.py migrate` creates the Profile table in generated projects."""
+        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
+            generate_prebuilt_app_files,
+        )
+
+        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
+
+        self.assertIn("label = 'user_auth'", files['backend/django/apps/auth/apps.py'])
+        self.assertIn('backend/django/apps/auth/migrations/__init__.py', files)
+        self.assertIn("name='Profile'", files['backend/django/apps/auth/migrations/0001_initial.py'])
+
+    def test_prebuilt_auth_api_covers_the_frontend_contract(self):
+        """Every endpoint the generated frontend calls must exist: the auth
+        app's own service hits csrf/signin/register/logout/health, and the
+        scaffold's shared auth store bootstraps via init/."""
+        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
+            generate_prebuilt_app_files,
+        )
+
+        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
+        urls = files['backend/django/apps/auth/api/urls.py']
+
+        for route in ('csrf/', 'signin/', 'register/', 'logout/', 'init/', 'user/', 'health/'):
+            self.assertIn(f"path('{route}'", urls)
+
+    def test_prebuilt_home_page_links_to_sign_in(self):
+        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
+            generate_prebuilt_app_files,
+        )
+
+        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('home')}
+        home_view = files['frontend/vuejs/src/apps/home/views/HomeView.vue']
+
+        self.assertIn('/auth/signin', home_view)
+        self.assertIn('/auth/register', home_view)
+
     def test_ensure_default_apps_skips_payments(self):
         user = User.objects.create_user(username='founder', password='testpass123')
         project_root = tempfile.mkdtemp(prefix='builder_default_apps_')
