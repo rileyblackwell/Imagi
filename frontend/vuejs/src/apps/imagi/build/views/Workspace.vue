@@ -75,8 +75,10 @@
         </div>
       </template>
 
-      <!-- Clean Main Content Area - Matching Homepage -->
-      <div class="flex flex-col h-screen max-h-screen w-full overflow-x-hidden overflow-y-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500">
+      <!-- Clean Main Content Area - fills the viewport below the navbar.
+           Uses dynamic viewport height (dvh) so it fills correctly on mobile
+           as the browser chrome shows/hides, minus the 4rem navbar. -->
+      <div class="flex flex-col w-full overflow-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500 h-[calc(100dvh-4rem)]">
         <!-- Enhanced Error State Display -->
         <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
 

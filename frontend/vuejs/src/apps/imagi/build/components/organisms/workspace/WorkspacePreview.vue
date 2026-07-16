@@ -112,10 +112,11 @@
     <div
       ref="screenRef"
       tabindex="0"
-      class="relative flex-1 min-h-0 bg-white outline-none overflow-hidden"
+      class="relative flex-1 min-h-0 bg-white outline-none overflow-hidden touch-none"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
+      @pointercancel="onPointerCancel"
       @wheel.prevent="onWheel"
       @keydown="onKeyDown"
       @keyup="onKeyUp"
@@ -367,10 +368,29 @@ async function flushInput() {
 
 const BUTTON_NAMES: Array<'left' | 'middle' | 'right'> = ['left', 'middle', 'right']
 
+// A touch drag scrolls the previewed app (forwarded as wheel deltas) the way a
+// finger scrolls a native page, instead of being sent as a mouse drag. A touch
+// that barely moves is treated as a tap and forwarded as a click so buttons and
+// links still work.
+const TOUCH_TAP_SLOP = 8 // page px of travel before a touch becomes a scroll
+let touchDrag: {
+  pointerId: number
+  startX: number
+  startY: number
+  lastX: number
+  lastY: number
+  scrolling: boolean
+} | null = null
+
 function onPointerDown(e: PointerEvent) {
   screenRef.value?.focus()
   if (phase.value !== 'ready') return
   const { x, y } = pageCoords(e)
+  if (e.pointerType === 'touch') {
+    touchDrag = { pointerId: e.pointerId, startX: x, startY: y, lastX: x, lastY: y, scrolling: false }
+    try { screenRef.value?.setPointerCapture(e.pointerId) } catch {}
+    return
+  }
   enqueue({
     kind: 'mouse',
     type: 'mousePressed',
@@ -385,6 +405,21 @@ function onPointerDown(e: PointerEvent) {
 function onPointerMove(e: PointerEvent) {
   if (phase.value !== 'ready') return
   const { x, y } = pageCoords(e)
+  if (touchDrag && e.pointerId === touchDrag.pointerId) {
+    const dx = x - touchDrag.lastX
+    const dy = y - touchDrag.lastY
+    if (!touchDrag.scrolling &&
+        Math.hypot(x - touchDrag.startX, y - touchDrag.startY) > TOUCH_TAP_SLOP) {
+      touchDrag.scrolling = true
+    }
+    if (touchDrag.scrolling && (dx !== 0 || dy !== 0)) {
+      // Wheel delta is opposite the finger travel: drag up -> scroll down.
+      enqueue({ kind: 'wheel', x, y, deltaX: -dx, deltaY: -dy, modifiers: 0 })
+    }
+    touchDrag.lastX = x
+    touchDrag.lastY = y
+    return
+  }
   enqueue({
     kind: 'mouse',
     type: 'mouseMoved',
@@ -398,6 +433,16 @@ function onPointerMove(e: PointerEvent) {
 function onPointerUp(e: PointerEvent) {
   if (phase.value !== 'ready') return
   const { x, y } = pageCoords(e)
+  if (touchDrag && e.pointerId === touchDrag.pointerId) {
+    const wasTap = !touchDrag.scrolling
+    touchDrag = null
+    try { screenRef.value?.releasePointerCapture(e.pointerId) } catch {}
+    if (wasTap) {
+      enqueue({ kind: 'mouse', type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1, modifiers: modifiersFrom(e) }, true)
+      enqueue({ kind: 'mouse', type: 'mouseReleased', x, y, button: 'left', buttons: 0, clickCount: 1, modifiers: modifiersFrom(e) }, true)
+    }
+    return
+  }
   enqueue({
     kind: 'mouse',
     type: 'mouseReleased',
@@ -407,6 +452,13 @@ function onPointerUp(e: PointerEvent) {
     clickCount: Math.max(1, e.detail),
     modifiers: modifiersFrom(e),
   }, true)
+}
+
+function onPointerCancel(e: PointerEvent) {
+  if (touchDrag && e.pointerId === touchDrag.pointerId) {
+    touchDrag = null
+    try { screenRef.value?.releasePointerCapture(e.pointerId) } catch {}
+  }
 }
 
 function onWheel(e: WheelEvent) {

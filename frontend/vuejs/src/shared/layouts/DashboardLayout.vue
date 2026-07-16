@@ -133,8 +133,8 @@
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 
-        <!-- Footer -->
-        <BaseFooter class="border-t border-gray-200 dark:border-dark-800/70 bg-gray-50 dark:bg-dark-900/50 backdrop-blur-sm" />
+        <!-- Footer (hidden for full-screen app-shell views like the builder) -->
+        <BaseFooter v-if="!appShell" class="border-t border-gray-200 dark:border-dark-800/70 bg-gray-50 dark:bg-dark-900/50 backdrop-blur-sm" />
       </div>
     </div>
   </BaseLayout>
@@ -165,12 +165,16 @@ const props = defineProps<{
   // (< md) instead of squeezing the main content. Opt-in so other layouts keep
   // their current behaviour.
   mobileOverlay?: boolean
+  // When true, this is a full-screen app shell (e.g. the builder workspace):
+  // the site footer is dropped so the content fills the viewport exactly.
+  appShell?: boolean
 }>()
 
 const wide = computed(() => !!props.wide)
 const extraWide = computed(() => !!props.extraWide)
 const compactTop = computed(() => !!props.compactTop)
 const mobileOverlay = computed(() => !!props.mobileOverlay)
+const appShell = computed(() => !!props.appShell)
 
 const route = useRoute()
 const router = useRouter()
