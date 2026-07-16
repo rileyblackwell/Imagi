@@ -1,7 +1,11 @@
 <!-- Dashboard layout for authenticated users -->
 <template>
   <BaseLayout>
-    <div class="min-h-screen flex">
+    <!-- App-shell views (the builder workspace) pin the shell to the dynamic
+         viewport height and clip overflow so the document itself can never
+         scroll — otherwise the vh/dvh mismatch on mobile leaves a few dozen
+         scrollable pixels that slide the content up under the fixed navbar. -->
+    <div class="flex" :class="appShell ? 'h-dvh overflow-hidden' : 'min-h-screen'">
       <!-- Sidebar -->
       <aside
         class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 shadow-xl"
@@ -82,8 +86,9 @@
 
       <!-- Main content -->
       <div
-        class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out"
+        class="flex-1 flex flex-col transition-all duration-300 ease-in-out"
         :class="[
+          appShell ? 'h-full min-h-0 overflow-hidden' : 'min-h-screen',
           isSidebarCollapsed ? 'ml-16' : (extraWide ? 'ml-[36rem]' : (wide ? 'ml-80' : 'ml-72')),
           mobileOverlay ? 'max-md:ml-0' : ''
         ]"
@@ -130,7 +135,10 @@
         </BaseNavbar>
 
         <!-- Main content area -->
-        <main class="flex-1 flex flex-col relative pt-16 bg-white dark:bg-gradient-to-b dark:from-dark-950 dark:to-dark-900 overflow-hidden">
+        <main
+          class="flex-1 flex flex-col relative pt-16 bg-white dark:bg-gradient-to-b dark:from-dark-950 dark:to-dark-900 overflow-hidden"
+          :class="appShell ? 'min-h-0' : ''"
+        >
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 
