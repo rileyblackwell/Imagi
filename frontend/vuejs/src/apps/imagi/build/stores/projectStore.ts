@@ -3,8 +3,6 @@ import { ref, computed, watch } from 'vue'
 import { ProjectService } from '../services/projectService'
 import type { Project } from '../types/components'
 import { normalizeProject } from '../types/components'
-import type { Activity, DashboardStats } from '@/apps/home/types/dashboard'
-import type { AIModel } from '../types/services'
 import { useAuthStore } from '@/shared/stores/auth'
 import { matchesSlug, toSlug } from '../utils/slug'
 
@@ -38,10 +36,6 @@ export const useProjectStore = defineStore('builder', () => {
   const error = ref<string | null>(null)
   const initialized = ref(false)
   const lastFetch = ref<Date | null>(null)
-  const activities = ref<Activity[]>([])
-  const stats = ref<DashboardStats | null>(null)
-  const availableModels = ref<AIModel[]>([])
-  const selectedModel = ref<string | null>(null)
   const isLoading = ref(false)
   const isAuthenticated = ref(false)
   
@@ -632,39 +626,6 @@ export const useProjectStore = defineStore('builder', () => {
     }
   }
 
-  /**
-   * Fetch activities for dashboard
-   * Used by dashboard components only
-   */
-  async function fetchActivities() {
-    try {
-      const activitiesData = await ProjectService.getActivities()
-      activities.value = activitiesData
-      return activitiesData
-    } catch (error) {
-      console.warn('Failed to fetch activities:', error)
-      return [] // Return empty array as fallback
-    }
-  }
-
-  /**
-   * Fetch stats for dashboard
-   * Used by dashboard components only
-   */
-  async function fetchStats() {
-    try {
-      const statsData = await ProjectService.getStats()
-      stats.value = statsData
-      return statsData
-    } catch (error) {
-      return {
-        activeBuildCount: 0,
-        apiCallCount: 0,
-        creditsUsed: 0
-      }
-    }
-  }
-
   // Actions - Project Loading (for Workspace)
   
   /**
@@ -830,113 +791,6 @@ export const useProjectStore = defineStore('builder', () => {
     isLoading.value = isLoadingState // Update both for compatibility
   }
 
-  // AI model functionality
-  
-  function setSelectedModel(model: string | null) {
-    selectedModel.value = model
-  }
-
-  async function fetchAvailableModels() {
-    loading.value = true
-    try {
-      // TODO: Implement getAvailableModels in AgentService or update logic here
-      // const models = await AgentService.getAvailableModels()
-      const models: any[] = []; // TODO: Type this properly when AgentService.getAvailableModels is implemented
-      availableModels.value = models // Will be empty until implemented
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch models'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  /**
-   * Creates a new utility method to ensure fresh project data
-   * This can be called from anywhere in the app to ensure we have the latest data
-   */
-  async function refreshProjectData() {
-    // Skip if not authenticated
-    if (!isAuthenticated.value) {
-      return
-    }
-    
-    console.debug('Forcing project data refresh')
-    
-    try {
-      // Always use force=true to bypass any caching
-      return await fetchProjects(true)
-    } catch (error) {
-      console.error('Failed to refresh project data:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Update an existing project
-   * Used to update project details like name and description
-   */
-  async function updateProject(projectId: string, projectData: { description?: string; name?: string }) {
-    if (!isAuthenticated.value) {
-      throw new Error('You must be logged in to update projects')
-    }
-
-    if (!projectId) {
-      throw new Error('Project ID is required')
-    }
-
-    loading.value = true
-    error.value = null
-    
-    try {
-      console.debug('Updating project:', { projectId, projectData })
-      const updatedProject = await ProjectService.updateProject(projectId, projectData)
-      
-      console.debug('Project updated:', updatedProject)
-      
-      if (!updatedProject || typeof updatedProject !== 'object') {
-        throw new Error('Invalid project data received')
-      }
-
-      const normalizedProject = normalizeProject(updatedProject)
-      
-      // Update project in local state
-      const existingProjectIndex = projects.value.findIndex(p => String(p.id) === String(projectId))
-      if (existingProjectIndex !== -1) {
-        projects.value[existingProjectIndex] = {
-          ...projects.value[existingProjectIndex],
-          ...normalizedProject
-        }
-      }
-      
-      // Update in projects map
-      projectsMap.value.set(String(projectId), normalizedProject)
-      
-      console.debug('Store updated with modified project:', {
-        projectId,
-        updatedProject: normalizedProject
-      })
-      
-      // Immediately refresh projects to ensure we have the most current data
-      fetchProjects(true).catch(error => {
-        console.error('Failed to refresh projects after update:', error)
-      })
-      
-      return normalizedProject
-    } catch (err: any) {
-      console.error('Project update error in store:', {
-        error: err,
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data
-      })
-      handleError(err, 'Failed to update project')
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
   // Utility function to clean up old deleted project IDs
   function cleanupDeletedProjects() {
     try {
@@ -988,36 +842,26 @@ export const useProjectStore = defineStore('builder', () => {
     error,
     initialized,
     lastFetch,
-    activities,
-    stats,
-    availableModels,
-    selectedModel,
     isLoading,
     isAuthenticated,
-    
+
     // Getters
     hasProjects,
     getProjectById,
     getProjectBySlug,
     getSlugForProject,
     sortedProjects,
-    
+
     // Actions
     updateProjects,
     setAuthenticated,
     fetchProjects,
     createProject,
     deleteProject,
-    fetchActivities,
-    fetchStats,
     handleError,
     clearError,
     setLoading,
     fetchProject,
-    setSelectedModel,
-    fetchAvailableModels,
-    refreshProjectData,
-    updateProject,
     clearProjectsCache
   }
 })

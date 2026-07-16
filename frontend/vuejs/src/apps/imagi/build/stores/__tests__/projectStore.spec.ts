@@ -13,12 +13,8 @@ const projectService = vi.hoisted(() => ({
   getProjects: vi.fn(),
   getProject: vi.fn(),
   createProject: vi.fn(),
-  updateProject: vi.fn(),
   deleteProject: vi.fn(),
   initializeProject: vi.fn(),
-  getActivities: vi.fn(),
-  getStats: vi.fn(),
-  clearProjectsCache: vi.fn(),
 }))
 vi.mock('../../services/projectService', () => ({
   ProjectService: projectService,

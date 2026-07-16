@@ -6,22 +6,13 @@ import type {
   VersionControlResponse,
   ConversationDto
 } from '../types/services'
-import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { ModelsService } from '@/apps/imagi/build/services/modelsService'
-
-// Use the shared API instance with extended timeout for AI operations
-const AI_TIMEOUT = 90000 // 90 seconds for AI processing
-
-function getPaymentsStore() {
-  // Get the payments store using function to avoid SSR issues
-  return usePaymentStore()
-}
 
 /**
  * Service for talking to the Imagi agent and workspace APIs.
  *
  * A single agent handles all AI interaction (chat + file editing) via
- * processAgent; the rest of the service covers conversation CRUD and
+ * streamAgent; the rest of the service covers conversation CRUD and
  * version control.
  */
 /** Events the agent stream emits, in the order a run produces them. */
@@ -38,8 +29,7 @@ export const AgentService = {
    * Run the agent, surfacing output as it arrives.
    *
    * Uses fetch rather than the shared axios client because axios is built on
-   * XHR, which cannot expose a response body before it completes. Resolves
-   * with the same shape as processAgent once the run finishes.
+   * XHR, which cannot expose a response body before it completes.
    */
   async streamAgent(
     projectId: string,
@@ -179,90 +169,6 @@ export const AgentService = {
       tool_calls: toolCalls,
       plan,
       single_message: true,
-    }
-  },
-
-  async processAgent(projectId: string, data: {
-    prompt: string;
-    model: string;
-    reasoningEffort?: string;
-    file?: any;
-    conversationId?: number | string | null;
-  }): Promise<AgentResponse> {
-    if (!data.prompt || !data.model) {
-      throw new Error('Prompt and model are required')
-    }
-
-    if (!projectId) {
-      throw new Error('Project ID is required')
-    }
-
-    // Check rate limits before making request
-    await ModelsService.checkRateLimit(data.model)
-
-    // Validate prompt length against model context window
-    const config = ModelsService.getConfig({ id: data.model } as AIModel)
-    const estimatedTokens = ModelsService.estimateTokens(data.prompt)
-
-    if (estimatedTokens > config.maxTokens) {
-      throw new Error(`Prompt is too long for selected model. Please reduce length or choose a different model.`)
-    }
-
-    try {
-      // Prepare file info if provided
-      let currentFile = null
-      if (data.file) {
-        currentFile = {
-          path: data.file.path,
-          type: data.file.type || this.getFileType(data.file.path),
-          content: data.file.content || ''
-        }
-      }
-
-      const payload = {
-        message: data.prompt,
-        model: data.model,
-        reasoning_effort: data.reasoningEffort,
-        project_id: String(projectId),
-        conversation_id: data.conversationId ?? undefined,
-        current_file: currentFile,
-      }
-
-      const response = await api.post('/v1/agents/agent/', payload, { timeout: AI_TIMEOUT })
-
-      // Log credits usage if provided
-      if (response.data.credits_used) {
-        const paymentsStore = getPaymentsStore()
-        if (paymentsStore) {
-          await paymentsStore.fetchBalance()
-        }
-      }
-
-      return {
-        response: response.data.response,
-        conversation_id: response.data.conversation_id,
-        files_changed: response.data.files_changed || [],
-        tool_calls: response.data.tool_calls || [],
-        plan: response.data.plan || [],
-        single_message: response.data.single_message || false,
-      }
-    } catch (error: any) {
-      console.error('Agent processing API error:', error)
-
-      let errorDetails = ''
-      if (error.response) {
-        console.error('Response error data:', error.response.data)
-        console.error('Response status:', error.response.status)
-        errorDetails = error.response.data?.error || error.response.data?.detail ||
-                      (typeof error.response.data === 'string' ? error.response.data : '')
-      }
-
-      return {
-        response: errorDetails || this.formatError(error),
-        files_changed: [],
-        tool_calls: [],
-        plan: [],
-      }
     }
   },
 

@@ -1,9 +1,9 @@
 """
 Models for the Build app.
 
-Contains the builder workspace models (Conversation, Page, Message,
-ProjectLayout) and the agent models (AgentConversation, SystemPrompt,
-AgentMessage), merged from the former Builder and Agents sub-apps.
+Contains the builder workspace models (ProjectLayout, ProjectFile) and the
+agent models (AgentConversation, SystemPrompt, AgentMessage), merged from
+the former Builder and Agents sub-apps.
 
 Every model pins `db_table` to the table name it had under its original
 app label ('Builder' / 'Agents'), so merging the apps required no schema
@@ -13,7 +13,6 @@ changes on existing databases.
 from django.db import models
 from django.contrib.auth import get_user_model
 from .services.models_service import (
-    MODELS,
     get_model_choices,
     get_provider_choices,
     get_default_provider,
@@ -21,9 +20,6 @@ from .services.models_service import (
 import logging
 
 logger = logging.getLogger(__name__)
-
-# Get model IDs and names from centralized model definitions
-_model_choices = [(model_id, model_data['name']) for model_id, model_data in MODELS.items()]
 
 # A single unified agent handles all conversations now. 'chat' remains a
 # valid stored value for conversations created before the modes were merged.
@@ -36,64 +32,6 @@ MODE_CHOICES = (
 # ---------------------------------------------------------------------------
 # Builder workspace models (formerly the Builder sub-app)
 # ---------------------------------------------------------------------------
-
-class Conversation(models.Model):
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="conversations")
-    project_id = models.IntegerField(null=True)  # Store reference to ProjectManager's Project ID
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'Builder_conversation'
-
-    def __str__(self):
-        return f"Conversation {self.id} for {self.user.username} - Project ID: {self.project_id or 'None'}"
-
-    @property
-    def project_name(self):
-        """Get the project name from the ProjectManager app"""
-        if not self.project_id:
-            return None
-
-        try:
-            from apps.Imagi.ProjectManager.models import Project
-            project = Project.objects.filter(id=self.project_id, user=self.user).first()
-            return project.name if project else None
-        except Exception as e:
-            logger.error(f"Error getting project name: {str(e)}")
-            return None
-
-
-class Page(models.Model):
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="pages")
-    filename = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'Builder_page'
-        unique_together = ['conversation', 'filename']
-
-    def __str__(self):
-        return f"Page {self.filename} in Conversation {self.conversation.id}"
-
-
-class Message(models.Model):
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
-    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name="messages", null=True)
-    role = models.CharField(max_length=10, choices=[('user', 'User'), ('assistant', 'Assistant'), ('system', 'System')])
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'Builder_message'
-
-    def __str__(self):
-        return f"{self.role.capitalize()} message for {self.page.filename if self.page else 'unknown page'}"
-
-
-class AIModel(models.TextChoices):
-    # Dynamically create choices from the centralized model definitions
-    __choices__ = _model_choices
-
 
 class ProjectLayout(models.Model):
     """Store custom layout positions and connections for apps in a project"""

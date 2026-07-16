@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toSlug, matchesSlug, getProjectSlug } from '../slug'
+import { toSlug, matchesSlug } from '../slug'
 
 describe('toSlug', () => {
   it('lowercases and hyphenates spaces', () => {
@@ -31,11 +31,5 @@ describe('matchesSlug', () => {
 
   it('does not match unrelated slugs', () => {
     expect(matchesSlug('My Cool App', 'other-app')).toBe(false)
-  })
-})
-
-describe('getProjectSlug', () => {
-  it('returns the slug for a project object', () => {
-    expect(getProjectSlug({ name: 'Test Project' })).toBe('test-project')
   })
 })

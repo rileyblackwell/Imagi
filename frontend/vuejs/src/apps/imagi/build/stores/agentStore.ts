@@ -74,10 +74,6 @@ export const useAgentStore = defineStore('agent', {
     isProcessing(): boolean {
       return !!this.activeInstance?.isProcessing
     },
-    canSubmitPrompt(): boolean {
-      const active = this.activeInstance
-      return !!active && !!active.selectedModelId && !active.isProcessing
-    },
   },
 
   actions: {
@@ -344,11 +340,6 @@ export const useAgentStore = defineStore('agent', {
       }
     },
 
-    removeFile(file: ProjectFile) {
-      const index = this.files.findIndex(f => f.path === file.path)
-      if (index >= 0) this.files.splice(index, 1)
-    },
-
     updateFile(file: ProjectFile) {
       const index = this.files.findIndex(f => f.path === file.path)
       if (index >= 0) this.files[index] = { ...this.files[index], ...file }
@@ -359,14 +350,6 @@ export const useAgentStore = defineStore('agent', {
     },
 
     // --- Legacy shims (for any callers still using the singleton API) ---
-    setSelectedModelId(modelId: string) {
-      if (this.activeInstanceId) this.setInstanceModel(this.activeInstanceId, modelId)
-    },
-
-    selectModel(modelId: string) {
-      this.setSelectedModelId(modelId)
-    },
-
     setSelectedFile(file: ProjectFile | null) {
       if (this.activeInstanceId) this.setInstanceFile(this.activeInstanceId, file)
     },
@@ -381,15 +364,6 @@ export const useAgentStore = defineStore('agent', {
 
     addMessage(message: AIMessage) {
       if (this.activeInstanceId) this.addMessageToInstance(this.activeInstanceId, message)
-    },
-
-    clearConversation() {
-      const active = this.activeInstance
-      if (active) active.conversation = []
-    },
-
-    reset() {
-      this.$reset()
     },
 
     async undoFileChanges() {

@@ -10,7 +10,7 @@ and Agents sub-apps.
 import json
 import logging
 import traceback
-from rest_framework import generics, status
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -23,23 +23,18 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from .serializers import (
-    ProjectSerializer,
-)
 from ..models import AgentConversation, AgentMessage
 from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
-from ..services.models_service import ModelsService, get_default_model_id, get_model_by_id
+from ..services.models_service import ModelsService, get_model_by_id
 from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
     BrowserPreviewService,
 )
 from apps.Imagi.ProjectManager.models import Project as PMProject
-from apps.Imagi.ProjectManager.services.project_management_service import ProjectManagementService
-from apps.Imagi.ProjectManager.services.project_creation_service import ProjectCreationService
 from rest_framework.exceptions import NotFound, APIException
 from ..services.version_control_service import VersionControlService
 from ..services.create_app_service import CreateAppService
@@ -83,92 +78,6 @@ class ProjectDirectoriesView(APIView):
             raise
         except Exception:
             logger.exception("Error listing project files")
-            raise
-
-@method_decorator(never_cache, name='dispatch')
-class ProjectListCreateView(generics.ListCreateAPIView):
-    """List all projects or create a new project."""
-    serializer_class = ProjectSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return PMProject.objects.filter(user=self.request.user, is_active=True).order_by('-updated_at')
-
-    def perform_create(self, serializer):
-        try:
-            project_creation_service = ProjectCreationService(self.request.user)
-            project = project_creation_service.create_project(serializer.validated_data['name'])
-            serializer.save(user=self.request.user, project=project)
-        except APIException:
-            raise
-        except Exception:
-            logger.exception("Error creating project")
-            raise
-
-@method_decorator(never_cache, name='dispatch')
-class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update or delete a project."""
-    serializer_class = ProjectSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'pk'
-
-    def get_queryset(self):
-        return PMProject.objects.filter(user=self.request.user, is_active=True)
-
-    def perform_destroy(self, instance):
-        project_management_service = ProjectManagementService(self.request.user)
-        project_management_service.delete_project(instance)
-
-@method_decorator(never_cache, name='dispatch')
-class GenerateCodeView(APIView):
-    """Generate code using AI models."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def post(self, request, project_id):
-        try:
-            # Get project
-            project = self.get_project(project_id)
-            
-            # Get request data
-            prompt = request.data.get('prompt', '')
-            model = request.data.get('model') or get_default_model_id()
-            if not get_model_by_id(model):
-                model = get_default_model_id()
-            file_path = request.data.get('file_path', None)
-            
-            if not prompt:
-                return Response(
-                    {'error': 'Prompt is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Process the prompt using models service
-            models_service = ModelsService()
-            
-            # If file_path is provided, get the file content
-            file_content = None
-            if file_path:
-                view_file_service = ViewFileService(project=project)
-                try:
-                    file_content = view_file_service.get_file_content(file_path)
-                except Exception as e:
-                    logger.error(f"Error getting file content: {str(e)}")
-            
-            # Generate code
-            response = models_service.generate_code(project, prompt, model, file_content)
-            
-            return Response(response)
-        except APIException:
-            raise
-        except Exception:
-            logger.exception("Error generating code")
             raise
 
 @method_decorator(never_cache, name='dispatch')
@@ -246,8 +155,6 @@ class FileContentView(APIView):
         except Exception:
             logger.exception("Error creating/updating file content")
             raise
-
-# Removed old process_input view - use Agents API instead
 
 @method_decorator(never_cache, name='dispatch')
 class BrowserPreviewBaseView(APIView):
@@ -601,100 +508,6 @@ class DeleteDirectoryView(APIView):
 
 
 @method_decorator(never_cache, name='dispatch')
-class FileUndoView(APIView):
-    """Undo changes to a specific file."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def post(self, request, project_id, file_path):
-        try:
-            # Get project from ProjectManager
-            project = self.get_project(project_id)
-            
-            # Check if project path exists
-            if not project.project_path:
-                logger.error(f"Project path not found for project: {project.id}")
-                return Response(
-                    {'error': 'Project path not found. The project may not be properly initialized.'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-                
-            # Get file type based on extension
-            import os
-            file_extension = os.path.splitext(file_path)[1].lower()
-            
-            if not file_extension:
-                return Response(
-                    {'error': 'Cannot determine file type - no extension found'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Call the appropriate service to handle the undo
-            project_management_service = ProjectManagementService(request.user)
-            
-            # Call undo_file_changes with the specific file path
-            result = project_management_service.undo_file_changes(project, file_path)
-            
-            # After a successful undo, refresh the file list
-            if result.get('success', False):
-                # Also update the file content with the undone version
-                view_file_service = ViewFileService(project=project)
-                if 'content' in result:
-                    # Overwrite the file with the undone content
-                    view_file_service.update_file(file_path, result['content'])
-            
-            return Response(result)
-        except APIException:
-            raise
-        except Exception:
-            logger.exception("Error undoing file changes")
-            raise
-
-@method_decorator(never_cache, name='dispatch')
-class AnalyzeTemplateView(APIView):
-    """Analyze template content and structure."""
-    permission_classes = [IsAuthenticated]
-
-    def get_project(self, project_id):
-        """Get a project by ID, ensuring user has access."""
-        try:
-            return PMProject.objects.get(id=project_id, user=self.request.user, is_active=True)
-        except PMProject.DoesNotExist:
-            raise NotFound('Project not found')
-
-    def post(self, request):
-        try:
-            # Get template content from request
-            template_content = request.data.get('template_content', '')
-            template_name = request.data.get('template_name', 'template.html')
-            
-            if not template_content:
-                return Response(
-                    {'error': 'Template content is required'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Basic validation - implement advanced validation via OpenAI Agents SDK if needed
-            response_data = {
-                'is_valid': bool(template_content and len(template_content.strip()) > 0),
-                'template_name': template_name,
-            }
-            
-            return Response(response_data)
-            
-        except APIException:
-            raise
-        except Exception:
-            logger.exception("Error analyzing template")
-            raise
-
-@method_decorator(never_cache, name='dispatch')
 class VersionControlHistoryView(APIView):
     """Get version control history for a project."""
     permission_classes = [IsAuthenticated]
@@ -1038,14 +851,6 @@ def add_cors_headers(response):
     response["Access-Control-Allow-Credentials"] = "true"
     response["Access-Control-Max-Age"] = "86400"
     return response
-
-
-@api_view(['OPTIONS'])
-@csrf_exempt
-def cors_preflight(request):
-    """Handle OPTIONS requests for CORS preflight checks."""
-    response = Response()
-    return add_cors_headers(response)
 
 
 @api_view(['POST'])
