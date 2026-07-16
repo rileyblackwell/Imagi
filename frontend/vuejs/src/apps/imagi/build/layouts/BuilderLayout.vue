@@ -5,17 +5,18 @@
     :wide="!extraWide"
     :extra-wide="extraWide"
     compact-top
+    mobile-overlay
   >
     <template #sidebar-content="{ isSidebarCollapsed, toggleSidebar }">
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed" :toggle-sidebar="toggleSidebar"></slot>
     </template>
-    
-    <!-- Pass through any navbar-right content from parent -->
-    <template #navbar-center>
-      <slot name="navbar-center"></slot>
+
+    <!-- Pass through any navbar content from parent, forwarding sidebar controls -->
+    <template #navbar-center="slotProps">
+      <slot name="navbar-center" v-bind="slotProps"></slot>
     </template>
-    <template #navbar-right>
-      <slot name="navbar-right"></slot>
+    <template #navbar-right="slotProps">
+      <slot name="navbar-right" v-bind="slotProps"></slot>
     </template>
 
     <div class="flex flex-col h-full w-full">

@@ -2,7 +2,7 @@
   <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-100 dark:border-white/[0.08] transition-colors duration-300">
     <!-- Header: manager toggle + instance title -->
     <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
-      <div v-if="!isManagerOpen" class="relative group">
+      <div v-if="!isManagerOpen" class="relative group max-md:hidden">
         <button
           class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
           @click="$emit('toggleManager')"
@@ -18,7 +18,7 @@
       <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-white/80 truncate">
         {{ activeInstance?.title || 'New instance' }}
       </div>
-      <div v-if="onCollapseSidebar" class="relative group shrink-0">
+      <div v-if="onCollapseSidebar" class="relative group shrink-0 max-md:hidden">
         <button
           class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
           @click="onCollapseSidebar()"

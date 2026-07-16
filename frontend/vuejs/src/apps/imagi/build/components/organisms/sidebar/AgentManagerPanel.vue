@@ -10,8 +10,8 @@
     <!-- Header -->
     <div class="shrink-0 px-2 py-2 border-b border-blue-100 dark:border-white/[0.08] flex items-center justify-between">
       <div class="flex items-center gap-0.5">
-        <!-- Collapse -->
-        <div class="relative group">
+        <!-- Collapse (desktop only; mobile uses the navbar view switcher) -->
+        <div class="relative group max-md:hidden">
           <button
             class="flex items-center justify-center w-7 h-7 rounded-md text-blue-950/60 dark:text-white/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors"
             @click="emit('collapse')"

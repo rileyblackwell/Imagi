@@ -16,12 +16,14 @@
       <template #sidebar-content="{ collapsed, toggleSidebar }">
         <div v-if="!collapsed" class="flex h-full">
           <AgentManagerPanel
-            v-if="isManagerOpen"
+            v-if="isManagerOpen || (isMobile && mobileView === 'manager')"
             class="w-56 shrink-0"
+            :class="mobileView === 'manager' ? 'max-md:w-full' : 'max-md:hidden'"
             @collapse="toggleManager"
           />
           <BuilderSidebarChat
             class="flex-1 min-w-0"
+            :class="mobileView === 'chat' ? 'max-md:w-full' : 'max-md:hidden'"
             :selected-app="null"
             :on-prompt-submit="handlePrompt"
             :on-model-select="handleModelSelect"
@@ -34,7 +36,36 @@
           />
         </div>
       </template>
-      
+
+      <!-- Mobile-only view switcher: fill the screen with one view at a time -->
+      <template #navbar-center="{ setSidebarCollapsed }">
+        <div
+          class="md:hidden flex items-center gap-0.5 rounded-lg border border-blue-100 dark:border-white/[0.08] bg-blue-50/70 dark:bg-white/[0.05] p-0.5"
+          role="tablist"
+          aria-label="Workspace view"
+        >
+          <button
+            v-for="opt in mobileViewOptions"
+            :key="opt.value"
+            type="button"
+            role="tab"
+            :aria-selected="mobileView === opt.value"
+            :aria-label="opt.label"
+            :title="opt.label"
+            @click="selectMobileView(opt.value, setSidebarCollapsed)"
+            :class="[
+              'flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+              mobileView === opt.value
+                ? 'bg-white dark:bg-white/[0.12] text-blue-700 dark:text-white shadow-sm'
+                : 'text-blue-950/55 dark:text-white/55 hover:text-blue-950 dark:hover:text-white'
+            ]"
+          >
+            <i :class="[opt.icon, 'text-sm']"></i>
+            <span class="sr-only">{{ opt.label }}</span>
+          </button>
+        </div>
+      </template>
+
       <!-- Account balance display in navbar right -->
       <template #navbar-right>
         <div class="flex items-center gap-3">
@@ -71,6 +102,7 @@ import { useAuthStore } from '@/shared/stores/auth'
 import { usePaymentStore } from '@/apps/payments/stores/payments'
 import { useBalanceStore } from '@/shared/stores/balance'
 import { useNotification } from '@/shared/composables/useNotification'
+import { useWindowSize } from '@/shared/composables/useWindowSize'
 
 // Builder Components
 import { BuilderLayout } from '@/apps/imagi/build/layouts'
@@ -126,6 +158,23 @@ function toggleManager() {
   try {
     localStorage.setItem(MANAGER_STORAGE_KEY, String(isManagerOpen.value))
   } catch {}
+}
+
+// Mobile view switcher: on phones the manager, chat and preview each fill the
+// screen one at a time instead of being crammed side by side.
+const { isMobile } = useWindowSize()
+type MobileView = 'manager' | 'chat' | 'browser'
+const mobileView = ref<MobileView>('chat')
+const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string }> = [
+  { value: 'manager', label: 'Agents', icon: 'fas fa-layer-group' },
+  { value: 'chat', label: 'Chat', icon: 'fas fa-comment-dots' },
+  { value: 'browser', label: 'Preview', icon: 'fas fa-globe' },
+]
+function selectMobileView(view: MobileView, setSidebarCollapsed?: (collapsed: boolean) => void) {
+  mobileView.value = view
+  // The browser lives in the main content area, so it shows when the sidebar
+  // (manager + chat) is collapsed off-screen; manager/chat show when it's open.
+  setSidebarCollapsed?.(view === 'browser')
 }
 
 // Version history state and actions
