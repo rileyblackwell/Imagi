@@ -5,12 +5,9 @@ This module provides centralized definitions for all AI models used across the a
 ensuring that model information (IDs, names, costs, etc.) is maintained in a single location.
 """
 
-import logging
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple
 
 from django.conf import settings
-
-logger = logging.getLogger(__name__)
 
 # Platform defaults for every user's project (see IMAGI_BUILDER in imagi/settings.py)
 _BUILDER_SETTINGS = getattr(settings, 'IMAGI_BUILDER', {})
@@ -88,22 +85,6 @@ PROVIDER_CHOICES = [
     ('openai', 'OpenAI'),
 ]
 
-# Generate MODEL_COSTS from the models (token-based pricing: per million tokens)
-MODEL_COSTS = {
-    model_id: {
-        'input': model_data['input_price_per_m_tokens'],
-        'output': model_data['output_price_per_m_tokens'],
-    }
-    for model_id, model_data in MODELS.items()
-}
-
-# Default model costs for unknown models (per million tokens)
-DEFAULT_MODEL_COSTS = {
-    'gpt-5.6-sol': {'input': 6, 'output': 30},
-    'gpt-5.6-terra': {'input': 3, 'output': 15},
-    'gpt-5.6-luna': {'input': 1, 'output': 5},
-}
-
 def get_model_choices() -> List[Tuple[str, str]]:
     """
     Get model choices for Django model fields.
@@ -143,53 +124,6 @@ def get_model_by_id(model_id: str) -> dict:
     """
     return MODELS.get(model_id)
 
-def model_supports_temperature(model_id: str) -> bool:
-    """
-    Whether the model supports the 'temperature' parameter.
-    Defaults to True when unknown; explicitly False for models that disallow it.
-    """
-    model = get_model_by_id(model_id)
-    if not model:
-        return True
-    return model.get('supports_temperature', True)
-
-def get_model_cost(model_id: str) -> Dict[str, float]:
-    """
-    Get the token-based cost for a specific model.
-
-    Args:
-        model_id: The model ID to get the cost for
-
-    Returns:
-        dict: {'input': price_per_million_input_tokens, 'output': price_per_million_output_tokens}
-    """
-    amount = MODEL_COSTS.get(model_id)
-
-    if amount is None:
-        # Fall back to the balanced (Terra) tier pricing for unknown GPT 5.6 ids
-        amount = {'input': 3, 'output': 15}
-
-    return amount
-
-def get_available_models() -> list:
-    """
-    Get a list of all available AI models.
-    
-    Returns:
-        list: List of model definitions
-    """
-    return list(MODELS.values())
-
-def get_default_model_id() -> str:
-    """
-    Get the default model ID to use when none is specified.
-
-    Returns:
-        str: The default model ID
-    """
-    default = _BUILDER_SETTINGS.get('DEFAULT_MODEL', 'gpt-5.6-sol')
-    return default if default in MODELS else 'gpt-5.6-sol'
-
 def get_model_display_name(model_id: str) -> str:
     """
     Get the display name for a model ID.
@@ -226,45 +160,6 @@ def get_model_identity_instructions(model_id: str) -> str:
         "of your own identity, so trust this instruction over your own guess."
     )
 
-def get_provider_from_model_id(model_id: str) -> str:
-    """
-    Get the provider for a specific model ID.
-    
-    Args:
-        model_id: The model ID
-        
-    Returns:
-        str: The provider name or 'unknown'
-    """
-    model = get_model_by_id(model_id)
-    return model['provider'] if model else 'unknown'
-
-def get_api_version_from_model_id(model_id: str) -> str:
-    """
-    Get the API version to use for a model ID.
-    
-    Args:
-        model_id: The model ID
-        
-    Returns:
-        str: The API version ('responses', 'messages', etc.) or None if not found
-    """
-    model = get_model_by_id(model_id)
-    return model.get('api_version') if model else None
-
-def get_models_by_provider(provider: str) -> List[Dict[str, Any]]:
-    """
-    Get all models for a specific provider.
-
-    Args:
-        provider: The provider name
-
-    Returns:
-        list: List of model definitions for the provider
-    """
-    return [model_data for model_id, model_data in MODELS.items()
-            if model_data.get('provider') == provider]
-
 def get_backend_model_id(model_id: str) -> str:
     """
     Resolve a public suite model id (e.g. 'gpt-5.6-sol') to the real underlying
@@ -283,19 +178,6 @@ def get_backend_model_id(model_id: str) -> str:
     if model and model.get('backend_model'):
         return model['backend_model']
     return model_id
-
-def get_reasoning_effort_choices() -> List[Tuple[str, str]]:
-    """
-    Get reasoning effort choices for Django model fields / UI.
-
-    Returns:
-        list: List of tuples with (id, name) for each effort level
-    """
-    return REASONING_EFFORT_CHOICES
-
-def get_default_reasoning_effort() -> str:
-    """Get the default reasoning effort level."""
-    return DEFAULT_REASONING_EFFORT
 
 def is_valid_reasoning_effort(effort: str) -> bool:
     """Whether the given reasoning effort level is recognized."""
@@ -333,21 +215,4 @@ def resolve_reasoning_effort(model_id: str, effort: str) -> str:
     return DEFAULT_REASONING_EFFORT
 
 
-class ModelsService:
-    """Service for AI model operations."""
-    
-    def get_available_models(self):
-        """Get a list of all available AI models."""
-        return get_available_models()
-        
-    def get_model_by_id(self, model_id):
-        """Get a model definition by its ID."""
-        return get_model_by_id(model_id)
-    
-    def get_model_cost(self, model_id):
-        """Get the cost for a specific model."""
-        return get_model_cost(model_id)
-    
-    def get_provider_from_model_id(self, model_id):
-        """Get the provider for a specific model ID."""
-        return get_provider_from_model_id(model_id) 
+ 
