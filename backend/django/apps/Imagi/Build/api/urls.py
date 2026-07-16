@@ -14,7 +14,12 @@ from .views import (
     # Builder workspace views
     AIModelsView, CreateFileView, DeleteFileView,
     FileContentView,
-    PreviewView,
+    PreviewSessionView,
+    ProjectPagesView,
+    PreviewFrameView,
+    PreviewInputView,
+    PreviewNavigateView,
+    PreviewResizeView,
     VersionControlHistoryView, VersionControlResetView,
     CreateAppView,
     ProjectDirectoriesView,
@@ -34,7 +39,14 @@ builder_patterns = [
     path('<int:project_id>/directories/', ProjectDirectoriesView.as_view(), name='api-project-directories'),
     path('<int:project_id>/directories/create/', CreateDirectoryView.as_view(), name='api-create-directory'),
     path('<int:project_id>/directories/<path:dir_path>/delete/', DeleteDirectoryView.as_view(), name='api-delete-directory'),
-    path('<int:project_id>/preview/', PreviewView.as_view(), name='api-preview'),
+    # Browser preview: a headless Chromium on the backend renders the
+    # project's dev servers; the client streams frames and sends input.
+    path('<int:project_id>/preview/', PreviewSessionView.as_view(), name='api-preview'),
+    path('<int:project_id>/pages/', ProjectPagesView.as_view(), name='api-project-pages'),
+    path('<int:project_id>/preview/frame/', PreviewFrameView.as_view(), name='api-preview-frame'),
+    path('<int:project_id>/preview/input/', PreviewInputView.as_view(), name='api-preview-input'),
+    path('<int:project_id>/preview/navigate/', PreviewNavigateView.as_view(), name='api-preview-navigate'),
+    path('<int:project_id>/preview/resize/', PreviewResizeView.as_view(), name='api-preview-resize'),
 
     # File management endpoints
     path('<int:project_id>/files/create/', CreateFileView.as_view(), name='api-create-file'),

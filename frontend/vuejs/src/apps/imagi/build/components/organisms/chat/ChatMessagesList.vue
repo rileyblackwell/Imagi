@@ -10,7 +10,7 @@
   <div ref="messagesContainer" class="chat-messages">
     <TransitionGroup name="message-fade">
       <div
-        v-for="(message, index) in messages"
+        v-for="message in messages"
         :key="message.timestamp"
         class="message-block"
         :class="message.role === 'user' ? 'message-user' : 'message-assistant'"

@@ -210,7 +210,7 @@ function ensureValidMessages(messages: any[]): AIMessage[] {
   const validMessages = filteredMessages
     .filter(m => m && typeof m === 'object' && m.role)
     .map(m => {
-      let content = m.content || ''
+      const content = m.content || ''
       const messageId = m.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
       
       return {

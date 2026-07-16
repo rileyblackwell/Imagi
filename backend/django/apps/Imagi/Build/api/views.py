@@ -16,7 +16,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from asgiref.sync import sync_to_async
-from django.conf import settings
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -33,7 +32,11 @@ from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
 from ..services.models_service import ModelsService, get_default_model_id, get_model_by_id
-from ..services.preview_service import PreviewService
+from ..services.browser_preview_service import (
+    BrowserNotRunning,
+    BrowserPreviewError,
+    BrowserPreviewService,
+)
 from apps.Imagi.ProjectManager.models import Project as PMProject
 from apps.Imagi.ProjectManager.services.project_management_service import ProjectManagementService
 from apps.Imagi.ProjectManager.services.project_creation_service import ProjectCreationService
@@ -247,8 +250,13 @@ class FileContentView(APIView):
 # Removed old process_input view - use Agents API instead
 
 @method_decorator(never_cache, name='dispatch')
-class PreviewView(APIView):
-    """Preview a project by starting a development server."""
+class BrowserPreviewBaseView(APIView):
+    """Shared plumbing for the browser-preview endpoints.
+
+    The preview runs a real headless Chromium next to the project's dev
+    servers on the backend host and tunnels frames/input through this API,
+    so it behaves identically in development and production.
+    """
     permission_classes = [IsAuthenticated]
 
     def get_project(self, project_id):
@@ -258,59 +266,131 @@ class PreviewView(APIView):
         except PMProject.DoesNotExist:
             raise NotFound('Project not found')
 
+    def get_service(self, project_id):
+        return BrowserPreviewService(self.get_project(project_id))
+
+    def handle_exception(self, exc):
+        # Session died (browser killed, container restarted): 409 tells the
+        # client to offer a restart rather than showing a hard failure.
+        if isinstance(exc, BrowserNotRunning):
+            return Response({'running': False, 'error': str(exc)},
+                            status=status.HTTP_409_CONFLICT)
+        if isinstance(exc, BrowserPreviewError):
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return super().handle_exception(exc)
+
+
+class PreviewSessionView(BrowserPreviewBaseView):
+    """Start / query / stop a project's browser preview session."""
+
     def get(self, request, project_id):
-        # Preview spawns local Django + Vite dev servers; only viable when DEBUG is on.
-        if not settings.DEBUG:
-            return Response({
-                'success': False,
-                'error': 'Preview server is not available in production.'
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        service = self.get_service(project_id)
+        if not service.is_running():
+            return Response({'running': False})
+        payload = service.frame()
+        payload['running'] = True
+        return Response(payload)
 
+    def post(self, request, project_id):
+        project = self.get_project(project_id)
+
+        # Materialize the working copy from the database if this
+        # environment doesn't have the project files on disk yet.
         try:
-            project = self.get_project(project_id)
+            from ..services.project_files_service import ensure_working_copy
+            ensure_working_copy(project)
+        except Exception as hydrate_err:
+            logger.warning(f"Could not ensure working copy before preview: {hydrate_err}")
 
-            # Materialize the working copy from the database if this
-            # environment doesn't have the project files on disk yet.
-            try:
-                from ..services.project_files_service import ensure_working_copy
-                ensure_working_copy(project)
-            except Exception as hydrate_err:
-                logger.warning(f"Could not ensure working copy before preview: {hydrate_err}")
-
-            preview_service = PreviewService(project)
-            result = preview_service.start_preview()
-
-            response_data = {
-                'success': result.get('success', False),
-                'preview_url': result.get('preview_url'),
-                'message': result.get('message', 'Preview server operation completed')
-            }
-
-            return Response(response_data)
-        except APIException:
-            raise
+        viewport = request.data.get('viewport') or {}
+        try:
+            service = BrowserPreviewService(project)
+            payload = service.start(
+                viewport=(viewport.get('width'), viewport.get('height')) if viewport else None,
+                device_scale_factor=request.data.get('device_scale_factor'),
+            )
+            payload['running'] = True
+            return Response(payload)
         except Exception as e:
-            logger.error(f"Error starting preview server: {str(e)}")
-            # Preview is a DEBUG-only feature, so the real reason is safe to
-            # surface and saves a trip to the server logs.
+            logger.exception("Error starting browser preview")
+            # The failure reason concerns the user's own project (npm install
+            # output, missing scaffold, ...) and is what they need to fix it.
             return Response({
-                'success': False,
-                'error': f'Preview server failed to start: {str(e)}'
+                'running': False,
+                'error': f'Preview failed to start: {str(e)}'
             }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-    
+
     def delete(self, request, project_id):
         try:
-            project = self.get_project(project_id)
-            
-            preview_service = PreviewService(project)
-            result = preview_service.stop_preview()
-            
+            service = self.get_service(project_id)
+            result = service.stop()
             return Response(result)
         except APIException:
             raise
         except Exception:
-            logger.exception("Error stopping preview server")
+            logger.exception("Error stopping preview")
             raise
+
+
+class ProjectPagesView(BrowserPreviewBaseView):
+    """List the project's navigable pages, read from its actual Vue routers.
+
+    Powers the preview's app/page menu; parsing the generated router files
+    keeps the menu truthful even when routes don't follow the default
+    view-filename conventions.
+    """
+
+    def get(self, request, project_id):
+        project = self.get_project(project_id)
+        try:
+            from ..services.project_files_service import ensure_working_copy
+            ensure_working_copy(project)
+        except Exception as hydrate_err:
+            logger.warning(f"Could not ensure working copy before listing pages: {hydrate_err}")
+        from ..services.pages_service import list_app_pages
+        return Response({'apps': list_app_pages(project)})
+
+
+class PreviewFrameView(BrowserPreviewBaseView):
+    """Poll the latest screenshot; `etag` elides an unchanged frame."""
+
+    def get(self, request, project_id):
+        service = self.get_service(project_id)
+        return Response(service.frame(etag=request.query_params.get('etag')))
+
+
+class PreviewInputView(BrowserPreviewBaseView):
+    """Forward a batch of mouse/keyboard/wheel events to the page."""
+
+    def post(self, request, project_id):
+        service = self.get_service(project_id)
+        return Response(service.dispatch_input(
+            request.data.get('events') or [],
+            etag=request.data.get('etag'),
+        ))
+
+
+class PreviewNavigateView(BrowserPreviewBaseView):
+    """Navigate the page: goto (path within the app), back, forward, reload."""
+
+    def post(self, request, project_id):
+        service = self.get_service(project_id)
+        return Response(service.navigate(
+            request.data.get('action') or 'goto',
+            path=request.data.get('path'),
+        ))
+
+
+class PreviewResizeView(BrowserPreviewBaseView):
+    """Match the browser viewport to the client's preview pane size."""
+
+    def post(self, request, project_id):
+        service = self.get_service(project_id)
+        return Response(service.resize(
+            request.data.get('width'),
+            request.data.get('height'),
+            device_scale_factor=request.data.get('device_scale_factor'),
+        ))
 
 @method_decorator(never_cache, name='dispatch')
 class CreateFileView(APIView):

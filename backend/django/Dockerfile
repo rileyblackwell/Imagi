@@ -5,6 +5,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Node.js and Chromium power the Build workspace preview: generated user
+# projects run their Vite + Django dev servers inside this container, and a
+# headless Chromium renders them for the workspace UI — the same setup used
+# in local development, which is what makes preview work on Railway.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl gnupg ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs chromium \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV BROWSER_PREVIEW_EXECUTABLE=/usr/bin/chromium
+
 RUN pip install --no-cache-dir pipenv
 
 COPY backend/django/Pipfile backend/django/Pipfile.lock ./

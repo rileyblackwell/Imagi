@@ -204,12 +204,16 @@ class ProjectCreationService:
         def install_dependencies_background():
             try:
                 logger.info(f"Background: Installing npm dependencies in: {frontend_path}")
-                
-                # Run npm install in the frontend directory
-                result = subprocess.run([
-                    'npm', 'install'
-                ], cwd=frontend_path, check=True, capture_output=True, text=True)
-                
+
+                # Serialize with any preview start that also finds
+                # node_modules missing — concurrent npm installs corrupt
+                # each other's node_modules.
+                from apps.Imagi.Build.services.preview_service import npm_install_lock
+                with npm_install_lock(frontend_path):
+                    result = subprocess.run([
+                        'npm', 'install'
+                    ], cwd=frontend_path, check=True, capture_output=True, text=True)
+
                 logger.info(f"Background: npm install completed successfully in {frontend_path}")
                 logger.debug(f"Background: npm install output: {result.stdout}")
                 

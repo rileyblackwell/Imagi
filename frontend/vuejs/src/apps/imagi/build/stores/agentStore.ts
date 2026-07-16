@@ -111,7 +111,7 @@ export const useAgentStore = defineStore('agent', {
 
         // Pick active: remembered id from localStorage, else first non-archived
         const remembered = localStorage.getItem(`activeAgentInstance_${projectId}`)
-        let activeConvId: number | null = remembered ? Number(remembered) : null
+        const activeConvId: number | null = remembered ? Number(remembered) : null
         let picked = this.instances.find(i => i.conversationId === activeConvId && !i.archivedAt)
         if (!picked) {
           picked = this.instances.find(i => !i.archivedAt) || this.instances[0]

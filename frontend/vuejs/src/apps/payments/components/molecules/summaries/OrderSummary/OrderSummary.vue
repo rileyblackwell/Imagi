@@ -13,7 +13,7 @@
     <div class="border-t border-dark-700 pt-4">
       <div class="flex justify-between items-center">
         <p class="text-gray-400">{{ totalLabel }}</p>
-        <p class="text-2xl font-bold text-primary-400">{{ formatCurrency(total) }}</p>
+        <p class="text-2xl font-bold text-primary-400">{{ formatCurrency(displayTotal) }}</p>
       </div>
     </div>
   </div>
@@ -57,7 +57,7 @@ export default defineComponent({
 
     return {
       formatCurrency,
-      total: computedTotal
+      displayTotal: computedTotal
     }
   }
 })

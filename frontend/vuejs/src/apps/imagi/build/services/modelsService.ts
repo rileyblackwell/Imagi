@@ -3,7 +3,7 @@ import type { AIModel, ModelConfig } from '../types/services'
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 
 // Static variables for rate limiting
-let requestCounts: Map<string, number> = new Map()
+const requestCounts: Map<string, number> = new Map()
 let lastResetTime: number = Date.now()
 const RESET_INTERVAL = 60000 // 1 minute
 
