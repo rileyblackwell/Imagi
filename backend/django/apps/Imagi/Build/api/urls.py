@@ -15,6 +15,7 @@ from .views import (
     AIModelsView, CreateFileView, DeleteFileView,
     FileContentView,
     PreviewSessionView,
+    ProjectPagesView,
     PreviewFrameView,
     PreviewInputView,
     PreviewNavigateView,
@@ -41,6 +42,7 @@ builder_patterns = [
     # Browser preview: a headless Chromium on the backend renders the
     # project's dev servers; the client streams frames and sends input.
     path('<int:project_id>/preview/', PreviewSessionView.as_view(), name='api-preview'),
+    path('<int:project_id>/pages/', ProjectPagesView.as_view(), name='api-project-pages'),
     path('<int:project_id>/preview/frame/', PreviewFrameView.as_view(), name='api-preview-frame'),
     path('<int:project_id>/preview/input/', PreviewInputView.as_view(), name='api-preview-input'),
     path('<int:project_id>/preview/navigate/', PreviewNavigateView.as_view(), name='api-preview-navigate'),

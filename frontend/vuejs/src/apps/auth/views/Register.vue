@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <Form v-slot="{ errors: formErrors, submitCount: formSubmitCount }" class="space-y-5" @submit="handleSubmit">
+    <Form v-slot="{ submitCount: formSubmitCount }" class="space-y-5" @submit="handleSubmit">
       <!-- Username input with premium styling -->
       <div class="relative group">
         <Field name="username" rules="required|username" :validateOnBlur="false" v-slot="{ errorMessage, field }">

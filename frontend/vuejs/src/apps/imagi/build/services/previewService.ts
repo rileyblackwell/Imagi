@@ -42,6 +42,19 @@ export interface PreviewFrame {
   error?: string
 }
 
+/** One navigable page of the previewed app, read from its actual router. */
+export interface PreviewPage {
+  title: string
+  path: string
+}
+
+/** One app of the previewed project with its navigable pages. */
+export interface PreviewApp {
+  name: string
+  title: string
+  pages: PreviewPage[]
+}
+
 /** Thrown when the backend reports the session is gone (HTTP 409). */
 export class PreviewNotRunningError extends Error {
   constructor(message = 'The preview session is not running.') {
@@ -96,6 +109,16 @@ export const PreviewService = {
 
   async stop(projectId: string): Promise<void> {
     await api.delete(`/v1/builder/${projectId}/preview/`)
+  },
+
+  /** The project's apps and pages, derived from its real Vue routers. */
+  async pages(projectId: string): Promise<PreviewApp[]> {
+    try {
+      const response = await api.get(`/v1/builder/${projectId}/pages/`)
+      return response.data?.apps || []
+    } catch (error) {
+      rethrow(error)
+    }
   },
 
   /** Poll the latest frame; pass the previous etag to skip unchanged frames. */

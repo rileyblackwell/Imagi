@@ -87,7 +87,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/shared/stores/auth'
 import { useAuth } from '@/apps/auth'
 import BaseNavbar from '@/shared/components/organisms/navigation/BaseNavbar.vue'
-import IconButton from '@/apps/home/components/atoms/buttons/IconButton.vue'
 import HomeNavbarButton from '@/apps/home/components/atoms/buttons/HomeNavbarButton.vue'
 import HomeNavbarDropdownButton from '@/apps/home/components/atoms/buttons/HomeNavbarDropdownButton.vue'
 
@@ -95,7 +94,6 @@ export default defineComponent({
   name: 'HomeNavbar',
   components: {
     BaseNavbar,
-    IconButton,
     HomeNavbarButton,
     HomeNavbarDropdownButton
   },

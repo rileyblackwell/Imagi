@@ -45,7 +45,7 @@
         <div class="relative flex-1 min-w-[12rem]" ref="menuRoot">
           <button
             type="button"
-            @click="menuOpen = !menuOpen"
+            @click="onMenuToggle"
             :disabled="apps.length === 0"
             class="w-full flex items-center gap-2 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] focus:border-blue-400 dark:focus:border-blue-300/40 outline-none py-2 pl-3 pr-9 text-sm font-medium text-blue-950 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -183,17 +183,14 @@ import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import {
   PreviewService,
   PreviewNotRunningError,
+  type PreviewApp,
   type PreviewFrame,
   type PreviewInputEvent,
 } from '../../../services/previewService'
-import { useAgentStore } from '../../../stores/agentStore'
-import type { ProjectFile } from '../../../types/components'
 
 const props = defineProps<{
   projectId: string
 }>()
-
-const store = useAgentStore()
 
 type Phase = 'idle' | 'starting' | 'ready' | 'stopped' | 'error'
 
@@ -257,6 +254,9 @@ async function startPreview() {
     applyFrame(result)
     phase.value = 'ready'
     schedulePoll(200)
+    // Starting may have scaffolded/hydrated the working copy the pages
+    // menu reads from, so fetch it (again) now.
+    void refreshPages()
   } catch (e) {
     if (disposed) return
     // Keep the failure local to this component — never call store.setError, or
@@ -507,75 +507,29 @@ function onPaneResized() {
 }
 
 // ---------------------------------------------------------------------------
-// App / page selector (derived from the project's view files)
+// App / page selector (read from the project's actual Vue routers)
 // ---------------------------------------------------------------------------
 
-interface Page {
-  title: string
-  path: string
-}
+const apps = ref<PreviewApp[]>([])
 
-interface AppEntry {
-  name: string
-  title: string
-  pages: Page[]
-}
-
-function toKebabCase(input: string): string {
-  return input
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/\s+/g, '-')
-    .replace(/_+/g, '-')
-    .toLowerCase()
-}
-
-function humanize(input: string): string {
-  return input
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, c => c.toUpperCase())
-}
-
-const apps = computed<AppEntry[]>(() => {
-  const files: ProjectFile[] = (store.files || []) as ProjectFile[]
-  const viewRegex = /(?:^|\/)(?:frontend\/vuejs\/)?src\/apps\/([^/]+)\/views\/([^/]+)\.vue$/i
-  const appMap = new Map<string, AppEntry>()
-
-  for (const file of files) {
-    if (!file?.path) continue
-    const match = file.path.match(viewRegex)
-    if (!match) continue
-    const appName = match[1]!
-    const viewName = match[2]!
-    const base = viewName.endsWith('View') ? viewName.slice(0, -4) : viewName
-
-    // Stripe return pages (from the Sell payment templates) only make
-    // sense mid-checkout; don't offer them as navigable pages.
-    if (base === 'CheckoutReturn') continue
-
-    const slug = toKebabCase(base)
-    // HomeView in home -> '/', StoreView in store -> '/store' (an app's
-    // namesake view is routed at the app root, not /<app>/<app>).
-    const path = appName === 'home' && slug === 'home'
-      ? '/'
-      : slug === appName ? `/${appName}` : `/${appName}/${slug}`
-
-    let app = appMap.get(appName)
-    if (!app) {
-      app = { name: appName, title: humanize(appName), pages: [] }
-      appMap.set(appName, app)
-    }
-    if (!app.pages.some(p => p.path === path)) {
-      app.pages.push({ title: humanize(base), path })
-    }
+async function refreshPages() {
+  if (!props.projectId) return
+  try {
+    apps.value = await PreviewService.pages(props.projectId)
+    syncSelectionFromCurrent()
+  } catch {
+    // Keep whatever menu we had; the preview itself is unaffected.
   }
+}
 
-  return Array.from(appMap.values()).sort((a, b) => a.title.localeCompare(b.title))
-})
+function onMenuToggle() {
+  menuOpen.value = !menuOpen.value
+  // Routes may have changed since the last fetch (the agent edits routers);
+  // refresh in the background whenever the menu opens.
+  if (menuOpen.value) void refreshPages()
+}
 
-const pagesForSelectedApp = computed<Page[]>(() => {
+const pagesForSelectedApp = computed(() => {
   const app = apps.value.find(a => a.name === selectedApp.value)
   return app ? app.pages : []
 })
@@ -658,6 +612,7 @@ onMounted(() => {
     observer = new ResizeObserver(onPaneResized)
     observer.observe(screenRef.value)
   }
+  void refreshPages()
   void startPreview()
 })
 
@@ -678,6 +633,8 @@ watch(
       frameSrc.value = null
       etag.value = undefined
       phase.value = 'idle'
+      apps.value = []
+      void refreshPages()
       void startPreview()
     }
   }

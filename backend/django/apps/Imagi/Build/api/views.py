@@ -332,6 +332,25 @@ class PreviewSessionView(BrowserPreviewBaseView):
             raise
 
 
+class ProjectPagesView(BrowserPreviewBaseView):
+    """List the project's navigable pages, read from its actual Vue routers.
+
+    Powers the preview's app/page menu; parsing the generated router files
+    keeps the menu truthful even when routes don't follow the default
+    view-filename conventions.
+    """
+
+    def get(self, request, project_id):
+        project = self.get_project(project_id)
+        try:
+            from ..services.project_files_service import ensure_working_copy
+            ensure_working_copy(project)
+        except Exception as hydrate_err:
+            logger.warning(f"Could not ensure working copy before listing pages: {hydrate_err}")
+        from ..services.pages_service import list_app_pages
+        return Response({'apps': list_app_pages(project)})
+
+
 class PreviewFrameView(BrowserPreviewBaseView):
     """Poll the latest screenshot; `etag` elides an unchanged frame."""
 
