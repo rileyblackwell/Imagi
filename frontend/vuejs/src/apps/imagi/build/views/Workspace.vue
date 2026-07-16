@@ -37,10 +37,12 @@
         </div>
       </template>
 
-      <!-- Mobile-only view switcher: fill the screen with one view at a time -->
-      <template #navbar-center="{ setSidebarCollapsed }">
+      <!-- Mobile-only view switcher: fill the screen with one view at a time.
+           Lives on the left (next to the logo) so it never overlaps the
+           balance in the top-right corner on narrow screens. -->
+      <template #navbar-left="{ setSidebarCollapsed }">
         <div
-          class="md:hidden flex items-center gap-0.5 rounded-lg border border-blue-100 dark:border-white/[0.08] bg-blue-50/70 dark:bg-white/[0.05] p-0.5"
+          class="md:hidden ml-2 flex items-center gap-0.5 rounded-lg border border-blue-100 dark:border-white/[0.08] bg-blue-50/70 dark:bg-white/[0.05] p-0.5"
           role="tablist"
           aria-label="Workspace view"
         >

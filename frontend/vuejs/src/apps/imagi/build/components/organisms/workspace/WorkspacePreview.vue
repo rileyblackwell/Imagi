@@ -57,7 +57,7 @@
 
           <div
             v-if="menuOpen && apps.length > 0"
-            class="absolute z-20 mt-1.5 left-0 min-w-[14rem] rounded-xl border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl py-1"
+            class="absolute z-20 mt-1.5 left-0 max-md:left-auto max-md:right-0 min-w-[14rem] max-md:max-w-[calc(100vw-1.5rem)] rounded-xl border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl py-1"
           >
             <div
               v-for="app in apps"
@@ -75,12 +75,15 @@
                   <i class="fas fa-cube text-xs text-blue-950/50 dark:text-white/50"></i>
                   {{ app.title }}
                 </span>
-                <i class="fas fa-chevron-right text-[10px] text-blue-950/40 dark:text-white/40"></i>
+                <i
+                  class="fas fa-chevron-right text-[10px] text-blue-950/40 dark:text-white/40 transition-transform duration-200"
+                  :class="{ 'max-md:rotate-90': hoveredApp === app.name }"
+                ></i>
               </button>
 
               <div
                 v-if="hoveredApp === app.name && app.pages.length"
-                class="absolute top-0 left-full ml-1 min-w-[14rem] rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-lg py-1"
+                class="py-1 md:absolute md:top-0 md:left-full md:ml-1 md:min-w-[14rem] md:rounded-lg md:border md:border-blue-200/60 md:dark:border-white/[0.08] md:bg-white md:dark:bg-[#0f0f0f] md:shadow-lg max-md:ml-4 max-md:mt-0.5 max-md:mb-1 max-md:border-l max-md:border-blue-100 max-md:dark:border-white/[0.08]"
                 @mouseenter="onAppEnter(app.name)"
                 @mouseleave="onAppLeave(app.name)"
               >

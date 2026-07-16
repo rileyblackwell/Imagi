@@ -12,6 +12,9 @@
     </template>
 
     <!-- Pass through any navbar content from parent, forwarding sidebar controls -->
+    <template #navbar-left="slotProps">
+      <slot name="navbar-left" v-bind="slotProps"></slot>
+    </template>
     <template #navbar-center="slotProps">
       <slot name="navbar-center" v-bind="slotProps"></slot>
     </template>
