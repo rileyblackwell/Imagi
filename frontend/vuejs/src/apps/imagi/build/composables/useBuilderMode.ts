@@ -9,7 +9,7 @@ import type { EditorLanguage } from '@/shared/types/editor'
  * Workspace file/model helpers.
  *
  * AI interaction happens through the single Imagi agent
- * (AgentService.processAgent); this composable only covers the
+ * (AgentService.streamAgent); this composable only covers the
  * non-agent workspace operations: saving files, creating files,
  * and loading the available models.
  */

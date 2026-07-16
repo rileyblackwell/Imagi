@@ -24,7 +24,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from apps.Imagi.ProjectManager.models import Project as PMProject
-from apps.Imagi.Build.models import Conversation, Page, Message
 from apps.Imagi.Build.services.create_app_service import CreateAppService
 from apps.Imagi.Build.services.create_file_service import CreateFileService
 from apps.Imagi.Build.services.codegen.prebuilt_apps import PREBUILT_MAP
@@ -104,34 +103,9 @@ class BuilderModelTests(TestCase):
         )
         self.addCleanup(lambda: shutil.rmtree(self.project_root, ignore_errors=True))
 
-        self.conversation = Conversation.objects.create(
-            user=self.user, project_id=self.project.id
-        )
-        self.page = Page.objects.create(
-            conversation=self.conversation, filename="index.html"
-        )
-
     def test_project_creation(self):
         self.assertEqual(str(self.project), "Test Project (testuser)")
         self.assertEqual(self.project.slug, "test-project")
-
-    def test_conversation_creation(self):
-        expected_str = (
-            f"Conversation {self.conversation.id} for testuser "
-            f"- Project ID: {self.project.id}"
-        )
-        self.assertEqual(str(self.conversation), expected_str)
-
-    def test_page_creation(self):
-        expected_str = f"Page index.html in Conversation {self.conversation.id}"
-        self.assertEqual(str(self.page), expected_str)
-
-    def test_message_creation(self):
-        message = Message.objects.create(
-            conversation=self.conversation, page=self.page,
-            role='user', content='Test message',
-        )
-        self.assertEqual(str(message), "User message for index.html")
 
 
 class BuilderAPITests(APITestCase):

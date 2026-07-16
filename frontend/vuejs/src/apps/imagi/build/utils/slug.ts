@@ -34,13 +34,3 @@ export function toSlug(name: string): string {
 export function matchesSlug(projectName: string, slug: string): boolean {
   return toSlug(projectName) === slug.toLowerCase()
 }
-
-/**
- * Get the slug from a project object
- * 
- * @param project - Project object with a name property
- * @returns URL-safe slug for the project
- */
-export function getProjectSlug(project: { name: string }): string {
-  return toSlug(project.name)
-}

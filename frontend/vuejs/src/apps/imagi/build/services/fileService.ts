@@ -138,31 +138,6 @@ export const FileService = {
   },
   
   /**
-   * Get files in a specific directory
-   */
-  async getDirectoryFiles(projectId: string, directory: string): Promise<ProjectFile[]> {
-    console.debug('File API - getting directory files:', { projectId, directory })
-    
-    try {
-      const response = await api.get(`/v1/builder/${projectId}/directories/`)
-      
-      if (!response.data || !Array.isArray(response.data)) {
-        return []
-      }
-      
-      // Filter files by directory
-      return response.data.filter((file: ProjectFile) => {
-        // Check if the file is in the requested directory
-        // This handles both files directly in the directory and in subdirectories
-        return file.path.startsWith(directory)
-      })
-    } catch (error) {
-      console.error('File API - error getting directory files:', error)
-      throw error
-    }
-  },
-  
-  /**
    * Get a specific file by path
    */
   async getFile(projectId: string, filePath: string): Promise<ProjectFile> {
@@ -307,33 +282,6 @@ export const FileService = {
       const errorMsg = error.response?.data?.detail || error.response?.data?.error || error.message || 'Unknown error'
       const errorStatus = error.response?.status ? `(HTTP ${error.response.status})` : ''
       throw new Error(`Failed to create file ${filePath}: ${errorMsg} ${errorStatus}`.trim())
-    }
-  },
-
-  /**
-   * Create a new directory
-   */
-  async createDirectory(projectId: string, directoryPath: string): Promise<void> {
-    console.debug('File API - creating directory:', { projectId, directoryPath })
-    
-    try {
-      // Ensure the directory path ends with a /
-      const normalizedPath = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`
-      
-      // Create a placeholder file in the directory (.gitkeep)
-      // This implicitly creates the directory structure
-      const placeholderPath = `${normalizedPath}.gitkeep`
-      
-      // Instead of trying to create the directory directly (which is not supported),
-      // create a .gitkeep file in the directory to implicitly create it
-      await this.createFile(projectId, placeholderPath, '')
-      
-      console.debug('Directory created successfully via .gitkeep file')
-      
-      // Note: Git commit for .gitkeep file creation is handled by createFile method
-    } catch (error) {
-      console.error('File API - error creating directory:', error)
-      throw error
     }
   },
 

@@ -1,4 +1,3 @@
-import api from '@/shared/services/api'
 import type { AIModel, ModelConfig } from '../types/services'
 import { AI_MODELS, MODEL_CONFIGS } from '../types/services'
 
@@ -57,17 +56,6 @@ export const ModelsService = {
   },
 
   /**
-   * Check if a model can generate code
-   * 
-   * @param model - The AI model to check
-   * @returns Whether the model can generate code
-   */
-  canGenerateCode(model: AIModel): boolean {
-    const config = this.getConfig(model)
-    return config.capabilities.includes('code_generation')
-  },
-
-  /**
    * Estimate the number of tokens in a text string
    * 
    * @param text - The text to estimate tokens for
@@ -85,53 +73,6 @@ export const ModelsService = {
    */
   getDefaultModels(): AIModel[] {
     return AI_MODELS
-  },
-
-  /**
-   * Get available AI models from the API
-   * 
-   * @returns Promise resolving to array of available AI models
-   */
-  async getAvailableModels(): Promise<AIModel[]> {
-    try {
-      // Try to get from API first
-      const response = await api.get('/v1/builder/models/')
-      
-      if (response.data && Array.isArray(response.data.models)) {
-        const allowedIds = new Set(this.getDefaultModels().map(model => model.id))
-        const apiModels: AIModel[] = response.data.models.map((model: any) => {
-          // Infer a valid provider if not supplied by API
-          let inferredProvider: 'openai' | 'anthropic' | 'google' | 'local' = 'local'
-          const idStr = String(model.id || '')
-          if (model.provider === 'openai' || model.provider === 'anthropic' || model.provider === 'google' || model.provider === 'local') {
-            inferredProvider = model.provider
-          } else if (idStr.startsWith('gpt')) {
-            inferredProvider = 'openai'
-          } else if (idStr.startsWith('claude')) {
-            inferredProvider = 'anthropic'
-          }
-
-          return {
-            id: model.id,
-            name: model.name,
-            description: model.description || '',
-            capabilities: model.capabilities || ['chat'],
-            // Use snake_case to match AIModel interface
-            context_window: model.context_window || 4096,
-            provider: inferredProvider
-          } as AIModel
-        })
-
-        const filtered = apiModels.filter(model => allowedIds.has(model.id))
-        return filtered.length > 0 ? filtered : this.getDefaultModels()
-      }
-    } catch (error) {
-      // If API request fails, fall back to default models
-      console.warn('Failed to fetch models from API, using defaults', error)
-    }
-    
-    // Fall back to defaults if API request failed or returned invalid data
-    return this.getDefaultModels()
   },
 
   /**

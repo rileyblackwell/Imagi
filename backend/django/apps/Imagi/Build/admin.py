@@ -2,18 +2,12 @@ from django.contrib import admin
 from .models import (
     AgentConversation,
     AgentMessage,
-    Conversation,
-    Message,
-    Page,
     ProjectFile,
     ProjectLayout,
     SystemPrompt,
 )
 
 # Builder workspace models
-admin.site.register(Conversation)
-admin.site.register(Message)
-admin.site.register(Page)
 admin.site.register(ProjectLayout)
 
 
