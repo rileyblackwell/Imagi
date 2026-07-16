@@ -13,7 +13,7 @@
               : (wide
                 ? 'w-80 bg-white dark:bg-dark-950/95 backdrop-blur-md'
                 : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md')),
-          mobileOverlay ? 'max-md:top-16 max-md:w-full' : '',
+          mobileOverlay ? 'max-md:top-16 max-md:w-full max-md:bg-white max-md:dark:bg-[#0a0a0a] max-md:backdrop-blur-none' : '',
           mobileOverlay ? (isSidebarCollapsed ? 'max-md:-translate-x-full' : 'max-md:translate-x-0') : ''
         ]"
       >
@@ -229,34 +229,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
-}
-
-/* Ensure content fades smoothly */
-.overflow-hidden {
-  overflow: hidden;
-}
-
-/* Smooth width transitions */
-.w-56 {
-  width: 14rem;
-}
-
-.w-16 {
-  width: 4rem;
-}
-
-/* Smooth margin transitions */
-.ml-56 {
-  margin-left: 14rem;
-}
-
-.ml-16 {
-  margin-left: 4rem;
-}
+/* Note: never redefine Tailwind utilities (.w-16, .ml-16, ...) in here. Scoped
+   rules compile with a [data-v-*] attribute selector, so they out-rank
+   responsive variants like max-md:ml-0 and silently break them. */
 
 /* Ensure tooltips in collapsed sidebar are visible */
 aside {
