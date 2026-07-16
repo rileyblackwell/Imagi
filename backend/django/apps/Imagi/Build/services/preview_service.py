@@ -2,6 +2,7 @@
 Service for project preview operations in the Builder app.
 """
 
+import contextlib
 import subprocess
 import os
 import sys
@@ -17,12 +18,61 @@ logger = logging.getLogger(__name__)
 # npm install for a freshly scaffolded frontend can legitimately take minutes
 NPM_INSTALL_TIMEOUT = 600
 
+# Lock directory created inside a generated frontend while npm install runs
+# there, so concurrent installers (the background install kicked off at
+# project creation and a preview start that finds node_modules missing)
+# serialize instead of corrupting node_modules under each other.
+NPM_INSTALL_LOCK_DIRNAME = '.imagi_npm_install.lock'
+
+
+@contextlib.contextmanager
+def npm_install_lock(frontend_path, timeout=NPM_INSTALL_TIMEOUT):
+    """Serialize npm installs for one frontend across processes and threads.
+
+    Uses an atomic mkdir as the lock. Locks whose directory looks older than
+    a full install could take are treated as leftovers from a crashed
+    installer and stolen. If the lock cannot be acquired within ``timeout``,
+    we proceed anyway — attempting the install beats failing outright.
+    """
+    lock_dir = os.path.join(frontend_path, NPM_INSTALL_LOCK_DIRNAME)
+    deadline = time.time() + timeout
+    acquired = False
+    while time.time() < deadline:
+        try:
+            os.mkdir(lock_dir)
+            acquired = True
+            break
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(lock_dir) > timeout + 300:
+                    os.rmdir(lock_dir)
+                    continue
+            except OSError:
+                pass
+            time.sleep(1)
+        except OSError:
+            break
+    if not acquired:
+        logger.warning(f"Proceeding without npm install lock for {frontend_path}")
+    try:
+        yield
+    finally:
+        if acquired:
+            try:
+                os.rmdir(lock_dir)
+            except OSError:
+                pass
+
 # The per-project files this service keeps beside the project directory, by
 # filename suffix. They are named after project.name, not the timestamped
-# directory, so deleting the directory does not remove them.
-PID_SUFFIXES = ('_frontend.pid', '_backend.pid', '_server.pid')  # _server.pid predates dual-stack
-LOG_SUFFIXES = ('_frontend.log', '_backend.log')
+# directory, so deleting the directory does not remove them. The _browser.*
+# files belong to BrowserPreviewService (which imports these constants);
+# they are listed here so cleanup sweeps the whole preview session.
+PID_SUFFIXES = ('_frontend.pid', '_backend.pid', '_server.pid', '_browser.pid')  # _server.pid predates dual-stack
+LOG_SUFFIXES = ('_frontend.log', '_backend.log', '_browser.log')
 PORTS_SUFFIX = '_preview_ports.json'
+BROWSER_STATE_SUFFIX = '_browser.json'
+BROWSER_PROFILE_SUFFIX = '_browser_profile'
 
 
 class PreviewService:
@@ -46,6 +96,32 @@ class PreviewService:
         # draining would freeze the servers once the pipe buffer fills.
         self.frontend_log_file = os.path.join(self.pid_dir, f"{project.name}_frontend.log")
         self.backend_log_file = os.path.join(self.pid_dir, f"{project.name}_backend.log")
+
+    def ensure_preview(self):
+        """Start the dev servers only if a healthy preview is not already up.
+
+        start_preview() always tears down and relaunches; this variant lets
+        callers (the browser preview, a workspace re-mount) reattach to a
+        running session instead of paying the restart cost.
+        """
+        state = self._load_port_state()
+        if state:
+            backend_port = state.get('backend_port')
+            frontend_port = state.get('frontend_port')
+            backend_ok = bool(backend_port) and self._port_in_use(backend_port)
+            # Legacy single-Django projects have no frontend server.
+            frontend_ok = not frontend_port or self._port_in_use(frontend_port)
+            if backend_ok and frontend_ok:
+                self.backend_port = backend_port
+                if frontend_port:
+                    self.frontend_port = frontend_port
+                port = frontend_port or backend_port
+                return {
+                    'success': True,
+                    'preview_url': f"http://localhost:{port}",
+                    'message': 'Development servers already running',
+                }
+        return self.start_preview()
 
     def start_preview(self):
         """Start both frontend and backend development servers."""
@@ -254,7 +330,10 @@ class PreviewService:
             # Start Vite development server
             with open(self.frontend_log_file, 'w') as log_fh:
                 process = subprocess.Popen(
-                    [npm, 'run', 'dev', '--', '--port', str(self.frontend_port), '--host'],
+                    # Bind to loopback only: the preview is consumed by the
+                    # headless browser running on this same host, never
+                    # directly by the user's machine.
+                    [npm, 'run', 'dev', '--', '--port', str(self.frontend_port), '--host', '127.0.0.1'],
                     cwd=frontend_path,
                     stdout=log_fh,
                     stderr=subprocess.STDOUT,
@@ -291,18 +370,26 @@ class PreviewService:
         the preview cannot start without dependencies, and the caller reports
         progress/failure to the user.
         """
-        if os.path.isdir(os.path.join(frontend_path, 'node_modules')):
+        node_modules = os.path.join(frontend_path, 'node_modules')
+        installing = os.path.isdir(os.path.join(frontend_path, NPM_INSTALL_LOCK_DIRNAME))
+        # An existing node_modules is only trustworthy when no install is in
+        # flight; otherwise fall through and wait on the lock.
+        if os.path.isdir(node_modules) and not installing:
             return None
 
-        logger.info(f"node_modules missing - running npm install in {frontend_path}")
+        logger.info(f"node_modules missing or being installed - ensuring npm install in {frontend_path}")
         try:
-            result = subprocess.run(
-                [npm, 'install'],
-                cwd=frontend_path,
-                capture_output=True,
-                text=True,
-                timeout=NPM_INSTALL_TIMEOUT,
-            )
+            with npm_install_lock(frontend_path):
+                # Even if the install we waited on finished, run npm install
+                # ourselves: it is a fast no-op on a complete node_modules and
+                # repairs a partial one left by a failed/killed installer.
+                result = subprocess.run(
+                    [npm, 'install'],
+                    cwd=frontend_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=NPM_INSTALL_TIMEOUT,
+                )
         except subprocess.TimeoutExpired:
             return f"npm install timed out after {NPM_INSTALL_TIMEOUT} seconds"
 
@@ -508,7 +595,7 @@ class PreviewService:
                 except Exception as e:
                     logger.warning(f"Error stopping process from {name}{suffix}: {e}")
 
-            for suffix in LOG_SUFFIXES + (PORTS_SUFFIX,):
+            for suffix in LOG_SUFFIXES + (PORTS_SUFFIX, BROWSER_STATE_SUFFIX):
                 path = os.path.join(self.pid_dir, f"{name}{suffix}")
                 if not os.path.exists(path):
                     continue
@@ -517,6 +604,8 @@ class PreviewService:
                     logger.info(f"Deleted project file: {path}")
                 except OSError as e:
                     logger.warning(f"Failed to delete project file {path}: {e}")
+
+            shutil.rmtree(os.path.join(self.pid_dir, f"{name}{BROWSER_PROFILE_SUFFIX}"), ignore_errors=True)
 
     def _stop_vuejs_frontend(self, port=None):
         """Stop VueJS frontend server."""

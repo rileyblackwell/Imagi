@@ -1,67 +1,163 @@
 import api from '@/shared/services/api'
 
 /**
- * Service for handling preview functionality
+ * Client for the browser-based project preview.
+ *
+ * The backend runs the project's dev servers plus a headless Chromium on its
+ * own host and exposes it through these endpoints: the workspace polls JPEG
+ * frames and forwards input events, so the preview works the same whether
+ * Imagi runs locally or in production.
  */
+
+/** One user-input event forwarded to the remote browser page. */
+export interface PreviewInputEvent {
+  kind: 'mouse' | 'wheel' | 'key'
+  type?: 'mousePressed' | 'mouseReleased' | 'mouseMoved' | 'keyDown' | 'keyUp'
+  x?: number
+  y?: number
+  button?: 'none' | 'left' | 'middle' | 'right'
+  buttons?: number
+  clickCount?: number
+  deltaX?: number
+  deltaY?: number
+  key?: string
+  code?: string
+  text?: string
+  keyCode?: number
+  modifiers?: number
+}
+
+/** Snapshot of the remote page: navigation state plus (optionally) a frame. */
+export interface PreviewFrame {
+  running?: boolean
+  /** Base64 JPEG. Null when it matched the etag we already have. */
+  frame?: string | null
+  etag?: string
+  path?: string
+  title?: string
+  can_go_back?: boolean
+  can_go_forward?: boolean
+  viewport?: [number, number]
+  device_scale_factor?: number
+  error?: string
+}
+
+/** Thrown when the backend reports the session is gone (HTTP 409). */
+export class PreviewNotRunningError extends Error {
+  constructor(message = 'The preview session is not running.') {
+    super(message)
+    this.name = 'PreviewNotRunningError'
+  }
+}
+
+// Starting can scaffold + npm-install a fresh project, which takes minutes.
+const START_TIMEOUT_MS = 600_000
+
+function rethrow(error: any): never {
+  if (error?.response?.status === 409) {
+    throw new PreviewNotRunningError(error.response?.data?.error)
+  }
+  const data = error?.response?.data
+  const message =
+    (typeof data?.error === 'string' && data.error) ||
+    (typeof data?.detail === 'string' && data.detail) ||
+    (error instanceof Error ? error.message : 'Preview request failed')
+  throw new Error(message)
+}
+
 export const PreviewService = {
-  /**
-   * Generate a preview for a project
-   * 
-   * @param projectId - The ID of the project to preview
-   * @returns Promise with the preview URL
-   */
-  async generatePreview(projectId: string): Promise<{ previewUrl: string }> {
+  /** Ensure dev servers + browser are running; idempotent. */
+  async start(
+    projectId: string,
+    viewport?: { width: number; height: number },
+    deviceScaleFactor?: number
+  ): Promise<PreviewFrame> {
     try {
-      const response = await api.get(`/v1/builder/${projectId}/preview/`);
-      return {
-        previewUrl: response.data.preview_url
-      };
-    } catch (error: any) {
-      if (error?.response?.status === 503) {
-        // The backend includes the actual failure reason in dev
-        throw new Error(error.response?.data?.error || 'Preview server failed to start.');
-      }
-      throw new Error(`Failed to generate preview: ${this.formatError(error)}`);
+      const response = await api.post(
+        `/v1/builder/${projectId}/preview/`,
+        { viewport, device_scale_factor: deviceScaleFactor },
+        { timeout: START_TIMEOUT_MS }
+      )
+      return response.data
+    } catch (error) {
+      rethrow(error)
     }
   },
-  
-  /**
-   * Format an error object or string into a readable message
-   * 
-   * @param error - The error to format
-   * @returns Formatted error message
-   */
-  formatError(error: any): string {
-    if (error instanceof Error) {
-      return error.message;
-    } else if (typeof error === 'string') {
-      return error;
-    } else if (error && error.response && error.response.data) {
-      const data = error.response.data;
-      
-      if (data.detail) {
-        return data.detail;
-      } else if (data.message) {
-        return data.message;
-      } else if (data.error) {
-        return data.error;
-      } else if (typeof data === 'string') {
-        return data;
-      } else {
-        try {
-          return JSON.stringify(data);
-        } catch (e) {
-          return 'Unknown error occurred';
-        }
-      }
-    } else if (error && error.message) {
-      return error.message;
-    } else {
-      try {
-        return JSON.stringify(error);
-      } catch (e) {
-        return 'Unknown error occurred';
-      }
+
+  /** Current session state; running=false when nothing is up (never throws 409). */
+  async status(projectId: string): Promise<PreviewFrame> {
+    try {
+      const response = await api.get(`/v1/builder/${projectId}/preview/`)
+      return response.data
+    } catch (error) {
+      rethrow(error)
     }
-  }
-} 
+  },
+
+  async stop(projectId: string): Promise<void> {
+    await api.delete(`/v1/builder/${projectId}/preview/`)
+  },
+
+  /** Poll the latest frame; pass the previous etag to skip unchanged frames. */
+  async frame(projectId: string, etag?: string): Promise<PreviewFrame> {
+    try {
+      const response = await api.get(`/v1/builder/${projectId}/preview/frame/`, {
+        params: etag ? { etag } : undefined,
+      })
+      return response.data
+    } catch (error) {
+      rethrow(error)
+    }
+  },
+
+  /** Forward a batch of input events; the response includes a fresh frame. */
+  async sendInput(
+    projectId: string,
+    events: PreviewInputEvent[],
+    etag?: string
+  ): Promise<PreviewFrame> {
+    try {
+      const response = await api.post(`/v1/builder/${projectId}/preview/input/`, {
+        events,
+        etag,
+      })
+      return response.data
+    } catch (error) {
+      rethrow(error)
+    }
+  },
+
+  async navigate(
+    projectId: string,
+    action: 'goto' | 'back' | 'forward' | 'reload',
+    path?: string
+  ): Promise<PreviewFrame> {
+    try {
+      const response = await api.post(`/v1/builder/${projectId}/preview/navigate/`, {
+        action,
+        path,
+      })
+      return response.data
+    } catch (error) {
+      rethrow(error)
+    }
+  },
+
+  /** Keep the remote viewport in sync with the preview pane's CSS size. */
+  async resize(
+    projectId: string,
+    width: number,
+    height: number,
+    deviceScaleFactor?: number
+  ): Promise<void> {
+    try {
+      await api.post(`/v1/builder/${projectId}/preview/resize/`, {
+        width,
+        height,
+        device_scale_factor: deviceScaleFactor,
+      })
+    } catch (error) {
+      rethrow(error)
+    }
+  },
+}

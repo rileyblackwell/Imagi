@@ -272,6 +272,17 @@ _DEFAULT_PROJECTS_ROOT = (
 )
 PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', _DEFAULT_PROJECTS_ROOT)
 
+# Build workspace browser preview. A headless Chromium runs on this host next
+# to each previewed project's dev servers; the workspace streams frames and
+# forwards input through the API, so the setup is identical in development
+# and production (the Docker image installs Chromium and sets the path).
+# When empty, common Chrome/Chromium install locations are searched.
+BROWSER_PREVIEW_EXECUTABLE = os.environ.get('BROWSER_PREVIEW_EXECUTABLE', '')
+
+# Preview sessions (browser + dev servers) idle longer than this many seconds
+# are shut down opportunistically when another preview starts. 0 disables.
+BROWSER_PREVIEW_IDLE_TIMEOUT = int(os.environ.get('BROWSER_PREVIEW_IDLE_TIMEOUT', '1800'))
+
 
 # Marketing / Twilio
 # Public base URL Twilio uses for webhooks (delivery status callbacks and
