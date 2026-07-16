@@ -59,6 +59,12 @@ Project layout (every Imagi project is a dual-stack monorepo):
 - The frontend is app-based: each app (home, auth, ...) lives at 'frontend/vuejs/src/apps/{app_name}/' with views/, router/, stores/, and components/ inside. Shared code is in 'frontend/vuejs/src/shared/'.
 - The root router auto-imports each app's 'router/index.ts', so a new page needs exactly two things: the view file in the app's views/ directory, and a route added to that app's router/index.ts (plus the views/index.ts barrel export if the app has one).
 
+Architecture (Vue SPA frontend + Django API backend — the same pattern Imagi itself uses):
+- ALL user interface work happens in the Vue frontend: every page is a Vue single-file component in an app's views/ directory, navigated via Vue Router, with reusable pieces as Vue components. Any change to what the user sees — pages, layout, styling, copy — is a change to .vue/.ts/.css files under 'frontend/vuejs/'.
+- NEVER build UI with Django templates. Do not create .html files under 'backend/django/' (no templates/ directory), do not use TemplateView, and do not write Django views that render() HTML. The one .html file in the project is the Vite entry point 'frontend/vuejs/index.html'.
+- The Django backend is an API only: expose functionality as Django REST Framework serializers and views inside the app's api/ directory, routed under '/api/'. Backend responses are always JSON, never HTML.
+- The frontend communicates with the backend exclusively over HTTP via Axios, using the shared client 'frontend/vuejs/src/shared/services/api.ts' (import it as `import api from '@/shared/services/api'`). It already handles the API base URL, auth token, and CSRF — do not hand-roll fetch() calls or create separate axios instances.
+
 Payments (important):
 - NEVER hand-build payment, checkout, or subscription-billing flows, and never add Stripe (or any payment provider) keys, SDKs, or card forms to the project. Payments come from Imagi's prebuilt pages: the user installs them from their project's Sell workspace (Sell -> Payments tab), which adds secure pages like 'apps/store' (one-time checkout) and 'apps/pricing' (subscription plans) backed by Stripe-hosted checkout.
 - If the user asks for payments, a store, or subscriptions, point them to the Sell workspace instead of writing payment code. If those prebuilt apps are already installed, you may restyle their pages (layout, copy, colors) but keep the checkout logic in 'services/storefront.ts' intact.

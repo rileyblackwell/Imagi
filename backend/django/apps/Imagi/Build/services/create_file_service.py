@@ -219,21 +219,23 @@ const emit = defineEmits<{{
                     # This is a relative path - use as is
                     file_path = name
                 else:
-                    # Determine directory based on file type and project structure
+                    # Determine directory based on file type and project structure.
+                    # Dual-stack projects have no Django templates/static — all
+                    # UI files belong to the Vue frontend.
                     if not any(name.startswith(prefix) for prefix in ['templates/', 'static/', 'backend/', 'frontend/']):
                         if file_type == 'html':
                             if is_dual_stack:
-                                file_path = f"backend/django/templates/{name}"
+                                file_path = f"frontend/vuejs/public/{name}"
                             else:
                                 file_path = f"templates/{name}"
                         elif file_type == 'css':
                             if is_dual_stack:
-                                file_path = f"backend/django/static/css/{name}"
+                                file_path = f"frontend/vuejs/src/assets/css/{name}"
                             else:
                                 file_path = f"static/css/{name}"
                         elif file_type == 'javascript':
                             if is_dual_stack:
-                                file_path = f"backend/django/static/js/{name}"
+                                file_path = f"frontend/vuejs/src/{name}"
                             else:
                                 file_path = f"static/{name}"
                         elif file_type in ['vue', 'typescript']:
@@ -249,9 +251,9 @@ const emit = defineEmits<{{
                     
                     # Ensure CSS files are in the correct location
                     if file_type == 'css':
-                        if is_dual_stack and not file_path.startswith('backend/django/static/css/'):
+                        if is_dual_stack and not file_path.startswith('frontend/vuejs/'):
                             file_name = os.path.basename(file_path)
-                            file_path = f"backend/django/static/css/{file_name}"
+                            file_path = f"frontend/vuejs/src/assets/css/{file_name}"
                         elif not is_dual_stack and not file_path.startswith('static/css/'):
                             file_name = os.path.basename(file_path)
                             file_path = f"static/css/{file_name}"
