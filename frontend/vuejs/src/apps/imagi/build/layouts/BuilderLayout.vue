@@ -23,9 +23,11 @@
       <slot name="navbar-right" v-bind="slotProps"></slot>
     </template>
 
-    <div class="flex flex-col h-full w-full">
-      <slot></slot>
-    </div>
+    <template #default="{ isSidebarCollapsed }">
+      <div class="flex flex-col h-full w-full">
+        <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
+      </div>
+    </template>
   </DashboardLayout>
 </template>
 

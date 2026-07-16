@@ -29,7 +29,7 @@
             :on-model-select="handleModelSelect"
             :on-effort-select="handleEffortSelect"
             :on-example-prompt="handleExamplePrompt"
-            :on-collapse-sidebar="toggleSidebar"
+            :on-collapse-sidebar="() => collapseSidebar(toggleSidebar)"
             :is-collapsed="false"
             :is-manager-open="isManagerOpen"
             @toggle-manager="toggleManager"
@@ -79,15 +79,25 @@
       <!-- Clean Main Content Area - fills the viewport below the navbar.
            Uses dynamic viewport height (dvh) so it fills correctly on mobile
            as the browser chrome shows/hides, minus the 4rem navbar. -->
-      <div class="flex flex-col w-full overflow-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500 h-[calc(100dvh-4rem)]">
-        <!-- Enhanced Error State Display -->
-        <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
+      <template #default="{ isSidebarCollapsed }">
+        <div class="flex flex-col w-full overflow-hidden bg-white dark:bg-[#0a0a0a] relative transition-colors duration-500 h-[calc(100dvh-4rem)]">
+          <!-- Enhanced Error State Display -->
+          <WorkspaceError v-if="store.error" :error="store.error" @retry="retryProjectLoad" />
 
-        <!-- Main Layout - embedded preview server -->
-        <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
-          <WorkspacePreview v-if="projectId" :project-id="projectId" class="flex-1 min-h-0" />
+          <!-- Main Layout - embedded preview server. On mobile the browser pane
+               is hidden (not unmounted, so the preview session stays warm)
+               whenever the manager/chat overlay is open, so it can never peek
+               out from behind that overlay. -->
+          <div v-else class="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative">
+            <WorkspacePreview
+              v-if="projectId"
+              :project-id="projectId"
+              class="flex-1 min-h-0"
+              :class="isSidebarCollapsed ? '' : 'max-md:invisible'"
+            />
+          </div>
         </div>
-      </div>
+      </template>
     </BuilderLayout>
   </div>
 </template>
@@ -169,7 +179,13 @@ function toggleManager() {
 // screen one at a time instead of being crammed side by side.
 const { isMobile } = useWindowSize()
 type MobileView = 'manager' | 'chat' | 'browser'
-const mobileView = ref<MobileView>('chat')
+// The sidebar's collapsed state is persisted (see storage-key on
+// BuilderLayout). Start on the view that matches it, otherwise a reload after
+// choosing the browser would highlight "chat" while showing the browser.
+const mobileView = ref<MobileView>(
+  (typeof localStorage !== 'undefined' &&
+    localStorage.getItem('builderWorkspaceSidebarCollapsed') === 'true') ? 'browser' : 'chat'
+)
 const mobileViewOptions: Array<{ value: MobileView; label: string; icon: string }> = [
   { value: 'manager', label: 'Agents', icon: 'fas fa-layer-group' },
   { value: 'chat', label: 'Chat', icon: 'fas fa-comment-dots' },
@@ -180,6 +196,14 @@ function selectMobileView(view: MobileView, setSidebarCollapsed?: (collapsed: bo
   // The browser lives in the main content area, so it shows when the sidebar
   // (manager + chat) is collapsed off-screen; manager/chat show when it's open.
   setSidebarCollapsed?.(view === 'browser')
+}
+
+// Collapsing the sidebar from the chat header reveals the browser pane; keep
+// the mobile view switcher pointed at it so the highlighted tab (and the
+// browser pane's visibility) match what's on screen.
+function collapseSidebar(toggleSidebar: () => void) {
+  toggleSidebar()
+  if (isMobile.value) mobileView.value = 'browser'
 }
 
 // Version history state and actions
