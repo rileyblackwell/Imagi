@@ -6,6 +6,7 @@
     :extra-wide="extraWide"
     compact-top
     mobile-overlay
+    app-shell
   >
     <template #sidebar-content="{ isSidebarCollapsed, toggleSidebar }">
       <slot name="sidebar-content" :collapsed="isSidebarCollapsed" :toggle-sidebar="toggleSidebar"></slot>

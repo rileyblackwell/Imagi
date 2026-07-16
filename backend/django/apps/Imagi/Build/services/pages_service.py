@@ -115,10 +115,22 @@ def _join_paths(parent, child):
     return (parent.rstrip('/') or '') + '/' + child
 
 
+# Concatenated route segments whose humanized form would read as one word
+# ("signin" -> "Signin"). Map them to their natural multi-word titles.
+_SEGMENT_ALIASES = {
+    'signin': 'Sign In',
+    'signup': 'Sign Up',
+    'signout': 'Sign Out',
+}
+
+
 def _page_title(path):
     segment = path.rstrip('/').rsplit('/', 1)[-1]
     if not segment:
         return 'Home'
+    alias = _SEGMENT_ALIASES.get(segment.lower())
+    if alias:
+        return alias
     return _humanize(segment)
 
 
