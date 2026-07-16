@@ -445,3 +445,83 @@ class InitialBuildServiceTests(TestCase):
         self._run_with_agent_result({'success': False, 'error': 'model error'})
         self.project.refresh_from_db()
         self.assertEqual(self.project.generation_status, 'failed')
+
+
+@override_settings(PROJECTS_ROOT=_TMP_PROJECTS_ROOT)
+class ScaffoldWiringTests(TestCase):
+    """Full-scaffold integration test: run the real ProjectCreationService
+    (npm install mocked out) and verify the generated project is wired so the
+    prebuilt home and auth apps actually work.
+
+    This is the regression net for the initial-build starting point: the
+    frontend's auth pages call /api/v1/auth/..., which requires the auth app
+    to be registered (with its non-conflicting 'user_auth' label), authtoken
+    to be installed, and the API urls to be mounted.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        from apps.Imagi.ProjectManager.services.project_creation_service import (
+            ProjectCreationService,
+        )
+
+        cls.user = User.objects.create_user(username='scaffolder', password='pw123456')
+        cls.project = Project.objects.create(
+            user=cls.user, name='Wiring Check', description=VALID_DESCRIPTION
+        )
+        with patch.object(ProjectCreationService, '_install_vuejs_dependencies'):
+            cls.project = ProjectCreationService(cls.user).create_project(cls.project)
+        cls.backend_root = os.path.join(cls.project.project_path, 'backend', 'django')
+
+    @classmethod
+    def _read(cls, *parts):
+        with open(os.path.join(*parts), 'r', encoding='utf-8') as f:
+            return f.read()
+
+    def _settings_src(self):
+        for entry in os.listdir(self.backend_root):
+            candidate = os.path.join(self.backend_root, entry, 'settings.py')
+            if os.path.isfile(candidate):
+                return self._read(candidate), os.path.join(self.backend_root, entry)
+        self.fail('No Django settings.py found in scaffolded backend')
+
+    def test_auth_app_is_installed_with_authtoken(self):
+        settings_src, _ = self._settings_src()
+        self.assertIn("'apps.auth'", settings_src)
+        self.assertIn("'apps.home'", settings_src)
+        self.assertIn("'rest_framework.authtoken'", settings_src)
+
+    def test_auth_api_is_mounted_under_api_v1(self):
+        api_v1 = self._read(self.backend_root, 'api', 'v1', 'url.py')
+        self.assertIn("path('auth/', include('apps.auth.api.urls'))", api_v1)
+
+    def test_home_urls_are_mounted_exactly_once(self):
+        _, project_dir = self._settings_src()
+        urls_src = self._read(project_dir, 'urls.py')
+        self.assertEqual(
+            urls_src.count("include('apps.home.urls')"), 1,
+            'home urls must be registered exactly once (idempotent registration)',
+        )
+
+    def test_auth_app_ships_label_and_migrations(self):
+        apps_py = self._read(self.backend_root, 'apps', 'auth', 'apps.py')
+        self.assertIn("label = 'user_auth'", apps_py)
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.backend_root, 'apps', 'auth', 'migrations', '0001_initial.py')
+        ))
+
+    def test_home_page_links_to_auth(self):
+        home_view = self._read(
+            self.project.project_path,
+            'frontend', 'vuejs', 'src', 'apps', 'home', 'views', 'HomeView.vue',
+        )
+        self.assertIn('/auth/signin', home_view)
+        self.assertIn('/auth/register', home_view)
+
+    def test_scaffolded_files_are_mirrored_to_database(self):
+        # Disk is the source of truth; the DB mirror should hold the same
+        # files for debugging and rehydration.
+        paths = set(self.project.files.values_list('path', flat=True))
+        self.assertIn('backend/django/apps/auth/api/urls.py', paths)
+        self.assertIn('frontend/vuejs/src/apps/home/views/HomeView.vue', paths)

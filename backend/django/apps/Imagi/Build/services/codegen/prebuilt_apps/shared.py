@@ -63,17 +63,17 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
         {
             'name': f'frontend/vuejs/src/apps/{app_name}/components/atoms/index.ts',
             'type': 'typescript',
-            'content': '// atoms\n',
+            'content': '// atoms\nexport {}\n',
         },
         {
             'name': f'frontend/vuejs/src/apps/{app_name}/components/molecules/index.ts',
             'type': 'typescript',
-            'content': '// molecules\n',
+            'content': '// molecules\nexport {}\n',
         },
         {
             'name': f'frontend/vuejs/src/apps/{app_name}/components/organisms/index.ts',
             'type': 'typescript',
-            'content': '// organisms\n',
+            'content': '// organisms\nexport {}\n',
         },
         {
             'name': f'frontend/vuejs/src/apps/{app_name}/views/{cap_name}View.vue',

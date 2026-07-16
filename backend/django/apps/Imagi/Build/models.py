@@ -117,12 +117,13 @@ class ProjectLayout(models.Model):
 class ProjectFile(models.Model):
     """Database copy of a single file in a user's project.
 
-    The database is the durable store for project files: production serves
-    and edits files from these rows, while development additionally keeps a
-    local working copy on disk (under PROJECTS_ROOT) that mirrors them.
-    Every file mutation — agent tools, builder API endpoints, app
-    scaffolding — writes through to both places via
-    services.project_files_service.
+    The working copy on disk (under PROJECTS_ROOT) is the source of truth —
+    dev and production both run projects from disk. These rows are a mirror
+    of the disk copy, kept so project files are browsable from the Build
+    module for debugging, and usable as a backup to rehydrate a working
+    copy that has gone missing. Every file mutation — agent tools, builder
+    API endpoints, app scaffolding — touches disk first and then writes
+    through to this mirror via services.project_files_service.
     """
     project = models.ForeignKey(
         'ProjectManager.Project',

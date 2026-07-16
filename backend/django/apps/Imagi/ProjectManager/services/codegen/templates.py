@@ -193,8 +193,8 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # Allow all for development
@@ -288,7 +288,7 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
 const app = createApp(App)
 
 // Type augmentation (available at runtime even without .d.ts)
-declare module '@vue/runtime-core' {
+declare module 'vue' {
   interface ComponentCustomProperties {
     $axios: AxiosInstance;
   }
@@ -947,13 +947,13 @@ def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_d
             "isomorphic-dompurify": "^2.22.0",
             "lodash-es": "^4.17.21",
             "marked": "^15.0.7",
-            "pinia": "^2.1.7",
+            "pinia": "^3.0.4",
             "tailwindcss": "^3.4.1",
             "uuid": "^11.1.0",
             "vee-validate": "^4.15.0",
-            "vue": "^3.4.15",
+            "vue": "^3.5.29",
             "vue-chartjs": "^5.3.0",
-            "vue-router": "^4.2.5"
+            "vue-router": "^5.0.3"
         },
         "devDependencies": {
             "@eslint/config-array": "^0.19.2",
@@ -962,11 +962,11 @@ def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_d
             "@types/dompurify": "^3.0.5",
             "@types/lodash-es": "^4.17.12",
             "@types/marked": "^5.0.2",
-            "@types/node": "^20.11.0",
+            "@types/node": "^24.10.13",
             "@types/uuid": "^10.0.0",
             "@typescript-eslint/eslint-plugin": "^6.21.0",
             "@typescript-eslint/parser": "^6.21.0",
-            "@vitejs/plugin-vue": "^5.0.4",
+            "@vitejs/plugin-vue": "^6.0.4",
             "@vue/eslint-config-prettier": "^9.0.0",
             "@vue/eslint-config-typescript": "^12.0.0",
             "@vue/tsconfig": "^0.5.1",
@@ -983,9 +983,9 @@ def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_d
             "postcss": "^8.4.33",
             "prettier": "^3.2.4",
             "rimraf": "^5.0.5",
-            "typescript": "~5.3.3",
-            "vite": "^6.2.1",
-            "vue-tsc": "^2.2.0"
+            "typescript": "~5.9.3",
+            "vite": "^7.3.1",
+            "vue-tsc": "^3.2.5"
         },
         "overrides": {
             "inflight": "^2.0.0",
@@ -1069,6 +1069,10 @@ def create_vuejs_src_files(frontend_path: str, project_name: str, project_descri
 
     for directory in directories:
         os.makedirs(os.path.join(src_path, directory), exist_ok=True)
+
+    # env.d.ts — Vite client types so import.meta.env type-checks
+    with open(os.path.join(src_path, 'env.d.ts'), 'w') as f:
+        f.write('/// <reference types="vite/client" />\n')
 
     # main.ts
     with open(os.path.join(src_path, 'main.ts'), 'w') as f:
@@ -1181,12 +1185,12 @@ def django_pipfile() -> str:
         "verify_ssl = true\n"
         "name = \"pypi\"\n\n"
         "[packages]\n"
-        "django = \"~=4.2.3\"\n"
-        "djangorestframework = \"~=3.14.0\"\n"
-        "django-cors-headers = \"~=4.1.0\"\n\n"
+        "django = \"*\"\n"
+        "djangorestframework = \"*\"\n"
+        "django-cors-headers = \"*\"\n\n"
         "[dev-packages]\n\n"
         "[requires]\n"
-        "python_version = \"3.10\"\n"
+        "python_version = \"3.13\"\n"
     )
 
 
@@ -1772,8 +1776,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

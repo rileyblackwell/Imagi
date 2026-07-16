@@ -7,6 +7,7 @@ Stripe-hosted checkout pages.
 """
 
 import logging
+import re
 from typing import Dict, List, Any
 import os
 from django.conf import settings
@@ -291,17 +292,17 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
             {
                 'name': f'frontend/vuejs/src/apps/{app_name}/components/atoms/index.ts',
                 'type': 'typescript',
-                'content': '// atoms\n'
+                'content': '// atoms\nexport {}\n'
             },
             {
                 'name': f'frontend/vuejs/src/apps/{app_name}/components/molecules/index.ts',
                 'type': 'typescript',
-                'content': '// molecules\n'
+                'content': '// molecules\nexport {}\n'
             },
             {
                 'name': f'frontend/vuejs/src/apps/{app_name}/components/organisms/index.ts',
                 'type': 'typescript',
-                'content': '// organisms\n'
+                'content': '// organisms\nexport {}\n'
             },
             {
                 'name': f'frontend/vuejs/src/apps/{app_name}/views/{cap_name}View.vue',
@@ -398,18 +399,31 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
 
         return files
 
-    # ... (rest of the code remains the same)
     # App labels Django's contrib apps already claim. Registering e.g.
     # 'apps.auth' (default label: 'auth') alongside django.contrib.auth makes
-    # the generated project unbootable with "Application labels aren't unique".
+    # the generated project unbootable with "Application labels aren't unique"
+    # — unless the app's AppConfig declares an explicit non-conflicting label
+    # (the prebuilt auth app sets label = 'user_auth').
     RESERVED_APP_LABELS = {'admin', 'auth', 'contenttypes', 'sessions', 'messages', 'staticfiles'}
+
+    def _app_declares_custom_label(self, project_path: str, app_name: str) -> bool:
+        """Whether the generated app's apps.py sets an explicit AppConfig label."""
+        apps_py = os.path.join(project_path, 'backend', 'django', 'apps', app_name, 'apps.py')
+        try:
+            with open(apps_py, 'r', encoding='utf-8') as f:
+                return bool(re.search(r'^\s*label\s*=', f.read(), re.MULTILINE))
+        except OSError:
+            return False
 
     def _register_backend_app(self, project_path: str, app_name: str) -> None:
         """Ensure the backend Django app is added to INSTALLED_APPS and URLs.
         Skips if a capitalized variant already exists (e.g., 'apps.Home').
         """
         try:
-            if app_name.lower() in self.RESERVED_APP_LABELS:
+            if (
+                app_name.lower() in self.RESERVED_APP_LABELS
+                and not self._app_declares_custom_label(project_path, app_name)
+            ):
                 logger.warning(
                     f"Skipping INSTALLED_APPS registration for 'apps.{app_name}': "
                     f"its default label conflicts with a Django contrib app"
@@ -445,23 +459,65 @@ export const use{cap_name}Store = defineStore('{app_name}', () => {{
             cap_module = f"apps.{app_name.capitalize()}"
 
             # Only add if neither lower nor capitalized variant is present
-            if (lower_module not in settings_src) and (cap_module not in settings_src):
+            if (f"'{lower_module}'" not in settings_src) and (f"'{cap_module}'" not in settings_src):
                 settings_src = self._inject_into_installed_apps(settings_src, lower_module)
                 with open(settings_path, 'w', encoding='utf-8') as f:
                     f.write(settings_src)
 
-            # Update urls.py
-            with open(urls_path, 'r', encoding='utf-8') as f:
-                urls_src = f.read()
+            app_dir = os.path.join(backend_root, 'apps', app_name)
 
-            include_line = f"        path('{app_name}/', include('apps.{app_name}.urls')),"
-            if include_line not in urls_src:
-                urls_src = self._inject_into_urls(urls_src, app_name)
-                with open(urls_path, 'w', encoding='utf-8') as f:
-                    f.write(urls_src)
+            # Apps with root-level urls.py mount at '/<app>/' in the project urls.py
+            if os.path.exists(os.path.join(app_dir, 'urls.py')):
+                with open(urls_path, 'r', encoding='utf-8') as f:
+                    urls_src = f.read()
+
+                include_line = f"path('{app_name}/', include('apps.{app_name}.urls')),"
+                if include_line not in urls_src:
+                    urls_src = self._inject_into_urls(urls_src, app_name)
+                    with open(urls_path, 'w', encoding='utf-8') as f:
+                        f.write(urls_src)
+
+            # Apps with an api/urls.py (like the prebuilt auth app) mount under
+            # '/api/v1/<app>/', mirroring how the main Imagi backend mounts its
+            # per-app API urls.
+            if os.path.exists(os.path.join(app_dir, 'api', 'urls.py')):
+                self._register_api_urls(backend_root, app_name)
         except Exception as e:
             # Don't raise - app creation succeeded; registration can be manual if needed
             logger.warning(f"Failed to register backend app '{app_name}': {str(e)}")
+
+    def _register_api_urls(self, backend_root: str, app_name: str) -> None:
+        """Mount apps.<app>.api.urls at '/api/v1/<app>/' in api/v1/url.py."""
+        api_v1_path = os.path.join(backend_root, 'api', 'v1', 'url.py')
+        if not os.path.exists(api_v1_path):
+            logger.warning(f"api/v1/url.py not found; cannot mount apps.{app_name}.api.urls")
+            return
+
+        with open(api_v1_path, 'r', encoding='utf-8') as f:
+            src = f.read()
+
+        include_line = f"path('{app_name}/', include('apps.{app_name}.api.urls')),"
+        if include_line in src:
+            return
+
+        if 'include' not in src.split('urlpatterns')[0]:
+            src = src.replace(
+                'from django.urls import path',
+                'from django.urls import path, include',
+                1,
+            )
+
+        lines = src.splitlines()
+        for idx in range(len(lines) - 1, -1, -1):
+            if lines[idx].strip().startswith(']'):
+                lines.insert(idx, f"    {include_line}")
+                break
+        else:
+            logger.warning(f"Could not find urlpatterns in api/v1/url.py to mount apps.{app_name}.api.urls")
+            return
+
+        with open(api_v1_path, 'w', encoding='utf-8') as f:
+            f.write("\n".join(lines) + "\n")
 
     def _inject_into_installed_apps(self, settings_src: str, module_name: str) -> str:
         """Insert the module into INSTALLED_APPS list in settings.py.

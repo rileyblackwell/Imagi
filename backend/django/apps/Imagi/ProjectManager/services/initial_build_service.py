@@ -32,7 +32,7 @@ Business description (written by the founder):
 
 Using this description, build the first version of the business's web application so the founder sees a tailored starting point — not a generic scaffold — when they open the workspace:
 
-1. Rework the home app's landing page around this business: a clear hero (business name and what it does), sections covering its offering and intended customers, and a call to action that matches the sales approach in the description.
+1. Rework the home app's landing page around this business: a clear hero (business name and what it does), sections covering its offering and intended customers, and a call to action that matches the sales approach in the description. Keep the header's sign-in and create-account links to the prebuilt auth pages ('/auth/signin', '/auth/register') present and working.
 2. Update titles, headings, and placeholder copy that still reference the scaffold so they reflect the business.
 3. If the description clearly calls for one or two more simple pages (for example an About or Pricing page), create them and wire up their routes.
 
