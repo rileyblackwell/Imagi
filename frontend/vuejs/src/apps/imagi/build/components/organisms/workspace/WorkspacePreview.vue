@@ -258,6 +258,12 @@ async function startPreview() {
     applyFrame(result)
     phase.value = 'ready'
     schedulePoll(200)
+    // The size passed to start() can be stale — measured before the pane was
+    // laid out, which falls back to a desktop width and makes the app render
+    // its desktop layout squished into a phone. The ResizeObserver won't fix
+    // it because the pane size never actually changes, so re-assert the
+    // viewport against the now-laid-out pane once we're ready.
+    requestAnimationFrame(() => void ensureViewportMatchesPane())
     // Starting may have scaffolded/hydrated the working copy the pages
     // menu reads from, so fetch it (again) now.
     void refreshPages()
@@ -371,23 +377,80 @@ const BUTTON_NAMES: Array<'left' | 'middle' | 'right'> = ['left', 'middle', 'rig
 // A touch drag scrolls the previewed app (forwarded as wheel deltas) the way a
 // finger scrolls a native page, instead of being sent as a mouse drag. A touch
 // that barely moves is treated as a tap and forwarded as a click so buttons and
-// links still work.
-const TOUCH_TAP_SLOP = 8 // page px of travel before a touch becomes a scroll
+// links still work. When the finger lifts we keep emitting decaying wheel
+// deltas (momentum) so the page glides to a stop instead of stopping dead —
+// the streamed preview has no native inertial scrolling of its own.
+const TOUCH_TAP_SLOP = 8       // page px of travel before a touch becomes a scroll
+const INERTIA_FRICTION = 0.94  // fraction of velocity kept each animation frame
+const INERTIA_MIN_SPEED = 0.03 // px/ms; the glide ends below this
+const INERTIA_MAX_SPEED = 4     // px/ms; caps a hard flick so it stays controllable
 let touchDrag: {
   pointerId: number
   startX: number
   startY: number
   lastX: number
   lastY: number
+  lastT: number
+  vx: number
+  vy: number
   scrolling: boolean
+  stoppedInertia: boolean
 } | null = null
+
+let inertiaRaf: number | null = null
+let inertiaX = 0
+let inertiaY = 0
+let inertiaVx = 0
+let inertiaVy = 0
+let inertiaLastT = 0
+
+function stopInertia() {
+  if (inertiaRaf !== null) {
+    cancelAnimationFrame(inertiaRaf)
+    inertiaRaf = null
+  }
+}
+
+function startInertia(x: number, y: number, vx: number, vy: number) {
+  stopInertia()
+  inertiaX = x
+  inertiaY = y
+  inertiaVx = Math.max(-INERTIA_MAX_SPEED, Math.min(vx, INERTIA_MAX_SPEED))
+  inertiaVy = Math.max(-INERTIA_MAX_SPEED, Math.min(vy, INERTIA_MAX_SPEED))
+  if (Math.hypot(inertiaVx, inertiaVy) < INERTIA_MIN_SPEED) return
+  inertiaLastT = performance.now()
+  const step = () => {
+    inertiaRaf = null
+    if (disposed || phase.value !== 'ready') return
+    const now = performance.now()
+    const dt = Math.min(32, now - inertiaLastT)
+    inertiaLastT = now
+    inertiaVx *= INERTIA_FRICTION
+    inertiaVy *= INERTIA_FRICTION
+    if (Math.hypot(inertiaVx, inertiaVy) < INERTIA_MIN_SPEED) return
+    // Same convention as a drag: wheel delta is opposite the finger travel.
+    enqueue({ kind: 'wheel', x: inertiaX, y: inertiaY, deltaX: -inertiaVx * dt, deltaY: -inertiaVy * dt, modifiers: 0 })
+    inertiaRaf = requestAnimationFrame(step)
+  }
+  inertiaRaf = requestAnimationFrame(step)
+}
 
 function onPointerDown(e: PointerEvent) {
   screenRef.value?.focus()
   if (phase.value !== 'ready') return
   const { x, y } = pageCoords(e)
   if (e.pointerType === 'touch') {
-    touchDrag = { pointerId: e.pointerId, startX: x, startY: y, lastX: x, lastY: y, scrolling: false }
+    const stoppedInertia = inertiaRaf !== null
+    stopInertia()
+    touchDrag = {
+      pointerId: e.pointerId,
+      startX: x, startY: y,
+      lastX: x, lastY: y,
+      lastT: e.timeStamp,
+      vx: 0, vy: 0,
+      scrolling: false,
+      stoppedInertia,
+    }
     try { screenRef.value?.setPointerCapture(e.pointerId) } catch {}
     return
   }
@@ -415,9 +478,14 @@ function onPointerMove(e: PointerEvent) {
     if (touchDrag.scrolling && (dx !== 0 || dy !== 0)) {
       // Wheel delta is opposite the finger travel: drag up -> scroll down.
       enqueue({ kind: 'wheel', x, y, deltaX: -dx, deltaY: -dy, modifiers: 0 })
+      // Track a smoothed finger velocity (px/ms) to seed the release glide.
+      const dt = Math.max(1, e.timeStamp - touchDrag.lastT)
+      touchDrag.vx = touchDrag.vx * 0.7 + (dx / dt) * 0.3
+      touchDrag.vy = touchDrag.vy * 0.7 + (dy / dt) * 0.3
     }
     touchDrag.lastX = x
     touchDrag.lastY = y
+    touchDrag.lastT = e.timeStamp
     return
   }
   enqueue({
@@ -434,10 +502,14 @@ function onPointerUp(e: PointerEvent) {
   if (phase.value !== 'ready') return
   const { x, y } = pageCoords(e)
   if (touchDrag && e.pointerId === touchDrag.pointerId) {
-    const wasTap = !touchDrag.scrolling
+    const drag = touchDrag
     touchDrag = null
     try { screenRef.value?.releasePointerCapture(e.pointerId) } catch {}
-    if (wasTap) {
+    if (drag.scrolling) {
+      // Let the page keep gliding from the finger's release velocity.
+      startInertia(drag.lastX, drag.lastY, drag.vx, drag.vy)
+    } else if (!drag.stoppedInertia) {
+      // A genuine tap (not a tap that just halted a glide) becomes a click.
       enqueue({ kind: 'mouse', type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1, modifiers: modifiersFrom(e) }, true)
       enqueue({ kind: 'mouse', type: 'mouseReleased', x, y, button: 'left', buttons: 0, clickCount: 1, modifiers: modifiersFrom(e) }, true)
     }
@@ -543,22 +615,27 @@ function reload() {
 // Pane size -> remote viewport
 // ---------------------------------------------------------------------------
 
+// Resize the remote browser to match the pane's current CSS size, so the
+// previewed app renders (and fills) at the real display width. No-op when it
+// already matches.
+async function ensureViewportMatchesPane() {
+  if (disposed || phase.value !== 'ready') return
+  const { width, height } = paneSize()
+  const [vw, vh] = viewport.value
+  if (Math.abs(width - vw) < 4 && Math.abs(height - vh) < 4) return
+  try {
+    await PreviewService.resize(props.projectId, width, height, deviceScaleFactor)
+    viewport.value = [width, height]
+    etag.value = undefined // force a fresh frame at the new size
+    schedulePoll(100)
+  } catch (e) {
+    if (e instanceof PreviewNotRunningError) markSessionStopped()
+  }
+}
+
 function onPaneResized() {
   if (resizeTimer) window.clearTimeout(resizeTimer)
-  resizeTimer = window.setTimeout(async () => {
-    if (disposed || phase.value !== 'ready') return
-    const { width, height } = paneSize()
-    const [vw, vh] = viewport.value
-    if (Math.abs(width - vw) < 4 && Math.abs(height - vh) < 4) return
-    try {
-      await PreviewService.resize(props.projectId, width, height, deviceScaleFactor)
-      viewport.value = [width, height]
-      etag.value = undefined // force a fresh frame at the new size
-      schedulePoll(100)
-    } catch (e) {
-      if (e instanceof PreviewNotRunningError) markSessionStopped()
-    }
-  }, 350)
+  resizeTimer = window.setTimeout(() => void ensureViewportMatchesPane(), 350)
 }
 
 // ---------------------------------------------------------------------------
@@ -678,6 +755,7 @@ onBeforeUnmount(() => {
   if (pollTimer) window.clearTimeout(pollTimer)
   if (resizeTimer) window.clearTimeout(resizeTimer)
   if (flushTimer) window.clearTimeout(flushTimer)
+  stopInertia()
   observer?.disconnect()
 })
 
