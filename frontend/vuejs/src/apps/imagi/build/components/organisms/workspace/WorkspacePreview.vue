@@ -1,16 +1,16 @@
 <template>
   <div class="relative w-full h-full flex flex-col bg-white dark:bg-[#0a0a0a]">
     <!-- Toolbar -->
-    <div class="flex flex-col gap-2 px-3 py-2 border-b border-blue-200/60 dark:border-white/[0.08] bg-blue-50/50 dark:bg-white/[0.02]">
-      <div class="flex items-center gap-2 flex-wrap">
+    <div class="flex flex-col gap-2 px-3 py-1.5 border-b border-blue-200/60 dark:border-white/[0.08] bg-blue-50/50 dark:bg-white/[0.02]">
+      <div class="flex items-center gap-1.5 flex-wrap">
         <button
           type="button"
           @click="goBack"
           :disabled="!canGoBack || phase !== 'ready'"
           title="Back"
-          class="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/70 dark:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <i class="fas fa-arrow-left text-sm"></i>
+          <i class="fas fa-arrow-left text-xs"></i>
         </button>
 
         <button
@@ -18,46 +18,46 @@
           @click="goForward"
           :disabled="!canGoForward || phase !== 'ready'"
           title="Forward"
-          class="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/70 dark:text-white/70 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <i class="fas fa-arrow-right text-sm"></i>
+          <i class="fas fa-arrow-right text-xs"></i>
         </button>
 
         <button
           type="button"
           @click="reload"
           title="Refresh page"
-          class="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/70 dark:text-white/70 transition-colors"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors"
         >
-          <i class="fas fa-sync-alt text-sm" :class="{ 'fa-spin': phase === 'starting' }"></i>
+          <i class="fas fa-sync-alt text-xs" :class="{ 'fa-spin': phase === 'starting' }"></i>
         </button>
 
         <button
           type="button"
           @click="goHome"
           title="Go to home page"
-          class="inline-flex items-center justify-center w-9 h-9 shrink-0 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/70 dark:text-white/70 transition-colors"
+          class="inline-flex items-center justify-center w-8 h-8 shrink-0 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/60 dark:text-white/60 transition-colors"
         >
-          <i class="fas fa-home text-sm"></i>
+          <i class="fas fa-home text-xs"></i>
         </button>
 
-        <!-- Combined App / Page selector -->
-        <div class="relative flex-1 min-w-[12rem]" ref="menuRoot">
+        <!-- Combined App / Page selector — slender address bar -->
+        <div class="relative flex-1 min-w-[8rem]" ref="menuRoot">
           <button
             type="button"
             @click="onMenuToggle"
             :disabled="apps.length === 0"
-            class="w-full flex items-center gap-2 rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] focus:border-blue-400 dark:focus:border-blue-300/40 outline-none py-2 pl-3 pr-9 text-sm font-medium text-blue-950 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            class="group w-full flex items-center gap-2 h-8 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-white/[0.07] focus:border-blue-400 dark:focus:border-blue-300/40 focus:ring-2 focus:ring-blue-400/15 outline-none pl-3 pr-8 text-[13px] font-medium text-blue-950 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <i class="fas fa-cube text-xs text-blue-950/50 dark:text-white/50 shrink-0"></i>
+            <i class="fas fa-cube text-[10px] text-blue-950/40 dark:text-white/40 shrink-0"></i>
             <span class="truncate flex-1 text-left">{{ triggerLabel }}</span>
-            <span class="truncate max-w-[10rem] text-xs text-blue-950/40 dark:text-white/40 font-normal hidden sm:block">{{ currentPath }}</span>
-            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-950/50 dark:text-white/40 pointer-events-none"></i>
+            <span class="truncate max-w-[10rem] text-[11px] text-blue-950/35 dark:text-white/35 font-normal hidden sm:block">{{ currentPath }}</span>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/40 dark:text-white/35 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
           </button>
 
           <div
             v-if="menuOpen && apps.length > 0"
-            class="absolute z-20 mt-1 left-0 min-w-[14rem] rounded-lg border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-lg py-1"
+            class="absolute z-20 mt-1.5 left-0 min-w-[14rem] rounded-xl border border-blue-200/60 dark:border-white/[0.08] bg-white dark:bg-[#0f0f0f] shadow-xl py-1"
           >
             <div
               v-for="app in apps"

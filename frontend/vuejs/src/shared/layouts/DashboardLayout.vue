@@ -12,7 +12,9 @@
               ? 'w-[36rem] bg-white dark:bg-dark-950/95 backdrop-blur-md'
               : (wide
                 ? 'w-80 bg-white dark:bg-dark-950/95 backdrop-blur-md'
-                : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md'))
+                : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md')),
+          mobileOverlay ? 'max-md:top-16 max-md:w-full' : '',
+          mobileOverlay ? (isSidebarCollapsed ? 'max-md:-translate-x-full' : 'max-md:translate-x-0') : ''
         ]"
       >
         <!-- Logo and Brand -->
@@ -81,12 +83,18 @@
       <!-- Main content -->
       <div
         class="flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out"
-        :class="[isSidebarCollapsed ? 'ml-16' : (extraWide ? 'ml-[36rem]' : (wide ? 'ml-80' : 'ml-72'))]"
+        :class="[
+          isSidebarCollapsed ? 'ml-16' : (extraWide ? 'ml-[36rem]' : (wide ? 'ml-80' : 'ml-72')),
+          mobileOverlay ? 'max-md:ml-0' : ''
+        ]"
       >
         <!-- Navbar -->
         <BaseNavbar
           class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm"
-          :class="[isSidebarCollapsed ? 'left-16' : (extraWide ? 'left-[36rem]' : (wide ? 'left-80' : 'left-72'))]"
+          :class="[
+            isSidebarCollapsed ? 'left-16' : (extraWide ? 'left-[36rem]' : (wide ? 'left-80' : 'left-72')),
+            mobileOverlay ? 'max-md:left-0' : ''
+          ]"
         >
           <template #left>
             <!-- Navbar left section -->
@@ -94,13 +102,23 @@
           <template #center>
             <!-- Pass through a navbar-center slot for centered content -->
             <div class="flex items-center justify-center">
-              <slot name="navbar-center"></slot>
+              <slot
+                name="navbar-center"
+                :isSidebarCollapsed="isSidebarCollapsed"
+                :toggleSidebar="toggleSidebar"
+                :setSidebarCollapsed="setSidebarCollapsed"
+              ></slot>
             </div>
           </template>
           <template #right>
             <!-- Pass through the navbar-right slot with proper spacing -->
             <div class="flex items-center justify-end pe-6">
-              <slot name="navbar-right"></slot>
+              <slot
+                name="navbar-right"
+                :isSidebarCollapsed="isSidebarCollapsed"
+                :toggleSidebar="toggleSidebar"
+                :setSidebarCollapsed="setSidebarCollapsed"
+              ></slot>
             </div>
           </template>
         </BaseNavbar>
@@ -138,11 +156,16 @@ const props = defineProps<{
   wide?: boolean
   extraWide?: boolean
   compactTop?: boolean
+  // When true, the sidebar becomes a full-screen off-canvas overlay on mobile
+  // (< md) instead of squeezing the main content. Opt-in so other layouts keep
+  // their current behaviour.
+  mobileOverlay?: boolean
 }>()
 
 const wide = computed(() => !!props.wide)
 const extraWide = computed(() => !!props.extraWide)
 const compactTop = computed(() => !!props.compactTop)
+const mobileOverlay = computed(() => !!props.mobileOverlay)
 
 const route = useRoute()
 const router = useRouter()
@@ -163,8 +186,13 @@ const isActivePath = (item: NavigationItem): boolean => {
 
 // Toggle sidebar collapsed state
 const toggleSidebar = () => {
-  isSidebarCollapsed.value = !isSidebarCollapsed.value
-  
+  setSidebarCollapsed(!isSidebarCollapsed.value)
+}
+
+// Set the sidebar collapsed state directly (used by the mobile view switcher)
+const setSidebarCollapsed = (collapsed: boolean) => {
+  isSidebarCollapsed.value = collapsed
+
   // Save preference if storage key is provided
   if (props.storageKey) {
     localStorage.setItem(props.storageKey, isSidebarCollapsed.value ? 'true' : 'false')
