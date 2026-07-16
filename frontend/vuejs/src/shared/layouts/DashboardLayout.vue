@@ -97,7 +97,12 @@
           ]"
         >
           <template #left>
-            <!-- Navbar left section -->
+            <slot
+              name="navbar-left"
+              :isSidebarCollapsed="isSidebarCollapsed"
+              :toggleSidebar="toggleSidebar"
+              :setSidebarCollapsed="setSidebarCollapsed"
+            ></slot>
           </template>
           <template #center>
             <!-- Pass through a navbar-center slot for centered content -->
