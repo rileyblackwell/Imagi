@@ -118,7 +118,6 @@ onBeforeUnmount(() => {
 .account-balance-display {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   transition: all 0.3s ease;
-  margin-right: 1.5rem;
 }
 
 /* Card base */

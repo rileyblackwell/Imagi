@@ -116,8 +116,9 @@
             </div>
           </template>
           <template #right>
-            <!-- Pass through the navbar-right slot with proper spacing -->
-            <div class="flex items-center justify-end pe-6">
+            <!-- Pass through the navbar-right slot; sits flush in the corner
+                 (mirroring the logo on the left) with no extra end padding. -->
+            <div class="flex items-center justify-end">
               <slot
                 name="navbar-right"
                 :isSidebarCollapsed="isSidebarCollapsed"
