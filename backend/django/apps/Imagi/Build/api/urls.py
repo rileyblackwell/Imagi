@@ -12,7 +12,7 @@ from django.urls import include, path
 
 from .views import (
     # Builder workspace views
-    AIModelsView, CreateFileView, DeleteFileView,
+    CreateFileView, DeleteFileView,
     FileContentView,
     PreviewSessionView,
     ProjectPagesView,
@@ -52,9 +52,6 @@ builder_patterns = [
     path('<int:project_id>/files/create/', CreateFileView.as_view(), name='api-create-file'),
     path('<int:project_id>/files/<path:file_path>/content/', FileContentView.as_view(), name='api-file-content'),
     path('<int:project_id>/files/<path:file_path>/delete/', DeleteFileView.as_view(), name='api-delete-file'),
-
-    # Model selection endpoint
-    path('models/', AIModelsView.as_view(), name='api-ai-models'),
 
     # Version control endpoints
     path('<int:project_id>/versions/', VersionControlHistoryView.as_view(), name='api-version-history'),

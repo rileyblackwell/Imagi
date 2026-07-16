@@ -28,7 +28,7 @@ from ..services.base_agent import ImagiAgentService, DEFAULT_MODEL
 from ..services.create_file_service import CreateFileService
 from ..services.view_file_service import ViewFileService
 from ..services.delete_file_service import DeleteFileService
-from ..services.models_service import ModelsService, get_model_by_id
+from ..services.models_service import get_model_by_id
 from ..services.browser_preview_service import (
     BrowserNotRunning,
     BrowserPreviewError,
@@ -79,16 +79,6 @@ class ProjectDirectoriesView(APIView):
         except Exception:
             logger.exception("Error listing project files")
             raise
-
-@method_decorator(never_cache, name='dispatch')
-class AIModelsView(APIView):
-    """Get available AI models."""
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        models_service = ModelsService()
-        models = models_service.get_available_models()
-        return Response({'models': models})
 
 @method_decorator(never_cache, name='dispatch')
 class FileContentView(APIView):

@@ -2,8 +2,7 @@
 Tests for the Builder app.
 
 Covers the Builder models, the CreateFileService, and the current Builder DRF
-API (file creation/content, the models endpoint, auth gating and project
-ownership).
+API (file creation/content, auth gating and project ownership).
 
 Note: the previous server-rendered view/service tests (`builder:landing_page`,
 `process_builder_mode_input`, ...) were removed. Those exercised a legacy
@@ -122,16 +121,14 @@ class BuilderAPITests(APITestCase):
         )
         self.addCleanup(lambda: shutil.rmtree(self.project_root, ignore_errors=True))
 
-    def test_models_endpoint_requires_auth(self):
+    def test_builder_api_requires_auth(self):
         self.client.credentials()  # drop auth
-        resp = self.client.get(reverse('api-ai-models'))
+        resp = self.client.post(
+            reverse('api-create-file', args=[self.project.id]),
+            {'path': 'frontend/vuejs/src/apps/blog/views/Nope.vue', 'content': 'x'},
+            format='json',
+        )
         self.assertEqual(resp.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_models_endpoint_returns_models(self):
-        resp = self.client.get(reverse('api-ai-models'))
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertIn('models', resp.data)
-        self.assertGreater(len(resp.data['models']), 0)
 
     def test_create_file_writes_to_disk(self):
         relative_path = 'frontend/vuejs/src/apps/blog/views/About.vue'
