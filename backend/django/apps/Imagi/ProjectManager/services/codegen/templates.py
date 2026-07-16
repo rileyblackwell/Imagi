@@ -1195,127 +1195,17 @@ def django_pipfile() -> str:
 
 
 def django_project_views() -> str:
+    # The backend is API-only: all UI is served by the Vue frontend, so the
+    # root view returns JSON instead of rendering a Django template.
     return (
-        "from django.shortcuts import render\n"
-        "from django.http import HttpResponse, JsonResponse\n"
-        "from django.views.generic import TemplateView\n\n"
+        "from django.http import JsonResponse\n\n"
         "def home(request):\n"
-        "    \"\"\"Home page view.\"\"\"\n"
+        "    \"\"\"API root. The user interface is the Vue frontend, not Django.\"\"\"\n"
         "    return JsonResponse({\n"
         "        'message': 'Django backend is running!',\n"
-        "        'status': 'success'\n"
-        "    })\n\n"
-        "class HomeView(TemplateView):\n"
-        "    \"\"\"Class-based home page view.\"\"\"\n"
-        "    template_name = 'index.html'\n"
-    )
-
-
-def django_base_template(project_name: str) -> str:
-    return (
-        f"{{% load static %}}\n"
-        f"<!DOCTYPE html>\n"
-        f"<html lang=\"en\">\n"
-        f"<head>\n"
-        f"    <meta charset=\"UTF-8\">\n"
-        f"    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-        f"    <title>{{% block title %}}{project_name}{{% endblock %}}</title>\n"
-        f"    <link rel=\"stylesheet\" href=\"{{% static 'css/styles.css' %}}\">\n"
-        f"    {{% block extra_css %}}{{% endblock %}}\n"
-        f"</head>\n"
-        f"<body>\n"
-        f"    {{% block content %}}{{% endblock %}}\n\n"
-        f"    {{% block extra_js %}}{{% endblock %}}\n"
-        f"</body>\n"
-        f"</html>\n"
-    )
-
-
-def django_index_template(project_name: str, project_description: str | None) -> str:
-    safe_project_name = project_name.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-    safe_description = (project_description or '').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-    description_content = ''
-    if (project_description or '').strip():
-        description_content = f"    <p class=\"project-description\">{safe_description}</p>"
-    return (
-        "{% extends 'base.html' %}\n"
-        "{% load static %}\n\n"
-        "{% block title %}Welcome | "
-        + safe_project_name
-        + "{% endblock %}\n\n"
-        "{% block content %}\n"
-        "<div class=\"welcome-container\">\n"
-        "    <h1>Welcome to "
-        + safe_project_name
-        + "</h1>\n"
-        + description_content
-        + "\n    <p>This is your Django backend API. The frontend dev server runs separately (port 5174 by default).</p>\n"
-        "    <div class=\"cta-button\">\n"
-        "        <a href=\"/admin/\">Go to Admin</a>\n"
-        "        <a href=\"/api/\">Browse API</a>\n"
-        "    </div>\n"
-        "</div>\n"
-        "{% endblock %}\n"
-    )
-
-
-def django_static_css() -> str:
-    return (
-        "/* Django Backend Styles */\n"
-        ":root {\n"
-        "    --primary-color: #4f46e5;\n"
-        "    --secondary-color: #818cf8;\n"
-        "    --text-color: #1f2937;\n"
-        "    --bg-color: #ffffff;\n"
-        "}\n\n"
-        "body {\n"
-        "    font-family: system-ui, -apple-system, sans-serif;\n"
-        "    color: var(--text-color);\n"
-        "    background-color: var(--bg-color);\n"
-        "    line-height: 1.5;\n"
-        "    margin: 0;\n"
-        "    padding: 0;\n"
-        "}\n\n"
-        ".welcome-container {\n"
-        "    max-width: 800px;\n"
-        "    margin: 5rem auto;\n"
-        "    padding: 2rem;\n"
-        "    background-color: #f9fafb;\n"
-        "    border-radius: 0.5rem;\n"
-        "    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);\n"
-        "    text-align: center;\n"
-        "}\n\n"
-        "h1 {\n"
-        "    color: var(--primary-color);\n"
-        "    margin-bottom: 1rem;\n"
-        "}\n\n"
-        ".project-description {\n"
-        "    font-size: 1.125rem;\n"
-        "    color: #6b7280;\n"
-        "    margin: 1.5rem 0;\n"
-        "    font-style: italic;\n"
-        "    line-height: 1.6;\n"
-        "}\n\n"
-        ".cta-button {\n"
-        "    margin-top: 2rem;\n"
-        "    display: flex;\n"
-        "    gap: 1rem;\n"
-        "    justify-content: center;\n"
-        "    flex-wrap: wrap;\n"
-        "}\n\n"
-        ".cta-button a {\n"
-        "    display: inline-block;\n"
-        "    background-color: var(--primary-color);\n"
-        "    color: white;\n"
-        "    padding: 0.75rem 1.5rem;\n"
-        "    border-radius: 0.375rem;\n"
-        "    text-decoration: none;\n"
-        "    font-weight: 500;\n"
-        "    transition: background-color 0.2s;\n"
-        "}\n\n"
-        ".cta-button a:hover {\n"
-        "    background-color: var(--secondary-color);\n"
-        "}\n"
+        "        'status': 'success',\n"
+        "        'api': '/api/'\n"
+        "    })\n"
     )
 
 
@@ -1582,50 +1472,6 @@ def fullstack_readme(project_name: str, project_description: str | None) -> str:
 # Legacy/basic helpers
 # =============================
 
-def basic_model_py() -> str:
-    return """from django.db import models
-
-class Item(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-"""
-
-
-def basic_views_py() -> str:
-    return '''from django.shortcuts import render
-from django.http import JsonResponse
-from .models import Item
-
-def index(request):
-    # Render the index page
-    items = Item.objects.all()
-    return render(request, 'core/index.html', {'items': items})
-
-def item_list(request):
-    # Return a JSON list of items
-    items = Item.objects.all().values('id', 'name', 'description')
-    return JsonResponse({'items': list(items)})
-'''
-
-
-def basic_urls_py() -> str:
-    return """from django.urls import path
-from . import views
-
-app_name = 'core'
-
-urlpatterns = [
-    path('', views.index, name='index'),
-    path('api/items/', views.item_list, name='item-list'),
-]
-"""
-
-
 def basic_project_urls_py() -> str:
     return """from django.contrib import admin
 from django.urls import path, include
@@ -1637,17 +1483,11 @@ urlpatterns = [
 
 
 def basic_project_views_py() -> str:
-    return '''from django.shortcuts import render
-from django.http import HttpResponse
-from django.views.generic import TemplateView
+    return '''from django.http import JsonResponse
 
 def home(request):
-    # Home page view.
-    return render(request, 'index.html')
-
-class HomeView(TemplateView):
-    # Class-based home page view.
-    template_name = 'index.html'
+    # API root. The user interface is served by the Vue frontend.
+    return JsonResponse({'message': 'Django backend is running!', 'status': 'success'})
 '''
 
 

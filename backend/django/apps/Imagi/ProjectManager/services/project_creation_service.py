@@ -252,25 +252,12 @@ class ProjectCreationService:
             backend_path  # Destination directory - Django project files will be created here
         ], check=True)
         
-        # Create Django-specific directories ONLY within the backend directory
-        django_dirs = [
-            os.path.join(backend_path, 'static'),
-            os.path.join(backend_path, 'static', 'css'),
-            os.path.join(backend_path, 'static', 'js'),
-            os.path.join(backend_path, 'static', 'images'),
-            os.path.join(backend_path, 'templates'),
-            os.path.join(backend_path, 'media')
-        ]
-        
-        for dir_path in django_dirs:
-            os.makedirs(dir_path, exist_ok=True)
-            
-        # Create a .gitkeep file in empty directories to ensure they're tracked by git
-        for empty_dir in [os.path.join(backend_path, 'static', 'js'), 
-                         os.path.join(backend_path, 'static', 'images'),
-                         os.path.join(backend_path, 'media')]:
-            with open(os.path.join(empty_dir, '.gitkeep'), 'w') as f:
-                f.write('')
+        # The backend is API-only: no Django templates/ or static/ scaffolding —
+        # all UI lives in the Vue frontend. Keep media/ for file uploads.
+        media_dir = os.path.join(backend_path, 'media')
+        os.makedirs(media_dir, exist_ok=True)
+        with open(os.path.join(media_dir, '.gitkeep'), 'w') as f:
+            f.write('')
         
         # Create views.py in the project directory alongside settings.py
         project_dir = os.path.join(backend_path, unique_name)
@@ -292,12 +279,6 @@ class ProjectCreationService:
         # Create Pipfile for Django dependencies
         with open(os.path.join(backend_path, 'Pipfile'), 'w') as f:
             f.write(tpl.django_pipfile())
-        
-        # Create basic Django templates within the backend
-        self._create_django_templates(backend_path, project_name, project_description)
-        
-        # Create basic Django static files within the backend
-        self._create_django_static_files(backend_path)
         
         # Update Django settings.py
         self._update_django_settings(backend_path, unique_name)
@@ -332,26 +313,6 @@ class ProjectCreationService:
         # Create api/v1/url.py
         with open(os.path.join(v1_path, 'url.py'), 'w') as f:
             f.write(tpl.api_v1_url_py())
-    
-    def _create_django_templates(self, backend_path, project_name, project_description):
-        """Create Django templates within the backend directory"""
-        templates_path = os.path.join(backend_path, 'templates')
-        
-        # Create base template
-        with open(os.path.join(templates_path, 'base.html'), 'w') as f:
-            f.write(tpl.django_base_template(project_name))
-        
-        # Create index template
-        with open(os.path.join(templates_path, 'index.html'), 'w') as f:
-            f.write(tpl.django_index_template(project_name, project_description))
-    
-    def _create_django_static_files(self, backend_path):
-        """Create Django static files within the backend directory"""
-        static_css_path = os.path.join(backend_path, 'static', 'css')
-        
-        # Create basic CSS file
-        with open(os.path.join(static_css_path, 'styles.css'), 'w') as f:
-            f.write(tpl.django_static_css())
     
     def _create_root_project_files(self, project_path, project_name, project_description):
         """Create root-level project files"""
@@ -442,16 +403,10 @@ class ProjectCreationService:
             )
             settings_content = settings_content.replace(current_middleware, updated_middleware)
         
-        # Update TEMPLATES to point to backend templates directory
-        templates_pattern = r"'DIRS': \[\],"
-        templates_replacement = "'DIRS': [BASE_DIR / 'templates'],"
-        settings_content = re.sub(templates_pattern, templates_replacement, settings_content)
-        
-        # Update STATIC_URL and add STATICFILES_DIRS to point to backend static directory
-        static_url_pattern = r"STATIC_URL = 'static/'"
-        static_replacement = "STATIC_URL = 'static/'\nSTATICFILES_DIRS = [\n    BASE_DIR / 'static',\n]"
-        settings_content = re.sub(static_url_pattern, static_replacement, settings_content)
-        
+        # No TEMPLATES DIRS or STATICFILES_DIRS overrides: the backend serves
+        # JSON only (all UI is the Vue frontend), so Django's defaults —
+        # which cover the admin — are enough.
+
         # Add CORS and REST Framework settings. Django's default settings.py
         # layout changes between versions (the anchor comment below is gone in
         # Django 6), so fall back to appending at the end of the file.
@@ -493,17 +448,19 @@ class ProjectCreationService:
             flags=re.MULTILINE,
         )
 
-        if 'from django.views.generic import TemplateView' not in urls_content:
+        # Root URL returns JSON from the sibling views.py (API-only backend;
+        # the UI is the Vue frontend served by Vite).
+        if 'from . import views' not in urls_content:
             urls_content = urls_content.replace(
                 'from django.contrib import admin',
-                'from django.contrib import admin\nfrom django.views.generic import TemplateView'
+                'from django.contrib import admin\nfrom . import views'
             )
 
-        # Add home page and API URLs
+        # Add JSON root and API URLs
         if "path('api/'" not in urls_content:
             urls_content = urls_content.replace(
                 'urlpatterns = [',
-                'urlpatterns = [\n    path(\'\', TemplateView.as_view(template_name=\'index.html\'), name=\'home\'),\n    path(\'api/\', include(\'api.urls\')),'
+                'urlpatterns = [\n    path(\'\', views.home, name=\'home\'),\n    path(\'api/\', include(\'api.urls\')),'
             )
         
         with open(urls_path, 'w') as f:
@@ -642,17 +599,9 @@ class ProjectCreationService:
                     logger.warning(f"No Django project directory found in backend structure")
                     return False
                 
-                # Verify essential Django backend directories exist ONLY in backend path
-                required_backend_dirs = [
-                    os.path.join(backend_django_path, 'static'),
-                    os.path.join(backend_django_path, 'templates')
-                ]
-                
-                for dir_path in required_backend_dirs:
-                    if not os.path.exists(dir_path):
-                        logger.info(f"Creating missing Django backend directory: {dir_path}")
-                        os.makedirs(dir_path, exist_ok=True)
-                
+                # API-only backend: no templates/ or static/ directories are
+                # required — all UI lives in the Vue frontend.
+
                 # Clean up any Django directories that may exist in root
                 self._cleanup_root_django_dirs(project_path)
                 
