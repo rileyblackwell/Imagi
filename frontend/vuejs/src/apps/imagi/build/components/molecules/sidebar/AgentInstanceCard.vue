@@ -3,9 +3,9 @@
     :class="[
       'group relative rounded-lg border px-2.5 py-2 cursor-pointer transition-all duration-200',
       isActive
-        ? 'border-blue-300 dark:border-blue-400/50 bg-blue-50/80 dark:bg-blue-400/[0.08] shadow-sm'
-        : 'border-blue-100 dark:border-white/[0.06] bg-blue-50/40 hover:bg-blue-50 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]',
-      isArchived ? 'opacity-75' : ''
+        ? 'instance-card--active border-blue-300/80 dark:border-blue-400/40'
+        : 'border-blue-100 dark:border-white/[0.06] bg-blue-50/40 hover:bg-blue-50 hover:border-blue-200/90 dark:bg-white/[0.02] dark:hover:bg-white/[0.05] dark:hover:border-white/[0.1]',
+      isArchived ? 'opacity-70 hover:opacity-100' : ''
     ]"
     @click="emit('select')"
   >
@@ -25,7 +25,12 @@
         />
         <div
           v-else
-          class="text-xs font-semibold text-blue-950 dark:text-white/90 truncate"
+          :class="[
+            'text-xs truncate transition-colors duration-200',
+            isActive
+              ? 'font-semibold text-blue-950 dark:text-white'
+              : 'font-medium text-blue-950/80 dark:text-white/75 group-hover:text-blue-950 dark:group-hover:text-white/90'
+          ]"
         >
           {{ instance.title || 'Untitled instance' }}
         </div>
@@ -42,7 +47,7 @@
       <div ref="menuRef" class="relative shrink-0" @click.stop>
         <button
           :class="[
-            'w-6 h-6 flex items-center justify-center rounded transition-opacity hover:bg-blue-100 dark:hover:bg-white/[0.08] text-blue-950/50 dark:text-white/60',
+            'w-6 h-6 flex items-center justify-center rounded-md transition-opacity hover:bg-blue-100 dark:hover:bg-white/[0.08] text-blue-950/50 dark:text-white/60 hover:text-blue-950/80 dark:hover:text-white/90',
             menuOpen ? 'opacity-100 bg-blue-100 dark:bg-white/[0.08]' : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
           ]"
           title="Options"
@@ -52,7 +57,7 @@
         </button>
         <div
           v-if="menuOpen"
-          class="absolute right-0 top-full mt-1 z-50 min-w-[130px] rounded-md border border-blue-100 dark:border-white/[0.08] bg-white dark:bg-[#161616] shadow-lg py-1"
+          class="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg border border-blue-100 dark:border-white/[0.1] bg-white/95 dark:bg-[#161616]/95 backdrop-blur-sm shadow-xl shadow-blue-950/10 dark:shadow-black/40 py-1"
         >
           <button class="menu-item" @click.stop="onRename">
             <i class="fas fa-pen menu-item-icon"></i>
@@ -175,6 +180,22 @@ function relativeTime(iso: string): string {
 </script>
 
 <style scoped>
+/* Selected card - soft baby-blue wash matching the site's primary accent */
+.instance-card--active {
+  background: linear-gradient(155deg, rgba(219, 238, 255, 0.9) 0%, rgba(183, 221, 247, 0.45) 100%);
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.08),
+    0 3px 8px -3px rgba(30, 58, 138, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dark .instance-card--active {
+  background: linear-gradient(155deg, rgba(96, 165, 250, 0.14) 0%, rgba(96, 165, 250, 0.05) 100%);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
 .menu-item {
   display: flex;
   align-items: center;
