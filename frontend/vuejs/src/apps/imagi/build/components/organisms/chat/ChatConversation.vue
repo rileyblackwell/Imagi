@@ -8,64 +8,57 @@
       </div>
       
       <template v-if="processedMessages.length > 0">
-        <div class="space-y-6 max-w-3xl mx-auto">
+        <div class="max-w-3xl mx-auto">
           <template v-for="(message, index) in processedMessages" :key="`msg-${message.id || index}`">
-            <!-- User Message -->
-            <div v-if="message.role === 'user'" 
-              class="message-block message-user"
-              :class="{ 'animate-message-in': message.isNew }" 
+            <!-- User Message: a single compact bubble that opens the turn -->
+            <div v-if="message.role === 'user'"
+              class="msg-row user-row flex justify-end"
+              :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <div class="message-label text-blue-950/50 dark:text-blue-100/50">You</div>
-              <div class="message-content text-blue-950 dark:text-white">
+              <div class="user-bubble">
                 <p class="whitespace-pre-wrap break-words text-sm leading-relaxed">{{ message.content }}</p>
               </div>
             </div>
-            
-            <!-- Assistant Message -->
-            <div v-else-if="message.role === 'assistant'" 
-              class="message-block message-assistant"
-              :class="{ 'animate-message-in': message.isNew }" 
+
+            <!-- Assistant Message: the agent's work flows plainly below the bubble -->
+            <div v-else-if="message.role === 'assistant'"
+              class="msg-row assistant-response"
+              :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
-              <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
-              <div class="message-content">
-                <div 
-                  class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm"
-                  v-if="message.content && message.content.trim().length > 0"
-                  v-html="formatMessage(message.content)"
-                />
-              </div>
+              <div
+                class="prose prose-gray dark:prose-invert max-w-none prose-p:my-2 prose-headings:mb-3 prose-headings:mt-4 leading-relaxed text-sm"
+                v-if="message.content && message.content.trim().length > 0"
+                v-html="formatMessage(message.content)"
+              />
             </div>
-            
+
             <!-- System Message -->
-            <div v-else-if="message.role === 'system'" 
-              class="flex justify-center my-4" 
-              :class="{ 'animate-fade-in': message.isNew }" 
+            <div v-else-if="message.role === 'system'"
+              class="msg-row flex justify-center"
+              :class="{ 'animate-fade-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
             </div>
-            
+
             <!-- Other message types -->
-            <div v-else 
-              class="flex justify-center my-4" 
-              :class="{ 'animate-message-in': message.isNew }" 
+            <div v-else
+              class="msg-row flex justify-center"
+              :class="{ 'animate-message-in': message.isNew }"
               :style="message.isNew ? { 'animation-delay': `${index * 0.05}s` } : {}">
               <span class="text-xs text-blue-950/40 dark:text-blue-100/40 px-3 py-1">{{ message.content }}</span>
             </div>
           </template>
-          
+
           <!-- Agent activity indicator. Hidden while the reply itself is
                streaming in — the growing message already shows progress. -->
-          <div v-if="showActivityIndicator" class="message-block message-assistant animate-fade-in">
-            <div class="message-label text-blue-700/70 dark:text-blue-300/70">Imagi</div>
-            <div class="message-content">
-              <div class="flex items-center gap-3">
-                <div class="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <span class="text-sm text-blue-950/50 dark:text-blue-100/50">{{ props.statusText || 'Working…' }}</span>
+          <div v-if="showActivityIndicator" class="msg-row assistant-response animate-fade-in">
+            <div class="flex items-center gap-2.5">
+              <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
+              <span class="text-sm text-blue-950/50 dark:text-blue-100/50">{{ props.statusText || 'Working…' }}</span>
             </div>
           </div>
         </div>
@@ -247,49 +240,43 @@ const copyToClipboard = (code: string) => {
 </script>
 
 <style scoped>
-/* Clean message block styling */
-.message-block {
-  padding: 1.25rem 1.5rem;
-  margin-left: -1rem;
-  margin-right: -1rem;
-  border-bottom: none;
+/* Vertical rhythm: messages within a turn sit close together, and each new
+   user bubble opens a turn with extra breathing room above it. */
+.msg-row + .msg-row {
+  margin-top: 1rem;
 }
 
-.message-block:last-child {
-  border-bottom: none;
+.msg-row + .user-row {
+  margin-top: 2rem;
 }
 
-/* Alternating backgrounds for user and assistant messages */
-.message-user {
-  background-color: #ffffff;
+/* The user's prompt is the one element that gets a bubble */
+.user-bubble {
+  max-width: 85%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 1rem;
+  border-bottom-right-radius: 0.375rem;
+  background-color: theme('colors.blue.50');
+  border: 1px solid rgba(191, 219, 254, 0.6);
+  color: theme('colors.blue.950');
+  /* Long unbroken strings (paths, URLs) wrap instead of widening the chat
+     and dragging in a horizontal scrollbar. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
-.dark .message-user {
-  background-color: #0a0a0a;
+.dark .user-bubble {
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
 }
 
-.message-assistant {
-  background-color: #f2f7ff;
-}
-
-.dark .message-assistant {
-  background-color: #101722;
-}
-
-.message-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  margin-bottom: 0.5rem;
-}
-
-.message-content {
+/* The agent's work flows directly on the panel background — no box, no label */
+.assistant-response {
   font-size: 0.875rem;
   line-height: 1.6;
-  /* Long unbroken strings (paths, URLs) wrap instead of widening the chat
-     and dragging in a horizontal scrollbar. Code blocks keep their own
-     overflow-x so they scroll within their box, not the page. */
+  /* Code blocks keep their own overflow-x so they scroll within their box,
+     not the page. */
   overflow-wrap: anywhere;
   min-width: 0;
 }
@@ -306,8 +293,8 @@ const copyToClipboard = (code: string) => {
 }
 
 .prose pre {
-  background: theme('colors.blue.50');
-  border: 1px solid rgba(191, 219, 254, 0.7);
+  background: theme('colors.slate.50');
+  border: 1px solid rgba(203, 213, 225, 0.6);
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 1rem 0;
