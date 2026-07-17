@@ -11,8 +11,8 @@ const assistant = (content: string): AIMessage => ({
 })
 
 const indicatorText = (wrapper: ReturnType<typeof mount>) => {
-  const indicator = wrapper.find('.typing-indicator')
-  return indicator.exists() ? indicator.element.parentElement?.textContent?.trim() : null
+  const indicator = wrapper.find('.agent-status')
+  return indicator.exists() ? indicator.element.textContent?.trim() : null
 }
 
 describe('ChatConversation activity indicator', () => {
