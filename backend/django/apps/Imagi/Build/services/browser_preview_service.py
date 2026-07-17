@@ -50,6 +50,12 @@ DEFAULT_VIEWPORT = (1280, 800)
 MIN_VIEWPORT, MAX_VIEWPORT = 320, 3840
 MAX_EVENTS_PER_REQUEST = 64
 
+# JPEG quality for streamed frames. Frames produced while the user is
+# scrolling or dragging trade a little fidelity for encode speed and payload
+# size — the next idle poll re-delivers a crisp frame of the settled page.
+FRAME_JPEG_QUALITY = 70
+MOTION_JPEG_QUALITY = 55
+
 # How long to wait for the Vite dev server to answer HTTP before pointing
 # Chromium at it. Vite itself is up in a couple of seconds; the generous
 # ceiling covers first-run dependency optimization.
@@ -221,13 +227,22 @@ class BrowserPreviewService:
 
         state = self._require_state(touch=True)
         width, height = state.get('viewport', DEFAULT_VIEWPORT)
+        # Scroll/drag batches arrive back-to-back while the user's gesture is
+        # in progress, so their frames prioritize latency over fidelity.
+        motion = any(
+            isinstance(e, dict) and (e.get('kind') == 'wheel' or e.get('type') == 'mouseMoved')
+            for e in events
+        )
         with self._page_connection(state) as (conn, _target):
             self._apply_viewport(conn, state)
             for event in events:
                 method, params = self._translate_event(event, width, height)
                 conn.call(method, params)
             payload = self._status_payload(conn, state)
-            self._attach_frame(conn, payload, etag)
+            self._attach_frame(
+                conn, payload, etag,
+                quality=MOTION_JPEG_QUALITY if motion else FRAME_JPEG_QUALITY,
+            )
         return payload
 
     def navigate(self, action, path=None):
@@ -320,6 +335,10 @@ class BrowserPreviewService:
             'pid': process.pid,
             'viewport': [width, height],
             'device_scale_factor': dsf,
+            # What the launch flags established; while the live viewport still
+            # matches, per-request emulation overrides are unnecessary.
+            'launch_viewport': [width, height],
+            'launch_device_scale_factor': dsf,
             'last_active': time.time(),
         }
 
@@ -422,18 +441,39 @@ class BrowserPreviewService:
         return _Ctx()
 
     def _apply_viewport(self, conn, state):
-        # Emulation overrides can be tied to a DevTools session, and our
-        # connections are per-request — re-applying is cheap and idempotent.
         width, height = state.get('viewport', DEFAULT_VIEWPORT)
+        dsf = float(state.get('device_scale_factor', 1))
+        # Chromium's launch flags already establish the launch-time viewport,
+        # so the emulation override is only needed once the pane has been
+        # resized away from it. Emulation overrides can be tied to a DevTools
+        # session and our connections are per-request, hence re-applying on
+        # every request — but each override forces a relayout, which makes
+        # frame streaming stutter, so skip it whenever launch flags suffice.
+        if (state.get('launch_viewport') == [int(width), int(height)]
+                and float(state.get('launch_device_scale_factor') or 0) == dsf):
+            return
         conn.call('Emulation.setDeviceMetricsOverride', {
             'width': int(width),
             'height': int(height),
-            'deviceScaleFactor': float(state.get('device_scale_factor', 1)),
+            'deviceScaleFactor': dsf,
             'mobile': False,
         })
 
-    def _attach_frame(self, conn, payload, etag):
-        shot = conn.call('Page.captureScreenshot', {'format': 'jpeg', 'quality': 70})
+    # Whether this Chromium accepts captureScreenshot's optimizeForSpeed
+    # param (Chrome 104+); flipped off on the first rejection.
+    _fast_screenshots = True
+
+    def _capture_screenshot(self, conn, quality):
+        params = {'format': 'jpeg', 'quality': int(quality)}
+        if BrowserPreviewService._fast_screenshots:
+            try:
+                return conn.call('Page.captureScreenshot', {**params, 'optimizeForSpeed': True})
+            except CdpError:
+                BrowserPreviewService._fast_screenshots = False
+        return conn.call('Page.captureScreenshot', params)
+
+    def _attach_frame(self, conn, payload, etag, quality=FRAME_JPEG_QUALITY):
+        shot = self._capture_screenshot(conn, quality)
         data = shot.get('data', '')
         digest = hashlib.sha1(base64.b64decode(data)).hexdigest() if data else ''
         payload['etag'] = digest

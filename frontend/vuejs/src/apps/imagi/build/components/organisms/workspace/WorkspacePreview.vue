@@ -127,6 +127,7 @@
         :src="frameSrc"
         alt=""
         draggable="false"
+        decoding="async"
         class="w-full h-full select-none pointer-events-none"
         style="object-fit: fill;"
       />
@@ -236,9 +237,28 @@ function paneSize(): { width: number; height: number } {
   }
 }
 
+// Frames are decoded off-screen before being shown, so the JPEG decode never
+// blocks the paint that displays it (decoding on the visible <img> stutters
+// scrolling). The sequence numbers keep a slow decode from replacing a newer
+// frame with an older one.
+let frameSeq = 0
+let shownFrameSeq = 0
+
+function showFrame(src: string) {
+  const seq = ++frameSeq
+  const img = new Image()
+  img.src = src
+  const show = () => {
+    if (disposed || seq <= shownFrameSeq) return
+    shownFrameSeq = seq
+    frameSrc.value = src
+  }
+  img.decode().then(show, show)
+}
+
 function applyFrame(f: PreviewFrame) {
   if (f.frame) {
-    frameSrc.value = `data:image/jpeg;base64,${f.frame}`
+    showFrame(`data:image/jpeg;base64,${f.frame}`)
   }
   if (f.etag) etag.value = f.etag
   if (typeof f.path === 'string') currentPath.value = f.path
@@ -284,13 +304,18 @@ function schedulePoll(delay?: number) {
   if (pollTimer) window.clearTimeout(pollTimer)
   if (disposed) return
   const active = Date.now() - lastActivityAt < 4000
-  pollTimer = window.setTimeout(pollFrame, delay ?? (active ? 350 : 1500))
+  pollTimer = window.setTimeout(pollFrame, delay ?? (active ? 120 : 1500))
 }
 
 async function pollFrame() {
   if (disposed || phase.value !== 'ready') return
-  if (document.hidden || inputInFlight) {
+  if (document.hidden) {
     schedulePoll(1000)
+    return
+  }
+  if (inputInFlight) {
+    // Input responses carry frames themselves; just check back in shortly.
+    schedulePoll(300)
     return
   }
   try {
@@ -342,7 +367,10 @@ function enqueue(event: PreviewInputEvent, immediate = false) {
     inputQueue.push(event)
   }
   if (inputQueue.length > 64) inputQueue = inputQueue.slice(-64)
-  scheduleFlush(immediate ? 0 : 24)
+  // Wheel events flush immediately: anything arriving while a batch is in
+  // flight coalesces into the next one anyway, so pre-batching them only adds
+  // latency between the gesture and the frame that shows it.
+  scheduleFlush(immediate || event.kind === 'wheel' ? 0 : 24)
 }
 
 function scheduleFlush(delay: number) {
@@ -369,7 +397,7 @@ async function flushInput() {
     inputInFlight = false
   }
   if (inputQueue.length > 0) scheduleFlush(0)
-  schedulePoll(250)
+  schedulePoll() // activity-based: quick while the user is interacting
 }
 
 const BUTTON_NAMES: Array<'left' | 'middle' | 'right'> = ['left', 'middle', 'right']
@@ -763,6 +791,7 @@ watch(
   () => props.projectId,
   (next, prev) => {
     if (next && next !== prev) {
+      shownFrameSeq = ++frameSeq // drop any frame still decoding for the old project
       frameSrc.value = null
       etag.value = undefined
       phase.value = 'idle'
