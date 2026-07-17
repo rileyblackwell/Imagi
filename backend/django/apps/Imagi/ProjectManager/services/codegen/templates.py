@@ -45,6 +45,11 @@ def vite_config() -> str:
         "const BASE_PATH = process.env.VITE_BASE_PATH || '/';\n\n\n"
         "export default defineConfig({\n"
         "  base: BASE_PATH,\n"
+        "  // Keep Vite's dep-optimization cache inside the project rather than\n"
+        "  // under node_modules/.vite. Generated projects share one installed\n"
+        "  // node_modules (symlinked to a common store), so a node_modules-local\n"
+        "  // cache would let concurrent dev servers clobber each other.\n"
+        "  cacheDir: path.resolve(__dirname, '.vite-cache'),\n"
         "  plugins: [\n"
         "    vue(),\n"
         "    // Handle missing pattern SVG references\n"
@@ -1020,90 +1025,33 @@ def _sanitize_project_name(name: str) -> str:
     return sanitized
 
 
+# Canonical package.json for every generated frontend. Kept as a static asset
+# (rather than inline here) so it is a single source of truth shared by the
+# runtime scaffolder and the build-time dependency prewarm: the Docker image
+# installs this exact dependency set once into the shared store, and every
+# generated project then links against it instead of running its own install.
+_FRONTEND_PACKAGE_JSON_PATH = os.path.join(
+    os.path.dirname(__file__), 'assets', 'frontend_package.json'
+)
+
+
+def frontend_package_json(project_name: str) -> dict:
+    """Return the canonical generated-frontend package.json for ``project_name``.
+
+    Loads the shared asset and stamps in the per-project ``name``; every other
+    field (the dependency set in particular) is identical across projects,
+    which is what lets them share one installed ``node_modules``.
+    """
+    with open(_FRONTEND_PACKAGE_JSON_PATH, 'r') as f:
+        package_json = json.load(f)
+    package_json['name'] = f"{_sanitize_project_name(project_name).lower()}-frontend"
+    return package_json
+
+
 def create_vuejs_frontend_files(frontend_path: str, project_name: str, project_description: str | None) -> None:
     """Create VueJS frontend with Vite, Pinia, TailwindCSS, and Axios (vanilla JS)."""
     # package.json aligned with main Imagi frontend so all required packages are installed
-    package_json = {
-        "name": f"{_sanitize_project_name(project_name).lower()}-frontend",
-        "version": "1.0.0",
-        "private": True,
-        "type": "module",
-        "scripts": {
-            "dev": "vite --host",
-            "dev:debug": "vite --host --debug",
-            "build": "vue-tsc --noEmit && vite build",
-            "preview": "vite preview",
-            "start": "vite preview --host --port $PORT",
-            "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx --fix --ignore-path .gitignore",
-            "clean": "rm -rf node_modules dist .vite",
-            "type-check": "vue-tsc --noEmit",
-            "audit:fix": "npm audit fix",
-            "audit:fix-force": "npm audit fix --force"
-        },
-        "dependencies": {
-            "@fortawesome/fontawesome-svg-core": "^6.5.1",
-            "@fortawesome/free-brands-svg-icons": "^6.5.1",
-            "@fortawesome/free-solid-svg-icons": "^6.5.1",
-            "@fortawesome/vue-fontawesome": "^3.0.5",
-            "@headlessui/vue": "^1.7.23",
-            "@heroicons/vue": "^2.2.0",
-            "@stripe/stripe-js": "^3.0.3",
-            "@vee-validate/i18n": "^4.15.0",
-            "@vee-validate/rules": "^4.15.0",
-            "axios": "^1.6.7",
-            "chart.js": "^4.4.0",
-            "gsap": "^3.12.5",
-            "isomorphic-dompurify": "^2.22.0",
-            "lodash-es": "^4.17.21",
-            "marked": "^15.0.7",
-            "pinia": "^3.0.4",
-            "tailwindcss": "^3.4.1",
-            "uuid": "^11.1.0",
-            "vee-validate": "^4.15.0",
-            "vue": "^3.5.29",
-            "vue-chartjs": "^5.3.0",
-            "vue-router": "^5.0.3"
-        },
-        "devDependencies": {
-            "@eslint/config-array": "^0.19.2",
-            "@eslint/object-schema": "^2.1.6",
-            "@tailwindcss/typography": "^0.5.10",
-            "@types/dompurify": "^3.0.5",
-            "@types/lodash-es": "^4.17.12",
-            "@types/marked": "^5.0.2",
-            "@types/node": "^24.10.13",
-            "@types/uuid": "^10.0.0",
-            "@typescript-eslint/eslint-plugin": "^6.21.0",
-            "@typescript-eslint/parser": "^6.21.0",
-            "@vitejs/plugin-vue": "^6.0.4",
-            "@vue/eslint-config-prettier": "^9.0.0",
-            "@vue/eslint-config-typescript": "^12.0.0",
-            "@vue/tsconfig": "^0.5.1",
-            "autoprefixer": "^10.4.17",
-            "eslint": "^8.57.1",
-            "eslint-config-standard": "^17.1.0",
-            "eslint-import-resolver-typescript": "^3.8.5",
-            "eslint-plugin-import": "^2.31.0",
-            "eslint-plugin-prettier": "^5.1.3",
-            "eslint-plugin-unused-imports": "^4.1.4",
-            "eslint-plugin-vue": "^9.21.1",
-            "glob": "^10.3.10",
-            "lru-cache": "^10.2.0",
-            "postcss": "^8.4.33",
-            "prettier": "^3.2.4",
-            "rimraf": "^5.0.5",
-            "typescript": "~5.9.3",
-            "vite": "^7.3.1",
-            "vue-tsc": "^3.2.5"
-        },
-        "overrides": {
-            "inflight": "^2.0.0",
-            "glob": "^10.3.10",
-            "rimraf": "^5.0.5",
-            "@humanwhocodes/config-array": "@eslint/config-array@^0.19.2",
-            "@humanwhocodes/object-schema": "@eslint/object-schema@^2.1.6"
-        }
-    }
+    package_json = frontend_package_json(project_name)
 
     with open(os.path.join(frontend_path, 'package.json'), 'w') as f:
         f.write(json.dumps(package_json, indent=2))
@@ -1461,6 +1409,7 @@ def fullstack_gitignore() -> str:
         "ENV/\n\n"
         "# Node.js\n"
         "node_modules/\n"
+        ".vite-cache/\n"
         "npm-debug.log*\n"
         "yarn-debug.log*\n"
         "yarn-error.log*\n\n"
