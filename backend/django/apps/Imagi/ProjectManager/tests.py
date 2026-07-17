@@ -508,7 +508,7 @@ class ScaffoldWiringTests(TestCase):
         apps_py = self._read(self.backend_root, 'apps', 'auth', 'apps.py')
         self.assertIn("label = 'user_auth'", apps_py)
         self.assertTrue(os.path.isfile(
-            os.path.join(self.backend_root, 'apps', 'auth', 'migrations', '0001_initial.py')
+            os.path.join(self.backend_root, 'apps', 'auth', 'migrations', '__init__.py')
         ))
 
     def test_home_page_links_to_auth(self):

@@ -38,8 +38,8 @@ class DefaultAppsTests(TestCase):
 
     def test_prebuilt_auth_backend_is_registrable_and_migratable(self):
         """The auth app must declare a non-conflicting label (its default,
-        'auth', collides with django.contrib.auth) and ship migrations so
-        `manage.py migrate` creates the Profile table in generated projects."""
+        'auth', collides with django.contrib.auth) and ship a migrations
+        package so `manage.py makemigrations` works if models are added."""
         from apps.Imagi.Build.services.codegen.prebuilt_apps import (
             generate_prebuilt_app_files,
         )
@@ -48,11 +48,10 @@ class DefaultAppsTests(TestCase):
 
         self.assertIn("label = 'user_auth'", files['backend/django/apps/auth/apps.py'])
         self.assertIn('backend/django/apps/auth/migrations/__init__.py', files)
-        self.assertIn("name='Profile'", files['backend/django/apps/auth/migrations/0001_initial.py'])
 
     def test_prebuilt_auth_api_covers_the_frontend_contract(self):
         """Every endpoint the generated frontend calls must exist: the auth
-        app's own service hits csrf/signin/register/logout/health, and the
+        app's own service hits csrf/signin/register/logout/user, and the
         scaffold's shared auth store bootstraps via init/."""
         from apps.Imagi.Build.services.codegen.prebuilt_apps import (
             generate_prebuilt_app_files,
@@ -61,8 +60,35 @@ class DefaultAppsTests(TestCase):
         files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
         urls = files['backend/django/apps/auth/api/urls.py']
 
-        for route in ('csrf/', 'signin/', 'register/', 'logout/', 'init/', 'user/', 'health/'):
+        for route in ('csrf/', 'signin/', 'register/', 'logout/', 'init/', 'user/'):
             self.assertIn(f"path('{route}'", urls)
+
+    def test_prebuilt_auth_mirrors_imagi_auth_module(self):
+        """The generated auth code must stay a verbatim copy of Imagi's own
+        auth module: same hardened signin/register views (generic invalid
+        credential message, Django password validators) and a frontend that
+        rides the shared api client instead of a bespoke axios instance."""
+        from apps.Imagi.Build.services.codegen.prebuilt_apps import (
+            generate_prebuilt_app_files,
+        )
+
+        files = {f['name']: f['content'] for f in generate_prebuilt_app_files('auth')}
+
+        views = files['backend/django/apps/auth/api/views.py']
+        # Generic message: no username-enumeration via distinct errors.
+        self.assertIn('Invalid username or password.', views)
+        self.assertNotIn('No account found with this username', views)
+
+        serializers = files['backend/django/apps/auth/api/serializers.py']
+        # Full Django password validation, not just a length check.
+        self.assertIn('validate_password', serializers)
+
+        service = files['frontend/vuejs/src/apps/auth/services/api.ts']
+        self.assertIn("import api from '@/shared/services/api'", service)
+        self.assertNotIn('axios.create', service)
+
+        store = files['frontend/vuejs/src/apps/auth/stores/index.ts']
+        self.assertIn("from '@/shared/stores/auth'", store)
 
     def test_prebuilt_home_page_links_to_sign_in(self):
         from apps.Imagi.Build.services.codegen.prebuilt_apps import (

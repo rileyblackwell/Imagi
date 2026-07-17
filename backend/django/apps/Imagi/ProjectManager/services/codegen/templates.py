@@ -202,9 +202,6 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
-    'DEFAULT_PARSER_CLASSES': [
-        'rest_framework.parsers.JSONParser',
-    ],
 }
 """
     )
@@ -837,6 +834,101 @@ export const useAuthStore = defineStore('global-auth', () => {
     return authCheckPromise
   }
 
+  // Method to check auth status without side effects
+  const checkAuth = async (): Promise<boolean> => {
+    // Use cached value if available and recent
+    const now = Date.now()
+    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
+      return isAuthenticated.value
+    }
+
+    // If there's a pending auth check, return that promise
+    if (pendingAuthCheck.value) {
+      return pendingAuthCheck.value
+    }
+
+    if (!token.value) return false
+
+    // Create a new auth check promise
+    const authCheckPromise = (async () => {
+      try {
+        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
+        const response = await api.get('/v1/auth/init/')
+        const authStatus = !!response.data.isAuthenticated
+
+        // Update the last check time
+        lastInitTime.value = now
+        return authStatus
+      } catch {
+        return false
+      } finally {
+        // Clear the pending auth check
+        setTimeout(() => {
+          pendingAuthCheck.value = null
+        }, 0)
+      }
+    })()
+
+    // Store the promise for reuse during concurrent calls
+    pendingAuthCheck.value = authCheckPromise
+    return authCheckPromise
+  }
+
+  const validateAuth = async () => {
+    // Use cached value if available and recent
+    const now = Date.now()
+    if (initialized.value && (now - lastInitTime.value) < AUTH_CACHE_DURATION) {
+      return isAuthenticated.value
+    }
+
+    // If there's a pending auth check, return that promise
+    if (pendingAuthCheck.value) {
+      return pendingAuthCheck.value
+    }
+
+    // Create a new auth check promise
+    const authCheckPromise = (async () => {
+      try {
+        loading.value = true
+
+        if (!token.value) {
+          return false
+        }
+
+        axios.defaults.headers.common['Authorization'] = `Token ${token.value}`
+        const response = await api.get('/v1/auth/init/')
+
+        if (response.data.isAuthenticated) {
+          // Update user data from server
+          user.value = response.data.user
+          isAuthenticated.value = true
+
+          // Update stored user data
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+          lastInitTime.value = now
+          return true
+        } else {
+          // Do not clear auth on validation errors; preserve state and let callers decide.
+          return false
+        }
+      } catch (error) {
+        console.error('Auth validation error:', error)
+        // Do not clear auth on validation errors; preserve state and let callers decide.
+        return false
+      } finally {
+        loading.value = false
+        // Clear the pending auth check
+        setTimeout(() => {
+          pendingAuthCheck.value = null
+        }, 0)
+      }
+    })()
+
+    // Store the promise for reuse during concurrent calls
+    pendingAuthCheck.value = authCheckPromise
+    return authCheckPromise
+  }
+
   const clearAuth = async () => {
     user.value = null
     token.value = null
@@ -849,6 +941,20 @@ export const useAuthStore = defineStore('global-auth', () => {
     return await clearAuth()
   }
 
+  const refreshToken = async () => {
+    try {
+      const response = await api.post('/v1/auth/refresh-token/')
+      if (response.data.token) {
+        setAuthState(response.data.user, response.data.token)
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+      return false
+    }
+  }
+
   return {
     // State
     token,
@@ -857,17 +963,20 @@ export const useAuthStore = defineStore('global-auth', () => {
     sessionTimeout,
     initialized,
     loading,
-    
+
     // Getters
     currentUser,
     userBalance,
-    
+
     // Actions
     setAuthState,
     restoreAuthState,
     initAuth,
+    checkAuth,
+    validateAuth,
     clearAuth,
-    logout
+    logout,
+    refreshToken
   }
 })
 """
