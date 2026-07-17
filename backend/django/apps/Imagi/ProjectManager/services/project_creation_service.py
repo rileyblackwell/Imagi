@@ -243,14 +243,26 @@ class ProjectCreationService:
     def _create_django_backend(self, backend_path, unique_name, project_name, project_description):
         """Create Django backend with DRF"""
         logger.info(f"Creating Django backend at: {backend_path}")
-        
-        # Use Python module runner to invoke Django's startproject and create the basic project structure
-        # This creates the Django project inside the backend_path directory
-        subprocess.run([
-            sys.executable, '-m', 'django', 'startproject',
-            unique_name,  # Project name
-            backend_path  # Destination directory - Django project files will be created here
-        ], check=True)
+
+        # Scaffold the Django project in-process. Django is already imported in
+        # this worker, so calling startproject via call_command skips the cold
+        # start of a second Python interpreter (importing Django from scratch)
+        # that `python -m django startproject` would pay on every create — the
+        # single biggest chunk of project-creation latency. Fall back to the
+        # subprocess form only if the in-process call fails for some reason.
+        try:
+            from django.core.management import call_command
+            call_command('startproject', unique_name, backend_path)
+        except Exception as e:
+            logger.warning(
+                "In-process startproject failed (%s); falling back to subprocess",
+                e,
+            )
+            subprocess.run([
+                sys.executable, '-m', 'django', 'startproject',
+                unique_name,  # Project name
+                backend_path  # Destination directory - Django project files will be created here
+            ], check=True)
         
         # The backend is API-only: no Django templates/ or static/ scaffolding —
         # all UI lives in the Vue frontend. Keep media/ for file uploads.
