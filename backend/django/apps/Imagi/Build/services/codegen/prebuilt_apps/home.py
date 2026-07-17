@@ -67,7 +67,7 @@ HOME_VIEW_VUE = """<template>
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '../../auth/stores/auth'
+import { useAuthStore } from '../../auth/stores/index'
 
 const authStore = useAuthStore()
 </script>
