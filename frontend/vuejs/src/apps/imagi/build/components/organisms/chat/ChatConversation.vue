@@ -4,7 +4,13 @@
     <div ref="messagesContainer" class="flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
       <!-- Empty state -->
       <div v-if="!processedMessages.length" class="h-full flex flex-col items-center justify-center px-6 py-4 text-center min-h-0">
-        <!-- Empty state with no content -->
+        <div class="empty-icon flex items-center justify-center w-12 h-12 rounded-2xl mb-4">
+          <i class="fas fa-wand-magic-sparkles text-base"></i>
+        </div>
+        <h3 class="text-sm font-semibold text-blue-950/80 dark:text-white/85 mb-1.5">What should we build?</h3>
+        <p class="text-xs text-blue-950/45 dark:text-white/40 max-w-[230px] leading-relaxed">
+          Describe a page, feature, or change and the agent will build it into your project.
+        </p>
       </div>
       
       <template v-if="processedMessages.length > 0">
@@ -52,13 +58,9 @@
           <!-- Agent activity indicator. Hidden while the reply itself is
                streaming in — the growing message already shows progress. -->
           <div v-if="showActivityIndicator" class="msg-row assistant-response animate-fade-in">
-            <div class="flex items-center gap-2.5">
-              <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-              <span class="text-sm text-blue-950/50 dark:text-blue-100/50">{{ props.statusText || 'Working…' }}</span>
+            <div class="agent-status flex items-center gap-2.5">
+              <span class="status-orb"></span>
+              <span class="status-shimmer text-sm font-medium">{{ props.statusText || 'Working…' }}</span>
             </div>
           </div>
         </div>
@@ -416,47 +418,100 @@ const copyToClipboard = (code: string) => {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Typing indicator */
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.typing-indicator span {
-  height: 5px;
-  width: 5px;
-  background: theme('colors.blue.400');
-  display: block;
+/* Agent activity indicator: a softly breathing orb next to status text with
+   a light shimmer sweeping across it. */
+.status-orb {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  animation: typing 1.4s infinite ease-in-out both;
+  background: radial-gradient(circle at 30% 30%, #93c5fd, #3b82f6);
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
+  animation: orb-breathe 2s ease-in-out infinite;
 }
 
-.dark .typing-indicator span {
-  background: theme('colors.blue.300');
+.dark .status-orb {
+  background: radial-gradient(circle at 30% 30%, #bfdbfe, #60a5fa);
+  box-shadow: 0 0 0 0 rgba(147, 197, 253, 0.3);
 }
 
-.typing-indicator span:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes typing {
-  0%, 80%, 100% {
-    transform: scale(0.8);
-    opacity: 0.5;
+@keyframes orb-breathe {
+  0%, 100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.35);
   }
-  40% {
-    transform: scale(1.2);
-    opacity: 1;
+  50% {
+    transform: scale(1);
+    box-shadow: 0 0 0 5px rgba(59, 130, 246, 0);
   }
+}
+
+.status-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgba(23, 37, 84, 0.4) 20%,
+    rgba(59, 130, 246, 0.95) 50%,
+    rgba(23, 37, 84, 0.4) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-sweep 2.2s linear infinite;
+}
+
+.dark .status-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.35) 20%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.35) 80%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-orb,
+  .status-shimmer {
+    animation: none;
+  }
+
+  .status-shimmer {
+    background-clip: unset;
+    -webkit-background-clip: unset;
+    background-image: none;
+    color: rgba(23, 37, 84, 0.55);
+  }
+
+  .dark .status-shimmer {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Empty state icon: soft baby-blue tile matching the site's primary button */
+.empty-icon {
+  color: theme('colors.blue.900');
+  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+  box-shadow:
+    0 1px 2px rgba(30, 58, 138, 0.12),
+    0 6px 14px -4px rgba(30, 58, 138, 0.18),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.dark .empty-icon {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 6px 14px -4px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 /* Prose styling for dark mode */

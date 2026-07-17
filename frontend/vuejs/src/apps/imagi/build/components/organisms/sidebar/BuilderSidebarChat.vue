@@ -48,7 +48,7 @@
     <div class="shrink-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div class="px-2 pt-1 pb-3">
         <!-- Input shell: textarea on top, controls toolbar below -->
-        <div class="chat-input-shell rounded-xl bg-blue-50/50 dark:bg-white/[0.03] border border-blue-200/70 dark:border-white/[0.08]">
+        <div class="chat-input-shell rounded-2xl bg-blue-50/40 dark:bg-white/[0.03] border border-blue-100 dark:border-white/[0.08] shadow-sm">
           <textarea
             ref="promptTextarea"
             v-model="prompt"
@@ -308,16 +308,17 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* Enhanced dropdown select */
+/* Ghost dropdown select: quiet until hovered, so the input shell stays the
+   focal point */
 .dropdown-select {
   background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(107,114,128,0.8)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
   background-repeat: no-repeat;
   background-position: right 0.55rem center;
   background-size: 0.85em;
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(191, 219, 254, 0.9);
-  color: rgb(23, 37, 84);
-  font-weight: 600;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: rgba(23, 37, 84, 0.75);
+  font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0.3rem 1.5rem 0.3rem 0.6rem;
   border-radius: 0.5rem;
@@ -326,10 +327,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: all 0.18s ease;
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
   outline: none;
 }
 
@@ -339,47 +337,26 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 
 .dark .dropdown-select {
   background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(255,255,255,0.6)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
-  background-color: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .dropdown-select:hover {
-  background-color: rgba(239, 246, 255, 1);
-  border-color: rgba(147, 197, 253, 0.95);
+  background-color: rgba(219, 234, 254, 0.5);
   color: rgb(23, 37, 84);
-  box-shadow:
-    0 2px 6px rgba(30, 58, 138, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .dark .dropdown-select:hover {
   background-color: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.dropdown-select:focus,
 .dropdown-select:focus-visible {
-  border-color: rgba(59, 130, 246, 0.55);
-  box-shadow:
-    0 0 0 3px rgba(59, 130, 246, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
   outline: none;
 }
 
-.dark .dropdown-select:focus,
 .dark .dropdown-select:focus-visible {
-  border-color: rgba(147, 197, 253, 0.5);
-  box-shadow:
-    0 0 0 3px rgba(147, 197, 253, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.35);
 }
 
 
