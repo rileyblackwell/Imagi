@@ -2,16 +2,17 @@
   <div class="form-group">
     <label class="relative block group">
       <span class="sr-only">{{ label }}</span>
-      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10 pointer-events-none">
         <i :class="[icon, 'text-blue-950/40 dark:text-blue-100/40 transition-colors duration-200']"></i>
       </span>
       <input
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
-        @blur="onBlur"
-        @change="onChange"
+        @blur="$emit('blur', $event)"
+        @change="$emit('change', $event)"
         :name="name"
         :type="inputType"
+        :autocomplete="autocomplete"
         :disabled="disabled"
         :placeholder="placeholder"
         class="w-full py-4 pl-12 pr-4 rounded-xl
@@ -67,6 +68,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  autocomplete: {
+    type: String,
+    default: 'off'
+  },
   showError: {
     type: Boolean,
     default: true
@@ -74,19 +79,10 @@ const props = defineProps({
   hasError: {
     type: Boolean,
     default: false
-  },
-  // Vee-validate field props
-  onBlur: {
-    type: Function,
-    default: () => {}
-  },
-  onChange: {
-    type: Function,
-    default: () => {}
   }
 })
 
-defineEmits(['update:modelValue'])
+defineEmits(['update:modelValue', 'blur', 'change'])
 
 const inputType = computed(() => {
   return props.type

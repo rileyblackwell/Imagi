@@ -2,17 +2,18 @@
   <div>
     <label v-if="label" :for="id" class="sr-only">{{ label }}</label>
     <div class="relative group">
-      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10">
+      <span class="absolute inset-y-0 left-0 flex items-center pl-4 z-10 pointer-events-none">
         <i class="fas fa-lock text-blue-950/40 dark:text-blue-100/40 transition-colors duration-200"></i>
       </span>
       <input
         :id="id"
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
-        @blur="onBlur"
-        @change="onChange"
+        @blur="$emit('blur', $event)"
+        @change="$emit('change', $event)"
         :type="inputType"
         :name="name"
+        :autocomplete="autocomplete"
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
@@ -67,6 +68,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  autocomplete: {
+    type: String,
+    default: 'current-password'
+  },
   required: {
     type: Boolean,
     default: false
@@ -86,19 +91,10 @@ const props = defineProps({
   name: {
     type: String,
     default: 'password'
-  },
-  // Vee-validate field props
-  onBlur: {
-    type: Function,
-    default: () => {}
-  },
-  onChange: {
-    type: Function,
-    default: () => {}
   }
 })
 
-defineEmits(['update:modelValue'])
+defineEmits(['update:modelValue', 'blur', 'change'])
 </script>
 
 <style scoped>
