@@ -26,6 +26,8 @@ Design
 import logging
 import os
 
+from django.db import transaction
+
 from apps.Imagi.Build.models import ProjectFile
 
 logger = logging.getLogger(__name__)
@@ -185,21 +187,26 @@ def import_project_from_disk(project, prune: bool = True) -> dict:
 
     seen = set()
     synced = 0
-    for root, dirs, filenames in os.walk(project_root):
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not d.startswith('.'))
-        for filename in sorted(filenames):
-            abs_path = os.path.join(root, filename)
-            rel_path = _normalize_rel_path(os.path.relpath(abs_path, project_root))
-            if not is_syncable_path(rel_path):
-                continue
-            if record_file(project, rel_path) is not None:
-                seen.add(rel_path)
-                synced += 1
+    # Batch every per-file upsert into a single transaction. Without this each
+    # record_file() auto-commits on its own — one fsync per file — which makes
+    # importing a freshly scaffolded project (hundreds of files) needlessly
+    # slow, especially on SQLite. One commit at the end instead of hundreds.
+    with transaction.atomic():
+        for root, dirs, filenames in os.walk(project_root):
+            dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not d.startswith('.'))
+            for filename in sorted(filenames):
+                abs_path = os.path.join(root, filename)
+                rel_path = _normalize_rel_path(os.path.relpath(abs_path, project_root))
+                if not is_syncable_path(rel_path):
+                    continue
+                if record_file(project, rel_path) is not None:
+                    seen.add(rel_path)
+                    synced += 1
 
-    pruned = 0
-    if prune:
-        stale = ProjectFile.objects.filter(project=project).exclude(path__in=seen)
-        pruned, _ = stale.delete()
+        pruned = 0
+        if prune:
+            stale = ProjectFile.objects.filter(project=project).exclude(path__in=seen)
+            pruned, _ = stale.delete()
 
     logger.info(f"Imported project {project.id} from disk: {synced} files synced, {pruned} stale rows pruned")
     return {'synced': synced, 'pruned': pruned}

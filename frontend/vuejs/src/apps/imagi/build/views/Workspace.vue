@@ -109,6 +109,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAgentStore } from '../stores/agentStore'
 import { useBuilderMode } from '../composables/useBuilderMode'
 import { useProjectStore } from '../stores/projectStore'
+import { ProjectService } from '../services/projectService'
 import { AgentService } from '../services/agentService'
 import { FileService } from '../services/fileService'
 import { BuilderCreationService } from '../services/builderCreationService'
@@ -771,7 +772,31 @@ onMounted(async () => {
       // Handle localStorage errors silently and continue
       console.warn('Error checking deleted projects list:', e)
     }
-    
+
+    // Gate: the workspace must not open while the initial AI build is still
+    // running, or the user would land in a half-built project. Check the
+    // authoritative status and, if it's still generating, bounce back to the
+    // project hub where the "Building your app" state is shown. This is the
+    // backstop for direct URLs / refreshes; the hub's Build card also blocks
+    // navigation while building.
+    try {
+      const status = await ProjectService.getProjectStatus(projectId.value)
+      if (status.generation_status === 'generating') {
+        const { showNotification } = useNotification()
+        showNotification({
+          type: 'info',
+          message: `Imagi is still building "${foundProject.name}". We'll open the workspace as soon as it's ready.`,
+          duration: 4000
+        })
+        router.replace({ name: 'project-hub', params: { projectName: projectNameSlug } })
+        return
+      }
+    } catch (e) {
+      // If the status check fails, don't block entry — fall through and load
+      // the workspace as normal rather than trapping the user.
+      console.warn('Could not verify initial build status; opening workspace anyway:', e)
+    }
+
     // Critical request - project must be loaded first and only once
     try {
       const project = await executeOnce('fetchProject', () => {
