@@ -30,6 +30,20 @@ RUN pip install --no-cache-dir gunicorn "uvicorn[standard]" psycopg2-binary
 
 COPY backend/django/ .
 
+# Prewarm the shared frontend dependency store. Every generated user project
+# ships the same frontend package.json, so we install that dependency set once
+# here and bake the resulting node_modules into the image. Generated projects
+# then symlink their node_modules at this store instead of each running their
+# own npm install — instant project creation/preview, and the install persists
+# across redeploys instead of being repeated on every rebuild. Docker layer
+# caching skips this step entirely when the dependency set is unchanged.
+#
+# DJANGO_SECRET_KEY is a throwaway value only needed so settings import during
+# the build; it never reaches the running image. FRONTEND_DEP_STORE_ROOT is
+# also set as a runtime ENV below so the store is found at the same path.
+ENV FRONTEND_DEP_STORE_ROOT=/opt/imagi/frontend-deps
+RUN DJANGO_SECRET_KEY=build-time-only python manage.py warm_frontend_deps
+
 EXPOSE 8000
 
 # Shell form so $PORT expands at runtime (Railway assigns it dynamically).

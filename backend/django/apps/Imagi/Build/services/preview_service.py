@@ -377,6 +377,18 @@ class PreviewService:
         if os.path.isdir(node_modules) and not installing:
             return None
 
+        # Fast path: link this frontend at the shared dependency store instead
+        # of installing its own copy. A no-op when already linked; falls
+        # through to a per-project install if the store can't be built.
+        if not installing:
+            try:
+                from .frontend_dependencies import link_frontend_dependencies
+                if link_frontend_dependencies(frontend_path):
+                    logger.info(f"Linked shared frontend dependencies for {frontend_path}")
+                    return None
+            except Exception as e:
+                logger.warning(f"Shared dependency link failed for {frontend_path}, falling back to npm install: {e}")
+
         logger.info(f"node_modules missing or being installed - ensuring npm install in {frontend_path}")
         try:
             with npm_install_lock(frontend_path):

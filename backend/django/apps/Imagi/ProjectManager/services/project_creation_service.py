@@ -199,11 +199,25 @@ class ProjectCreationService:
     
     
     def _install_vuejs_dependencies(self, frontend_path):
-        """Install npm dependencies for VueJS frontend in background"""
-        # Start npm install in background thread to not block project creation
+        """Provision npm dependencies for a generated VueJS frontend in background.
+
+        Prefers linking the frontend's ``node_modules`` at the shared,
+        content-addressed dependency store (instant once warm, no duplication,
+        survives production rebuilds when the store is baked into the image).
+        Falls back to a per-project ``npm install`` only when the store cannot
+        be built (npm missing, install failure).
+        """
+        # Start dependency provisioning in a background thread so it does not
+        # block project creation.
         def install_dependencies_background():
             try:
-                logger.info(f"Background: Installing npm dependencies in: {frontend_path}")
+                # Fast path: link to the shared dependency store.
+                from apps.Imagi.Build.services.frontend_dependencies import link_frontend_dependencies
+                if link_frontend_dependencies(frontend_path):
+                    logger.info(f"Background: linked shared frontend dependencies for {frontend_path}")
+                    return
+
+                logger.info(f"Background: shared store unavailable, installing npm dependencies in: {frontend_path}")
 
                 # Serialize with any preview start that also finds
                 # node_modules missing — concurrent npm installs corrupt
@@ -216,7 +230,7 @@ class ProjectCreationService:
 
                 logger.info(f"Background: npm install completed successfully in {frontend_path}")
                 logger.debug(f"Background: npm install output: {result.stdout}")
-                
+
             except subprocess.CalledProcessError as e:
                 logger.error(f"Background: Failed to install npm dependencies in {frontend_path}")
                 logger.error(f"Background: Error output: {e.stderr}")

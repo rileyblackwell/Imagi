@@ -273,6 +273,25 @@ _DEFAULT_PROJECTS_ROOT = (
 )
 PROJECTS_ROOT = os.environ.get('PROJECTS_ROOT', _DEFAULT_PROJECTS_ROOT)
 
+# Shared, content-addressed store of installed frontend dependencies. Every
+# generated project ships the same package.json, so instead of installing a
+# private node_modules per project (slow, and re-run on every production
+# rebuild since PROJECTS_ROOT is ephemeral), each dependency set is installed
+# here once and projects symlink their node_modules at it.
+#  - Deliberately kept out of PROJECTS_ROOT so it can live on a path that
+#    persists across deploys. In production the Docker image prewarms it at
+#    build time (see the warm_frontend_deps management command), baking the
+#    install into the image so it survives every redeploy.
+#  - In development it sits beside the generated projects for easy inspection.
+_DEFAULT_FRONTEND_DEP_STORE_ROOT = (
+    str(BASE_DIR / 'apps' / 'Imagi' / 'Build' / 'imagi_frontend_deps')
+    if DEBUG
+    else '/opt/imagi/frontend-deps'
+)
+FRONTEND_DEP_STORE_ROOT = os.environ.get(
+    'FRONTEND_DEP_STORE_ROOT', _DEFAULT_FRONTEND_DEP_STORE_ROOT
+)
+
 # Build workspace browser preview. A headless Chromium runs on this host next
 # to each previewed project's dev servers; the workspace streams frames and
 # forwards input through the API, so the setup is identical in development
