@@ -235,11 +235,7 @@
                       <i class="fas fa-folder-open text-orange-600 dark:text-orange-300 text-lg"></i>
                     </div>
                     <h3 class="text-lg font-medium text-blue-950 dark:text-white mb-1 transition-colors duration-300">No projects yet</h3>
-                    <p class="text-blue-950/70 dark:text-blue-100/70 text-center mb-4 text-sm transition-colors duration-300">Create your first project to start building</p>
-                    <div class="flex items-center text-blue-950/50 dark:text-blue-100/50 text-sm">
-                      <i class="fas fa-arrow-left mr-2 animate-pulse"></i>
-                      <span>Use the form to get started</span>
-                    </div>
+                    <p class="text-blue-950/70 dark:text-blue-100/70 text-center text-sm transition-colors duration-300">Create your first project to start building</p>
                   </div>
 
                   <!-- Scrollable Project List -->
