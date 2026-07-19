@@ -5,11 +5,15 @@
         <component :is="Component" />
       </transition>
     </router-view>
+
+    <!-- Global toast notifications (create/delete feedback, auth prompts, etc.) -->
+    <NotificationToast />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useThemeStore } from '@/shared/stores/theme'
+import { NotificationToast } from '@/shared/components/atoms'
 
 const themeStore = useThemeStore()
 

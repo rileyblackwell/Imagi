@@ -112,6 +112,14 @@
 
                   <!-- Create Button -->
                   <div class="flex-shrink-0 pt-1">
+                    <!-- Why the button is disabled -->
+                    <p
+                      v-if="createHint && !isCreating"
+                      class="flex items-center gap-1.5 mb-2 text-xs text-amber-600 dark:text-amber-300 transition-colors duration-300"
+                    >
+                      <i class="fas fa-circle-info text-[11px]"></i>
+                      <span>{{ createHint }}</span>
+                    </p>
                     <button
                       @click="createProject"
                       :disabled="!canCreate || isCreating"
@@ -167,33 +175,6 @@
                     >
                   </div>
                 </div>
-
-                <!-- Inline Delete Success Notification -->
-                <Transition
-                  enter-active-class="transition-all duration-300 ease-out"
-                  enter-from-class="opacity-0 -translate-y-2"
-                  enter-to-class="opacity-100 translate-y-0"
-                  leave-active-class="transition-all duration-200 ease-in"
-                  leave-from-class="opacity-100 translate-y-0"
-                  leave-to-class="opacity-0 -translate-y-2"
-                >
-                  <div
-                    v-if="deletedProjectMessage"
-                    class="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-400/30 flex items-center gap-3 flex-shrink-0"
-                  >
-                    <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-400/30 flex items-center justify-center flex-shrink-0">
-                      <i class="fas fa-trash-alt text-red-600 dark:text-red-300 text-sm"></i>
-                    </div>
-                    <p class="flex-1 text-sm font-medium text-blue-950 dark:text-red-100">{{ deletedProjectMessage }}</p>
-                    <button
-                      @click="clearDeletedProjectMessage"
-                      class="w-6 h-6 rounded-lg flex items-center justify-center text-red-400 dark:text-red-300/70 hover:text-red-600 dark:hover:text-red-200 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all duration-200"
-                      aria-label="Dismiss"
-                    >
-                      <i class="fas fa-times text-xs"></i>
-                    </button>
-                  </div>
-                </Transition>
 
                 <!-- Content Section -->
                 <div class="flex-1 flex flex-col min-h-0">
@@ -297,31 +278,28 @@ const canCreate = computed(() =>
   Boolean(newProjectName.value.trim()) &&
   newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH
 )
+
+// Explain why the Create button is disabled so users aren't left guessing.
+// Empty while the form is valid (canCreate === true).
+const createHint = computed(() => {
+  if (!newProjectName.value.trim()) {
+    return 'Enter a business name to continue.'
+  }
+  const remaining = MIN_DESCRIPTION_LENGTH - newProjectDescription.value.trim().length
+  if (remaining > 0) {
+    return `Add ${remaining} more character${remaining === 1 ? '' : 's'} to the business description to continue.`
+  }
+  return ''
+})
 const isInitializing = ref(true)
-const deletedProjectMessage = ref('')
-let deleteMessageTimeout: ReturnType<typeof setTimeout> | null = null
 
-// Clear the inline delete success message
-const clearDeletedProjectMessage = () => {
-  deletedProjectMessage.value = ''
-  if (deleteMessageTimeout) {
-    clearTimeout(deleteMessageTimeout)
-    deleteMessageTimeout = null
-  }
-}
-
-// Show inline delete success message with auto-clear
+// Show a global toast confirming a project was deleted.
 const showDeleteSuccess = (projectName: string) => {
-  // Clear any existing timeout
-  if (deleteMessageTimeout) {
-    clearTimeout(deleteMessageTimeout)
-  }
-  deletedProjectMessage.value = `"${projectName}" deleted successfully`
-  // Auto-clear after 4 seconds
-  deleteMessageTimeout = setTimeout(() => {
-    deletedProjectMessage.value = ''
-    deleteMessageTimeout = null
-  }, 4000)
+  showNotification({
+    type: 'delete',
+    message: `"${projectName}" deleted successfully`,
+    duration: 4000
+  })
 }
 
 // Computed
@@ -648,12 +626,6 @@ onBeforeUnmount(() => {
   // Clear dashboard-specific notifications when leaving
   const notificationStore = useNotificationStore()
   notificationStore.clear()
-  
-  // Clear delete message timeout
-  if (deleteMessageTimeout) {
-    clearTimeout(deleteMessageTimeout)
-    deleteMessageTimeout = null
-  }
 })
 
 // Watch auth store authentication status
