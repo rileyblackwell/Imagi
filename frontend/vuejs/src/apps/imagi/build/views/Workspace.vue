@@ -750,28 +750,6 @@ onMounted(async () => {
     
     // Set the project ID from the found project
     projectId.value = String(foundProject.id);
-    
-    // IMPORTANT: Check if project is in deleted list BEFORE doing anything else
-    // This prevents any API calls or initialization for deleted projects
-    try {
-      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-      if (deletedProjects.includes(projectId.value)) {
-        // Show notification and redirect immediately
-        const { showNotification } = useNotification();
-        showNotification({
-          type: 'error',
-          message: `Project "${foundProject.name}" has been deleted.`,
-          duration: 3000
-        });
-        
-        // Immediate redirect without waiting
-        router.replace({ name: 'projects' });
-        return; // Exit early to prevent any further initialization
-      }
-    } catch (e) {
-      // Handle localStorage errors silently and continue
-      console.warn('Error checking deleted projects list:', e)
-    }
 
     // Gate: the workspace must not open while the initial AI build is still
     // running, or the user would land in a half-built project. Check the
@@ -843,25 +821,10 @@ onMounted(async () => {
       console.error('Error loading project:', projectError);
       
       // Handle specific cases for missing projects
-      if (projectError.message?.includes('Project not found') || 
+      if (projectError.message?.includes('Project not found') ||
           projectError.response?.status === 404) {
         console.log('Project not found - redirecting to dashboard');
-        
-        // Add project to deleted list if it resulted in 404
-        try {
-          const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-          if (!deletedProjects.includes(projectId.value)) {
-            deletedProjects.push(projectId.value)
-            localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects))
-            
-            const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
-            deletedProjectsTimestamp[projectId.value] = Date.now()
-            localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
-          }
-        } catch (e) {
-          console.warn('Failed to add project to deleted list:', e)
-        }
-        
+
         // Show a notification but redirect to dashboard to prevent further errors
         const { showNotification } = useNotification();
         showNotification({
@@ -927,28 +890,8 @@ watch(
       }
       
       const newProjectId = String(foundProject.id);
-      
-      // Check if the new project is in the deleted list
-      try {
-        const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-        if (deletedProjects.includes(newProjectId)) {
-          // Show notification and redirect immediately
-          const { showNotification } = useNotification();
-          showNotification({
-            type: 'error',
-            message: `Project "${foundProject.name}" has been deleted.`,
-            duration: 3000
-          });
-          
-          // Immediate redirect without waiting
-          router.replace({ name: 'projects' });
-          return;
-        }
-      } catch (e) {
-        console.warn('Error checking deleted projects list during route change:', e)
-      }
-      
-      // If not deleted, update the project ID and reload
+
+      // Update the project ID and reload
       projectId.value = newProjectId
       // Could add logic here to reload the project if needed
     }

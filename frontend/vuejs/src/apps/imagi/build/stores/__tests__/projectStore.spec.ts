@@ -122,7 +122,7 @@ describe('project store', () => {
       await expect(store.deleteProject('1')).rejects.toThrow('You must be logged in')
     })
 
-    it('optimistically removes the project and records the deletion', async () => {
+    it('optimistically removes the project, leaving the rest', async () => {
       projectService.deleteProject.mockResolvedValue(undefined)
       const store = useProjectStore()
       store.setAuthenticated(true)
@@ -135,9 +135,44 @@ describe('project store', () => {
 
       expect(store.getProjectById('2')).toBeUndefined()
       expect(store.projects.map((p) => p.name)).toEqual(['Keep'])
-      const deleted = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-      expect(deleted).toContain('2')
       expect(projectService.deleteProject).toHaveBeenCalledWith('2')
+    })
+
+    it('restores the project when the server rejects a real error', async () => {
+      const err: any = new Error('server exploded')
+      err.response = { status: 500 }
+      projectService.deleteProject.mockRejectedValue(err)
+      const store = useProjectStore()
+      store.setAuthenticated(true)
+      store.updateProjects([
+        { id: 1, name: 'Keep' },
+        { id: 2, name: 'Remove' },
+      ])
+
+      await expect(store.deleteProject('2')).rejects.toThrow('server exploded')
+
+      // The optimistic removal is rolled back so the list stays truthful.
+      expect(store.getProjectById('2')?.name).toBe('Remove')
+      expect(store.projects.map((p) => p.name)).toEqual(['Keep', 'Remove'])
+    })
+
+    it('does not raise the list loading flag while deleting', async () => {
+      // Deletion is optimistic, so it must not flip `loading` — otherwise the
+      // Project Library panel flashes (or hangs on) its full-page spinner.
+      const store = useProjectStore()
+      let loadingDuringServerCall = false
+      projectService.deleteProject.mockImplementation(async () => {
+        loadingDuringServerCall = store.loading
+      })
+      store.setAuthenticated(true)
+      store.updateProjects([{ id: 1, name: 'Only' }])
+
+      await store.deleteProject('1')
+
+      expect(loadingDuringServerCall).toBe(false)
+      expect(store.loading).toBe(false)
+      // The last project is gone, so the view renders its empty state.
+      expect(store.projects).toHaveLength(0)
     })
 
     it('treats a 404 from the server as success', async () => {

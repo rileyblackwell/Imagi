@@ -203,7 +203,12 @@
                   </div>
 
                   <!-- Empty State -->
-                  <div v-else-if="!projects.length" class="flex-1 flex flex-col items-center justify-center">
+                  <!--
+                    Keyed off displayedProjects (what's actually shown) rather than
+                    the raw store list, so deleting the last project immediately
+                    surfaces this "No projects yet" state instead of a blank panel.
+                  -->
+                  <div v-else-if="!displayedProjects.length" class="flex-1 flex flex-col items-center justify-center">
                     <div class="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-400/[0.14] ring-1 ring-orange-900/[0.08] dark:ring-orange-300/[0.18] flex items-center justify-center mb-4">
                       <i class="fas fa-folder-open text-orange-600 dark:text-orange-300 text-lg"></i>
                     </div>
@@ -212,7 +217,7 @@
                   </div>
 
                   <!-- Scrollable Project List -->
-                  <div v-else-if="displayedProjects.length > 0" class="flex-1 overflow-y-auto pr-2 pl-0.5 pt-1 pb-2 space-y-3 custom-scrollbar min-h-0">
+                  <div v-else class="flex-1 overflow-y-auto pr-2 pl-0.5 pt-1 pb-2 space-y-3 custom-scrollbar min-h-0">
                     <ProjectCard
                       v-for="(project, index) in displayedProjects"
                       :key="project.id"
@@ -298,37 +303,26 @@ const { searchQuery, filteredProjects } = useProjectSearch(normalizedProjects, {
 
 // Compute displayed projects
 const displayedProjects = computed<Project[]>(() => {
-  let deletedProjects: string[] = [];
-  try {
-    deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]');
-  } catch (e) {
-    // Handle localStorage errors silently
-  }
-  
   const hasSearchQuery = searchQuery.value?.trim().length > 0;
-  let baseProjects: Project[] = [];
-  
+
   if (hasSearchQuery) {
-    baseProjects = filteredProjects.value || [];
-  } else {
-    if (!normalizedProjects.value?.length) {
-      return [];
-    }
-    
-    baseProjects = [...normalizedProjects.value]
-      .sort((a, b) => {
-        if (!a.updated_at) return 1;
-        if (!b.updated_at) return -1;
-        
-        const dateA = new Date(a.updated_at).getTime()
-        const dateB = new Date(b.updated_at).getTime()
-        return dateB - dateA
-      })
+    return (filteredProjects.value || []).filter(project => project && project.id);
   }
-  
-  return baseProjects.filter(project => 
-    project && project.id && !deletedProjects.includes(String(project.id))
-  );
+
+  if (!normalizedProjects.value?.length) {
+    return [];
+  }
+
+  return [...normalizedProjects.value]
+    .filter(project => project && project.id)
+    .sort((a, b) => {
+      if (!a.updated_at) return 1;
+      if (!b.updated_at) return -1;
+
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    });
 });
 
 /**
@@ -464,99 +458,43 @@ const confirmDelete = async (project: Project) => {
   
   // Capture the project name before deletion to ensure we have it for the notification
   const projectName = project.name || `Project ${project.id}` || 'Unknown Project'
-  
+
   // Check if user is currently in the workspace for this project
-  const isCurrentlyInWorkspace = router.currentRoute.value.name === 'builder-workspace' && 
+  const isCurrentlyInWorkspace = router.currentRoute.value.name === 'builder-workspace' &&
                                  router.currentRoute.value.params.projectName === toSlug(project.name)
-  
+
   try {
-    // First clear the cache to ensure fresh data
-    projectStore.clearProjectsCache()
-    
-    // Mark project as deleted BEFORE making the API call to prevent race conditions
-    const deletedProjectId = String(project.id)
-    
-    // Add to deleted projects list immediately to prevent any fetching attempts
-    try {
-      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-      if (!deletedProjects.includes(deletedProjectId)) {
-        deletedProjects.push(deletedProjectId)
-        localStorage.setItem('deletedProjects', JSON.stringify(deletedProjects))
-        
-        // Also store timestamp for cleanup purposes
-        const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
-        deletedProjectsTimestamp[deletedProjectId] = Date.now()
-        localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
-      }
-    } catch (e) {
-      console.error('Failed to store deleted project ID in localStorage:', e)
-    }
-    
+    // The store owns the delete: it optimistically removes the project from the
+    // list, records the deletion tombstone, clears the cache, and treats a 404
+    // from the server as success. Because the list updates optimistically, the
+    // UI reflects the deletion the moment this resolves — the remaining projects
+    // (or the "No projects yet" empty state) render immediately without waiting
+    // on a forced refetch that could hang or race and leave the panel spinning.
     await projectStore.deleteProject(String(project.id))
-    
-    // If user was in the workspace for this project, navigate away from it
-    if (isCurrentlyInWorkspace) {
-      console.log('User was in workspace for deleted project, redirecting to dashboard')
-      await router.push({ name: 'projects' })
-    }
-    
-    // Immediately refresh the projects list to show updated state
-    try {
-      await fetchProjects(true) // Force refresh to get latest state from API
-    } catch (refreshError) {
-      console.warn('Failed to refresh projects after deletion:', refreshError)
-    }
-    
-    // Show inline deletion success message in the Project Library section
+
+    // Confirm the deletion right away, independent of any background refresh.
     showDeleteSuccess(projectName)
 
+    // If the user was in the workspace for this project, navigate away from it.
+    if (isCurrentlyInWorkspace) {
+      await router.push({ name: 'projects' })
+    }
   } catch (error: any) {
     console.error('Error deleting project:', error)
-    
-    // Check if the error is actually a success (project was deleted but API returned unexpected response)
-    if (error.response?.status === 404) {
-      // Project is gone, which means deletion was successful
-      // Clear cache and refresh
-      projectStore.clearProjectsCache()
-      
 
-      
-      // If user was in the workspace for this project, navigate away from it
-      if (isCurrentlyInWorkspace) {
-        console.log('Project was deleted (404), redirecting from workspace to dashboard')
-        await router.push({ name: 'projects' })
-      }
-      
-            // Still refresh the projects list to ensure clean state
-      try {
-        await fetchProjects(true)
-      } catch (refreshError) {
-        console.warn('Failed to refresh projects after deletion:', refreshError)
-      }
-      
-      // Show inline deletion success message in the Project Library section
-      showDeleteSuccess(projectName)
-    } else {
-      // Actual error occurred - remove the project from deleted list if it was added
-      try {
-        const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]')
-        const updatedDeletedProjects = deletedProjects.filter((id: string) => id !== String(project.id))
-        localStorage.setItem('deletedProjects', JSON.stringify(updatedDeletedProjects))
-        
-        // Also remove timestamp
-        const deletedProjectsTimestamp = JSON.parse(localStorage.getItem('deletedProjectsTimestamp') || '{}')
-        delete deletedProjectsTimestamp[String(project.id)]
-        localStorage.setItem('deletedProjectsTimestamp', JSON.stringify(deletedProjectsTimestamp))
-      } catch (e) {
-        console.warn('Failed to remove project from deleted list after error:', e)
-      }
-      
-              // Show actual error with captured project name
-        showNotification({
-          message: error?.message || `Failed to delete "${projectName}"`,
-          type: 'error',
-          duration: 5000
-        })
+    // A real failure (the store already treats 404 as success). The optimistic
+    // removal leaves the project missing from the list, so reconcile with the
+    // server to bring it back, then report the error.
+    showNotification({
+      message: error?.message || `Failed to delete "${projectName}"`,
+      type: 'error',
+      duration: 5000
+    })
+
+    try {
+      await fetchProjects(true)
+    } catch (refreshError) {
+      console.warn('Failed to refresh projects after failed deletion:', refreshError)
     }
   }
 }
