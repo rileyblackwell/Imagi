@@ -303,37 +303,26 @@ const { searchQuery, filteredProjects } = useProjectSearch(normalizedProjects, {
 
 // Compute displayed projects
 const displayedProjects = computed<Project[]>(() => {
-  let deletedProjects: string[] = [];
-  try {
-    deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]');
-  } catch (e) {
-    // Handle localStorage errors silently
-  }
-  
   const hasSearchQuery = searchQuery.value?.trim().length > 0;
-  let baseProjects: Project[] = [];
-  
+
   if (hasSearchQuery) {
-    baseProjects = filteredProjects.value || [];
-  } else {
-    if (!normalizedProjects.value?.length) {
-      return [];
-    }
-    
-    baseProjects = [...normalizedProjects.value]
-      .sort((a, b) => {
-        if (!a.updated_at) return 1;
-        if (!b.updated_at) return -1;
-        
-        const dateA = new Date(a.updated_at).getTime()
-        const dateB = new Date(b.updated_at).getTime()
-        return dateB - dateA
-      })
+    return (filteredProjects.value || []).filter(project => project && project.id);
   }
-  
-  return baseProjects.filter(project => 
-    project && project.id && !deletedProjects.includes(String(project.id))
-  );
+
+  if (!normalizedProjects.value?.length) {
+    return [];
+  }
+
+  return [...normalizedProjects.value]
+    .filter(project => project && project.id)
+    .sort((a, b) => {
+      if (!a.updated_at) return 1;
+      if (!b.updated_at) return -1;
+
+      const dateA = new Date(a.updated_at).getTime()
+      const dateB = new Date(b.updated_at).getTime()
+      return dateB - dateA
+    });
 });
 
 /**
