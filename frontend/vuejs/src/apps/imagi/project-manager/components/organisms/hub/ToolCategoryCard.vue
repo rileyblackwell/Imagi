@@ -70,16 +70,6 @@
 
     <!-- ==================== DEFAULT STATE ==================== -->
     <template v-else>
-      <!-- Failed build hint -->
-      <span
-        v-if="buildFailed"
-        class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-amber-300/70 dark:border-amber-300/30 bg-amber-50/90 dark:bg-amber-400/10 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-200"
-        title="The initial build didn't finish — open the workspace to continue building"
-      >
-        <i class="fas fa-triangle-exclamation text-[10px]"></i>
-        Ready to build
-      </span>
-
       <!-- Icon -->
       <div
         class="relative w-14 h-14 rounded-2xl flex items-center justify-center border mb-5 transition-transform duration-300 group-hover:scale-105"
@@ -137,9 +127,6 @@ const accent = computed(() => accentClasses[props.tool.accent])
 const isBuildLocked = computed(
   () => props.tool.id === 'build' && props.buildStatus === 'generating'
 )
-
-/** The initial build failed — the workspace is still usable, just not seeded. */
-const buildFailed = computed(() => props.tool.id === 'build' && props.buildStatus === 'failed')
 
 const target = computed<RouteLocationRaw>(() => {
   // "Build" points at the real workspace; everything else uses the generic
