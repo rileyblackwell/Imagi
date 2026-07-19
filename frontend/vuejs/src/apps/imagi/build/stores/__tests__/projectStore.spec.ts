@@ -140,6 +140,25 @@ describe('project store', () => {
       expect(projectService.deleteProject).toHaveBeenCalledWith('2')
     })
 
+    it('does not raise the list loading flag while deleting', async () => {
+      // Deletion is optimistic, so it must not flip `loading` — otherwise the
+      // Project Library panel flashes (or hangs on) its full-page spinner.
+      const store = useProjectStore()
+      let loadingDuringServerCall = false
+      projectService.deleteProject.mockImplementation(async () => {
+        loadingDuringServerCall = store.loading
+      })
+      store.setAuthenticated(true)
+      store.updateProjects([{ id: 1, name: 'Only' }])
+
+      await store.deleteProject('1')
+
+      expect(loadingDuringServerCall).toBe(false)
+      expect(store.loading).toBe(false)
+      // The last project is gone, so the view renders its empty state.
+      expect(store.projects).toHaveLength(0)
+    })
+
     it('treats a 404 from the server as success', async () => {
       const err: any = new Error('not found')
       err.response = { status: 404 }

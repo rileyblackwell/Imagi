@@ -523,9 +523,12 @@ export const useProjectStore = defineStore('builder', () => {
       throw new Error('Project ID is required')
     }
 
-    loading.value = true
+    // Note: deletion is optimistic (the project is removed from the list below
+    // before the server round-trip), so we deliberately do NOT toggle the shared
+    // `loading` flag here. Doing so would flash the whole Project Library panel
+    // into its "Loading your projects..." state during every delete.
     error.value = null
-    
+
     try {
       console.debug('Deleting project:', {
         projectId,
@@ -618,11 +621,9 @@ export const useProjectStore = defineStore('builder', () => {
       
       // We don't need to restore to projects array since we need to refresh from API anyway
       // The calling component will handle refreshing the project list
-      
+
       handleError(err, 'Failed to delete project')
       throw err
-    } finally {
-      loading.value = false
     }
   }
 
