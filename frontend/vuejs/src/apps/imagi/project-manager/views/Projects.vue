@@ -112,14 +112,6 @@
 
                   <!-- Create Button -->
                   <div class="flex-shrink-0 pt-1">
-                    <!-- Why the button is disabled -->
-                    <p
-                      v-if="createHint && !isCreating"
-                      class="flex items-center gap-1.5 mb-2 text-xs text-amber-600 dark:text-amber-300 transition-colors duration-300"
-                    >
-                      <i class="fas fa-circle-info text-[11px]"></i>
-                      <span>{{ createHint }}</span>
-                    </p>
                     <button
                       @click="createProject"
                       :disabled="!canCreate || isCreating"
@@ -278,19 +270,6 @@ const canCreate = computed(() =>
   Boolean(newProjectName.value.trim()) &&
   newProjectDescription.value.trim().length >= MIN_DESCRIPTION_LENGTH
 )
-
-// Explain why the Create button is disabled so users aren't left guessing.
-// Empty while the form is valid (canCreate === true).
-const createHint = computed(() => {
-  if (!newProjectName.value.trim()) {
-    return 'Enter a business name to continue.'
-  }
-  const remaining = MIN_DESCRIPTION_LENGTH - newProjectDescription.value.trim().length
-  if (remaining > 0) {
-    return `Add ${remaining} more character${remaining === 1 ? '' : 's'} to the business description to continue.`
-  }
-  return ''
-})
 const isInitializing = ref(true)
 
 // Show a global toast confirming a project was deleted.
