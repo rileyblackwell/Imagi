@@ -49,7 +49,6 @@
             :disabled="apps.length === 0"
             class="group w-full flex items-center gap-2 h-8 rounded-full border border-blue-200/60 dark:border-white/[0.08] bg-white/80 dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-white/[0.07] focus:border-blue-400 dark:focus:border-blue-300/40 focus:ring-2 focus:ring-blue-400/15 outline-none pl-3 pr-8 text-[13px] font-medium text-blue-950 dark:text-white/90 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <i class="fas fa-cube text-[10px] text-blue-950/40 dark:text-white/40 shrink-0"></i>
             <span class="truncate flex-1 text-left">{{ triggerLabel }}</span>
             <span class="truncate max-w-[10rem] text-[11px] text-blue-950/35 dark:text-white/35 font-normal hidden sm:block">{{ currentPath }}</span>
             <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-blue-950/40 dark:text-white/35 pointer-events-none transition-transform duration-200" :class="{ 'rotate-180': menuOpen }"></i>
@@ -72,7 +71,6 @@
                 class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-blue-950 dark:text-white/90 hover:bg-blue-50 dark:hover:bg-white/[0.05]"
               >
                 <span class="flex items-center gap-2 truncate">
-                  <i class="fas fa-cube text-xs text-blue-950/50 dark:text-white/50"></i>
                   {{ app.title }}
                 </span>
                 <i
@@ -97,7 +95,6 @@
                              ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
                              : 'text-blue-950/70 dark:text-white/80 hover:bg-blue-50 dark:hover:bg-white/[0.05]']"
                 >
-                  <i class="fas fa-file-alt text-xs text-blue-950/50 dark:text-white/50"></i>
                   <span class="truncate">{{ page.title }}</span>
                 </button>
               </div>
