@@ -3,7 +3,7 @@
     <div class="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
       
       <!-- Main footer content -->
-      <div class="py-16">
+      <div class="py-10">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 lg:gap-16">
           
           <!-- Product section -->
@@ -93,7 +93,7 @@
       </div>
 
       <!-- Bottom bar -->
-      <div class="py-6 border-t border-gray-200 dark:border-white/[0.12] transition-colors duration-300">
+      <div class="py-5 border-t border-gray-200 dark:border-white/[0.12] transition-colors duration-300">
         <div class="flex items-center justify-between">
           <p class="text-gray-500 dark:text-white/50 text-sm transition-colors duration-300">
             &copy; {{ currentYear }} Imagi. All rights reserved.
