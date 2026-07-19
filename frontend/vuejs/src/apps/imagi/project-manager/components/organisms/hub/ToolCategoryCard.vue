@@ -29,16 +29,6 @@
 
     <!-- ==================== BUILDING STATE ==================== -->
     <template v-if="isBuildLocked">
-      <span
-        class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-blue-300/70 dark:border-blue-300/30 bg-blue-50/90 dark:bg-blue-400/10 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-700 dark:text-blue-200"
-      >
-        <span class="relative flex w-2 h-2">
-          <span class="absolute inline-flex w-full h-full rounded-full bg-blue-500 dark:bg-blue-300 opacity-60 animate-ping"></span>
-          <span class="relative inline-flex w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-300"></span>
-        </span>
-        Building
-      </span>
-
       <!-- Animated build icon: concentric pulsing rings behind a spinner ring -->
       <div class="relative w-16 h-16 flex items-center justify-center mb-5">
         <span class="absolute inset-0 rounded-2xl bg-blue-400/15 dark:bg-blue-300/10 animate-ping" style="animation-duration: 1.8s;"></span>
