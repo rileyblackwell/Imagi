@@ -38,8 +38,8 @@
       <!-- Error message display -->
       <div class="space-y-5 pt-2">
         <transition name="fade-up">
-          <div v-if="serverError" 
-               class="p-4 rounded-xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
+          <div v-if="serverError"
+               class="p-4 rounded-xl border border-red-500/20 dark:border-red-400/25 bg-red-50 dark:bg-red-500/10 backdrop-blur-sm transition-colors duration-300">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 flex items-center justify-center flex-shrink-0 transition-colors duration-300">
                 <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-sm transition-colors duration-300"></i>
@@ -151,5 +151,17 @@ const onSubmit = async (values: LoginFormValues) => {
 .fade-up-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up-enter-active,
+  .fade-up-leave-active {
+    transition: none;
+  }
+
+  .fade-up-enter-from,
+  .fade-up-leave-to {
+    transform: none;
+  }
 }
 </style>

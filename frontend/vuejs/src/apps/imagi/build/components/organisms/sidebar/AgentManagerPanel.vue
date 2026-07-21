@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-100 dark:border-white/[0.08] transition-colors duration-300">
+  <div class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
     <!-- Confirm Modal (uses Teleport to body) -->
     <ConfirmModal
       :is-open="confirmModal.isModalOpen.value"
@@ -8,11 +8,11 @@
       @cancel="confirmModal.handleCancel"
     />
     <!-- Header -->
-    <div class="shrink-0 flex items-center gap-1 px-2 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+    <div class="shrink-0 flex items-center gap-1 px-2 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
       <!-- Collapse (desktop only; mobile uses the navbar view switcher) -->
       <div class="relative group max-md:hidden">
         <button
-          class="flex items-center justify-center w-7 h-7 rounded-md text-blue-950/60 dark:text-white/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors"
+          class="flex items-center justify-center w-7 h-7 rounded-md text-blue-950/60 dark:text-blue-100/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           @click="emit('collapse')"
         >
           <i class="fas fa-chevron-left text-xs"></i>
@@ -29,17 +29,17 @@
         <div class="agents-icon-chip flex items-center justify-center w-5 h-5 rounded-md shrink-0">
           <i class="fas fa-layer-group text-[9px] text-blue-950/80 dark:text-[#f3ede2]/90"></i>
         </div>
-        <span class="text-xs font-semibold text-blue-950/80 dark:text-white/80 truncate">Agents</span>
+        <span class="text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">Agents</span>
       </div>
 
       <!-- Search -->
       <div class="relative group">
         <button
           :class="[
-            'flex items-center justify-center w-7 h-7 rounded-md transition-colors',
+            'flex items-center justify-center w-7 h-7 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
             showSearch
               ? 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white'
-              : 'text-blue-950/60 dark:text-white/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white'
+              : 'text-blue-950/60 dark:text-blue-100/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white'
           ]"
           @click="toggleSearch"
         >
@@ -55,7 +55,7 @@
       <!-- New agent instance -->
       <div class="relative group">
         <button
-          class="btn-new flex items-center justify-center w-7 h-7 rounded-md text-[#fdf9f2] dark:text-blue-950 transition-all duration-200"
+          class="btn-new flex items-center justify-center w-7 h-7 rounded-md text-[#fdf9f2] dark:text-blue-950 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           @click="handleCreate"
         >
           <i class="fas fa-plus text-xs"></i>
@@ -69,20 +69,20 @@
     </div>
 
     <!-- Search input -->
-    <div v-if="showSearch" class="shrink-0 px-2 py-2 border-b border-blue-100 dark:border-white/[0.08]">
-      <div class="search-shell flex items-center gap-2 rounded-lg bg-blue-50/50 dark:bg-white/[0.03] border border-blue-200/70 dark:border-white/[0.08] px-2.5 py-1.5">
-        <i class="fas fa-search text-[11px] text-blue-950/40 dark:text-white/40 shrink-0"></i>
+    <div v-if="showSearch" class="shrink-0 px-2 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
+      <div class="search-shell flex items-center gap-2 rounded-lg bg-blue-50/50 dark:bg-white/[0.03] border border-blue-200/70 dark:border-white/[0.14] px-2.5 py-1.5">
+        <i class="fas fa-search text-[11px] text-blue-950/40 dark:text-blue-100/45 shrink-0"></i>
         <input
           ref="searchInput"
           v-model="searchQuery"
           type="text"
           placeholder="Search chats"
-          class="flex-1 min-w-0 bg-transparent text-xs text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-white/30 outline-none"
+          class="flex-1 min-w-0 bg-transparent text-xs text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-blue-100/40 outline-none"
           @keydown.escape="closeSearch"
         />
         <button
           v-if="searchQuery"
-          class="shrink-0 text-blue-950/40 hover:text-blue-950/70 dark:text-white/40 dark:hover:text-white/70 transition-colors"
+          class="shrink-0 text-blue-950/40 hover:text-blue-950/70 dark:text-blue-100/45 dark:hover:text-blue-100/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a] rounded"
           @click="searchQuery = ''"
         >
           <i class="fas fa-times text-[11px]"></i>
@@ -95,7 +95,7 @@
       <!-- Loading state -->
       <div
         v-if="store.instancesLoading && store.instances.length === 0"
-        class="flex items-center justify-center gap-2 px-2 py-8 text-xs text-blue-950/40 dark:text-white/40"
+        class="flex items-center justify-center gap-2 px-2 py-8 text-xs text-blue-950/40 dark:text-blue-100/45"
       >
         <i class="fas fa-circle-notch fa-spin text-[11px]"></i>
         <span>Loading agents…</span>
@@ -106,11 +106,11 @@
         v-else-if="showSearch && searchQuery.trim() && !hasResults"
         class="flex flex-col items-center px-4 py-8 text-center"
       >
-        <div class="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 dark:bg-white/[0.05] border border-blue-100 dark:border-white/[0.08] mb-2.5">
-          <i class="fas fa-search text-xs text-blue-400 dark:text-white/40"></i>
+        <div class="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 dark:bg-white/[0.05] border border-blue-950/[0.08] dark:border-white/[0.14] mb-2.5">
+          <i class="fas fa-search text-xs text-blue-400 dark:text-blue-300/60"></i>
         </div>
-        <div class="text-xs font-medium text-blue-950/60 dark:text-white/50">No matching chats</div>
-        <div class="text-[11px] text-blue-950/40 dark:text-white/30 mt-1 break-all">
+        <div class="text-xs font-medium text-blue-950/60 dark:text-blue-100/60">No matching chats</div>
+        <div class="text-[11px] text-blue-950/40 dark:text-blue-100/40 mt-1 break-all">
           Nothing matches "{{ searchQuery.trim() }}"
         </div>
       </div>
@@ -120,16 +120,16 @@
         v-else-if="!hasResults"
         class="flex flex-col items-center px-4 py-8 text-center"
       >
-        <div class="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 dark:bg-white/[0.05] border border-blue-100 dark:border-white/[0.08] mb-2.5">
-          <i class="fas fa-layer-group text-xs text-blue-400 dark:text-white/40"></i>
+        <div class="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 dark:bg-white/[0.05] border border-blue-950/[0.08] dark:border-white/[0.14] mb-2.5">
+          <i class="fas fa-layer-group text-xs text-blue-400 dark:text-blue-300/60"></i>
         </div>
-        <div class="text-xs font-medium text-blue-950/60 dark:text-white/50">No agents yet</div>
-        <div class="text-[11px] text-blue-950/40 dark:text-white/30 mt-1">Create one with the + button above</div>
+        <div class="text-xs font-medium text-blue-950/60 dark:text-blue-100/60">No agents yet</div>
+        <div class="text-[11px] text-blue-950/40 dark:text-blue-100/40 mt-1">Create one with the + button above</div>
       </div>
 
       <!-- Active instances -->
       <template v-if="activeInstances.length > 0">
-        <div class="text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-white/40 px-2 pt-1 pb-1.5">
+        <div class="text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-blue-100/45 px-2 pt-1 pb-1.5">
           Active
         </div>
         <InstanceCard
@@ -147,7 +147,7 @@
       <!-- Archived / past instances -->
       <template v-if="archivedInstances.length > 0">
         <button
-          class="w-full flex items-center justify-between rounded-md px-2 py-2 mt-3 text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-white/40 hover:text-blue-950/70 dark:hover:text-white/70 hover:bg-blue-50/60 dark:hover:bg-white/[0.04] transition-colors"
+          class="w-full flex items-center justify-between rounded-md px-2 py-2 mt-3 text-[10px] font-semibold uppercase tracking-wider text-blue-950/40 dark:text-blue-100/45 hover:text-blue-950/70 dark:hover:text-blue-100/80 hover:bg-blue-50/60 dark:hover:bg-white/[0.04] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           @click="showArchived = !showArchived"
         >
           <span>Past ({{ archivedInstances.length }})</span>

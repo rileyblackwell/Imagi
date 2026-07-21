@@ -1,34 +1,39 @@
 <template>
   <PaymentLayout>
-    <div class="pricing-view min-h-screen bg-white dark:bg-[#0a0a0a] relative overflow-hidden transition-colors duration-500">
-      <!-- Minimal Background Effects -->
-      <div class="fixed inset-0 pointer-events-none -z-10">
-        <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 via-white to-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] dark:to-[#0a0a0a] transition-colors duration-500"></div>
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-        <div class="absolute top-1/2 left-1/2 w-[800px] h-[400px] bg-gradient-radial from-gray-200/30 dark:from-white/[0.02] via-transparent to-transparent rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="pricing-view relative min-h-screen overflow-hidden transition-colors duration-500">
+      <!-- Atmosphere: soft apricot + baby-blue washes over the porcelain canvas -->
+      <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div class="pricing-glow-warm absolute -top-32 left-1/2 -translate-x-1/2 w-[860px] h-[520px]"></div>
+        <div class="pricing-glow-cool absolute top-64 -left-48 w-[640px] h-[480px]"></div>
       </div>
 
       <!-- Content Container -->
       <div class="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 pt-24 pb-24 md:pt-32 md:pb-32">
         <!-- Header Section -->
         <div class="mb-16 md:mb-20 text-center">
-          <p class="text-sm font-medium text-gray-500 dark:text-white/50 uppercase tracking-widest mb-4 transition-colors duration-300">
-            Pricing
-          </p>
-          <h1 class="text-4xl sm:text-5xl md:text-6xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight transition-colors duration-300">
-            Choose your plan
+          <!-- Editorial kicker: tracked small caps flanked by fading hairline rules -->
+          <div class="pricing-rise flex items-center justify-center gap-4 mb-8" style="animation-delay: 0ms">
+            <span aria-hidden="true" class="hidden sm:block h-px w-12 md:w-16 bg-gradient-to-l from-blue-950/25 to-transparent dark:from-white/25"></span>
+            <span class="flex items-center gap-3">
+              <span aria-hidden="true" class="w-1 h-1 rotate-45 bg-orange-500/80 dark:bg-orange-400/80"></span>
+              <span class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.25em] sm:tracking-[0.3em] leading-none text-blue-950/70 dark:text-blue-100/55 whitespace-nowrap">Pricing</span>
+              <span aria-hidden="true" class="w-1 h-1 rotate-45 bg-orange-500/80 dark:bg-orange-400/80"></span>
+            </span>
+            <span aria-hidden="true" class="hidden sm:block h-px w-12 md:w-16 bg-gradient-to-r from-blue-950/25 to-transparent dark:from-white/25"></span>
+          </div>
+          <h1 class="pricing-rise font-display font-semibold text-4xl sm:text-5xl md:text-6xl mb-6 tracking-[-0.02em] leading-[1.05] text-balance text-blue-950 dark:text-white transition-colors duration-300" style="animation-delay: 90ms">
+            Choose your <em class="pricing-accent not-italic">plan</em>
           </h1>
-          <p class="text-xl text-gray-500 dark:text-white/60 max-w-3xl mx-auto transition-colors duration-300">
+          <p class="pricing-rise text-xl text-blue-950/65 dark:text-blue-100/65 leading-relaxed text-pretty max-w-3xl mx-auto transition-colors duration-300" style="animation-delay: 180ms">
             Simple, transparent pricing for every team. Start building today with the plan that fits your needs.
           </p>
         </div>
 
         <!-- Error Message -->
         <div v-if="error" class="mb-8 max-w-2xl mx-auto">
-          <div class="rounded-2xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 p-4 transition-colors duration-300">
+          <div class="rounded-2xl bg-red-50/80 dark:bg-red-500/10 border border-red-200/70 dark:border-red-400/25 p-4 transition-colors duration-300">
             <div class="flex items-center gap-3">
-              <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg class="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
               </svg>
               <p class="text-sm text-red-700 dark:text-red-300">{{ error }}</p>
@@ -54,11 +59,13 @@
 
         <!-- On-Demand Section -->
         <div class="mb-16">
+          <!-- Hairline divider -->
+          <div class="section-divider mb-12 md:mb-16" aria-hidden="true"></div>
           <div class="text-center mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2 transition-colors duration-300">
+            <h2 class="font-display text-2xl sm:text-3xl font-semibold text-blue-950 dark:text-white tracking-[-0.015em] leading-[1.08] mb-2 transition-colors duration-300">
               Need extra usage?
             </h2>
-            <p class="text-gray-500 dark:text-white/60 transition-colors duration-300">
+            <p class="text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">
               Purchase additional credits on demand, anytime.
             </p>
           </div>
@@ -72,11 +79,11 @@
 
         <!-- Secure Payment Badge -->
         <div class="text-center">
-          <div class="inline-flex items-center gap-3 py-3 px-6 bg-white/50 dark:bg-white/[0.03] backdrop-blur-sm rounded-full border border-gray-200/50 dark:border-white/[0.06] transition-colors duration-300">
-            <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/[0.05] flex items-center justify-center">
-              <i class="fas fa-lock text-gray-600 dark:text-gray-400"></i>
+          <div class="inline-flex items-center gap-3 py-3 px-6 bg-white/85 dark:bg-white/[0.07] backdrop-blur-sm rounded-full border border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
+            <div class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-400/[0.16] ring-1 ring-orange-200/80 dark:ring-orange-400/30 flex items-center justify-center">
+              <i class="fas fa-lock text-xs text-orange-600 dark:text-orange-300"></i>
             </div>
-            <span class="text-gray-600 dark:text-gray-400 text-sm">Powered by Stripe. Secure and encrypted.</span>
+            <span class="text-blue-950/70 dark:text-blue-100/55 text-sm">Powered by Stripe. Secure and encrypted.</span>
           </div>
         </div>
       </div>
@@ -213,5 +220,72 @@ const handleOnDemandPurchase = async (amount: number) => {
 </script>
 
 <style scoped>
-/* Minimal, clean styling matching home page */
+/* Staggered entrance: header items rise in sequence on page load */
+.pricing-rise {
+  animation: pricing-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pricing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pricing-rise {
+    animation: none;
+  }
+}
+
+/* Atmosphere washes */
+.pricing-glow-warm {
+  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.16), rgba(251, 146, 60, 0.05) 55%, transparent 75%);
+  filter: blur(40px);
+}
+
+.pricing-glow-cool {
+  background: radial-gradient(closest-side, rgba(158, 205, 243, 0.28), rgba(158, 205, 243, 0.08) 55%, transparent 75%);
+  filter: blur(44px);
+}
+
+.dark .pricing-glow-warm {
+  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.09), rgba(251, 146, 60, 0.025) 55%, transparent 75%);
+}
+
+.dark .pricing-glow-cool {
+  background: radial-gradient(closest-side, rgba(96, 165, 250, 0.11), rgba(96, 165, 250, 0.03) 55%, transparent 75%);
+}
+
+/* Italic serif accent with the warm gradient ink */
+.pricing-accent {
+  font-style: italic;
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-right: 0.06em;
+}
+
+.dark .pricing-accent {
+  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Hairline gradient divider that fades at the edges */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(23, 37, 84, 0.12), transparent);
+}
+
+.dark .section-divider {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
 </style>

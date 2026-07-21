@@ -7,7 +7,7 @@
     <!-- Toolbar -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
       <div class="relative flex-1 max-w-sm">
-        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-white/30"></i>
+        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-blue-950/40 dark:text-blue-100/30"></i>
         <input
           v-model="search"
           type="search"

@@ -7,8 +7,8 @@
         <div class="empty-icon flex items-center justify-center w-12 h-12 rounded-2xl mb-4">
           <i class="fas fa-wand-magic-sparkles text-base"></i>
         </div>
-        <h3 class="text-sm font-semibold text-blue-950/80 dark:text-white/85 mb-1.5">What should we build?</h3>
-        <p class="text-xs text-blue-950/45 dark:text-white/40 max-w-[230px] leading-relaxed">
+        <h3 class="text-sm font-semibold text-blue-950 dark:text-white mb-1.5">What should we build?</h3>
+        <p class="text-xs text-blue-950/45 dark:text-blue-100/45 max-w-[230px] leading-relaxed">
           Describe a page, feature, or change and the agent will build it into your project.
         </p>
       </div>
@@ -355,6 +355,24 @@ const copyToClipboard = (code: string) => {
   margin-bottom: 1rem;
 }
 
+/* Ink-tinted links instead of the typography plugin's gray */
+.prose a {
+  color: theme('colors.blue.700');
+}
+
+.dark .prose a {
+  color: theme('colors.blue.300');
+}
+
+/* Ink-tinted list markers instead of the typography plugin's gray */
+.prose ::marker {
+  color: rgba(23, 37, 84, 0.4);
+}
+
+.dark .prose ::marker {
+  color: rgba(219, 234, 254, 0.4);
+}
+
 .prose li {
   margin-bottom: 0.5rem;
 }
@@ -481,7 +499,9 @@ const copyToClipboard = (code: string) => {
 
 @media (prefers-reduced-motion: reduce) {
   .status-orb,
-  .status-shimmer {
+  .status-shimmer,
+  .animate-message-in,
+  .animate-fade-in {
     animation: none;
   }
 
@@ -493,7 +513,7 @@ const copyToClipboard = (code: string) => {
   }
 
   .dark .status-shimmer {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(219, 234, 254, 0.65);
   }
 }
 

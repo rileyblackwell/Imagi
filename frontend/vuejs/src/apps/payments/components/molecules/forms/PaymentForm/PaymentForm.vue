@@ -22,14 +22,14 @@
     </div>
 
     <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-300 mb-2">
+      <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-2 transition-colors duration-300">
         Card Information
       </label>
-      <div 
-        id="card-element" 
-        class="bg-dark-900 rounded-lg p-4 min-h-[40px] border border-dark-700"
+      <div
+        id="card-element"
+        class="bg-white dark:bg-white/[0.05] rounded-xl p-4 min-h-[40px] border border-blue-950/[0.12] dark:border-white/[0.14] transition-colors duration-200"
       ></div>
-      <div id="card-errors" class="mt-2 text-sm text-red-500"></div>
+      <div id="card-errors" class="mt-2 text-sm text-red-600 dark:text-red-400"></div>
     </div>
 
     <PaymentButton
@@ -108,28 +108,31 @@ export default defineComponent({
           throw new Error('Failed to load Stripe')
         }
 
+        // Match the Stripe iframe to the warm-porcelain theme (ink navy / dark)
+        const isDarkMode = document.documentElement.classList.contains('dark')
+
         // Create Elements instance with proper styling
         elements.value = stripe.value.elements({
           appearance: {
-            theme: 'night',
+            theme: isDarkMode ? 'night' : 'stripe',
             variables: {
-              colorPrimary: '#00ffc6',
-              colorBackground: '#1a1b23',
-              colorText: '#ffffff',
-              colorDanger: '#ff4d4d',
+              colorPrimary: isDarkMode ? '#93c5fd' : '#1d4ed8',
+              colorBackground: isDarkMode ? '#16161a' : '#ffffff',
+              colorText: isDarkMode ? '#ffffff' : '#172554',
+              colorDanger: isDarkMode ? '#f87171' : '#dc2626',
               fontFamily: 'system-ui, sans-serif',
-              borderRadius: '8px',
+              borderRadius: '12px',
             },
             rules: {
               '.Input': {
-                border: '1px solid #2d2d3b',
+                border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid rgba(23, 37, 84, 0.12)',
                 boxShadow: 'none',
               },
               '.Input:focus': {
-                border: '1px solid #00ffc6',
+                border: isDarkMode ? '1px solid rgba(147, 197, 253, 0.5)' : '1px solid rgba(59, 130, 246, 0.5)',
               },
               '.Label': {
-                color: '#ffffff',
+                color: isDarkMode ? '#ffffff' : '#172554',
               }
             }
           },
@@ -140,13 +143,13 @@ export default defineComponent({
         cardElement.value = elements.value.create('card', {
           style: {
             base: {
-              color: '#ffffff',
+              color: isDarkMode ? '#ffffff' : '#172554',
               fontFamily: 'system-ui, sans-serif',
               fontSize: '16px',
               '::placeholder': {
-                color: '#6b7280',
+                color: isDarkMode ? 'rgba(255, 255, 255, 0.4)' : 'rgba(23, 37, 84, 0.4)',
               },
-              backgroundColor: '#1a1b23',
+              backgroundColor: 'transparent',
             },
           },
           hidePostalCode: true
@@ -177,14 +180,14 @@ export default defineComponent({
         cardElement.value.on('focus', () => {
           const el = document.getElementById('card-element')
           if (el) {
-            el.classList.add('ring-2', 'ring-primary-500', 'border-primary-500')
+            el.classList.add('ring-2', 'ring-blue-500/40', 'dark:ring-blue-300/50', 'border-blue-500/50', 'dark:border-blue-300/50')
           }
         })
 
         cardElement.value.on('blur', () => {
           const el = document.getElementById('card-element')
           if (el) {
-            el.classList.remove('ring-2', 'ring-primary-500', 'border-primary-500')
+            el.classList.remove('ring-2', 'ring-blue-500/40', 'dark:ring-blue-300/50', 'border-blue-500/50', 'dark:border-blue-300/50')
           }
         })
 

@@ -1,32 +1,32 @@
 <template>
   <div class="payment-amount-selector">
-    <h3 class="text-lg font-medium text-white mb-4">Select Amount</h3>
-    
+    <h3 class="text-lg font-medium tracking-tight text-blue-950 dark:text-white mb-4 transition-colors duration-300">Select Amount</h3>
+
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
       <button
         v-for="amount in presetAmounts"
         :key="amount"
         @click="selectAmount(amount)"
-        class="amount-btn py-3 px-4 text-center rounded-lg border transition-all duration-200"
-        :class="{ 
-          'border-primary-500 bg-primary-500/10': selectedAmount === amount,
-          'border-gray-700 bg-dark-800 hover:border-gray-500': selectedAmount !== amount 
+        class="amount-btn py-3 px-4 text-center rounded-full border font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+        :class="{
+          'border-blue-950 bg-blue-950 text-[#fdf9f2] dark:border-[#f3ede2] dark:bg-[#f3ede2] dark:text-blue-950': selectedAmount === amount,
+          'border-blue-950/[0.14] bg-white/85 text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:bg-white/[0.05] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06]': selectedAmount !== amount
         }"
       >
         ${{ amount }}
       </button>
-      
+
       <div class="custom-amount col-span-2 md:col-span-3 mt-2">
-        <label class="block text-sm text-gray-400 mb-1">Custom Amount</label>
+        <label class="block text-sm text-blue-950/70 dark:text-blue-100/55 mb-1 transition-colors duration-300">Custom Amount</label>
         <div class="flex items-center">
-          <span class="text-gray-400 mr-2">$</span>
+          <span class="text-blue-950/60 dark:text-blue-100/55 mr-2">$</span>
           <input
             type="number"
             min="5"
             :value="customAmount"
             @input="onCustomAmountChange"
             @focus="selectCustomAmount"
-            class="bg-dark-800 border border-gray-700 rounded-lg px-3 py-2 w-full text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] rounded-xl px-3 py-2 w-full text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
             placeholder="Enter amount"
           />
         </div>

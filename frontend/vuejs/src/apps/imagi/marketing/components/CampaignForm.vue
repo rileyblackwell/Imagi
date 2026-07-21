@@ -26,10 +26,10 @@
           v-for="option in channelOptions"
           :key="option.value"
           type="button"
-          class="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-200"
+          class="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
           :class="form.channel === option.value
-            ? 'border-violet-300 dark:border-violet-400/50 bg-violet-50/80 dark:bg-violet-400/10 ring-1 ring-violet-300/50 dark:ring-violet-400/30'
-            : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-violet-200 dark:hover:border-violet-400/30'"
+            ? 'border-blue-300 dark:border-blue-400/50 bg-blue-50/80 dark:bg-blue-400/10 ring-1 ring-blue-300/50 dark:ring-blue-400/30'
+            : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] hover:border-blue-300/70 dark:hover:border-blue-400/30'"
           @click="form.channel = option.value"
         >
           <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
@@ -70,11 +70,11 @@
       <span :class="ui.label">Audience</span>
       <div class="space-y-2.5">
         <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="all" class="accent-violet-600" />
+          <input v-model="form.audience_type" type="radio" value="all" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
           All subscribed contacts
         </label>
         <label class="flex items-center gap-2.5 text-sm text-blue-950 dark:text-white cursor-pointer">
-          <input v-model="form.audience_type" type="radio" value="tags" class="accent-violet-600" />
+          <input v-model="form.audience_type" type="radio" value="tags" class="accent-blue-700 dark:accent-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]" />
           Contacts with any of these tags
         </label>
         <div v-if="form.audience_type === 'tags'" class="pl-6">
@@ -83,10 +83,10 @@
               v-for="tag in tags"
               :key="tag.tag"
               type="button"
-              class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200"
+              class="px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
               :class="isTagSelected(tag.tag)
-                ? 'border-violet-300 dark:border-violet-400/50 bg-violet-100/80 dark:bg-violet-400/20 text-violet-800 dark:text-violet-200'
-                : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/70 dark:text-blue-100/70 hover:border-violet-200 dark:hover:border-violet-400/30'"
+                ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
+                : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/70 dark:text-blue-100/70 hover:border-blue-300/70 dark:hover:border-blue-400/30'"
               @click="toggleTag(tag.tag)"
             >
               {{ tag.tag }} <span class="opacity-60">· {{ tag.count }}</span>
@@ -104,7 +104,7 @@
     <div class="flex items-center justify-end gap-3 pt-1">
       <button type="button" :class="ui.secondaryBtn" @click="$emit('cancel')">Cancel</button>
       <button type="submit" :class="ui.primaryBtn" :disabled="busy || !isValid">
-        <i v-if="busy" class="fas fa-circle-notch animate-spin"></i>
+        <i v-if="busy" class="fas fa-circle-notch animate-spin motion-reduce:animate-none"></i>
         {{ submitLabel }}
       </button>
     </div>

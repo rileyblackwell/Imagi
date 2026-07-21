@@ -9,20 +9,14 @@
 -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="bg-orange-50 dark:bg-[#16120e] relative transition-colors duration-500 min-h-screen overflow-hidden">
-      <!-- Subtle background matching home page -->
-      <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-      </div>
-
+    <div class="marketing-canvas relative transition-colors duration-500 min-h-screen overflow-hidden">
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
         <div class="max-w-6xl mx-auto w-full">
 
           <!-- Back link -->
           <router-link
             :to="{ name: 'project-hub', params: { projectName } }"
-            class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6"
+            class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>Project workspace</span>
@@ -31,7 +25,7 @@
           <!-- Loading -->
           <div v-if="isLoading" class="flex flex-col items-center justify-center py-24">
             <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
-              <div class="w-6 h-6 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+              <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
             </div>
             <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading marketing workspace...</p>
           </div>
@@ -39,7 +33,7 @@
           <!-- Not found -->
           <div v-else-if="!project" class="flex flex-col items-center justify-center py-24 text-center">
             <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-6">
-              <i class="fas fa-folder-open text-2xl text-blue-950/40 dark:text-white/40"></i>
+              <i class="fas fa-folder-open text-2xl text-blue-950/40 dark:text-blue-100/40"></i>
             </div>
             <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-3 transition-colors duration-300">Project not found</h2>
             <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md transition-colors duration-300">We couldn't find this project. It may have been deleted.</p>
@@ -57,7 +51,7 @@
               </div>
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-3 mb-1.5">
-                  <h1 class="text-3xl font-semibold text-blue-950 dark:text-white tracking-tight transition-colors duration-300">Marketing</h1>
+                  <h1 class="font-display text-3xl md:text-[2.1rem] font-semibold text-blue-950 dark:text-white tracking-[-0.02em] leading-[1.05] transition-colors duration-300">Marketing</h1>
                   <span :class="ui.sectionBadge">{{ project.name }}</span>
                 </div>
                 <p class="text-base text-blue-950/70 dark:text-blue-100/70 max-w-2xl transition-colors duration-300">
@@ -69,11 +63,11 @@
             <!-- Connect banner -->
             <div
               v-if="showConnectBanner"
-              class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl border border-violet-200/80 dark:border-violet-400/25 bg-violet-50/80 dark:bg-violet-400/10 mb-6 transition-colors duration-300"
+              class="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl border border-blue-200/80 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 mb-6 transition-colors duration-300"
             >
               <div class="flex items-center gap-3 flex-1 min-w-0">
-                <i class="fas fa-plug-circle-bolt text-violet-600 dark:text-violet-300"></i>
-                <p class="text-sm text-violet-900 dark:text-violet-100">
+                <i class="fas fa-plug-circle-bolt text-blue-700 dark:text-blue-300"></i>
+                <p class="text-sm text-blue-950/80 dark:text-blue-100/80">
                   Connect your Twilio account to start sending. You'll need your Account SID, auth token, and a Twilio phone number.
                 </p>
               </div>
@@ -92,9 +86,9 @@
                 v-for="tab in tabs"
                 :key="tab.name"
                 :to="{ name: tab.name, params: { projectName } }"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
                 :class="isActiveTab(tab)
-                  ? 'border-violet-500 dark:border-violet-400 text-blue-950 dark:text-white'
+                  ? 'border-blue-950 dark:border-blue-300 text-blue-950 dark:text-white'
                   : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
               >
                 <i :class="['fas', tab.icon]" class="text-xs"></i>
@@ -197,6 +191,19 @@ onMounted(loadProject)
 
 watch(() => props.projectName, loadProject)
 </script>
+
+<style scoped>
+/* Warm porcelain canvas fading to the footer's exact background (white /
+   #0a0a0a) so the page hands off seamlessly — same recipe as Home. */
+.marketing-canvas {
+  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 60%, #ffffff 100%);
+}
+
+:root.dark .marketing-canvas,
+.dark .marketing-canvas {
+  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 60%, #0a0a0a 100%);
+}
+</style>
 
 <!-- Unscoped so the crisp-card treatment reaches the tab views rendered in
      the child router-view. Matches the definition used on Home/hub cards. -->

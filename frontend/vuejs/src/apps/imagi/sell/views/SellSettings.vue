@@ -18,7 +18,7 @@
       </div>
       <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6">
         Find these under
-        <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" class="text-emerald-700 dark:text-emerald-300 hover:underline">Developers → API keys</a>
+        <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" class="rounded-sm font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white underline underline-offset-2 decoration-blue-950/30 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]">Developers → API keys</a>
         in your Stripe dashboard. Payments go directly to your own Stripe account.
       </p>
 
@@ -125,7 +125,7 @@
             <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.stripe_webhook_url }}</code>
             <button
               type="button"
-              class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150"
+              class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
               title="Copy"
               @click="copy(settings.stripe_webhook_url)"
             >

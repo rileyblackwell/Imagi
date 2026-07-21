@@ -9,7 +9,7 @@
   <div>
     <router-link
       :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
-      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5"
+      class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
     >
       <i class="fas fa-arrow-left text-xs"></i>
       <span>All campaigns</span>
@@ -17,7 +17,7 @@
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
     </div>
 
     <div v-else-if="loadError" :class="ui.errorBox">{{ loadError }}</div>
@@ -47,7 +47,7 @@
             :disabled="acting"
             @click="sync"
           >
-            <i class="fas fa-rotate text-xs" :class="{ 'animate-spin': acting }"></i>
+            <i class="fas fa-rotate text-xs" :class="{ 'animate-spin motion-reduce:animate-none': acting }"></i>
             Refresh statuses
           </button>
           <button
@@ -57,7 +57,7 @@
             :disabled="acting"
             @click="sync"
           >
-            <i class="fas fa-rotate text-xs" :class="{ 'animate-spin': acting }"></i>
+            <i class="fas fa-rotate text-xs" :class="{ 'animate-spin motion-reduce:animate-none': acting }"></i>
             Refresh statuses
           </button>
           <button

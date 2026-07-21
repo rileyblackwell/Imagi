@@ -10,10 +10,10 @@
         v-for="option in statusFilters"
         :key="option.value"
         type="button"
-        class="px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] border transition-colors duration-150"
+        class="px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em] border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
         :class="statusFilter === option.value
           ? 'border-emerald-300 dark:border-emerald-400/40 bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300'
-          : 'border-blue-200/70 dark:border-white/[0.12] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
+          : 'border-blue-950/[0.14] dark:border-white/[0.16] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white hover:border-blue-950/30 dark:hover:border-white/30'"
         @click="setFilter(option.value)"
       >
         {{ option.label }}
@@ -52,7 +52,7 @@
             <button
               v-if="order.status === 'paid'"
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-400/10 border border-blue-200/70 dark:border-blue-400/25 transition-colors duration-150"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
               :disabled="busyOrderId === order.id"
               @click="fulfill(order.id)"
             >
@@ -62,7 +62,7 @@
             <button
               v-if="order.status === 'pending' && order.stripe_checkout_session_id"
               type="button"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-950/70 dark:text-blue-100/70 hover:bg-blue-50 dark:hover:bg-white/[0.08] border border-blue-200/70 dark:border-white/[0.12] transition-colors duration-150"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] border border-blue-950/[0.14] dark:border-white/[0.16] hover:border-blue-950/30 dark:hover:border-white/30 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
               title="Check the payment status with Stripe"
               :disabled="busyOrderId === order.id"
               @click="sync(order.id)"
@@ -73,7 +73,7 @@
           </div>
         </div>
         <!-- Items -->
-        <div v-if="order.items.length" class="mt-3 pl-13 sm:pl-[52px]">
+        <div v-if="order.items.length" class="mt-3 pl-[52px]">
           <p v-for="item in order.items" :key="item.id" class="text-xs text-blue-950/60 dark:text-blue-100/60">
             {{ item.quantity }} × {{ item.product_name }} — {{ formatMoney(item.unit_price_cents * item.quantity, order.currency) }}
           </p>

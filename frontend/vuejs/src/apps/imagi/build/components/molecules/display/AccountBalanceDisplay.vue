@@ -116,7 +116,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .account-balance-display {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   transition: all 0.3s ease;
 }
 
@@ -138,7 +137,7 @@ onBeforeUnmount(() => {
 
 .text-wrap { display: flex; flex-direction: column; gap: 0.125rem; min-width: 5.5rem; }
 .label-row { display: flex; align-items: center; gap: 0.3rem; }
-.label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(23, 37, 84, 0.55); font-weight: 600; }
+.label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(23, 37, 84, 0.7); font-weight: 600; }
 .value-row { display: flex; align-items: center; gap: 0.25rem; }
 .value {
   color: rgb(23, 37, 84);
@@ -153,15 +152,20 @@ onBeforeUnmount(() => {
 /* Animation for slow pulsing effect */
 @keyframes pulse-slow { 0%,100%{opacity:0; transform:scale(1);} 50%{opacity:0.7; transform:scale(1.05);} }
 .animate-pulse-slow { animation: pulse-slow 3s infinite ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-slow { animation: none; }
+  .account-balance-display { transition: none; }
+}
 </style>
 
 <style>
 /* Dark mode styles - unscoped to access parent .dark class */
 .dark .account-balance-display .label {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(219, 234, 254, 0.55);
 }
 
 .dark .account-balance-display .value {
-  color: rgba(255, 255, 255, 0.95);
+  color: rgb(255, 255, 255);
 }
 </style>

@@ -1,27 +1,21 @@
 <template>
-  <div 
+  <div
     :class="[
-      'group relative backdrop-blur-sm bg-dark-800/40 border border-gray-800/60 shadow-xl rounded-2xl overflow-hidden transition-all duration-500',
-      hoverable ? 'transform hover:-translate-y-1 hover:shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)]' : '',
+      'payment-card group relative backdrop-blur-sm bg-white/85 dark:bg-white/[0.045] border border-blue-950/[0.08] dark:border-white/[0.1] rounded-2xl overflow-hidden transition-all duration-300',
+      hoverable ? 'hoverable' : '',
       customClass
     ]"
   >
-    <!-- Card top highlight -->
-    <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-primary-500/0 via-primary-500/60 to-primary-500/0"></div>
-    
-    <!-- Background gradient -->
-    <div class="absolute inset-0 bg-gradient-to-br opacity-10 -z-10 from-primary-900 to-violet-900 transition-opacity duration-300 group-hover:opacity-20"></div>
-    
-    <!-- Glowing orb decoration -->
-    <div v-if="showDecoration" class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full opacity-10 blur-3xl transition-opacity duration-500 group-hover:opacity-20 bg-primary-500"></div>
-    
-    <div v-if="$slots.header" :class="['p-6 border-b border-white/10', headerClass]">
+    <!-- Soft baby-blue orb decoration -->
+    <div v-if="showDecoration" class="absolute -bottom-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none bg-[#9ecdf3]/25 dark:bg-blue-400/10 transition-opacity duration-500" aria-hidden="true"></div>
+
+    <div v-if="$slots.header" :class="['p-6 border-b border-blue-950/[0.08] dark:border-white/[0.1]', headerClass]">
       <slot name="header"></slot>
     </div>
     <div :class="['p-6', contentClass]">
       <slot></slot>
     </div>
-    <div v-if="$slots.footer" :class="['p-6 border-t border-white/10', footerClass]">
+    <div v-if="$slots.footer" :class="['p-6 border-t border-blue-950/[0.08] dark:border-white/[0.1]', footerClass]">
       <slot name="footer"></slot>
     </div>
   </div>
@@ -62,31 +56,44 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Subtle glow effect for cards */
-.backdrop-blur-sm {
-  position: relative;
+/* Crisp, sharply-defined card: hairline edge + tight layered shadow */
+.payment-card {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px -2px rgba(15, 23, 42, 0.07),
+    0 12px 28px -10px rgba(15, 23, 42, 0.10);
 }
 
-.backdrop-blur-sm::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
-  filter: blur(20px);
-  opacity: 0.1;
-  background: radial-gradient(circle at top right, var(--tw-gradient-stops));
-  --tw-gradient-from: theme('colors.primary.500');
-  --tw-gradient-stops: var(--tw-gradient-from), transparent 70%;
-  border-radius: inherit;
-  transform: translate(0, 0) scale(0.95);
-  pointer-events: none;
-  transition: opacity 0.3s ease-in-out;
+.dark .payment-card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
-.backdrop-blur-sm:hover::after {
-  opacity: 0.15;
+/* Gentle lift on hover for hoverable cards */
+.payment-card.hoverable:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.06),
+    0 10px 20px -4px rgba(15, 23, 42, 0.1),
+    0 24px 44px -12px rgba(15, 23, 42, 0.14);
+}
+
+.dark .payment-card.hoverable:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 12px 24px -4px rgba(0, 0, 0, 0.5),
+    0 28px 48px -12px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-card.hoverable:hover {
+    transform: none;
+  }
 }
 </style> 

@@ -43,7 +43,7 @@
            One view fills the screen at a time. -->
       <template #navbar-center="{ setSidebarCollapsed }">
         <div
-          class="md:hidden flex items-center gap-0.5 rounded-lg border border-blue-100 dark:border-white/[0.08] bg-blue-50/70 dark:bg-white/[0.05] p-0.5"
+          class="md:hidden flex items-center gap-0.5 rounded-lg border border-blue-950/[0.08] dark:border-white/[0.14] bg-blue-50/70 dark:bg-white/[0.05] p-0.5"
           role="tablist"
           aria-label="Workspace view"
         >
@@ -57,10 +57,10 @@
             :title="opt.label"
             @click="selectMobileView(opt.value, setSidebarCollapsed)"
             :class="[
-              'flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+              'flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
               mobileView === opt.value
                 ? 'bg-white dark:bg-white/[0.12] text-blue-700 dark:text-white shadow-sm'
-                : 'text-blue-950/55 dark:text-white/55 hover:text-blue-950 dark:hover:text-white'
+                : 'text-blue-950/55 dark:text-blue-100/55 hover:text-blue-950 dark:hover:text-white'
             ]"
           >
             <i :class="[opt.icon, 'text-sm']"></i>

@@ -22,10 +22,10 @@
         >
           ${{ balance.toLocaleString() }}
         </span>
-        <button 
-          v-if="showRefresh" 
-          @click="refreshBalance" 
-          class="refresh-btn ml-2 text-gray-400 hover:text-gray-600"
+        <button
+          v-if="showRefresh"
+          @click="refreshBalance"
+          class="refresh-btn ml-2 rounded-full text-blue-950/50 hover:text-blue-950 dark:text-blue-100/50 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           :class="{ 'refresh-small': size === 'small' }"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,9 +37,9 @@
       <!-- "Add Credits" button removed as requested -->
     </div>
     
-    <div v-else class="text-red-500 text-sm">
+    <div v-else class="text-red-600 dark:text-red-400 text-sm">
       <span>Failed to load balance</span>
-      <button @click="refreshBalance" class="ml-2 text-indigo-600">Retry</button>
+      <button @click="refreshBalance" class="ml-2 rounded text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]">Retry</button>
     </div>
   </div>
 </template>
@@ -107,7 +107,13 @@ defineEmits<{
   padding: 0;
 }
 
+/* Blue ink balance figure, dual theme */
 .balance-value {
-  color: #4f46e5; /* indigo-600 */
+  color: #1d4ed8; /* blue-700 */
+}
+
+:root.dark .balance-value,
+.dark .balance-value {
+  color: #93c5fd; /* blue-300 */
 }
 </style> 

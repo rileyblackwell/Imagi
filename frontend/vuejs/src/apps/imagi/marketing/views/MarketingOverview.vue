@@ -6,7 +6,7 @@
   <div>
     <!-- Loading -->
     <div v-if="store.overviewLoading && !overview" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
     </div>
 
     <template v-else-if="overview">
@@ -14,7 +14,7 @@
       <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
-            <i :class="['fas', stat.icon]" class="text-xs text-violet-600 dark:text-violet-300"></i>
+            <i :class="['fas', stat.icon]" class="text-xs text-blue-700 dark:text-blue-300"></i>
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold text-blue-950 dark:text-white tabular-nums">{{ stat.value }}</p>
@@ -43,14 +43,14 @@
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Advertising</h2>
-            <span class="flex items-center gap-2 text-blue-950/40 dark:text-white/40 text-xs">
+            <span class="flex items-center gap-2 text-blue-950/40 dark:text-blue-100/40 text-xs">
               <i v-if="ads.connected_providers.includes('google')" class="fab fa-google" title="Google Ads connected"></i>
               <i v-if="ads.connected_providers.includes('meta')" class="fab fa-meta" title="Meta Ads connected"></i>
             </span>
           </div>
           <router-link
             :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }"
-            class="text-sm font-medium text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-violet-200 transition-colors duration-200"
+            class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 transition-colors duration-200 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
           >
             Open ads dashboard
           </router-link>
@@ -63,7 +63,7 @@
         </div>
         <p v-else class="text-sm text-blue-950/60 dark:text-blue-100/60">
           Run ads on Google and Meta? Connect your ad accounts to watch spend and results here —
-          <router-link :to="{ name: 'marketing-settings', params: { projectName: route.params.projectName } }" class="text-violet-700 dark:text-violet-300 hover:underline">connect in settings</router-link>.
+          <router-link :to="{ name: 'marketing-settings', params: { projectName: route.params.projectName } }" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">connect in settings</router-link>.
         </p>
       </section>
 
@@ -74,7 +74,7 @@
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Recent campaigns</h2>
             <router-link
               :to="{ name: 'marketing-campaigns', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-violet-200 transition-colors duration-200"
+              class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 transition-colors duration-200 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               View all
             </router-link>
@@ -84,7 +84,7 @@
               v-for="campaign in overview.recent_campaigns"
               :key="campaign.id"
               :to="{ name: 'marketing-campaign-detail', params: { projectName: route.params.projectName, campaignId: campaign.id } }"
-              class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08] hover:border-violet-200 dark:hover:border-violet-400/30 hover:bg-violet-50/50 dark:hover:bg-violet-400/[0.06] transition-all duration-200"
+              class="flex items-center gap-3 p-3 rounded-xl border border-blue-200/60 dark:border-white/[0.08] hover:border-blue-300/70 dark:hover:border-blue-400/30 hover:bg-blue-50/50 dark:hover:bg-blue-400/[0.06] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               <div class="w-9 h-9 shrink-0" :class="ui.iconTile">
                 <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']" class="text-sm"></i>
@@ -112,7 +112,7 @@
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Latest replies</h2>
             <router-link
               :to="{ name: 'marketing-inbox', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-violet-200 transition-colors duration-200"
+              class="text-sm font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-200 transition-colors duration-200 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               Open inbox
             </router-link>

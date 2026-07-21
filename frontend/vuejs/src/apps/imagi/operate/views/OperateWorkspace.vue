@@ -10,20 +10,14 @@
 -->
 <template>
   <DefaultLayout :isHomeNav="true">
-    <div class="bg-orange-50 dark:bg-[#16120e] relative transition-colors duration-500 min-h-screen overflow-hidden">
-      <!-- Subtle background matching home page -->
-      <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
-      </div>
-
+    <div class="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#fdf9f2_0%,#faf7f1_60%,#ffffff_100%)] dark:bg-[linear-gradient(180deg,#0c0c0e_0%,#0a0b0f_60%,#0a0a0a_100%)] transition-colors duration-500">
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-16 min-h-screen">
         <div class="max-w-6xl mx-auto w-full">
 
           <!-- Back link -->
           <router-link
             :to="{ name: 'project-hub', params: { projectName } }"
-            class="inline-flex items-center gap-2 text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6"
+            class="inline-flex items-center gap-2 rounded-md text-sm font-medium text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white transition-colors duration-200 mb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
           >
             <i class="fas fa-arrow-left text-xs"></i>
             <span>Project workspace</span>
@@ -32,7 +26,7 @@
           <!-- Loading -->
           <div v-if="isLoading" class="flex flex-col items-center justify-center py-24">
             <div class="w-12 h-12 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-4">
-              <div class="w-6 h-6 border-2 border-amber-200 dark:border-amber-300/30 border-t-amber-600 dark:border-t-amber-300 rounded-full animate-spin"></div>
+              <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
             </div>
             <p class="text-blue-950/70 dark:text-blue-100/70 text-sm transition-colors duration-300">Loading operate workspace...</p>
           </div>
@@ -40,7 +34,7 @@
           <!-- Not found -->
           <div v-else-if="!project" class="flex flex-col items-center justify-center py-24 text-center">
             <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mb-6">
-              <i class="fas fa-folder-open text-2xl text-blue-950/40 dark:text-white/40"></i>
+              <i class="fas fa-folder-open text-2xl text-blue-950/40 dark:text-blue-100/40"></i>
             </div>
             <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-3 transition-colors duration-300">Project not found</h2>
             <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md transition-colors duration-300">We couldn't find this project. It may have been deleted.</p>
@@ -58,7 +52,7 @@
               </div>
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-3 mb-1.5">
-                  <h1 class="text-3xl font-semibold text-blue-950 dark:text-white tracking-tight transition-colors duration-300">Operate</h1>
+                  <h1 class="font-display text-3xl font-semibold text-blue-950 dark:text-white tracking-[-0.02em] leading-[1.05] transition-colors duration-300">Operate</h1>
                   <span :class="ui.sectionBadge">{{ project.name }}</span>
                 </div>
                 <p class="text-base text-blue-950/70 dark:text-blue-100/70 max-w-2xl transition-colors duration-300">
@@ -73,9 +67,9 @@
                 v-for="tab in tabs"
                 :key="tab.name"
                 :to="{ name: tab.name, params: { projectName } }"
-                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200"
+                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-inset"
                 :class="route.name === tab.name
-                  ? 'border-amber-500 dark:border-amber-400 text-blue-950 dark:text-white'
+                  ? 'border-orange-500 dark:border-orange-400 text-blue-950 dark:text-white'
                   : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
               >
                 <i :class="['fas', tab.icon]" class="text-xs"></i>
