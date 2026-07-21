@@ -77,9 +77,9 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          value: '$10-20',
-          unit: '',
-          label: 'Typical App Cost'
+          value: '$10',
+          unit: '/mo',
+          label: 'Plans Starting At'
         },
         {
           value: '30',
