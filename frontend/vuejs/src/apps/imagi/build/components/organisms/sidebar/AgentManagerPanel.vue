@@ -27,7 +27,7 @@
       <!-- Panel title -->
       <div class="flex-1 min-w-0 flex items-center gap-2 pl-0.5">
         <div class="agents-icon-chip flex items-center justify-center w-5 h-5 rounded-md shrink-0">
-          <i class="fas fa-layer-group text-[9px] text-blue-700 dark:text-blue-300"></i>
+          <i class="fas fa-layer-group text-[9px] text-blue-950/80 dark:text-[#f3ede2]/90"></i>
         </div>
         <span class="text-xs font-semibold text-blue-950/80 dark:text-white/80 truncate">Agents</span>
       </div>
@@ -55,7 +55,7 @@
       <!-- New agent instance -->
       <div class="relative group">
         <button
-          class="btn-new flex items-center justify-center w-7 h-7 rounded-md text-blue-950 border border-white/60 dark:border-white/30 transition-all duration-200"
+          class="btn-new flex items-center justify-center w-7 h-7 rounded-md text-[#fdf9f2] dark:text-blue-950 transition-all duration-200"
           @click="handleCreate"
         >
           <i class="fas fa-plus text-xs"></i>
@@ -257,44 +257,46 @@ async function handleRename(id: string, title: string) {
 </script>
 
 <style scoped>
-/* Panel title chip - baby-blue accent matching the site's primary buttons */
+/* Panel title chip - subtle navy ink tint (a solid pill would compete with the + button) */
 .agents-icon-chip {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.1),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
+  background: rgba(23, 37, 84, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(23, 37, 84, 0.06);
 }
 
 .dark .agents-icon-chip {
-  background: rgba(96, 165, 250, 0.12);
+  background: rgba(243, 237, 226, 0.12);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Baby-blue "new agent" button - matching the chat's send button */
+/* Navy ink "new agent" button - matching the chat's send button */
 .btn-new {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+  background: theme('colors.blue.950');
   box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 3px 8px -2px rgba(30, 58, 138, 0.16),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+    0 1px 2px rgba(23, 37, 84, 0.2),
+    0 3px 8px -2px rgba(23, 37, 84, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .btn-new:hover {
-  filter: brightness(1.04);
+  background: theme('colors.blue.900');
   box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.16),
-    0 5px 12px -2px rgba(30, 58, 138, 0.22),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+    0 2px 3px rgba(23, 37, 84, 0.22),
+    0 5px 12px -2px rgba(23, 37, 84, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dark .btn-new {
+  background: #f3ede2;
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 3px 8px -2px rgba(0, 0, 0, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 3px 8px -2px rgba(0, 0, 0, 0.45);
+}
+
+.dark .btn-new:hover {
+  background: #ffffff;
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.4),
+    0 5px 12px -2px rgba(0, 0, 0, 0.5);
 }
 
 /* Search field focus ring - matching the chat input shell */

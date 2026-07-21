@@ -113,7 +113,7 @@
               aria-label="Send message"
               class="btn-send flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
               :class="prompt.trim() && activeInstance && !activeInstance.isProcessing
-                ? 'btn-send--active text-blue-950 border border-white/60 dark:border-white/30 shadow-lg hover:shadow-xl'
+                ? 'btn-send--active text-[#fdf9f2] dark:text-blue-950'
                 : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
             >
               <i v-if="activeInstance?.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
@@ -401,28 +401,39 @@ textarea:active {
   transition: none !important;
 }
 
-/* Baby-blue send button - matching the site's primary "Start Building" button */
+/* Navy ink send button - matching the site's primary "Start Building" button */
 .btn-send {
   transform: translateY(0) translateZ(0);
 }
 
 .btn-send--active {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+  background: theme('colors.blue.950');
   box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 4px 10px -2px rgba(30, 58, 138, 0.16),
-    0 10px 20px -6px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
+    0 1px 2px rgba(23, 37, 84, 0.2),
+    0 3px 8px -2px rgba(23, 37, 84, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn-send--active:hover {
+  background: theme('colors.blue.900');
+  box-shadow:
+    0 2px 3px rgba(23, 37, 84, 0.22),
+    0 5px 12px -2px rgba(23, 37, 84, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dark .btn-send--active {
+  background: #f3ede2;
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 10px 20px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 3px 8px -2px rgba(0, 0, 0, 0.45);
+}
+
+.dark .btn-send--active:hover {
+  background: #ffffff;
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.4),
+    0 5px 12px -2px rgba(0, 0, 0, 0.5);
 }
 
 /* Refined minimal scrollbar - matching homepage */

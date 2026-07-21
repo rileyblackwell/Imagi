@@ -497,21 +497,22 @@ const copyToClipboard = (code: string) => {
   }
 }
 
-/* Empty state icon: soft baby-blue tile matching the site's primary button */
+/* Empty state icon: navy ink tile matching the site's primary button */
 .empty-icon {
-  color: theme('colors.blue.900');
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
+  color: #fdf9f2;
+  background: theme('colors.blue.950');
   box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.12),
-    0 6px 14px -4px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75);
+    0 1px 2px rgba(23, 37, 84, 0.2),
+    0 6px 14px -4px rgba(23, 37, 84, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .dark .empty-icon {
+  color: theme('colors.blue.950');
+  background: #f3ede2;
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.4),
-    0 6px 14px -4px rgba(0, 0, 0, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.6);
+    0 6px 14px -4px rgba(0, 0, 0, 0.45);
 }
 
 /* Prose styling for dark mode */
