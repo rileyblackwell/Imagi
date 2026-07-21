@@ -19,12 +19,10 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
               <router-link
                 to="/imagi/projects"
-                class="btn-3d btn-accent group relative inline-flex items-center justify-center px-6 py-3 rounded-full text-blue-950 border border-white/60 dark:border-white/30 font-semibold overflow-hidden"
+                class="group inline-flex items-center justify-center px-6 py-3 rounded-full font-medium bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
               >
-                <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-                <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
-                <i class="fas fa-arrow-left mr-2 relative"></i>
-                <span class="relative">Go to Dashboard</span>
+                <i class="fas fa-arrow-left mr-2"></i>
+                <span>Go to Dashboard</span>
               </router-link>
               <button
                 @click="$emit('retry')"
@@ -63,32 +61,4 @@ const props = defineProps<{ error: string | null | undefined }>()
     0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
-/* Soft 3D button matching the site's primary "Start Building" button */
-.btn-3d {
-  transform: translateY(0) translateZ(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 4px 10px -2px rgba(30, 58, 138, 0.16),
-    0 10px 20px -6px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
-}
-
-.btn-3d:active {
-  transition-duration: 0.1s;
-}
-
-.btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-.dark .btn-3d {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 10px 20px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
-}
 </style>
