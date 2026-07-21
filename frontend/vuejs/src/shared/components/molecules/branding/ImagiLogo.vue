@@ -1,23 +1,24 @@
 <!--
   ImagiLogo.vue - Standardized logo component
-  
-  This component provides a consistent representation of the Imagi logo
-  across the application. It supports various sizes and customization options.
+
+  Serif wordmark set in the brand display face (Fraunces) with an orange
+  terminal period — "Imagi." — navy ink in light mode, white in dark.
+  Supports the same size variants as before.
 -->
 <template>
   <router-link :to="to" class="flex items-center" :class="[iconOnly ? '' : 'space-x-2']">
     <!-- Logo Text -->
-    <span 
-      class="font-bold text-black dark:text-white tracking-tight transition-colors duration-300"
+    <span
+      class="wordmark font-display font-semibold leading-none tracking-[-0.01em] text-blue-950 dark:text-white transition-colors duration-300"
       :class="[
-        size === 'sm' ? 'text-base' : 
-        size === 'md' ? 'text-xl' : 
-        size === 'lg' ? 'text-2xl' : 
-        size === 'xl' ? 'text-4xl' : 
-        'text-xl'
+        size === 'sm' ? 'text-lg' :
+        size === 'md' ? 'text-[1.35rem]' :
+        size === 'lg' ? 'text-2xl' :
+        size === 'xl' ? 'text-4xl' :
+        'text-[1.35rem]'
       ]"
     >
-      <slot>Imagi</slot>
+      <slot>Imagi</slot><span class="text-orange-600 dark:text-orange-400" aria-hidden="true">.</span>
     </span>
   </router-link>
 </template>
@@ -48,3 +49,12 @@ defineProps({
   }
 })
 </script>
+
+<style scoped>
+/* Warm cut of Fraunces; no WONK — the wordmark stays steady while
+   headline accent words carry the quirk */
+.wordmark {
+  font-variation-settings: 'SOFT' 30, 'WONK' 0;
+  font-optical-sizing: auto;
+}
+</style>
