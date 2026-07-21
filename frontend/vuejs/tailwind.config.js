@@ -44,6 +44,23 @@ export default {
           'Arial',
           'sans-serif',
         ],
+        display: [
+          'Fraunces',
+          'Georgia',
+          'Cambria',
+          'Times New Roman',
+          'serif',
+        ],
+        body: [
+          'Instrument Sans',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'Arial',
+          'sans-serif',
+        ],
       },
       spacing: {
         'header': '64px',

@@ -1,11 +1,6 @@
 <!-- Home navigation component -->
 <template>
   <BaseNavbar fluid>
-    <!-- Logo override -->
-    <template #logo>
-      <span class="text-xl font-bold text-blue-950 dark:text-white tracking-tight transition-colors duration-300">Imagi</span>
-    </template>
-
     <!-- Center menu -->
     <template #center>
       <div class="flex items-center space-x-4">
@@ -17,7 +12,7 @@
           text-style
         >
           Product
-          
+
           <template #menu>
             <router-link
               :to="{ name: 'builder' }"
@@ -52,28 +47,22 @@
       <!-- Auth Buttons -->
       <div class="flex items-center space-x-3">
         <template v-if="isAuthenticated">
+          <!-- Sign Out: quiet hairline pill — a non-promoted action -->
           <button
             type="button"
             @click="handleLogout"
-            class="btn-3d btn-accent group relative inline-flex items-center justify-center min-w-[100px] px-6 py-2.5 text-blue-950 rounded-full font-medium text-sm overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           >
-            <!-- Top edge highlight for 3D effect -->
-            <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-            <!-- Bottom edge shadow for depth -->
-            <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
-            <span class="relative">Sign Out</span>
+            Sign Out
           </button>
         </template>
         <template v-else>
+          <!-- Sign In: small navy ink pill — the one conversion action in the bar -->
           <router-link
             to="/auth/signin"
-            class="btn-3d btn-accent group relative inline-flex items-center justify-center min-w-[100px] px-6 py-2.5 text-blue-950 rounded-full font-medium text-sm overflow-hidden border border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
+            class="inline-flex items-center justify-center px-5 py-2 rounded-full font-medium text-sm bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           >
-            <!-- Top edge highlight for 3D effect -->
-            <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-            <!-- Bottom edge shadow for depth -->
-            <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
-            <span class="relative">Sign In</span>
+            Sign In
           </router-link>
         </template>
       </div>
@@ -151,41 +140,5 @@ export default defineComponent({
 /* Add transition for dropdown chevron */
 .fa-chevron-down {
   transition: transform 0.2s ease-in-out;
-}
-
-/* Soft 3D button effect matching the hero "Start Building" button - blue-tinted shadows for the baby-blue fill. */
-.btn-3d {
-  transform: translateY(0) translateZ(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 4px 10px -2px rgba(30, 58, 138, 0.16),
-    0 10px 20px -6px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
-}
-
-.btn-3d:active {
-  transform: translateY(0) translateZ(0);
-  transition-duration: 0.1s;
-}
-
-/* Soft baby-blue gradient fill */
-.btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-.dark .btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
-.dark .btn-3d {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 10px 20px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
 }
 </style>
