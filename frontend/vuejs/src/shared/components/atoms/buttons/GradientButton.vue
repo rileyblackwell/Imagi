@@ -3,7 +3,7 @@
     :is="componentTag"
     :to="to"
     :disabled="disabled"
-    class="inline-flex items-center justify-center rounded-xl font-medium transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-violet-400/40"
+    class="inline-flex items-center justify-center rounded-full font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e]"
     :class="[
       sizeClass,
       disabled
@@ -51,16 +51,9 @@ const sizeClass = computed(() => ({
   lg: 'px-5 py-3 text-base'
 }[props.size]))
 
+// Both variants share the navy ink pill from the home page button system
 const variantClass = computed(() => {
-  // Default (primary) matches existing gradient to avoid breaking styles elsewhere
-  if (props.variant === 'primary') {
-    return 'bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 hover:from-indigo-400 hover:via-violet-400 hover:to-fuchsia-400 text-white shadow-indigo-500/25 hover:shadow-indigo-500/35'
-  }
-  // Imagi variant: tuned to Imagi site palette with primary + violet/indigo accents
-  if (props.variant === 'imagi') {
-    return 'bg-gradient-to-r from-primary-500 via-violet-500 to-indigo-500 hover:from-primary-400 hover:via-violet-400 hover:to-indigo-400 text-white shadow-violet-500/20 hover:shadow-violet-500/30'
-  }
-  return 'bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 hover:from-indigo-400 hover:via-violet-400 hover:to-fuchsia-400 text-white shadow-indigo-500/25 hover:shadow-indigo-500/35'
+  return 'bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)]'
 })
 
 function onClick(ev: MouseEvent) {

@@ -15,13 +15,11 @@
         <div class="w-full h-px bg-blue-200/70 dark:bg-blue-300/[0.16] mb-6"></div>
         <router-link
           to="/imagi/projects"
-          class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg transition-all duration-300 overflow-hidden border border-white/60 dark:border-white/30"
+          class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
         >
-          <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-          <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
-          <span class="relative">Create New Project</span>
+          <span>Create New Project</span>
           <svg
-            class="relative w-5 h-5 ml-1 transition-transform duration-300 group-hover:translate-x-1"
+            class="w-5 h-5 ml-1 transition-transform duration-300 group-hover:translate-x-1"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -128,32 +126,3 @@
 import DocsLayout from '../layouts/DocsLayout.vue';
 import { DocsPageHeader, DocsStepCard, DocsNavigationCard } from '../components';
 </script>
-
-<style scoped>
-/* Soft 3D button effect - tight, layered, crisp. Blue-tinted shadows to suit the baby-blue fill. */
-.btn-3d {
-  transform: translateZ(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 4px 10px -2px rgba(30, 58, 138, 0.16),
-    0 10px 20px -6px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
-}
-
-/* Soft baby-blue gradient fill */
-.btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
-.dark .btn-3d {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 10px 20px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
-}
-</style>

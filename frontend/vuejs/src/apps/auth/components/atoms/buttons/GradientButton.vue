@@ -2,26 +2,25 @@
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="btn-3d btn-accent group relative w-full inline-flex items-center justify-center gap-2 px-8 py-4
-           text-blue-950
+    class="group relative w-full inline-flex items-center justify-center gap-2 px-8 py-4
            rounded-full
            font-medium
-           border border-white/60 dark:border-white/30
+           bg-blue-950 text-[#fdf9f2] hover:bg-blue-900
+           dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white
+           shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)]
+           hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)]
+           dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)]
+           dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)]
            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]
-           transition-all duration-300
-           disabled:opacity-50 disabled:cursor-not-allowed
-           overflow-hidden"
+           transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0
+           disabled:opacity-50 disabled:cursor-not-allowed"
   >
-    <!-- Top edge highlight for 3D effect -->
-    <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-    <!-- Bottom edge shadow for depth -->
-    <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
     <!-- Content -->
-    <span v-if="loading" class="relative z-10 flex items-center justify-center">
+    <span v-if="loading" class="flex items-center justify-center">
       <i class="fas fa-circle-notch fa-spin mr-2"></i>
       <span class="font-medium">{{ loadingText }}</span>
     </span>
-    <span v-else class="relative z-10 flex items-center justify-center gap-2">
+    <span v-else class="flex items-center justify-center gap-2">
       <span class="font-medium"><slot></slot></span>
       <i class="fas fa-arrow-right text-sm transition-transform duration-300 group-hover:translate-x-1"></i>
     </span>
@@ -48,41 +47,3 @@ defineProps({
   }
 })
 </script>
-
-<style scoped>
-/* Soft 3D button effect - tight, layered, crisp. Blue-tinted shadows to suit the light baby-blue fill. */
-.btn-3d {
-  transform: translateY(0) translateZ(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 4px 10px -2px rgba(30, 58, 138, 0.16),
-    0 10px 20px -6px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
-}
-
-.btn-3d:active {
-  transform: translateY(0) translateZ(0);
-  transition-duration: 0.1s;
-}
-
-/* Soft baby-blue gradient fill */
-.btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-.dark .btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
-.dark .btn-3d {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 10px 20px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
-}
-</style>

@@ -52,12 +52,10 @@
               <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
               <router-link
                 to="/auth/signin"
-                class="btn-3d btn-accent group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-blue-950 rounded-full font-medium text-lg overflow-hidden border border-white/60 dark:border-white/30"
+                class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e]"
               >
-                <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-                <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
-                <i class="fas fa-sign-in-alt relative"></i>
-                <span class="relative">Log In</span>
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Log In</span>
               </router-link>
             </div>
           </div>
@@ -115,17 +113,15 @@
                     <button
                       @click="createProject"
                       :disabled="!canCreate || isCreating"
-                      class="btn-3d btn-accent group relative w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 text-blue-950 rounded-full font-medium text-base overflow-hidden border border-white/60 dark:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="group w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium text-base bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></span>
-                      <span class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-900/15 to-transparent"></span>
                       <template v-if="isCreating">
-                        <div class="relative w-5 h-5 border-2 border-blue-950/30 border-t-blue-950 rounded-full animate-spin"></div>
-                        <span class="relative">Creating...</span>
+                        <div class="w-5 h-5 border-2 border-[#fdf9f2]/30 border-t-[#fdf9f2] dark:border-blue-950/30 dark:border-t-blue-950 rounded-full animate-spin"></div>
+                        <span>Creating...</span>
                       </template>
                       <template v-else>
-                        <span class="relative">Create Project</span>
-                        <svg class="relative w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span>Create Project</span>
+                        <svg class="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
                       </template>
@@ -626,39 +622,4 @@ input:focus, textarea:focus {
     0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
-/* Soft 3D button effect matching the hero "Start Building" button - blue-tinted shadows for the baby-blue fill. */
-.btn-3d {
-  transform: translateY(0) translateZ(0);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
-  box-shadow:
-    0 1px 2px rgba(30, 58, 138, 0.14),
-    0 4px 10px -2px rgba(30, 58, 138, 0.16),
-    0 10px 20px -6px rgba(30, 58, 138, 0.18),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.12);
-}
-
-.btn-3d:active {
-  transform: translateY(0) translateZ(0);
-  transition-duration: 0.1s;
-}
-
-/* Soft baby-blue gradient fill */
-.btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-.dark .btn-accent {
-  background: linear-gradient(155deg, #dbeeff 0%, #b7ddf7 55%, #9ecdf3 100%);
-}
-
-/* On dark, ground the light button with deep neutral shadows; keep the inner sheen */
-.dark .btn-3d {
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.5),
-    0 4px 10px -2px rgba(0, 0, 0, 0.45),
-    0 10px 20px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 4px -1px rgba(30, 58, 138, 0.18);
-}
 </style>
