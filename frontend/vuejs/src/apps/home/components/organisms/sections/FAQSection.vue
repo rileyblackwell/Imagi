@@ -192,7 +192,7 @@ export default defineComponent({
       {
         icon: 'fas fa-dollar-sign',
         question: 'How does pricing work?',
-        answer: 'Imagi uses a credit-based system. You purchase credits and spend them on AI requests. Building a complete app typically costs $5-15 in credits depending on complexity. There are no monthly fees — you only pay for what you build.',
+        answer: 'Imagi offers monthly subscription plans: Hobby ($10/month), Pro ($50/month), and Max ($100/month). Each plan includes a monthly allowance of AI usage and project deployments, with higher tiers unlocking more deployments, usage, and support. You can cancel anytime.',
         link: { text: 'View pricing details', to: '/payments/pricing' }
       },
       {

@@ -87,10 +87,10 @@ export default defineComponent({
       type: Array,
       default: () => [
         {
-          value: '$10-20',
-          unit: '',
-          label: 'Typical App Cost',
-          caption: 'Pay only for what you build—no subscriptions, no surprises.'
+          value: '$10',
+          unit: '/mo',
+          label: 'Plans Starting At',
+          caption: 'Simple monthly plans that include AI usage and deployments—cancel anytime.'
         },
         {
           value: '30',

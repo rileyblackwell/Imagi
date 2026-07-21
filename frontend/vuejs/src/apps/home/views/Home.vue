@@ -27,7 +27,7 @@
           primaryButtonText="Get Started"
           primaryButtonTo="/imagi/projects"
           :showSecondaryButton="false"
-          footnote="No subscriptions. Pay only for what you build."
+          footnote="Plans start at $10/month. Cancel anytime."
         />
       </main>
     </div>
