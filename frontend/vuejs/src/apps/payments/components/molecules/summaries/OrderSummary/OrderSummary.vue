@@ -1,19 +1,19 @@
 <template>
-  <div class="bg-dark-900 rounded-lg p-4">
+  <div class="rounded-2xl bg-white/85 dark:bg-white/[0.045] border border-blue-950/[0.08] dark:border-white/[0.1] backdrop-blur-sm p-4 transition-colors duration-300">
     <div class="flex justify-between items-center mb-4">
       <div>
-        <p class="text-white font-medium">{{ title }}</p>
-        <p class="text-sm text-gray-400">{{ subtitle }}</p>
+        <p class="text-blue-950 dark:text-white font-medium transition-colors duration-300">{{ title }}</p>
+        <p class="text-sm text-blue-950/60 dark:text-blue-100/55 transition-colors duration-300">{{ subtitle }}</p>
       </div>
-      <p class="text-xl font-bold text-primary-400">{{ formatCurrency(amount) }}</p>
+      <p class="text-xl font-semibold tabular-nums text-blue-700 dark:text-blue-300 transition-colors duration-300">{{ formatCurrency(amount) }}</p>
     </div>
     <div v-if="$slots.details" class="mb-4">
       <slot name="details"></slot>
     </div>
-    <div class="border-t border-dark-700 pt-4">
+    <div class="border-t border-blue-950/[0.08] dark:border-white/[0.1] pt-4">
       <div class="flex justify-between items-center">
-        <p class="text-gray-400">{{ totalLabel }}</p>
-        <p class="text-2xl font-bold text-primary-400">{{ formatCurrency(displayTotal) }}</p>
+        <p class="text-blue-950/60 dark:text-blue-100/55 transition-colors duration-300">{{ totalLabel }}</p>
+        <p class="text-2xl font-semibold tabular-nums text-blue-950 dark:text-white transition-colors duration-300">{{ formatCurrency(displayTotal) }}</p>
       </div>
     </div>
   </div>

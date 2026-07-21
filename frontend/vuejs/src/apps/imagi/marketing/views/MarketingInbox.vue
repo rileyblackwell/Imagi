@@ -6,7 +6,7 @@
   <div>
     <!-- Loading -->
     <div v-if="store.conversationsLoading && !store.conversations.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
     </div>
 
     <!-- Empty -->
@@ -39,11 +39,11 @@
           <h2 class="text-sm font-semibold text-blue-950 dark:text-white">Conversations</h2>
           <button
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             title="Refresh"
             @click="refresh"
           >
-            <i class="fas fa-rotate text-xs" :class="{ 'animate-spin': store.conversationsLoading }"></i>
+            <i class="fas fa-rotate text-xs" :class="{ 'animate-spin motion-reduce:animate-none': store.conversationsLoading }"></i>
           </button>
         </div>
         <div class="overflow-y-auto flex-1">
@@ -51,13 +51,13 @@
             v-for="conversation in store.conversations"
             :key="conversation.id"
             type="button"
-            class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 transition-colors duration-150"
+            class="w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-blue-200/40 dark:border-white/[0.05] last:border-b-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
             :class="selectedId === conversation.id
-              ? 'bg-violet-50/80 dark:bg-violet-400/10'
+              ? 'bg-blue-50/80 dark:bg-blue-400/10'
               : 'hover:bg-blue-50/60 dark:hover:bg-white/[0.04]'"
             @click="selectConversation(conversation.id)"
           >
-            <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-violet-100 dark:bg-violet-400/20 text-violet-700 dark:text-violet-200 text-xs font-semibold uppercase">
+            <div class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center bg-gradient-to-br from-[#dbeeff] to-[#9ecdf3] dark:from-blue-400/[0.18] dark:to-blue-500/[0.22] ring-1 ring-blue-900/[0.08] dark:ring-blue-300/[0.18] text-blue-700 dark:text-blue-200 text-xs font-semibold uppercase">
               {{ initials(conversation.display_name) }}
             </div>
             <div class="flex-1 min-w-0">
@@ -91,7 +91,7 @@
           <!-- Messages -->
           <div ref="threadPane" class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             <div v-if="threadLoading" class="flex justify-center py-8">
-              <div class="w-5 h-5 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+              <div class="w-5 h-5 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
             </div>
             <template v-else>
               <div
@@ -104,7 +104,7 @@
                   <div
                     class="px-3.5 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words"
                     :class="message.direction === 'outbound'
-                      ? 'bg-violet-600 text-white rounded-br-md'
+                      ? 'bg-blue-950 text-[#fdf9f2] dark:bg-[#f3ede2] dark:text-blue-950 rounded-br-md'
                       : 'bg-blue-50 dark:bg-white/[0.08] text-blue-950 dark:text-white border border-blue-200/60 dark:border-white/[0.08] rounded-bl-md'"
                   >
                     <span v-if="message.channel === 'voice'" class="block text-[11px] uppercase tracking-wide opacity-70 mb-0.5">
@@ -141,7 +141,7 @@
                 @keydown.enter.exact.prevent="sendReply"
               ></textarea>
               <button type="submit" :class="ui.primaryBtn" :disabled="sending || !replyText.trim()">
-                <i :class="['fas', sending ? 'fa-circle-notch animate-spin' : 'fa-paper-plane']" class="text-xs"></i>
+                <i :class="['fas', sending ? 'fa-circle-notch animate-spin motion-reduce:animate-none' : 'fa-paper-plane']" class="text-xs"></i>
                 Send
               </button>
             </form>
@@ -150,7 +150,7 @@
         </template>
 
         <div v-else class="flex-1 flex flex-col items-center justify-center py-16 text-center px-6">
-          <i class="fas fa-comments text-2xl text-blue-950/20 dark:text-white/20 mb-4"></i>
+          <i class="fas fa-comments text-2xl text-blue-950/20 dark:text-blue-100/20 mb-4"></i>
           <p class="text-sm text-blue-950/60 dark:text-blue-100/60">Select a conversation to read and reply.</p>
         </div>
       </section>

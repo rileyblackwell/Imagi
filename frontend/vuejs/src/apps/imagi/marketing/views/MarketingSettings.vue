@@ -20,7 +20,7 @@
       </div>
       <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-6">
         Find these in the
-        <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" class="text-violet-700 dark:text-violet-300 hover:underline">Twilio Console</a>.
+        <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">Twilio Console</a>.
         Messages and calls are sent from your own Twilio account.
       </p>
 
@@ -98,7 +98,7 @@
 
         <div class="flex items-center gap-3 pt-1">
           <button type="submit" :class="ui.primaryBtn" :disabled="saving">
-            <i v-if="saving" class="fas fa-circle-notch animate-spin"></i>
+            <i v-if="saving" class="fas fa-circle-notch animate-spin motion-reduce:animate-none"></i>
             Save settings
           </button>
           <button
@@ -107,7 +107,7 @@
             :disabled="verifying || !settings?.twilio_account_sid || !settings?.twilio_auth_token_set"
             @click="verify"
           >
-            <i :class="['fas', verifying ? 'fa-circle-notch animate-spin' : 'fa-plug-circle-bolt']" class="text-xs"></i>
+            <i :class="['fas', verifying ? 'fa-circle-notch animate-spin motion-reduce:animate-none' : 'fa-plug-circle-bolt']" class="text-xs"></i>
             Test connection
           </button>
         </div>
@@ -126,7 +126,7 @@
               v-for="number in verifyResult.phone_numbers"
               :key="number.phone_number"
               type="button"
-              class="px-3 py-1.5 rounded-full border border-emerald-300/70 dark:border-emerald-400/30 bg-white/70 dark:bg-white/[0.06] font-mono text-xs hover:bg-white dark:hover:bg-white/[0.12] transition-colors duration-150"
+              class="px-3 py-1.5 rounded-full border border-emerald-300/70 dark:border-emerald-400/30 bg-white/70 dark:bg-white/[0.06] font-mono text-xs hover:bg-white dark:hover:bg-white/[0.12] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
               @click="useNumber(number.phone_number)"
             >
               {{ number.phone_number }}
@@ -153,7 +153,7 @@
                 <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.inbound_webhook_url }}</code>
                 <button
                   type="button"
-                  class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
                   title="Copy"
                   @click="copy(settings.inbound_webhook_url)"
                 >
@@ -170,7 +170,7 @@
                 <code class="flex-1 px-3 py-2 rounded-lg bg-blue-950/[0.04] dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.08] font-mono text-[11px] text-blue-950/80 dark:text-blue-100/80 break-all">{{ settings.status_callback_url }}</code>
                 <button
                   type="button"
-                  class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
                   title="Copy"
                   @click="copy(settings.status_callback_url)"
                 >
@@ -209,7 +209,7 @@
           <li class="flex gap-2.5">
             <i class="fas fa-circle-check text-emerald-600 dark:text-emerald-300 mt-0.5 text-xs"></i>
             US numbers may need
-            <a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noopener noreferrer" class="text-violet-700 dark:text-violet-300 hover:underline">A2P 10DLC registration</a>
+            <a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noopener noreferrer" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">A2P 10DLC registration</a>
             in Twilio for reliable delivery.
           </li>
         </ul>
@@ -222,7 +222,7 @@
     <h2 class="text-lg font-semibold text-blue-950 dark:text-white mb-1.5 transition-colors duration-300">Ad platforms</h2>
     <p class="text-sm text-blue-950/60 dark:text-blue-100/60 mb-5">
       Connect your ad accounts to watch campaign performance and pause or resume campaigns from the
-      <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" class="text-violet-700 dark:text-violet-300 hover:underline">Ads tab</router-link>.
+      <router-link :to="{ name: 'marketing-ads', params: { projectName: route.params.projectName } }" class="text-blue-700 dark:text-blue-300 hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]">Ads tab</router-link>.
       Credentials are stored encrypted, and Imagi never creates or edits ads without you.
     </p>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

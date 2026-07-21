@@ -19,23 +19,24 @@
         :disabled="disabled"
         class="w-full py-4 pl-12 pr-12 rounded-xl
                text-blue-950 dark:text-white
-               placeholder-blue-950/40 dark:placeholder-white/30
-               outline-none focus:outline-none
+               placeholder-blue-950/40 dark:placeholder-blue-100/35
                disabled:opacity-50 disabled:cursor-not-allowed
                transition-all duration-200
-               border bg-blue-50/50 dark:bg-white/[0.03] backdrop-blur-sm
-               focus:ring-0"
+               border bg-white/70 dark:bg-white/[0.04] backdrop-blur-sm
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
         :class="{
-          'border-red-500/50 bg-red-50 dark:bg-red-500/5': hasError,
-          'border-blue-200/70 dark:border-white/[0.08]': !hasError
+          'border-red-500/50 dark:border-red-400/40 bg-red-50 dark:bg-red-500/5': hasError,
+          'border-blue-950/[0.12] dark:border-white/[0.14] hover:border-blue-950/25 dark:hover:border-white/25': !hasError
         }"
       >
       <button
         type="button"
         @click="togglePassword"
-        class="absolute inset-y-0 right-0 flex items-center pr-4
+        :aria-label="isVisible ? 'Hide password' : 'Show password'"
+        class="absolute inset-y-2 right-2 flex items-center justify-center w-9 my-auto rounded-lg
                text-blue-950/40 dark:text-blue-100/40
                hover:text-blue-950 dark:hover:text-white
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]
                transition-colors duration-200 z-10"
       >
         <i :class="['fas', isVisible ? 'fa-eye-slash' : 'fa-eye']"></i>
@@ -98,53 +99,26 @@ defineEmits(['update:modelValue', 'blur', 'change'])
 </script>
 
 <style scoped>
-/* Completely remove all focus styles and outlines */
-input,
-input:focus,
-input:active,
-input:focus-within,
-input:focus-visible {
-  outline: none !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-}
-
-/* Remove any ring effects */
+/* Remove browser default appearance; the canonical focus-visible ring takes over */
 input {
-  --tw-ring-shadow: 0 0 #0000 !important;
-  --tw-ring-offset-shadow: 0 0 #0000 !important;
-  --tw-ring-color: transparent !important;
-  --tw-ring-offset-color: transparent !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 /* Remove browser default focus ring */
 input::-moz-focus-inner {
-  border: 0 !important;
+  border: 0;
 }
 
-/* Ensure button doesn't show outline either */
-button,
-button:focus,
-button:active,
-button:focus-visible {
-  outline: none !important;
-  outline-width: 0 !important;
-  box-shadow: none !important;
-}
-
-/* Autofill styling for light mode */
+/* Autofill styling for light mode (warm porcelain, ink text) */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-text-fill-color: #172554;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(239, 246, 255, 1) inset;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(253, 249, 242, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
-  border-color: rgb(191, 219, 254) !important;
+  border-color: rgba(23, 37, 84, 0.25) !important;
 }
 
 /* Autofill styling for dark mode */
@@ -152,8 +126,15 @@ input:-webkit-autofill:focus {
 :root.dark input:-webkit-autofill:hover,
 :root.dark input:-webkit-autofill:focus {
   -webkit-text-fill-color: white;
-  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.03) inset;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(28, 29, 33, 1) inset;
   transition: background-color 5000s ease-in-out 0s;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input,
+  button {
+    transition: none;
+  }
 }
 </style>

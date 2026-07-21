@@ -3,10 +3,10 @@
     <!-- Filters -->
     <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div class="flex items-center">
-        <span class="text-gray-400 mr-2">Filter:</span>
-        <select 
-          v-model="filter" 
-          class="bg-dark-900 border border-dark-700 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        <span class="text-blue-950/60 dark:text-blue-100/55 mr-2 transition-colors duration-300">Filter:</span>
+        <select
+          v-model="filter"
+          class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] text-blue-950 dark:text-white rounded-lg px-3 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
         >
           <option value="all">All Transactions</option>
           <option value="completed">Completed</option>
@@ -15,10 +15,10 @@
         </select>
       </div>
       <div class="flex items-center">
-        <span class="text-gray-400 mr-2">Sort:</span>
-        <select 
-          v-model="sort" 
-          class="bg-dark-900 border border-dark-700 text-white rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        <span class="text-blue-950/60 dark:text-blue-100/55 mr-2 transition-colors duration-300">Sort:</span>
+        <select
+          v-model="sort"
+          class="bg-white dark:bg-white/[0.05] border border-blue-950/[0.12] dark:border-white/[0.14] text-blue-950 dark:text-white rounded-lg px-3 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
         >
           <option value="date-desc">Newest First</option>
           <option value="date-asc">Oldest First</option>
@@ -29,33 +29,33 @@
     </div>
 
     <!-- Table -->
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-dark-700">
-        <thead class="bg-dark-900">
+    <div class="overflow-x-auto rounded-2xl border border-blue-950/[0.08] dark:border-white/[0.1] transition-colors duration-300">
+      <table class="min-w-full divide-y divide-blue-950/[0.08] dark:divide-white/[0.1]">
+        <thead class="bg-blue-50/60 dark:bg-white/[0.04]">
           <tr>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-blue-950/60 dark:text-blue-100/55 uppercase tracking-[0.16em]">
               Date
             </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-blue-950/60 dark:text-blue-100/55 uppercase tracking-[0.16em]">
               Description
             </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-blue-950/60 dark:text-blue-100/55 uppercase tracking-[0.16em]">
               Amount
             </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-blue-950/60 dark:text-blue-100/55 uppercase tracking-[0.16em]">
               Status
             </th>
           </tr>
         </thead>
-        <tbody class="bg-dark-800 divide-y divide-dark-700">
-          <tr v-for="transaction in paginatedTransactions" :key="transaction.id" class="hover:bg-dark-700">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+        <tbody class="bg-white/85 dark:bg-white/[0.02] divide-y divide-blue-950/[0.08] dark:divide-white/[0.1]">
+          <tr v-for="transaction in paginatedTransactions" :key="transaction.id" class="hover:bg-blue-50/50 dark:hover:bg-white/[0.04] transition-colors duration-200">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-950/80 dark:text-blue-100/75">
               {{ formatDate(transaction.created_at) }}
             </td>
-            <td class="px-6 py-4 text-sm text-gray-300">
+            <td class="px-6 py-4 text-sm text-blue-950/80 dark:text-blue-100/75">
               {{ transaction.description }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" :class="getAmountClass(transaction.amount)">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium tabular-nums" :class="getAmountClass(transaction.amount)">
               {{ formatAmount(transaction.amount) }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -67,7 +67,7 @@
 
           <!-- Empty State -->
           <tr v-if="paginatedTransactions.length === 0">
-            <td colspan="4" class="px-6 py-8 text-center text-gray-400">
+            <td colspan="4" class="px-6 py-8 text-center text-blue-950/60 dark:text-blue-100/55">
               No transactions found matching your filters.
             </td>
           </tr>
@@ -77,7 +77,7 @@
 
     <!-- Pagination -->
     <div class="mt-6 flex justify-between items-center">
-      <div class="text-sm text-gray-400">
+      <div class="text-sm text-blue-950/60 dark:text-blue-100/55 transition-colors duration-300">
         Showing {{ paginatedTransactions.length }} of {{ filteredTransactions.length }} transactions
       </div>
       <div class="flex space-x-2">
@@ -196,17 +196,17 @@ export default defineComponent({
     }
 
     const getAmountClass = (amount: number) => {
-      return amount >= 0 ? 'text-green-500' : 'text-red-500'
+      return amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
     }
 
     const getStatusClass = (status: string) => {
       const statusLower = status.toLowerCase()
       if (statusLower === 'completed' || statusLower === 'succeeded') {
-        return 'bg-green-100 text-green-800'
+        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-300'
       } else if (statusLower === 'pending' || statusLower === 'processing') {
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300'
       } else {
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-100 text-red-800 dark:bg-red-400/10 dark:text-red-300'
       }
     }
 

@@ -12,7 +12,7 @@
           Navigate to the Builder Dashboard to get started. Click the "New Project" button to create your first project.
           Give it a name and description that reflects what you want to build.
         </p>
-        <div class="w-full h-px bg-blue-200/70 dark:bg-blue-300/[0.16] mb-6"></div>
+        <div class="w-full h-px bg-blue-950/[0.08] dark:bg-white/[0.14] mb-6" aria-hidden="true"></div>
         <router-link
           to="/imagi/projects"
           class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
@@ -37,28 +37,28 @@
 
         <ul class="space-y-3 mb-6">
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Describe the <strong class="font-semibold text-blue-950 dark:text-white">purpose</strong> and functionality you need</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Specify key <strong class="font-semibold text-blue-950 dark:text-white">features</strong> and user interactions</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Mention any <strong class="font-semibold text-blue-950 dark:text-white">data models</strong> or structure requirements</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Share <strong class="font-semibold text-blue-950 dark:text-white">design preferences</strong> or style inspiration</span>
           </li>
         </ul>
 
-        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-blue-200/70 dark:border-blue-300/[0.16] rounded-xl p-6 transition-colors duration-300">
-          <h4 class="text-blue-950 dark:text-white mt-0 mb-3 text-lg font-semibold">
+        <div class="bg-blue-50/70 dark:bg-blue-400/[0.08] border border-blue-200/70 dark:border-blue-300/[0.14] rounded-xl p-6 transition-colors duration-300">
+          <h4 class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300 mt-0 mb-3 transition-colors duration-300">
             Example Prompt
           </h4>
-          <p class="text-lg text-blue-950/70 dark:text-blue-100/70 mb-0 leading-relaxed">
+          <p class="font-display italic text-lg text-blue-950/70 dark:text-blue-100/70 mb-0 leading-relaxed">
             "I need a task management application with user authentication. Users should be able to create projects,
             add tasks to projects, and mark tasks as complete. Each task should have a title, description, due date,
             and priority level. The app should have a dashboard showing task statistics and upcoming deadlines.
@@ -80,19 +80,19 @@
 
         <ul class="space-y-3 mb-6">
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Review your application to ensure everything works as expected</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Click the <strong class="font-semibold text-blue-950 dark:text-white">"Deploy"</strong> button in your project dashboard</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Your app will be built and deployed to a live URL automatically</span>
           </li>
           <li class="flex items-start gap-3">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+            <div class="w-1.5 h-1.5 rotate-45 bg-orange-500/80 dark:bg-orange-400/80 mt-2.5 flex-shrink-0" aria-hidden="true"></div>
             <span class="text-lg leading-relaxed">Share your URL with users and start gathering feedback</span>
           </li>
         </ul>
@@ -104,7 +104,7 @@
       </DocsStepCard>
 
       <section class="mb-16">
-        <h2 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-tight transition-colors duration-300">
+        <h2 class="font-display text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-6 tracking-[-0.015em] transition-colors duration-300">
           Next Steps
         </h2>
         <p class="text-blue-950/70 dark:text-blue-100/70 text-lg leading-relaxed mb-8 transition-colors duration-300">

@@ -21,38 +21,40 @@
     />
     
     <DefaultLayout :isHomeNav="true">
-    <div class="bg-orange-50 dark:bg-[#16120e] relative transition-colors duration-500 min-h-screen overflow-hidden">
-      <!-- Subtle background matching home page -->
-      <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute inset-0 opacity-[0.015] dark:opacity-[0.02]"
-             style="background-image: linear-gradient(rgba(128,128,128,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.1) 1px, transparent 1px); background-size: 64px 64px;"></div>
+    <div class="projects-page relative transition-colors duration-500 min-h-screen overflow-hidden font-body">
+      <!-- Grain texture over the porcelain canvas -->
+      <div class="grain-overlay absolute inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+
+      <!-- Atmosphere: one soft apricot wash behind the header -->
+      <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div class="page-glow-warm absolute -top-40 left-1/2 -translate-x-1/2 w-[760px] h-[440px]"></div>
       </div>
 
       <!-- Main Content (pt-20 clears the fixed h-14 navbar) -->
       <main class="relative z-10 flex flex-col px-6 sm:px-8 lg:px-12 pt-20 pb-8 min-h-screen">
         <!-- Compact Hero -->
-        <section class="flex-shrink-0 max-w-6xl mx-auto w-full text-center mb-6 md:mb-8">
+        <section class="rise-item flex-shrink-0 max-w-6xl mx-auto w-full text-center mb-6 md:mb-8" style="animation-delay: 0ms">
           <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-4 transition-colors duration-300">Workspace</p>
-          <h1 class="text-3xl sm:text-4xl font-semibold text-blue-950 dark:text-white mb-2 tracking-tight transition-colors duration-300">
-            Your Projects
+          <h1 class="font-display text-4xl sm:text-5xl font-semibold text-blue-950 dark:text-white mb-3 tracking-[-0.02em] leading-[1.05] text-balance transition-colors duration-300">
+            Your <em class="accent-ink not-italic">Projects</em>
           </h1>
-          <p class="text-base text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">
+          <p class="text-base sm:text-lg text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">
             Start a new business or keep building and running an existing one.
           </p>
         </section>
 
         <!-- Authentication Error -->
-        <div v-if="showAuthError" class="flex-1 flex items-center justify-center">
+        <div v-if="showAuthError" class="rise-item flex-1 flex items-center justify-center" style="animation-delay: 90ms">
           <div class="max-w-2xl mx-auto w-full">
-            <div class="crisp-card relative p-10 rounded-2xl bg-white dark:bg-white/[0.05] border border-blue-200/70 dark:border-blue-300/[0.16] text-center transition-colors duration-300">
-              <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.12] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="crisp-card relative p-10 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] text-center transition-colors duration-300">
+              <div class="w-16 h-16 bg-blue-50 dark:bg-white/[0.06] border border-blue-200/60 dark:border-white/[0.14] rounded-full flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-lock text-2xl text-blue-700 dark:text-blue-300"></i>
               </div>
-              <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-3 transition-colors duration-300">Authentication Required</h2>
+              <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Authentication Required</h2>
               <p class="text-blue-950/70 dark:text-blue-100/70 mb-8 max-w-md mx-auto transition-colors duration-300">Please log in to view and manage your projects.</p>
               <router-link
                 to="/auth/signin"
-                class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e]"
+                class="group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full font-medium text-lg bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
               >
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Log In</span>
@@ -66,14 +68,14 @@
           <div class="h-full grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             <!-- Section A: Create a Project -->
-            <section class="min-h-0">
-              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white/[0.05] border border-blue-200/70 dark:border-blue-300/[0.16] transition-colors duration-300 flex flex-col">
+            <section class="rise-item min-h-0" style="animation-delay: 90ms">
+              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-blue-200/70 dark:border-blue-300/[0.14] transition-colors duration-300 flex flex-col">
 
                 <!-- Section header -->
                 <div class="mb-5 flex-shrink-0">
                   <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-blue-200/70 dark:border-blue-400/25 bg-blue-50/80 dark:bg-blue-400/10 text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">New Project</p>
-                  <h2 class="text-2xl font-semibold text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
-                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Start a new business — describe it, and Imagi builds the first version of your app.</p>
+                  <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white mb-2 transition-colors duration-300">Create a Project</h2>
+                  <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">Start a new business — describe it, and Imagi builds the first version of your app.</p>
                 </div>
 
                 <!-- Create Form -->
@@ -85,8 +87,7 @@
                       v-model="newProjectName"
                       type="text"
                       placeholder="Enter your business name..."
-                      class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style="outline: none !important;"
+                      class="w-full px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
                       :disabled="isCreating"
                     >
                   </div>
@@ -96,14 +97,13 @@
                     <label class="block text-sm font-medium text-blue-950/80 dark:text-blue-100/80 mb-1 flex-shrink-0 transition-colors duration-300">
                       Business Description
                     </label>
-                    <p class="text-xs text-blue-950/50 dark:text-blue-100/50 mb-2 flex-shrink-0 transition-colors duration-300">
+                    <p class="text-xs text-blue-950/70 dark:text-blue-100/55 mb-2 flex-shrink-0 transition-colors duration-300">
                       Imagi's AI uses this to build the first version of your app.
                     </p>
                     <textarea
                       v-model="newProjectDescription"
                       placeholder="What does your business do? Who are its customers? What does the market look like, and how will you sell?"
-                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 transition-all duration-300 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      style="outline: none !important;"
+                      class="w-full flex-1 min-h-[80px] px-4 py-3 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 transition-all duration-300 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
                       :disabled="isCreating"
                     ></textarea>
                   </div>
@@ -113,7 +113,7 @@
                     <button
                       @click="createProject"
                       :disabled="!canCreate || isCreating"
-                      class="group w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium text-base bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16120e] disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="group w-full inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-full font-medium text-base bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_1px_2px_rgba(23,37,84,0.25),0_8px_20px_-6px_rgba(23,37,84,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:shadow-[0_2px_3px_rgba(23,37,84,0.22),0_14px_28px_-8px_rgba(23,37,84,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.5),0_10px_24px_-8px_rgba(0,0,0,0.55)] dark:hover:shadow-[0_2px_3px_rgba(0,0,0,0.5),0_14px_30px_-8px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <template v-if="isCreating">
                         <div class="w-5 h-5 border-2 border-[#fdf9f2]/30 border-t-[#fdf9f2] dark:border-blue-950/30 dark:border-t-blue-950 rounded-full animate-spin"></div>
@@ -132,34 +132,33 @@
             </section>
 
             <!-- Section B: Project Library -->
-            <section class="min-h-0">
-              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white dark:bg-white/[0.05] border border-orange-200/70 dark:border-orange-300/[0.16] transition-colors duration-300 flex flex-col">
+            <section class="rise-item min-h-0" style="animation-delay: 180ms">
+              <div class="crisp-card h-full p-6 md:p-8 rounded-2xl bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm border border-orange-200/70 dark:border-orange-300/[0.14] transition-colors duration-300 flex flex-col">
 
                 <!-- Section header -->
                 <div class="mb-5 flex-shrink-0">
                   <p class="inline-flex items-center px-3.5 py-1.5 rounded-full border border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-[0.18em] mb-3 transition-colors duration-300">Your Projects</p>
                   <div class="flex items-end justify-between gap-3 mb-2">
-                    <h2 class="text-2xl font-semibold text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
+                    <h2 class="text-2xl font-semibold tracking-tight text-blue-950 dark:text-white transition-colors duration-300">Project Library</h2>
                     <span
                       v-if="!isLoading && !error && displayedProjects.length > 0"
-                      class="inline-flex items-center px-2.5 py-1 mb-0.5 rounded-full border border-blue-200/60 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-xs font-medium text-blue-950/60 dark:text-blue-100/60 transition-colors duration-300"
+                      class="inline-flex items-center px-2.5 py-1 mb-0.5 rounded-full border border-blue-200/60 dark:border-white/[0.14] bg-white/85 dark:bg-white/[0.04] text-xs font-medium text-blue-950/70 dark:text-blue-100/55 transition-colors duration-300"
                     >
                       {{ searchQuery ? `${displayedProjects.length} Results` : `${projects.length || 0} Projects` }}
                     </span>
                   </div>
-                  <p class="text-sm text-blue-950/70 dark:text-blue-100/70 transition-colors duration-300">Continue working on your existing applications.</p>
+                  <p class="text-sm text-blue-950/65 dark:text-blue-100/65 leading-relaxed transition-colors duration-300">Continue working on your existing applications.</p>
                 </div>
 
                 <!-- Search Input -->
                 <div class="mb-4 flex-shrink-0">
                   <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-blue-950/40 dark:text-white/40 text-sm"></i>
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-blue-950/40 dark:text-blue-100/40 text-sm"></i>
                     <input
                       v-model="searchQuery"
                       type="text"
                       placeholder="Search projects..."
-                      class="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.12] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-white/40 text-sm transition-all duration-300"
-                      style="outline: none !important;"
+                      class="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-white/[0.04] border border-blue-200/70 dark:border-white/[0.14] focus:border-blue-400 dark:focus:border-blue-300/50 rounded-xl text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/40 text-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
                     >
                   </div>
                 </div>
@@ -182,7 +181,7 @@
                     <p class="text-blue-950/70 dark:text-blue-100/70 mb-4 text-center max-w-md text-sm transition-colors duration-300">{{ error }}</p>
                     <button
                       @click="retryFetch"
-                      class="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/[0.06] hover:bg-blue-50 dark:hover:bg-white/[0.1] border border-blue-200/70 dark:border-white/[0.12] rounded-xl text-blue-950 dark:text-white font-medium text-sm transition-all duration-300"
+                      class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
                     >
                       <i class="fas fa-redo text-sm"></i>
                       <span>Try Again</span>
@@ -556,18 +555,87 @@ watch(
 </script>
 
 <style scoped>
-/* Remove browser default styling for form inputs */
-input, textarea {
-  outline: none !important;
-  box-shadow: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
+/* Warm porcelain canvas fading to white so the page hands off to the footer
+   (footer is bg-white / dark #0a0a0a) — matches Home.vue */
+.projects-page {
+  background: linear-gradient(180deg, #fdf9f2 0%, #faf7f1 45%, #ffffff 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-input:focus, textarea:focus {
-  outline: none !important;
-  box-shadow: none !important;
+.dark .projects-page {
+  background: linear-gradient(180deg, #0c0c0e 0%, #0a0b0f 50%, #0a0a0a 100%);
+}
+
+/* Fine film grain keeps large soft gradients from banding and adds texture */
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+.dark .grain-overlay {
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+/* Soft apricot wash behind the page header */
+.page-glow-warm {
+  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.13), rgba(251, 146, 60, 0.04) 55%, transparent 75%);
+  filter: blur(48px);
+}
+
+.dark .page-glow-warm {
+  background: radial-gradient(closest-side, rgba(251, 146, 60, 0.07), rgba(251, 146, 60, 0.02) 55%, transparent 75%);
+}
+
+/* Italic serif accent with the hero's warm gradient ink */
+.accent-ink {
+  font-style: italic;
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  background: linear-gradient(115deg, #c2410c 5%, #ea580c 55%, #b45309 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-right: 0.06em;
+}
+
+.dark .accent-ink {
+  background: linear-gradient(115deg, #fb923c 5%, #fcd34d 60%, #f59e0b 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Page-load rise: header and panels fade up in sequence */
+.rise-item {
+  animation: rise-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes rise-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-item {
+    animation: none;
+  }
+}
+
+/* Quiet native input decorations (rings are applied via focus-visible classes) */
+input, textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 /* Custom scrollbar for project list */
@@ -622,4 +690,17 @@ input:focus, textarea:focus {
     0 12px 28px -10px rgba(0, 0, 0, 0.55);
 }
 
+</style>
+
+<!-- Unscoped: brand-tinted text selection on the projects page -->
+<style>
+.projects-page ::selection {
+  background: rgba(158, 205, 243, 0.55);
+  color: #172554;
+}
+
+.dark .projects-page ::selection {
+  background: rgba(96, 165, 250, 0.4);
+  color: #eff6ff;
+}
 </style>

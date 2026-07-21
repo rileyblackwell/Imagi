@@ -1,108 +1,108 @@
 <template>
   <div class="add-credits-container">
     <!-- Error message -->
-    <div v-if="error" class="error-message bg-red-50 text-red-600 p-3 rounded mb-4">
+    <div v-if="error" class="error-message bg-red-50/80 dark:bg-red-500/10 border border-red-200/70 dark:border-red-400/25 text-red-700 dark:text-red-300 p-3 rounded-xl mb-4 transition-colors duration-300">
       {{ error }}
     </div>
-    
+
     <!-- Success message -->
-    <div v-if="successMessage" class="success-message bg-green-50 text-green-600 p-3 rounded mb-4">
+    <div v-if="successMessage" class="success-message bg-emerald-50/80 dark:bg-emerald-400/[0.07] border border-emerald-200/70 dark:border-emerald-300/[0.18] text-emerald-700 dark:text-emerald-300 p-3 rounded-xl mb-4 transition-colors duration-300">
       {{ successMessage }}
     </div>
-    
+
     <!-- Credit packages section -->
     <div v-if="packages.length > 0" class="mb-6">
-      <h3 class="text-lg font-semibold mb-3">Credit Packages</h3>
+      <h3 class="text-lg font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Credit Packages</h3>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          v-for="pkg in packages" 
-          :key="pkg.id" 
+        <div
+          v-for="pkg in packages"
+          :key="pkg.id"
           @click="selectPackage(pkg)"
-          class="border rounded-lg p-4 hover:border-indigo-500 cursor-pointer transition-colors"
-          :class="{'border-indigo-500 bg-indigo-50': selectedPackage?.id === pkg.id}"
+          class="border rounded-xl p-4 bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm hover:border-blue-400/60 dark:hover:border-blue-300/40 cursor-pointer transition-colors"
+          :class="selectedPackage?.id === pkg.id ? 'border-blue-500 bg-blue-50/80 dark:border-blue-300/60 dark:bg-blue-400/10' : 'border-blue-950/[0.1] dark:border-white/[0.12]'"
         >
-          <div class="font-semibold text-lg">{{ pkg.name }}</div>
-          <div class="text-gray-600 mb-2">{{ pkg.description || `${pkg.credits} credits` }}</div>
-          <div class="text-xl font-bold text-indigo-600">${{ pkg.price.toFixed(2) }}</div>
+          <div class="font-semibold text-lg text-blue-950 dark:text-white transition-colors duration-300">{{ pkg.name }}</div>
+          <div class="text-blue-950/60 dark:text-blue-100/55 mb-2 transition-colors duration-300">{{ pkg.description || `${pkg.credits} credits` }}</div>
+          <div class="text-xl font-semibold tabular-nums text-blue-700 dark:text-blue-300 transition-colors duration-300">${{ pkg.price.toFixed(2) }}</div>
         </div>
       </div>
     </div>
-    
+
     <!-- Custom amount section -->
     <div class="mb-6">
-      <h3 class="text-lg font-semibold mb-3">Custom Amount</h3>
+      <h3 class="text-lg font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Custom Amount</h3>
       <div class="flex items-center">
-        <span class="text-gray-500 text-lg mr-2">$</span>
-        <input 
-          v-model.number="customAmount" 
-          type="number" 
-          min="5" 
-          max="1000" 
-          step="1" 
-          placeholder="Enter amount" 
-          class="flex-1 p-2 border rounded" 
-          :class="{'border-red-500': customAmountError}"
+        <span class="text-blue-950/60 dark:text-blue-100/55 text-lg mr-2">$</span>
+        <input
+          v-model.number="customAmount"
+          type="number"
+          min="5"
+          max="1000"
+          step="1"
+          placeholder="Enter amount"
+          class="flex-1 p-2 border rounded-xl bg-white dark:bg-white/[0.05] text-blue-950 dark:text-white placeholder-blue-950/40 dark:placeholder-blue-100/30 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:border-blue-500/50 dark:focus-visible:border-blue-300/50"
+          :class="customAmountError ? 'border-red-500/50 dark:border-red-400/50' : 'border-blue-950/[0.12] dark:border-white/[0.14]'"
         />
       </div>
-      <div v-if="customAmountError" class="text-red-500 text-sm mt-1">
+      <div v-if="customAmountError" class="text-red-600 dark:text-red-400 text-sm mt-1">
         {{ customAmountError }}
       </div>
-      <div class="text-sm text-gray-500 mt-1">
+      <div class="text-sm text-blue-950/60 dark:text-blue-100/55 mt-1 transition-colors duration-300">
         Minimum $5, Maximum $1,000
       </div>
     </div>
-    
+
     <!-- Payment methods section -->
     <div class="mb-6">
-      <h3 class="text-lg font-semibold mb-3">Payment Method</h3>
-      
+      <h3 class="text-lg font-semibold tracking-tight text-blue-950 dark:text-white mb-3 transition-colors duration-300">Payment Method</h3>
+
       <!-- Select saved payment method -->
       <div v-if="paymentMethods.length > 0" class="mb-4">
-        <div 
-          v-for="method in paymentMethods" 
-          :key="method.id" 
+        <div
+          v-for="method in paymentMethods"
+          :key="method.id"
           @click="selectedPaymentMethod = method"
-          class="border rounded p-3 mb-2 flex items-center cursor-pointer"
-          :class="{'border-indigo-500 bg-indigo-50': selectedPaymentMethod?.id === method.id}"
+          class="border rounded-xl p-3 mb-2 flex items-center bg-white/85 dark:bg-white/[0.045] backdrop-blur-sm hover:border-blue-400/60 dark:hover:border-blue-300/40 cursor-pointer transition-colors"
+          :class="selectedPaymentMethod?.id === method.id ? 'border-blue-500 bg-blue-50/80 dark:border-blue-300/60 dark:bg-blue-400/10' : 'border-blue-950/[0.1] dark:border-white/[0.12]'"
         >
           <div class="flex-1">
-            <div class="font-medium">{{ method.card_brand.charAt(0).toUpperCase() + method.card_brand.slice(1) }} •••• {{ method.last4 }}</div>
-            <div class="text-sm text-gray-500">Expires {{ method.exp_month }}/{{ method.exp_year }}</div>
+            <div class="font-medium text-blue-950 dark:text-white transition-colors duration-300">{{ method.card_brand.charAt(0).toUpperCase() + method.card_brand.slice(1) }} •••• {{ method.last4 }}</div>
+            <div class="text-sm text-blue-950/60 dark:text-blue-100/55 transition-colors duration-300">Expires {{ method.exp_month }}/{{ method.exp_year }}</div>
           </div>
-          <div v-if="method.is_default" class="text-sm text-indigo-600 font-medium">Default</div>
+          <div v-if="method.is_default" class="text-sm text-blue-700 dark:text-blue-300 font-medium transition-colors duration-300">Default</div>
         </div>
       </div>
-      
+
       <!-- Add new card if no saved cards -->
       <div v-else>
-        <p class="text-gray-600 mb-3">No saved payment methods. Please add a card to continue.</p>
+        <p class="text-blue-950/65 dark:text-blue-100/65 mb-3 transition-colors duration-300">No saved payment methods. Please add a card to continue.</p>
       </div>
-      
+
       <!-- Toggle add new card form -->
-      <button 
-        @click="showAddCard = !showAddCard" 
-        class="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+      <button
+        @click="showAddCard = !showAddCard"
+        class="text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200 text-sm font-medium flex items-center rounded transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
       >
         <span v-if="!showAddCard">+ Add a new card</span>
         <span v-else>Cancel</span>
       </button>
-      
+
       <!-- Add card form -->
       <div v-if="showAddCard" class="mt-3">
         <add-credit-card @card-added="handleCardAdded" />
       </div>
     </div>
-    
+
     <!-- Payment buttons -->
     <div class="flex flex-col space-y-3">
       <!-- Direct payment -->
-      <button 
+      <button
         @click="processDirectPayment"
-        :disabled="!canProceed || isLoading" 
-        class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="!canProceed || isLoading"
+        class="inline-flex items-center justify-center bg-blue-950 text-[#fdf9f2] hover:bg-blue-900 dark:bg-[#f3ede2] dark:text-blue-950 dark:hover:bg-white font-medium py-2 px-4 rounded-full transition-colors duration-200 shadow-[0_1px_2px_rgba(23,37,84,0.2),0_3px_8px_-2px_rgba(23,37,84,0.25)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_3px_8px_-2px_rgba(0,0,0,0.45)] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
       >
         <span v-if="isLoading">
-          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
@@ -110,15 +110,15 @@
         </span>
         <span v-else>Pay Now</span>
       </button>
-      
+
       <!-- Checkout option -->
-      <button 
+      <button
         @click="processCheckout"
-        :disabled="!amountValid || isLoading" 
-        class="border border-indigo-600 text-indigo-600 py-2 px-4 rounded-lg hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="!amountValid || isLoading"
+        class="inline-flex items-center justify-center border border-blue-950/[0.14] text-blue-950/80 hover:text-blue-950 hover:border-blue-950/30 hover:bg-blue-950/[0.03] dark:border-white/[0.16] dark:text-blue-100/80 dark:hover:text-white dark:hover:border-white/30 dark:hover:bg-white/[0.06] font-medium py-2 px-4 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
       >
         <span v-if="isCheckoutLoading">
-          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>

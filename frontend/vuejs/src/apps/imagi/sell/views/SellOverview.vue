@@ -59,7 +59,7 @@
           <h2 class="text-base font-semibold text-blue-950 dark:text-white">Recent orders</h2>
           <router-link
             :to="{ name: 'sell-orders', params: { projectName: route.params.projectName } }"
-            class="text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors duration-200"
+            class="rounded-sm text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline underline-offset-4 decoration-blue-950/25 dark:decoration-blue-100/30 hover:decoration-blue-950/60 dark:hover:decoration-blue-100/70 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
           >
             View all
           </router-link>

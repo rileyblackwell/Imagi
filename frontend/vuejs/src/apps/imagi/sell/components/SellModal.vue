@@ -12,7 +12,7 @@
 
       <!-- Panel -->
       <div
-        class="relative w-full max-h-[88vh] overflow-y-auto crisp-card rounded-2xl bg-white dark:bg-[#211b16] border border-blue-200/70 dark:border-blue-300/[0.16] p-6"
+        class="relative w-full max-h-[88vh] overflow-y-auto crisp-card rounded-2xl bg-white dark:bg-[#141418] border border-blue-200/70 dark:border-blue-300/[0.14] p-6"
         :class="wide ? 'max-w-2xl' : 'max-w-lg'"
         role="dialog"
         aria-modal="true"
@@ -21,7 +21,7 @@
           <h3 class="text-lg font-semibold text-blue-950 dark:text-white transition-colors duration-300">{{ title }}</h3>
           <button
             type="button"
-            class="w-8 h-8 -mt-1 -mr-1 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-white/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200"
+            class="w-8 h-8 -mt-1 -mr-1 rounded-lg flex items-center justify-center text-blue-950/50 dark:text-blue-100/50 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#141418]"
             aria-label="Close"
             @click="$emit('close')"
           >

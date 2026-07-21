@@ -8,26 +8,26 @@
       </svg>
     </div>
 
-    <h1 class="text-3xl font-bold text-white mb-4">{{ title }}</h1>
-    <p class="text-gray-400 mb-8">{{ subtitle }}</p>
+    <h1 class="font-display text-3xl font-semibold tracking-[-0.02em] text-blue-950 dark:text-white mb-4 transition-colors duration-300">{{ title }}</h1>
+    <p class="text-blue-950/65 dark:text-blue-100/65 mb-8 transition-colors duration-300">{{ subtitle }}</p>
 
     <!-- Payment Details -->
-    <div class="bg-dark-900 rounded-lg p-6 mb-8 max-w-md mx-auto">
+    <div class="rounded-2xl bg-white/85 dark:bg-white/[0.045] border border-blue-950/[0.08] dark:border-white/[0.1] backdrop-blur-sm p-6 mb-8 max-w-md mx-auto transition-colors duration-300">
       <div class="space-y-4">
         <div v-for="(detail, index) in details" :key="index" class="flex justify-between items-center">
-          <span class="text-gray-400">{{ detail.label }}:</span>
-          <span 
-            class="text-xl font-semibold" 
-            :class="detail.highlight ? 'text-primary-500' : 'text-white'"
+          <span class="text-blue-950/60 dark:text-blue-100/55">{{ detail.label }}:</span>
+          <span
+            class="text-xl font-semibold tabular-nums"
+            :class="detail.highlight ? 'text-blue-700 dark:text-blue-300' : 'text-blue-950 dark:text-white'"
           >
             {{ detail.value }}
           </span>
         </div>
-        
-        <div v-if="total" class="border-t border-dark-700 pt-4">
+
+        <div v-if="total" class="border-t border-blue-950/[0.08] dark:border-white/[0.1] pt-4">
           <div class="flex justify-between items-center">
-            <span class="text-gray-400">{{ totalLabel }}:</span>
-            <span class="text-2xl font-bold text-white">{{ total }}</span>
+            <span class="text-blue-950/60 dark:text-blue-100/55">{{ totalLabel }}:</span>
+            <span class="text-2xl font-semibold tabular-nums text-blue-950 dark:text-white">{{ total }}</span>
           </div>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default defineComponent({
   stroke-dashoffset: 166;
   stroke-width: 2;
   stroke-miterlimit: 10;
-  stroke: #00ffc6;
+  stroke: #059669;
   fill: none;
   animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
 }
@@ -135,12 +135,27 @@ export default defineComponent({
   stroke-dasharray: 48;
   stroke-dashoffset: 48;
   stroke-width: 3;
-  stroke: #00ffc6;
+  stroke: #059669;
   animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+:root.dark .checkmark-circle,
+.dark .checkmark-circle,
+:root.dark .checkmark-check,
+.dark .checkmark-check {
+  stroke: #34d399;
 }
 
 @keyframes stroke {
   100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkmark-circle,
+  .checkmark-check {
+    animation: none;
     stroke-dashoffset: 0;
   }
 }

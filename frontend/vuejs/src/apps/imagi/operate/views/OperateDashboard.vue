@@ -7,7 +7,7 @@
   <div>
     <!-- Loading -->
     <div v-if="store.dashboardLoading && !dashboard" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-amber-200 dark:border-amber-300/30 border-t-amber-600 dark:border-t-amber-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
     </div>
 
     <template v-else-if="dashboard">
@@ -15,7 +15,7 @@
       <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div v-for="stat in statCards" :key="stat.label" class="p-5" :class="ui.card">
           <div class="flex items-center gap-2 mb-2">
-            <i :class="['fas', stat.icon]" class="text-xs text-amber-600 dark:text-amber-300"></i>
+            <i :class="['fas', stat.icon]" class="text-xs text-orange-600 dark:text-orange-300"></i>
             <p class="text-xs font-semibold uppercase tracking-[0.14em] text-blue-950/50 dark:text-blue-100/50">{{ stat.label }}</p>
           </div>
           <p class="text-2xl font-semibold tabular-nums" :class="stat.tone ?? 'text-blue-950 dark:text-white'">{{ stat.value }}</p>
@@ -55,7 +55,7 @@
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Awaiting payment</h2>
             <router-link
               :to="{ name: 'operate-invoices', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               View all
             </router-link>
@@ -92,7 +92,7 @@
             <h2 class="text-base font-semibold text-blue-950 dark:text-white">Up next</h2>
             <router-link
               :to="{ name: 'operate-tasks', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               View all
             </router-link>
@@ -133,13 +133,13 @@
           <div class="flex items-center gap-4">
             <router-link
               :to="{ name: 'sell-overview', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               Open Sell
             </router-link>
             <router-link
               :to="{ name: 'marketing-overview', params: { projectName: route.params.projectName } }"
-              class="text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors duration-200"
+              class="rounded-md text-sm font-medium text-blue-950/70 dark:text-blue-100/70 hover:text-blue-950 dark:hover:text-white underline decoration-blue-950/20 dark:decoration-blue-100/25 hover:decoration-blue-950/50 dark:hover:decoration-blue-100/60 underline-offset-4 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             >
               Open Market
             </router-link>

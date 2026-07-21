@@ -1,13 +1,13 @@
 <template>
   <div class="balance-display">
-    <div class="text-sm text-white/70 mb-2">{{ label }}</div>
+    <div class="text-sm text-blue-950/70 dark:text-blue-100/55 mb-2 transition-colors duration-300">{{ label }}</div>
     <div v-if="loading" class="animate-pulse-slow py-1">
-      <div class="h-10 w-32 bg-dark-800/80 rounded-lg"></div>
+      <div class="h-10 w-32 bg-blue-950/10 dark:bg-white/10 rounded-lg"></div>
     </div>
-    <div v-else class="font-bold text-3xl bg-gradient-to-r from-primary-300 to-primary-500 bg-clip-text text-transparent">
+    <div v-else class="font-display font-semibold text-3xl tracking-tight tabular-nums text-blue-950 dark:text-white transition-colors duration-300">
       {{ formattedBalance }}
     </div>
-    <div v-if="showLastUpdated && lastUpdated" class="text-sm text-white/60 mt-2">
+    <div v-if="showLastUpdated && lastUpdated" class="text-sm text-blue-950/60 dark:text-blue-100/55 mt-2 transition-colors duration-300">
       Last updated: {{ formatDate(lastUpdated) }}
     </div>
   </div>
@@ -70,18 +70,6 @@ const formatDate = (dateStr: string | Date) => {
   transition: all 0.3s ease;
 }
 
-/* Gradient animation for text */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.bg-gradient-to-r {
-  background-size: 200% auto;
-  animation: gradient-shift 8s ease infinite;
-}
-
 /* Pulsing animation for loading state */
 @keyframes pulse-slow {
   0%, 100% { opacity: 0.6; }
@@ -90,5 +78,11 @@ const formatDate = (dateStr: string | Date) => {
 
 .animate-pulse-slow {
   animation: pulse-slow 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-slow {
+    animation: none;
+  }
 }
 </style> 

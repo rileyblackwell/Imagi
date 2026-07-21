@@ -1,10 +1,10 @@
 <template>
-  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-100 dark:border-white/[0.08] transition-colors duration-300">
+  <div v-if="!isCollapsed" class="flex flex-col h-full bg-white dark:bg-[#0a0a0a] border-r border-blue-950/[0.08] dark:border-white/[0.14] transition-colors duration-300">
     <!-- Header: manager toggle + instance title -->
-    <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-blue-100 dark:border-white/[0.08]">
+    <div class="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-blue-950/[0.08] dark:border-white/[0.14]">
       <div v-if="!isManagerOpen" class="relative group max-md:hidden">
         <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
+          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/65 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           @click="$emit('toggleManager')"
         >
           <i class="fas fa-chevron-right text-sm"></i>
@@ -15,12 +15,12 @@
           Show agent manager
         </div>
       </div>
-      <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-white/80 truncate">
+      <div class="flex-1 min-w-0 text-xs font-semibold text-blue-950/80 dark:text-blue-100/85 truncate">
         {{ activeInstance?.title || 'New instance' }}
       </div>
       <div v-if="onCollapseSidebar" class="relative group shrink-0 max-md:hidden">
         <button
-          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-white/60 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200"
+          class="flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/65 hover:bg-blue-50 dark:hover:bg-white/[0.08] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
           @click="onCollapseSidebar()"
         >
           <i class="fas fa-chevron-left text-sm"></i>
@@ -48,7 +48,7 @@
     <div class="shrink-0 bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
       <div class="px-2 pt-1 pb-3">
         <!-- Input shell: textarea on top, controls toolbar below -->
-        <div class="chat-input-shell rounded-2xl bg-blue-50/40 dark:bg-white/[0.03] border border-blue-100 dark:border-white/[0.08] shadow-sm">
+        <div class="chat-input-shell rounded-2xl bg-blue-50/40 dark:bg-white/[0.03] border border-blue-950/[0.08] dark:border-white/[0.14] shadow-sm">
           <textarea
             ref="promptTextarea"
             v-model="prompt"
@@ -58,7 +58,7 @@
             @input="autoResizeTextarea"
             :disabled="!activeInstance || activeInstance.isProcessing"
             rows="4"
-            class="chat-textarea w-full bg-transparent text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-white/30 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
+            class="chat-textarea w-full bg-transparent text-blue-950 dark:text-white/90 placeholder-blue-950/40 dark:placeholder-blue-100/40 text-sm px-3 pt-3 pb-1 resize-none leading-relaxed"
             style="min-height: 92px; max-height: 240px;"
           ></textarea>
 
@@ -111,10 +111,10 @@
               @click="handlePrompt"
               :disabled="!prompt.trim() || !activeInstance || activeInstance.isProcessing"
               aria-label="Send message"
-              class="btn-send flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300"
+              class="btn-send flex shrink-0 items-center justify-center w-9 h-9 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
               :class="prompt.trim() && activeInstance && !activeInstance.isProcessing
                 ? 'btn-send--active text-[#fdf9f2] dark:text-blue-950'
-                : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-white/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
+                : 'bg-blue-100/60 dark:bg-white/[0.05] text-blue-950/40 dark:text-blue-100/40 cursor-not-allowed border border-blue-200/70 dark:border-white/[0.12] shadow-sm'"
             >
               <i v-if="activeInstance?.isProcessing" class="fas fa-circle-notch fa-spin text-sm"></i>
               <i v-else class="fas fa-arrow-up text-sm"></i>
@@ -290,28 +290,28 @@ async function handleEffortSelect(effort: ReasoningEffort) {
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.6875rem;
-  color: rgba(107, 114, 128, 0.8);
+  color: rgba(23, 37, 84, 0.55);
   pointer-events: none;
   transition: color 0.2s ease;
   z-index: 1;
 }
 
 .dark .dropdown-icon {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(219, 234, 254, 0.55);
 }
 
 .dropdown-wrapper:hover .dropdown-icon {
-  color: rgb(55, 65, 81);
+  color: rgb(23, 37, 84);
 }
 
 .dark .dropdown-wrapper:hover .dropdown-icon {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(219, 234, 254, 0.9);
 }
 
 /* Ghost dropdown select: quiet until hovered, so the input shell stays the
    focal point */
 .dropdown-select {
-  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(107,114,128,0.8)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(23,37,84,0.55)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
   background-repeat: no-repeat;
   background-position: right 0.55rem center;
   background-size: 0.85em;
@@ -336,8 +336,8 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 }
 
 .dark .dropdown-select {
-  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(255,255,255,0.6)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
-  color: rgba(255, 255, 255, 0.65);
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27rgba(219,234,254,0.6)%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e');
+  color: rgba(219, 234, 254, 0.7);
 }
 
 .dropdown-select:hover {
@@ -351,19 +351,19 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 }
 
 .dropdown-select:focus-visible {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px rgba(59, 130, 246, 0.4);
   outline: none;
 }
 
 .dark .dropdown-select:focus-visible {
-  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.35);
+  box-shadow: 0 0 0 2px #0a0a0a, 0 0 0 4px rgba(147, 197, 253, 0.5);
 }
 
 
 /* Style dropdown options to match the page */
 .dropdown-select option {
   background-color: white;
-  color: #374151;
+  color: #172554;
   padding: 8px 12px;
   font-size: 0.75rem;
   font-weight: 500;
@@ -372,7 +372,7 @@ async function handleEffortSelect(effort: ReasoningEffort) {
 
 .dark .dropdown-select option {
   background-color: #0a0a0a;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(219, 234, 254, 0.8);
   outline: none !important;
 }
 

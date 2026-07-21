@@ -24,7 +24,7 @@
       <!-- Tooltip -->
       <div
         v-if="hovered"
-        class="absolute z-10 -top-2 -translate-y-full -translate-x-1/2 px-3 py-2 rounded-xl bg-blue-950 dark:bg-[#2a241e] text-white text-xs shadow-lg whitespace-nowrap pointer-events-none"
+        class="absolute z-10 -top-2 -translate-y-full -translate-x-1/2 px-3 py-2 rounded-xl bg-blue-950 dark:bg-[#26262c] text-white text-xs shadow-lg whitespace-nowrap pointer-events-none"
         :style="{ left: `${(hoveredIndex + 0.5) / points.length * 100}%` }"
       >
         <p class="font-semibold mb-1">{{ hovered.label }}</p>
@@ -39,7 +39,7 @@
           v-for="(point, index) in points"
           :key="point.month"
           type="button"
-          class="flex-1 flex flex-col justify-end items-center group focus:outline-none"
+          class="flex-1 flex flex-col justify-end items-center group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50"
           :aria-label="`${point.label}: income ${formatMoney(point.income)}, expenses ${formatMoney(point.expenses)}`"
           @mouseenter="hoveredIndex = index"
           @mouseleave="hoveredIndex = -1"

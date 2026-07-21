@@ -12,9 +12,9 @@
           v-for="option in statusFilters"
           :key="option.value"
           type="button"
-          class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200"
+          class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
           :class="statusFilter === option.value
-            ? 'border-violet-300 dark:border-violet-400/50 bg-violet-100/80 dark:bg-violet-400/20 text-violet-800 dark:text-violet-200'
+            ? 'border-blue-300/80 dark:border-blue-400/40 bg-blue-100/80 dark:bg-blue-400/20 text-blue-900 dark:text-blue-200'
             : 'border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
           @click="setStatusFilter(option.value)"
         >
@@ -29,7 +29,7 @@
 
     <!-- Loading -->
     <div v-if="store.campaignsLoading && !store.campaigns.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-violet-200 dark:border-violet-300/30 border-t-violet-600 dark:border-t-violet-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-700 dark:border-t-blue-300 rounded-full animate-spin motion-reduce:animate-none"></div>
     </div>
 
     <!-- List -->
@@ -38,7 +38,7 @@
         v-for="campaign in store.campaigns"
         :key="campaign.id"
         :to="{ name: 'marketing-campaign-detail', params: { projectName: route.params.projectName, campaignId: campaign.id } }"
-        class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 group"
+        class="flex flex-col sm:flex-row sm:items-center gap-4 p-5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
         :class="ui.card"
       >
         <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -46,7 +46,7 @@
             <i :class="['fas', campaign.channel === 'voice' ? 'fa-phone-volume' : 'fa-comment-sms']"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-base font-semibold text-blue-950 dark:text-white truncate group-hover:text-violet-800 dark:group-hover:text-violet-200 transition-colors duration-200">
+            <p class="text-base font-semibold text-blue-950 dark:text-white truncate group-hover:text-blue-800 dark:group-hover:text-blue-200 transition-colors duration-200">
               {{ campaign.name }}
             </p>
             <p class="text-sm text-blue-950/60 dark:text-blue-100/60 truncate">{{ campaign.body }}</p>
@@ -64,7 +64,7 @@
             <p class="text-xs text-blue-950/50 dark:text-blue-100/50">{{ campaign.scheduled_at ? 'scheduled for' : 'created' }}</p>
           </div>
           <StatusBadge :status="campaign.status" />
-          <i class="fas fa-chevron-right text-xs text-blue-950/30 dark:text-white/30 group-hover:translate-x-0.5 transition-transform duration-200"></i>
+          <i class="fas fa-chevron-right text-xs text-blue-950/30 dark:text-blue-100/30 group-hover:translate-x-0.5 transition-transform duration-200"></i>
         </div>
       </router-link>
     </div>

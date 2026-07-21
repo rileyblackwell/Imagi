@@ -8,15 +8,15 @@
     <div class="flex" :class="appShell ? 'h-dvh overflow-hidden' : 'min-h-screen'">
       <!-- Sidebar -->
       <aside
-        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-dark-800/70 shadow-xl"
+        class="fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out border-r border-blue-950/[0.08] dark:border-white/[0.08] shadow-xl"
         :class="[
           isSidebarCollapsed
             ? 'w-16 bg-white dark:bg-[#0a0a0a]'
             : (extraWide
-              ? 'w-[36rem] bg-white dark:bg-dark-950/95 backdrop-blur-md'
+              ? 'w-[36rem] bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'
               : (wide
-                ? 'w-80 bg-white dark:bg-dark-950/95 backdrop-blur-md'
-                : 'w-72 bg-white dark:bg-dark-950/95 backdrop-blur-md')),
+                ? 'w-80 bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md'
+                : 'w-72 bg-white dark:bg-[#0a0a0a]/95 backdrop-blur-md')),
           mobileOverlay ? 'max-md:top-16 max-md:w-full max-md:bg-white max-md:dark:bg-[#0a0a0a] max-md:backdrop-blur-none' : '',
           mobileOverlay ? (isSidebarCollapsed ? 'max-md:-translate-x-full' : 'max-md:translate-x-0') : ''
         ]"
@@ -30,7 +30,7 @@
           <!-- Collapse/Expand Button -->
           <button 
             @click="toggleSidebar"
-            class="sidebar-toggle-btn flex items-center justify-center w-8 h-8 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+            class="sidebar-toggle-btn flex items-center justify-center w-8 h-8 rounded-md text-blue-950/60 dark:text-blue-100/60 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
             :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
           >
             <i 
@@ -48,17 +48,17 @@
               :key="item.name"
               :to="item.to"
               :class="[
-                'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-                isActivePath(item) 
-                  ? 'bg-primary-500/10 text-primary-400 shadow-sm' 
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-800/70 hover:text-gray-900 dark:hover:text-white'
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]',
+                isActivePath(item)
+                  ? 'bg-blue-50/80 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300 shadow-sm'
+                  : 'text-blue-950/65 dark:text-blue-100/65 hover:bg-blue-950/[0.04] dark:hover:bg-white/[0.06] hover:text-blue-950 dark:hover:text-white'
               ]"
             >
               <i 
                 :class="[
                   item.icon,
                   'text-lg transition-colors duration-200',
-                  isActivePath(item) ? 'text-primary-400' : 'text-gray-600 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white',
+                  isActivePath(item) ? 'text-blue-700 dark:text-blue-300' : 'text-blue-950/50 dark:text-blue-100/40 group-hover:text-blue-950 dark:group-hover:text-white',
                   isSidebarCollapsed ? '' : 'mr-3'
                 ]"
               ></i>
@@ -78,7 +78,7 @@
         </div>
 
         <!-- Bottom Actions -->
-        <div class="flex-shrink-0 border-t border-gray-200 dark:border-dark-800/70">
+        <div class="flex-shrink-0 border-t border-blue-950/[0.08] dark:border-white/[0.08]">
           <!-- Additional bottom actions from slot -->
           <slot name="sidebar-bottom"></slot>
         </div>
@@ -95,7 +95,7 @@
       >
         <!-- Navbar -->
         <BaseNavbar
-          class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-dark-900/80 backdrop-blur-md border-b border-gray-200 dark:border-dark-800/70 shadow-sm"
+          class="fixed top-0 right-0 z-20 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-blue-950/[0.08] dark:border-white/[0.08]"
           :class="[
             isSidebarCollapsed ? 'left-16' : (extraWide ? 'left-[36rem]' : (wide ? 'left-80' : 'left-72')),
             mobileOverlay ? 'max-md:left-0' : ''
@@ -136,14 +136,15 @@
 
         <!-- Main content area -->
         <main
-          class="flex-1 flex flex-col relative pt-16 bg-white dark:bg-gradient-to-b dark:from-dark-950 dark:to-dark-900 overflow-hidden"
+          class="flex-1 flex flex-col relative pt-16 bg-white dark:bg-[#0a0a0a] overflow-hidden"
           :class="appShell ? 'min-h-0' : ''"
         >
           <slot :isSidebarCollapsed="isSidebarCollapsed"></slot>
         </main>
 
-        <!-- Footer (hidden for full-screen app-shell views like the builder) -->
-        <BaseFooter v-if="!appShell" class="border-t border-gray-200 dark:border-dark-800/70 bg-gray-50 dark:bg-dark-900/50 backdrop-blur-sm" />
+        <!-- Footer (hidden for full-screen app-shell views like the builder);
+             BaseFooter supplies its own white / dark #0a0a0a canvas + hairline. -->
+        <BaseFooter v-if="!appShell" />
       </div>
     </div>
   </BaseLayout>
@@ -252,27 +253,9 @@ aside {
   visibility: visible;
 }
 
-/* Remove all outline and focus effects from sidebar toggle button */
+/* No tap flash on the toggle; keyboard focus shows the canonical ring via
+   the focus-visible utilities on the button itself. */
 .sidebar-toggle-btn {
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-
-.sidebar-toggle-btn:hover,
-.sidebar-toggle-btn:focus,
-.sidebar-toggle-btn:focus-visible,
-.sidebar-toggle-btn:active {
-  outline: 0 !important;
-  outline-width: 0 !important;
-  outline-style: none !important;
-  outline-offset: 0 !important;
-  outline-color: transparent !important;
-  box-shadow: none !important;
-  -webkit-box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
 }
 </style>

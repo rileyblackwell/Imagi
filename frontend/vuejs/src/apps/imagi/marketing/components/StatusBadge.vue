@@ -6,7 +6,7 @@
     class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap transition-colors duration-300"
     :class="colorClasses"
   >
-    <span v-if="pulse" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+    <span v-if="pulse" class="w-1.5 h-1.5 rounded-full bg-current animate-pulse motion-reduce:animate-none"></span>
     {{ label }}
   </span>
 </template>
@@ -44,6 +44,6 @@ const colorClasses = computed(() => {
     return 'border-amber-200/80 dark:border-amber-400/25 bg-amber-50/80 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300'
   }
   // draft, canceled, unknown
-  return 'border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-blue-950/60 dark:text-white/60'
+  return 'border-blue-950/10 dark:border-white/15 bg-blue-950/[0.03] dark:bg-white/[0.04] text-blue-950/60 dark:text-blue-100/60'
 })
 </script>

@@ -11,9 +11,9 @@
           v-for="option in filterOptions"
           :key="option.value"
           type="button"
-          class="px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap border transition-colors duration-200"
+          class="px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#fdf9f2] dark:focus-visible:ring-offset-[#0c0c0e]"
           :class="statusFilter === option.value
-            ? 'border-amber-300 dark:border-amber-400/40 bg-amber-50 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300'
+            ? 'border-orange-200/70 dark:border-orange-400/25 bg-orange-50/80 dark:bg-orange-400/10 text-orange-700 dark:text-orange-300'
             : 'border-transparent text-blue-950/60 dark:text-blue-100/60 hover:text-blue-950 dark:hover:text-white'"
           @click="setFilter(option.value)"
         >
@@ -32,7 +32,7 @@
 
     <!-- Loading -->
     <div v-if="store.tasksLoading && !store.tasks.length" class="flex justify-center py-16">
-      <div class="w-6 h-6 border-2 border-amber-200 dark:border-amber-300/30 border-t-amber-600 dark:border-t-amber-300 rounded-full animate-spin"></div>
+      <div class="w-6 h-6 border-2 border-blue-200 dark:border-blue-300/30 border-t-blue-600 dark:border-t-blue-300 rounded-full animate-spin"></div>
     </div>
 
     <!-- Task list -->
@@ -45,7 +45,7 @@
         <!-- Complete toggle -->
         <button
           type="button"
-          class="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors duration-200"
+          class="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
           :class="task.status === 'done'
             ? 'border-emerald-500 bg-emerald-500 text-white'
             : 'border-blue-950/25 dark:border-white/25 text-transparent hover:border-emerald-500'"
@@ -59,7 +59,7 @@
         <div class="flex-1 min-w-0">
           <p
             class="text-sm font-medium truncate transition-colors duration-200"
-            :class="task.status === 'done' ? 'text-blue-950/40 dark:text-white/40 line-through' : 'text-blue-950 dark:text-white'"
+            :class="task.status === 'done' ? 'text-blue-950/40 dark:text-blue-100/40 line-through' : 'text-blue-950 dark:text-white'"
           >
             {{ task.title }}
           </p>
@@ -88,7 +88,7 @@
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-white/40 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-blue-950 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/[0.08] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             aria-label="Edit task"
             @click="openEdit(task)"
           >
@@ -96,7 +96,7 @@
           </button>
           <button
             type="button"
-            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-white/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-950/40 dark:text-blue-100/40 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0c0c0e]"
             aria-label="Delete task"
             @click="confirmDelete(task)"
           >

@@ -26,7 +26,7 @@
               </router-link>
               <button
                 @click="$emit('retry')"
-                class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-blue-200/70 dark:border-white/[0.12] bg-white dark:bg-white/[0.03] hover:bg-blue-50 dark:hover:bg-white/[0.06] text-blue-950/80 dark:text-white/70 hover:text-blue-950 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-300 font-medium"
+                class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-blue-950/[0.14] dark:border-white/[0.16] bg-white dark:bg-white/[0.03] hover:bg-blue-950/[0.03] dark:hover:bg-white/[0.06] hover:border-blue-950/30 dark:hover:border-white/30 text-blue-950/80 dark:text-blue-100/80 hover:text-blue-950 dark:hover:text-white shadow-sm hover:shadow-md transition-all duration-300 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0a0a0a]"
               >
                 <i class="fas fa-sync-alt mr-2"></i>
                 Retry
